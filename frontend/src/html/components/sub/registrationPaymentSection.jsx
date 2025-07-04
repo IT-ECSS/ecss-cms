@@ -1559,6 +1559,13 @@ class RegistrationPaymentSection extends Component {
           paymentMethods = ['PayNow'];
         }
       }
+      if(location === "Pasir Ris West Wellness Centre")
+      {
+        if(courseName !== "Community Ukulele – Mandarin")
+        {
+          paymentMethods = ['PayNow', 'SkillsFuture'];
+        }
+      }
       else
       {
         if(courseName !== "Community Ukulele – Mandarin")

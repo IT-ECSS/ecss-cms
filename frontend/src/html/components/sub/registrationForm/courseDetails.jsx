@@ -112,7 +112,7 @@ class CourseDetailsSection extends Component {
                 PayNow
               </label>
               {/* NSA: Conditionally render SkillsFuture. Marriage Prep: always show. */}
-              {(isNSA && !courseEnglishName.includes('Ukulele') && !courseChineseName.includes('音乐祝福社区四弦琴班')) || isMarriagePrep ? (
+              {(isNSA && !courseEnglishName.includes('Community Ukulele – Mandarin L1') && !courseChineseName.includes('音乐祝福社区四弦琴班')) || isMarriagePrep ? (
                 <label>
                   <input
                     type="radio"
@@ -123,6 +123,7 @@ class CourseDetailsSection extends Component {
                   SkillsFuture
                 </label>
               ) : null}
+              
             </div>
             {/* Display error message if no payment option is selected, paymentTouched is true, and courseType is NSA or Marriage Prep */}
             {(isNSA || isMarriagePrep) && !selectedPayment && paymentTouched && (
