@@ -114,7 +114,7 @@ class CourseDetailsSection extends Component {
               {/* NSA: Conditionally render SkillsFuture. Marriage Prep: always show. */}
               {(
                 isNSA && (
-                  courseEnglishName === 'Community Ukulele – Mandarin L2B' ||
+                  courseEnglishName === 'Community Ukulele – Mandarin L2A' ||
                   courseEnglishName === 'Community Ukulele – Mandarin L2B' ||
                   (courseEnglishName !== 'Community Ukulele – Mandarin L1' && courseChineseName !== "音乐祝福社区四弦琴班")
                 )
