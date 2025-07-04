@@ -24,11 +24,13 @@ def product_list(request):
             products = woo_api.get_nsa_products()
         elif courseType == "ILP":
             products = woo_api.get_ilp_products()
+        elif courseType == "Marriage Preparation Programme":
+            products = woo_api.get_marriage_prep_products()
         else:
             # Handle cases where no valid courseType is provided
-            products = woo_api.get_nsa_products() + woo_api.get_ilp_products()
+            products = woo_api.get_nsa_products() + woo_api.get_ilp_products() + woo_api.get_marriage_prep_products()
 
-        print(products)
+        #print(products)
 
         # Return the products as a JSON response
         return JsonResponse({"courses": products})

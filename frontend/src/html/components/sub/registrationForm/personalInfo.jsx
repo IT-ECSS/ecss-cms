@@ -360,8 +360,16 @@ class PersonalInfo extends Component {
       ];
       
       const currentYear = new Date().getFullYear();
-      const latestYear = currentYear - 50; // 50 years before the current year
-    
+      // Get course type from props if available
+      const courseType = this.props.data?.type;
+      let latestYear;
+      if (courseType === 'Marriage Preparation Programme') {
+        // Allow any age for Marriage Preparation Programme
+        latestYear = new Date().getFullYear();
+      } else {
+        // Restrict to 50+ for ILP and NSA
+        latestYear = new Date().getFullYear() - 50;
+      }
       // Assume earliestYear comes from an external source, such as input, settings, etc.
       let earliestYear = 1934; // You can make this dynamic
   
@@ -369,8 +377,9 @@ class PersonalInfo extends Component {
       const years = Array.from({ length: latestYear - earliestYear + 1 }, (_, i) => earliestYear + i);
   
       const maxDate = new Date();
-      console.log("Last Year:", maxDate.getFullYear()-50);
-      maxDate.setFullYear(maxDate.getFullYear() - 50);
+      if (courseType !== 'Marriage Preparation Programme') {
+        maxDate.setFullYear(maxDate.getFullYear() - 50);
+      }
 
     return (
       <div>

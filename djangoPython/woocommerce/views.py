@@ -15,6 +15,7 @@ def product_list(request):
         data = json.loads(request.body)
         print("Data received:", data)
         courseType = data.get('courseType')  # Get the courseType from the request body
+        print("Course Type:", courseType)
 
         # Initialize WooCommerce API instance
         woo_api = WooCommerceAPI()
@@ -24,11 +25,14 @@ def product_list(request):
             products = woo_api.get_nsa_products()
         elif courseType == "ILP":
             products = woo_api.get_ilp_products()
+        elif courseType == "Marriage Preparation Programme":
+            print("Hello, fetching Marriage Preparation Programme products...")
+            #products = woo_api.get_marriage_prep_products()
         else:
             # Handle cases where no valid courseType is provided
-            products = woo_api.get_nsa_products() + woo_api.get_ilp_products()
+            products = woo_api.get_nsa_products() + woo_api.get_ilp_products() + woo_api.get_marriage_prep_products()
 
-        print(products)
+        #print(products)
 
         # Return the products as a JSON response
         return JsonResponse({"courses": products})
@@ -734,4 +738,4 @@ def update_stock(request):
         print("Error:", e)  # Log the error to the console
         return JsonResponse({'success': False, 'error': str(e)})
 
-    
+

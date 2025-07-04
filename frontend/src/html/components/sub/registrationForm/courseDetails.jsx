@@ -34,13 +34,16 @@ class CourseDetailsSection extends Component {
 
   render() {
     const { selectedPayment, paymentTouched } = this.state;
-  
+    const { courseType, courseLocation, courseEnglishName, courseChineseName } = this.props;
+    const isNSA = courseType === 'NSA';
+    const isMarriagePrep = courseType === 'Marriage Preparation Programme';
+
     return (
       <div className="course-details-section">
         <div className="input-group1">
           <label htmlFor="courseType">Course Type 课程类型</label>
           <span className="course-detail-text" id="courseType">
-            {this.props.courseType}
+            {courseType}
           </span>
         </div>
         <div className="input-group1">
@@ -59,7 +62,7 @@ class CourseDetailsSection extends Component {
             {this.props.courseLocation}
           </span>
         </div>
-        {this.props.courseType === 'NSA' && (  
+        {isNSA && (  
         <div className="input-group1">
           <label htmlFor="coursePrice">Course Price 价格</label>
           <span className="course-detail-text" id="coursePrice">
@@ -74,7 +77,7 @@ class CourseDetailsSection extends Component {
           </span>
         </div>
 
-        {this.props.courseType === 'NSA' && (  
+        {isNSA && (  
         <div className="input-group1">
           <label htmlFor="courseMode">Course Mode 课程模式</label>
           <span className="course-detail-text" id="courseMode">
@@ -82,51 +85,47 @@ class CourseDetailsSection extends Component {
           </span>
         </div>)}
   
-        {this.props.courseType === 'NSA' && (  
-          // Payment Options Section
+        {(isNSA || isMarriagePrep) && (  // Payment Options Section for NSA and Marriage Preparation Programme
           <div className="input-group1">
             <label>I wish to pay by:</label>
             <label>我希望通过以下方式付款：</label>
             <div className="payment-options">
-              {
-                this.props.courseLocation !== 'Pasir Ris West Wellness Centre' && (
-                  <label>
-                    <input
-                      type="radio"
-                      value="Cash"
-                      checked={this.state.selectedPayment === 'Cash'}
-                      onChange={this.handlePaymentChange}
-                    />
-                    Cash
-                  </label>
-                )
-              }
+              {/* For NSA, keep existing logic. For Marriage Prep, always show all three options. */}
+              {(isNSA && courseLocation !== 'Pasir Ris West Wellness Centre') || isMarriagePrep ? (
+                <label>
+                  <input
+                    type="radio"
+                    value="Cash"
+                    checked={selectedPayment === 'Cash'}
+                    onChange={this.handlePaymentChange}
+                  />
+                  Cash
+                </label>
+              ) : null}
               <label>
                 <input
                   type="radio"
                   value="PayNow"
-                  checked={this.state.selectedPayment === 'PayNow'}
+                  checked={selectedPayment === 'PayNow'}
                   onChange={this.handlePaymentChange}
                 />
                 PayNow
               </label>
-              {/* Conditionally render SkillsFuture based on the course names */}
-              {!this.props.courseEnglishName.includes('Ukulele') && 
-                !this.props.courseChineseName.includes('音乐祝福社区四弦琴班') && (
-                  <label>
-                    <input
-                      type="radio"
-                      value="SkillsFuture"
-                      checked={this.state.selectedPayment === 'SkillsFuture'}
-                      onChange={this.handlePaymentChange}
-                    />
-                    SkillsFuture
-                  </label>
-              )}
-              
+              {/* NSA: Conditionally render SkillsFuture. Marriage Prep: always show. */}
+              {(isNSA && !courseEnglishName.includes('Ukulele') && !courseChineseName.includes('音乐祝福社区四弦琴班')) || isMarriagePrep ? (
+                <label>
+                  <input
+                    type="radio"
+                    value="SkillsFuture"
+                    checked={selectedPayment === 'SkillsFuture'}
+                    onChange={this.handlePaymentChange}
+                  />
+                  SkillsFuture
+                </label>
+              ) : null}
             </div>
-            {/* Display error message if no payment option is selected, paymentTouched is true, and courseType is 'NSA' */}
-            {this.props.courseType === 'NSA' && !selectedPayment && paymentTouched && (
+            {/* Display error message if no payment option is selected, paymentTouched is true, and courseType is NSA or Marriage Prep */}
+            {(isNSA || isMarriagePrep) && !selectedPayment && paymentTouched && (
               <>
                 <span className="error-message3">Please select a payment option.</span>
                 <span className="error-message3">请选择付款方式。</span>

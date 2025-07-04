@@ -1545,7 +1545,7 @@ class RegistrationPaymentSection extends Component {
     const currentPaymentMethod = params.value; // Get the current payment method value
 
     let paymentMethods;
-    if(type === "NSA")
+    if((type === "NSA") || (type === "Marriage Preparation Programme"))
     {
       // List of payment methods
       if(location === "Pasir Ris West Wellness Centre")
@@ -1636,16 +1636,18 @@ class RegistrationPaymentSection extends Component {
       headerName: "Payment Method",
       field: "paymentMethod",
       cellRenderer: (params) => {
-        const { course, courseInfo } = params.data;
+        const { courseInfo } = params.data;
+        const { course, courseInfo: ci } = params.data;
         return this.paymentMethodRenderer(
           params,
           course,
-          courseInfo.courseLocation,
-          courseInfo.courseType
+          ci.courseLocation,
+          ci.courseType
         );
       },
       editable: false,
       width: 500,
+      hide: false // Always show column, but render N/A for Marriage Preparation Programme
     },
     {
       headerName: "Sending Payment Details",
@@ -1734,16 +1736,19 @@ class RegistrationPaymentSection extends Component {
         return (
           <span
             style={{
-              fontWeight: "bold",
-              color: "#FFFFFF",
-              textAlign: "center",
               display: "inline-block",
-              borderRadius: "20px",
-              padding: "5px 15px",
-              minWidth: "150px",
-              lineHeight: "30px",
-              whiteSpace: "nowrap",
+              padding: "0.25em 1.2em",
+              borderRadius: "999px",
+              fontWeight: "bold",
+              color: "#fff",
+              fontSize: "0.95em",
+              textAlign: "center",
+             
+              minWidth: "100px",
               backgroundColor,
+              boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+              letterSpacing: "0.02em",
+              lineHeight: "1.8",
             }}
           >
             {statusText}
@@ -2012,6 +2017,13 @@ class RegistrationPaymentSection extends Component {
     if (row && row.courseInfo && row.courseInfo.courseType === "ILP") {
       return {
         background: '#d0f5e8' // soft pastel green
+      };
+    }
+
+        // ILP: soft pastel green
+    if (row && row.courseInfo && row.courseInfo.courseType === "Marriage Preparation Programme") {
+      return {
+        background: '#fff9c4' // soft pastel yellow
       };
     }
   

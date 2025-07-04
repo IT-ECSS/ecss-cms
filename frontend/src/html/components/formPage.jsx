@@ -351,13 +351,40 @@ class FormPage extends Component {
       console.log("Matched Course:", matchedCourse);
 
       if (matchedCourse) {
-        const type = matchedCourse.categories[1].name.split(":")[1].trim();
+        // Robust extraction of course type
+        let type = '';
+        if (
+          matchedCourse.categories &&
+          Array.isArray(matchedCourse.categories) &&
+          matchedCourse.categories[1] &&
+          typeof matchedCourse.categories[1].name === 'string'
+        ) {
+          const nameParts = matchedCourse.categories[1].name.split(":");
+          if (nameParts.length > 1 && typeof nameParts[1] === 'string') {
+            type = nameParts[1].trim();
+          } else {
+            type = nameParts[0].trim();
+          }
+        } else if (
+          matchedCourse.categories &&
+          Array.isArray(matchedCourse.categories) &&
+          matchedCourse.categories[0] &&
+          typeof matchedCourse.categories[0].name === 'string'
+        ) {
+          // Fallback to first category name if second is missing
+          type = matchedCourse.categories[0].name.trim();
+        } else {
+          type = '';
+        }
+        console.log("Course Type:", type);
         
         // Setting background color based on course type
         if (type === 'ILP') {
           this.setState({ bgColor: '#006400' });
         } else if (type === 'NSA') {
           this.setState({ bgColor: '#003366' });
+        } else if (type === 'Marriage Preparation Programme') {
+          this.setState({ bgColor: '#f5f5f5', formContainerBg: '#f5f5f5' }); // Set both page and form-container bg
         }
         
         let selectedLocation = matchedCourse.attributes[1].options[0];
@@ -906,72 +933,66 @@ class FormPage extends Component {
     return { isValid: true, error: null }; // NRIC format is valid, but checksum is not checked
   }
 
-  isValidDOB(dob) {
-    console.log("Date of Birth:", dob);
-  
-    // First, check if dob is a non-empty string
-    if (typeof dob === 'string') {
-      // Now, check if dob.formattedDate1 exists and is not empty
-  
-      // Parse the date in the correct format
+  isValidDOB(dob, courseType) {
+    // Only enforce 50+ age restriction for ILP and NSA
+    if (courseType !== 'ILP' && courseType !== 'NSA') {
+      // For Marriage Preparation Programme and other types, just check DOB is present and valid format
+      if (!dob) {
+        return { isValid: false, error: 'Date of Birth is required. 出生日期是必填项。' };
+      }
+      // Accept any valid date format (dd/mm/yyyy or yyyy/mm/dd)
       const dateParts = dob.split('/');
       let dobDate;
-  
-      // Match the formats
       if (dob.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
-        // dd/mm/yyyy or mm/dd/yyyy (same regex, will handle both cases based on the input)
-        dobDate = new Date(`${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`); // yyyy-mm-dd
+        dobDate = new Date(`${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`);
       } else if (dob.match(/^\d{4}\/\d{2}\/\d{2}$/)) {
-        // yyyy/mm/dd or yyyy/dd/mm
-        // Here we assume it's yyyy/mm/dd format because dd/mm/yyyy would already be captured in the first case
-        dobDate = new Date(`${dateParts[0]}-${dateParts[1]}-${dateParts[2]}`); // yyyy-mm-dd
+        dobDate = new Date(`${dateParts[0]}-${dateParts[1]}-${dateParts[2]}`);
       } else {
-        // If the format doesn't match, it's invalid
         return { isValid: false, error: 'Invalid Date of Birth format. 日期格式无效，必须符合：dd/mm/yyyy, yyyy/mm/dd, yyyy/dd/mm, mm/dd/yyyy。' };
       }
-  
-      console.log("Official Date:", dobDate);
-
-      // Get current year and check if the person is at least 50 years old
+      if (isNaN(dobDate.getTime())) {
+        return { isValid: false, error: 'Invalid Date of Birth format. 日期格式无效。' };
+      }
+      return { isValid: true, error: null };
+    }
+    // First, check if dob is a non-empty string
+    if (typeof dob === 'string') {
+      const dateParts = dob.split('/');
+      let dobDate;
+      if (dob.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+        dobDate = new Date(`${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`);
+      } else if (dob.match(/^\d{4}\/\d{2}\/\d{2}$/)) {
+        dobDate = new Date(`${dateParts[0]}-${dateParts[1]}-${dateParts[2]}`);
+      } else {
+        return { isValid: false, error: 'Invalid Date of Birth format. 日期格式无效，必须符合：dd/mm/yyyy, yyyy/mm/dd, yyyy/dd/mm, mm/dd/yyyy。' };
+      }
       const currentYear = new Date().getFullYear();
       const birthYear = dobDate.getFullYear();
       const age = currentYear - birthYear;
-  
       if (age < 50) {
         return { isValid: false, error: 'Age must be at least 50 years. 年龄必须至少为50岁。' };
       }
-  
-      return { isValid: true, error: null }; // Valid DOB
+      return { isValid: true, error: null };
     }
     if (dob.formattedDate1) {
-       // Get current year and check if the person is at least 50 years old
-       const currentYear = new Date().getFullYear();
-       const birthYear = new Date(dob.formattedDate1).getFullYear();
-       const age = currentYear - birthYear;
-       console.log("Age:", age);
-   
-       if (age < 50) {
-         return { isValid: false, error: 'Age must be at least 50 years. 年龄必须至少为50岁。' };
-       }
-   
-       return { isValid: true, error: null }; // Valid DOB
+      const currentYear = new Date().getFullYear();
+      const birthYear = new Date(dob.formattedDate1).getFullYear();
+      const age = currentYear - birthYear;
+      if (age < 50) {
+        return { isValid: false, error: 'Age must be at least 50 years. 年龄必须至少为50岁。' };
+      }
+      return { isValid: true, error: null };
     }
-      
-  
     return { isValid: false, error: 'Date of Birth is required. 出生日期是必填项。' };
   }
   
 
   validateForm = () => {
     const { currentSection, formData } = this.state;
-    console.log("formData:", formData);
     const errors = {};
-
-    // No validation needed for section 0 (FormDetails) - just SingPass authentication check
     if (currentSection === 0) {
-      return errors; // Return empty errors for section 0
+      return errors;
     }
-
     if (currentSection === 1) {
       if (!formData.pName) {
         errors.pName = 'Name is required. 姓名是必填项。';
@@ -982,9 +1003,9 @@ class FormPage extends Component {
       if (formData.nRIC) {
         const { isValid, error } = this.isValidNRIC(formData.nRIC);
         if (!isValid) {
-            errors.nRIC = error;
+          errors.nRIC = error;
         }
-    }
+      }
       if (!formData.rESIDENTIALSTATUS) {
         errors.rESIDENTIALSTATUS = 'Residential Status is required. 居民身份是必填项。';
       }
@@ -994,38 +1015,32 @@ class FormPage extends Component {
       if (!formData.gENDER) {
         errors.gENDER = 'Gender is required. 性别是必填项。';
       }
-      if (!formData.dOB) 
-      {
-        errors.dOB = "Date of Birth is required. 出生日期是必填项。";
+      if (!formData.dOB) {
+        errors.dOB = 'Date of Birth is required. 出生日期是必填项。';
       }
-      if (formData.dOB) 
-      {
-        console.log("User Input:", formData.dOB);
-        const { isValid, error } = this.isValidDOB(formData.dOB);
+      if (formData.dOB) {
+        const { isValid, error } = this.isValidDOB(formData.dOB, formData.type);
         if (!isValid) {
-            errors.dOB = error;
+          errors.dOB = error;
         }
       }
       if (!formData.cNO) {
         errors.cNO = 'Contact No. is required. 联系号码是必填项。';
       }
-      if (!formData.cNO) {
-          errors.cNO = 'Contact No. is required. 联系号码是必填项。';
-      }
       if (formData.cNO && !/^\d+$/.test(formData.cNO)) {
-          errors.cNO = 'Contact No. must contain only numbers. 联系号码只能包含数字。';
+        errors.cNO = 'Contact No. must contain only numbers. 联系号码只能包含数字。';
       }
       if (formData.cNO && formData.cNO.length !== 8) {
-          errors.cNO = 'Contact No. must be exactly 8 digits. 联系号码必须是8位数字。';
+        errors.cNO = 'Contact No. must be exactly 8 digits. 联系号码必须是8位数字。';
       }
       if (formData.cNO && !/^[89]/.test(formData.cNO)) {
-          errors.cNO = 'Contact No. must start with 8 or 9. 联系号码必须以8或9开头。';
-      }    
+        errors.cNO = 'Contact No. must start with 8 or 9. 联系号码必须以8或9开头。';
+      }
       if (!formData.eMAIL) {
         errors.eMAIL = 'Email is required. 电子邮件是必填项。';
       }
       if (!formData.address) {
-          errors.address = 'Address is required. 地址是必填项。';
+        errors.address = 'Address is required. 地址是必填项。';
       }
       if (!formData.eDUCATION) {
         errors.eDUCATION = 'Education Level is required. 教育水平是必填项。';
@@ -1247,7 +1262,7 @@ class FormPage extends Component {
     return (
       <div className="formwholepage" style={{ backgroundColor: bgColor }}>
         <div className="form-page">
-          <div className="form-container">
+          <div className="form-container" style={this.state.formContainerBg ? { backgroundColor: this.state.formContainerBg } : {}}>
             {/* MyInfo Service Status Indicator */}
             <MyInfoStatusIndicator 
               status={this.state.myInfoServiceStatus}
@@ -1293,11 +1308,12 @@ class FormPage extends Component {
                 agreement={formData.agreement}
                 onChange={this.handleDataChange}
                 errors={validationErrors}
+                courseType={formData.type}
               />
             )}
             {currentSection === 4 && <SubmitDetailsSection />}
           </div>
-        </div>s
+        </div>
 
         {/* Simplified button structure - remove authentication logic */}
         {currentSection === 0 && (
