@@ -112,7 +112,13 @@ class CourseDetailsSection extends Component {
                 PayNow
               </label>
               {/* NSA: Conditionally render SkillsFuture. Marriage Prep: always show. */}
-              {(isNSA && !courseEnglishName.includes('Community Ukulele – Mandarin L1') && !courseChineseName.includes('音乐祝福社区四弦琴班')) || isMarriagePrep ? (
+              {(
+                isNSA && (
+                  courseEnglishName === 'Community Ukulele – Mandarin L2B' ||
+                  courseEnglishName === 'Community Ukulele – Mandarin L2B' ||
+                  (courseEnglishName !== 'Community Ukulele – Mandarin L1' && courseChineseName !== "音乐祝福社区四弦琴班")
+                )
+              ) || isMarriagePrep ? (
                 <label>
                   <input
                     type="radio"
