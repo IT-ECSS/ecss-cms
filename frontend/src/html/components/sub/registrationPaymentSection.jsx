@@ -516,6 +516,7 @@ class RegistrationPaymentSection extends Component {
 
       receiptShown = async (participant, course, receiptNo, officialInfo) => {
         try {
+          console.log("Generating receipt for course:", course);
           // Define the purpose based on payment type
           let purpose = course.payment === "Cash" || course.payment === "PayNow" ? "receipt" : "invoice";
       
@@ -532,6 +533,8 @@ class RegistrationPaymentSection extends Component {
             },
             { responseType: "blob" }
           );
+
+          console.log("PDF Response:", pdfResponse);  // Debugging
       
           // Dynamically generate filename based on participant name, payment type, and receipt number
           const filename = `${participant.name}-${course.payment}-${receiptNo}.pdf`;
@@ -1430,15 +1433,13 @@ class RegistrationPaymentSection extends Component {
     
           rowIndex++;
           participantIndex++;
-        }
-    
-        // Set Weekly labels in row 4 (D4 onwards) - Add proper error handling
+        }        // Set Weekly labels in row 4 (D4 onwards) - Add proper error handling
         const [startDate, endDate] = (courseDuration || "").split(" - ");
         // Default to current date if no valid start date
-        const start = startDate ? new Date(startDate) : new Date();
+        let start = startDate ? new Date(startDate) : new Date();
         // Default to a month later if no valid end date
-        const end = endDate ? new Date(endDate) : new Date(start.getTime() + 30 * 24 * 60 * 60 * 1000);
-    
+        let end = endDate ? new Date(endDate) : new Date(start.getTime() + 30 * 24 * 60 * 60 * 1000);
+
         // Handle invalid dates
         if (isNaN(start.getTime()) || isNaN(end.getTime())) {
           console.error("Invalid course dates:", { startDate, endDate });

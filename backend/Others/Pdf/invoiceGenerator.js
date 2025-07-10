@@ -321,7 +321,8 @@ class invoiceGenerator {
             "Enhanced Therapeutic Intermediate Watercolour": "TGS-2025054495",
             "Community Ukulele – Mandarin L1": "TGS-2021008564",
             "Bonsai Learning – Elementary": "TGS-2025054490",
-            "Healthy Minds for Healthy Lives": "TGS-2023019019"  
+            "Healthy Minds for Healthy Lives": "TGS-2023019019",
+            "Community Ukulele – Mandarin L2A": "TGS-2025054492"
             //Healthy Minds, Healthy Lives – Mandarin
         };
     

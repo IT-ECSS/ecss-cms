@@ -374,7 +374,7 @@ router.post('/', async function(req, res, next)
     }
     else if(req.body.purpose === "invoice")
     {
-        console.log(req.body);
+        console.log("Invoice:",req.body);
         var invoice = new invoiceGenerator();
         var array = []
         array.push({

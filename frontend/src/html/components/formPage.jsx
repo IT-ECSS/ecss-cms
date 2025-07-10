@@ -1221,28 +1221,11 @@ class FormPage extends Component {
     }
   };
 
-  // Component lifecycle - start monitoring
-  componentDidMount() {
-    console.log('🔍 Starting MyInfo real-time monitoring...');
-    // The monitoring is already started in the constructor
-    
-    // Check initial MyInfo status
-    setTimeout(() => {
-      this.checkMyInfoAvailabilityBeforeAuth();
-    }, 1000); // Give it a moment to initialize
-  };
-
   // Component cleanup
   componentWillUnmount() {
     console.log('🔍 Stopping MyInfo real-time monitoring...');
     if (this.myInfoErrorHandler) {
       this.myInfoErrorHandler.destroy();
-    }
-  };
-  
-  handleBack = () => {
-    if (this.state.currentSection > 0) {
-      this.setState({ currentSection: this.state.currentSection - 1 });
     }
   };
 
