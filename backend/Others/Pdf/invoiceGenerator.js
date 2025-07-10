@@ -322,7 +322,9 @@ class invoiceGenerator {
             "Community Ukulele – Mandarin L1": "TGS-2021008564",
             "Bonsai Learning – Elementary": "TGS-2025054490",
             "Healthy Minds for Healthy Lives": "TGS-2023019019",
-            "Community Ukulele – Mandarin L2A": "TGS-2025054492"
+            "Community Ukulele – Mandarin L2A": "TGS-2025054492",
+            "Community Ukulele – Mandarin L2B": "TGS-2025054492",
+            "Community Cajon Foundation 1": "TGS-2025054489"
             //Healthy Minds, Healthy Lives – Mandarin
         };
     
