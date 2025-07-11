@@ -3,6 +3,7 @@ import '../../css/formPage.css';
 import '../../css/myinfo-testing.css';
 import FormDetails from './sub/registrationForm/formDetails';
 import PersonalInfo from './sub/registrationForm/personalInfo';
+import SpouseInfo from './sub/registrationForm/spouseInfo';
 import CourseDetails from './sub/registrationForm/courseDetails';
 import AgreementDetailsSection from './sub/registrationForm/agreementDetails';
 import SubmitDetailsSection from './sub/registrationForm/submitDetails';
@@ -51,7 +52,33 @@ class FormPage extends Component {
         agreement: '',
         bgColor: '',
         courseMode: '',
-        courseTime: ''
+        courseTime: '',
+        // Marriage Preparation Programme specific fields
+        mARITALSTATUS: '',
+        hOUSINGTYPE: '',
+        gROSSMONTHLYINCOME: '',
+        mARRIAGEDURATION: '',
+        tYPEOFMARRIAGE: '',
+        hASCHILDREN: '',
+        // Spouse fields
+        spouseName: '',
+        spouseNRIC: '',
+        spouseDOB: '',
+        spouseResidentialStatus: '',
+        spouseSex: '',
+        spouseEthnicity: '',
+        spouseMaritalStatus: '',
+        spousePostalCode: '',
+        spouseMobile: '',
+        spouseEmail: '',
+        spouseEducation: '',
+        spouseHousingType: '',
+        howFoundOut: '',
+        howFoundOutOthers: '',
+        sourceOfReferral: '',
+        // Marriage Preparation Programme consent checkboxes
+        marriagePrepConsent1: false,
+        marriagePrepConsent2: false
       },
       validationErrors: {}
     };
@@ -215,6 +242,9 @@ class FormPage extends Component {
   };
 
   componentDidMount = async () => {
+    // Set mounted flag to prevent setState warnings
+    this._isMounted = true;
+    
     window.scrollTo(0, 0);
 
     // Development: Add keyboard shortcut for error testing
@@ -256,11 +286,13 @@ class FormPage extends Component {
     }
     
     // Set initial section based on URL parameter or default to 0
-    const initialSection = sectionParam ? parseInt(sectionParam) : 0;
+    let initialSection = sectionParam ? parseInt(sectionParam) : 0;
+    const hasSectionParam = !!sectionParam; // Track if section was explicitly set via URL
     
     console.log('Final Course Link:', link);
     console.log('Section Parameter:', sectionParam);
-    console.log('Initial Section:', initialSection);
+    console.log('Initial Section (before course type check):', initialSection);
+    console.log('Has Section Param:', hasSectionParam);
     
     // Check if user is already authenticated with SingPass
     const isAuthenticatedWithSingPass = this.checkSingPassAuthentication();
@@ -283,8 +315,8 @@ class FormPage extends Component {
       });
     }
 
-    // Load course data with the decoded link
-    await this.loadCourseData(link);
+    // Load course data with the decoded link, passing hasSectionParam to preserve explicit sections
+    await this.loadCourseData(link, hasSectionParam);
   };
 
   // Add method to navigate with section parameter while preserving course link
@@ -305,13 +337,14 @@ class FormPage extends Component {
   };
 
   // Update loadCourseData to handle both encoded and decoded links
-  loadCourseData = async (link) => {
+  loadCourseData = async (link, hasSectionParam = false) => {
     // Use provided link or try to get from sessionStorage
     if (!link) {
       link = sessionStorage.getItem("courseLink");
     }
     
     console.log('Loading course data with link:', link);
+    console.log('Has section param:', hasSectionParam);
 
     if (link) {
       // Ensure the link is properly decoded for comparison
@@ -378,13 +411,16 @@ class FormPage extends Component {
         }
         console.log("Course Type:", type);
         
-        // Setting background color based on course type
+        // Prepare background color based on course type
+        let bgColor = '';
+        let formContainerBg = '';
         if (type === 'ILP') {
-          this.setState({ bgColor: '#006400' });
+          bgColor = '#006400';
         } else if (type === 'NSA') {
-          this.setState({ bgColor: '#003366' });
+          bgColor = '#003366';
         } else if (type === 'Marriage Preparation Programme') {
-          this.setState({ bgColor: '#f5f5f5', formContainerBg: '#f5f5f5' }); // Set both page and form-container bg
+          bgColor = '#f5f5f5';
+          formContainerBg = '#f5f5f5';
         }
         
         let selectedLocation = matchedCourse.attributes[1].options[0];
@@ -468,51 +504,75 @@ class FormPage extends Component {
         const courseParts = matchedCourse.name.split(/<br\s*\/?>/).map(part => part.trim());
         const formattedPrice = matchedCourse.price ? `$${parseFloat(matchedCourse.price).toFixed(2)}` : "$0.00";
 
-        // Update course details in state
+        // Update course details in state - consolidated to avoid setState before mount
+        let courseData = {};
         if (courseParts.length === 3) {
-          this.setState((prevState) => ({
-            formData: {
-              ...prevState.formData,
-              chineseName: courseParts[0],
-              englishName: courseParts[1],
-              location: selectedLocation,
-              price: formattedPrice,
-              type,
-              courseDuration,
-              courseTime,
-              courseMode
-            },
-            loading: true
-          }));
+          courseData = {
+            chineseName: courseParts[0],
+            englishName: courseParts[1],
+            location: selectedLocation,
+            price: formattedPrice,
+            type,
+            courseDuration,
+            courseTime,
+            courseMode
+          };
         } else if (courseParts.length === 2) {
-          this.setState((prevState) => ({
-            formData: {
-              ...prevState.formData,
-              englishName: courseParts[0] || '',
-              //chineseName: courseParts[1] || '',
-              location: selectedLocation,
-              price: formattedPrice,
-              type,
-              courseDuration,
-              courseTime,
-              courseMode
-            },
-            loading: true
-          }));
+          courseData = {
+            englishName: courseParts[0] || '',
+            //chineseName: courseParts[1] || '',
+            location: selectedLocation,
+            price: formattedPrice,
+            type,
+            courseDuration,
+            courseTime,
+            courseMode
+          };
         } else if (courseParts.length === 1) {
+          courseData = {
+            englishName: courseParts[0],
+            location: selectedLocation,
+            price: formattedPrice,
+            type,
+            courseDuration,
+            courseTime,
+            courseMode
+          };
+        }
+
+        // Determine initial section for Marriage Preparation Programme only if no explicit section param
+        const shouldStartAtSection1 = type === 'Marriage Preparation Programme' && !hasSectionParam;
+        
+        // Single setState call to avoid setState before mount warnings
+        if (this._isMounted) {
           this.setState((prevState) => ({
             formData: {
               ...prevState.formData,
-              englishName: courseParts[0],
-              location: selectedLocation,
-              price: formattedPrice,
-              type,
-              courseDuration,
-              courseTime,
-              courseMode
+              ...courseData
             },
-            loading: true
+            loading: true,
+            bgColor: bgColor,
+            formContainerBg: formContainerBg,
+            currentSection: shouldStartAtSection1 ? 1 : prevState.currentSection
           }));
+        } else {
+          // If component not mounted yet, update state directly
+          this.state = {
+            ...this.state,
+            formData: {
+              ...this.state.formData,
+              ...courseData
+            },
+            loading: true,
+            bgColor: bgColor,
+            formContainerBg: formContainerBg,
+            currentSection: shouldStartAtSection1 ? 1 : this.state.currentSection
+          };
+        }
+        
+        // Log when Marriage Preparation Programme section adjustment happens
+        if (shouldStartAtSection1) {
+          console.log('Marriage Preparation Programme detected, starting from section 1');
         }
       } else {
         console.log("No matching course found");
@@ -593,9 +653,17 @@ class FormPage extends Component {
     this.setState({ isAuthenticated: true });
   };
 
-    populateFormWithSingPassData = () => {
+  populateFormWithSingPassData = () => {
     try {
       const userData = this.getSingPassUserData();
+      
+      // Skip SingPass population for Marriage Preparation Programme
+      if (this.state.formData.type === 'Marriage Preparation Programme') {
+        console.log('Marriage Preparation Programme detected, skipping SingPass data population');
+        this.navigateToSection(1);
+        return;
+      }
+      
       this.navigateToSection(1);
   
       if (!userData) {
@@ -663,6 +731,12 @@ class FormPage extends Component {
 
   // Add method to clear SingPass data without reloading
   clearSingPassData = () => {
+    // Skip clearing for Marriage Preparation Programme since they don't use SingPass
+    if (this.state.formData.type === 'Marriage Preparation Programme') {
+      console.log('Marriage Preparation Programme detected, SingPass clearing not applicable');
+      return;
+    }
+    
     // Clear SingPass session data
     sessionStorage.removeItem("singpass_user_data_json");
     sessionStorage.removeItem("singpass_access_token");
@@ -723,54 +797,98 @@ class FormPage extends Component {
   handleNext = () => {
     console.log("Pressed Next");
     const errors = this.validateForm();
-    const { currentSection } = this.state;
+    const { currentSection, formData } = this.state;
     console.log("Current Section:", currentSection);
 
-    // Existing validation logic for other sections
-    if (currentSection === 2) {
-      if (this.props.type === "NSA" && !this.courseDetailsRef.state.selectedPayment) {
-        errors.selectedPayment = 'Please select a payment option.';
-        this.courseDetailsRef.setState({ paymentTouched: true });
-      } 
-      else if (this.props.type === "ILP") {
-        console.log("Go Next");
+    // For Marriage Preparation Programme, treat section 0 as section 1 for validation
+    const effectiveSection = (formData.type === 'Marriage Preparation Programme' && currentSection === 0) ? 1 : currentSection;
+
+    // Validation logic for different sections based on course type
+    if (formData.type === 'Marriage Preparation Programme') {
+      // Marriage Preparation Programme flow: 0/1 -> 2 -> 3 -> 4 -> 5
+      if (effectiveSection === 3) {
+        // Course details section for Marriage Preparation Programme
+        if (this.props.type === "NSA" && !this.courseDetailsRef.state.selectedPayment) {
+          errors.selectedPayment = 'Please select a payment option.';
+          this.courseDetailsRef.setState({ paymentTouched: true });
+        }
+      }
+      if (effectiveSection === 4) {
+        // Agreement section validation for Marriage Preparation Programme (checkboxes)
+        if (!this.agreementDetailsRef.state.marriagePrepConsent1 || !this.agreementDetailsRef.state.marriagePrepConsent2) {
+          errors.agreement = 'Both consent options must be selected to proceed.';
+          this.agreementDetailsRef.setState({ marriagePrepInteracted: true });
+        }
+      }
+    } else {
+      // Original flow for NSA/ILP: 0 -> 1 -> 2 -> 3 -> 4
+      if (effectiveSection === 2) {
+        if (this.props.type === "NSA" && !this.courseDetailsRef.state.selectedPayment) {
+          errors.selectedPayment = 'Please select a payment option.';
+          this.courseDetailsRef.setState({ paymentTouched: true });
+        } 
+        else if (this.props.type === "ILP") {
+          console.log("Go Next");
+        }
+      }
+      if (effectiveSection === 3 && !this.agreementDetailsRef.state.selectedChoice) {
+        errors.agreement = 'Please choose the declaration.';
+        this.agreementDetailsRef.setState({ isSelected: true });
       }
     }
 
-    if (currentSection === 3 && !this.agreementDetailsRef.state.selectedChoice) {
-      errors.agreement = 'Please choose the declaration.';
-      this.agreementDetailsRef.setState({ isSelected: true });
-    }
-
     if (Object.keys(errors).length === 0) {
-      if (this.state.currentSection < 4) { // Added missing opening parenthesis
-        const nextSection = this.state.currentSection + 1;
-        this.navigateToSection(nextSection); // Use URL navigation method
+      const maxSection = formData.type === 'Marriage Preparation Programme' ? 5 : 4;
+      
+      if (this.state.currentSection < maxSection) {
+        let nextSection = this.state.currentSection + 1;
+        
+        // For Marriage Preparation Programme, skip section 1 if starting from section 0
+        if (formData.type === 'Marriage Preparation Programme' && currentSection === 0) {
+          nextSection = 2; // Skip section 1 (PersonalInfo is shown in section 0)
+        }
+        
+        this.navigateToSection(nextSection);
         window.scrollTo(0, 0);
-      } 
-      if (this.state.currentSection === 3) {
+      }
+      
+      // Handle submission for both course types
+      if ((formData.type === 'Marriage Preparation Programme' && this.state.currentSection === 4) ||
+          (formData.type !== 'Marriage Preparation Programme' && this.state.currentSection === 3)) {
         this.handleSubmit();
-      } 
+      }
     } else {
       this.setState({ validationErrors: errors });
     }
   };
 
-  // Update handleBack to use URL parameters
+  // Update handleBack to use URL parameters and handle Marriage Preparation Programme
   handleBack = () => {
-    if (this.state.currentSection > 0) {
-      const prevSection = this.state.currentSection - 1;
+    const { currentSection, formData } = this.state;
+    
+    // For Marriage Preparation Programme, don't allow going back to section 0
+    if (formData.type === 'Marriage Preparation Programme' && currentSection === 1) {
+      return; // Don't go back from section 1 for Marriage Preparation Programme
+    }
+    
+    if (currentSection > 0) {
+      const prevSection = currentSection - 1;
       this.navigateToSection(prevSection); // Use URL navigation method
     }
   };
 
-  // Update the isCurrentSectionValid method to remove authentication requirement
+  // Update the isCurrentSectionValid method to handle Marriage Preparation Programme
   isCurrentSectionValid = () => {
     const { currentSection, formData } = this.state;
     
+    // For Marriage Preparation Programme, allow navigation without validation
+    if (formData.type === 'Marriage Preparation Programme') {
+      return true;
+    }
+    
     switch (currentSection) {
-      case 0: // FormDetails section - always allow proceeding
-        return true; // Remove authentication requirement
+      case 0: // FormDetails section
+        return true; // Remove authentication requirement for other course types
     
       case 1: // Personal Info section
         return formData.pName && formData.nRIC && formData.rESIDENTIALSTATUS && 
@@ -859,6 +977,41 @@ class FormPage extends Component {
       agreement: agreement,
       status: "Pending", 
     };
+
+    // Add Marriage Preparation Programme specific fields if applicable
+    if (courseType === 'Marriage Preparation Programme') {
+      participantDetails.marriageDetails = {
+        maritalStatus: formData.mARITALSTATUS,
+        housingType: formData.hOUSINGTYPE,
+        grossMonthlyIncome: formData.gROSSMONTHLYINCOME,
+        marriageDuration: formData.mARRIAGEDURATION,
+        typeOfMarriage: formData.tYPEOFMARRIAGE,
+        hasChildren: formData.hASCHILDREN,
+        howFoundOut: formData.howFoundOut,
+        howFoundOutOthers: formData.howFoundOutOthers,
+        sourceOfReferral: formData.sourceOfReferral
+      };
+      
+      participantDetails.spouse = {
+        name: formData.spouseName,
+        nric: formData.spouseNRIC,
+        dateOfBirth: formData.spouseDOB,
+        residentialStatus: formData.spouseResidentialStatus,
+        sex: formData.spouseSex,
+        ethnicity: formData.spouseEthnicity,
+        maritalStatus: formData.spouseMaritalStatus,
+        postalCode: formData.spousePostalCode,
+        mobile: formData.spouseMobile,
+        email: formData.spouseEmail,
+        education: formData.spouseEducation,
+        housingType: formData.spouseHousingType
+      };
+
+      participantDetails.consent = {
+        marriagePrepConsent1: formData.marriagePrepConsent1,
+        marriagePrepConsent2: formData.marriagePrepConsent2
+      };
+    }
 
     console.log('Participants Details', participantDetails);
     
@@ -990,15 +1143,26 @@ class FormPage extends Component {
   validateForm = () => {
     const { currentSection, formData } = this.state;
     const errors = {};
-    if (currentSection === 0) {
+    
+    // For Marriage Preparation Programme, treat section 0 as section 1 for validation
+    const effectiveSection = (formData.type === 'Marriage Preparation Programme' && currentSection === 0) ? 1 : currentSection;
+    
+    if (effectiveSection === 0) {
       return errors;
     }
-    if (currentSection === 1) {
+    if (effectiveSection === 1) {
+      // Skip all validation for Marriage Preparation Programme - allow direct navigation
+      if (formData.type === 'Marriage Preparation Programme') {
+        // No validation required for Marriage Preparation Programme
+        return errors;
+      }
+      
+      // NSA/ILP validation only
       if (!formData.pName) {
         errors.pName = 'Name is required. 姓名是必填项。';
       }
-      if (!formData.location) {
-        errors.location = 'Location is required. 地点是必填项。';
+      if (!formData.nRIC) {
+        errors.nRIC = 'NRIC Number is required. 身份证号码是必填项。';
       }
       if (formData.nRIC) {
         const { isValid, error } = this.isValidNRIC(formData.nRIC);
@@ -1039,6 +1203,9 @@ class FormPage extends Component {
       if (!formData.eMAIL) {
         errors.eMAIL = 'Email is required. 电子邮件是必填项。';
       }
+      if (!formData.location) {
+        errors.location = 'Location is required. 地点是必填项。';
+      }
       if (!formData.address) {
         errors.address = 'Address is required. 地址是必填项。';
       }
@@ -1049,6 +1216,8 @@ class FormPage extends Component {
         errors.wORKING = 'Work Status is required. 工作状态是必填项。';
       }
     }
+
+
     
 
     return errors;
@@ -1223,9 +1392,17 @@ class FormPage extends Component {
 
   // Component cleanup
   componentWillUnmount() {
+    // Set mounted flag to false
+    this._isMounted = false;
+    
     console.log('🔍 Stopping MyInfo real-time monitoring...');
     if (this.myInfoErrorHandler) {
       this.myInfoErrorHandler.destroy();
+    }
+    
+    // Remove event listeners
+    if (process.env.NODE_ENV === 'development' && this.handleKeyPress) {
+      document.removeEventListener('keydown', this.handleKeyPress);
     }
   };
 
@@ -1253,7 +1430,7 @@ class FormPage extends Component {
               recommendations={this.state.serviceRecommendations}
               compact={true}
             />
-            {currentSection === 0 && (
+            {currentSection === 0 && formData.type !== 'Marriage Preparation Programme' && (
               <FormDetails 
                 courseType={formData.type} 
                 isAuthenticated={isAuthenticated}
@@ -1262,16 +1439,24 @@ class FormPage extends Component {
                 validationErrors={validationErrors}
               />
             )}
-            {currentSection === 1 && (
+            {(currentSection === 1 || (currentSection === 0 && formData.type === 'Marriage Preparation Programme')) && (
               <PersonalInfo
                 data={formData}
                 onChange={this.handleDataChange}
                 errors={validationErrors}
-                singPassPopulatedFields={this.state.singPassPopulatedFields}
-                onClearSingPassData={this.clearSingPassData} // Add clear function prop
+                singPassPopulatedFields={formData.type === 'Marriage Preparation Programme' ? {} : this.state.singPassPopulatedFields}
+                onClearSingPassData={formData.type === 'Marriage Preparation Programme' ? null : this.clearSingPassData}
+                hideMyInfoOptions={formData.type === 'Marriage Preparation Programme'}
               />
             )}
-            {currentSection === 2 && (
+            {currentSection === 2 && formData.type === 'Marriage Preparation Programme' && (
+              <SpouseInfo
+                data={formData}
+                onChange={this.handleDataChange}
+                errors={validationErrors}
+              />
+            )}
+            {currentSection === 2 && formData.type !== 'Marriage Preparation Programme' && (
               <CourseDetails
                 ref={(ref) => (this.courseDetailsRef = ref)}
                 courseEnglishName={formData.englishName}
@@ -1285,7 +1470,21 @@ class FormPage extends Component {
                 onChange={this.handleDataChange}
               />
             )}
-            {currentSection === 3 && (
+            {currentSection === 3 && formData.type === 'Marriage Preparation Programme' && (
+              <CourseDetails
+                ref={(ref) => (this.courseDetailsRef = ref)}
+                courseEnglishName={formData.englishName}
+                courseChineseName={formData.chineseName}
+                courseLocation={formData.location}
+                coursePrice={formData.price}
+                courseType={formData.type}
+                courseDuration={formData.courseDuration}
+                courseMode={formData.courseMode}
+                payment={formData.payment}
+                onChange={this.handleDataChange}
+              />
+            )}
+            {currentSection === 3 && formData.type !== 'Marriage Preparation Programme' && (
               <AgreementDetailsSection
                 ref={(ref) => (this.agreementDetailsRef = ref)}
                 agreement={formData.agreement}
@@ -1294,12 +1493,22 @@ class FormPage extends Component {
                 courseType={formData.type}
               />
             )}
-            {currentSection === 4 && <SubmitDetailsSection />}
+            {currentSection === 4 && formData.type === 'Marriage Preparation Programme' && (
+              <AgreementDetailsSection
+                ref={(ref) => (this.agreementDetailsRef = ref)}
+                agreement={formData.agreement}
+                onChange={this.handleDataChange}
+                errors={validationErrors}
+                courseType={formData.type}
+              />
+            )}
+            {currentSection === 4 && formData.type !== 'Marriage Preparation Programme' && <SubmitDetailsSection />}
+            {currentSection === 5 && formData.type === 'Marriage Preparation Programme' && <SubmitDetailsSection />}
           </div>
         </div>
 
         {/* Simplified button structure - remove authentication logic */}
-        {currentSection === 0 && (
+        {currentSection === 0 && formData.type !== 'Marriage Preparation Programme' && (
           <div className="flex-button-container">
             <button 
               onClick={this.handleNext} 
@@ -1330,13 +1539,29 @@ class FormPage extends Component {
         )}
 
         {/* Show regular Next/Back buttons for other sections */}
-        {currentSection > 0 && currentSection < 4 && (
-          <div className="button-container">
-            <button onClick={this.handleBack} disabled={currentSection === 0}>
-              Back 返回
-            </button>
-            <button onClick={this.handleNext} disabled={!this.isCurrentSectionValid()}>
-              {currentSection === 3 ? 'Submit 提交' : 'Next 下一步'}
+        {((currentSection > 0 && currentSection < 4) || 
+          (currentSection === 0 && formData.type === 'Marriage Preparation Programme') ||
+          (currentSection === 4 && formData.type === 'Marriage Preparation Programme')) && (
+          <div className="button-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {/* Hide back button only for PersonalInfo section (section 1) of Marriage Preparation Programme */}
+            {!(formData.type === 'Marriage Preparation Programme' && (currentSection === 0 || currentSection === 1)) ? (
+              <button 
+                onClick={this.handleBack} 
+                disabled={currentSection === 0}
+              >
+                Back 返回
+              </button>
+            ) : (
+              <div></div> // Empty div to maintain flex spacing
+            )}
+            <button 
+              onClick={this.handleNext} 
+              disabled={!this.isCurrentSectionValid()}
+              style={{ marginLeft: 'auto' }}
+            >
+              {(currentSection === 3 && formData.type !== 'Marriage Preparation Programme') || 
+               (currentSection === 4 && formData.type === 'Marriage Preparation Programme') ? 
+               'Submit 提交' : 'Next 下一步'}
             </button>
           </div>
         )}

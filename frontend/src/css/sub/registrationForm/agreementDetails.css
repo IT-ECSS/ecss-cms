@@ -43,6 +43,18 @@
   width: fit-content; /* Fit input width to content */
 }
 
+/* Marriage Preparation Programme checkboxes - force vertical layout */
+.agreement-options.marriage-prep-checkboxes {
+  flex-direction: column !important;
+  align-items: flex-start !important;
+}
+
+.agreement-options.marriage-prep-checkboxes label {
+  margin-bottom: 1rem;
+  width: 100%;
+  align-items: flex-start;
+}
+
 .ag-cell-label-container {
   display: flex;
   flex-direction: row-reverse;
@@ -52,6 +64,129 @@
   width: 100%;
   padding-top: 10px;
 } 
+
+/* Marriage Preparation Programme Consent Styling */
+.marriage-prep-consent-options {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  align-items: flex-start;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.marriage-prep-consent-options .checkbox-label {
+  display: flex !important;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-weight: normal !important;
+  cursor: pointer;
+  line-height: 1.4;
+  width: 100%;
+  margin-bottom: 0.5rem;
+  flex-direction: row;
+  box-sizing: border-box;
+}
+
+.checkbox-label input[type="checkbox"] {
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
+.error-message3 {
+  color: #e74c3c;
+  font-size: 0.9em;
+  margin-top: 0.5rem;
+  display: block;
+}
+
+/* Marriage Preparation Programme Terms Container */
+.agreement-detail-text-container {
+  max-height: 600px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  padding: 1rem;
+  margin: 1rem 0;
+  border-radius: 4px;
+  background-color: #fff;
+}
+
+.agreement-detail-text-container .agreement-detail-text {
+  font-size: 1.2em !important;
+  line-height: 1.5;
+  color: #333;
+}
+
+.agreement-detail-text-container .agreement-detail-text strong {
+  font-weight: bold;
+  color: #000;
+}
+
+.agreement-detail-text-container .agreement-detail-text a {
+  color: #007bff;
+  text-decoration: underline;
+}
+
+.agreement-detail-text-container .agreement-detail-text a:hover {
+  color: #0056b3;
+}
+
+/* Ensure Marriage Preparation Programme checkboxes are always vertical */
+.marriage-prep-consent-options {
+  display: block !important;
+  width: 100% !important;
+}
+
+.marriage-prep-consent-options .checkbox-label {
+  display: block !important;
+  width: 100% !important;
+  margin-bottom: 1rem !important;
+  padding: 0.5rem 0 !important;
+  clear: both !important;
+}
+
+.marriage-prep-consent-options .checkbox-label input[type="checkbox"] {
+  display: inline-block !important;
+  margin-right: 0.5rem !important;
+  vertical-align: top !important;
+  float: none !important;
+}
+
+/* Force vertical layout with CSS Grid as fallback */
+.marriage-prep-consent-options {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 1rem !important;
+  width: 100% !important;
+}
+
+/* Force checkboxes to display vertically - Nuclear option */
+.input-group1 .marriage-prep-consent-options,
+.agreement-details-section .marriage-prep-consent-options,
+div.marriage-prep-consent-options {
+  display: block !important;
+  flex-direction: column !important;
+  flex-wrap: nowrap !important;
+  width: 100% !important;
+}
+
+.input-group1 .marriage-prep-consent-options .checkbox-label,
+.agreement-details-section .marriage-prep-consent-options .checkbox-label,
+div.marriage-prep-consent-options .checkbox-label,
+.marriage-prep-consent-options label.checkbox-label {
+  display: block !important;
+  width: 100% !important;
+  float: none !important;
+  clear: both !important;
+  margin-bottom: 1rem !important;
+  box-sizing: border-box !important;
+}
+
+/* Reset any inherited flex or inline styles */
+.marriage-prep-consent-options * {
+  box-sizing: border-box !important;
+}
 
 /* Mobile Responsiveness */
 
@@ -75,6 +210,26 @@
   /* Input Group Label Adjustment */
   .input-group label {
     font-size: 1.5em; /* Adjust label font size for mobile */
+  }
+
+  .marriage-prep-consent-options {
+    gap: 0.8rem !important;
+    flex-direction: column !important;
+  }
+
+  .marriage-prep-consent-options .checkbox-label {
+    font-size: 1.1em;
+    min-width: auto;
+  }
+
+  .agreement-detail-text-container {
+    max-height: 450px;
+    padding: 0.8rem;
+    margin: 0.8rem 0;
+  }
+
+  .agreement-detail-text-container .agreement-detail-text {
+    font-size: 1.0em !important;
   }
 }
 
@@ -143,5 +298,25 @@
   /* Input Group Label Adjustment */
   .input-group label {
     font-size: 1; /* Smaller label font size for mobile phones */
+  }
+
+  .marriage-prep-consent-options {
+    gap: 0.6rem !important;
+    flex-direction: column !important;
+  }
+
+  .marriage-prep-consent-options .checkbox-label {
+    font-size: 1em;
+    min-width: auto;
+  }
+
+  .agreement-detail-text-container {
+    max-height: 400px;
+    padding: 0.6rem;
+    margin: 0.6rem 0;
+  }
+
+  .agreement-detail-text-container .agreement-detail-text {
+    font-size: 0.9em !important;
   }
 }

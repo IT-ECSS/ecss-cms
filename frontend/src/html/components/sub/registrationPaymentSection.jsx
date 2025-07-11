@@ -17,7 +17,7 @@ class RegistrationPaymentSection extends Component {
     constructor(props) {
       super(props);
       this.state = {
-        hideAllCells: false,
+        hideMarriagePrepFields: true, // Hide Marriage Prep fields by default
         registerationDetails: [],
         isLoading: true,
         focusedInputIndex: null,
@@ -26,7 +26,7 @@ class RegistrationPaymentSection extends Component {
         entriesPerPage: 100, // Add this
         remarks: "", // Remarks for each row
         paginatedDetails: [],
-        columnDefs: this.getColumnDefs(),
+        columnDefs: [], // Initialize as empty array, will be set after data loads
         rowData: [],
         expandedRowIndex: null,
         editedRowIndex: "",
@@ -51,6 +51,19 @@ class RegistrationPaymentSection extends Component {
         expandedRow: prevState.expandedRow === index ? null : index,
       }));
     };  
+
+    toggleHideMarriagePrepFields = () => {
+      console.log('Toggle button clicked - current state:', this.state.hideMarriagePrepFields);
+      this.setState(prevState => ({
+        hideMarriagePrepFields: !prevState.hideMarriagePrepFields
+      }), () => {
+        console.log('State updated - new hideMarriagePrepFields value:', this.state.hideMarriagePrepFields);
+        // Regenerate column definitions after state change
+        const newColumnDefs = this.getColumnDefs(this.state.rowData);
+        console.log('New column definitions generated, count:', newColumnDefs.length);
+        this.setState({ columnDefs: newColumnDefs });
+      });
+    };
 
     handleEntriesPerPageChange = (e) => {
       this.setState({
@@ -88,6 +101,7 @@ class RegistrationPaymentSection extends Component {
         
         const response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { purpose: 'retrieve', role, siteIC: processedSiteIC });
         const response1 = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { purpose: 'retrieve', role: "admin", siteIC: "" });
+        console.log("Response Data:", response.data.result);
         
         const data = this.languageDatabase(response.data.result, language);
         const data1 = this.languageDatabase(response1.data.result, language);
@@ -145,10 +159,6 @@ class RegistrationPaymentSection extends Component {
           const startDate = array[i].course.courseDuration.split('-')[0].trim();
           const endDate = array[i].course.courseDuration.split('-')[1].trim();
           array[i].course.courseEngName = array[i].course.courseChiName;
-          array[i].course.courseDuration = `${this.convertToChineseDate(startDate)} - ${this.convertToChineseDate(endDate)}`;
-          
-          array[i].course.payment = array[i].course.payment === 'Cash' ? '现金' : array[i].course.payment;
-          array[i].agreement = array[i].agreement.split(' ')[1];
         }
       }
       return array;
@@ -228,10 +238,12 @@ class RegistrationPaymentSection extends Component {
     // Save current scroll position and page
     const gridContainer = document.querySelector('.ag-body-viewport');
     const currentScrollTop = gridContainer ? gridContainer.scrollTop : 0;
-    const currentPage = this.gridApi ? this.gridApi.paginationGetCurrentPage() : 0;
+    const currentPage = (this.gridApi && typeof this.gridApi.paginationGetCurrentPage === 'function') 
+      ? this.gridApi.paginationGetCurrentPage() : 0;
 
     const { language, siteIC, role } = this.props;
     const { data, data1 } = await this.fetchCourseRegistrations(language);
+    console.log('All Courses Registration: ', data);
 
     var locations = await this.getAllLocations(data);
     var types = await this.getAllTypes(data);
@@ -260,14 +272,23 @@ class RegistrationPaymentSection extends Component {
       locations: locations,
       names: names,
     }, async () => {
+      console.log("Initial data loaded, originalData length:", data?.length || 0);
       await this.getRowData(data);
+
+      // Apply initial filtering if any filters are already set
+      console.log("Applying initial filtering");
+      this.filterRegistrationDetails();
 
       // Restore scroll position and page after data is set
       if (gridContainer) {
         gridContainer.scrollTop = currentScrollTop;
       }
-      if (this.gridApi && this.gridApi.paginationGoToPage) {
-        this.gridApi.paginationGoToPage(currentPage);
+      if (this.gridApi && typeof this.gridApi.paginationGoToPage === 'function') {
+        try {
+          this.gridApi.paginationGoToPage(currentPage);
+        } catch (error) {
+          console.warn("Error setting pagination page:", error);
+        }
       }
 
       if (!this.state.isAlertShown) {
@@ -1605,9 +1626,28 @@ class RegistrationPaymentSection extends Component {
     );
   };
   
- getColumnDefs = () => {
+ getColumnDefs = (optionalRowData = null) => {
   const { role, siteIC } = this.props; // Get the role from props
   console.log("Props123455:", siteIC);
+  
+  // Debug: Check current state for Marriage Preparation Programme data
+  // Use optionalRowData if provided, otherwise fall back to state
+  const { rowData: debugRowData } = this.state;
+  const dataToCheck = optionalRowData || debugRowData;
+  if (dataToCheck && dataToCheck.length > 0) {
+    const marriagePrepData = dataToCheck.filter(row => row.courseInfo?.courseType === 'Marriage Preparation Programme');
+    console.log('getColumnDefs - Marriage Preparation Programme entries found:', marriagePrepData.length);
+    if (marriagePrepData.length > 0) {
+      console.log('getColumnDefs - Sample Marriage Preparation Programme data:', marriagePrepData[0]);
+      console.log('getColumnDefs - Marriage Preparation Programme field values:', {
+        spouseName: marriagePrepData[0].spouseName,
+        maritalStatus: marriagePrepData[0].maritalStatus,
+        intendedMarriageDate: marriagePrepData[0].intendedMarriageDate,
+        housingType: marriagePrepData[0].housingType,
+        spouseContact: marriagePrepData[0].spouseContact
+      });
+    }
+  }
 
   // Start with your fixed columns array
   const columnDefs = [
@@ -1687,6 +1727,23 @@ class RegistrationPaymentSection extends Component {
         params.data.paymentMethod !== "SkillsFuture" ? { display: "none" } : {},
     },
     {
+      headerName: "Receipt/Invoice Number",
+      field: "recinvNo",
+      width: 300,
+    },
+    {
+      headerName: "Payment Date",
+      field: "paymentDate",
+      width: 350,
+      editable: true,
+    },
+    {
+      headerName: "Refunded Date",
+      field: "refundedDate",
+      width: 350,
+      editable: true,
+    },
+ {
       headerName: "Payment Status",
       field: "paymentStatus",
       cellEditor: "agSelectCellEditor",
@@ -1766,23 +1823,6 @@ class RegistrationPaymentSection extends Component {
       editable: true,
       width:  350,
     },
-{
-      headerName: "Receipt/Invoice Number",
-      field: "recinvNo",
-      width: 300,
-    },
-    {
-      headerName: "Payment Date",
-      field: "paymentDate",
-      width: 350,
-      editable: true,
-    },
-    {
-      headerName: "Refunded Date",
-      field: "refundedDate",
-      width: 350,
-      editable: true,
-    },
     {
       headerName: "Remarks",
       field: "remarks",
@@ -1797,8 +1837,8 @@ class RegistrationPaymentSection extends Component {
     },
   ];
 
-  // Conditionally add "Course Location" column
-  if (Array.isArray(siteIC) || !siteIC) {
+  // Conditionally add "Course Location" column only if not hiding cells
+  if ((Array.isArray(siteIC) || !siteIC) && !this.state.hideMarriagePrepFields) {
     columnDefs.splice(
       4,
            0,
@@ -1827,6 +1867,7 @@ class RegistrationPaymentSection extends Component {
     );
   }
 
+  // Always add checkbox column (essential for selection)
   columnDefs.push({
     headerName: "", // blank header (no text)
     field: "checkbox",
@@ -1835,7 +1876,301 @@ class RegistrationPaymentSection extends Component {
     pinned: "right",
   });
 
+  // Only add Marriage Preparation Programme specific columns if there are Marriage Preparation Programme entries
+  // Check if current filtered data contains any Marriage Preparation Programme courses
+  const { rowData: currentRowData } = this.state;
+  const { selectedCourseType } = this.props;
+  
+  // If specifically filtering by NSA or ILP, don't show Marriage Preparation Programme columns
+  const isFilteringNSAorILP = selectedCourseType === 'NSA' || selectedCourseType === 'ILP';
+  
+  // If specifically filtering by Marriage Preparation Programme, always show Marriage Prep columns
+  const isFilteringMarriagePrep = selectedCourseType === 'Marriage Preparation Programme';
+  
+  // Check for Marriage Preparation Programme data in current displayed data - use dataToCheck for real-time filtering
+  const hasMarriagePrepData = !isFilteringNSAorILP && 
+    dataToCheck && dataToCheck.length > 0 && 
+    dataToCheck.some(row => row.courseInfo?.courseType === 'Marriage Preparation Programme');
+  
+  // Show Marriage Preparation Programme columns if:
+  // 1. Specifically filtering by Marriage Preparation Programme, OR
+  // 2. There's Marriage Prep data AND hideMarriagePrepFields is false
+  const shouldShowMarriagePrepColumns = isFilteringMarriagePrep || (hasMarriagePrepData && !this.state.hideMarriagePrepFields);
+  
+  console.log('Column generation debug:', {
+    hasMarriagePrepData,
+    hideMarriagePrepFields: this.state.hideMarriagePrepFields,
+    shouldShowMarriagePrepColumns,
+    isFilteringNSAorILP,
+    isFilteringMarriagePrep,
+    selectedCourseType
+  });
+  
+  if (shouldShowMarriagePrepColumns) {
+    const reason = isFilteringMarriagePrep 
+      ? 'specifically filtering by Marriage Preparation Programme' 
+      : 'Marriage Preparation Programme data detected and toggle is showing columns';
+    console.log(`Adding Marriage Preparation Programme columns - ${reason}`);
+    // Insert Marriage Preparation Programme columns before the checkbox column
+    const checkboxColumnIndex = columnDefs.length - 1;
+    
+    columnDefs.splice(checkboxColumnIndex, 0, 
+      {
+        headerName: "Spouse Name",
+        field: "spouseName",
+        width: 200,
+        cellRenderer: (params) => {
+          // Enhanced debugging and display for spouse name
+          const value = params.value || '';
+          const rawData = params.data;
+          
+          // Debug logging for Marriage Preparation Programme entries
+          if (rawData.courseInfo?.courseType === 'Marriage Preparation Programme') {
+            console.log('Spouse Name - Raw data:', {
+              spouseName: rawData.spouseName,
+              spouseObject: rawData.spouse,
+              marriageDetails: rawData.marriageDetails,
+              courseType: rawData.courseInfo?.courseType
+            });
+          }
+          
+          return value || '';
+        },
+      },
+      {
+        headerName: "Marital Status",
+        field: "maritalStatus", 
+        width: 150,
+        cellRenderer: (params) => {
+          // Enhanced debugging and display for marital status
+          const value = params.value || '';
+          const rawData = params.data;
+          
+          // Debug logging for Marriage Preparation Programme entries
+          if (rawData.courseInfo?.courseType === 'Marriage Preparation Programme') {
+            console.log('Marital Status - Raw data:', {
+              maritalStatus: rawData.maritalStatus,
+              marriageDetailsMaritalStatus: rawData.marriageDetails?.maritalStatus,
+              courseType: rawData.courseInfo?.courseType
+            });
+          }
+          
+          return value || '';
+        },
+      },
+      {
+        headerName: "Marriage Duration",
+        field: "intendedMarriageDate",
+        width: 200,
+        cellRenderer: (params) => {
+          // Enhanced debugging and display for marriage duration
+          const value = params.value || '';
+          const rawData = params.data;
+          
+          // Debug logging for Marriage Preparation Programme entries
+          if (rawData.courseInfo?.courseType === 'Marriage Preparation Programme') {
+            console.log('Marriage Duration - Raw data:', {
+              intendedMarriageDate: rawData.intendedMarriageDate,
+              marriageDetailsMarriageDuration: rawData.marriageDetails?.marriageDuration,
+              courseType: rawData.courseInfo?.courseType
+            });
+          }
+          
+          return value || '';
+        },
+      },
+      {
+        headerName: "Housing Type",
+        field: "housingType",
+        width: 150,
+        cellRenderer: (params) => {
+          const value = params.value || '';
+          const rawData = params.data;
+          
+          // Debug logging for Marriage Preparation Programme entries
+          if (rawData.courseInfo?.courseType === 'Marriage Preparation Programme') {
+            console.log('Housing Type - Raw data:', {
+              housingType: rawData.housingType,
+              marriageDetailsHousingType: rawData.marriageDetails?.housingType,
+              courseType: rawData.courseInfo?.courseType
+            });
+          }
+          
+          return value || '';
+        },
+      },
+      {
+        headerName: "Spouse Contact",
+        field: "spouseContact",
+        width: 150,
+        cellRenderer: (params) => {
+          const value = params.value || '';
+          const rawData = params.data;
+          
+          // Debug logging for Marriage Preparation Programme entries
+          if (rawData.courseInfo?.courseType === 'Marriage Preparation Programme') {
+            console.log('Spouse Contact - Raw data:', {
+              spouseContact: rawData.spouseContact,
+              spouseMobile: rawData.spouse?.mobile,
+              spouseContactNumber: rawData.spouse?.contactNumber,
+              courseType: rawData.courseInfo?.courseType
+            });
+          }
+          
+          return value || '';
+        },
+      },
+      // Additional useful Marriage Preparation Programme columns
+      {
+        headerName: "Gross Monthly Income",
+        field: "grossMonthlyIncome",
+        width: 180,
+        cellRenderer: (params) => {
+          const value = params.value || '';
+          return value || '';
+        },
+      },
+      {
+        headerName: "Type of Marriage",
+        field: "typeOfMarriage",
+        width: 200,
+        cellRenderer: (params) => {
+          const value = params.value || '';
+          return value || '';
+        },
+      },
+      {
+        headerName: "Has Children",
+        field: "hasChildren",
+        width: 120,
+        cellRenderer: (params) => {
+          const value = params.value || '';
+          return value || '';
+        },
+      },
+      {
+        headerName: "How Found Out",
+        field: "howFoundOut",
+        width: 150,
+        cellRenderer: (params) => {
+          const value = params.value || '';
+          return value || '';
+        },
+      },
+      {
+        headerName: "Spouse NRIC",
+        field: "spouseNric",
+        width: 150,
+        cellRenderer: (params) => {
+          const value = params.value || '';
+          return value || '';
+        },
+      },
+      {
+        headerName: "Spouse Email",
+        field: "spouseEmail",
+        width: 200,
+        cellRenderer: (params) => {
+          const value = params.value || '';
+          return value || '';
+        },
+      },
+      {
+        headerName: "Marriage Prep Consent 1",
+        field: "marriagePrepConsent1",
+        width: 180,
+        cellRenderer: (params) => {
+          const value = params.value;
+          const rawData = params.data;
+          
+          // Debug logging for Marriage Preparation Programme entries
+          if (rawData.courseInfo?.courseType === 'Marriage Preparation Programme') {
+            console.log('Marriage Prep Consent 1 - Raw data:', {
+              marriagePrepConsent1: rawData.marriagePrepConsent1,
+              consentObject: rawData.consent,
+              courseType: rawData.courseInfo?.courseType
+            });
+          }
+          
+          // Display Yes/No for boolean values
+          if (typeof value === 'boolean') {
+            return value ? 'I confirm that my spouse/spouse-to-be and I understand and agree to the collection, use and disclosure of our Personal Information as set out in the link above' : '';
+          }
+          return value || '';
+        },
+      },
+      {
+        headerName: "Marriage Prep Consent 2", 
+        field: "marriagePrepConsent2",
+        width: 180,
+        cellRenderer: (params) => {
+          const value = params.value;
+          const rawData = params.data;
+          
+          // Debug logging for Marriage Preparation Programme entries
+          if (rawData.courseInfo?.courseType === 'Marriage Preparation Programme') {
+            console.log('Marriage Prep Consent 2 - Raw data:', {
+              marriagePrepConsent2: rawData.marriagePrepConsent2,
+              consentObject: rawData.consent,
+              courseType: rawData.courseInfo?.courseType
+            });
+          }
+          
+          // Display Yes/No for boolean values
+          if (typeof value === 'boolean') {
+            return value ? 'I confirm that I have read and understood the Terms of Consent as set out in the link above' : '';
+          }
+          return value || '';
+        },
+      }
+    );
+  } else {
+    if (isFilteringNSAorILP) {
+      console.log(`Skipping Marriage Preparation Programme columns - filtering by ${selectedCourseType}`);
+    } else {
+      console.log('Skipping Marriage Preparation Programme columns - no Marriage Preparation Programme data found');
+    }
+  }
+
   return columnDefs;
+};
+
+// Debug helper method to verify Marriage Preparation Programme data
+debugMarriagePrepData = () => {
+  const { rowData: debugRowData } = this.state;
+  if (!debugRowData) return;
+  
+  const marriagePrepData = debugRowData.filter(row => row.courseInfo?.courseType === 'Marriage Preparation Programme');
+  console.log('=== Marriage Preparation Programme Debug Information ===');
+  console.log('Total Marriage Preparation Programme registrations:', marriagePrepData.length);
+  
+  marriagePrepData.forEach((row, index) => {
+    console.log(`Marriage Preparation Programme Entry ${index + 1}:`, {
+      id: row.id,
+      participantName: row.name,
+      courseName: row.course,
+      courseType: row.courseInfo?.courseType,
+      spouseName: row.spouseName,
+      maritalStatus: row.maritalStatus,
+      marriageDuration: row.intendedMarriageDate,
+      housingType: row.housingType,
+      spouseContact: row.spouseContact,
+      grossMonthlyIncome: row.grossMonthlyIncome,
+      typeOfMarriage: row.typeOfMarriage,
+      hasChildren: row.hasChildren,
+      howFoundOut: row.howFoundOut,
+      spouseNric: row.spouseNric,
+      spouseEmail: row.spouseEmail,
+      // Marriage Preparation Programme consent information
+      marriagePrepConsent1: row.marriagePrepConsent1,
+      marriagePrepConsent2: row.marriagePrepConsent2,
+      // Raw nested objects
+      rawSpouse: row.spouse,
+      rawMarriageDetails: row.marriageDetails,
+      rawConsent: row.consent
+    });
+  });
+  console.log('=== End Marriage Preparation Programme Debug ===');
 };
 
   
@@ -1889,11 +2224,55 @@ class RegistrationPaymentSection extends Component {
       registrationDate: item.registrationDate,
       refundedDate: item.official?.refundedDate || "",
       remarks: item.official?.remarks || "",
-      paymentDate: item.official?.date || ""
+      paymentDate: item.official?.date || "",
+      // Marriage Preparation Programme specific fields - include all nested data
+      marriageDetails: item.marriageDetails || null,
+      spouse: item.spouse || null,
+      consent: item.consent || null,
+      marriagePrepConsent: item.marriagePrepConsent || null,
+      // Quick display fields for Marriage Preparation Programme - always show actual values with fallbacks
+      spouseName: item.spouse?.name || item.spouseName || '',
+      maritalStatus: item.marriageDetails?.maritalStatus || item.maritalStatus || '',
+      intendedMarriageDate: item.marriageDetails?.marriageDuration || item.intendedMarriageDate || '',
+      // Additional Marriage Preparation Programme fields for comprehensive display
+      housingType: item.marriageDetails?.housingType || item.housingType || '',
+      grossMonthlyIncome: item.marriageDetails?.grossMonthlyIncome || item.grossMonthlyIncome || '',
+      typeOfMarriage: item.marriageDetails?.typeOfMarriage || item.typeOfMarriage || '',
+      hasChildren: item.marriageDetails?.hasChildren || item.hasChildren || '',
+      howFoundOut: item.marriageDetails?.howFoundOut || item.howFoundOut || '',
+      sourceOfReferral: item.marriageDetails?.sourceOfReferral || item.sourceOfReferral || '',
+      spouseNric: item.spouse?.nric || item.spouseNric || '',
+      spouseContact: item.spouse?.mobile || item.spouse?.contactNumber || item.spouseContact || '',
+      spouseEmail: item.spouse?.email || item.spouseEmail || '',
+      // Marriage Preparation Programme consent fields
+      marriagePrepConsent1: item.consent?.marriagePrepConsent1 || item.marriagePrepConsent1 || false,
+      marriagePrepConsent2: item.consent?.marriagePrepConsent2 || item.marriagePrepConsent2 || false
     }));
     
+    // Debug: Check if we have Marriage Preparation Programme data
+    const marriagePrepCount = rowData.filter(row => row.courseInfo?.courseType === 'Marriage Preparation Programme').length;
+    console.log('Marriage Preparation Programme registrations found:', marriagePrepCount);
+    if (marriagePrepCount > 0) {
+      const marriagePrepSample = rowData.find(row => row.courseInfo?.courseType === 'Marriage Preparation Programme');
+      console.log('Marriage Preparation Programme data sample:', marriagePrepSample);
+      console.log('Marriage Preparation Programme spouse data:', marriagePrepSample?.spouse);
+      console.log('Marriage Preparation Programme marriage details:', marriagePrepSample?.marriageDetails);
+      console.log('Marriage Preparation Programme quick fields:', {
+        spouseName: marriagePrepSample?.spouseName,
+        maritalStatus: marriagePrepSample?.maritalStatus,
+        intendedMarriageDate: marriagePrepSample?.intendedMarriageDate
+      });
+    }
+    
     // Keep original data structure separate from row data for grid display
-    this.setState({ rowData });
+    // Update column definitions after setting row data
+    this.setState({ 
+      rowData,
+      columnDefs: this.getColumnDefs()
+    }, () => {
+      // Debug Marriage Preparation Programme data after state update
+      this.debugMarriagePrepData();
+    });
   };
 
 
@@ -1936,7 +2315,14 @@ class RegistrationPaymentSection extends Component {
             // Expand the new row
             this.setState({ expandedRowIndex: rowIndex }, () => {
               // Apply the renderer after state is updated
-              const rowNode = this.gridApi.getRowNode(event.node.id);
+              if (this.gridApi && typeof this.gridApi.getRowNode === 'function') {
+                try {
+                  const rowNode = this.gridApi.getRowNode(event.node.id);
+                  // Handle rowNode if needed
+                } catch (error) {
+                  console.warn("Error getting row node:", error);
+                }
+              }
             });
           }
   
@@ -2048,7 +2434,8 @@ class RegistrationPaymentSection extends Component {
     renderDetailView = (rowData) => {
       if (!rowData) return null;
       
-      const { participantInfo, courseInfo, officialInfo, status, id } = rowData;
+      const { participantInfo, courseInfo, officialInfo, status, id, marriageDetails, spouse, consent } = rowData;
+      const isMarriagePrep = courseInfo.courseType === 'Marriage Preparation Programme';
       
       return (
         <div className="detail-view-container">
@@ -2106,6 +2493,127 @@ class RegistrationPaymentSection extends Component {
                 </div>
               </div>
             </div>
+
+            {/* Marriage Preparation Programme Specific Fields */}
+            {isMarriagePrep && marriageDetails && (
+              <div className="detail-view-section">
+                <h4>Marriage Details</h4>
+                <div className="detail-view-grid">
+                  <div className="detail-field">
+                    <span className="detail-label">Marital Status:</span>
+                    <span className="detail-value">{marriageDetails.maritalStatus || 'N/A'}</span>
+                  </div>
+                  <div className="detail-field">
+                    <span className="detail-label">Housing Type:</span>
+                    <span className="detail-value">{marriageDetails.housingType || 'N/A'}</span>
+                  </div>
+                  <div className="detail-field">
+                    <span className="detail-label">Gross Monthly Income:</span>
+                    <span className="detail-value">{marriageDetails.grossMonthlyIncome || 'N/A'}</span>
+                  </div>
+                  <div className="detail-field">
+                    <span className="detail-label">Marriage Duration:</span>
+                    <span className="detail-value">{marriageDetails.marriageDuration || 'N/A'}</span>
+                  </div>
+                  <div className="detail-field">
+                    <span className="detail-label">Type of Marriage:</span>
+                    <span className="detail-value">{marriageDetails.typeOfMarriage || 'N/A'}</span>
+                  </div>
+                  <div className="detail-field">
+                    <span className="detail-label">Has Children:</span>
+                    <span className="detail-value">{marriageDetails.hasChildren || 'N/A'}</span>
+                  </div>
+                  <div className="detail-field">
+                    <span className="detail-label">How Found Out:</span>
+                    <span className="detail-value">{marriageDetails.howFoundOut || 'N/A'}</span>
+                  </div>
+                  {marriageDetails.howFoundOutOthers && (
+                    <div className="detail-field">
+                      <span className="detail-label">How Found Out (Others):</span>
+                      <span className="detail-value">{marriageDetails.howFoundOutOthers}</span>
+                    </div>
+                  )}
+                  <div className="detail-field">
+                    <span className="detail-label">Source of Referral:</span>
+                    <span className="detail-value">{marriageDetails.sourceOfReferral || 'N/A'}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Spouse Information for Marriage Preparation Programme */}
+            {isMarriagePrep && spouse && (
+              <div className="detail-view-section">
+                <h4>Spouse Information</h4>
+                <div className="detail-view-grid">
+                  <div className="detail-field">
+                    <span className="detail-label">Spouse Name:</span>
+                    <span className="detail-value">{spouse.name || 'N/A'}</span>
+                  </div>
+                  <div className="detail-field">
+                    <span className="detail-label">Spouse NRIC:</span>
+                    <span className="detail-value">{spouse.nric || 'N/A'}</span>
+                  </div>
+                  <div className="detail-field">
+                    <span className="detail-label">Spouse Contact:</span>
+                    <span className="detail-value">{spouse.mobile || 'N/A'}</span>
+                  </div>
+                  <div className="detail-field">
+                    <span className="detail-label">Spouse Email:</span>
+                    <span className="detail-value">{spouse.email || 'N/A'}</span>
+                  </div>
+                  <div className="detail-field">
+                    <span className="detail-label">Spouse Sex:</span>
+                    <span className="detail-value">{spouse.sex || 'N/A'}</span>
+                  </div>
+                  <div className="detail-field">
+                    <span className="detail-label">Spouse DOB:</span>
+                    <span className="detail-value">{spouse.dateOfBirth || 'N/A'}</span>
+                  </div>
+                  <div className="detail-field">
+                    <span className="detail-label">Spouse Ethnicity:</span>
+                    <span className="detail-value">{spouse.ethnicity || 'N/A'}</span>
+                  </div>
+                  <div className="detail-field">
+                    <span className="detail-label">Spouse Residential Status:</span>
+                    <span className="detail-value">{spouse.residentialStatus || 'N/A'}</span>
+                  </div>
+                  <div className="detail-field">
+                    <span className="detail-label">Spouse Marital Status:</span>
+                    <span className="detail-value">{spouse.maritalStatus || 'N/A'}</span>
+                  </div>
+                  <div className="detail-field">
+                    <span className="detail-label">Spouse Education:</span>
+                    <span className="detail-value">{spouse.education || 'N/A'}</span>
+                  </div>
+                  <div className="detail-field">
+                    <span className="detail-label">Spouse Housing Type:</span>
+                    <span className="detail-value">{spouse.housingType || 'N/A'}</span>
+                  </div>
+                  <div className="detail-field">
+                    <span className="detail-label">Spouse Postal Code:</span>
+                    <span className="detail-value">{spouse.postalCode || 'N/A'}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Consent Information for Marriage Preparation Programme */}
+            {isMarriagePrep && consent && (
+              <div className="detail-view-section">
+                <h4>Consent & Agreements</h4>
+                <div className="detail-view-grid">
+                  <div className="detail-field">
+                    <span className="detail-label">I confirm that my spouse/spouse-to-be and I understand and agree to the collection, use and disclosure of our Personal Information as set out in the link above:</span>
+                    <span className="detail-value">{consent.marriagePrepConsent1 ? 'I confirm that my spouse/spouse-to-be and I understand and agree to the collection, use and disclosure of our Personal Information as set out in the link above' : ''}</span>
+                  </div>
+                  <div className="detail-field">
+                    <span className="detail-label">I confirm that I have read and understood the Terms of Consent as set out in the link above:</span>
+                    <span className="detail-value">{consent.marriagePrepConsent2 ? 'I confirm that I have read and understood the Terms of Consent as set out in the link above' : ''}</span>
+                  </div>
+                </div>
+              </div>
+            )}
             
             <div className="detail-view-section">
               <h4>Course Information</h4>
@@ -2517,37 +3025,56 @@ class RegistrationPaymentSection extends Component {
   {
     const { language } = this.props;
     
+    console.log("RefreshChild called - fetching new data");
+    
     // Save scroll information before fetching data
     const gridContainer = document.querySelector('.ag-body-viewport');
     const currentScrollTop = gridContainer ? gridContainer.scrollTop : 0;
     
-    // Fetch new data
-    const {data, data1} = await this.fetchCourseRegistrations(language);
-    
-    // Update original data state first
-    this.setState({
-      originalData: data,
-      registerationDetails: data
-    }, () => {
-      // Generate row data from the original data
-      this.getRowData(data);
+    try {
+      // Fetch new data
+      const {data, data1} = await this.fetchCourseRegistrations(language);
       
-      // Re-apply current filters after data refresh
-      this.filterRegistrationDetails();
+      console.log("Fetched data length:", data?.length || 0);
       
-      // Restore scroll position
-      if (gridContainer) {
-        gridContainer.scrollTop = currentScrollTop;
-      }
-      
+      // Update original data state first
+      this.setState({
+        originalData: data || [],
+        registerationDetails: data || []
+      }, () => {
+        console.log("Original data updated, generating row data");
+        // Generate row data from the original data
+        this.getRowData(data || []);
+        
+        // Re-apply current filters after data refresh
+        console.log("Re-applying filters after data refresh");
+        this.filterRegistrationDetails();
+        
+        // Restore scroll position
+        if (gridContainer) {
+          gridContainer.scrollTop = currentScrollTop;
+        }
+        
+        this.props.closePopup();
+      });
+    } catch (error) {
+      console.error("Error in refreshChild:", error);
       this.props.closePopup();
-    });
+    }
   };
 
- // MUpdate is called after the component has updated (re-rendered)
+ // Update is called after the component has updated (re-rendered)
   componentDidUpdate(prevProps, prevState) {
     const { selectedLocation, selectedCourseType, searchQuery, selectedCourseName, selectedQuarter} = this.props;
-    console.log("This Props Current:", selectedQuarter);
+    console.log("ComponentDidUpdate - Current Props:", { selectedLocation, selectedCourseType, searchQuery, selectedCourseName, selectedQuarter });
+    console.log("ComponentDidUpdate - Previous Props:", { 
+      selectedLocation: prevProps.selectedLocation, 
+      selectedCourseType: prevProps.selectedCourseType, 
+      searchQuery: prevProps.searchQuery, 
+      selectedCourseName: prevProps.selectedCourseName, 
+      selectedQuarter: prevProps.selectedQuarter 
+    });
+    
     // Check if the relevant props have changed
     if (
       selectedLocation !== prevProps.selectedLocation ||
@@ -2556,9 +3083,22 @@ class RegistrationPaymentSection extends Component {
       selectedQuarter !== prevProps.selectedQuarter ||
       searchQuery !== prevProps.searchQuery
     ) {
-      //console.log("ComponentDidUpdate");
-      // Call the filter method when relevant props change
-      this.filterRegistrationDetails();
+      console.log("Filter props changed - triggering filterRegistrationDetails");
+      
+      // If course type specifically changed, we need to update column definitions
+      if (selectedCourseType !== prevProps.selectedCourseType) {
+        console.log(`Course type filter changed from ${prevProps.selectedCourseType} to ${selectedCourseType} - updating column definitions`);
+        // Update column definitions first, then filter - use current rowData
+        this.setState({ 
+          columnDefs: this.getColumnDefs(this.state.rowData) 
+        }, () => {
+          // Filter after column definitions are updated
+          this.filterRegistrationDetails();
+        });
+      } else {
+        // Call the filter method when other relevant props change
+        this.filterRegistrationDetails();
+      }
     }
   }
 
@@ -2570,116 +3110,276 @@ class RegistrationPaymentSection extends Component {
 
   filterRegistrationDetails() {
     const { section, selectedLocation, selectedCourseType, selectedCourseName, searchQuery, selectedQuarter } = this.props;
-    console.log("Section:", section);
+    console.log("FilterRegistrationDetails called with section:", section);
+    console.log("Current state - originalData length:", this.state.originalData?.length || 0);
 
     if (section === "registration") {
       const { originalData } = this.state;
 
-      console.log("Original Data:", originalData);
-      console.log("Filters Applied:", { selectedLocation, selectedCourseType, searchQuery, selectedCourseName }, !searchQuery);
-      console.log("Result:", selectedCourseName, !selectedCourseName); 
+      if (!originalData || originalData.length === 0) {
+        console.log("No original data available for filtering");
+        // Set empty state when no data
+        this.setState({
+          registerationDetails: [],
+          rowData: []
+        });
+        return;
+      }
+
+      console.log("Original Data sample:", originalData[0]);
+      console.log("Filters Applied:", { selectedLocation, selectedCourseType, searchQuery, selectedCourseName, selectedQuarter });
 
       // Normalize the search query
       const normalizedSearchQuery = searchQuery ? searchQuery.toLowerCase().trim() : '';
 
-      // Define filter conditions
+      // Define filter conditions - fix the comparison strings
       const filters = {
-        location: selectedLocation !== "All Locations" ? selectedLocation : null,
-        courseType: selectedCourseType !== "All Courses Types" ? selectedCourseType : null,
-        courseName: selectedCourseName !== "All Courses Name" ? selectedCourseName : null,
-        quarter: selectedQuarter !== "All Quarters" ? selectedQuarter : null,
+        location: selectedLocation && selectedLocation !== "All Locations" ? selectedLocation : null,
+        courseType: selectedCourseType && selectedCourseType !== "All Courses Types" ? selectedCourseType : null,
+        courseName: selectedCourseName && selectedCourseName !== "All Courses Name" ? selectedCourseName : null,
+        quarter: selectedQuarter && selectedQuarter !== "All Quarters" ? selectedQuarter : null,
         searchQuery: normalizedSearchQuery || null,
       };
 
-      // Apply filters step by step
-      let filteredDetails = originalData;
+      console.log("Active filters:", filters);
+
+      // Apply filters step by step - create a copy to avoid mutation
+      let filteredDetails = [...originalData];
+      console.log("Starting with originalData length:", filteredDetails.length);
 
       // Apply location filter
       if (filters.location) {
-        filteredDetails = filteredDetails.filter(data => data.course?.courseLocation === filters.location);
+        filteredDetails = filteredDetails.filter(data => {
+          const courseLocation = data.course?.courseLocation;
+          const matches = courseLocation === filters.location;
+          if (!matches) {
+            console.log(`Location filter: ${courseLocation} !== ${filters.location}`);
+          }
+          return matches;
+        });
+        console.log("After location filter:", filteredDetails.length);
       }
 
+      // Apply course type filter
       if (filters.courseType) {
-        filteredDetails = filteredDetails.filter(data => data.course?.courseType === filters.courseType);
+        filteredDetails = filteredDetails.filter(data => {
+          const courseType = data.course?.courseType;
+          const matches = courseType === filters.courseType;
+          if (!matches) {
+            console.log(`Course type filter: ${courseType} !== ${filters.courseType}`);
+          }
+          return matches;
+        });
+        console.log("After courseType filter:", filteredDetails.length);
       }
       
+      // Apply course name filter
       if (filters.courseName) {
-        filteredDetails = filteredDetails.filter(data => data.course?.courseEngName === filters.courseName);
+        filteredDetails = filteredDetails.filter(data => {
+          const courseEngName = data.course?.courseEngName;
+          const matches = courseEngName === filters.courseName;
+          if (!matches) {
+            console.log(`Course name filter: ${courseEngName} !== ${filters.courseName}`);
+          }
+          return matches;
+        });
+        console.log("After courseName filter:", filteredDetails.length);
       }
 
+      // Apply quarter filter
       if (filters.quarter) {
+        const beforeQuarterFilter = filteredDetails.length;
         filteredDetails = filteredDetails.filter(data => {
           const courseDuration = data.course?.courseDuration;
-          if (!courseDuration) return false; // Skip if courseDuration is missing
+          if (!courseDuration) {
+            console.log("Quarter filter: No course duration found");
+            return false; // Skip if courseDuration is missing
+          }
       
-          const firstDate = courseDuration.split(' - ')[0]; // Extract "2 May 2025"
-          const [day, monthStr, year] = firstDate.split(' '); // Split into components
+          try {
+            const firstDate = courseDuration.split(' - ')[0]; // Extract "2 May 2025"
+            const [day, monthStr, year] = firstDate.split(' '); // Split into components
+        
+            // Convert month string to a number
+            const monthMap = {
+              "January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6,
+              "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12
+            };        
+        
+            const month = monthMap[monthStr];
+            if (!month || !year) {
+              console.log(`Quarter filter: Invalid month/year - ${monthStr}/${year}`);
+              return false; // Skip if month or year is missing
+            }
       
-          // Convert month string to a number
-          const monthMap = {
-            "January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6,
-            "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12
-          };        
+            // Determine the quarter
+            let quarter = "";
+            if (month >= 1 && month <= 3) quarter = `Q1 ${year}`;
+            if (month >= 4 && month <= 6) quarter = `Q2 ${year}`;
+            if (month >= 7 && month <= 9) quarter = `Q3 ${year}`;
+            if (month >= 10 && month <= 12) quarter = `Q4 ${year}`;
       
-          const month = monthMap[monthStr];
-          if (!month || !year) return false; // Skip if month or year is missing
-    
-          // Determine the quarter
-          let quarter = "";
-          if (month >= 1 && month <= 3) quarter = `Q1 ${year}`;
-          if (month >= 4 && month <= 6) quarter = `Q2 ${year}`;
-          if (month >= 7 && month <= 9) quarter = `Q3 ${year}`;
-          if (month >= 10 && month <= 12) quarter = `Q4 ${year}`;
-    
-          return quarter === filters.quarter; // Check if it matches the filter
+            const matches = quarter === filters.quarter;
+            if (!matches) {
+              console.log(`Quarter filter: ${quarter} !== ${filters.quarter}`);
+            }
+            return matches;
+          } catch (error) {
+            console.log("Quarter filter error:", error, "for duration:", courseDuration);
+            return false;
+          }
         });
+        console.log(`After quarter filter (${filters.quarter}): ${filteredDetails.length} (was ${beforeQuarterFilter})`);
       }    
 
       // Apply search query filter
       if (filters.searchQuery) {
+        const beforeSearchFilter = filteredDetails.length;
         filteredDetails = filteredDetails.filter(data => {
-          return [
+          const searchFields = [
             (data.participant?.name || "").toLowerCase(),
+            (data.participant?.nric || "").toLowerCase(),
+            (data.participant?.contactNumber || "").toLowerCase(),
+            (data.participant?.email || "").toLowerCase(),
             (data.course?.courseLocation || "").toLowerCase(),
             (data.course?.courseType || "").toLowerCase(),
             (data.course?.courseEngName || "").toLowerCase(),
+            (data.course?.courseChiName || "").toLowerCase(),
             (data.course?.courseDuration || "").toLowerCase(),
-          ].some(field => field.includes(filters.searchQuery));
+            (data.course?.payment || "").toLowerCase(),
+            (data.status || "").toLowerCase(),
+            (data.official?.receiptNo || "").toLowerCase(),
+            // Include Marriage Preparation Programme fields in search
+            (data.spouse?.name || "").toLowerCase(),
+            (data.marriageDetails?.maritalStatus || "").toLowerCase(),
+            (data.marriageDetails?.marriageDuration || "").toLowerCase(),
+            (data.marriageDetails?.housingType || "").toLowerCase(),
+            (data.marriageDetails?.typeOfMarriage || "").toLowerCase(),
+            (data.spouse?.nric || "").toLowerCase(),
+            (data.spouse?.mobile || data.spouse?.contactNumber || "").toLowerCase(),
+            (data.spouse?.email || "").toLowerCase(),
+            // Additional Marriage Preparation Programme search fields
+            (data.marriageDetails?.grossMonthlyIncome || "").toLowerCase(),
+            (data.marriageDetails?.hasChildren || "").toLowerCase(),
+            (data.marriageDetails?.howFoundOut || "").toLowerCase(),
+            (data.marriageDetails?.sourceOfReferral || "").toLowerCase(),
+            // Marriage Preparation Programme consent fields for search
+            (data.consent?.marriagePrepConsent1 ? 'yes' : 'no'),
+            (data.consent?.marriagePrepConsent2 ? 'yes' : 'no'),
+            (data.marriagePrepConsent1 ? 'yes' : 'no'),
+            (data.marriagePrepConsent2 ? 'yes' : 'no')
+          ];
+          
+          const matchFound = searchFields.some(field => field.includes(filters.searchQuery));
+          if (matchFound) {
+            const matchingFields = searchFields.filter(field => field.includes(filters.searchQuery));
+            console.log(`Search match found for: "${filters.searchQuery}" in fields:`, matchingFields);
+          }
+          return matchFound;
         });
+        console.log(`After search filter ("${filters.searchQuery}"): ${filteredDetails.length} (was ${beforeSearchFilter})`);
       }
 
       // Log filtered results
-      console.log("Filtered Details:", filteredDetails);
+      console.log("Final Filtered Details:", filteredDetails.length, "entries");
+      if (filteredDetails.length > 0) {
+        console.log("Sample filtered entry:", filteredDetails[0]);
+      }
 
       // Convert filtered data to row format
-      const rowData = filteredDetails.map((item, index) => ({
-        id: item._id,
-        sn: index + 1,  // Serial number (S/N)
-        name: item.participant.name,  // Participant's name
-        contactNo: item.participant.contactNumber,  // Contact number
-        course: item.course.courseEngName,  // Course English name
-        courseChi: item.course.courseChiName,  // Course Chinese name
-        location: item.course.courseLocation,  // Course location
-        courseMode: item.course.courseMode === "Face-to-Face" ? "F2F" : item.course?.courseMode,
-        paymentMethod: item.course.payment,  // Payment method
-        confirmed: item.official.confirmed,  // Confirmation status
-        paymentStatus: item.status,  // Payment status
-        recinvNo: item.official.receiptNo,  // Receipt number
-        participantInfo: item.participant,  // Participant details
-        courseInfo: item.course,  // Course details
-        officialInfo: item.official,  // Official details
-        refundedDate: item.official?.refundedDate, // Fixed typo from 'offical'
-        agreement: item.agreement,
-        registrationDate: item.registrationDate,
-        sendDetails: item.sendingWhatsappMessage,
-        remarks: item.official?.remarks || "",
-        paymentDate: item.official?.date || ""
-      }));
+      const rowData = filteredDetails.map((item, index) => {
+        try {
+          return {
+            id: item._id,
+            sn: index + 1,  // Serial number (S/N)
+            name: item.participant?.name || '',  // Participant's name
+            contactNo: item.participant?.contactNumber || '',  // Contact number
+            course: item.course?.courseEngName || '',  // Course English name
+            courseChi: item.course?.courseChiName || '',  // Course Chinese name
+            location: item.course?.courseLocation || '',  // Course location
+            courseMode: item.course?.courseMode === "Face-to-Face" ? "F2F" : (item.course?.courseMode || ''),
+            paymentMethod: item.course?.payment || '',  // Payment method
+            confirmed: item.official?.confirmed || false,  // Confirmation status
+            paymentStatus: item.status || '',  // Payment status
+            recinvNo: item.official?.receiptNo || '',  // Receipt number
+            participantInfo: item.participant || {},  // Participant details
+            courseInfo: item.course || {},  // Course details
+            officialInfo: item.official || {},  // Official details
+            refundedDate: item.official?.refundedDate || '', 
+            agreement: item.agreement || '',
+            registrationDate: item.registrationDate || '',
+            sendDetails: item.sendingWhatsappMessage || false,
+            remarks: item.official?.remarks || "",
+            paymentDate: item.official?.date || "",
+            // Marriage Preparation Programme specific fields - include all nested data
+            marriageDetails: item.marriageDetails || null,
+            spouse: item.spouse || null,
+            consent: item.consent || null,
+            marriagePrepConsent: item.marriagePrepConsent || null,
+            // Quick display fields for Marriage Preparation Programme - always show actual values with multiple fallback paths
+            spouseName: item.spouse?.name || item.spouseName || '',
+            maritalStatus: item.marriageDetails?.maritalStatus || item.maritalStatus || '',
+            intendedMarriageDate: item.marriageDetails?.marriageDuration || item.intendedMarriageDate || '',
+            // Additional Marriage Preparation Programme fields for comprehensive display
+            housingType: item.marriageDetails?.housingType || item.housingType || '',
+            grossMonthlyIncome: item.marriageDetails?.grossMonthlyIncome || item.grossMonthlyIncome || '',
+            typeOfMarriage: item.marriageDetails?.typeOfMarriage || item.typeOfMarriage || '',
+            hasChildren: item.marriageDetails?.hasChildren || item.hasChildren || '',
+            howFoundOut: item.marriageDetails?.howFoundOut || item.howFoundOut || '',
+            sourceOfReferral: item.marriageDetails?.sourceOfReferral || item.sourceOfReferral || '',
+            spouseNric: item.spouse?.nric || item.spouseNric || '',
+            spouseContact: item.spouse?.mobile || item.spouse?.contactNumber || item.spouseContact || '',
+            spouseEmail: item.spouse?.email || item.spouseEmail || '',
+            // Marriage Preparation Programme consent fields
+            marriagePrepConsent1: item.consent?.marriagePrepConsent1 || item.marriagePrepConsent1 || false,
+            marriagePrepConsent2: item.consent?.marriagePrepConsent2 || item.marriagePrepConsent2 || false
+          };
+        } catch (error) {
+          console.error("Error mapping row data for item:", item, error);
+          return null;
+        }
+      }).filter(row => row !== null); // Remove any null entries from mapping errors
 
-      // Update both the filtered details and row data for the grid
-      this.setState({
+      console.log("Final Row Data length:", rowData.length);
+      console.log("Marriage Preparation Programme entries in filtered data:", rowData.filter(row => row.courseInfo?.courseType === 'Marriage Preparation Programme').length);
+
+      // Safely update state - ensure we have valid data
+      const newState = {
         registerationDetails: filteredDetails,
         rowData: rowData
+      };
+
+      // Update column definitions if needed - pass the filtered row data
+      const newColumnDefs = this.getColumnDefs(rowData);
+      if (newColumnDefs && newColumnDefs.length > 0) {
+        newState.columnDefs = newColumnDefs;
+      }
+
+      console.log("Updating state with:", { 
+        filteredDetailsLength: newState.registerationDetails.length,
+        rowDataLength: newState.rowData.length,
+        hasColumnDefs: !!newState.columnDefs
+      });
+
+      // Update state
+      this.setState(newState, () => {
+        console.log("State updated successfully. New rowData length:", this.state.rowData.length);
+        
+        // Debug Marriage Preparation Programme data after filtering
+        this.debugMarriagePrepData();
+        
+        // Force grid refresh if API is available - the rowData will be updated through React state
+        if (this.gridApi && typeof this.gridApi.refreshCells === 'function') {
+          console.log("Refreshing grid API");
+          try {
+            // In ag-Grid v33, rowData is managed through React state, just refresh cells
+            this.gridApi.refreshCells();
+          } catch (error) {
+            console.warn("Error refreshing grid cells:", error);
+          }
+        } else {
+          console.log("Grid API not available or refreshCells method not found");
+        }
       });
     }
   }
@@ -2755,27 +3455,41 @@ class RegistrationPaymentSection extends Component {
     this.gridApi = params.api;
     this.gridColumnApi = params.columnApi;
     
-    // Set up event handlers for row rendering
-    this.gridApi.addEventListener('rowDataUpdated', this.handleRowDataUpdate);
-    this.gridApi.addEventListener('modelUpdated', this.handleModelUpdate);
+    console.log("Grid API initialized successfully");
   };
 
   // Archive data method
   archiveData = async () => {
     const { registerationDetails } = this.state;
+    const { selectedCourseType } = this.props;
     
     if (registerationDetails.length === 0) {
       alert('No data available to archive.');
       return;
     }
 
-
     try {
+      // Check if there are any Marriage Preparation Programme entries in the current data
+      const hasMarriagePrepData = registerationDetails.some(detail => 
+        detail.course?.courseType === 'Marriage Preparation Programme'
+      );
+
+      // Determine if we should include Marriage Prep fields based on filter and data
+      // Include Marriage Prep fields if:
+      // 1. "All Courses Types" is selected AND there are Marriage Prep entries in the data, OR
+      // 2. "Marriage Preparation Programme" is specifically selected as filter, OR  
+      // 3. No specific course type filter is applied (default view) AND there are Marriage Prep entries
+      const shouldIncludeMarriagePrepFields = (
+        (selectedCourseType === "All Courses Types" && hasMarriagePrepData) ||
+        (selectedCourseType === "Marriage Preparation Programme") ||
+        (!selectedCourseType && hasMarriagePrepData)
+      );
+
       // Prepare the data for Excel export
       const preparedData = [];
 
-      // Define the headers
-      const headers = [
+      // Define the base headers
+      const baseHeaders = [
         "S/N", "Participant Name", "Participant NRIC", "Participant Residential Status", 
         "Participant Race", "Participant Gender", "Participant Date of Birth",
         "Participant Contact Number", "Participant Email", "Participant Postal Code", 
@@ -2787,11 +3501,23 @@ class RegistrationPaymentSection extends Component {
         "Staff Name", "Received Date", "Received Time", "Receipt/Invoice Number", "Remarks"
       ];
 
+      // Marriage Preparation Programme specific headers - only add if there's Marriage Prep data
+      const marriagePrepHeaders = [
+        "Spouse Name", "Marital Status", "Marriage Duration", "Housing Type", 
+        "Gross Monthly Income", "Type of Marriage", "Has Children", "How Found Out",
+        "Source of Referral", "Spouse NRIC", "Spouse Contact", "Spouse Email",
+        "Spouse Sex", "Spouse DOB", "Spouse Ethnicity", "Spouse Residential Status",
+        "Spouse Marital Status", "Spouse Education", "Spouse Housing Type", "Spouse Postal Code",
+        "I confirm that I have read and understood the Terms of Consent as set out in the link above", "I confirm that I have read and understood the Terms of Consent as set out in the link above"
+      ];
+
+      // Combine headers conditionally
+      const headers = shouldIncludeMarriagePrepFields ? [...baseHeaders, ...marriagePrepHeaders] : baseHeaders;
       preparedData.push(headers);
 
       // Add the values from all registration details
       registerationDetails.forEach((detail, index) => {
-        const row = [
+        const baseRow = [
           index + 1,
           detail.participant.name,
           detail.participant.nric,
@@ -2824,6 +3550,35 @@ class RegistrationPaymentSection extends Component {
           detail.official?.receiptNo || "",
           detail.official?.remarks || ""
         ];
+
+        // Marriage Preparation Programme specific fields - only add if should include Marriage Prep fields
+        const marriagePrepRow = shouldIncludeMarriagePrepFields ? [
+          detail.spouseName || detail.spouse?.name || "",
+          detail.maritalStatus || detail.marriageDetails?.maritalStatus || "",
+          detail.intendedMarriageDate || detail.marriageDetails?.marriageDuration || "",
+          detail.housingType || detail.marriageDetails?.housingType || "",
+          detail.grossMonthlyIncome || detail.marriageDetails?.grossMonthlyIncome || "",
+          detail.typeOfMarriage || detail.marriageDetails?.typeOfMarriage || "",
+          detail.hasChildren || detail.marriageDetails?.hasChildren || "",
+          detail.howFoundOut || detail.marriageDetails?.howFoundOut || "",
+          detail.sourceOfReferral || detail.marriageDetails?.sourceOfReferral || "",
+          detail.spouseNric || detail.spouse?.nric || "",
+          detail.spouseContact || detail.spouse?.mobile || detail.spouse?.contactNumber || "",
+          detail.spouseEmail || detail.spouse?.email || "",
+          detail.spouseSex || detail.spouse?.sex || "",
+          detail.spouseDob || detail.spouse?.dob || "",
+          detail.spouseEthnicity || detail.spouse?.ethnicity || "",
+          detail.spouseResidentialStatus || detail.spouse?.residentialStatus || "",
+          detail.spouseMaritalStatus || detail.spouse?.maritalStatus || "",
+          detail.spouseEducation || detail.spouse?.education || "",
+          detail.spouseHousingType || detail.spouse?.housingType || "",
+          detail.spousePostalCode || detail.spouse?.postalCode || "",
+          (detail.marriagePrepConsent1 || detail.consent?.marriagePrepConsent1) ? "I confirm that my spouse/spouse-to-be and I understand and agree to the collection, use and disclosure of our Personal Information as set out in the link above" : "",
+          (detail.marriagePrepConsent2 || detail.consent?.marriagePrepConsent2) ? "I confirm that I have read and understood the Terms of Consent as set out in the link above" : ""
+        ] : [];
+
+        // Combine row data conditionally
+        const row = [...baseRow, ...marriagePrepRow];
         preparedData.push(row);
       });
 
@@ -2834,10 +3589,12 @@ class RegistrationPaymentSection extends Component {
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Archived Data");
 
-      // Generate filename with current date
+      // Generate filename with current date and Marriage Prep indicator
       const date = new Date();
       const formattedDate = `${String(date.getDate()).padStart(2, '0')}-${String(date.getMonth() + 1).padStart(2, '0')}-${date.getFullYear()}`;
-      const fileName = `archived_data_${formattedDate}`;
+      const marriagePrepSuffix = shouldIncludeMarriagePrepFields ? '_with_marriage_prep' : '';
+      const filterSuffix = selectedCourseType && selectedCourseType !== "All Courses Types" ? `_${selectedCourseType.replace(/\s+/g, '_')}` : '';
+      const fileName = `archived_data_${formattedDate}${marriagePrepSuffix}${filterSuffix}`;
 
       // Generate a binary string
       const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
@@ -2857,7 +3614,21 @@ class RegistrationPaymentSection extends Component {
       window.URL.revokeObjectURL(link.href);
 
       this.props.closePopup();
-      alert(`Successfully archived ${registerationDetails.length} records.`);
+      const marriagePrepCount = registerationDetails.filter(detail => 
+        detail.course?.courseType === 'Marriage Preparation Programme'
+      ).length;
+      
+      // Create more detailed alert message based on filter and data
+      let alertMessage;
+      if (shouldIncludeMarriagePrepFields && marriagePrepCount > 0) {
+        const filterContext = selectedCourseType === "All Courses Types" ? "all course types" : selectedCourseType || "current filter";
+        alertMessage = `Successfully archived ${registerationDetails.length} records from ${filterContext} (including ${marriagePrepCount} Marriage Preparation Programme entries with extended fields).`;
+      } else if (selectedCourseType && selectedCourseType !== "All Courses Types") {
+        alertMessage = `Successfully archived ${registerationDetails.length} records for ${selectedCourseType}.`;
+      } else {
+        alertMessage = `Successfully archived ${registerationDetails.length} records.`;
+      }
+      alert(alertMessage);
 
     } catch (error) {
       console.error('Error during archive:', error);
@@ -2876,6 +3647,27 @@ class RegistrationPaymentSection extends Component {
         </div>
 
         <div className="button-row">
+          {/* Show button when there are Marriage Preparation Programme entries in the data, but NOT when specifically filtering by Marriage Preparation Programme */}
+          {this.state.rowData && 
+           this.state.rowData.some(row => row.courseInfo?.courseType === 'Marriage Preparation Programme') && 
+           this.props.selectedCourseType !== 'Marriage Preparation Programme' && (
+            <button 
+              className="toggle-btn" 
+              onClick={this.toggleHideMarriagePrepFields}
+              style={{
+                backgroundColor: this.state.hideMarriagePrepFields ? '#4CAF50' : '#ff6b6b', // Reversed: Green when hidden, Red when shown
+                color: 'white',
+                border: 'none',
+                padding: '10px 15px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                marginRight: '10px',
+                fontSize: '14px'
+              }}
+            >
+              {this.state.hideMarriagePrepFields ? 'Show Marriage Prep Fields' : 'Hide Marriage Prep Fields'}
+            </button>
+          )}
           <button className="save-btn" onClick={() => this.archiveData()}>
             Archive Data
           </button>

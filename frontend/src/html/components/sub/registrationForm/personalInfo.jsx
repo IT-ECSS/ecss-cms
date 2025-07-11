@@ -304,26 +304,147 @@ class PersonalInfo extends Component {
     this.setState({ showCalendar: false }); // Close calendar after selecting a date
   };
 
+  // Handle date field changes for Marriage Preparation Programme
+  handleDateFieldChange = (e, fieldName) => {
+    const { singPassPopulatedFields } = this.props;
+    
+    // Don't allow changes to fields populated by SingPass
+    if (singPassPopulatedFields?.[fieldName]) {
+      return;
+    }
+    
+    let { value } = e.target;
+
+    // Remove all non-digit characters first
+    value = value.replace(/\D/g, '');
+
+    // Auto-insert slashes as needed
+    if (value.length >= 3 && value.length <= 4) {
+      value = value.slice(0, 2) + '/' + value.slice(2);
+    } else if (value.length > 4 && value.length <= 8) {
+      value = value.slice(0, 2) + '/' + value.slice(2, 4) + '/' + value.slice(4);
+    }
+
+    // Limit to 10 characters (dd/mm/yyyy)
+    if (value.length > 10) value = value.slice(0, 10);
+
+    // If the auto-formatted value is valid, pass it to parent
+    if (this.isValidDDMMYYYY(value)) {
+      console.log(`✅ Valid date for ${fieldName}:`, value);
+      this.props.onChange({ [fieldName]: value });
+    } else if (value === '') {
+      // Allow clearing the field
+      this.props.onChange({ [fieldName]: '' });
+    } else {
+      // For invalid dates, still update the display but don't validate
+      this.props.onChange({ [fieldName]: value });
+    }
+  };
+
   render() {
-    const { data = {}, errors, singPassPopulatedFields, onClearSingPassData } = this.props; // Add onClearSingPassData prop
+    const { data = {}, errors, singPassPopulatedFields, onClearSingPassData, hideMyInfoOptions } = this.props;
 
-    // Check if any SingPass fields are populated
-    const hasSingPassData = singPassPopulatedFields && Object.values(singPassPopulatedFields).some(field => field === true);
+    // Check if any SingPass fields are populated (only if not Marriage Preparation Programme)
+    const hasSingPassData = !hideMyInfoOptions && singPassPopulatedFields && Object.values(singPassPopulatedFields).some(field => field === true);
 
-    // Define the sections and their respective fields
-    const sections = [
-      { name: 'pName', label: 'Name 姓名', placeholder: 'Name 姓名 (As in NRIC 与身份证相符)', isSelect: false, isRadio: false },
-      { name: 'nRIC', label: 'NRIC Number 身份证号码', placeholder: 'NRIC Number 身份证号码', isSelect: false, isRadio: false },
-      { name: 'rESIDENTIALSTATUS', label: 'Residential Status 居民身份', placeholder: 'Residential Status 居民身份', isSelect: true, isRadio: true },
-      { name: 'rACE', label: 'Race 种族', placeholder: 'Race 种族', isSelect: true, isRadio: true },
-      { name: 'gENDER', label: 'Gender 性别', placeholder: 'Gender 性别', isSelect: true, isRadio: true },
-      { name: 'dOB', label: 'Date of Birth 出生日期', placeholder: 'Date of Birth 出生日期', isSelect: true, isDate: true },
-      { name: 'address', label: 'Address 地址', placeholder: 'Address 地址', isSelect: false, isRadio: false },
-      { name: 'eDUCATION', label: 'Education Level 最高教育水平', placeholder: 'Education Level 最高教育水平', isSelect: true, isRadio: true },
-      { name: 'wORKING', label: 'Work Status 工作状态', placeholder: 'Work Status 工作状态', isSelect: true, isRadio: true }
-    ];
+    // Get course type from props if available
+    const courseType = this.props.data?.type;
+    const isMarriagePreparation = courseType === 'Marriage Preparation Programme';
 
-      // Define additional options for radio buttons
+    // Define sections based on course type
+    let sections;
+    let optionMappings = {};
+
+    if (isMarriagePreparation) {
+      // Marriage Preparation Programme specific fields - following exact specification
+      sections = [
+        { name: 'pName', label: 'Full Name', placeholder: 'Full Name', isSelect: false, isRadio: false },
+        { name: 'nRIC', label: 'NRIC/FIN', placeholder: 'NRIC/FIN', isSelect: false, isRadio: false },
+        { name: 'dOB', label: 'Date of Birth', placeholder: 'Date of Birth', isSelect: true, isDate: true },
+        { name: 'rESIDENTIALSTATUS', label: 'Residential Status', placeholder: 'Residential Status', isSelect: true, isRadio: false, isDropdown: true },
+        { name: 'gENDER', label: 'Sex', placeholder: 'Sex', isSelect: true, isRadio: false, isDropdown: true },
+        { name: 'rACE', label: 'Ethnicity', placeholder: 'Ethnicity', isSelect: true, isRadio: false, isDropdown: true },
+        { name: 'mARITALSTATUS', label: 'Marital Status', placeholder: 'Marital Status', isSelect: true, isRadio: false, isDropdown: true },
+        { name: 'postalCode', label: 'Postal Code', placeholder: 'Postal Code', isSelect: false, isRadio: false, isNumber: true },
+        { name: 'cNO', label: 'Mobile Number', placeholder: 'Mobile Number', isSelect: false, isRadio: false, isPhone: true },
+        { name: 'eMAIL', label: 'Email Address', placeholder: 'Email Address', isSelect: false, isRadio: false, isEmail: true },
+        { name: 'eDUCATION', label: 'Highest Educational Attainment', placeholder: 'Highest Educational Attainment', isSelect: true, isRadio: false, isDropdown: true },
+        { name: 'hOUSINGTYPE', label: 'Housing Type', placeholder: 'Housing Type', isSelect: true, isRadio: false, isDropdown: true },
+        { name: 'gROSSMONTHLYINCOME', label: 'Gross Monthly Couple Income', placeholder: 'Gross Monthly Couple Income', isSelect: true, isRadio: false, isDropdown: true },
+        { name: 'mARRIAGEDURATION', label: 'Marriage duration', placeholder: 'Marriage duration', isSelect: true, isRadio: false, isDropdown: true },
+        { name: 'tYPEOFMARRIAGE', label: 'Type of Marriage', placeholder: 'Type of Marriage', isSelect: true, isRadio: false, isDropdown: true },
+        { name: 'hASCHILDREN', label: 'Have child(ren) before current marriage', placeholder: 'Have child(ren) before current marriage', isSelect: true, isRadio: false, isDropdown: true }
+      ];
+
+      // Marriage Preparation Programme specific options - following exact specification
+      const residentialStatusOptions = ['ALIEN', 'CITIZEN', 'PR', 'UNKNOWN', 'NOT APPLICABLE'];
+      const genderOptions = ['FEMALE', 'MALE'];
+      const ethnicityOptions = ['Chinese', 'Malay', 'Indian', 'Others'];
+      const maritalStatusOptions = ['SINGLE', 'MARRIED', 'WIDOWED', 'DIVORCED'];
+      const educationOptions = [
+        'Below Secondary',
+        'Secondary',
+        'Post-secondary (non-tertiary)',
+        'Diploma & Professional Qualification',
+        "Bachelor's Degree or Equivalent",
+        'Postgraduate Diploma/Degree'
+      ];
+      const housingTypeOptions = [
+        'HDB rental Flat',
+        'HDB 1 & 2 room Flat',
+        'HDB 3-room Flat',
+        'HDB 4-room Flat',
+        'HDB 5-room & Executive Flat',
+        'Condominiums & Other Apartments',
+        'Landed property',
+        'Others'
+      ];
+      const grossIncomeOptions = [
+        '$2,500 and below',
+        '$2,501 to $8,500',
+        '$8,501 and above'
+      ];
+      const marriageDurationOptions = [
+        'Soon-to-wed',
+        '0 to 2 years',
+        'More than 2 years to 5 years',
+        'More than 5 years to 10 years',
+        'More than 10 years to 25 years',
+        'More than 25 years'
+      ];
+      const typeOfMarriageOptions = [
+        'This marriage is/will be a first marriage for both of us',
+        'This is/will be a remarriage for either of us/both of us'
+      ];
+      const hasChildrenOptions = ['Yes', 'No'];
+
+      optionMappings = {
+        rESIDENTIALSTATUS: residentialStatusOptions,
+        gENDER: genderOptions,
+        rACE: ethnicityOptions,
+        mARITALSTATUS: maritalStatusOptions,
+        eDUCATION: educationOptions,
+        hOUSINGTYPE: housingTypeOptions,
+        gROSSMONTHLYINCOME: grossIncomeOptions,
+        mARRIAGEDURATION: marriageDurationOptions,
+        tYPEOFMARRIAGE: typeOfMarriageOptions,
+        hASCHILDREN: hasChildrenOptions
+      };
+    } else {
+      // Original sections for NSA/ILP courses
+      sections = [
+        { name: 'pName', label: 'Name 姓名', placeholder: 'Name 姓名 (As in NRIC 与身份证相符)', isSelect: false, isRadio: false },
+        { name: 'nRIC', label: 'NRIC Number 身份证号码', placeholder: 'NRIC Number 身份证号码', isSelect: false, isRadio: false },
+        { name: 'rESIDENTIALSTATUS', label: 'Residential Status 居民身份', placeholder: 'Residential Status 居民身份', isSelect: true, isRadio: true },
+        { name: 'rACE', label: 'Race 种族', placeholder: 'Race 种族', isSelect: true, isRadio: true },
+        { name: 'gENDER', label: 'Gender 性别', placeholder: 'Gender 性别', isSelect: true, isRadio: true },
+        { name: 'dOB', label: 'Date of Birth 出生日期', placeholder: 'Date of Birth 出生日期', isSelect: true, isDate: true },
+        { name: 'address', label: 'Address 地址', placeholder: 'Address 地址', isSelect: false, isRadio: false },
+        { name: 'eDUCATION', label: 'Education Level 最高教育水平', placeholder: 'Education Level 最高教育水平', isSelect: true, isRadio: true },
+        { name: 'wORKING', label: 'Work Status 工作状态', placeholder: 'Work Status 工作状态', isSelect: true, isRadio: true }
+      ];
+
+      // Original options for NSA/ILP courses
       const residentalStatusOptions = ['SC 新加坡公民', 'PR 永久居民'];
       const genderOptions = ['M 男', 'F 女'];
       const educationOptions = [
@@ -344,47 +465,27 @@ class PersonalInfo extends Component {
         'Unemployed 失业',
       ];
       const raceOptions = ['Chinese 华', 'Indian 印', 'Malay 马', 'Others 其他'];
-  
-      // Map section names to respective radio button options
-      const optionMappings = {
+
+      optionMappings = {
         gENDER: genderOptions,
         eDUCATION: educationOptions,
         rACE: raceOptions,
         wORKING: workingStatusOptions,
         rESIDENTIALSTATUS: residentalStatusOptions,
       };
-  
-      // Get all months and years for selection
-      const months = [
-        'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'
-      ];
-      
-      const currentYear = new Date().getFullYear();
-      // Get course type from props if available
-      const courseType = this.props.data?.type;
-      let latestYear;
-      if (courseType === 'Marriage Preparation Programme') {
-        // Allow any age for Marriage Preparation Programme
-        latestYear = new Date().getFullYear();
-      } else {
-        // Restrict to 50+ for ILP and NSA
-        latestYear = new Date().getFullYear() - 50;
-      }
-      // Assume earliestYear comes from an external source, such as input, settings, etc.
-      let earliestYear = 1934; // You can make this dynamic
-  
-      // Generate the years in ascending order, from earliestYear to latestYear
-      const years = Array.from({ length: latestYear - earliestYear + 1 }, (_, i) => earliestYear + i);
-  
-      const maxDate = new Date();
-      if (courseType !== 'Marriage Preparation Programme') {
-        maxDate.setFullYear(maxDate.getFullYear() - 50);
-      }
+    }
 
     return (
       <div>
-        {/* Clear SingPass Data Button */}
-        {hasSingPassData && (
+        {/* Title for Marriage Preparation Programme */}
+        {isMarriagePreparation && (
+          <h3 style={{ marginBottom: '20px', color: '#333', borderBottom: '2px solid #eee', paddingBottom: '10px' }}>
+            Personal Information
+          </h3>
+        )}
+        
+        {/* Clear SingPass Data Button - Only show for non-Marriage Preparation Programme */}
+        {hasSingPassData && !hideMyInfoOptions && (
           <div className="clear-singpass-container">
             <p className="singpass-info">
               📄 Some fields have been populated with your Singpass data and are protected from editing.
@@ -423,6 +524,23 @@ class PersonalInfo extends Component {
                   </label>
                 ))}
               </div>
+            ) : section.isDropdown || (section.isSelect && !section.isRadio && !section.isDate) ? (
+              // Dropdown for Marriage Preparation Programme fields
+              <select
+                id={section.name}
+                name={section.name}
+                value={data[section.name] || ''}
+                onChange={this.handleChange}
+                className={`personal-info-input ${singPassPopulatedFields?.[section.name] ? 'disabled-field' : ''}`}
+                disabled={singPassPopulatedFields?.[section.name]}
+              >
+                <option value="">Select {section.label}</option>
+                {optionMappings[section.name]?.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
             ) : section.isSelect && section.isDate ? (
               <>
                 <input
@@ -430,65 +548,115 @@ class PersonalInfo extends Component {
                   name={section.name}
                   type="text"
                   className={`personal-info-input ${singPassPopulatedFields?.[section.name] ? 'disabled-field' : ''}`}
-                  value={this.state.manualDate || data[section.name] || ''} // Use manualDate first, then fall back to data[section.name]
+                  value={
+                    section.name === 'dOB' ? (this.state.manualDate || data[section.name] || '') :
+                    (data[section.name] || '')
+                  }
                   placeholder="dd/mm/yyyy"
-                  onChange={(e) => { e.stopPropagation(); this.handleChange1(e, "DOB")}}
-                  onKeyDown={this.handleBackspace}
+                  onChange={(e) => { 
+                    e.stopPropagation(); 
+                    if (section.name === 'dOB') {
+                      this.handleChange1(e, "DOB");
+                    } else {
+                      this.handleDateFieldChange(e, section.name);
+                    }
+                  }}
+                  onKeyDown={section.name === 'dOB' ? this.handleBackspace : undefined}
                   onBlur={this.closeCalendar}
                   autoComplete='off'
-                  disabled={singPassPopulatedFields?.[section.name]} // Disable if populated by SingPass
+                  disabled={singPassPopulatedFields?.[section.name]}
                 />
                 <br />
               </>
+            ) : section.isNumber ? (
+              <input
+                type="number"
+                id={section.name}
+                name={section.name}
+                placeholder={section.placeholder}
+                value={data[section.name] || ''}
+                onChange={this.handleChange}
+                className={`personal-info-input1 ${singPassPopulatedFields?.[section.name] ? 'disabled-field' : ''}`}
+                onClick={this.closeCalendar}
+                disabled={singPassPopulatedFields?.[section.name]}
+              />
+            ) : section.isPhone ? (
+              <input
+                type="tel"
+                id={section.name}
+                name={section.name}
+                placeholder={section.placeholder}
+                value={data[section.name] || ''}
+                onChange={this.handleChange}
+                className={`personal-info-input1 ${singPassPopulatedFields?.[section.name] ? 'disabled-field' : ''}`}
+                onClick={this.closeCalendar}
+                disabled={singPassPopulatedFields?.[section.name]}
+              />
+            ) : section.isEmail ? (
+              <input
+                type="email"
+                id={section.name}
+                name={section.name}
+                placeholder={section.placeholder}
+                value={data[section.name] || ''}
+                onChange={this.handleChange}
+                className={`personal-info-input1 ${singPassPopulatedFields?.[section.name] ? 'disabled-field' : ''}`}
+                onClick={this.closeCalendar}
+                disabled={singPassPopulatedFields?.[section.name]}
+              />
             ) : (  
               <input
                 type="text"
                 id={section.name}
                 name={section.name}
                 placeholder={section.placeholder}
-                value={data[section.name] || ''} // Ensure we use empty string as fallback
-                onChange={this.handleChange} // Ensure onChange is set
+                value={data[section.name] || ''}
+                onChange={this.handleChange}
                 className={`personal-info-input1 ${singPassPopulatedFields?.[section.name] ? 'disabled-field' : ''}`}
                 onClick={this.closeCalendar}
-                disabled={singPassPopulatedFields?.[section.name]} // Disable if populated by SingPass
+                disabled={singPassPopulatedFields?.[section.name]}
               />
             )}
             {errors[section.name] && <span className="error-message3">{errors[section.name]}</span>}
           </div>
         ))}
         
-        {/* Always editable fields - Contact Number and Email */}
-        <div className="input-group1">
-          <label htmlFor="cNO">Contact No. 联络号码</label>
-          <input
-            type="text"
-            id="cNO"
-            name="cNO"
-            placeholder="Contact No. 联络号码"
-            value={data.cNO || ''}
-            onChange={(e) => this.props.onChange({ cNO: e.target.value })}
-            className="personal-info-input1"
-            onClick={this.closeCalendar}
-            disabled={false} // Always editable
-          />
-          {errors.cNO && <span className="error-message3">{errors.cNO}</span>}
-        </div>
-        
-        <div className="input-group1">
-          <label htmlFor="eMAIL">Email 电子邮件</label>
-          <input
-            type="email"
-            id="eMAIL"
-            name="eMAIL"
-            placeholder='Enter "N/A" if no email 如果没有电子邮件，请输入"N/A"'
-            value={data.eMAIL || ''}
-            onChange={(e) => this.props.onChange({ eMAIL: e.target.value })}
-            className="personal-info-input1"
-            onClick={this.closeCalendar}
-            disabled={false} // Always editable
-          />
-          {errors.eMAIL && <span className="error-message3">{errors.eMAIL}</span>}
-        </div>
+        {/* Contact Number and Email - Only show for NSA/ILP (not Marriage Preparation Programme) */}
+        {!isMarriagePreparation && (
+          <>
+            <div className="input-group1">
+              <label htmlFor="cNO">Contact No. 联络号码</label>
+              <input
+                type="text"
+                id="cNO"
+                name="cNO"
+                placeholder="Contact No. 联络号码"
+                value={data.cNO || ''}
+                onChange={(e) => this.props.onChange({ cNO: e.target.value })}
+                className="personal-info-input1"
+                onClick={this.closeCalendar}
+                disabled={false}
+              />
+              {errors.cNO && <span className="error-message3">{errors.cNO}</span>}
+            </div>
+            
+            <div className="input-group1">
+              <label htmlFor="eMAIL">Email 电子邮件</label>
+              <input
+                type="email"
+                id="eMAIL"
+                name="eMAIL"
+                placeholder='Enter "N/A" if no email 如果没有电子邮件，请输入"N/A"'
+                value={data.eMAIL || ''}
+                onChange={(e) => this.props.onChange({ eMAIL: e.target.value })}
+                className="personal-info-input1"
+                onClick={this.closeCalendar}
+                disabled={false}
+              />
+              {errors.eMAIL && <span className="error-message3">{errors.eMAIL}</span>}
+            </div>
+          </>
+        )}
       </div>
     );
   }
