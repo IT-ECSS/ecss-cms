@@ -1,5 +1,6 @@
 import QRCode from 'qrcode';
 import fs from 'fs';
+import path from 'path';
 
 class QRCodeBatchGenerator {
     constructor(entries) {
@@ -14,6 +15,12 @@ class QRCodeBatchGenerator {
     async generateAll() {
         for (const entry of this.entries) {
             try {
+                // Ensure the directory exists
+                const dir = path.dirname(entry.filename);
+                if (!fs.existsSync(dir)) {
+                    fs.mkdirSync(dir, { recursive: true });
+                }
+                
                 const buffer = await QRCode.toBuffer(entry.text, this.options);
                 fs.writeFileSync(entry.filename, buffer);
                 console.log(`QR code generated and saved as ${entry.filename}`);
@@ -27,13 +34,22 @@ class QRCodeBatchGenerator {
 // Usage example
 const qrEntries = [
     {
-        text: 'https://ecss.org.sg/product/%e9%9f%b3%e4%b9%90%e7%a5%9d%e7%a6%8f%e7%a4%be%e5%8c%ba%e5%9b%9b%e5%bc%a6%e7%90%b4%e7%8f%adcommunity-ukulele-mandarin-l2act-hub/',
-        filename: '音乐祝福社区四弦琴班Community Ukulele – Mandarin L2A (CT Hub).jpg',
+        text: 'https://ecss.org.sg/product/fb-mprep-faith-based-marriage-preparation-programme-couplect-hub/',
+        filename: 'P/E MPrep – Prepare/Enrich Marriage Preparation Programme Couple Class (CT Hub).jpg',
     },
     {
-        text: 'https://ecss.org.sg/product/%e9%9f%b3%e4%b9%90%e7%a5%9d%e7%a6%8f%e7%a4%be%e5%8c%ba%e5%9b%9b%e5%bc%a6%e7%90%b4%e7%8f%adcommunity-ukulele-mandarin-l2bct-hub/',
-        filename: '音乐祝福社区四弦琴班 Community Ukulele – Mandarin L2B (CT Hub).jpg',
-    }
+        text: 'https://ecss.org.sg/product/mprep-marriage-preparation-programme-one-on-one-classct-hub/',
+        filename: 'P/E MPrep – Prepare/Enrich Marriage Preparation Programme One-On-One Class (CT Hub).jpg',
+    },
+    {
+        text: 'https://ecss.org.sg/product/fb-mprep-faith-based-marriage-preparation-programme-couplect-hub-2/',
+        filename: 'F/B MPrep – Foundations Building Marriage Preparation Programme Couple (CT Hub).jpg',
+    },
+    {
+        text: 'https://ecss.org.sg/product/fb-mprep-faith-based-marriage-preparation-programme-one-on-one-classct-hub/',
+        filename: 'F/B MPrep – Foundations Building Marriage Preparation Programme One-On-One Class (CT Hub).jpg',
+    },
+
 ];
 
 const generator = new QRCodeBatchGenerator(qrEntries);

@@ -36,6 +36,7 @@ class CourseDetailsSection extends Component {
     const { selectedPayment, paymentTouched } = this.state;
     const { courseType, courseLocation, courseEnglishName, courseChineseName } = this.props;
     const isNSA = courseType === 'NSA';
+    const isILP = courseType === 'ILP';
     const isMarriagePrep = courseType === 'Marriage Preparation Programme';
 
     return (
@@ -62,7 +63,7 @@ class CourseDetailsSection extends Component {
             {this.props.courseLocation}
           </span>
         </div>
-        {isNSA && (  
+        {!isILP && (  
         <div className="input-group1">
           <label htmlFor="coursePrice">Course Price 价格</label>
           <span className="course-detail-text" id="coursePrice">
