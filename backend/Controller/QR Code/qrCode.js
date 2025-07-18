@@ -18,7 +18,7 @@ class QRCodeGenerator {
             const buffer = await QRCode.toBuffer(this.text, this.options);
 
             // Save the buffer to a JPG file
-            const filename = `日本和谐粉彩基础班 Nagomi Pastel Art Basic (CT Hub).jpg`;
+            const filename = `乐龄儿孙乐 Joyful Grandparenting (CT Hub).jpg`;
             fs.writeFileSync(filename, buffer);
             console.log(`QR code generated and saved as ${filename}`);
         } catch (error) {
@@ -28,5 +28,5 @@ class QRCodeGenerator {
 }
 
 // Usage
-const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/%e6%97%a5%e6%9c%ac%e5%92%8c%e8%b0%90%e7%b2%89%e5%bd%a9%e5%9f%ba%e7%a1%80%e7%8f%adnagomi-pastel-art-basic-ct-hub/`);
+const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/%e4%b9%90%e9%be%84%e5%84%bf%e5%ad%99%e4%b9%90joyful-grandparentingct-hub/`);
 qrCodeGenerator.generate();

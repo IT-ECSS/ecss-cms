@@ -2345,7 +2345,7 @@ debugMarriagePrepData = () => {
               const message = `${participantInfo.name} - ${courseInfo.courseEngName} invoice for your SkillsFuture submission
               Please ensure that the details are accurate before submission.
               🔴 Please send us a screenshot of your submission once done.
-              More Information: https://ecss.org.sg/wp-content/uploads/2025/03/Handphone-SFC-claim-step-by-step-via-handphone.pdf`;
+              More Information: https://ecss.org.sg/wp-content/uploads/2025/07/Step-by-step-guide-on-how-to-do-Skillsfuture-claim-submission.pdf`;
 
               
               const whatsappWebURL = `https://web.whatsapp.com/send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
