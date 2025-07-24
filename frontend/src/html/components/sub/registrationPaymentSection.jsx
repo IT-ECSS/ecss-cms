@@ -2347,30 +2347,43 @@ debugMarriagePrepData = () => {
               🔴 Please send us a screenshot of your submission once done.
               More Information: https://ecss.org.sg/wp-content/uploads/2025/07/Step-by-step-guide-on-how-to-do-Skillsfuture-claim-submission.pdf`;
 
-              
               const whatsappWebURL = `https://web.whatsapp.com/send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
-              
               window.open(whatsappWebURL, "_blank"); // Opens in a new browser tab              
             }
-            else if (participantInfo && participantInfo.contactNumber && (courseInfo.payment === "PayNow" || courseInfo.payment === "Cash"))
-            {
+            else if (
+              participantInfo &&
+              participantInfo.contactNumber &&
+              (courseInfo.payment === "PayNow" || courseInfo.payment === "Cash")
+            ) {
               const phoneNumber = participantInfo.contactNumber.replace(/\D/g, ""); // Remove non-numeric characters
-              const message = `${courseInfo.courseEngName} - ${courseInfo.courseDuration.split("–")[0]}
-                Course subsidy applies to only Singaporeans and PRs aged 50yrs and above
-                Hi ${participantInfo.name}, 
-                Thank you for signing up for the above-mentioned class. 
-                Details are as follows:
-                Price: ${courseInfo.coursePrice}
-                Payment to be made via Paynow to UEN no: T03SS0051L (En Community Services Society) 
-                Under the "reference portion", kindly insert your name as per NRIC. 
-                Once payment has gone through, take a screenshot of the payment receipt on your phone and send it over to us. 
-                Thank you.`;
-
-              
+              let message = `${courseInfo.courseEngName} - ${courseInfo.courseDuration.split("–")[0]}
+              Course subsidy applies to only Singaporeans and PRs aged 50yrs and above
+              Hi ${participantInfo.name}, 
+              Thank you for signing up for the above-mentioned class. 
+              Details are as follows:
+              Price: ${courseInfo.coursePrice}
+              Payment to be made via Paynow to UEN no: T03SS0051L (En Community Services Society) 
+              Under the "reference portion", kindly insert your name as per NRIC. 
+              Once payment has gone through, take a screenshot of the payment receipt on your phone and send it over to us. 
+              Thank you.`;
               const whatsappWebURL = `https://web.whatsapp.com/send?phone=+65${phoneNumber}&text=${encodeURIComponent(message)}`;
               console.log("Whatsapp Link:", whatsappWebURL)
-              
-              window.open(whatsappWebURL, "_blank"); // Opens in a new browser tab              
+              window.open(whatsappWebURL, "_blank"); // Opens in a new browser tab
+            }
+              else if (
+              participantInfo &&
+              participantInfo.contactNumber &&
+              status === "Pending"  
+            ) {
+              const phoneNumber = participantInfo.contactNumber.replace(/\D/g, ""); // Remove non-numeric characters
+              let message = `Hi ${participantInfo.name},
+                            Thank you for registering for ${courseInfo.courseEngName}.
+                            We’re sorry to inform you that the course is currently full.
+
+                            We appreciate your interest and will be in touch should a spot become available.`;
+              const whatsappWebURL = `https://web.whatsapp.com/send?phone=+65${phoneNumber}&text=${encodeURIComponent(message)}`;
+              console.log("Whatsapp Link:", whatsappWebURL)
+              window.open(whatsappWebURL, "_blank"); // Opens in a new browser tab
             }
             console.log("Submitted Id:", id);
             await this.sendDetails(id);
