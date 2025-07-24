@@ -2278,6 +2278,7 @@ debugMarriagePrepData = () => {
 
   handleValueClick = async (event) =>
   {
+    console.log("Event (column header name):", event.colDef.headerName);
     const id = event.data.id;
     const columnName = event.colDef.headerName;
     const receiptInvoice = event.data.recinvNo;
@@ -2338,7 +2339,7 @@ debugMarriagePrepData = () => {
         }
         else if (columnName === "Contact Number")
         {
-            console.log("Course Info:", courseInfo);
+            console.log("Entry (Contact Number):", event.data.paymentStatus);
             if(participantInfo && participantInfo.contactNumber && courseInfo.payment === "SkillsFuture")
             {
               const phoneNumber = participantInfo.contactNumber.replace(/\D/g, ""); // Remove non-numeric characters
@@ -2368,12 +2369,11 @@ debugMarriagePrepData = () => {
               Thank you.`;
               const whatsappWebURL = `https://web.whatsapp.com/send?phone=+65${phoneNumber}&text=${encodeURIComponent(message)}`;
               console.log("Whatsapp Link:", whatsappWebURL)
-              window.open(whatsappWebURL, "_blank"); // Opens in a new browser tab
             }
               else if (
               participantInfo &&
               participantInfo.contactNumber &&
-              status === "Pending"  
+              event.data.paymentStatus === "Pending"  
             ) {
               const phoneNumber = participantInfo.contactNumber.replace(/\D/g, ""); // Remove non-numeric characters
               let message = `Hi ${participantInfo.name},
