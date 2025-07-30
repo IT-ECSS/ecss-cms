@@ -2529,6 +2529,7 @@ debugMarriagePrepData = () => {
               Once payment has gone through, take a screenshot of the payment receipt on your phone and send it over to us. 
               Thank you.`;
               const whatsappWebURL = `https://web.whatsapp.com/send?phone=+65${phoneNumber}&text=${encodeURIComponent(message)}`;
+              window.open(whatsappWebURL, "_blank");
               console.log("Whatsapp Link:", whatsappWebURL)
             }
               else if (
