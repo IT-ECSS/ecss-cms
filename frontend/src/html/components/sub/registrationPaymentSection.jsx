@@ -1361,160 +1361,272 @@ class RegistrationPaymentSection extends Component {
     
     exportAttendance = async () => {
       var { selectedRows } = this.state;
+      console.log("Export Attendance - Selected Data:", selectedRows);
       
-      console.log("Export To Attendance - Selected Data:", selectedRows);
     
       if (selectedRows.length === 0) {
         return this.props.warningPopUpMessage("No rows selected. Please select rows to export.");
       }
     
-      try {
-        // Fetch the Excel file from public folder
-        const filePath = '/external/Attendance.xlsx';
-        const response = await fetch(filePath);
-    
-        if (!response.ok) {
-          return this.props.warningPopUpMessage("Error fetching the Excel file.");
-        }
-    
-        const data = await response.arrayBuffer();
-        const workbook = new ExcelJS.Workbook();
-        await workbook.xlsx.load(data);
-    
-        const sourceSheet = workbook.getWorksheet('Sheet1');
-        if (!sourceSheet) {
-          return this.props.warningPopUpMessage("Sheet 'Sheet1' not found!");
-        }
-    
-        // Get course name and location from first selected row
-        const firstRow = selectedRows[0];
-        const courseName = firstRow.course?.courseEngName || firstRow.courseInfo?.courseEngName || "Unknown Course";
-        const courseLocation = firstRow.course?.courseLocation || firstRow.courseInfo?.courseLocation || "Unknown Location";
-    
-        // Set Course Title in A1
-        const cellA1 = sourceSheet.getCell('A1');
-        cellA1.value = `Course Title: ${courseName}`;
-        cellA1.font = { name: 'Calibri', size: 18, bold: true };
-    
-        // Set Course Commencement Date in A2 - Add null check to prevent errors
-        let courseCommencementDate = '';
-        // Check if courseDuration exists and handle the case where it might be undefined
-        const courseDuration = firstRow.course?.courseDuration || firstRow.courseInfo?.courseDuration;
-        if (courseDuration) {
-          const parts = courseDuration.split("-");
-          if (parts && parts.length > 0) {
-            courseCommencementDate = parts[0].trim();
+     try {
+        if(selectedRows[0].courseInfo.courseType === "NSA")
+        {
+          // Fetch the Excel file from public folder
+          const filePath = '/external/Attendance.xlsx';
+          const response = await fetch(filePath);
+      
+          if (!response.ok) {
+            return this.props.warningPopUpMessage("Error fetching the Excel file.");
           }
-        }
-        
-        console.log("Course Commerce Date:", courseCommencementDate);
-    
-        const cellA2 = sourceSheet.getCell('A2');
-        cellA2.value = `Course Commencement Date: ${courseCommencementDate}`;
-        cellA2.font = { name: 'Calibri', size: 18, bold: true };
-    
-        // Set Venue in A3 based on location
-        const cellA3 = sourceSheet.getCell('A3');
-        if (courseLocation === "Tampines 253 Centre") {
-          cellA3.value = `Venue: Blk 253 Tampines St 21 #01-406 Singapore 521253`;
-        } else if (courseLocation === "CT Hub") {
-          cellA3.value = `Venue: En Community Services Society 2 Kallang Avenue CT Hub #06-14 Singapore 339407`;
-        } else if (courseLocation === "Tampines North Community Centre") {
-          cellA3.value = `Venue: Tampines North Community Club Blk 421 Tampines St 41 #01-132 Singapore 520420`;
-        } else if (courseLocation === "Pasir Ris West Wellness Centre") {
-          cellA3.value = `Venue: Pasir Ris West Wellness Centre Blk 605 Elias Road #01-200 Singapore 510605`;
-        } else {
-          cellA3.value = `Venue: ${courseLocation}`;
-        }
-        cellA3.font = { name: 'Calibri', size: 18, bold: true };
-    
-        // Sort participants alphabetically by name - add null checks
-        let sortedParticipants = [...selectedRows]
-          .sort((a, b) => {
-            const nameA = (a.participant?.name || a.participantInfo?.name || "").trim().toLowerCase();
-            const nameB = (b.participant?.name || b.participantInfo?.name || "").trim().toLowerCase();
-            return nameA.localeCompare(nameB);
-          });
-        console.log("Sorted Participants:", sortedParticipants);
-    
-        // Loop for S/N and Name starting from row 6
-        let rowIndex = 6;
-        let participantIndex = 1;
-        for (let i = 0; i < sortedParticipants.length; i++) {
-          const item = sortedParticipants[i];
-          const cellA = sourceSheet.getCell(`A${rowIndex}`);
-          const cellB = sourceSheet.getCell(`B${rowIndex}`);
-    
-          cellA.value = participantIndex;
-          // Use optional chaining to avoid errors
-          cellB.value = item.participant?.name || item.participantInfo?.name || "Unknown";
-    
-          cellA.font = { name: 'Calibri', size: 18, bold: true };
-          cellB.font = { name: 'Calibri', size: 18, bold: true };
-    
-          rowIndex++;
-          participantIndex++;
-        }        // Set Weekly labels in row 4 (D4 onwards) - Add proper error handling
-        const [startDate, endDate] = (courseDuration || "").split(" - ");
-        // Default to current date if no valid start date
-        let start = startDate ? new Date(startDate) : new Date();
-        // Default to a month later if no valid end date
-        let end = endDate ? new Date(endDate) : new Date(start.getTime() + 30 * 24 * 60 * 60 * 1000);
+      
+          const data = await response.arrayBuffer();
+          const workbook = new ExcelJS.Workbook();
+          await workbook.xlsx.load(data);
+      
+          const sourceSheet = workbook.getWorksheet('Sheet1');
+          if (!sourceSheet) {
+            return this.props.warningPopUpMessage("Sheet 'Sheet1' not found!");
+          }
+      
+          // Get course name and location from first selected row
+          const firstRow = selectedRows[0];
+          const courseName = firstRow.course?.courseEngName || firstRow.courseInfo?.courseEngName || "Unknown Course";
+          const courseLocation = firstRow.course?.courseLocation || firstRow.courseInfo?.courseLocation || "Unknown Location";
+      
+          // Set Course Title in A1
+          const cellA1 = sourceSheet.getCell('A1');
+          cellA1.value = `Course Title: ${courseName}`;
+          cellA1.font = { name: 'Calibri', size: 18, bold: true };
+      
+          // Set Course Commencement Date in A2 - Add null check to prevent errors
+          let courseCommencementDate = '';
+          // Check if courseDuration exists and handle the case where it might be undefined
+          const courseDuration = firstRow.course?.courseDuration || firstRow.courseInfo?.courseDuration;
+          if (courseDuration) {
+            const parts = courseDuration.split("-");
+            if (parts && parts.length > 0) {
+              courseCommencementDate = parts[0].trim();
+            }
+          }
+          
+          console.log("Course Commerce Date:", courseCommencementDate);
+      
+          const cellA2 = sourceSheet.getCell('A2');
+          cellA2.value = `Course Commencement Date: ${courseCommencementDate}`;
+          cellA2.font = { name: 'Calibri', size: 18, bold: true };
+      
+          // Set Venue in A3 based on location
+          const cellA3 = sourceSheet.getCell('A3');
+          if (courseLocation === "Tampines 253 Centre") {
+            cellA3.value = `Venue: Blk 253 Tampines St 21 #01-406 Singapore 521253`;
+          } else if (courseLocation === "CT Hub") {
+            cellA3.value = `Venue: En Community Services Society 2 Kallang Avenue CT Hub #06-14 Singapore 339407`;
+          } else if (courseLocation === "Tampines North Community Centre") {
+            cellA3.value = `Venue: Tampines North Community Club Blk 421 Tampines St 41 #01-132 Singapore 520420`;
+          } else if (courseLocation === "Pasir Ris West Wellness Centre") {
+            cellA3.value = `Venue: Pasir Ris West Wellness Centre Blk 605 Elias Road #01-200 Singapore 510605`;
+          } else {
+            cellA3.value = `Venue: ${courseLocation}`;
+          }
+          cellA3.font = { name: 'Calibri', size: 18, bold: true };
+      
+          // Sort participants alphabetically by name - add null checks
+          let sortedParticipants = [...selectedRows]
+            .sort((a, b) => {
+              const nameA = (a.participant?.name || a.participantInfo?.name || "").trim().toLowerCase();
+              const nameB = (b.participant?.name || b.participantInfo?.name || "").trim().toLowerCase();
+              return nameA.localeCompare(nameB);
+            });
+          console.log("Sorted Participants:", sortedParticipants);
+      
+          // Loop for S/N and Name starting from row 6
+          let rowIndex = 6;
+          let participantIndex = 1;
+          for (let i = 0; i < sortedParticipants.length; i++) {
+            const item = sortedParticipants[i];
+            const cellA = sourceSheet.getCell(`A${rowIndex}`);
+            const cellB = sourceSheet.getCell(`B${rowIndex}`);
+      
+            cellA.value = participantIndex;
+            // Use optional chaining to avoid errors
+            cellB.value = item.participant?.name || item.participantInfo?.name || "Unknown";
+      
+            cellA.font = { name: 'Calibri', size: 18, bold: true };
+            cellB.font = { name: 'Calibri', size: 18, bold: true };
+      
+            rowIndex++;
+            participantIndex++;
+          }        // Set Weekly labels in row 4 (D4 onwards) - Add proper error handling
+          const [startDate, endDate] = (courseDuration || "").split(" - ");
+          // Default to current date if no valid start date
+          let start = startDate ? new Date(startDate) : new Date();
+          // Default to a month later if no valid end date
+          let end = endDate ? new Date(endDate) : new Date(start.getTime() + 30 * 24 * 60 * 60 * 1000);
 
-        // Handle invalid dates
-        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-          console.error("Invalid course dates:", { startDate, endDate });
-          // Use current date as fallback
-          const today = new Date();
-          start = today;
-          end = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
-        }
-    
-        // Calculate weeks
-        let weekIndex = 1;
-        let currentDate = new Date(start);
-        const row = sourceSheet.getRow(4);
-        let lessonColumns = [];
-    
-        // Loop for lessons (L1, L2, L3, etc.)
-        for (let col = 4; col <= 42; col += 2) {
-          if (currentDate <= end) {
-            const lessonLabel = `L${weekIndex}: ${formatDateToDDMMYYYY(currentDate)}`;
-            const cell = row.getCell(col);
-            
-            cell.value = lessonLabel;
-            cell.font = { name: 'Calibri', size: 16, bold: true };
-            
-            lessonColumns.push(col);
-            
-            currentDate.setDate(currentDate.getDate() + 7);
-            weekIndex++;
+          // Handle invalid dates
+          if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+            console.error("Invalid course dates:", { startDate, endDate });
+            // Use current date as fallback
+            const today = new Date();
+            start = today;
+            end = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
           }
-        }
+      
+          // Calculate weeks
+          let weekIndex = 1;
+          let currentDate = new Date(start);
+          const row = sourceSheet.getRow(4);
+          let lessonColumns = [];
+      
+          // Loop for lessons (L1, L2, L3, etc.)
+          for (let col = 4; col <= 42; col += 2) {
+            if (currentDate <= end) {
+              const lessonLabel = `L${weekIndex}: ${formatDateToDDMMYYYY(currentDate)}`;
+              const cell = row.getCell(col);
+              
+              cell.value = lessonLabel;
+              cell.font = { name: 'Calibri', size: 16, bold: true };
+              
+              lessonColumns.push(col);
+              
+              currentDate.setDate(currentDate.getDate() + 7);
+              weekIndex++;
+            }
+          }
     
-        // Helper functions
-        function formatDateToDDMMYYYY(date) {
+          // Create a new file and trigger download
+          const buffer = await workbook.xlsx.writeBuffer();
+          const blob = new Blob([buffer], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          });
+      
+          // Trigger the file download with a new name
+          saveAs(blob, `Attendance (Course) ECSS${formatDateToDDMMYYYY1(start)} ${courseName}.xlsx`);
+        }
+        else if(selectedRows[0].courseInfo.courseType === "ILP")
+        {
+          const firstRow = selectedRows[0];
+          
+          // Fetch the Excel file from public folder
+          const filePath = '/external/2025 ILP Course Name Site Name Date of event.xlsx';
+          const response = await fetch(filePath);
+      
+          if (!response.ok) {
+            return this.props.warningPopUpMessage("Error fetching the Excel file.");
+          }
+
+          const data = await response.arrayBuffer();
+          const workbook = new ExcelJS.Workbook();
+          await workbook.xlsx.load(data);
+      
+          const sourceSheet = workbook.getWorksheet('Sheet1');
+          if (!sourceSheet) {
+            return this.props.warningPopUpMessage("Sheet 'Sheet1' not found!");
+          }
+      
+          const courseName = firstRow.course?.courseEngName || firstRow.courseInfo?.courseEngName || "Unknown Course";
+          const courseLocation = firstRow.course?.courseLocation || firstRow.courseInfo?.courseLocation || "Unknown Location";
+      
+          // Set Course Title in A1
+          const cellA1 = sourceSheet.getCell('A1');
+          cellA1.value = `Course Title: ${courseName}`;
+      
+          // Set Course Commencement Date in A2 - Add null check to prevent errors
+          let courseCommencementDate = '';
+          // Check if courseDuration exists and handle the case where it might be undefined
+          const courseDuration = firstRow.course?.courseDuration || firstRow.courseInfo?.courseDuration;
+          if (courseDuration) {
+            const parts = courseDuration.split("-");
+            if (parts && parts.length > 0) {
+              courseCommencementDate = parts[0].trim();
+            }
+          }
+          
+          console.log("Course Commerce Date:", courseCommencementDate);
+      
+          const cellA2 = sourceSheet.getCell('A2');
+          cellA2.value = `Course Commencement Date: ${courseCommencementDate}`;
+      
+          // Set Venue in A3 based on location
+          const cellA3 = sourceSheet.getCell('A3');
+          if (courseLocation === "CT Hub") {
+            cellA3.value = `Venue: En Community Services Society 2 Kallang Avenue CT Hub #06-14 Singapore 339407`;
+          } else if (courseLocation === "Tampines North Community Centre") {
+            cellA3.value = `Venue: Tampines North Community Club Blk 421 Tampines St 41 #01-132 Singapore 520420`;
+          } else if (courseLocation === "Pasir Ris West Wellness Centre") {
+            cellA3.value = `Venue: Pasir Ris West Wellness Centre Blk 605 Elias Road #01-200 Singapore 510605`;
+          } else {
+            cellA3.value = `Venue: ${courseLocation}`;
+          }
+
+          const cellC2 = sourceSheet.getCell('C2');
+          cellC2.value = "Tel: 67886625";
+
+          const cellC3 = sourceSheet.getCell('C3');
+          cellC3.value = "Submitted by: " + this.props.userName;
+
+          const cellC4 = sourceSheet.getCell('C4');
+          cellC4.value = "Date: "+ formatDateToDDMMYYYY2(new Date());
+
+                    // Sort participants alphabetically by name - add null checks
+          let sortedParticipants = [...selectedRows]
+            .sort((a, b) => {
+              const nameA = (a.participant?.name || a.participantInfo?.name || "").trim().toLowerCase();
+              const nameB = (b.participant?.name || b.participantInfo?.name || "").trim().toLowerCase();
+              return nameA.localeCompare(nameB);
+            });
+          console.log("Sorted Participants:", sortedParticipants);
+      
+          // Loop for S/N and Name starting from row 6
+          let rowIndex = 6;
+          let participantIndex = 1;
+          for (let i = 0; i < sortedParticipants.length; i++) {
+            const item = sortedParticipants[i];
+            const cellA = sourceSheet.getCell(`A${rowIndex}`);
+            cellA.value = participantIndex++;
+            const cellB = sourceSheet.getCell(`B${rowIndex}`);
+            cellB.value = item.participant?.name || item.participantInfo?.name || "";
+            rowIndex++;
+          }
+
+
+          // Create a new file and trigger download
+          const buffer = await workbook.xlsx.writeBuffer();
+          const blob = new Blob([buffer], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          });
+      
+          // Trigger the file download with a new name
+          saveAs(blob, `2025 ILP ${courseName} ${courseLocation} ${courseCommencementDate}.xlsx`);
+        }
+
+         function formatDateToDDMMYYYY(date) {
           const day = String(date.getDate()).padStart(2, '0');
           const month = String(date.getMonth() + 1).padStart(2, '0');
           const year = date.getFullYear();
           return `${day}/${month}/${year}`;
         }
-    
+
         function formatDateToDDMMYYYY1(date) {
           const day = String(date.getDate()).padStart(2, '0');
           const month = String(date.getMonth() + 1).padStart(2, '0');
           const year = date.getFullYear();
           return `${day}${month}${year}`;
         }
-          
-        // Create a new file and trigger download
-        const buffer = await workbook.xlsx.writeBuffer();
-        const blob = new Blob([buffer], {
-          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        });
-    
-        // Trigger the file download with a new name
-        saveAs(blob, `Attendance (Course) ECSS${formatDateToDDMMYYYY1(start)} ${courseName}.xlsx`);
+
+        function formatDateToDDMMYYYY2(date) {
+                const months = [
+                  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+                ];
+                
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = months[date.getMonth()];
+                const year = date.getFullYear();
+                
+                return `${day} ${month} ${year}`;
+          }
+            
       } catch (error) {
         console.error("Error exporting attendance:", error);
         this.props.warningPopUpMessage("An error occurred during export: " + error.message);
@@ -1669,6 +1781,7 @@ class RegistrationPaymentSection extends Component {
       field: "contactNo",
       width: 150,
       editable: true,
+      pinned: "left",
     },
     {
       headerName: "Course Name",
