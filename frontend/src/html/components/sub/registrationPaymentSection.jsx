@@ -1740,29 +1740,36 @@ class RegistrationPaymentSection extends Component {
   
   // Custom header component for select all checkbox
   selectAllHeaderComponent = (params) => {
-    const { selectedRows = [] } = this.state;
-    const { rowData = [] } = this.state;
-    
-    // Check if all rows are selected
-    const allSelected = rowData.length > 0 && selectedRows.length === rowData.length;
-    
     const handleSelectAll = () => {
-      if (allSelected) {
-        // Deselect all rows
-        this.setState({ selectedRows: [] });
-        // Also update the grid selection
-        if (this.gridApi) {
+      if (this.gridApi) {
+        // Get current selected rows from the grid API
+        const currentSelectedRows = this.gridApi.getSelectedRows();
+        const totalRows = this.gridApi.getDisplayedRowCount();
+        
+        if (currentSelectedRows.length === totalRows && totalRows > 0) {
+          // Deselect all rows
           this.gridApi.deselectAll();
-        }
-      } else {
-        // Select all rows
-        this.setState({ selectedRows: [...rowData] });
-        // Also update the grid selection
-        if (this.gridApi) {
+        } else {
+          // Select all rows
           this.gridApi.selectAll();
         }
+        
+        // Force header refresh
+        setTimeout(() => {
+          if (this.gridApi) {
+            this.gridApi.refreshHeader();
+          }
+        }, 10);
       }
     };
+
+    // Get current selection state from grid API if available
+    let allSelected = false;
+    if (this.gridApi) {
+      const selectedRows = this.gridApi.getSelectedRows();
+      const totalRows = this.gridApi.getDisplayedRowCount();
+      allSelected = totalRows > 0 && selectedRows.length === totalRows;
+    }
 
     return React.createElement('div', {
       style: { 
@@ -3615,6 +3622,13 @@ debugMarriagePrepData = () => {
   onSelectionChanged = (event) => {
     const selectedRows = event.api.getSelectedRows();
     this.setState({ selectedRows });
+    
+    // Force header refresh to update select all checkbox state
+    setTimeout(() => {
+      if (event.api && typeof event.api.refreshHeader === 'function') {
+        event.api.refreshHeader();
+      }
+    }, 10);
   };
 
   // Grid API initialization
