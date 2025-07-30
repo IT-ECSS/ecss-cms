@@ -1738,6 +1738,51 @@ class RegistrationPaymentSection extends Component {
     );
   };
   
+  // Custom header component for select all checkbox
+  selectAllHeaderComponent = (params) => {
+    const { selectedRows = [] } = this.state;
+    const { rowData = [] } = this.state;
+    
+    // Check if all rows are selected
+    const allSelected = rowData.length > 0 && selectedRows.length === rowData.length;
+    const someSelected = selectedRows.length > 0;
+    
+    const handleSelectAll = () => {
+      if (allSelected) {
+        // Deselect all rows
+        this.setState({ selectedRows: [] });
+        // Also update the grid selection
+        if (this.gridApi) {
+          this.gridApi.deselectAll();
+        }
+      } else {
+        // Select all rows
+        this.setState({ selectedRows: [...rowData] });
+        // Also update the grid selection
+        if (this.gridApi) {
+          this.gridApi.selectAll();
+        }
+      }
+    };
+
+    return (
+      <div 
+        style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          height: '100%', 
+          width: '100%',
+          cursor: 'pointer'
+        }}
+        onClick={handleSelectAll}
+        title={allSelected ? 'Deselect all' : 'Select all'}
+      >
+        {/* Empty header - no visual checkbox, just clickable area */}
+      </div>
+    );
+  };
+  
  getColumnDefs = (optionalRowData = null) => {
   const { role, siteIC } = this.props; // Get the role from props
   console.log("Props123455:", siteIC);
@@ -1987,6 +2032,7 @@ class RegistrationPaymentSection extends Component {
     checkboxSelection: true,
     width: 50,
     pinned: "right",
+    headerComponent: this.selectAllHeaderComponent,
   });
 
   // Only add Marriage Preparation Programme specific columns if there are Marriage Preparation Programme entries
