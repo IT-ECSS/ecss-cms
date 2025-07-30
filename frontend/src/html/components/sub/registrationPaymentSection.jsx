@@ -1745,7 +1745,6 @@ class RegistrationPaymentSection extends Component {
     
     // Check if all rows are selected
     const allSelected = rowData.length > 0 && selectedRows.length === rowData.length;
-    const someSelected = selectedRows.length > 0;
     
     const handleSelectAll = () => {
       if (allSelected) {
@@ -1765,22 +1764,18 @@ class RegistrationPaymentSection extends Component {
       }
     };
 
-    return (
-      <div 
-        style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          height: '100%', 
-          width: '100%',
-          cursor: 'pointer'
-        }}
-        onClick={handleSelectAll}
-        title={allSelected ? 'Deselect all' : 'Select all'}
-      >
-        {/* Empty header - no visual checkbox, just clickable area */}
-      </div>
-    );
+    return React.createElement('div', {
+      style: { 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        height: '100%', 
+        width: '100%',
+        cursor: 'pointer'
+      },
+      onClick: handleSelectAll,
+      title: allSelected ? 'Deselect all' : 'Select all'
+    });
   };
   
  getColumnDefs = (optionalRowData = null) => {
