@@ -984,11 +984,13 @@ class RegistrationPaymentSection extends Component {
         const firstType = selectedRows[0]?.courseInfo?.courseType;
         let filePath, outputFileName;
         if (firstType === "ILP") {
+          const [startDate, endDate] = detail.courseInfo[0].courseDuration.split(" - ");
           filePath = '/external/OSG ILP List of participants (20250401).xlsx';
-          outputFileName = `OSG ILP List of participants (20350401) as of ${this.getCurrentDateTime()}.xlsx`;
+          //outputFileName = `OSG ILP List of participants (20250401) as of ${this.getCurrentDateTime()}.xlsx`;
+          outputFileName = `OSG ILP List of participants (20350401) as of ${startDate}.xlsx`;
         } else {
           filePath = '/external/OSG NSA List of participants (20250401).xlsx';
-          outputFileName = `OSG NSA List of participants (20350401) as of ${this.getCurrentDateTime()}.xlsx`;
+          outputFileName = `OSG NSA List of participants (20250401) as of ${this.getCurrentDateTime()}.xlsx`;
         }
     
         // Fetch the Excel file
