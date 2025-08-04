@@ -973,6 +973,15 @@ class RegistrationPaymentSection extends Component {
       return `${day}/${month}/${year}`;
     }
 
+    convertDateFormat3(dateString) {
+      const date = new Date(dateString);
+      const day = String(date.getDate()).padStart(2, '0'); // Ensure two-digit day
+      const month = String(date.getMonth() + 1).padStart(2, '0'); // Ensure two-digit month (0-based index)
+      const year = date.getFullYear();
+      
+      return `${day}${month}${year}`;
+    }
+
     exportToLOP = async () => {
       try {
         const { selectedRows } = this.state;
@@ -984,10 +993,10 @@ class RegistrationPaymentSection extends Component {
         const firstType = selectedRows[0]?.courseInfo?.courseType;
         let filePath, outputFileName;
         if (firstType === "ILP") {
-          const [startDate, endDate] = detail.courseInfo[0].courseDuration.split(" - ");
+          const [startDate, endDate] = selectedRows[0].courseInfo.courseDuration.split(" - ");
           filePath = '/external/OSG ILP List of participants (20250401).xlsx';
           //outputFileName = `OSG ILP List of participants (20250401) as of ${this.getCurrentDateTime()}.xlsx`;
-          outputFileName = `OSG ILP List of participants (20350401) as of ${startDate}.xlsx`;
+          outputFileName = `OSG ILP List of participants (20250401) as of ${this.convertDateFormat3(startDate)}.xlsx`;
         } else {
           filePath = '/external/OSG NSA List of participants (20250401).xlsx';
           outputFileName = `OSG NSA List of participants (20250401) as of ${this.getCurrentDateTime()}.xlsx`;
