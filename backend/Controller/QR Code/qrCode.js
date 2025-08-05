@@ -18,7 +18,7 @@ class QRCodeGenerator {
             const buffer = await QRCode.toBuffer(this.text, this.options);
 
             // Save the buffer to a JPG file
-            const filename = `和谐粉彩绘画基础班一第2阶 Nagomi Pastel Art Basic L2 (Renewal Christian Church).jpg`;
+            const filename = `汉语拼音基础班 Hanyu Pinyin for Beginners (Pasir Ris West Wellness Centre).jpg`;
             fs.writeFileSync(filename, buffer);
             console.log(`QR code generated and saved as ${filename}`);
         } catch (error) {
@@ -28,5 +28,5 @@ class QRCodeGenerator {
 }
 
 // Usage
-const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/%e5%92%8c%e8%b0%90%e7%b2%89%e5%bd%a9%e7%bb%98%e7%94%bb%e5%9f%ba%e7%a1%80%e7%8f%ad%e4%b8%80%e7%ac%ac2%e9%98%b6nagomi-pastel-art-basic-l2renewal-christian-church/`);
+const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/%e6%b1%89%e8%af%ad%e6%8b%bc%e9%9f%b3%e5%9f%ba%e7%a1%80%e7%8f%adhanyu-pinyin-for-beginnerspasir-ris-west-wellness-centre/`);
 qrCodeGenerator.generate();

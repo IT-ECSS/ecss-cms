@@ -1019,22 +1019,34 @@ class RegistrationPaymentSection extends Component {
     
         const originalRow = sourceSheet.getRow(9); // Row 9 is the template row to copy
         const startRow = 9;
+
+        console.log("Selected Rows:", selectedRows);
+    
+        // Filter to only include rows with specific payment statuses
+        const filteredRows = selectedRows.filter(row => {
+          const paymentStatus = row.paymentStatus;
+          if (firstType === "NSA") {
+            return paymentStatus === "Paid" || paymentStatus === "SkillsFuture Done";
+          } else {
+            return paymentStatus === "Confirmed";
+          }
+        });
     
         // Sort participants alphabetically
-        selectedRows.sort((a, b) => {
+        filteredRows.sort((a, b) => {
           const nameA = a.participantInfo.name.trim().toLowerCase();
           const nameB = b.participantInfo.name.trim().toLowerCase();
           return nameA.localeCompare(nameB);
         });
     
-        selectedRows.forEach((detail, index) => {
+        filteredRows.forEach((detail, index) => {
           const rowIndex = startRow + index;
           const newDataRow = sourceSheet.getRow(rowIndex);
           newDataRow.height = originalRow.height;
     
           if (firstType === "NSA") {
             // --- NSA FORMAT (keep your existing logic) ---
-            sourceSheet.getCell(`A${rowIndex}`).value = rowIndex - startRow + 1;
+            sourceSheet.getCell(`A${rowIndex}`).value = index + 1; // Start from 1 for filtered results
             sourceSheet.getCell(`B${rowIndex}`).value = detail.participantInfo.name;
             sourceSheet.getCell(`C${rowIndex}`).value = detail.participantInfo.nric;
             sourceSheet.getCell(`D${rowIndex}`).value = detail.participantInfo.residentialStatus.substring(0, 2);
@@ -1164,7 +1176,7 @@ class RegistrationPaymentSection extends Component {
     
         // Total calculation (NSA only, skip for ILP if not needed)
         if (firstType === "NSA") {
-          let total = selectedRows.reduce((sum, item) => {
+          let total = filteredRows.reduce((sum, item) => {
             let priceStr = item?.courseInfo?.coursePrice || "$0";
             let numeric = parseFloat(priceStr.replace('$', ''));
             return sum + (isNaN(numeric) ? 0 : numeric);
@@ -1378,9 +1390,28 @@ class RegistrationPaymentSection extends Component {
       if (selectedRows.length === 0) {
         return this.props.warningPopUpMessage("No rows selected. Please select rows to export.");
       }
+
+      // Determine course type and apply filtering
+      const firstType = selectedRows[0]?.courseInfo?.courseType;
+      const filteredRows = selectedRows.filter(row => {
+        const paymentStatus = row.paymentStatus;
+        if (firstType === "NSA") {
+          return paymentStatus === "Paid" || paymentStatus === "SkillsFuture Done";
+        } else {
+          return paymentStatus === "Confirmed";
+        }
+      });
+
+      // Check if there are any filtered rows
+      if (filteredRows.length === 0) {
+        const statusMessage = firstType === "NSA" 
+          ? "No rows with payment status 'Paid' or 'SkillsFuture Done' found." 
+          : "No rows with payment status 'Confirmed' found.";
+        return this.props.warningPopUpMessage(statusMessage);
+      }
     
      try {
-        if(selectedRows[0].courseInfo.courseType === "NSA")
+        if(firstType === "NSA")
         {
           // Fetch the Excel file from public folder
           const filePath = '/external/Attendance.xlsx';
@@ -1399,8 +1430,8 @@ class RegistrationPaymentSection extends Component {
             return this.props.warningPopUpMessage("Sheet 'Sheet1' not found!");
           }
       
-          // Get course name and location from first selected row
-          const firstRow = selectedRows[0];
+          // Get course name and location from first filtered row
+          const firstRow = filteredRows[0];
           const courseName = firstRow.course?.courseEngName || firstRow.courseInfo?.courseEngName || "Unknown Course";
           const courseLocation = firstRow.course?.courseLocation || firstRow.courseInfo?.courseLocation || "Unknown Location";
       
@@ -1442,7 +1473,7 @@ class RegistrationPaymentSection extends Component {
           cellA3.font = { name: 'Calibri', size: 18, bold: true };
       
           // Sort participants alphabetically by name - add null checks
-          let sortedParticipants = [...selectedRows]
+          let sortedParticipants = [...filteredRows]
             .sort((a, b) => {
               const nameA = (a.participant?.name || a.participantInfo?.name || "").trim().toLowerCase();
               const nameB = (b.participant?.name || b.participantInfo?.name || "").trim().toLowerCase();
@@ -1514,9 +1545,9 @@ class RegistrationPaymentSection extends Component {
           // Trigger the file download with a new name
           saveAs(blob, `Attendance (Course) ECSS${formatDateToDDMMYYYY1(start)} ${courseName}.xlsx`);
         }
-        else if(selectedRows[0].courseInfo.courseType === "ILP")
+        else if(firstType === "ILP")
         {
-          const firstRow = selectedRows[0];
+          const firstRow = filteredRows[0];
           
           // Fetch the Excel file from public folder
           const filePath = '/external/2025 ILP Course Name Site Name Date of event.xlsx';
@@ -1580,7 +1611,7 @@ class RegistrationPaymentSection extends Component {
           cellC4.value = "Date: "+ formatDateToDDMMYYYY2(new Date());
 
                     // Sort participants alphabetically by name - add null checks
-          let sortedParticipants = [...selectedRows]
+          let sortedParticipants = [...filteredRows]
             .sort((a, b) => {
               const nameA = (a.participant?.name || a.participantInfo?.name || "").trim().toLowerCase();
               const nameB = (b.participant?.name || b.participantInfo?.name || "").trim().toLowerCase();
