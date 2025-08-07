@@ -23,25 +23,34 @@ var membershipRouter = require('./routes/membership');
 var jwksRouter = require('./routes/jwks');
 var whatsappRouter = require('./routes/whatsapp');
 
-//app.use(cors()); // Enable CORS
-app.use(logger('dev')); // HTTP request logger
-app.use(express.json()); // For parsing JSON
-app.use(express.urlencoded({ extended: true })); // For parsing URL-encoded data
-app.use(cookieParser()); // For parsing cookies
-
-// Set up views (if you're using templates)okok
+// Set up views (if you're using templates)
 app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade'); // You can change to 'ejs' or others if needed
+app.set('view engine', 'jade');
 
+// Trust proxy for Azure App Service
+app.set('trust proxy', 1);
+
+// Configure middleware in correct order
 app.use(logger('dev'));
+
+// CORS configuration
 app.use(cors({
-  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Add any other methods you want to support
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Content-Disposition'], 
-  exposedHeaders: ['Content-Disposition'], // Add this line to expose the header
+  exposedHeaders: ['Content-Disposition']
 }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Payload parsing with increased limits for Azure App Service (BEFORE routes)
+app.use(express.json({ 
+  limit: '10mb'
+}));
+
+app.use(express.urlencoded({ 
+  limit: '10mb',
+  extended: true,
+  parameterLimit: 50000
+}));
+
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -60,18 +69,6 @@ app.use("/coursesRegistered", coursesRegisteredRouter);
 app.use("/attendance", attendanceRouter);
 app.use("/membership", membershipRouter);
 app.use("/whatsapp", whatsappRouter);
-
-// Increase payload limits for Azure App Service
-app.use(express.json({ 
-  limit: '10mb',
-  extended: true 
-}));
-
-app.use(express.urlencoded({ 
-  limit: '10mb',
-  extended: true,
-  parameterLimit: 50000
-}));
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
