@@ -5,8 +5,22 @@ const uri = 'mongodb+srv://moseslee:Mlxy6695@ecss-course.hejib.mongodb.net/?retr
 
 class DatabaseConnectivity {
     constructor() {
-        this.client = new MongoClient(uri);
+        // Enhanced MongoDB client options for better timeout handling
+        const clientOptions = {
+            connectTimeoutMS: 30000,        // 30 seconds connection timeout
+            socketTimeoutMS: 30000,         // 30 seconds socket timeout
+            serverSelectionTimeoutMS: 30000, // 30 seconds server selection timeout
+            maxPoolSize: 10,                // Maintain up to 10 socket connections
+            retryWrites: true,              // Retry writes if they fail
+            retryReads: true,               // Retry reads if they fail
+            maxIdleTimeMS: 30000,          // Close connections after 30 seconds of inactivity
+            waitQueueTimeoutMS: 30000,     // Wait 30 seconds for a connection from pool
+        };
+        
+        this.client = new MongoClient(uri, clientOptions);
         this.isConnected = false;
+        this.reconnectAttempts = 0;
+        this.maxReconnectAttempts = 3;
     }
 
     // Connect to the database
