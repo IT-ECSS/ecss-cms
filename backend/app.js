@@ -23,7 +23,7 @@ var membershipRouter = require('./routes/membership');
 var jwksRouter = require('./routes/jwks');
 var whatsappRouter = require('./routes/whatsapp');
 
-app.use(cors()); // Enable CORS
+//app.use(cors()); // Enable CORS
 app.use(logger('dev')); // HTTP request logger
 app.use(express.json()); // For parsing JSON
 app.use(express.urlencoded({ extended: true })); // For parsing URL-encoded data
