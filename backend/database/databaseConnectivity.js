@@ -1,51 +1,171 @@
 const { MongoClient, ObjectId } = require('mongodb');
 
-// MongoDB connection string
-const uri = 'mongodb+srv://moseslee:Mlxy6695@ecss-course.hejib.mongodb.net/?retryWrites=true&w=majority&appName=ECSS-Course'; // Use env variable
+// Enhanced MongoDB connection string with additional parameters for Azure hosting
+const uri = 'mongodb+srv://moseslee:Mlxy6695@ecss-course.hejib.mongodb.net/?retryWrites=true&w=majority&appName=ECSS-Course&connectTimeoutMS=60000&socketTimeoutMS=60000&serverSelectionTimeoutMS=60000&heartbeatFrequencyMS=30000&maxIdleTimeMS=60000&ssl=true&authSource=admin';
 
 class DatabaseConnectivity {
     constructor() {
-        // Enhanced MongoDB client options for better timeout handling
+        // Enhanced MongoDB client options for Azure hosting environment
         const clientOptions = {
-            connectTimeoutMS: 30000,        // 30 seconds connection timeout
-            socketTimeoutMS: 30000,         // 30 seconds socket timeout
-            serverSelectionTimeoutMS: 30000, // 30 seconds server selection timeout
+            connectTimeoutMS: 60000,        // 60 seconds connection timeout (increased for Azure)
+            socketTimeoutMS: 60000,         // 60 seconds socket timeout
+            serverSelectionTimeoutMS: 60000, // 60 seconds server selection timeout
+            heartbeatFrequencyMS: 30000,    // 30 seconds heartbeat frequency
             maxPoolSize: 10,                // Maintain up to 10 socket connections
             retryWrites: true,              // Retry writes if they fail
             retryReads: true,               // Retry reads if they fail
-            maxIdleTimeMS: 30000,          // Close connections after 30 seconds of inactivity
-            waitQueueTimeoutMS: 30000,     // Wait 30 seconds for a connection from pool
+            maxIdleTimeMS: 60000,          // Close connections after 60 seconds of inactivity
+            waitQueueTimeoutMS: 60000,     // Wait 60 seconds for a connection from pool
+            bufferMaxEntries: 0,           // Disable mongoose buffering
+            useNewUrlParser: true,         // Use new URL parser
+            useUnifiedTopology: true,      // Use new topology engine
+            ssl: true,                     // Enable SSL
+            authSource: 'admin',           // Auth database
+            family: 4                      // Use IPv4, skip trying IPv6
         };
         
         this.client = new MongoClient(uri, clientOptions);
         this.isConnected = false;
         this.reconnectAttempts = 0;
-        this.maxReconnectAttempts = 3;
+        this.maxReconnectAttempts = 5;      // Increased retry attempts
+        this.baseRetryDelay = 2000;         // Base delay for exponential backoff
     }
 
-    // Connect to the database
+    // Connect to the database with enhanced retry logic for Azure hosting
     async initialize()
     {
         try 
         {
             if (!this.isConnected) 
             {
-                await this.client.connect();
-                this.isConnected = true;
-                return "Connected to MongoDB Atlas!";
-            }   
+                console.log("Attempting to connect to MongoDB Atlas from Azure hosting...");
+                
+                // Add enhanced connection retry logic with longer delays
+                for (let attempt = 1; attempt <= this.maxReconnectAttempts; attempt++) {
+                    try {
+                        console.log(`Connection attempt ${attempt}/${this.maxReconnectAttempts}...`);
+                        
+                        // Create a new client for each retry attempt to avoid stale connections
+                        if (attempt > 1) {
+                            await this.client.close().catch(() => {}); // Ignore close errors
+                            
+                            // Enhanced MongoDB client options for Azure hosting environment
+                            const clientOptions = {
+                                connectTimeoutMS: 60000,
+                                socketTimeoutMS: 60000,
+                                serverSelectionTimeoutMS: 60000,
+                                heartbeatFrequencyMS: 30000,
+                                maxPoolSize: 10,
+                                retryWrites: true,
+                                retryReads: true,
+                                maxIdleTimeMS: 60000,
+                                waitQueueTimeoutMS: 60000,
+                                bufferMaxEntries: 0,
+                                useNewUrlParser: true,
+                                useUnifiedTopology: true,
+                                ssl: true,
+                                authSource: 'admin',
+                                family: 4
+                            };
+                            
+                            this.client = new MongoClient(uri, clientOptions);
+                        }
+                        
+                        await this.client.connect();
+                        
+                        // Test the connection by pinging the database
+                        await this.client.db("admin").command({ ping: 1 });
+                        
+                        this.isConnected = true;
+                        this.reconnectAttempts = 0;
+                        console.log("Successfully connected to MongoDB Atlas from Azure hosting!");
+                        return "Connected to MongoDB Atlas!";
+                        
+                    } catch (connectionError) {
+                        console.error(`Connection attempt ${attempt} failed:`, {
+                            message: connectionError.message,
+                            name: connectionError.name,
+                            code: connectionError.code
+                        });
+                        
+                        if (attempt === this.maxReconnectAttempts) {
+                            throw connectionError;
+                        }
+                        
+                        // Progressive delay with jitter to avoid thundering herd
+                        const baseDelay = this.baseRetryDelay * Math.pow(2, attempt - 1);
+                        const jitter = Math.random() * 1000; // Add up to 1 second random delay
+                        const delay = baseDelay + jitter;
+                        
+                        console.log(`Retrying connection in ${Math.round(delay / 1000)} seconds...`);
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    }
+                }
+            } else {
+                console.log("Already connected to MongoDB Atlas!");
+                return "Already connected to MongoDB Atlas!";
+            }
         } catch (error) {
             console.error("Error connecting to MongoDB Atlas:", error);
+            this.isConnected = false;
+            
+            // Provide more specific error messages for Azure hosting environment
+            if (error.code === 'ETIMEOUT' || error.name === 'MongoNetworkTimeoutError') {
+                const message = "Connection timeout: Unable to connect to MongoDB Atlas from Azure hosting. This may be due to network restrictions or MongoDB Atlas cluster availability.";
+                console.error(message);
+                throw new Error(message);
+            } else if (error.name === 'MongoServerSelectionError') {
+                const message = "Server selection timeout: Unable to select a MongoDB server. Please verify that MongoDB Atlas cluster is running and accessible from Azure hosting environment.";
+                console.error(message);
+                throw new Error(message);
+            } else if (error.name === 'MongoParseError') {
+                const message = "Connection string parse error: Invalid MongoDB connection string format.";
+                console.error(message);
+                throw new Error(message);
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    // Add a method to check if connection is still alive
+    async checkConnection() {
+        try {
+            if (this.isConnected && this.client) {
+                await this.client.db("admin").command({ ping: 1 });
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error("Connection check failed:", error);
+            this.isConnected = false;
+            return false;
+        }
+    }
+
+    // Enhanced method to ensure connection before database operations
+    async ensureConnection() {
+        try {
+            const isConnected = await this.checkConnection();
+            if (!isConnected) {
+                console.log("Connection lost, attempting to reconnect...");
+                await this.initialize();
+            }
+        } catch (error) {
+            console.error("Failed to ensure connection:", error);
             throw error;
         }
     }
 
     async login(dbname, collectionName, email, password, date, time)
     {
-        const db = this.client.db(dbname);
-        try
-        {
+        try {
+            // Ensure connection before database operation
+            await this.ensureConnection();
+            
+            const db = this.client.db(dbname);
             var table = db.collection(collectionName);
+            
             // Find a user with matching email and password
             const user = await table.findOne({ email: email, password: password });
             if (user) {
@@ -75,7 +195,12 @@ class DatabaseConnectivity {
         }
         catch(error)
         {
-            console.log(error);
+            console.error("Login error:", error);
+            return {
+                success: false,
+                message: 'Database connection error occurred',
+                error: error.message
+            };
         }
     }
 
@@ -2056,7 +2181,22 @@ class DatabaseConnectivity {
             };
         }
     }
+    
+    // Add graceful connection cleanup method
+    async close() {
+        try {
+            if (this.client && this.isConnected) {
+                await this.client.close();
+                this.isConnected = false;
+                console.log("MongoDB connection closed gracefully.");
+            }
+        } catch (error) {
+            console.error("Error closing MongoDB connection:", error);
+        }
+    }
 }
+
+module.exports = DatabaseConnectivity;
 
 // Export the instance for use in other modules
 module.exports = DatabaseConnectivity;
