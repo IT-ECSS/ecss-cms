@@ -1,9 +1,42 @@
 {
     "navigationFallback": {
         "rewrite": "index.html",
-        "exclude": ["/static/images/*.{png,jpg,gif}", "/static/css/*"]
+        "exclude": [
+            "/static/images/*.{png,jpg,gif,svg,webp}",
+            "/static/css/*",
+            "/static/js/*",
+            "/assets/*",
+            "*.js",
+            "*.css",
+            "*.json"
+        ]
     },
     "mimeTypes": {
-        ".json": "text/json"
-    }
+        ".json": "application/json",
+        ".js": "application/javascript",
+        ".css": "text/css"
+    },
+    "globalHeaders": {
+        "Cache-Control": "no-cache"
+    },
+    "routes": [
+        {
+            "route": "/assets/*",
+            "headers": {
+                "Cache-Control": "public, max-age=31536000, immutable"
+            }
+        },
+        {
+            "route": "*.js",
+            "headers": {
+                "Cache-Control": "public, max-age=31536000, immutable"
+            }
+        },
+        {
+            "route": "*.css",
+            "headers": {
+                "Cache-Control": "public, max-age=31536000, immutable"
+            }
+        }
+    ]
 }

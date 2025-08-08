@@ -48,7 +48,8 @@
   },
   "scripts": {
     "start": "vite dev",
-    "build": "vite build",
+    "build": "NODE_ENV=production vite build --mode production",
+    "build:analyze": "NODE_ENV=production vite build --mode production && npx vite-bundle-analyzer dist",
     "preview": "vite preview",
     "test": "vite test",
     "eject": "vite eject"
@@ -72,8 +73,11 @@
     ]
   },
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^28.0.6",
+    "@rollup/plugin-node-resolve": "^16.0.1",
     "@vitejs/plugin-react": "^4.3.4",
     "html-webpack-plugin": "^5.6.3",
+    "terser": "^5.43.1",
     "vite": "^6.2.5"
   }
 }
