@@ -18,7 +18,7 @@ const mongoOptions = {
 
 class DatabaseConnectivity {
     constructor() {
-        this.client = new MongoClient(uri, mongoOptions);
+        this.client = new MongoClient(uri);
         this.isConnected = false;
         this.connectionPromise = null;
     }

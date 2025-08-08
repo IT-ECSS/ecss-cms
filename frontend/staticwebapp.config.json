@@ -1,30 +1,6 @@
 {
     "navigationFallback": {
-        "rewrite": "/index.html",
-        "exclude": [
-            "/static/images/*.{png,jpg,gif,svg,webp}",
-            "/static/css/*",
-            "/static/js/*",
-            "/assets/*",
-            "/api/*",
-            "*.js",
-            "*.css",
-            "*.json",
-            "*.ico",
-            "*.png",
-            "*.jpg",
-            "*.gif",
-            "*.svg",
-            "*.webp"
-        ]
-    },
-    "mimeTypes": {
-        ".json": "application/json",
-        ".js": "application/javascript",
-        ".css": "text/css"
-    },
-    "globalHeaders": {
-        "Cache-Control": "no-cache"
+        "rewrite": "/index.html"
     },
     "routes": [
         {
@@ -34,13 +10,19 @@
             }
         },
         {
-            "route": "*.js",
+            "route": "/static/*",
             "headers": {
                 "Cache-Control": "public, max-age=31536000, immutable"
             }
         },
         {
-            "route": "*.css",
+            "route": "/*.js",
+            "headers": {
+                "Cache-Control": "public, max-age=31536000, immutable"
+            }
+        },
+        {
+            "route": "/*.css",
             "headers": {
                 "Cache-Control": "public, max-age=31536000, immutable"
             }
@@ -50,5 +32,14 @@
             "serve": "/index.html",
             "statusCode": 200
         }
-    ]
+    ],
+    "mimeTypes": {
+        ".json": "application/json",
+        ".js": "application/javascript",
+        ".css": "text/css",
+        ".html": "text/html"
+    },
+    "globalHeaders": {
+        "Cache-Control": "no-cache"
+    }
 }

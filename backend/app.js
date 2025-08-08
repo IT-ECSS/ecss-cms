@@ -5,12 +5,6 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var cors = require("cors");
 
-// Load environment variables
-require('dotenv').config();
-
-// Initialize database manager
-const databaseManager = require('./database/databaseManager');
-
 var app = express(); // Initialize the Express app
 
 var indexRouter = require('./routes/index');
@@ -101,17 +95,6 @@ app.use(function(err, req, res, next) {
   res.render('error');
 });
 
-// Initialize database connection at startup
-async function initializeApp() {
-  try {
-    await databaseManager.initialize();
-    console.log("Application startup: Database connection established");
-  } catch (error) {
-    console.error("Application startup failed: Database connection failed", error);
-    process.exit(1);
-  }
-}
-
 // Graceful shutdown handling
 process.on('SIGTERM', async () => {
   console.log('SIGTERM received, shutting down gracefully');
@@ -124,8 +107,5 @@ process.on('SIGINT', async () => {
   await databaseManager.shutdown();
   process.exit(0);
 });
-
-// Initialize the app immediately
-initializeApp();
 
 module.exports = app;
