@@ -35,12 +35,39 @@
         font-family: Arial, sans-serif; /* Default font */
       }
     </style>
+    <script type="module" crossorigin src="/assets/index-DreSCDz8.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/excel-utils-aaoOguC_.js">
+    <link rel="modulepreload" crossorigin href="/assets/ag-modules-Db9aB8xI.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-scheduler-CNpwfz3n.js">
+    <link rel="modulepreload" crossorigin href="/assets/msal-B0d1L3z-.js">
+    <link rel="modulepreload" crossorigin href="/assets/react-core-tM5X_WPO.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-jwt-decode-Dp0M1_z9.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-oidc-client-ts-C-sCSuQ3.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-react-oidc-context-B_joCcwi.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-babel-BX6Qer2c.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-prop-types-CEsg02-d.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-resolve-pathname-BNrm5zPJ.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-value-equal-CQHoON3r.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-tiny-invariant-BM5KeS_Z.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-history-BDgqoNA7.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-hoist-non-react-statics-iJsMzWea.js">
+    <link rel="modulepreload" crossorigin href="/assets/router-CI2rER53.js">
+    <link rel="modulepreload" crossorigin href="/assets/axios-B5ey8IwC.js">
+    <link rel="modulepreload" crossorigin href="/assets/xlsx-CVj0FMDI.js">
+    <link rel="modulepreload" crossorigin href="/assets/file-saver-BLq6eNmU.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-jszip-CcyQbDiM.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-engine-io-parser-D_zu5Ca3.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-engine-io-client-CyZb0xPN.js">
+    <link rel="modulepreload" crossorigin href="/assets/socket-BIZA8H0_.js">
+    <link rel="modulepreload" crossorigin href="/assets/daypicker-C3IAO7Ps.js">
+    <link rel="modulepreload" crossorigin href="/assets/icons-8fo8H_GF.js">
+    <link rel="stylesheet" crossorigin href="/assets/daypicker-BVIjl2Mn.css">
+    <link rel="stylesheet" crossorigin href="/assets/index-Bwx5kj7i.css">
+    <link rel="stylesheet" crossorigin href="/assets/fontawesome-BrEE9P_r.css">
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
-    <script type="module" src="/src/index.jsx"></script>
-
     <!--
       This HTML file is a template.
       If you open it directly in the browser, you will see an empty page.
@@ -57,20 +84,36 @@
     <script>
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       OneSignalDeferred.push(async function(OneSignal) {
-        await OneSignal.init({
-          appId: "e215cf65-e110-4f8c-9e40-90e1f1e85d8e",
-          allowLocalhostAsSecureOrigin: true,
-          
-          // Add path tracking for notification filtering
-          notifyButton: {
-            enable: true,
+        try {
+          await OneSignal.init({
+            appId: "01b56852-4a5c-4ccc-9733-11aa47d27400",
+            allowLocalhostAsSecureOrigin: true,
+            notifyButton: {
+              enable: true,
+            },
+            promptOptions: {
+              slidedown: {
+                prompts: [
+                  { type: "push", autoPrompt: true }
+                ]
+              }
+            }
+          });
+          console.log("OneSignal initialized successfully");
+
+          // Force the prompt if not already subscribed
+          const permission = await OneSignal.Notification.permission;
+          if (permission !== "granted") {
+            await OneSignal.User.PushSubscription.optIn();
           }
-        });
+        } catch (error) {
+          console.error("OneSignal init error:", error);
+        }
         
-        // Set tag for current path
+        // Set tag for current path for notification filtering
         const currentPath = window.location.pathname;
         console.log('Setting OneSignal path tag:', currentPath);
-        OneSignal.sendTag('current_path', currentPath);
+        await OneSignal.User.addTag('current_path', currentPath);
         
         // Track path changes
         const originalPushState = history.pushState;
@@ -78,7 +121,7 @@
           originalPushState.apply(this, arguments);
           const newPath = window.location.pathname;
           console.log('Path changed, updating OneSignal tag:', newPath);
-          OneSignal.sendTag('current_path', newPath);
+          OneSignal.User.addTag('current_path', newPath);
         };
       });
     </script>
