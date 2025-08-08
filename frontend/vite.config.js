@@ -64,11 +64,6 @@ export default defineConfig({
             return 'ag-react';
           }
           
-          // DevExtreme - split into smaller chunks
-          if (id.includes('devextreme')) {
-            return 'devextreme';
-          }
-          
           // UI libraries - very small chunks
           if (id.includes('@mui/material')) {
             return 'mui-material';
@@ -199,8 +194,6 @@ export default defineConfig({
   optimizeDeps: {
     // Pre-bundle problematic dependencies
     include: [
-      'devextreme',
-      'devextreme-react',
       'react',
       'react-dom',
       'axios'

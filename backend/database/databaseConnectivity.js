@@ -3,14 +3,15 @@ const { MongoClient, ObjectId } = require('mongodb');
 // MongoDB connection string - should use environment variable
 const uri = 'mongodb+srv://moseslee:Mlxy6695@ecss-course.hejib.mongodb.net/?retryWrites=true&w=majority&appName=ECSS-Course';
 
-// MongoDB connection options for better performance and stability
+// MongoDB connection options for high availability and multiple concurrent users
 const mongoOptions = {
-    maxPoolSize: 10, // Maintain up to 10 socket connections
-    serverSelectionTimeoutMS: 30000, // Keep trying to send operations for 30 seconds (increased)
-    socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-    connectTimeoutMS: 30000, // Give more time to establish connection (increased)
+    maxPoolSize: 50, // Increase pool size for multiple concurrent users
+    serverSelectionTimeoutMS: 0, // No timeout - wait indefinitely for server selection
+    socketTimeoutMS: 0, // No socket timeout - keep connections alive indefinitely
+    connectTimeoutMS: 0, // No connection timeout - wait indefinitely for initial connection
     heartbeatFrequencyMS: 10000, // Check server health every 10 seconds
-    maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
+    maxIdleTimeMS: 0, // Never close idle connections
+    minPoolSize: 5, // Maintain minimum 5 connections always ready
     // Note: bufferMaxEntries and bufferCommands are Mongoose-specific, not native MongoDB driver options
     // useUnifiedTopology is now default and deprecated as an option
 };
@@ -33,12 +34,8 @@ class DatabaseConnectivity {
                 // Create connection promise to avoid multiple simultaneous connections
                 this.connectionPromise = this.client.connect();
                 
-                // Set a timeout for connection with more generous timeout for Azure
-                const timeoutPromise = new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('MongoDB connection timeout after 30 seconds')), 30000)
-                );
-                
-                await Promise.race([this.connectionPromise, timeoutPromise]);
+                // Remove timeout - wait indefinitely for connection to succeed
+                await this.connectionPromise;
                 this.isConnected = true;
                 this.connectionPromise = null;
                 console.log("Connected to MongoDB Atlas successfully!");
@@ -61,18 +58,20 @@ class DatabaseConnectivity {
         }
     }
 
-    // Add connection health check with automatic reconnection
+    // Add connection health check with automatic reconnection for concurrent users
     async ensureConnection() {
         try {
             if (!this.isConnected) {
                 await this.initialize();
             } else {
-                // Test the connection with a simple ping
+                // Test the connection with a simple ping - no timeout
                 await this.client.db('admin').command({ ping: 1 });
             }
         } catch (error) {
             console.log("Connection test failed, reinitializing...", error.message);
             this.isConnected = false;
+            // Wait a brief moment before reinitializing to handle concurrent requests
+            await new Promise(resolve => setTimeout(resolve, 100));
             await this.initialize();
         }
     }
@@ -120,6 +119,7 @@ class DatabaseConnectivity {
 
     async participantsLogin(dbname, collectionName, username, password)
     {
+        await this.ensureConnection(); // Ensure we have a good connection
         const db = this.client.db(dbname);
         try
         {
@@ -130,7 +130,7 @@ class DatabaseConnectivity {
                 contactNumber: username // This checks if contactNumber equals password too
             });
 
-            if (userByUsername.contactNumber === password) {
+            if (userByUsername && userByUsername.contactNumber === password) {
                 // User found, login successful
                 return {
                     success: true,
@@ -158,6 +158,7 @@ class DatabaseConnectivity {
 
     async updateParticipant(databaseName, collectionName, participantId, updateData)
     {
+        await this.ensureConnection(); // Ensure we have a good connection
         const db = this.client.db(databaseName);
         try
         {
@@ -204,13 +205,15 @@ class DatabaseConnectivity {
             console.error("Update participant error:", error);
             return {
                 success: false,
-                message: "Error updating participant"
+                message: "Error updating participant",
+                error: error.message
             };
         }
     }
 
     async logout(dbname, collectionName, accountId, date, time)
     {
+        await this.ensureConnection(); // Ensure we have a good connection
         const db = this.client.db(dbname);
         try
         {
@@ -228,22 +231,23 @@ class DatabaseConnectivity {
                     }
                 );
     
-            // User found, login successful
+            // User found, logout successful
             return {
                 success: true,
                 message: 'Logout successful',
             };
             } else {
-            // No user found, login failed
+            // No user found, logout failed
             return {
                 success: false,
-                message: 'Invalid email or password'
+                message: 'User not found'
             };
             }
         }
         catch(error)
         {
-            console.log(error);
+            console.error("Logout error:", error);
+            throw error; // Re-throw to let caller handle
         }
     }
     

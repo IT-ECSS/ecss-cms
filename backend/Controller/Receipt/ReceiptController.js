@@ -5,31 +5,33 @@ class ReceiptController {
         this.databaseConnectivity = new DatabaseConnectivity(); // Create an instance of DatabaseConnectivity
     }
 
+    // Get database connection
+    getDatabaseConnection() {
+        return this.databaseConnectivity;
+    }
+
     // Method to handle generating a new receipt number
     async newReceiptNo(courseLocation, centreLocation) { // Accept courseLocation as a parameter
         try {
-            // Connect to the database
-            const result = await this.databaseConnectivity.initialize();
-            console.log("Database Connectivity:", result);
+            const dbConnection = this.getDatabaseConnection();
+            await dbConnection.ensureConnection();
+            
+            const databaseName = "Courses-Management-System";
+            const collectionName = "Receipts";
 
-            if (result === "Connected to MongoDB Atlas!") {
-                const databaseName = "Courses-Management-System";
-                const collectionName = "Receipts";
+            // Find the highest existing receipt number for the given course location
+            const newReceiptNumber = await dbConnection.getNextReceiptNumber(databaseName, collectionName, courseLocation, centreLocation);
+            console.log("New Receipt Number:", newReceiptNumber);
 
-                // Find the highest existing receipt number for the given course location
-                const newReceiptNumber = await this.databaseConnectivity.getNextReceiptNumber(databaseName, collectionName, courseLocation, centreLocation);
-                console.log("New Receipt Number:", newReceiptNumber);
-
-
-               // Return the newly generated receipt number
-                return {
-                    success: true,
-                    message: "New receipt number generated successfully",
-                    receiptNumber: newReceiptNumber
-                };
-            }
+            // Return the newly generated receipt number
+            return {
+                success: true,
+                message: "New receipt number generated successfully",
+                receiptNumber: newReceiptNumber
+            };
         } 
         catch (error) {
+            console.error("Error generating new receipt number:", error);
             return {
                 success: false,
                 message: "Error generating new receipt number",
@@ -37,7 +39,8 @@ class ReceiptController {
             };
         } 
         finally {
-            await this.databaseConnectivity.close(); // Ensure the connection is closed
+            // No cleanup needed - connection pool handles this
+            console.log("New receipt number request completed");
         }
     }
 
@@ -55,27 +58,22 @@ class ReceiptController {
                 time: time,
             };
     
-            // Initialize database connectivity
-            var result = await this.databaseConnectivity.initialize();
-            console.log("Database Connectivity:", result);
-    
-            if(result === "Connected to MongoDB Atlas!") {
-                var databaseName = "Courses-Management-System";
-                var collectionName = "Receipts";
-                
-                console.log("Data:", receiptDetails);
-                // Insert receipt details into the database
-                var connectedDatabase = await this.databaseConnectivity.insertToDatabase(databaseName, collectionName, receiptDetails);  
-    
-                // Return success response
-                return {
-                    success: true,
-                    message: "New receipt number generated successfully",
-                    receiptNumber: receiptNo
-                };
-            } else {
-                throw new Error("Failed to connect to the database.");
-            }
+            const dbConnection = this.getDatabaseConnection();
+            await dbConnection.ensureConnection();
+            
+            var databaseName = "Courses-Management-System";
+            var collectionName = "Receipts";
+            
+            console.log("Data:", receiptDetails);
+            // Insert receipt details into the database
+            var connectedDatabase = await dbConnection.insertToDatabase(databaseName, collectionName, receiptDetails);  
+
+            // Return success response
+            return {
+                success: true,
+                message: "Receipt created successfully",
+                receiptNumber: receiptNo
+            };
         } catch (error) {
             console.error("Error creating receipt:", error);
     
@@ -85,64 +83,58 @@ class ReceiptController {
                 message: "An error occurred while creating the receipt",
                 error: error.message
             };
+        } finally {
+            console.log("Create receipt request completed");
         }
     }
 
     async retrieveReceipts() 
     {
         try {
-            // Connect to the database
-            var result = await this.databaseConnectivity.initialize();
-            console.log("Database Connectivity:", result);
-
-            if(result === "Connected to MongoDB Atlas!")
-            {
-                var databaseName = "Courses-Management-System";
-                var collectionName = "Receipts";
-                var connectedDatabase = await this.databaseConnectivity.retrieveFromDatabase(databaseName, collectionName);   
-                return connectedDatabase;
-                //console.log(connectedDatabase);
-            }
+            const dbConnection = this.getDatabaseConnection();
+            await dbConnection.ensureConnection();
+            
+            var databaseName = "Courses-Management-System";
+            var collectionName = "Receipts";
+            var connectedDatabase = await dbConnection.retrieveFromDatabase(databaseName, collectionName);   
+            return connectedDatabase;
         } 
         catch (error) 
         {
+            console.error("Error retrieving receipts:", error);
             return {
                 success: false,
-                message: "Error retrieving all user",
+                message: "Error retrieving receipts",
                 error: error
             };
         }
         finally {
-            await this.databaseConnectivity.close(); // Ensure the connection is closed
+            console.log("Retrieve receipts request completed");
         }    
     }  
 
     async deleteReceipt(id) 
     {
         try {
-            // Connect to the database
-            var result = await this.databaseConnectivity.initialize();
-            console.log("Database Connectivity:", result);
-
-            if(result === "Connected to MongoDB Atlas!")
-            {
-                var databaseName = "Courses-Management-System";
-                var collectionName = "Receipts";
-                var connectedDatabase = await this.databaseConnectivity.deleteFromDatabase(databaseName, collectionName, id);   
-                return connectedDatabase;
-                //console.log(connectedDatabase);
-            }
+            const dbConnection = this.getDatabaseConnection();
+            await dbConnection.ensureConnection();
+            
+            var databaseName = "Courses-Management-System";
+            var collectionName = "Receipts";
+            var connectedDatabase = await dbConnection.deleteFromDatabase(databaseName, collectionName, id);   
+            return connectedDatabase;
         } 
         catch (error) 
         {
+            console.error("Error deleting receipt:", error);
             return {
                 success: false,
-                message: "Error retrieving all user",
+                message: "Error deleting receipt",
                 error: error
             };
         }
         finally {
-            await this.databaseConnectivity.close(); // Ensure the connection is closed
+            console.log("Delete receipt request completed");
         }    
     }  
     

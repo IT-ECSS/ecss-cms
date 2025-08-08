@@ -8,16 +8,28 @@ class DatabaseManager {
         
         this.databaseConnectivity = new DatabaseConnectivity();
         this.isInitialized = false;
+        this.initializationPromise = null;
         DatabaseManager.instance = this;
     }
 
     async initialize() {
+        // Handle concurrent initialization requests
+        if (this.initializationPromise) {
+            console.log("Database Manager initialization already in progress, waiting...");
+            await this.initializationPromise;
+            return this.databaseConnectivity;
+        }
+
         if (!this.isInitialized) {
             try {
-                await this.databaseConnectivity.initialize();
+                console.log("Starting Database Manager initialization for multiple user access...");
+                this.initializationPromise = this.databaseConnectivity.initialize();
+                await this.initializationPromise;
                 this.isInitialized = true;
-                console.log("Database Manager initialized successfully");
+                this.initializationPromise = null;
+                console.log("Database Manager initialized successfully for concurrent access");
             } catch (error) {
+                this.initializationPromise = null;
                 console.error("Failed to initialize Database Manager:", error);
                 throw error;
             }
@@ -36,6 +48,7 @@ class DatabaseManager {
         if (this.isInitialized && this.databaseConnectivity) {
             await this.databaseConnectivity.close();
             this.isInitialized = false;
+            this.initializationPromise = null;
             console.log("Database Manager shutdown complete");
         }
     }

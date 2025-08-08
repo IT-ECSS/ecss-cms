@@ -1,5 +1,5 @@
 //const Account = require("../../Entity/Account"); // Import the Account class
-const databaseManager = require('../../database/databaseManager');
+const DatabaseConnectivity = require("../../database/databaseConnectivity"); 
 
 function getCurrentDateTime() {
   const now = new Date();
@@ -27,15 +27,12 @@ class LoginController
 {
   constructor() 
   {
-    // Use the singleton database manager instead of creating new instances
-    this.databaseConnectivity = null;
+    // Create a single instance of DatabaseConnectivity for this controller
+    this.databaseConnectivity = new DatabaseConnectivity();
   }
 
-  // Get database connection from manager
+  // Get database connection
   getDatabaseConnection() {
-    if (!this.databaseConnectivity) {
-      this.databaseConnectivity = databaseManager.getConnection();
-    }
     return this.databaseConnectivity;
   }
 
@@ -105,26 +102,27 @@ class LoginController
     try 
     {
       console.log(accountId, password);
-      var result = await this.databaseConnectivity.initialize();
-      if(result === "Connected to MongoDB Atlas!")
-      {
-        var databaseName = "Courses-Management-System";
-        var collectionName = "Accounts";
-        var connectedDatabase = await this.databaseConnectivity.changePassword(databaseName, collectionName, accountId, password);
-        return {"message": connectedDatabase.message, "success": connectedDatabase.success};   
-      }
+      const dbConnection = this.getDatabaseConnection();
+      await dbConnection.ensureConnection();
+      
+      var databaseName = "Courses-Management-System";
+      var collectionName = "Accounts";
+      var connectedDatabase = await dbConnection.changePassword(databaseName, collectionName, accountId, password);
+      return {"message": connectedDatabase.message, "success": connectedDatabase.success};   
     } 
     catch (error) 
     {
+      console.error("Change password error:", error);
       return {
         success: false,
-        message: "Error registering user",
+        message: "Error changing password",
         error: error
       };
     }
     finally 
     {
-      await this.databaseConnectivity.close(); // Ensure the connection is closed
+      // No cleanup needed - connection pool handles this
+      console.log("Change password request completed");
     }   
   }
 
@@ -133,26 +131,27 @@ class LoginController
     try 
     { 
       console.log("Reset Password");
-      var result = await this.databaseConnectivity.initialize();
-      if(result === "Connected to MongoDB Atlas!")
-      {
-        var databaseName = "Courses-Management-System";
-        var collectionName = "Accounts";
-        var connectedDatabase = await this.databaseConnectivity.resetPassword(databaseName, collectionName, username, password);
-        return {"message": connectedDatabase.message, "success": connectedDatabase.success};   
-      }
+      const dbConnection = this.getDatabaseConnection();
+      await dbConnection.ensureConnection();
+      
+      var databaseName = "Courses-Management-System";
+      var collectionName = "Accounts";
+      var connectedDatabase = await dbConnection.resetPassword(databaseName, collectionName, username, password);
+      return {"message": connectedDatabase.message, "success": connectedDatabase.success};   
     } 
     catch (error) 
     {
+      console.error("Reset password error:", error);
       return {
         success: false,
-        message: "Error registering user",
+        message: "Error resetting password",
         error: error
       };
     }
     finally 
     {
-      await this.databaseConnectivity.close(); // Ensure the connection is closed
+      // No cleanup needed - connection pool handles this
+      console.log("Reset password request completed");
     }   
   }
 }
