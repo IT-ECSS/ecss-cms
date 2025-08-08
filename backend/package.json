@@ -4,7 +4,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node ./bin/www"
+    "start": "node ./bin/www",
+    "setup-db": "node database/setupIndexes.js",
+    "dev": "NODE_ENV=development node ./bin/www"
   },
   "author": "",
   "license": "ISC",

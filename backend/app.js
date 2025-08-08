@@ -5,6 +5,9 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var cors = require("cors");
 
+// Load environment variables
+require('dotenv').config();
+
 var app = express(); // Initialize the Express app
 
 var indexRouter = require('./routes/index');
@@ -29,6 +32,18 @@ app.set('view engine', 'jade');
 
 // Trust proxy for Azure App Service
 app.set('trust proxy', 1);
+
+// Request timeout middleware to prevent hanging requests
+app.use((req, res, next) => {
+  const timeout = parseInt(process.env.REQUEST_TIMEOUT) || 30000; // 30 seconds default
+  req.setTimeout(timeout, () => {
+    console.error(`Request timeout: ${req.method} ${req.url}`);
+    if (!res.headersSent) {
+      res.status(408).json({ error: 'Request timeout' });
+    }
+  });
+  next();
+});
 
 // Configure middleware in correct order
 app.use(logger('dev'));

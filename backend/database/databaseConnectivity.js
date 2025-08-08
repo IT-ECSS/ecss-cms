@@ -1,28 +1,53 @@
 const { MongoClient, ObjectId } = require('mongodb');
 
-// MongoDB connection string
-const uri = 'mongodb+srv://moseslee:Mlxy6695@ecss-course.hejib.mongodb.net/?retryWrites=true&w=majority&appName=ECSS-Course'; // Use env variable
+// MongoDB connection string - should use environment variable
+const uri = process.env.MONGODB_URI || 'mongodb+srv://moseslee:Mlxy6695@ecss-course.hejib.mongodb.net/?retryWrites=true&w=majority&appName=ECSS-Course';
+
+// MongoDB connection options for better performance
+const mongoOptions = {
+    maxPoolSize: 10, // Maintain up to 10 socket connections
+    serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
+    socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+    bufferMaxEntries: 0, // Disable mongoose buffering
+    bufferCommands: false, // Disable mongoose buffering
+    useUnifiedTopology: true
+};
 
 class DatabaseConnectivity {
     constructor() {
-        this.client = new MongoClient(uri);
+        this.client = new MongoClient(uri, mongoOptions);
         this.isConnected = false;
     }
 
-    // Connect to the database
+    // Connect to the database with improved error handling
     async initialize()
     {
         try 
         {
             if (!this.isConnected) 
             {
-                await this.client.connect();
+                // Set a timeout for connection
+                const connectionPromise = this.client.connect();
+                const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('MongoDB connection timeout')), 10000)
+                );
+                
+                await Promise.race([connectionPromise, timeoutPromise]);
                 this.isConnected = true;
+                console.log("Connected to MongoDB Atlas successfully!");
                 return "Connected to MongoDB Atlas!";
             }   
         } catch (error) {
             console.error("Error connecting to MongoDB Atlas:", error);
+            this.isConnected = false;
             throw error;
+        }
+    }
+
+    // Add connection health check
+    async ensureConnection() {
+        if (!this.isConnected) {
+            await this.initialize();
         }
     }
 
@@ -305,12 +330,14 @@ class DatabaseConnectivity {
         const table = db.collection(collectionName);
         
         try {
+            await this.ensureConnection();
+            
             // Check for exact match with both NRIC and phone
             if (nric && nric.trim() && phone && phone.trim()) {
                 const exactMatch = await table.find({ 
-                    "nric": { $regex: new RegExp(`^${nric.trim()}$`, 'i') },
+                    "nric": nric.trim().toUpperCase(), // Use exact match instead of regex
                     "phone": phone.trim()
-                }).toArray();
+                }).limit(10).toArray(); // Add limit to prevent large result sets
                 
                 if (exactMatch.length > 0) {
                     return {
@@ -327,8 +354,8 @@ class DatabaseConnectivity {
             // Check for NRIC duplicates only
             if (nric && nric.trim()) {
                 const nricResults = await table.find({ 
-                    "nric": { $regex: new RegExp(`^${nric.trim()}$`, 'i') }
-                }).toArray();
+                    "nric": nric.trim().toUpperCase() // Use exact match instead of regex
+                }).limit(10).toArray();
                 
                 if (nricResults.length > 0) {
                     return {
