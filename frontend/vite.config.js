@@ -14,7 +14,7 @@ export default defineConfig({
     port: 3000,  // Set port to 3000
   },
   build: {
-    // Optimize aggressively for Azure deployment size limits
+    // Optimize aggressively for Azure free tier size limits
     target: 'es2015',
     minify: 'terser',
     sourcemap: false, // Disable sourcemaps to reduce size
@@ -22,7 +22,14 @@ export default defineConfig({
       compress: {
         drop_console: true, // Remove console.log statements
         drop_debugger: true,
-        pure_funcs: ['console.log', 'console.info', 'console.debug']
+        pure_funcs: ['console.log', 'console.info', 'console.debug'],
+        unsafe_arrows: true,
+        unsafe_methods: true,
+        unsafe_proto: true,
+        passes: 3 // Multiple compression passes
+      },
+      mangle: {
+        safari10: true
       }
     },
     rollupOptions: {
