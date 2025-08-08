@@ -22,6 +22,7 @@
     "crypto": "^1.0.1",
     "devextreme": "^24.2.3",
     "devextreme-react": "^24.2.3",
+    "exceljs": "^4.4.0",
     "file-saver": "^2.0.5",
     "framer-motion": "^12.1.0",
     "fs": "^0.0.1-security",

@@ -179,3 +179,5 @@ class AttendancePivotView extends Component {
     );
   }
 }
+
+export default AttendancePivotView;

@@ -4,7 +4,6 @@ import '../../../css/sub/courseSection.css';
 import { AgGridReact } from 'ag-grid-react'; // React Data Grid Component
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community'; 
 import * as XLSX from 'xlsx';
-import ExcelJS from 'exceljs';
 
 class CoursesSection extends Component {
     constructor(props) {
@@ -688,14 +687,11 @@ class CoursesSection extends Component {
       }
     }
 
-  // This function exports data to Excel using the ExcelJS library with custom headers
+  // This function exports data to Excel using the XLSX library
   saveData = async (rowData) => {
     console.log("Course Data:", rowData);
     
     try {
-      const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet('Courses');
-      
       // Define custom headers
       const customHeaders = [
         'Course Id', 
@@ -712,19 +708,9 @@ class CoursesSection extends Component {
         'SkillsFuture Eligibility'
       ];
       
-      // Add headers
-      worksheet.addRow(customHeaders);
-      
-      // Style the header row
-      const headerRow = worksheet.getRow(1);
-      headerRow.font = { bold: true };
-      headerRow.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FFD3D3D3' } // Light gray background
-      };
-      
       // Map data fields to our custom headers
+      const worksheetData = [customHeaders]; // Start with headers
+      
       rowData.forEach(item => {
         const rowValues = [
           item.courseId,
@@ -739,50 +725,29 @@ class CoursesSection extends Component {
           item.status,
           item.courseDuration,
           item.courseTiming,
-          item.eligibility
+          item.eligibility === true ? '✓' : item.eligibility === false ? '✗' : item.eligibility
         ];
         
-        const row = worksheet.addRow(rowValues);
-        
-        // Format eligibility cell with checkmark or X symbol
-        const eligibilityCell = row.getCell(12); // 12th column
-        if (item.eligibility === true) {
-          eligibilityCell.value = '✓';
-          eligibilityCell.font = { color: { argb: 'FF008000' } }; // Green color
-        } else if (item.eligibility === false) {
-          eligibilityCell.value = '✗';
-          eligibilityCell.font = { color: { argb: 'FFFF0000' } }; // Red color
-        }
+        worksheetData.push(rowValues);
       });
       
-      // Auto-fit columns
-      worksheet.columns.forEach(column => {
-        let maxLength = 0;
-        column.eachCell({ includeEmpty: true }, cell => {
-          const columnLength = cell.value ? cell.value.toString().length : 10;
-          if (columnLength > maxLength) {
-            maxLength = columnLength;
-          }
-        });
-        column.width = Math.min(maxLength + 2, 30); // Cap width at 30
-      });
+      // Create a new workbook and worksheet
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
       
-      // Generate Excel file
-      const buffer = await workbook.xlsx.writeBuffer();
+      // Auto-fit columns (basic width setting)
+      const cols = customHeaders.map(() => ({ wch: 15 })); // Set default width
+      worksheet['!cols'] = cols;
       
-      // Create a Blob and download
-      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      const url = URL.createObjectURL(blob);
+      // Add the worksheet to the workbook
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Courses');
       
-      const link = document.createElement('a');
-      link.href = url;
+      // Generate Excel file and download
       const today = new Date();
       const formattedDate = today.toISOString().split('T')[0]; // YYYY-MM-DD format
-      link.download = `Course_Listing_${formattedDate}.xlsx`;
-      link.click();
+      const fileName = `Course_Listing_${formattedDate}.xlsx`;
       
-      // Clean up
-      URL.revokeObjectURL(url);
+      XLSX.writeFile(workbook, fileName);
       
       console.log("Excel export completed successfully");
     } catch (error) {

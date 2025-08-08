@@ -3,11 +3,14 @@ const { MongoClient, ObjectId } = require('mongodb');
 // MongoDB connection string - should use environment variable
 const uri = 'mongodb+srv://moseslee:Mlxy6695@ecss-course.hejib.mongodb.net/?retryWrites=true&w=majority&appName=ECSS-Course';
 
-// MongoDB connection options for better performance
+// MongoDB connection options for better performance and stability
 const mongoOptions = {
     maxPoolSize: 10, // Maintain up to 10 socket connections
-    serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
+    serverSelectionTimeoutMS: 30000, // Keep trying to send operations for 30 seconds (increased)
     socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+    connectTimeoutMS: 30000, // Give more time to establish connection (increased)
+    heartbeatFrequencyMS: 10000, // Check server health every 10 seconds
+    maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
     // Note: bufferMaxEntries and bufferCommands are Mongoose-specific, not native MongoDB driver options
     // useUnifiedTopology is now default and deprecated as an option
 };
@@ -16,42 +19,67 @@ class DatabaseConnectivity {
     constructor() {
         this.client = new MongoClient(uri, mongoOptions);
         this.isConnected = false;
+        this.connectionPromise = null;
     }
 
-    // Connect to the database with improved error handling
+    // Connect to the database with improved error handling and connection reuse
     async initialize()
     {
         try 
         {
-            if (!this.isConnected) 
+            if (!this.isConnected && !this.connectionPromise) 
             {
-                // Set a timeout for connection
-                const connectionPromise = this.client.connect();
+                console.log("Attempting to connect to MongoDB Atlas...");
+                // Create connection promise to avoid multiple simultaneous connections
+                this.connectionPromise = this.client.connect();
+                
+                // Set a timeout for connection with more generous timeout for Azure
                 const timeoutPromise = new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('MongoDB connection timeout')), 10000)
+                    setTimeout(() => reject(new Error('MongoDB connection timeout after 30 seconds')), 30000)
                 );
                 
-                await Promise.race([connectionPromise, timeoutPromise]);
+                await Promise.race([this.connectionPromise, timeoutPromise]);
                 this.isConnected = true;
+                this.connectionPromise = null;
                 console.log("Connected to MongoDB Atlas successfully!");
+                return "Connected to MongoDB Atlas!";
+            } else if (this.isConnected) {
+                console.log("Using existing MongoDB connection");
+                return "Connected to MongoDB Atlas!";
+            } else if (this.connectionPromise) {
+                console.log("Waiting for existing connection attempt...");
+                await this.connectionPromise;
+                this.isConnected = true;
+                this.connectionPromise = null;
                 return "Connected to MongoDB Atlas!";
             }   
         } catch (error) {
             console.error("Error connecting to MongoDB Atlas:", error);
             this.isConnected = false;
+            this.connectionPromise = null;
             throw error;
         }
     }
 
-    // Add connection health check
+    // Add connection health check with automatic reconnection
     async ensureConnection() {
-        if (!this.isConnected) {
+        try {
+            if (!this.isConnected) {
+                await this.initialize();
+            } else {
+                // Test the connection with a simple ping
+                await this.client.db('admin').command({ ping: 1 });
+            }
+        } catch (error) {
+            console.log("Connection test failed, reinitializing...", error.message);
+            this.isConnected = false;
             await this.initialize();
         }
     }
 
     async login(dbname, collectionName, email, password, date, time)
     {
+        await this.ensureConnection(); // Ensure we have a good connection
         const db = this.client.db(dbname);
         try
         {
@@ -85,7 +113,8 @@ class DatabaseConnectivity {
         }
         catch(error)
         {
-            console.log(error);
+            console.log("Login error:", error);
+            throw error; // Re-throw to let caller handle
         }
     }
 
@@ -1784,13 +1813,21 @@ class DatabaseConnectivity {
         }   
     }
 
-    // Close the connection to the database
+    // Close the connection to the database - only for application shutdown
     async close() {
         if (this.isConnected) {
             await this.client.close();
             this.isConnected = false;
+            this.connectionPromise = null;
             console.log("MongoDB connection closed.");
         }
+    }
+
+    // Method for request-level cleanup (doesn't actually close connection)
+    async cleanup() {
+        // In a connection pool model, we don't close connections after each request
+        // The connection pool handles connection lifecycle automatically
+        console.log("Request completed - connection pool maintained");
     }
 
     // Enhanced method to find participants by NRIC, phone, and name with smart matching

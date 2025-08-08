@@ -1,5 +1,5 @@
 //const Account = require("../../Entity/Account"); // Import the Account class
-var DatabaseConnectivity = require("../../database/databaseConnectivity");
+const databaseManager = require('../../database/databaseManager');
 
 function getCurrentDateTime() {
   const now = new Date();
@@ -27,7 +27,16 @@ class LoginController
 {
   constructor() 
   {
-    this.databaseConnectivity = new DatabaseConnectivity(); // Create an instance of DatabaseConnectivity
+    // Use the singleton database manager instead of creating new instances
+    this.databaseConnectivity = null;
+  }
+
+  // Get database connection from manager
+  getDatabaseConnection() {
+    if (!this.databaseConnectivity) {
+      this.databaseConnectivity = databaseManager.getConnection();
+    }
+    return this.databaseConnectivity;
   }
 
   // Handle user login
@@ -35,20 +44,20 @@ class LoginController
   {
     try 
     {
-      console.log(email, password);
-      var result = await this.databaseConnectivity.initialize();
-      if(result === "Connected to MongoDB Atlas!")
-      {
-        var databaseName = "Courses-Management-System";
-        var collectionName = "Accounts";
-        var currentDateTime = getCurrentDateTime();
-        var connectedDatabase = await this.databaseConnectivity.login(databaseName, collectionName, email, password, currentDateTime.date, currentDateTime.time);
-        //console.log(connectedDatabase.message);
-        return {"message": connectedDatabase.message, "details": connectedDatabase.user};   
-      }
+      console.log("Login attempt for:", email);
+      const dbConnection = this.getDatabaseConnection();
+      await dbConnection.ensureConnection(); // Use ensureConnection instead of initialize
+      
+      var databaseName = "Courses-Management-System";
+      var collectionName = "Accounts";
+      var currentDateTime = getCurrentDateTime();
+      var connectedDatabase = await dbConnection.login(databaseName, collectionName, email, password, currentDateTime.date, currentDateTime.time);
+      console.log("Login result:", connectedDatabase.message);
+      return {"message": connectedDatabase.message, "details": connectedDatabase.user};   
     } 
     catch (error) 
     {
+      console.error("Login error:", error);
       return {
         success: false,
         message: "Error registering user",
@@ -57,7 +66,8 @@ class LoginController
     }
     finally 
     {
-      await this.databaseConnectivity.close(); // Ensure the connection is closed
+      // No cleanup needed - connection pool handles this
+      console.log("Login request completed");
     }   
   }
 
@@ -65,19 +75,19 @@ class LoginController
   {
     try 
     {
-      var result = await this.databaseConnectivity.initialize();
-      if(result === "Connected to MongoDB Atlas!")
-      {
-        var databaseName = "Courses-Management-System";
-        var collectionName = "Accounts";
-        var currentDateTime = getCurrentDateTime();
-        var connectedDatabase = await this.databaseConnectivity.logout(databaseName, collectionName, accountId, currentDateTime.date, currentDateTime.time);
-        //console.log(connectedDatabase.message);
-        return {"message": connectedDatabase.message};   
-      }
+      const dbConnection = this.getDatabaseConnection();
+      await dbConnection.ensureConnection();
+      
+      var databaseName = "Courses-Management-System";
+      var collectionName = "Accounts";
+      var currentDateTime = getCurrentDateTime();
+      var connectedDatabase = await dbConnection.logout(databaseName, collectionName, accountId, currentDateTime.date, currentDateTime.time);
+      console.log("Logout result:", connectedDatabase.message);
+      return {"message": connectedDatabase.message};   
     } 
     catch (error) 
     {
+      console.error("Logout error:", error);
       return {
         success: false,
         message: "Error registering user",
@@ -86,7 +96,7 @@ class LoginController
     }
     finally 
     {
-      await this.databaseConnectivity.close(); // Ensure the connection is closed
+      console.log("Logout request completed");
     }   
   }
 

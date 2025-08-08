@@ -50,13 +50,6 @@ export default defineConfig({
             return 'excel-utils';
           }
           
-          if (id.includes('@webdatarocks/webdatarocks/webdatarocks.js')) {
-            return 'webdata-core';
-          }
-          if (id.includes('@webdatarocks') && !id.includes('webdatarocks.js')) {
-            return 'webdata-utils';
-          }
-          
           // AG-Grid - split further
           if (id.includes('ag-grid-community/dist/lib/main.js')) {
             return 'ag-core';
