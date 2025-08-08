@@ -12,6 +12,11 @@ export default defineConfig({
   },
   server: {
     port: 3000,  // Set port to 3000
+    historyApiFallback: true, // Enable SPA fallback for client-side routing
+  },
+  preview: {
+    port: 3000,
+    historyApiFallback: true, // Enable SPA fallback for preview mode too
   },
   build: {
     // Optimize aggressively for Azure free tier size limits
