@@ -14,24 +14,42 @@ export default defineConfig({
     port: 3000,  // Set port to 3000
   },
   build: {
-    // Optimize for Azure deployment
+    // Optimize aggressively for Azure deployment size limits
     target: 'es2015',
     minify: 'terser',
-    sourcemap: false, // Disable sourcemaps in production to reduce size
+    sourcemap: false, // Disable sourcemaps to reduce size
+    terserOptions: {
+      compress: {
+        drop_console: true, // Remove console.log statements
+        drop_debugger: true,
+        pure_funcs: ['console.log', 'console.info', 'console.debug']
+      }
+    },
     rollupOptions: {
       external: [], // Don't externalize any modules
       output: {
-        // Split large chunks more granularly
+        // Split large chunks more granularly to stay under 250MB total
         manualChunks: (id) => {
-          // React ecosystem
+          // React ecosystem - keep together
           if (id.includes('react') || id.includes('react-dom')) {
             return 'react-vendor';
           }
-          // UI libraries
-          if (id.includes('@mui') || id.includes('@emotion')) {
-            return 'ui-vendor';
+          
+          // UI libraries - split further
+          if (id.includes('@mui/material')) {
+            return 'mui-material';
           }
-          // Grid libraries (split into smaller chunks)
+          if (id.includes('@mui/x-data-grid')) {
+            return 'mui-datagrid';
+          }
+          if (id.includes('@emotion')) {
+            return 'emotion-vendor';
+          }
+          if (id.includes('@heroui')) {
+            return 'heroui-vendor';
+          }
+          
+          // Grid libraries - split into very small chunks
           if (id.includes('ag-grid-community')) {
             return 'ag-grid-core';
           }
@@ -41,7 +59,8 @@ export default defineConfig({
           if (id.includes('ag-grid-react')) {
             return 'ag-grid-react';
           }
-          // Chart libraries (split into smaller chunks)
+          
+          // Chart libraries - split individually
           if (id.includes('plotly.js')) {
             return 'plotly-vendor';
           }
@@ -51,22 +70,93 @@ export default defineConfig({
           if (id.includes('recharts')) {
             return 'recharts-vendor';
           }
-          // DevExtreme (large library, keep separate)
-          if (id.includes('devextreme')) {
-            return 'devextreme-vendor';
+          
+          // DevExtreme - split into smaller pieces
+          if (id.includes('devextreme-react')) {
+            return 'devextreme-react';
           }
-          // Utility libraries
-          if (id.includes('axios') || id.includes('jose') || id.includes('exceljs') || 
-              id.includes('file-saver') || id.includes('xlsx')) {
-            return 'utils-vendor';
+          if (id.includes('devextreme') && !id.includes('devextreme-react')) {
+            return 'devextreme-core';
           }
+          
+          // Utility libraries - split into smaller groups
+          if (id.includes('axios')) {
+            return 'axios-vendor';
+          }
+          if (id.includes('exceljs')) {
+            return 'excel-vendor';
+          }
+          if (id.includes('file-saver') || id.includes('xlsx')) {
+            return 'file-utils';
+          }
+          if (id.includes('jose') || id.includes('crypto')) {
+            return 'crypto-vendor';
+          }
+          
+          // Date/Time libraries
+          if (id.includes('react-datepicker') || id.includes('react-day-picker')) {
+            return 'date-vendor';
+          }
+          
+          // Motion/Animation
+          if (id.includes('framer-motion')) {
+            return 'motion-vendor';
+          }
+          
+          // Bootstrap
+          if (id.includes('react-bootstrap')) {
+            return 'bootstrap-vendor';
+          }
+          
           // FontAwesome
           if (id.includes('@fortawesome')) {
             return 'fontawesome-vendor';
           }
-          // Other node_modules
+          
+          // Socket.io
+          if (id.includes('socket.io')) {
+            return 'socket-vendor';
+          }
+          
+          // Microsoft libraries
+          if (id.includes('@azure') || id.includes('@testing-library')) {
+            return 'microsoft-vendor';
+          }
+          
+          // Routing
+          if (id.includes('react-router')) {
+            return 'router-vendor';
+          }
+          
+          // Other large libraries individually
+          if (id.includes('@webdatarocks')) {
+            return 'webdatarocks-vendor';
+          }
+          if (id.includes('@refinedev')) {
+            return 'refinedev-vendor';
+          }
+          if (id.includes('react-select')) {
+            return 'select-vendor';
+          }
+          if (id.includes('react-icons')) {
+            return 'icons-vendor';
+          }
+          
+          // Remaining node_modules - split by first letter to create smaller chunks
           if (id.includes('node_modules')) {
-            return 'vendor';
+            const moduleName = id.split('node_modules/')[1]?.split('/')[0];
+            if (moduleName) {
+              const firstChar = moduleName[0].toLowerCase();
+              if (['a', 'b', 'c'].includes(firstChar)) return 'vendor-abc';
+              if (['d', 'e', 'f'].includes(firstChar)) return 'vendor-def';
+              if (['g', 'h', 'i'].includes(firstChar)) return 'vendor-ghi';
+              if (['j', 'k', 'l'].includes(firstChar)) return 'vendor-jkl';
+              if (['m', 'n', 'o'].includes(firstChar)) return 'vendor-mno';
+              if (['p', 'q', 'r'].includes(firstChar)) return 'vendor-pqr';
+              if (['s', 't'].includes(firstChar)) return 'vendor-st';
+              if (['u', 'v', 'w', 'x', 'y', 'z'].includes(firstChar)) return 'vendor-uvwxyz';
+            }
+            return 'vendor-misc';
           }
         },
         // Limit chunk size
@@ -76,8 +166,8 @@ export default defineConfig({
         }
       }
     },
-    // Increase chunk size warning limit
-    chunkSizeWarningLimit: 1000, // 1MB instead of 500KB
+    // Reduce chunk size limit for Azure Static Web Apps
+    chunkSizeWarningLimit: 800, // 800KB limit to stay well under the 250MB total limit
     // Enable compression
     reportCompressedSize: false, // Disable to speed up build
     commonjsOptions: {
