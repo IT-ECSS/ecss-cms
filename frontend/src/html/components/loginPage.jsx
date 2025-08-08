@@ -160,9 +160,37 @@ class LoginPage extends Component {
       }, 5000);
       }
     } catch (error) {
+      console.error('Login error details:', error);
+      
+      let errorMessage = "An error occurred. Please try again later.";
+      
+      if (error.response) {
+        // Server responded with error status
+        console.error('Response data:', error.response.data);
+        console.error('Response status:', error.response.status);
+        
+        if (error.response.status === 404) {
+          errorMessage = "Login service not found. Please contact administrator.";
+        } else if (error.response.status === 500) {
+          errorMessage = "Server error. Please try again later.";
+        } else if (error.response.status === 401) {
+          errorMessage = "Invalid credentials. Please check your email and password.";
+        } else {
+          errorMessage = `Server error (${error.response.status}). Please try again later.`;
+        }
+      } else if (error.request) {
+        // Network error
+        console.error('Network error:', error.request);
+        errorMessage = "Cannot connect to server. Please check your internet connection.";
+      } else {
+        // Other error
+        console.error('Error:', error.message);
+        errorMessage = `Error: ${error.message}`;
+      }
+      
       this.setState({
         isPopupOpen: true,
-        popupMessage: "An error occurred. Please try again later.",
+        popupMessage: errorMessage,
         popupType: "error-message",
       });
       setTimeout(() => {

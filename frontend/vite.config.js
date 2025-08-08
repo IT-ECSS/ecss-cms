@@ -33,155 +33,175 @@ export default defineConfig({
       }
     },
     rollupOptions: {
-      external: [], // Don't externalize any modules
+      external: [], // Don't externalize any modules for SPA
       output: {
-        // Split large chunks more granularly to stay under 250MB total
+        // More aggressive chunk splitting to stay under 250MB total
         manualChunks: (id) => {
-          // React ecosystem - keep together
-          if (id.includes('react') || id.includes('react-dom')) {
-            return 'react-vendor';
+          // Critical packages - keep very small
+          if (id.includes('react/') || id.includes('react-dom/')) {
+            return 'react-core';
           }
           
-          // UI libraries - split further
+          // Large libraries - split into micro-chunks
+          if (id.includes('exceljs/dist/es5/exceljs.browser.js')) {
+            return 'excel-core';
+          }
+          if (id.includes('exceljs') && !id.includes('exceljs/dist/es5/exceljs.browser.js')) {
+            return 'excel-utils';
+          }
+          
+          if (id.includes('@webdatarocks/webdatarocks/webdatarocks.js')) {
+            return 'webdata-core';
+          }
+          if (id.includes('@webdatarocks') && !id.includes('webdatarocks.js')) {
+            return 'webdata-utils';
+          }
+          
+          // AG-Grid - split further
+          if (id.includes('ag-grid-community/dist/lib/main.js')) {
+            return 'ag-core';
+          }
+          if (id.includes('ag-grid-community') && !id.includes('main.js')) {
+            return 'ag-modules';
+          }
+          if (id.includes('ag-grid-enterprise')) {
+            return 'ag-enterprise';
+          }
+          if (id.includes('ag-grid-react')) {
+            return 'ag-react';
+          }
+          
+          // DevExtreme - split into smaller chunks
+          if (id.includes('devextreme')) {
+            return 'devextreme';
+          }
+          
+          // UI libraries - very small chunks
           if (id.includes('@mui/material')) {
             return 'mui-material';
           }
           if (id.includes('@mui/x-data-grid')) {
-            return 'mui-datagrid';
+            return 'mui-grid';
           }
-          if (id.includes('@emotion')) {
-            return 'emotion-vendor';
+          if (id.includes('@emotion/react')) {
+            return 'emotion-react';
           }
-          if (id.includes('@heroui')) {
-            return 'heroui-vendor';
-          }
-          
-          // Grid libraries - split into very small chunks
-          if (id.includes('ag-grid-community')) {
-            return 'ag-grid-core';
-          }
-          if (id.includes('ag-grid-enterprise')) {
-            return 'ag-grid-enterprise';
-          }
-          if (id.includes('ag-grid-react')) {
-            return 'ag-grid-react';
+          if (id.includes('@emotion/styled')) {
+            return 'emotion-styled';
           }
           
-          // Chart libraries - split individually
+          // Chart libraries
           if (id.includes('plotly.js')) {
-            return 'plotly-vendor';
+            return 'plotly';
           }
           if (id.includes('react-plotly')) {
-            return 'react-plotly-vendor';
+            return 'react-plotly';
           }
           if (id.includes('recharts')) {
-            return 'recharts-vendor';
+            return 'recharts';
           }
           
-          // DevExtreme - split into smaller pieces
-          if (id.includes('devextreme-react')) {
-            return 'devextreme-react';
-          }
-          if (id.includes('devextreme') && !id.includes('devextreme-react')) {
-            return 'devextreme-core';
-          }
-          
-          // Utility libraries - split into smaller groups
+          // Utility micro-chunks
           if (id.includes('axios')) {
-            return 'axios-vendor';
+            return 'axios';
           }
-          if (id.includes('exceljs')) {
-            return 'excel-vendor';
+          if (id.includes('file-saver')) {
+            return 'file-saver';
           }
-          if (id.includes('file-saver') || id.includes('xlsx')) {
-            return 'file-utils';
+          if (id.includes('xlsx')) {
+            return 'xlsx';
           }
-          if (id.includes('jose') || id.includes('crypto')) {
-            return 'crypto-vendor';
-          }
-          
-          // Date/Time libraries
-          if (id.includes('react-datepicker') || id.includes('react-day-picker')) {
-            return 'date-vendor';
+          if (id.includes('jose')) {
+            return 'jose';
           }
           
-          // Motion/Animation
+          // Date libraries
+          if (id.includes('react-datepicker')) {
+            return 'datepicker';
+          }
+          if (id.includes('react-day-picker')) {
+            return 'daypicker';
+          }
+          
+          // Animation
           if (id.includes('framer-motion')) {
-            return 'motion-vendor';
+            return 'motion';
           }
           
-          // Bootstrap
-          if (id.includes('react-bootstrap')) {
-            return 'bootstrap-vendor';
-          }
-          
-          // FontAwesome
+          // Icons and fonts
           if (id.includes('@fortawesome')) {
-            return 'fontawesome-vendor';
+            return 'fontawesome';
           }
-          
-          // Socket.io
-          if (id.includes('socket.io')) {
-            return 'socket-vendor';
+          if (id.includes('react-icons')) {
+            return 'icons';
           }
           
           // Microsoft libraries
-          if (id.includes('@azure') || id.includes('@testing-library')) {
-            return 'microsoft-vendor';
+          if (id.includes('@azure/msal')) {
+            return 'msal';
+          }
+          if (id.includes('@testing-library')) {
+            return 'testing';
           }
           
-          // Routing
+          // Socket
+          if (id.includes('socket.io')) {
+            return 'socket';
+          }
+          
+          // Other specific libraries
+          if (id.includes('react-bootstrap')) {
+            return 'bootstrap';
+          }
           if (id.includes('react-router')) {
-            return 'router-vendor';
-          }
-          
-          // Other large libraries individually
-          if (id.includes('@webdatarocks')) {
-            return 'webdatarocks-vendor';
-          }
-          if (id.includes('@refinedev')) {
-            return 'refinedev-vendor';
+            return 'router';
           }
           if (id.includes('react-select')) {
-            return 'select-vendor';
+            return 'select';
           }
-          if (id.includes('react-icons')) {
-            return 'icons-vendor';
+          if (id.includes('@refinedev')) {
+            return 'refine';
+          }
+          if (id.includes('@heroui')) {
+            return 'heroui';
+          }
+          if (id.includes('web-vitals')) {
+            return 'vitals';
+          }
+          if (id.includes('wx-react-grid')) {
+            return 'wx-grid';
           }
           
-          // Remaining node_modules - split by first letter to create smaller chunks
+          // Node modules - ultra-fine splitting by module name
           if (id.includes('node_modules')) {
             const moduleName = id.split('node_modules/')[1]?.split('/')[0];
             if (moduleName) {
-              const firstChar = moduleName[0].toLowerCase();
-              if (['a', 'b', 'c'].includes(firstChar)) return 'vendor-abc';
-              if (['d', 'e', 'f'].includes(firstChar)) return 'vendor-def';
-              if (['g', 'h', 'i'].includes(firstChar)) return 'vendor-ghi';
-              if (['j', 'k', 'l'].includes(firstChar)) return 'vendor-jkl';
-              if (['m', 'n', 'o'].includes(firstChar)) return 'vendor-mno';
-              if (['p', 'q', 'r'].includes(firstChar)) return 'vendor-pqr';
-              if (['s', 't'].includes(firstChar)) return 'vendor-st';
-              if (['u', 'v', 'w', 'x', 'y', 'z'].includes(firstChar)) return 'vendor-uvwxyz';
+              // Create individual chunks for each module to maximize splitting
+              return `vendor-${moduleName.replace(/[@]/g, '').replace(/[^a-zA-Z0-9]/g, '-')}`;
             }
             return 'vendor-misc';
           }
         },
-        // Limit chunk size
+        // Optimize chunk file names for better caching
         chunkFileNames: (chunkInfo) => {
-          const facadeModuleId = chunkInfo.facadeModuleId ? chunkInfo.facadeModuleId.split('/').pop() : 'chunk';
-          return `assets/[name]-[hash].js`;
-        }
+          return `assets/[name]-[hash:8].js`;
+        },
+        // Limit each chunk to maximum size
+        maxParallelFileOps: 1,
       }
     },
-    // Reduce chunk size limit for Azure Static Web Apps
-    chunkSizeWarningLimit: 800, // 800KB limit to stay well under the 250MB total limit
-    // Enable compression
+    // Aggressive size limits for Azure free tier
+    chunkSizeWarningLimit: 400, // 400KB limit per chunk
+    // Enable maximum compression and tree-shaking
     reportCompressedSize: false, // Disable to speed up build
     commonjsOptions: {
-      // Handle problematic packages
+      // Handle problematic packages with better tree-shaking
       include: [/node_modules/],
-      transformMixedEsModules: true
-    }
+      transformMixedEsModules: true,
+      strictRequires: true
+    },
+    // Enable tree-shaking for better size optimization
+    treeshaking: true
   },
   optimizeDeps: {
     // Pre-bundle problematic dependencies
