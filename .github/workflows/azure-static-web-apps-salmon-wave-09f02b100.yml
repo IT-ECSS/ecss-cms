@@ -64,12 +64,21 @@ jobs:
       - name: Install dependencies
         run: |
           cd frontend
-          npm ci --only=production
+          npm ci
+      
+      - name: Verify vite installation
+        run: |
+          cd frontend
+          echo "Checking if vite is available..."
+          npx vite --version || echo "vite not found in PATH"
+          ls node_modules/.bin/vite || echo "vite binary not found"
+          echo "devDependencies check:"
+          npm ls vite || echo "vite not in dependencies"
       
       - name: Build application
         run: |
           cd frontend
-          NODE_OPTIONS="--max-old-space-size=4096" npm run build
+          NODE_OPTIONS="--max-old-space-size=4096" npx vite build --mode production
         env:
           NODE_ENV: production
           GENERATE_SOURCEMAP: false
