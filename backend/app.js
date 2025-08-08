@@ -26,7 +26,13 @@ var membershipRouter = require('./routes/membership');
 var jwksRouter = require('./routes/jwks');
 var whatsappRouter = require('./routes/whatsapp');
 
-// Set up views (if you're using templates)
+//app.use(cors()); // Enable CORS
+app.use(logger('dev')); // HTTP request logger
+app.use(express.json()); // For parsing JSON
+app.use(express.urlencoded({ extended: true })); // For parsing URL-encoded data
+app.use(cookieParser()); // For parsing cookies
+
+// Set up views (if you're using templates)okok
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
 
