@@ -38,6 +38,7 @@ class CourseDetailsSection extends Component {
     const isNSA = courseType === 'NSA';
     const isILP = courseType === 'ILP';
     const isMarriagePrep = courseType === 'Marriage Preparation Programme';
+    console.log('CourseDetailsSection props:', this.props);
 
     return (
       <div className="course-details-section">

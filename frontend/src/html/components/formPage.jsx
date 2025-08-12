@@ -80,7 +80,8 @@ class FormPage extends Component {
         marriagePrepConsent1: false,
         marriagePrepConsent2: false
       },
-      validationErrors: {}
+      validationErrors: {},
+      age: 0
     };
 
     // Initialize real-time error handler
@@ -1122,6 +1123,7 @@ class FormPage extends Component {
       const currentYear = new Date().getFullYear();
       const birthYear = dobDate.getFullYear();
       const age = currentYear - birthYear;
+      this.setState({ age });
       /*if (age < 50) {
         return { isValid: false, error: 'Age must be at least 50 years. 年龄必须至少为50岁。' };
       }*/
@@ -1134,6 +1136,7 @@ class FormPage extends Component {
       const currentYear = new Date().getFullYear();
       const birthYear = new Date(dob.formattedDate1).getFullYear();
       const age = currentYear - birthYear;
+      this.setState({ age });
       /*if (age < 50) {
         return { isValid: false, error: 'Age must be at least 50 years. 年龄必须至少为50岁。' };
       }*/
@@ -1413,8 +1416,9 @@ class FormPage extends Component {
   };
 
   render() {
-    const { currentSection, formData, validationErrors, bgColor, loading, isAuthenticated } = this.state;
-  
+    const { currentSection, formData, validationErrors, bgColor, loading, isAuthenticated, age } = this.state;
+    console.log('Current Age:', age);
+
     // Render the loading spinner or content depending on loading state
     if (loading === false) {
       return (
@@ -1474,6 +1478,7 @@ class FormPage extends Component {
                 courseMode={formData.courseMode}
                 payment={formData.payment}
                 onChange={this.handleDataChange}
+                  age={this.state.age}
               />
             )}
             {currentSection === 3 && formData.type === 'Marriage Preparation Programme' && (
@@ -1488,7 +1493,6 @@ class FormPage extends Component {
                 courseMode={formData.courseMode}
                 payment={formData.payment}
                 onChange={this.handleDataChange}
-                age = {formData.age}
               />
             )}
             {currentSection === 3 && formData.type !== 'Marriage Preparation Programme' && (
