@@ -63,13 +63,23 @@ class CourseDetailsSection extends Component {
             {this.props.courseLocation}
           </span>
         </div>
-        {!isILP && (  
+        {isNSA && (  
         <div className="input-group1">
           <label htmlFor="coursePrice">Course Price 价格</label>
           <span className="course-detail-text" id="coursePrice">
-            {this.props.coursePrice}
+            {(() => {
+              // Calculate age from date of birth if available
+              if (this.props.age < 50) {
+                // Extract numeric value from coursePrice (remove $ and parse)
+                const basePrice = parseFloat(this.props.coursePrice.replace('$', ''));
+                const adjustedPrice = basePrice * 5;
+                return `$${adjustedPrice.toFixed(2)}`;
+              }
+              return this.props.coursePrice;
+            })()}
           </span>
         </div>)}
+
 
         <div className="input-group1">
           <label htmlFor="courseDuration">Course Duration 课程时长</label>

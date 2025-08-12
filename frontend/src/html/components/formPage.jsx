@@ -1122,8 +1122,11 @@ class FormPage extends Component {
       const currentYear = new Date().getFullYear();
       const birthYear = dobDate.getFullYear();
       const age = currentYear - birthYear;
-      if (age < 50) {
+      /*if (age < 50) {
         return { isValid: false, error: 'Age must be at least 50 years. 年龄必须至少为50岁。' };
+      }*/
+     if (age < 50) {
+        return { isValid: true, error: null };
       }
       return { isValid: true, error: null };
     }
@@ -1131,8 +1134,11 @@ class FormPage extends Component {
       const currentYear = new Date().getFullYear();
       const birthYear = new Date(dob.formattedDate1).getFullYear();
       const age = currentYear - birthYear;
-      if (age < 50) {
+      /*if (age < 50) {
         return { isValid: false, error: 'Age must be at least 50 years. 年龄必须至少为50岁。' };
+      }*/
+      if (age < 50) {
+        return { isValid: true, error: null };
       }
       return { isValid: true, error: null };
     }
@@ -1482,6 +1488,7 @@ class FormPage extends Component {
                 courseMode={formData.courseMode}
                 payment={formData.payment}
                 onChange={this.handleDataChange}
+                age = {formData.age}
               />
             )}
             {currentSection === 3 && formData.type !== 'Marriage Preparation Programme' && (
