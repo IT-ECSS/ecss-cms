@@ -130,7 +130,7 @@ class SpouseInfo extends Component {
 
     // Define dropdown options
     const optionMappings = {
-      spouseResidentialStatus: ['ALIEN', 'CITIZEN', 'PR', 'UNKNOWN', 'NOT APPLICABLE'],
+      spouseResidentialStatus: ['CITIZEN', 'PR', 'NOT APPLICABLE'],
       spouseSex: ['FEMALE', 'MALE'],
       spouseEthnicity: ['Chinese', 'Malay', 'Indian', 'Others'],
       spouseMaritalStatus: ['SINGLE', 'MARRIED', 'WIDOWED', 'DIVORCED'],

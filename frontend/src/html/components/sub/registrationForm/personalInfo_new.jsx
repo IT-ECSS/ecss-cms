@@ -377,7 +377,7 @@ class PersonalInfo extends Component {
       ];
 
       // Marriage Preparation Programme specific options - following exact specification
-      const residentialStatusOptions = ['ALIEN', 'CITIZEN', 'PR', 'UNKNOWN', 'NOT APPLICABLE'];
+      const residentialStatusOptions = ['CITIZEN', 'PR', 'NOT APPLICABLE'];
       const genderOptions = ['FEMALE', 'MALE'];
       const ethnicityOptions = ['Chinese', 'Malay', 'Indian', 'Others'];
       const maritalStatusOptions = ['SINGLE', 'MARRIED', 'WIDOWED', 'DIVORCED'];

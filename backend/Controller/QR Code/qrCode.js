@@ -18,7 +18,7 @@ class QRCodeGenerator {
             const buffer = await QRCode.toBuffer(this.text, this.options);
 
             // Save the buffer to a JPG file
-            const filename = `汉语拼音基础班 Hanyu Pinyin for Beginners (Pasir Ris West Wellness Centre).jpg`;
+            const filename = `音乐祝福社区四弦琴班第2阶 Community Ukulele – Mandarin L2 (Pasir Ris West Wellness Centre).jpg`;
             fs.writeFileSync(filename, buffer);
             console.log(`QR code generated and saved as ${filename}`);
         } catch (error) {
@@ -28,5 +28,5 @@ class QRCodeGenerator {
 }
 
 // Usage
-const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/%e6%b1%89%e8%af%ad%e6%8b%bc%e9%9f%b3%e5%9f%ba%e7%a1%80%e7%8f%adhanyu-pinyin-for-beginnerspasir-ris-west-wellness-centre/`);
+const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/%e9%9f%b3%e4%b9%90%e7%a5%9d%e7%a6%8f%e7%a4%be%e5%8c%ba%e5%9b%9b%e5%bc%a6%e7%90%b4%e7%8f%ad%e7%ac%ac2%e9%98%b6community-ukulele-mandarin-l2pasir-ris-west-wellness-centre-copy/`);
 qrCodeGenerator.generate();
