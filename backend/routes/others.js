@@ -12,7 +12,7 @@ class ImportController {
             console.log("Database Connectivity:", result);
 
             if (result === "Connected to MongoDB Atlas!") {
-                const databaseName = "Courses-Management-System";
+                const databaseName = "Company-Management-System";
                 const collectionName = "Registration Forms";
 
                 // Retrieve all data from the database
@@ -58,7 +58,7 @@ class ImportController {
             console.log("Database Connectivity:", result);
 
             if (result === "Connected to MongoDB Atlas!") {
-                const databaseName = "Courses-Management-System";
+                const databaseName = "Company-Management-System";
                 const sourceCollectionName = "Registration Forms";
                 const targetCollectionName = "Participants";
 

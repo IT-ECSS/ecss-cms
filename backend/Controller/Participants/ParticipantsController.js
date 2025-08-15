@@ -17,7 +17,7 @@ class ParticipantsController
       var result = await this.databaseConnectivity.initialize();
       if(result === "Connected to MongoDB Atlas!")
       {
-        var databaseName = "Courses-Management-System";
+        var databaseName = "Company-Management-System";
         var collectionName = "Members_Volunteers";
         var connectedDatabase = await this.databaseConnectivity.participantsLogin(databaseName, collectionName, username, password);
         //console.log(connectedDatabase.message);
@@ -47,7 +47,7 @@ class ParticipantsController
           var result = await this.databaseConnectivity.initialize();
           if(result === "Connected to MongoDB Atlas!")
           {
-              var databaseName = "Courses-Management-System";
+              var databaseName = "Company-Management-System";
               var collectionName = "Members_Volunteers";
               
               var updateResult = await this.databaseConnectivity.updateParticipant(
@@ -87,7 +87,7 @@ class ParticipantsController
           console.log("Adding participant:", participantData);
           var result = await this.databaseConnectivity.initialize();
           if(result === "Connected to MongoDB Atlas!") {
-              var databaseName = "Courses-Management-System";
+              var databaseName = "Company-Management-System";
               var collectionName = "Members_Volunteers";
               var insertResult = await this.databaseConnectivity.insertParticipant(
                   databaseName,
@@ -123,7 +123,7 @@ class ParticipantsController
             var result = await this.databaseConnectivity.initialize();
             
             if (result === "Connected to MongoDB Atlas!") {
-                var databaseName = "Courses-Management-System";
+                var databaseName = "Company-Management-System";
                 var collectionName = "Members_Volunteers";
                 
                 var duplicateCheck = await this.databaseConnectivity.findParticipantByNricAndPhone(
@@ -174,7 +174,7 @@ class ParticipantsController
             var result = await this.databaseConnectivity.initialize();
             
             if (result === "Connected to MongoDB Atlas!") {
-                var databaseName = "Courses-Management-System";
+                var databaseName = "Company-Management-System";
                 var collectionName = "Members_Volunteers";
                 
                 // Enhanced traditional duplicate checking with fuzzy name matching
@@ -290,7 +290,7 @@ class ParticipantsController
             var result = await this.databaseConnectivity.initialize();
             
             if (result === "Connected to MongoDB Atlas!") {
-                var databaseName = "Courses-Management-System";
+                var databaseName = "Company-Management-System";
                 var collectionName = "Members_Volunteers";
                 
                 var findResult = await this.databaseConnectivity.findParticipantsByNRIC(
@@ -333,7 +333,7 @@ class ParticipantsController
             var result = await this.databaseConnectivity.initialize();
             
             if (result === "Connected to MongoDB Atlas!") {
-                var databaseName = "Courses-Management-System";
+                var databaseName = "Company-Management-System";
                 var collectionName = "Members_Volunteers";
                 
                 var findResult = await this.databaseConnectivity.findParticipantsByPhone(

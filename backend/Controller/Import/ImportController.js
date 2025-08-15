@@ -15,7 +15,7 @@ class ImportController
             console.log("Database Connectivity:", result);
 
             if (result === "Connected to MongoDB Atlas!") {
-                const databaseName = "Courses-Management-System";
+                const databaseName = "Company-Management-System";
                 const collectionName = "Registration Forms";
 
                 // Find the highest existing receipt number for the given course location

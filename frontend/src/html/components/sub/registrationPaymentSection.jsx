@@ -87,7 +87,7 @@ class RegistrationPaymentSection extends Component {
 
     fetchCourseRegistrations = async (language) => {
       try {
-        var {siteIC, role} = this.props;  
+        var {siteIC, role, userName} = this.props;  
         
         // Handle siteIC as either string or array for backend compatibility
         let processedSiteIC = siteIC;
@@ -99,9 +99,8 @@ class RegistrationPaymentSection extends Component {
           processedSiteIC = siteIC; // Keep as single string
         }
         
-        const response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { purpose: 'retrieve', role, siteIC: processedSiteIC });
-        const response1 = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { purpose: 'retrieve', role: "admin", siteIC: "" });
-        console.log("Response Data:", response.data.result);
+        const response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { purpose: 'retrieve', role, siteIC: processedSiteIC});
+        const response1 = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { purpose: 'retrieve', role: "admin", siteIC: ""});
         
         const data = this.languageDatabase(response.data.result, language);
         const data1 = this.languageDatabase(response1.data.result, language);

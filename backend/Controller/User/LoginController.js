@@ -45,7 +45,7 @@ class LoginController
       const dbConnection = this.getDatabaseConnection();
       await dbConnection.ensureConnection(); // Use ensureConnection instead of initialize
       
-      var databaseName = "Courses-Management-System";
+      var databaseName = "Company-Management-System";
       var collectionName = "Accounts";
       var currentDateTime = getCurrentDateTime();
       var connectedDatabase = await dbConnection.login(databaseName, collectionName, email, password, currentDateTime.date, currentDateTime.time);
@@ -75,7 +75,7 @@ class LoginController
       const dbConnection = this.getDatabaseConnection();
       await dbConnection.ensureConnection();
       
-      var databaseName = "Courses-Management-System";
+      var databaseName = "Company-Management-System";
       var collectionName = "Accounts";
       var currentDateTime = getCurrentDateTime();
       var connectedDatabase = await dbConnection.logout(databaseName, collectionName, accountId, currentDateTime.date, currentDateTime.time);
@@ -105,7 +105,7 @@ class LoginController
       const dbConnection = this.getDatabaseConnection();
       await dbConnection.ensureConnection();
       
-      var databaseName = "Courses-Management-System";
+      var databaseName = "Company-Management-System";
       var collectionName = "Accounts";
       var connectedDatabase = await dbConnection.changePassword(databaseName, collectionName, accountId, password);
       return {"message": connectedDatabase.message, "success": connectedDatabase.success};   
@@ -134,7 +134,7 @@ class LoginController
       const dbConnection = this.getDatabaseConnection();
       await dbConnection.ensureConnection();
       
-      var databaseName = "Courses-Management-System";
+      var databaseName = "Company-Management-System";
       var collectionName = "Accounts";
       var connectedDatabase = await dbConnection.resetPassword(databaseName, collectionName, username, password);
       return {"message": connectedDatabase.message, "success": connectedDatabase.success};   

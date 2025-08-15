@@ -179,7 +179,7 @@ from django.shortcuts import render
 def sales_report_view(request):
     # MongoDB connection
     client = MongoClient("mongodb+srv://moseslee:Mlxy6695@ecss-course.hejib.mongodb.net/?retryWrites=true&w=majority&appName=ECSS-Course")
-    db = client["Courses-Management-System"]
+    db = client["Company-Management-System"]
     collection = db["Registration Forms"]
 
     # Retrieve documents where courseType is 'NSA' and status is 'Paid'
@@ -294,7 +294,7 @@ def generate_report(request):
 
     # MongoDB connection
     client = MongoClient("mongodb+srv://moseslee:Mlxy6695@ecss-course.hejib.mongodb.net/?retryWrites=true&w=majority&appName=ECSS-Course")
-    db = client["Courses-Management-System"]
+    db = client["Company-Management-System"]
     collection = db["Registration Forms"]
 
     if request.method != 'POST':
@@ -325,7 +325,7 @@ def sales_report_view_react(request):
     try:
         # MongoDB connection
         client = MongoClient("mongodb+srv://moseslee:Mlxy6695@ecss-course.hejib.mongodb.net/?retryWrites=true&w=majority&appName=ECSS-Course")
-        db = client["Courses-Management-System"]
+        db = client["Company-Management-System"]
         collection = db["Registration Forms"]
 
         # Retrieve documents where courseType is 'NSA' and status is 'Paid'
@@ -395,7 +395,7 @@ def sales_report_view_react(request):
 def generate_invoice_view_react(request):
     # MongoDB connection
     client = MongoClient("mongodb+srv://moseslee:Mlxy6695@ecss-course.hejib.mongodb.net/?retryWrites=true&w=majority&appName=ECSS-Course")
-    db = client["Courses-Management-System"]
+    db = client["Company-Management-System"]
     collection = db["Registration Forms"]
 
     p = inflect.engine()

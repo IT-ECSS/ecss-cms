@@ -253,10 +253,10 @@ router.post('/', async function(req, res, next)
     }
     else if(req.body.purpose === "retrieve")
     {
-        var {role, siteIC} = req.body;
-        console.log("Request Body:", role, siteIC);
+        var {role, siteIC, name} = req.body;
+        console.log("Request Body:", role, siteIC, name);
         console.log("Retrieve From Database")
-        var result = await registrationController.allParticipants(role, siteIC);
+        var result = await registrationController.allParticipants(role, siteIC, name);
         //console.log("Retrieve Registration Records:", result);
         return res.json({"result": result}); 
     }

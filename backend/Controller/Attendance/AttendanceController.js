@@ -11,7 +11,7 @@ class AttendanceController {
             const result = await this.databaseConnectivity.initialize();
             
             if (result === "Connected to MongoDB Atlas!") {
-                const databaseName = "Courses-Management-System";
+                const databaseName = "Company-Management-System";
                 const collectionName = "Attendance";
                 
                 const insertResult = await this.databaseConnectivity.insertAttendanceRecord(
@@ -50,7 +50,7 @@ class AttendanceController {
             const result = await this.databaseConnectivity.initialize();
             
             if (result === "Connected to MongoDB Atlas!") {
-                const databaseName = "Courses-Management-System";
+                const databaseName = "Company-Management-System";
                 const collectionName = "Attendance";
                 
                 const attendanceRecords = await this.databaseConnectivity.getAttendanceRecords(
@@ -90,7 +90,7 @@ class AttendanceController {
             const result = await this.databaseConnectivity.initialize();
             
             if (result === "Connected to MongoDB Atlas!") {
-                const databaseName = "Courses-Management-System";
+                const databaseName = "Company-Management-System";
                 const collectionName = "Attendance";
                 console.log("Retrieving all attendance records without filter");
 

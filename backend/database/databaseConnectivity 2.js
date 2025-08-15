@@ -1,8 +1,8 @@
 const { MongoClient, ObjectId } = require('mongodb');
 
 // MongoDB connection string - should use environment variable
-const uri = 'mongodb+srv://moseslee:Mlxy6695@ecss-course.hejib.mongodb.net/?retryWrites=true&w=majority&appName=ECSS-Course';
-
+//const uri = 'mongodb+srv://moseslee:Mlxy6695@ecss-course.hejib.mongodb.net/?retryWrites=true&w=majority&appName=ECSS-Course';
+const uri =  "mongodb+srv://moseslee:Mlxy6695@ecss-database.dstyrk4.mongodb.net/?retryWrites=true&w=majority&appName=ECSS-Database"
 // MongoDB connection options for better performance and stability
 const mongoOptions = {
     maxPoolSize: 10, // Maintain up to 10 socket connections

@@ -15,7 +15,7 @@ class AccountController
             console.log("Database Connectivity:", result);
             if(result === "Connected to MongoDB Atlas!")
             {
-                var databaseName = "Courses-Management-System";
+                var databaseName = "Company-Management-System";
                 var collectionName = "Accounts";
                 var connectedDatabase = await this.databaseConnectivity.insertToDatabase(databaseName, collectionName, accountDetails);  
                 console.log(connectedDatabase); 
@@ -112,7 +112,7 @@ class AccountController
 
             if(result === "Connected to MongoDB Atlas!")
             {
-                var databaseName = "Courses-Management-System";
+                var databaseName = "Company-Management-System";
                 var collectionName = "Accounts";
                 var connectedDatabase = await this.databaseConnectivity.retrieveFromDatabase(databaseName, collectionName);   
                 return connectedDatabase;
@@ -141,7 +141,7 @@ class AccountController
 
             if(result === "Connected to MongoDB Atlas!")
             {
-                var databaseName = "Courses-Management-System";
+                var databaseName = "Company-Management-System";
                 var collectionName = "Accounts";
                 var connectedDatabase = await this.databaseConnectivity.deleteAccount(databaseName, collectionName, accountId);
                 return connectedDatabase;

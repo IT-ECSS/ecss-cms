@@ -15,7 +15,7 @@ class RegistrationController {
             var result = await this.databaseConnectivity.initialize();
             
             if (result === "Connected to MongoDB Atlas!") {
-                var databaseName = "Courses-Management-System";
+                var databaseName = "Company-Management-System";
                 var collectionName = "Registration Forms";
                 
                 var getAllResult = await this.databaseConnectivity.getAllParticipants(
@@ -61,7 +61,7 @@ class RegistrationController {
 
             if(result === "Connected to MongoDB Atlas!")
             {
-                var databaseName = "Courses-Management-System";
+                var databaseName = "Company-Management-System";
                 var collectionName = "Registration Forms";
                 var connectedDatabase = await this.databaseConnectivity.insertToDatabase(databaseName, collectionName, data);   
                 console.log("Insert New Participants:", connectedDatabase);
@@ -97,7 +97,7 @@ class RegistrationController {
 
             if(result === "Connected to MongoDB Atlas!")
             {
-                var databaseName = "Courses-Management-System";
+                var databaseName = "Company-Management-System";
                 var collectionName = "Registration Forms";
                 var connectedDatabase = await this.databaseConnectivity.retrieveCourseRegistration(databaseName, collectionName, role, siteIC);   
                 return connectedDatabase;
@@ -126,7 +126,7 @@ class RegistrationController {
 
             if(result === "Connected to MongoDB Atlas!")
             {
-                var databaseName = "Courses-Management-System";
+                var databaseName = "Company-Management-System";
                 var connectedDatabase = await this.databaseConnectivity.updateInDatabase(databaseName, id, newStatus);  
                 return connectedDatabase.acknowledged;
                 //console.log("Update Participant",connectedDatabase);
@@ -154,7 +154,7 @@ class RegistrationController {
 
             if(result === "Connected to MongoDB Atlas!")
             {
-                var databaseName = "Courses-Management-System";
+                var databaseName = "Company-Management-System";
                 var connectedDatabase = await this.databaseConnectivity.updateParticipantParticulars(databaseName, id, field, editedParticulars);  
                 return connectedDatabase.acknowledged;
                 //console.log("Update Participant Particulars:",connectedDatabase);
@@ -182,7 +182,7 @@ class RegistrationController {
 
             if(result === "Connected to MongoDB Atlas!")
             {
-                var databaseName = "Courses-Management-System";
+                var databaseName = "Company-Management-System";
                 var connectedDatabase = await this.databaseConnectivity.updateReceiptNumberData(databaseName, id, receiptNo);  
                 return connectedDatabase.acknowledged;
                 //console.log(connectedDatabase);
@@ -210,7 +210,7 @@ class RegistrationController {
 
             if(result === "Connected to MongoDB Atlas!")
             {
-                var databaseName = "Courses-Management-System"; 
+                var databaseName = "Company-Management-System"; 
                 var collectionName = "Registration Forms"
                 var connectedDatabase = await this.databaseConnectivity.deleteFromParticipant(databaseName, collectionName, id);  
                 return connectedDatabase.acknowledged;
@@ -239,7 +239,7 @@ class RegistrationController {
 
             if(result === "Connected to MongoDB Atlas!")
             {
-                var databaseName = "Courses-Management-System"; 
+                var databaseName = "Company-Management-System"; 
                 var collectionName = "Registration Forms"
                 var connectedDatabase = await this.databaseConnectivity.portOverParticipant(databaseName, collectionName, id, selectedLocation);  
                 return connectedDatabase.success;
@@ -268,7 +268,7 @@ class RegistrationController {
 
             if(result === "Connected to MongoDB Atlas!")
             {
-                var databaseName = "Courses-Management-System"; 
+                var databaseName = "Company-Management-System"; 
                 var connectedDatabase = await this.databaseConnectivity.updatePaymentOfficialUse(databaseName, id, name, date, time, status);  
                 return connectedDatabase.acknowledged;
                 //console.log("Updated Official Use:", connectedDatabase);
@@ -296,7 +296,7 @@ class RegistrationController {
 
             if(result === "Connected to MongoDB Atlas!")
             {
-                var databaseName = "Courses-Management-System"; 
+                var databaseName = "Company-Management-System"; 
                 var connectedDatabase = await this.databaseConnectivity.updateConfirmationOfficialUse(databaseName, id, name, date, time, status);  
                 return connectedDatabase.acknowledged;
                 //console.log("Updated Official Use:", connectedDatabase);
@@ -325,7 +325,7 @@ class RegistrationController {
 
             if(result === "Connected to MongoDB Atlas!")
             {
-                var databaseName = "Courses-Management-System"; 
+                var databaseName = "Company-Management-System"; 
                 var connectedDatabase = await this.databaseConnectivity.updatePaymentMethod(databaseName, id, newPaymentMethod, staff, date, time);  
                 console.log("connectedDatabase:", connectedDatabase);
                 return connectedDatabase.acknowledged;
@@ -352,7 +352,7 @@ class RegistrationController {
             console.log("Database Connectivity:", result);
     
             if (result === "Connected to MongoDB Atlas!") {
-                var databaseName = "Courses-Management-System"; 
+                var databaseName = "Company-Management-System"; 
                 var collectionName = "Registration Forms"; // ✅ Defined collection name
     
                 // Call addRefundedDate function in databaseConnectivity
@@ -380,7 +380,7 @@ class RegistrationController {
             console.log("Database Connectivity:", result);
     
             if (result === "Connected to MongoDB Atlas!") {
-                var databaseName = "Courses-Management-System"; 
+                var databaseName = "Company-Management-System"; 
                 var collectionName = "Registration Forms"; // ✅ Defined collection name
     
                 // Call addRefundedDate function in databaseConnectivity
@@ -410,7 +410,7 @@ class RegistrationController {
 
             if(result === "Connected to MongoDB Atlas!")
             {
-                var databaseName = "Courses-Management-System"; 
+                var databaseName = "Company-Management-System"; 
                 var collectionName = "Registration Forms";
                 var connectedDatabase = await this.databaseConnectivity.updateRegistrationEntry(databaseName, collectionName, participantDetails);  
                 return connectedDatabase.acknowledged;
@@ -439,7 +439,7 @@ class RegistrationController {
 
             if(result === "Connected to MongoDB Atlas!")
             {
-                var databaseName = "Courses-Management-System"; 
+                var databaseName = "Company-Management-System"; 
                 var collectionName = "Registration Forms";
                 var connectedDatabase = await this.databaseConnectivity.addCancellationRemarks(databaseName, collectionName, id, remarks);  
                 return connectedDatabase.acknowledged;
@@ -468,7 +468,7 @@ class RegistrationController {
 
             if(result === "Connected to MongoDB Atlas!")
             {
-                var databaseName = "Courses-Management-System";
+                var databaseName = "Company-Management-System";
                 
                 // Process bulk updates using the database connectivity layer
                 var connectedDatabase = await this.databaseConnectivity.bulkUpdateRegistrations(

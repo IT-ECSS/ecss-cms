@@ -11,7 +11,7 @@ class CourseRegisteredController {
             const result = await this.databaseConnectivity.initialize();
             
             if (result === "Connected to MongoDB Atlas!") {
-                const databaseName = "Courses-Management-System";
+                const databaseName = "Company-Management-System";
                 const collectionName = "Registration Forms"; // or "Participants"
 
                 // Find all courses registered by this NRIC

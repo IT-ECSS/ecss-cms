@@ -16,7 +16,7 @@ class AccessRightController
             console.log("Database Connectivity:", result);
             if(result === "Connected to MongoDB Atlas!")
             {
-                var databaseName = "Courses-Management-System";
+                var databaseName = "Company-Management-System";
                 var collectionName = "Accounts";
                 var connectedDatabase = await this.databaseConnectivity.insertToDatabase(databaseName, collectionName, accountDetails);   
                 if(connectedDatabase === true)
@@ -51,7 +51,7 @@ class AccessRightController
 
             if(result === "Connected to MongoDB Atlas!")
             {
-                var databaseName = "Courses-Management-System";
+                var databaseName = "Company-Management-System";
                 var collectionName = "Access Rights";
                 var connectedDatabase = await this.databaseConnectivity.retrieveFromDatabase(databaseName, collectionName);   
                 return connectedDatabase;
@@ -79,7 +79,7 @@ class AccessRightController
 
             if(result === "Connected to MongoDB Atlas!")
             {
-                var databaseName = "Courses-Management-System";
+                var databaseName = "Company-Management-System";
                 var collectionName = "Access Rights";
                 var connectedDatabase = await this.databaseConnectivity.retrieveOneFromDatabase(databaseName, collectionName, accountId);   
                 var accessRights = {"Account": connectedDatabase["Account"], "Courses": connectedDatabase["Courses"], "Membership": connectedDatabase["Membership"], "Registration And Payment": connectedDatabase["Registration And Payment"], "QR Code":  connectedDatabase["QR Code"], "Reports":  connectedDatabase["Reports"], "Attendances":  connectedDatabase["Attendances"]}
@@ -108,7 +108,7 @@ class AccessRightController
 
             if(result === "Connected to MongoDB Atlas!")
             {
-                var databaseName = "Courses-Management-System";
+                var databaseName = "Company-Management-System";
                 var collectionName = "Access Rights";
                 var connectedDatabase = await this.databaseConnectivity.deleteAccessRights(databaseName, collectionName, accountId);
                 return connectedDatabase;
@@ -137,7 +137,7 @@ class AccessRightController
 
             if(result === "Connected to MongoDB Atlas!")
             {
-                var databaseName = "Courses-Management-System";
+                var databaseName = "Company-Management-System";
                 var collectionName = "Access Rights";
                 var connectedDatabase = await this.databaseConnectivity.updateAccessRight(databaseName, collectionName, accessRightId, accessRight);
                 return connectedDatabase;

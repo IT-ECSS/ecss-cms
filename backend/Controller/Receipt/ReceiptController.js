@@ -16,7 +16,7 @@ class ReceiptController {
             const dbConnection = this.getDatabaseConnection();
             await dbConnection.ensureConnection();
             
-            const databaseName = "Courses-Management-System";
+            const databaseName = "Company-Management-System";
             const collectionName = "Receipts";
 
             // Find the highest existing receipt number for the given course location
@@ -61,7 +61,7 @@ class ReceiptController {
             const dbConnection = this.getDatabaseConnection();
             await dbConnection.ensureConnection();
             
-            var databaseName = "Courses-Management-System";
+            var databaseName = "Company-Management-System";
             var collectionName = "Receipts";
             
             console.log("Data:", receiptDetails);
@@ -94,7 +94,7 @@ class ReceiptController {
             const dbConnection = this.getDatabaseConnection();
             await dbConnection.ensureConnection();
             
-            var databaseName = "Courses-Management-System";
+            var databaseName = "Company-Management-System";
             var collectionName = "Receipts";
             var connectedDatabase = await dbConnection.retrieveFromDatabase(databaseName, collectionName);   
             return connectedDatabase;
@@ -119,7 +119,7 @@ class ReceiptController {
             const dbConnection = this.getDatabaseConnection();
             await dbConnection.ensureConnection();
             
-            var databaseName = "Courses-Management-System";
+            var databaseName = "Company-Management-System";
             var collectionName = "Receipts";
             var connectedDatabase = await dbConnection.deleteFromDatabase(databaseName, collectionName, id);   
             return connectedDatabase;
