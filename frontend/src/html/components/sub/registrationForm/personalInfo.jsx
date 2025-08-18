@@ -407,10 +407,7 @@ class PersonalInfo extends Component {
       const marriageDurationOptions = [
         'Soon-to-wed',
         '0 to 2 years',
-        'More than 2 years to 5 years',
-        'More than 5 years to 10 years',
-        'More than 10 years to 25 years',
-        'More than 25 years'
+        'More than 2 years to 5 years'
       ];
       const typeOfMarriageOptions = [
         'This marriage is/will be a first marriage for both of us',

@@ -8,8 +8,8 @@ class Email {
             port: 587, // You can also use 465 for SSL or 587 for TLS
             secure: false, // Use false for TLS or true for SSL
             auth: {
-                user: " 1@smtp-brevo.com", // Your email address
-                pass: "xsmtpsib-c1ab7afcb699116ba07af0a6e0981d1094c961293b960f2702f21a05f37fc6c6-mGRUfx9FKN3gcD1b", // Your app password or normal password
+                user: "94f7f0001@smtp-brevo.com", // Your email address
+                pass: "9r0DHqn3xbt475da" // Your app password or normal password
             }
         });
     }

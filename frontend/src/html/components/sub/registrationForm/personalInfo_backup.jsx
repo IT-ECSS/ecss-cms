@@ -371,7 +371,7 @@ class PersonalInfo extends Component {
         { name: 'eDUCATION', label: 'Highest Educational Attainment', placeholder: 'Highest Educational Attainment', isSelect: true, isRadio: true },
         { name: 'hOUSINGTYPE', label: 'Housing Type', placeholder: 'Housing Type', isSelect: true, isRadio: true },
         { name: 'gROSSMONTHLYINCOME', label: 'Gross Monthly Couple Income', placeholder: 'Gross Monthly Couple Income', isSelect: true, isRadio: true },
-        { name: 'mARRIAGEDURATION', label: 'Marriage duration', placeholder: 'Marriage duration', isSelect: true, isRadio: true },
+        { name: 'mARRIAGEDURATION', label: '', placeholder: 'Marriage duration', isSelect: true, isRadio: true },
         { name: 'tYPEOFMARRIAGE', label: 'Type of Marriage', placeholder: 'Type of Marriage', isSelect: true, isRadio: true },
         { name: 'hASCHILDREN', label: 'Have child(ren) before current marriage', placeholder: 'Have child(ren) before current marriage', isSelect: true, isRadio: true }
       ];
