@@ -291,7 +291,7 @@ class RegistrationPaymentSection extends Component {
       }
 
       if (!this.state.isAlertShown) {
-        await this.anomalitiesAlert(data1);
+        await this.anomalitiesAlert(data);
         this.setState({ isAlertShown: true });
       }
       this.props.closePopup();
@@ -1874,7 +1874,7 @@ class RegistrationPaymentSection extends Component {
     {
       headerName: "Course Name",
       field: "course",
-      width: 350,
+      width: 550,
     },
     {
       headerName: "Course Mode",
@@ -2184,7 +2184,7 @@ class RegistrationPaymentSection extends Component {
       {
         headerName: "Housing Type",
         field: "housingType",
-        width: 150,
+        width: 350,
         cellRenderer: (params) => {
           const value = params.value || '';
           const rawData = params.data;
@@ -2235,7 +2235,7 @@ class RegistrationPaymentSection extends Component {
       {
         headerName: "Type of Marriage",
         field: "typeOfMarriage",
-        width: 200,
+        width: 1000,
         cellRenderer: (params) => {
           const value = params.value || '';
           return value || '';
@@ -2253,7 +2253,7 @@ class RegistrationPaymentSection extends Component {
       {
         headerName: "How Found Out",
         field: "howFoundOut",
-        width: 150,
+        width: 550,
         cellRenderer: (params) => {
           const value = params.value || '';
           return value || '';
@@ -2280,7 +2280,7 @@ class RegistrationPaymentSection extends Component {
       {
         headerName: "Marriage Prep Consent 1",
         field: "marriagePrepConsent1",
-        width: 180,
+        width: 1500,
         cellRenderer: (params) => {
           const value = params.value;
           const rawData = params.data;
@@ -2304,7 +2304,7 @@ class RegistrationPaymentSection extends Component {
       {
         headerName: "Marriage Prep Consent 2", 
         field: "marriagePrepConsent2",
-        width: 180,
+        width: 1000,
         cellRenderer: (params) => {
           const value = params.value;
           const rawData = params.data;
@@ -3894,17 +3894,21 @@ debugMarriagePrepData = () => {
           <button className="save-btn" onClick={() => this.archiveData()}>
             Archive Data
           </button>
-          <button className="export-btn" 
-          onClick={this.exportToLOP}
-          disabled={selectedRows.length === 0}>
-            Export to LOP
-          </button>
-          <button 
-            className="attendance-btn" 
-            onClick={this.exportAttendance}
-          >
-            Export Attendance
-          </button>
+          {this.props.role !== "Social Worker" && (
+            <>
+              <button className="export-btn" 
+                      onClick={this.exportToLOP}
+                      disabled={selectedRows.length === 0}>
+                Export to LOP
+              </button>
+              <button 
+                className="attendance-btn" 
+                onClick={this.exportAttendance}
+              >
+                Export Attendance
+              </button>
+            </>
+          )}
           <button 
             className="bulk-update-btn" 
             onClick={this.openBulkUpdateModal}

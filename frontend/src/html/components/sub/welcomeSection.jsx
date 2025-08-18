@@ -37,7 +37,8 @@ class WelcomeSection extends Component {
                 { key: 'View Attendance', title: 'View Attendance', icon: 'fas fa-clipboard-check', description: 'Record and view student attendance', action: () => this.props.onNavigate('attendance') },
                 { key: 'View Membership', title: 'View Membership', icon: 'fas fa-id-card', description: 'Access member information', action: () => this.props.onNavigate('membership') },
                 { key: 'NSA Courses', title: 'NSA Courses', icon: 'fas fa-graduation-cap', description: 'View NSA course information', action: () => this.props.onNavigate('nsa-courses') },
-                { key: 'ILP Courses', title: 'ILP Courses', icon: 'fas fa-book-open', description: 'View ILP course information', action: () => this.props.onNavigate('ilp-courses') }
+                { key: 'ILP Courses', title: 'ILP Courses', icon: 'fas fa-book-open', description: 'View ILP course information', action: () => this.props.onNavigate('ilp-courses') },
+                { key: 'Marriage Preparation Course', title: 'Marriage Preparation Course', icon: 'fas fa-heart', description: 'View Marriage Preparation course information', action: () => this.props.onNavigate('marriage-preparation-programme-courses') }
             ],
             'Instructor': [
                 { key: 'View Attendance', title: 'Mark Attendance', icon: 'fas fa-clipboard-check', description: 'Mark and manage student attendance', action: () => this.props.onNavigate('attendance') },
@@ -71,8 +72,9 @@ class WelcomeSection extends Component {
             "Create Account": "Add new user accounts to the system",
             "Account Table": "View and manage existing accounts", 
             "Access Rights Table": "Configure user permissions and access rights",
-            "NSA Courses": "Manage NSA course offerings and schedules",
-            "ILP Courses": "Manage ILP course offerings and programs",
+            "NSA Courses": "Manage NSA courses offerings and schedules",
+            "ILP Courses": "Manage ILP courses offerings and programs",
+            "Marriage Preparation Course": "Manage Marriage Preparation courses offerings and programs",
             "Registration And Payment Table": "Handle course registrations and payments",
             "Monthly Report": "Generate monthly analytics and reports",
             "Payment Report": "View payment summaries and financial reports",
@@ -172,6 +174,9 @@ class WelcomeSection extends Component {
                 break;
             case "NSA Courses":
                 navigationKey = "nsa-courses";
+                break;
+            case "Marriage Preparation Programme Courses":
+                navigationKey = "marriage-preparation-programme-courses";
                 break;
             case "ILP Courses":
                 navigationKey = "ilp-courses";

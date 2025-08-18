@@ -566,8 +566,9 @@ class DatabaseConnectivity {
     
         try {
             const participants = await table.find().toArray();
-            
-            return {
+            //console.log("Participants retrieved:", participants);
+
+             return {
                 success: true,
                 message: `Retrieved ${participants.length} participants for AI analysis`,
                 participants: participants
@@ -815,7 +816,13 @@ class DatabaseConnectivity {
                     } else {
                         console.log("SiteIC is null, not filtering by location");
                     }
-                } else {
+                }
+                else if (role === "Social Worker") {
+                        console.log("Processing Social Worker filtering...");
+                        query["course.courseType"] = "Marriage Preparation Programme";
+                        console.log("Filtering for Marriage Preparation Programme courses only");
+                }  
+                else {
                     console.log("Role is not Site in-charge, returning all documents");
                 }
                 // If role is not "Site in-charge", return all documents (empty query retrieves all)

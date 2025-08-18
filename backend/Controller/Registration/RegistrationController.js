@@ -22,6 +22,7 @@ class RegistrationController {
                     databaseName,
                     collectionName
                 );
+                //console.log("Get All Participants Result:", getAllResult);
                 
                 return {
                     success: getAllResult.success,

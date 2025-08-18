@@ -104,7 +104,7 @@ class AccountsSection extends Component {
       {
         headerName: "Site I/C",
         field: "siteIC",
-        width: 250,
+        width: 550,
          // Apply styles dynamically based on the account type (role)
          cellStyle: (params) => {
           return {
@@ -523,6 +523,10 @@ class AccountsSection extends Component {
         return '#FF0000'; // Red
       case 'NSA in-charge':
         return '#FFA500'; // Orange
+      case 'Social Worker':
+        return '#734f96'; // Lavender
+      case 'Fitness Trainer':
+        return '#673A3F'; // Orange
       case 'Site in-charge':
         return '#8B4513'; // Brown
       case 'Finance':
@@ -543,7 +547,7 @@ class AccountsSection extends Component {
       case 'Pasir Ris West Wellness Centre':
         return '#8A2BE2'; // Blue Violet
       default:
-        return ''; // Light Gray (default color if role is not recognized)
+        return role !== "" && role !== null ? '#808080' : '';; // Light Gray (default color if role is not recognized)
     }
   }
 
@@ -732,6 +736,15 @@ class AccountsSection extends Component {
                       <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
                         <strong>ILP Courses: </strong>
                         {this.state.accessRightsRowData[this.state.expandedRowIndex].courses["ILP Courses"] ? (
+                          <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
+                        ) : (
+                          <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
+                        )}
+                      </p>
+
+                      <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
+                        <strong>Marriage Preparation Programme Courses: </strong>
+                        {this.state.accessRightsRowData[this.state.expandedRowIndex].courses["Marriage Preparation Programme Courses"] ? (
                           <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
                         ) : (
                           <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>

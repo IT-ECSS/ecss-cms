@@ -7,7 +7,7 @@ class CreateAccountsSection extends Component {
   constructor(props) {
     super(props);
     this.state = {
-        roleOptions: ['Ops in-charge', 'NSA in-charge', 'Site in-charge', 'Finance', 'Social Worker', 'Fitness Trainers', 'Others'],
+        roleOptions: ['Ops in-charge', 'NSA in-charge', 'Site in-charge', 'Finance', 'Social Worker', 'Fitness Trainer', 'Others'],
         filteredRoles: [],
         site: ""
     };
@@ -64,9 +64,9 @@ class CreateAccountsSection extends Component {
                 // Check if the role is valid
                 if (!value) {
                     roleError = 'Role is required.';
-                } else if(value !== "Ops in-charge" && value !== "NSA in-charge" && value !== "Site in-charge" && value !== "Finance" && value !== "Others")
+                } else if(value !== "Ops in-charge" && value !== "NSA in-charge" && value !== "Site in-charge" && value !== "Finance" && value !== "Others" && value !== "Social Worker" && value !== "Fitness Trainer")
                 {
-                    roleError = 'Role must be Ops in-charge, NSA in-charge, Site in-charge, Finance or Others';
+                    roleError = 'Role must be Ops in-charge, NSA in-charge, Site in-charge, Finance, Social Worker, Fitness Trainer or Others';
                 }
                 else {
                     roleError = ''; // Clear the error if the role is valid
@@ -190,9 +190,9 @@ class CreateAccountsSection extends Component {
       roleError = 'Role is required.';
       valid = false;
     }
-    else if(role !== "Ops in-charge" && role !== "NSA in-charge" && role !== "Site in-charge" && role !== "Finance" && role !== "Others")
+    else if(role !== "Ops in-charge" && role !== "NSA in-charge" && role !== "Site in-charge" && role !== "Finance" && role !== "Others" && role !== "Social Worker" && role !== "Fitness Trainer")
     {
-      roleError = 'Role must be Ops in-charge, NSA in-charge, Site in-charge, Finance or Others';
+      roleError = 'Role must be Ops in-charge, NSA in-charge, Site in-charge, Finance, Social Worker, Fitness Trainer or Others';
       valid = false;
     }
 
