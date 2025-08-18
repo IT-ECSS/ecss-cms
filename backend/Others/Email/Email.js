@@ -4,18 +4,13 @@ class Email {
     constructor() {
         // Create a transporter using Gmail
         this.transporter = nodemailer.createTransport({
-            //host: 'smtp-relay.sendinblue.com', // Brevo's SMTP server
-            host: 'live.smtp.mailtrap.io',
+            host: 'smtp-relay.sendinblue.com', // Brevo's SMTP server
             port: 587, // You can also use 465 for SSL or 587 for TLS
             secure: false, // Use false for TLS or true for SSL
             auth: {
-                user: "api",
-                pass: "1e6dcba50a7b38fddbf1c3655e819a90"
-            }
-            /*auth: {
                 user: " 1@smtp-brevo.com", // Your email address
                 pass: "wctvJgDmM389WTy4", // Your app password or normal password
-            },*/
+            }
         });
     }
 
