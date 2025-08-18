@@ -1715,7 +1715,8 @@ class RegistrationPaymentSection extends Component {
       </div>
     );
   };
-  // Custom cell renderer for Payment Method with Buttons
+  
+  /*// Custom cell renderer for Payment Method with Buttons
   paymentMethodRenderer = (params, courseName, location, type) => {
     const currentPaymentMethod = params.value; // Get the current payment method value
 
@@ -1756,7 +1757,80 @@ class RegistrationPaymentSection extends Component {
     else
     {
       paymentMethods = [];
-    }
+    }*/
+
+    // Custom cell renderer for Payment Method with Buttons
+    paymentMethodRenderer = (params, courseName, location, type) => {
+      const currentPaymentMethod = params.value; // Get the current payment method value
+
+      let paymentMethods;
+      if((type === "NSA") || (type === "Marriage Preparation Programme"))
+      {
+        // List of payment methods
+        if(location === "Pasir Ris West Wellness Centre")
+        {
+          if(courseName !== "Community Ukulele – Mandarin")
+          {
+            // For Marriage Preparation Programme, exclude SkillsFuture
+            if(type === "Marriage Preparation Programme")
+            {
+              paymentMethods = ['PayNow'];
+            }
+            else
+            {
+              paymentMethods = ['PayNow', 'SkillsFuture'];
+            }
+          }
+          else
+          {
+            paymentMethods = ['PayNow'];
+          }
+        }
+        else
+        {
+          if(courseName !== "Community Ukulele – Mandarin")
+          {
+            // For Marriage Preparation Programme, exclude SkillsFuture
+            if(type === "Marriage Preparation Programme")
+            {
+              paymentMethods = ['Cash', 'PayNow'];
+            }
+            else
+            {
+              paymentMethods = ['Cash', 'PayNow', 'SkillsFuture'];
+            }
+          }
+          else
+          {
+            paymentMethods = ['Cash', 'PayNow'];
+          }
+        }
+      }
+      else
+      {
+        paymentMethods = [];
+      }
+
+      // Handle button click to update the payment method in the row
+      const handleButtonClick = (method) => {
+        params.api.getRowNode(params.node.id).setDataValue('paymentMethod', method);
+        console.log('Payment method changed to:', method);
+      };
+
+      return (
+        <div className="payment-method-buttons-container">
+          {paymentMethods.map((method) => (
+            <button
+              key={method}
+              className={`payment-method-button ${method === currentPaymentMethod ? 'active' : ''}`}
+              onClick={() => handleButtonClick(method)}
+            >
+              {method}
+            </button>
+          ))}
+        </div>
+      );
+    };
 
     // Handle button click to update the payment method in the row
     const handleButtonClick = (method) => {
