@@ -40,6 +40,7 @@ class DashboardSection extends Component {
         try {
             // Get user role and siteIC from props, localStorage, or default values
             const role = this.props.role || localStorage.getItem('userRole') || 'admin';
+            console.log("User Role:", role);
             const siteIC = this.props.siteIC || localStorage.getItem('siteIC') || '';
             
             console.log('Fetching data with role:', role, 'and siteIC:', siteIC);

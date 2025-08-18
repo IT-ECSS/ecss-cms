@@ -43,7 +43,7 @@ class AccountController
                             message: "New account with respectively access rights created successfully"
                         }
                     }
-                    else if(accountDetails.role === "NSA in-charge")
+                    else if(accountDetails.role === "NSA in-charge" || accountDetails.role === "Social Worker")
                     {
                             var accountID = connectedDatabase.accountId;
                             var accessRightDetails = {"Account Details":{"Account ID": accountID, "Name": accountDetails.name, "Role": accountDetails.role}, "Account":{"Create Account": false, "Account Table": false, "Access Rights Table": false}, "Courses":{"Upload Courses": false, "NSA Courses": true, "ILP Courses": false, "Update Courses": false, "Delete Courses": false}, "Registration And Payment": {"Registration And Payment Table": true, "Invoice Table": true}, "QR Code": {"Create QR Code": true, "QR Code Table": true, "Update QR Code": true, "Delete QR Code": true}, "Reports": {"Monthly Report": true, "Payment Report": true}, "Attendance": {"View Attendance": true}, "Membership": {"View Membership": true}};
