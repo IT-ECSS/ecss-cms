@@ -18,7 +18,7 @@ class Email {
     sendEmailToReceipent(to, subject, text) {
         console.log(to);
         const mailOptions = {
-            from: "moses_lee@ecss.org.sg", // From address is the user's email
+            from: "it@ecss.org.sg", // From address is the user's email
             to: to, // Recipient email address
             subject: subject, // Email subject
             html: text, // Email body
