@@ -38,6 +38,7 @@ class CourseDetailsSection extends Component {
     const isNSA = courseType === 'NSA';
     const isILP = courseType === 'ILP';
     const isMarriagePrep = courseType === 'Marriage Preparation Programme';
+    //Marriage Preparation Programme
     console.log('CourseDetailsSection props:', this.props);
 
     return (
@@ -130,7 +131,7 @@ class CourseDetailsSection extends Component {
                   courseEnglishName === 'Community Ukulele – Mandarin L2B' ||
                   (courseEnglishName !== 'Community Ukulele – Mandarin L1' && courseChineseName !== "音乐祝福社区四弦琴班")
                 )
-              ) || isMarriagePrep ? (
+              ) || !isMarriagePrep ? (
                 <label>
                   <input
                     type="radio"

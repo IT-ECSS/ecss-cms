@@ -9,7 +9,7 @@ class Email {
             secure: false, // Use false for TLS or true for SSL
             auth: {
                 user: " 1@smtp-brevo.com", // Your email address
-                pass: "wctvJgDmM389WTy4", // Your app password or normal password
+                pass: "xsmtpsib-c1ab7afcb699116ba07af0a6e0981d1094c961293b960f2702f21a05f37fc6c6-mGRUfx9FKN3gcD1b", // Your app password or normal password
             }
         });
     }
