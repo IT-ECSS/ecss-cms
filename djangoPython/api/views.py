@@ -288,6 +288,8 @@ class JSONEncoder(json.JSONEncoder):
 def format_price(price):
     return f"${price:,.2f}"
 
+#ok
+
 @csrf_exempt
 def generate_report(request):
     """Fetches and returns data from the MongoDB collection for the report, filtering only NSA course types."""
