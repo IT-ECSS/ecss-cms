@@ -178,7 +178,7 @@ from django.shortcuts import render
 @csrf_exempt
 def sales_report_view(request):
     # MongoDB connection
-    client = MongoClient("mongodb+srv://moseslee:Mlxy6695@ecss-course.hejib.mongodb.net/?retryWrites=true&w=majority&appName=ECSS-Course")
+    client = MongoClient("mongodb+srv://moseslee:Mlxy6695@ecss-database.dstyrk4.mongodb.net/?retryWrites=true&w=majority&appName=ECSS-Database")
     db = client["Company-Management-System"]
     collection = db["Registration Forms"]
 
@@ -293,7 +293,7 @@ def generate_report(request):
     """Fetches and returns data from the MongoDB collection for the report, filtering only NSA course types."""
 
     # MongoDB connection
-    client = MongoClient("mongodb+srv://moseslee:Mlxy6695@ecss-course.hejib.mongodb.net/?retryWrites=true&w=majority&appName=ECSS-Course")
+    client = MongoClient("mongodb+srv://moseslee:Mlxy6695@ecss-database.dstyrk4.mongodb.net/?retryWrites=true&w=majority&appName=ECSS-Database")
     db = client["Company-Management-System"]
     collection = db["Registration Forms"]
 
@@ -324,7 +324,7 @@ def generate_report(request):
 def sales_report_view_react(request):
     try:
         # MongoDB connection
-        client = MongoClient("mongodb+srv://moseslee:Mlxy6695@ecss-course.hejib.mongodb.net/?retryWrites=true&w=majority&appName=ECSS-Course")
+        client = MongoClient("mongodb+srv://moseslee:Mlxy6695@ecss-database.dstyrk4.mongodb.net/?retryWrites=true&w=majority&appName=ECSS-Database")
         db = client["Company-Management-System"]
         collection = db["Registration Forms"]
 
@@ -394,7 +394,7 @@ def sales_report_view_react(request):
 @csrf_exempt
 def generate_invoice_view_react(request):
     # MongoDB connection
-    client = MongoClient("mongodb+srv://moseslee:Mlxy6695@ecss-course.hejib.mongodb.net/?retryWrites=true&w=majority&appName=ECSS-Course")
+    client = MongoClient("mongodb+srv://moseslee:Mlxy6695@ecss-database.dstyrk4.mongodb.net/?retryWrites=true&w=majority&appName=ECSS-Database")
     db = client["Company-Management-System"]
     collection = db["Registration Forms"]
 

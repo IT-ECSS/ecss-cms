@@ -10,46 +10,264 @@ class WelcomeSection extends Component {
         };
     }
 
-    // Role-based quick actions mapping based on sidebar subkeys
+    // Role-based quick actions mapping based on actual user sub-access rights
     getRoleBasedActions = () => {
-        const { role } = this.props;
+        const { accessRights = {} } = this.props;
         
-        // Define action mappings based on common sidebar subkeys and roles
-        const roleActions = {
-            'Administrator': [
-                { key: 'Create Account', title: 'Create Account', icon: 'fas fa-user-plus', description: 'Add new user accounts to the system', action: () => this.props.onNavigate('create-account') },
-                { key: 'Account Table', title: 'Manage Accounts', icon: 'fas fa-users-cog', description: 'View and manage user accounts', action: () => this.props.onNavigate('accounts') },
-                { key: 'Access Rights Table', title: 'Access Rights', icon: 'fas fa-shield-alt', description: 'Configure user permissions and access rights', action: () => this.props.onNavigate('access-rights') },
-                { key: 'Registration And Payment Table', title: 'Registrations & Payments', icon: 'fas fa-credit-card', description: 'Manage course registrations and payments', action: () => this.props.onNavigate('registration') },
-                { key: 'NSA Courses', title: 'NSA Courses', icon: 'fas fa-graduation-cap', description: 'Manage NSA course offerings', action: () => this.props.onNavigate('nsa-courses') },
-                { key: 'ILP Courses', title: 'ILP Courses', icon: 'fas fa-book-open', description: 'Manage ILP course offerings', action: () => this.props.onNavigate('ilp-courses') }
-            ],
-            'Manager': [
-                { key: 'Registration And Payment Table', title: 'Registrations & Payments', icon: 'fas fa-credit-card', description: 'Manage course registrations and payments', action: () => this.props.onNavigate('registration') },
-                { key: 'View Attendance', title: 'View Attendance', icon: 'fas fa-clipboard-check', description: 'Monitor student attendance records', action: () => this.props.onNavigate('attendance') },
-                { key: 'View Membership', title: 'View Membership', icon: 'fas fa-id-card', description: 'Manage member information and records', action: () => this.props.onNavigate('membership') },
-                { key: 'Monthly Report', title: 'Monthly Report', icon: 'fas fa-chart-bar', description: 'Generate monthly analytics reports', action: () => this.props.onNavigate('monthly-report') },
-                { key: 'Payment Report', title: 'Payment Report', icon: 'fas fa-file-invoice-dollar', description: 'Generate payment and financial reports', action: () => this.props.onNavigate('payment-report') },
-                { key: 'NSA Courses', title: 'NSA Courses', icon: 'fas fa-graduation-cap', description: 'Manage NSA course offerings', action: () => this.props.onNavigate('nsa-courses') }
-            ],
-            'Staff': [
-                { key: 'Registration And Payment Table', title: 'Registrations & Payments', icon: 'fas fa-credit-card', description: 'Handle course registrations and payments', action: () => this.props.onNavigate('registration') },
-                { key: 'View Attendance', title: 'View Attendance', icon: 'fas fa-clipboard-check', description: 'Record and view student attendance', action: () => this.props.onNavigate('attendance') },
-                { key: 'View Membership', title: 'View Membership', icon: 'fas fa-id-card', description: 'Access member information', action: () => this.props.onNavigate('membership') },
-                { key: 'NSA Courses', title: 'NSA Courses', icon: 'fas fa-graduation-cap', description: 'View NSA course information', action: () => this.props.onNavigate('nsa-courses') },
-                { key: 'ILP Courses', title: 'ILP Courses', icon: 'fas fa-book-open', description: 'View ILP course information', action: () => this.props.onNavigate('ilp-courses') },
-                { key: 'Marriage Preparation Course', title: 'Marriage Preparation Course', icon: 'fas fa-heart', description: 'View Marriage Preparation course information', action: () => this.props.onNavigate('marriage-preparation-programme-courses') }
-            ],
-            'Instructor': [
-                { key: 'View Attendance', title: 'Mark Attendance', icon: 'fas fa-clipboard-check', description: 'Mark and manage student attendance', action: () => this.props.onNavigate('attendance') },
-                { key: 'NSA Courses', title: 'My NSA Courses', icon: 'fas fa-graduation-cap', description: 'View assigned NSA courses', action: () => this.props.onNavigate('nsa-courses') },
-                { key: 'ILP Courses', title: 'My ILP Courses', icon: 'fas fa-book-open', description: 'View assigned ILP courses', action: () => this.props.onNavigate('ilp-courses') },
-                { key: 'View Membership', title: 'Student Information', icon: 'fas fa-id-card', description: 'View student member information', action: () => this.props.onNavigate('membership') }
-            ]
+        // Debug logging to see what access rights are being received
+        console.log('Access Rights received in welcomeSection:', accessRights);
+        
+        // Define all possible actions with their access right mappings
+        const allActions = [
+            { 
+                key: 'Create Account', 
+                title: 'Create Account', 
+                icon: 'fas fa-user-plus', 
+                description: 'Add new user accounts to the system', 
+                action: () => this.props.onNavigate('create-account'),
+                accessKey: 'Create Account',
+                parentKey: 'Account'
+            },
+            { 
+                key: 'Account Table', 
+                title: 'Manage Accounts', 
+                icon: 'fas fa-users-cog', 
+                description: 'View and manage user accounts', 
+                action: () => this.props.onNavigate('accounts'),
+                accessKey: 'Account Table',
+                parentKey: 'Account'
+            },
+            { 
+                key: 'Access Rights Table', 
+                title: 'Access Rights', 
+                icon: 'fas fa-shield-alt', 
+                description: 'Configure user permissions and access rights', 
+                action: () => this.props.onNavigate('access-rights'),
+                accessKey: 'Access Rights Table',
+                parentKey: 'Account'
+            },
+            { 
+                key: 'Registration And Payment Table', 
+                title: 'Registrations & Payments', 
+                icon: 'fas fa-credit-card', 
+                description: 'Manage course registrations and payments', 
+                action: () => this.props.onNavigate('registration'),
+                accessKey: 'Registration And Payment Table',
+                parentKey: 'Registration And Payment'
+            },
+            { 
+                key: 'NSA Courses', 
+                title: 'NSA Courses', 
+                icon: 'fas fa-graduation-cap', 
+                description: 'Manage NSA course offerings', 
+                action: () => this.props.onNavigate('nsa-courses'),
+                accessKey: 'NSA Courses',
+                parentKey: 'Courses'
+            },
+            { 
+                key: 'ILP Courses', 
+                title: 'ILP Courses', 
+                icon: 'fas fa-book-open', 
+                description: 'Manage ILP course offerings', 
+                action: () => this.props.onNavigate('ilp-courses'),
+                accessKey: 'ILP Courses',
+                parentKey: 'Courses'
+            },
+            { 
+                key: 'Marriage Preparation Programme Courses', 
+                title: 'Marriage Preparation Course', 
+                icon: 'fas fa-heart', 
+                description: 'Manage Marriage Preparation course offerings', 
+                action: () => this.props.onNavigate('marriage-preparation-programme-courses'),
+                accessKey: 'Marriage Preparation Programme Courses',
+                parentKey: 'Courses'
+            },
+            { 
+                key: 'View Attendance', 
+                title: 'View Attendance', 
+                icon: 'fas fa-clipboard-check', 
+                description: 'Monitor and record student attendance', 
+                action: () => this.props.onNavigate('attendance'),
+                accessKey: 'View Attendance',
+                parentKey: 'Attendances',
+                alternateParentKey: 'Attendance'
+            },
+            { 
+                key: 'View Membership', 
+                title: 'View Membership', 
+                icon: 'fas fa-id-card', 
+                description: 'Manage member information and records', 
+                action: () => this.props.onNavigate('membership'),
+                accessKey: 'View Membership',
+                parentKey: 'Membership',
+                alternateParentKey: 'membership'
+            },
+            { 
+                key: 'Monthly Report', 
+                title: 'Monthly Report', 
+                icon: 'fas fa-chart-bar', 
+                description: 'Generate monthly analytics reports', 
+                action: () => this.props.onNavigate('monthly-report'),
+                accessKey: 'Monthly Report',
+                parentKey: 'Reports'
+            },
+            { 
+                key: 'Payment Report', 
+                title: 'Payment Report', 
+                icon: 'fas fa-file-invoice-dollar', 
+                description: 'Generate payment and financial reports', 
+                action: () => this.props.onNavigate('payment-report'),
+                accessKey: 'Payment Report',
+                parentKey: 'Reports'
+            },
+            { 
+                key: 'Upload Courses', 
+                title: 'Upload Courses', 
+                icon: 'fas fa-upload', 
+                description: 'Upload new course data', 
+                action: () => this.props.onNavigate('upload-courses'),
+                accessKey: 'Upload Courses',
+                parentKey: 'Courses'
+            },
+            { 
+                key: 'Create QR Code', 
+                title: 'Create QR Code', 
+                icon: 'fas fa-qrcode', 
+                description: 'Generate QR codes for courses', 
+                action: () => this.props.onNavigate('qr-code'),
+                accessKey: 'Create QR Code',
+                parentKey: 'QR Code'
+            },
+            { 
+                key: 'QR Code Table', 
+                title: 'QR Code Management', 
+                icon: 'fas fa-table', 
+                description: 'Manage QR code records', 
+                action: () => this.props.onNavigate('qr-code-table'),
+                accessKey: 'QR Code Table',
+                parentKey: 'QR Code'
+            },
+            { 
+                key: 'Invoice Table', 
+                title: 'Invoice Management', 
+                icon: 'fas fa-file-invoice', 
+                description: 'Manage invoices and billing', 
+                action: () => this.props.onNavigate('invoice'),
+                accessKey: 'Invoice Table',
+                parentKey: 'Registration And Payment'
+            },
+            { 
+                key: 'Update Courses', 
+                title: 'Update Courses', 
+                icon: 'fas fa-edit', 
+                description: 'Update existing course information', 
+                action: () => this.props.onNavigate('update-courses'),
+                accessKey: 'Update Courses',
+                parentKey: 'Courses'
+            },
+            { 
+                key: 'Delete Courses', 
+                title: 'Delete Courses', 
+                icon: 'fas fa-trash-alt', 
+                description: 'Remove courses from system', 
+                action: () => this.props.onNavigate('delete-courses'),
+                accessKey: 'Delete Courses',
+                parentKey: 'Courses'
+            },
+            { 
+                key: 'Update QR Code', 
+                title: 'Update QR Code', 
+                icon: 'fas fa-edit', 
+                description: 'Update existing QR codes', 
+                action: () => this.props.onNavigate('update-qr-code'),
+                accessKey: 'Update QR Code',
+                parentKey: 'QR Code'
+            },
+            { 
+                key: 'Delete QR Code', 
+                title: 'Delete QR Code', 
+                icon: 'fas fa-trash', 
+                description: 'Remove QR codes from system', 
+                action: () => this.props.onNavigate('delete-qr-code'),
+                accessKey: 'Delete QR Code',
+                parentKey: 'QR Code'
+            }
+        ];
+
+        // Helper function to check if user has access to a specific sub-key
+        const hasAccess = (action) => {
+            const { parentKey, accessKey, alternateParentKey } = action;
+            
+            // Debug logging for each action check
+            console.log(`Checking access for ${action.title}: ${parentKey}.${accessKey}`);
+            
+            // Check primary parent key
+            if (accessRights[parentKey] && 
+                typeof accessRights[parentKey] === 'object' && 
+                accessRights[parentKey][accessKey] === true) {
+                console.log(`✅ Access granted for ${action.title}`);
+                return true;
+            }
+            
+            // Check alternate parent key if provided
+            if (alternateParentKey && 
+                accessRights[alternateParentKey] && 
+                typeof accessRights[alternateParentKey] === 'object' && 
+                accessRights[alternateParentKey][accessKey] === true) {
+                console.log(`✅ Access granted for ${action.title} (alternate path)`);
+                return true;
+            }
+            
+            // Handle special case where Registration And Payment might be a boolean
+            if (parentKey === 'Registration And Payment' && 
+                accessRights[parentKey] === true && 
+                accessKey === 'Registration And Payment Table') {
+                console.log(`✅ Access granted for ${action.title} (boolean path)`);
+                return true;
+            }
+            
+            console.log(`❌ Access denied for ${action.title}`);
+            return false;
         };
 
-        // Return actions for the current role, or default actions if role not found
-        return roleActions[role] || roleActions['Staff'];
+        // Filter actions based on user's actual sub-access rights
+        const userActions = allActions.filter(action => hasAccess(action));
+        console.log('Filtered user actions:', userActions.map(a => a.title));
+
+        // Prioritize actions based on importance
+        const prioritizeActions = (actions) => {
+            const priority = {
+                'Registration And Payment Table': 10,
+                'NSA Courses': 9,
+                'ILP Courses': 8,
+                'Marriage Preparation Programme Courses': 8,
+                'View Attendance': 7,
+                'View Membership': 6,
+                'Create Account': 5,
+                'Account Table': 5,
+                'Access Rights Table': 4,
+                'Monthly Report': 3,
+                'Payment Report': 3,
+                'Invoice Table': 3,
+                'Upload Courses': 2,
+                'Update Courses': 2,
+                'Create QR Code': 1,
+                'QR Code Table': 1,
+                'Update QR Code': 1,
+                'Delete QR Code': 1,
+                'Delete Courses': 1
+            };
+
+            return actions.sort((a, b) => {
+                const priorityA = priority[a.key] || 0;
+                const priorityB = priority[b.key] || 0;
+                return priorityB - priorityA;
+            });
+        };
+
+        // Sort by priority and limit to top 6 most relevant actions
+        const prioritizedActions = prioritizeActions(userActions);
+        return prioritizedActions;
     };
 
     // Get navigation cards based on access rights (simulating sidebar structure)

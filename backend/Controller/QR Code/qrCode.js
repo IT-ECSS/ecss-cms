@@ -18,7 +18,7 @@ class QRCodeGenerator {
             const buffer = await QRCode.toBuffer(this.text, this.options);
 
             // Save the buffer to a JPG file
-            const filename = `FB MPrep Foundations Building Marriage Preparation Programme Couple (CT Hub).jpg`;
+            const filename = `掌握沟通艺术。 拥有快乐的家 Art of Positive Communication builds happy homes (CT Hub).jpg`;
             fs.writeFileSync(filename, buffer);
             console.log(`QR code generated and saved as ${filename}`);
         } catch (error) {
@@ -28,5 +28,5 @@ class QRCodeGenerator {
 }
 
 // Usage
-const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/fb-mprep-faith-based-marriage-preparation-programme-couplect-hub-2/`);
+const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/%e6%8e%8c%e6%8f%a1%e6%b2%9f%e9%80%9a%e8%89%ba%e6%9c%af%e3%80%82-%e6%8b%a5%e6%9c%89%e5%bf%ab%e4%b9%90%e7%9a%84%e5%ae%b6art-of-positive-communication-builds-happy-homesct-hub/`);
 qrCodeGenerator.generate();
