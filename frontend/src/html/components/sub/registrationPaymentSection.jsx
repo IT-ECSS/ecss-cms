@@ -421,7 +421,8 @@ class RegistrationPaymentSection extends Component {
     }
     
           
-    updateWooCommerceForRegistrationPayment = async (chi, eng, location, updatedStatus) => { 
+    updateWooCommerceForRegistrationPayment = async (chi, eng, location, updatedStatus) => {
+      console.log("Updated Status:", updatedStatus); 
       try {
         // Check if the value is "Paid" or "Generate SkillsFuture Invoice"
         if (updatedStatus === "Paid" || updatedStatus === "SkillsFuture Done" || updatedStatus === "Cancelled" || updatedStatus === "Withdrawn" || updatedStatus === "Confirmed") {
@@ -500,15 +501,15 @@ class RegistrationPaymentSection extends Component {
         }))];
       }
 
-      generateReceiptNumber = async (course, newMethod) => 
+      generateReceiptNumber = async (course, newMethod, courseType, courseEngName) => 
       {
         const courseLocation = newMethod === "SkillsFuture" ? "ECSS/SFC/" : course.courseLocation;
-        console.log("Course Location:", courseLocation);
+        console.log("Course Location123:", courseLocation);
         const centreLocation = course.courseLocation;
-        console.log("Centre Location:", centreLocation);
+        console.log("Centre Location123:", centreLocation);
         try {
           //console.log("Fetching receipt number for location:", courseLocation);
-          const response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/receipt`, { purpose: "getReceiptNo", courseLocation, centreLocation });
+          const response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/receipt`, { purpose: "getReceiptNo", courseLocation, centreLocation, courseType, courseEngName });
     
           if (response?.data?.result?.success) {
             console.log("Fetched receipt number:", response.data.result.receiptNumber);
@@ -748,7 +749,7 @@ class RegistrationPaymentSection extends Component {
     };
     
 
-      receiptGenerator = async (id, participant, course, official, value) => {
+    receiptGenerator = async (id, participant, course, official, value) => {
         console.log("Selected Parameters:", { course, official, value });
     
         if (value === "Paid") 
@@ -757,14 +758,27 @@ class RegistrationPaymentSection extends Component {
           {
             try 
             {
-              console.log("Generating receipt for course:", course);
-      
-              //const registration_id = id;
-              const receiptNo = await this.generateReceiptNumber(course, course.payment);
-              console.log("Manual Receipt No:", receiptNo);
-              await this.generatePDFReceipt(id, participant, course, receiptNo, value);
-              await this.createReceiptInDatabase(receiptNo, course.courseLocation, id, "");  
-            } 
+              if(course.courseType === "Marriage Preparation Programme")
+              {
+                console.log(`${value} For This Course123:`, course);
+        
+                //const registration_id = id;
+                const receiptNo = await this.generateReceiptNumber(course, course.payment, course.courseType, course.courseEngName);
+                console.log("Receipt N11o:", receiptNo);
+                await this.generatePDFReceipt(id, participant, course, receiptNo, value);
+                await this.createReceiptInDatabase(receiptNo, course.courseLocation, id, "");
+              }
+              else
+              {
+                console.log(`${value} For This Course:`, course);
+        
+                //const registration_id = id;
+                const receiptNo = await this.generateReceiptNumber(course, course.payment, "", "");
+                console.log("Receipt N11o:", receiptNo);
+                await this.generatePDFReceipt(id, participant, course, receiptNo, value);
+                await this.createReceiptInDatabase(receiptNo, course.courseLocation, id, "");  
+              }
+            }
             catch (error) 
             {
               console.error("Error during receipt generation:", error);
@@ -774,7 +788,7 @@ class RegistrationPaymentSection extends Component {
         else if (value === "Generating SkillsFuture Invoice") {
             try {
               console.log("Generating SkillsFuture invoice for course:", course);
-              const invoiceNo = await this.generateReceiptNumber(course);
+              const invoiceNo = await this.generateReceiptNumber(course, "", "", "");
               console.log("Invoice No:", invoiceNo);
               await this.generatePDFInvoice(id, participant, course, invoiceNo, value);  
               await this.createReceiptInDatabase(invoiceNo, course.courseLocation, id, ""); 
@@ -794,13 +808,26 @@ class RegistrationPaymentSection extends Component {
           {
             try 
             {
-              console.log(`${value} For This Course:`, course);
-      
-              //const registration_id = id;
-              const receiptNo = await this.generateReceiptNumber(course, newMethod);
-              console.log("Receipt N11o:", receiptNo);
-              await this.generatePDFReceipt(id, participant, course, receiptNo, value);
-              await this.createReceiptInDatabase(receiptNo, course.courseLocation, id, "");  
+              if(course.courseType === "Marriage Preparation Programme")
+              {
+                 console.log(`${value} For This Course12345:`, course);
+        
+                //const registration_id = id;
+                const receiptNo = await this.generateReceiptNumber(course, newMethod, course.courseType, course.courseEngName);
+                console.log("Receipt N111o:", receiptNo);
+                await this.generatePDFReceipt(id, participant, course, receiptNo, value);
+                await this.createReceiptInDatabase(receiptNo, course.courseLocation, id, "");  
+              }
+              else
+              {
+                console.log(`${value} For This Course:`, course);
+        
+                //const registration_id = id;
+                const receiptNo = await this.generateReceiptNumber(course, newMethod, "", "");
+                console.log("Receipt N11o:", receiptNo);
+                await this.generatePDFReceipt(id, participant, course, receiptNo, value);
+                await this.createReceiptInDatabase(receiptNo, course.courseLocation, id, "");  
+              }
             } 
             catch (error) 
             {
@@ -815,7 +842,7 @@ class RegistrationPaymentSection extends Component {
             console.log("Generating receipt for course:", course);
     
             const registration_id = id;
-            const invoiceNo = await this.generateReceiptNumber(course, newMethod);
+            const invoiceNo = await this.generateReceiptNumber(course, newMethod, "", "");
             console.log("Invoice No:", invoiceNo);
             await this.generatePDFReceipt(id, participant, course, invoiceNo, value);
             await this.createReceiptInDatabase(invoiceNo, course.courseLocation, id, "");    
@@ -1944,7 +1971,7 @@ class RegistrationPaymentSection extends Component {
     {
       headerName: "Course Name",
       field: "course",
-      width: 550,
+      width: 750,
     },
     {
       headerName: "Course Mode",
@@ -2000,7 +2027,7 @@ class RegistrationPaymentSection extends Component {
     {
       headerName: "Receipt/Invoice Number",
       field: "recinvNo",
-      width: 300,
+      width: 500,
     },
     {
       headerName: "Payment Date",
@@ -2034,7 +2061,7 @@ class RegistrationPaymentSection extends Component {
                   "Refunded",
                 ]
               : ["Pending", "Paid", "Cancelled", "Withdrawn", "Refunded"]
-            : ["Pending", "Confirmed", "Withdrawn"];
+            : ["Pending", "Paid", "Withdrawn", "Refunded"];
 
         let options;
         if (paymentStatus === "Pending") {
@@ -3190,7 +3217,7 @@ debugMarriagePrepData = () => {
                     }};
                     await performParallelTasks();
                 }
-                else if(newValue === "Cancelled")
+                else if(newValue === "Cancelled" || newValue === "Refunded" || newValue === "Withdrawn")
                 {
                   console.log("SkillsFuture, Old Payment Status:", oldPaymentStatus);
                   if(oldPaymentStatus === "SkillsFuture Done")
@@ -3251,9 +3278,9 @@ debugMarriagePrepData = () => {
                   }};
                   await performParallelTasks();
               }
-              else if(newValue === "Cancelled")
+              else if(newValue === "Cancelled" || newValue === "Withdrawn")
               { 
-                console.log("Confirm ILP Course")
+                console.log("Cancel/Withdraw ILP Course")
                 const performParallelTasks = async () => {
                   try {
                     // Run the two functions in parallel using Promise.all

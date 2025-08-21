@@ -292,7 +292,7 @@ class receiptGenerator {
         doc.moveDown(5);
     }
 
-    async createTable(doc, array) 
+    /*async createTable(doc, array) 
     {
         const fontPathBold = path.join(__dirname, '../../fonts/ARIALBD.TTF'); // Path to your bold font file
         const fontPathRegular = path.join(__dirname, '../../fonts/ARIAL.TTF'); // Path to your regular font file
@@ -413,8 +413,143 @@ class receiptGenerator {
 
 
         doc.moveDown(3);
-    }
+    }*/
 
+    async createTable(doc, array) 
+    {
+        const fontPathBold = path.join(__dirname, '../../fonts/ARIALBD.TTF'); // Path to your bold font file
+        const fontPathRegular = path.join(__dirname, '../../fonts/ARIAL.TTF'); // Path to your regular font file
+        const fontPathTimesRegular = path.join(__dirname, '../../fonts/timesNewRoman.ttf'); // Path to your Times New Roman font file
+
+        const leftMargin = 2.54 * 28.35; // Left margin (2.54 cm in points)
+        const tableTop = doc.y; // Get the current Y position to place the table
+
+        const columnWidths = {
+            serial: 40,          // Width for S/NO column
+            description: 340,    // Width for Description column
+            amount: 100          // Width for Amount column
+        };
+
+        const columnPositions = {
+            serial: leftMargin,                                     // First column at left margin
+            description: leftMargin + columnWidths.serial,         // Second column next to first
+            amount: leftMargin + columnWidths.serial + columnWidths.description  // Third column next to second
+        };
+
+        const rowHeight = 60; // Increased height for better text wrapping
+        const borderExternalThickness = 2; // Set the thickness of the external border
+        const borderInternalThickness = 1; // Set the thickness of the internal borders
+        const headerHeight = rowHeight; // Adjusted header height
+
+        // Draw the header background and external border for the entire table
+        doc.rect(leftMargin, tableTop, 
+            columnWidths.serial + columnWidths.description + columnWidths.amount, 
+            headerHeight)
+            .fill('#FBFBFB'); // Set header background color
+
+        // Set font and text size for the header
+        doc.fontSize(12).fillColor('black').font(fontPathBold);
+
+        // Add header column titles centered
+        doc.text('S/NO', columnPositions.serial + columnWidths.serial / 8, tableTop + 12);
+        doc.text('DESCRIPTION', columnPositions.description + columnWidths.description / 3 + 15, tableTop + 12);
+        doc.text('AMOUNT', columnPositions.amount + columnWidths.amount / 5 + 5, tableTop + 5);
+        doc.text('(S$)', columnPositions.amount + columnWidths.amount / 4 + 10, tableTop + 19);
+
+        // Draw inner vertical borders between columns
+        doc.lineWidth(borderInternalThickness)
+            .moveTo(columnPositions.serial + columnWidths.serial, tableTop)
+            .lineTo(columnPositions.serial + columnWidths.serial, tableTop + headerHeight)
+            .stroke('black');
+
+        doc.lineWidth(borderInternalThickness)
+            .moveTo(columnPositions.description + columnWidths.description, tableTop)
+            .lineTo(columnPositions.description + columnWidths.description, tableTop + headerHeight)
+            .stroke('black');
+
+        // Optional: Draw a horizontal line separating the header from the body
+        doc.lineWidth(borderExternalThickness)
+            .moveTo(leftMargin, tableTop + headerHeight)
+            .lineTo(leftMargin + columnWidths.serial + columnWidths.description + columnWidths.amount, tableTop + headerHeight)
+            .stroke('black');
+
+        let currentY = tableTop + headerHeight; // Start position for rows immediately after the header
+        doc.font(fontPathRegular).fontSize(11); // Slightly smaller font for better fit
+
+        let totalAmount = 0; 
+
+        array.forEach((item, index) => {
+            // Add row content for each entry with proper text wrapping
+            doc.text(index + 1, columnPositions.serial + 15, currentY + 20); // Serial number - centered vertically
+            
+            // Use text wrapping for the description column to ensure it stays within bounds
+            const descriptionX = columnPositions.description + 10; // Left padding
+            const descriptionWidth = columnWidths.description - 20; // Account for padding on both sides
+            
+            // Create the description text with line breaks
+            const descriptionText = `${item.course.courseEngName}\n${item.course.courseLocation}\n${item.course.courseDuration}`;
+            
+            doc.text(descriptionText, descriptionX, currentY + 8, {
+                width: descriptionWidth,
+                align: 'left',
+                lineGap: 2
+            });
+            
+            doc.text(item.course.coursePrice, columnPositions.amount + 30, currentY + 20); // Amount - centered vertically
+
+            totalAmount += parseFloat(item.course.coursePrice.substring(1));
+
+            // Draw vertical borders dynamically between columns
+            doc.lineWidth(borderInternalThickness)
+                .moveTo(columnPositions.serial + columnWidths.serial, currentY)
+                .lineTo(columnPositions.serial + columnWidths.serial, currentY + rowHeight)
+                .stroke('black');
+
+            doc.lineWidth(borderInternalThickness)
+                .moveTo(columnPositions.description + columnWidths.description, currentY)
+                .lineTo(columnPositions.description + columnWidths.description, currentY + rowHeight)
+                .stroke('black');
+
+            // Move Y position for the next row
+            currentY += rowHeight;
+        });
+
+        const totalRowY = currentY; 
+        doc.font(fontPathRegular).fontSize(12).text('Total:', columnPositions.description + 15, currentY + 12); // Total label
+        doc.font(fontPathBold).fontSize(12).text(`$${totalAmount.toFixed(2)}`, columnPositions.amount + 30, currentY + 12); // Total amount
+
+        // Draw vertical borders for the total row
+        doc.lineWidth(borderInternalThickness)
+        .moveTo(columnPositions.serial + columnWidths.serial, totalRowY) // Vertical line after S/NO
+        .lineTo(columnPositions.serial + columnWidths.serial, totalRowY + rowHeight) // Extend line down
+        .stroke('black');
+
+        doc.lineWidth(borderInternalThickness)
+        .moveTo(columnPositions.description + columnWidths.description, totalRowY) // Vertical line after DESCRIPTION
+        .lineTo(columnPositions.description + columnWidths.description, totalRowY + rowHeight) // Extend line down
+        .stroke('black');
+
+        // Define the Y position for the top of the line (current row Y position)
+        const topLineY = currentY; // Adjust as necessary based on your layout
+
+        // Define the Y position for the bottom of the line (current row height)
+        const bottomLineY = currentY + rowHeight; // This assumes rowHeight is set correctly
+
+        doc.lineWidth(borderInternalThickness)
+            .moveTo(leftMargin + columnWidths.serial + columnWidths.description, topLineY) // Starting point at the left margin
+            .lineTo(leftMargin + columnWidths.serial + columnWidths.description + columnWidths.amount, topLineY) // Draw to the right
+            .stroke('black'); // Draw the top line
+            
+        // Optional: Uncomment to draw the external border around the entire table
+        doc.lineWidth(borderExternalThickness)
+        .rect(leftMargin, tableTop, 
+            columnWidths.serial + columnWidths.description + columnWidths.amount, 
+            currentY - tableTop + rowHeight) // Adjust height for total row
+        .stroke('black');
+
+        doc.moveDown(3);
+    }
+        
     drawRowBorders(doc, leftMargin, columnWidths, currentY, borderThickness, color)
     {
         // Draw left border for the row

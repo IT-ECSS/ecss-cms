@@ -1173,25 +1173,52 @@ class DatabaseConnectivity {
             return { success: false, error };
         }
     }
-    
-    async getNextReceiptNumber(databaseName, collectionName, courseLocation, centreLocation) {
+
+    async getNextReceiptNumber(databaseName, collectionName, courseLocation, centreLocation, courseType, courseEngName) {
         const db = this.client.db(databaseName);
         const collection = db.collection(collectionName);
-        console.log("Locations:", courseLocation, centreLocation);
+        console.log("Locations345:", courseLocation, centreLocation);
+        console.log("Course Type345:", courseType);
+        console.log("Course Eng Name345:", courseEngName);
     
+        // Check for Marriage Preparation Programme first - using flexible matching
+        const isMarriagePrep = courseType && courseType.trim() === "Marriage Preparation Programme";
+        const isGroupClass = courseEngName && (
+            courseEngName.includes("Marriage Preparation Programme Group Class") ||
+            (courseEngName.includes("P/E MPrep") && courseEngName.includes("Marriage Preparation Programme") && courseEngName.includes("Group Class")) ||
+            (courseEngName.includes("F/B MPrep") && courseEngName.includes("Marriage Preparation Programme") && courseEngName.includes("Group Class"))
+        );
+        const isIndividualClass = courseEngName && (
+            courseEngName.includes("Marriage Preparation Programme Individual Class") ||
+            (courseEngName.includes("P/E MPrep") && courseEngName.includes("Marriage Preparation Programme") && courseEngName.includes("Individual Class")) ||
+            (courseEngName.includes("F/B MPrep") && courseEngName.includes("Marriage Preparation Programme") && courseEngName.includes("Individual Class"))
+        );
+        
+        console.log("Is Marriage Prep:", isMarriagePrep);
+        console.log("Is Group Class:", isGroupClass);
+        console.log("Is Individual Class:", isIndividualClass);
+        
+        if (isMarriagePrep && (isGroupClass || isIndividualClass)) {
+            console.log("Detected Marriage Preparation Programme - using dedicated function");
+            const marriagePrepReceiptNumber = await this.getNextMarriagePrepReceiptNumber(databaseName, collectionName, courseLocation, centreLocation, courseType, courseEngName);
+            console.log("Marriage Prep Receipt Number Generated:", marriagePrepReceiptNumber);
+            return marriagePrepReceiptNumber;
+        }
+    
+        // Continue with existing logic for other course types
         // Get the current two-digit year (e.g., 2025 -> "25")
         var currentYear = new Date().getFullYear().toString().slice(-2);
         currentYear = parseInt(currentYear);
     
         let regexPattern = `^${courseLocation}`; // Default pattern
-
+    
         if (centreLocation === "Tampines 253 Centre" && courseLocation.startsWith("ECSS/SFC")) {
             regexPattern = `${courseLocation}TP`; // Ensure "TP" appears after courseLocation
         }
         else if (centreLocation === "Renewal Christian Church" && courseLocation.startsWith("ECSS/SFC")) {
-            regexPattern = `${courseLocation}R` // Ensure "TP" appears after courseLocation
+            regexPattern = `${courseLocation}R`; // Ensure "R" appears after courseLocation
         }
-
+    
         console.log("Regex Pattern:", regexPattern);
         
         const existingReceipts = await collection.find({
@@ -1199,12 +1226,11 @@ class DatabaseConnectivity {
             location: centreLocation
         }).toArray();
         
-
         console.log("Existing Receipts:", existingReceipts);
     
         let formattedReceiptNumber;
     
-        // First, handle the SkillsFuture Invoice Number
+        // Handle the SkillsFuture Invoice Number
         if (courseLocation.startsWith("ECSS/SFC/")) 
         {
             console.log("Skillsfuture Invoice");
@@ -1218,7 +1244,7 @@ class DatabaseConnectivity {
                     regexPattern = new RegExp(`^${courseLocation}TP\\d+/(${currentYear})$`);
                 } 
                 else if (centreLocation === "Renewal Christian Church") {
-                    // Ensure "TP" appears for Tampines 253 Centre
+                    // Ensure "R" appears for Renewal Christian Church
                     regexPattern = new RegExp(`^${courseLocation}R\\d+/(${currentYear})$`);
                 } else {
                     // Default pattern without "TP"
@@ -1236,7 +1262,7 @@ class DatabaseConnectivity {
                     // Enforce "TP" for Tampines 253 Centre receipts
                     regexPattern = new RegExp(`^${courseLocation}TP(\\d+)(?:/\\d+| - \\d+)$`);
                 } else if (centreLocation === "Renewal Christian Church") {
-                    // Enforce "TP" for Tampines 253 Centre receipts
+                    // Enforce "R" for Renewal Christian Church receipts
                     regexPattern = new RegExp(`^${courseLocation}R(\\d+)(?:/\\d+| - \\d+)$`);
                 } 
                 else {
@@ -1256,17 +1282,147 @@ class DatabaseConnectivity {
             // Default logic for other locations
             formattedReceiptNumber = this.getNextReceiptNumberForPayNowCash(courseLocation, existingReceipts, centreLocation, currentYear);
         }
-
+    
         return formattedReceiptNumber;
     }
-    
+
+    async getNextMarriagePrepReceiptNumber(databaseName, collectionName, courseLocation, centreLocation, courseType, courseEngName) {
+        const db = this.client.db(databaseName);
+        const collection = db.collection(collectionName);
+
+        // Validate that this is indeed a Marriage Preparation Programme - using flexible matching
+        const isMarriagePrep = courseType && courseType.trim() === "Marriage Preparation Programme";
+        const isGroupClass = courseEngName && (
+            courseEngName.includes("Marriage Preparation Programme Group Class") ||
+            (courseEngName.includes("P/E MPrep") && courseEngName.includes("Marriage Preparation Programme") && courseEngName.includes("Group Class")) ||
+            (courseEngName.includes("F/B MPrep") && courseEngName.includes("Marriage Preparation Programme") && courseEngName.includes("Group Class"))
+        );
+        const isIndividualClass = courseEngName && (
+            courseEngName.includes("Marriage Preparation Programme Individual Class") ||
+            (courseEngName.includes("P/E MPrep") && courseEngName.includes("Marriage Preparation Programme") && courseEngName.includes("Individual Class")) ||
+            (courseEngName.includes("F/B MPrep") && courseEngName.includes("Marriage Preparation Programme") && courseEngName.includes("Individual Class"))
+        );
+        
+        if (!isMarriagePrep || (!isGroupClass && !isIndividualClass)) {
+            throw new Error("This function is only for Marriage Preparation Programme Group Class or Individual Class");
+        }
+
+        // Get current month and year
+        const currentDate = new Date();
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const currentMonth = monthNames[currentDate.getMonth()]; // Get abbreviated month name
+        const currentYear = currentDate.getFullYear().toString().slice(-2); // Last 2 digits of year
+
+        // Determine the class type and program type for the receipt prefix
+        const classType = isGroupClass ? "Group" : "Individual";
+        
+        // Determine the program type (PE or FB) based on course name
+        let programType;
+        if (courseEngName.includes("P/E MPrep")) {
+            programType = "PE";
+        } else if (courseEngName.includes("F/B MPrep")) {
+            programType = "FB";
+        } else {
+            // Default fallback (for other Marriage Prep courses)
+            programType = "PE";
+        }
+        
+        // Create the receipt prefix: ECSS_PE/FB(Group/Individual)_courseLocation_MonthYY
+        const receiptPrefix = `ECSS_${programType}(${classType})_${courseLocation}_${currentMonth}${currentYear}`;
+        
+        console.log("Receipt Prefix:", receiptPrefix);
+
+        try {
+            // Create regex pattern to find Marriage Prep receipts for this SPECIFIC program type, class type, location, AND CURRENT YEAR
+            // This ensures year-based reset while keeping different program types and classes separate
+            const currentYearPattern = `^ECSS_${programType}\\(${classType}\\)_${courseLocation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}_[A-Za-z]{3}${currentYear}_\\d+$`;
+            
+            console.log("Current Year Pattern for Marriage Prep:", currentYearPattern);
+
+            // Find existing Marriage Prep receipts for this specific program type, class type, location, and CURRENT YEAR only
+            const existingReceipts = await collection.find({
+                receiptNo: { $regex: currentYearPattern },
+                location: centreLocation
+            }).toArray();
+
+            console.log(`Existing ${programType}(${classType}) Marriage Prep Receipts for ${currentYear}:`, existingReceipts);
+
+            // Extract running numbers from existing Marriage Prep receipts of this program and class type for CURRENT YEAR only
+            const runningNumbers = existingReceipts.map(receipt => {
+                // Create regex to extract the running number from Marriage Prep receipts for current year
+                // Pattern: ECSS_PE/FB(Group/Individual)_courseLocation_MonthYY_NUMBER (supports 4+ digit numbers)
+                const numberRegex = new RegExp(`^ECSS_${programType}\\(${classType}\\)_${courseLocation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}_[A-Za-z]{3}${currentYear}_(\\d+)$`);
+                const match = receipt.receiptNo.match(numberRegex);
+                
+                if (match && match[1]) {
+                    const number = parseInt(match[1], 10);
+                    console.log(`Extracted ${programType}(${classType}) running number for ${currentYear}: ${number} from ${receipt.receiptNo}`);
+                    return number;
+                }
+                return null;
+            }).filter(num => num !== null && !isNaN(num));
+
+            console.log(`Valid ${programType}(${classType}) Running Numbers for ${currentYear}:`, runningNumbers);
+
+            // Determine the next running number for this specific program and class type in the current year
+            let nextRunningNumber;
+            if (runningNumbers.length === 0) {
+                // No existing receipts for this program and class type in current year, start with base numbers
+                if (classType === "Group") {
+                    if (programType === "PE") {
+                        nextRunningNumber = 1; // PE Group classes start from 1 each year
+                    } else if (programType === "FB") {
+                        nextRunningNumber = 1; // FB Group classes start from 3001 each year
+                    }
+                } else { // Individual class
+                    if (programType === "PE") {
+                        nextRunningNumber = 1; // PE Individual classes start from 5001 each year
+                    } else if (programType === "FB") {
+                        nextRunningNumber = 1; // FB Individual classes start from 7001 each year
+                    }
+                }
+                console.log(`No existing ${programType}(${classType}) receipts found for year ${currentYear}, starting with ${String(nextRunningNumber).padStart(4, '0')}`);
+            } else {
+                // Find the maximum for current year and increment
+                const maxNumber = Math.max(...runningNumbers);
+                nextRunningNumber = maxNumber + 1;
+                console.log(`Max existing ${programType}(${classType}) number for ${currentYear}: ${maxNumber}, next number: ${nextRunningNumber}`);
+            }
+
+            // Format the running number based on size:
+            // If < 1000: pad to 4 digits (0001-0999)
+            // If >= 1000: use actual number (1001, 1002, etc.)
+            let formattedRunningNumber;
+            if (nextRunningNumber < 1000) {
+                formattedRunningNumber = String(nextRunningNumber).padStart(4, '0');
+                console.log(`${programType}(${classType}) number < 1000, formatted as: ${formattedRunningNumber}`);
+            } else {
+                formattedRunningNumber = String(nextRunningNumber);
+                console.log(`${programType}(${classType}) number >= 1000, formatted as: ${formattedRunningNumber}`);
+            }
+            
+            // Create the complete receipt number
+            const completeReceiptNumber = `${receiptPrefix}_${formattedRunningNumber}`;
+            
+            console.log(`Generated ${programType}(${classType}) Marriage Prep Receipt Number for ${currentYear}:`, completeReceiptNumber);
+
+            return completeReceiptNumber;
+
+        } catch (error) {
+            console.error("Error generating Marriage Prep receipt number:", error);
+            throw new Error(`Failed to generate Marriage Preparation Programme receipt number: ${error.message}`);
+        }
+    }
+
     getNextReceiptNumberForSkillsFuture(courseLocation, centreReceiptNumbers, centreLocation, currentYear) 
     {
         let nextNumber;
-        console.log("Centre Receipt Number:", centreReceiptNumbers, centreLocation);
+       // console.log("Centre Receipt Number:", centreReceiptNumbers, centreLocation);
         // Logic for 2025
         if (currentYear === 25) {
-            if (centreLocation === "CT Hub") {
+            if (centreLocation === "CT Hub") 
+            {
              // For CT Hub in 2025, start from 109
                 nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 109;
             }             
@@ -1291,7 +1447,7 @@ class DatabaseConnectivity {
                 nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
             } else if (centreLocation === "Tampines 253 Centre") {
                 // For Tampines 253 Centre in 2026 and beyond, start from 1
-                nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumber.substring(2)) + 1 : 1;
+                nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
             } else if (centreLocation === "Pasir Ris West Wellness Centre") {
                 // For Pasir Ris West Wellness Centre in 2026 and beyond, start from 1
                 nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
@@ -1302,7 +1458,7 @@ class DatabaseConnectivity {
             }
         }
 
-        console.log("Tampines 253 Centre Next Receipt:", nextNumber);
+      //  console.log("Tampines 253 Centre Next Receipt:", nextNumber);
     
         // Pad number to 3 digits if less than 3 digits, else keep original length
         if (nextNumber.toString().length < 3) 
@@ -1345,13 +1501,13 @@ class DatabaseConnectivity {
     getNextReceiptNumberForPayNowCash(courseLocation, existingReceipts, centreLocation, currentYear) {
         let nextNumber;
     
-        console.log("Centre Receipt Number:", courseLocation, existingReceipts, centreLocation, currentYear);
+        //console.log("Centre Receipt Number:", courseLocation, existingReceipts, centreLocation, currentYear);
     
 
          // Filter the existing receipts based on the location
         //const filteredReceipts = existingReceipts.filter(receipt => receipt.location === centreLocation);
         const filteredReceipts = existingReceipts;
-        console.log("Filtered Receipts for Centre Location:", filteredReceipts);
+        //console.log("Filtered Receipts for Centre Location:", filteredReceipts);
 
         // Extract the numeric part of the receiptNo (before the "-") and get the numbers
         const centreReceiptNumbers = filteredReceipts.map(receipt => {
@@ -1359,10 +1515,10 @@ class DatabaseConnectivity {
                 return receiptNumberMatch ? parseInt(receiptNumberMatch, 10) : null;
             }).filter(num => num !== null);
 
-        console.log("Centre Receipt Numbers11:", centreReceiptNumbers);
+        //console.log("Centre Receipt Numbers11:", centreReceiptNumbers);
 
        const maxReceiptNumber = existingReceipts.length > 0 ? Math.max(...centreReceiptNumbers) : 0;
-        console.log("Latest Receipt Numbers:", maxReceiptNumber);
+        //console.log("Latest Receipt Numbers:", maxReceiptNumber);
        // Handle specific logic for each centre location
         if (centreLocation === "Tampines 253 Centre") {
             // Custom logic for Tampines 253 Centre
@@ -1393,8 +1549,6 @@ class DatabaseConnectivity {
         // Return the formatted receipt number in the format: "courseLocation - 0001"
         return `${courseLocation} - ${formattedNextNumber}`;
     }
-    
-    
     
     async newInvoice(databaseName, collectionName, invoiceNumber, month, username, date, time) {
         try {

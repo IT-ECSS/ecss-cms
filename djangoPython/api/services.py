@@ -219,7 +219,7 @@ class WooCommerceAPI:
             response.raise_for_status()
 
             product = response.json()
-            print("Updating Product Stock:", status)
+            print("Updating Product Stock12:", status)
 
             # Get the current stock quantity
             original_stock_quantity = product.get("stock_quantity", 0)
@@ -252,10 +252,11 @@ class WooCommerceAPI:
 
             print("Actual Vacancies:", vacancies)
 
-            print(f"Processing status: {status}")
+            print(f"Processing status: '{status}' (type: {type(status)})")
 
             # **Stock Update Logic**
             if status == "Withdrawn":
+                print(f"Withdrawn status detected. Current stock: {new_stock_quantity}, Vacancies: {vacancies}")
                 if new_stock_quantity < vacancies:  # Only increase stock if it is below vacancies
                     print("Increase stock by 1")
                     new_stock_quantity += 1
@@ -263,11 +264,14 @@ class WooCommerceAPI:
                     print("Stock is full, no increase.")  # Prevent increase beyond vacancies
 
             elif status in ["Paid", "SkillsFuture Done", "Confirmed"]:
+                print(f"Payment/Confirmation status detected: {status}")
                 if new_stock_quantity > 0:  # Only decrease if stock is greater than 0
                     print("Decrease stock by 1")
                     new_stock_quantity -= 1  
                 else:
                     print("Stock is already 0, cannot decrease further.")  # Prevents negative stock
+            else:
+                print(f"Unhandled status: '{status}' - no stock update performed")
 
             print("Updated Stock Quantity:", new_stock_quantity)
 

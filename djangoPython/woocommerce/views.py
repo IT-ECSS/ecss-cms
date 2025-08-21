@@ -725,7 +725,7 @@ def update_stock(request):
                 status = data.get('status') 
                 productId = result['id']
                 print('Product Id:', result)
-                result2 = woo_api.updateCourseQuantity(productId, status)
+                result2 = woo_api.u(productId, status)
 
                 print(status)
 
