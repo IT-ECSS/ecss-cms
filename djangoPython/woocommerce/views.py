@@ -180,7 +180,7 @@ from django.shortcuts import render
 @csrf_exempt
 def sales_report_view(request):
     # MongoDB connection
-    client = MongoClient("mongodb+srv://moseslee:Mlxy6695@ecss-database.dstyrk4.mongodb.net/?retryWrites=true&w=majority&appName=ECSS-Database")
+    client = MongoClient("mongodb+srv://MosesLee:Mlxy%406695@company-management-syst.ulotbgi.mongodb.net/?retryWrites=true&w=majority&appName=Company-Management-System")
     db = client["Company-Management-System"]
     collection = db["Registration Forms"]
 
@@ -298,7 +298,7 @@ from django.shortcuts import render
 @csrf_exempt
 def generate_invoice_view(request):
     # MongoDB connection
-    client = MongoClient("mongodb+srv://moseslee:Mlxy6695@ecss-database.dstyrk4.mongodb.net/?retryWrites=true&w=majority&appName=ECSS-Database")
+    client = MongoClient("mongodb+srv://MosesLee:Mlxy%406695@company-management-syst.ulotbgi.mongodb.net/?retryWrites=true&w=majority&appName=Company-Management-System")
     db = client["Company-Management-System"]
     collection = db["Registration Forms"]
 
@@ -477,7 +477,7 @@ def generate_invoice_view(request):
 def sales_report_view_react(request):
     try:
         # MongoDB connection
-        client = MongoClient("mongodb+srv://moseslee:Mlxy6695@ecss-database.dstyrk4.mongodb.net/?retryWrites=true&w=majority&appName=ECSS-Database")
+        client = MongoClient("mongodb+srv://MosesLee:Mlxy%406695@company-management-syst.ulotbgi.mongodb.net/?retryWrites=true&w=majority&appName=Company-Management-System")
         db = client["Company-Management-System"]
         collection = db["Registration Forms"]
 
@@ -547,7 +547,7 @@ def sales_report_view_react(request):
 @csrf_exempt
 def generate_report(request):
     # MongoDB connection
-    #client = MongoClient("mongodb+srv://moseslee:Mlxy6695@ecss-database.dstyrk4.mongodb.net/?retryWrites=true&w=majority&appName=ECSS-Database")
+    #client = MongoClient("mongodb+srv://MosesLee:Mlxy%406695@company-management-syst.ulotbgi.mongodb.net/?retryWrites=true&w=majority&appName=Company-Management-System")
     #db = client["Company-Management-System"]
     #collection = db["Registration Forms"]
 

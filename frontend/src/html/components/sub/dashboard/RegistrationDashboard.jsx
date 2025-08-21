@@ -612,15 +612,23 @@ class RegistrationDashboard extends Component {
         const totalNotPaid = filteredData.filter(r => r.paymentStatus === 'Not Paid').length;
         const totalRefunded = filteredData.filter(r => r.paymentStatus === 'Refunded').length;
         
-        // For ILP courses, use 'status' field instead of 'confirmationStatus'
+        // For different course types, handle confirmation status differently
         let totalConfirmed, totalPending, totalCancelled, totalWithdrawn;
         
         if (courseType === 'ILP') {
+            // For ILP courses, use 'status' field instead of 'confirmationStatus'
             totalConfirmed = filteredData.filter(r => r.status === 'Confirmed').length;
             totalPending = filteredData.filter(r => r.status === 'Pending').length;
             totalCancelled = filteredData.filter(r => r.status === 'Cancelled').length;
             totalWithdrawn = filteredData.filter(r => r.status === 'Withdrawn').length;
+        } else if (courseType === 'Marriage Preparation Programme') {
+            // For Marriage Preparation Programme, don't calculate confirmation status
+            totalConfirmed = 0;
+            totalPending = 0;
+            totalCancelled = 0;
+            totalWithdrawn = 0;
         } else {
+            // For NSA and other courses, use 'confirmationStatus' field
             totalConfirmed = filteredData.filter(r => r.confirmationStatus === 'Confirmed').length;
             totalPending = filteredData.filter(r => r.confirmationStatus === 'Pending').length;
             totalCancelled = filteredData.filter(r => r.confirmationStatus === 'Cancelled').length;
