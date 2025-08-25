@@ -1174,7 +1174,7 @@ class DatabaseConnectivity {
         }
     }
 
-    async getNextReceiptNumber(databaseName, collectionName, courseLocation, centreLocation, courseType, courseEngName) {
+    async getNextReceiptNumber(databaseName, collectionName, courseLocation, centreLocation, courseType, courseEngName, courseDuration) {
         const db = this.client.db(databaseName);
         const collection = db.collection(collectionName);
         console.log("Locations345:", courseLocation, centreLocation);
@@ -1200,7 +1200,7 @@ class DatabaseConnectivity {
         
         if (isMarriagePrep && (isGroupClass || isIndividualClass)) {
             console.log("Detected Marriage Preparation Programme - using dedicated function");
-            const marriagePrepReceiptNumber = await this.getNextMarriagePrepReceiptNumber(databaseName, collectionName, courseLocation, centreLocation, courseType, courseEngName);
+            const marriagePrepReceiptNumber = await this.getNextMarriagePrepReceiptNumber(databaseName, collectionName, courseLocation, centreLocation, courseType, courseEngName, courseDuration);
             console.log("Marriage Prep Receipt Number Generated:", marriagePrepReceiptNumber);
             return marriagePrepReceiptNumber;
         }
@@ -1286,10 +1286,10 @@ class DatabaseConnectivity {
         return formattedReceiptNumber;
     }
 
-    async getNextMarriagePrepReceiptNumber(databaseName, collectionName, courseLocation, centreLocation, courseType, courseEngName) {
+    async getNextMarriagePrepReceiptNumber(databaseName, collectionName, courseLocation, centreLocation, courseType, courseEngName, courseDuration) {
         const db = this.client.db(databaseName);
         const collection = db.collection(collectionName);
-
+    
         // Validate that this is indeed a Marriage Preparation Programme - using flexible matching
         const isMarriagePrep = courseType && courseType.trim() === "Marriage Preparation Programme";
         const isGroupClass = courseEngName && (
@@ -1306,14 +1306,26 @@ class DatabaseConnectivity {
         if (!isMarriagePrep || (!isGroupClass && !isIndividualClass)) {
             throw new Error("This function is only for Marriage Preparation Programme Group Class or Individual Class");
         }
-
-        // Get current month and year
-        const currentDate = new Date();
-        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
-                        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        const currentMonth = monthNames[currentDate.getMonth()]; // Get abbreviated month name
-        const currentYear = currentDate.getFullYear().toString().slice(-2); // Last 2 digits of year
-
+    
+        // Parse the start date from courseDuration to get month and year
+        const startDate = courseDuration.split(" - ")[0];
+        
+        // Parse the date string (format: "xx Month full name and year")
+        // Example: "15 January 2025" -> "Jan25"
+        const dateParts = startDate.trim().split(' ');
+        const monthName = dateParts[1]; // Full month name
+        const year = dateParts[2]; // Full year
+        
+        // Convert full month name to abbreviated format
+        const monthMap = {
+            "January": "Jan", "February": "Feb", "March": "Mar", "April": "Apr",
+            "May": "May", "June": "Jun", "July": "Jul", "August": "Aug",
+            "September": "Sep", "October": "Oct", "November": "Nov", "December": "Dec"
+        };
+        
+        const currentMonth = monthMap[monthName] || monthName.substring(0, 3); // Fallback to first 3 chars
+        const currentYear = year.slice(-2); // Last 2 digits of year
+    
         // Determine the class type and program type for the receipt prefix
         const classType = isGroupClass ? "Group" : "Individual";
         
@@ -1332,22 +1344,22 @@ class DatabaseConnectivity {
         const receiptPrefix = `ECSS_${programType}(${classType})_${courseLocation}_${currentMonth}${currentYear}`;
         
         console.log("Receipt Prefix:", receiptPrefix);
-
+    
         try {
             // Create regex pattern to find Marriage Prep receipts for this SPECIFIC program type, class type, location, AND CURRENT YEAR
             // This ensures year-based reset while keeping different program types and classes separate
             const currentYearPattern = `^ECSS_${programType}\\(${classType}\\)_${courseLocation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}_[A-Za-z]{3}${currentYear}_\\d+$`;
             
             console.log("Current Year Pattern for Marriage Prep:", currentYearPattern);
-
+    
             // Find existing Marriage Prep receipts for this specific program type, class type, location, and CURRENT YEAR only
             const existingReceipts = await collection.find({
                 receiptNo: { $regex: currentYearPattern },
                 location: centreLocation
             }).toArray();
-
+    
             console.log(`Existing ${programType}(${classType}) Marriage Prep Receipts for ${currentYear}:`, existingReceipts);
-
+    
             // Extract running numbers from existing Marriage Prep receipts of this program and class type for CURRENT YEAR only
             const runningNumbers = existingReceipts.map(receipt => {
                 // Create regex to extract the running number from Marriage Prep receipts for current year
@@ -1362,9 +1374,9 @@ class DatabaseConnectivity {
                 }
                 return null;
             }).filter(num => num !== null && !isNaN(num));
-
+    
             console.log(`Valid ${programType}(${classType}) Running Numbers for ${currentYear}:`, runningNumbers);
-
+    
             // Determine the next running number for this specific program and class type in the current year
             let nextRunningNumber;
             if (runningNumbers.length === 0) {
@@ -1373,13 +1385,13 @@ class DatabaseConnectivity {
                     if (programType === "PE") {
                         nextRunningNumber = 1; // PE Group classes start from 1 each year
                     } else if (programType === "FB") {
-                        nextRunningNumber = 1; // FB Group classes start from 3001 each year
+                        nextRunningNumber = 1; // FB Group classes start from 1 each year
                     }
                 } else { // Individual class
                     if (programType === "PE") {
-                        nextRunningNumber = 1; // PE Individual classes start from 5001 each year
+                        nextRunningNumber = 1; // PE Individual classes start from 1 each year
                     } else if (programType === "FB") {
-                        nextRunningNumber = 1; // FB Individual classes start from 7001 each year
+                        nextRunningNumber = 1; // FB Individual classes start from 1 each year
                     }
                 }
                 console.log(`No existing ${programType}(${classType}) receipts found for year ${currentYear}, starting with ${String(nextRunningNumber).padStart(4, '0')}`);
@@ -1389,7 +1401,7 @@ class DatabaseConnectivity {
                 nextRunningNumber = maxNumber + 1;
                 console.log(`Max existing ${programType}(${classType}) number for ${currentYear}: ${maxNumber}, next number: ${nextRunningNumber}`);
             }
-
+    
             // Format the running number based on size:
             // If < 1000: pad to 4 digits (0001-0999)
             // If >= 1000: use actual number (1001, 1002, etc.)
@@ -1406,9 +1418,9 @@ class DatabaseConnectivity {
             const completeReceiptNumber = `${receiptPrefix}_${formattedRunningNumber}`;
             
             console.log(`Generated ${programType}(${classType}) Marriage Prep Receipt Number for ${currentYear}:`, completeReceiptNumber);
-
+    
             return completeReceiptNumber;
-
+    
         } catch (error) {
             console.error("Error generating Marriage Prep receipt number:", error);
             throw new Error(`Failed to generate Marriage Preparation Programme receipt number: ${error.message}`);

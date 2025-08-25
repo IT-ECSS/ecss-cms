@@ -33,7 +33,7 @@ router.post('/', async function(req, res, next)
         if(req.body.courseType === "Marriage Preparation Programme")
         {
             // Handle specific logic for Marriage Preparation Programme
-           var result = await controller.newReceiptNo(req.body.courseLocation, req.body.centreLocation, req.body.courseType, req.body.courseEngName);
+           var result = await controller.newReceiptNo(req.body.courseLocation, req.body.centreLocation, req.body.courseType, req.body.courseEngName, req.body.courseDuration);
         }
         else
         {

@@ -501,7 +501,7 @@ class RegistrationPaymentSection extends Component {
         }))];
       }
 
-      generateReceiptNumber = async (course, newMethod, courseType, courseEngName) => 
+      generateReceiptNumber = async (course, newMethod, courseType, courseEngName, courseDuration) => 
       {
         const courseLocation = newMethod === "SkillsFuture" ? "ECSS/SFC/" : course.courseLocation;
         console.log("Course Location123:", courseLocation);
@@ -509,7 +509,7 @@ class RegistrationPaymentSection extends Component {
         console.log("Centre Location123:", centreLocation);
         try {
           //console.log("Fetching receipt number for location:", courseLocation);
-          const response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/receipt`, { purpose: "getReceiptNo", courseLocation, centreLocation, courseType, courseEngName });
+          const response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/receipt`, { purpose: "getReceiptNo", courseLocation, centreLocation, courseType, courseEngName, courseDuration });
     
           if (response?.data?.result?.success) {
             console.log("Fetched receipt number:", response.data.result.receiptNumber);
@@ -763,7 +763,7 @@ class RegistrationPaymentSection extends Component {
                 console.log(`${value} For This Course123:`, course);
         
                 //const registration_id = id;
-                const receiptNo = await this.generateReceiptNumber(course, course.payment, course.courseType, course.courseEngName);
+                const receiptNo = await this.generateReceiptNumber(course, course.payment, course.courseType, course.courseEngName, course.courseDuration);
                 console.log("Receipt N11o:", receiptNo);
                 await this.generatePDFReceipt(id, participant, course, receiptNo, value);
                 await this.createReceiptInDatabase(receiptNo, course.courseLocation, id, "");
