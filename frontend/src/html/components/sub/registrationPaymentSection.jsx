@@ -510,6 +510,7 @@ class RegistrationPaymentSection extends Component {
         try {
           //console.log("Fetching receipt number for location:", courseLocation);
           const response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/receipt`, { purpose: "getReceiptNo", courseLocation, centreLocation, courseType, courseEngName, courseDuration });
+          console.log("Response from receipt number API:", response);
     
           if (response?.data?.result?.success) {
             console.log("Fetched receipt number:", response.data.result.receiptNumber);

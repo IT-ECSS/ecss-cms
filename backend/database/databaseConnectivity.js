@@ -1324,7 +1324,7 @@ class DatabaseConnectivity {
         };
         
         const currentMonth = monthMap[monthName] || monthName.substring(0, 3); // Fallback to first 3 chars
-        const currentYear = year.slice(-2); // Last 2 digits of year
+        const currentYear = year; // Last 2 digits of year
     
         // Determine the class type and program type for the receipt prefix
         const classType = isGroupClass ? "Group" : "Individual";
