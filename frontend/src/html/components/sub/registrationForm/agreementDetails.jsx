@@ -7,12 +7,191 @@ class AgreementDetailsSection extends Component {
     this.state = {
       selectedChoice: '',
       isSelected: false, // Indicates if user has interacted with the radio button
-      // Marriage Preparation Programme consent checkboxes
-      marriagePrepConsent1: false,
-      marriagePrepConsent2: false,
+      // Marriage Preparation Programme consent checkboxes - sync with props
+      marriagePrepConsent1: props.marriagePrepConsent1 || false,
+      marriagePrepConsent2: props.marriagePrepConsent2 || false,
       marriagePrepInteracted: false,
+      // Scroll tracking for auto-consent
+      hasReadTerms: false,
+      isScrolling: false,
+      autoSelected: false,
+      showAutoSelectMessage: false,
     };
+    
+    // Create refs for scroll containers
+    this.termsContainerRef = React.createRef();
+    this.scrollTimeout = null;
+    this.scrollListenerAttached = false;
   }
+
+  componentDidMount() {
+    // Add scroll listener to terms container if it exists
+    this.setupScrollListener();
+  }
+
+  componentDidUpdate(prevProps) {
+    // Sync state with props if they change
+    if (prevProps.marriagePrepConsent1 !== this.props.marriagePrepConsent1 || 
+        prevProps.marriagePrepConsent2 !== this.props.marriagePrepConsent2) {
+      this.setState({
+        marriagePrepConsent1: this.props.marriagePrepConsent1 || false,
+        marriagePrepConsent2: this.props.marriagePrepConsent2 || false
+      });
+    }
+    
+    // Ensure scroll listener is attached after updates
+    this.setupScrollListener();
+  }
+
+  setupScrollListener = () => {
+    if (this.termsContainerRef.current && !this.scrollListenerAttached && this.props.courseType === 'Marriage Preparation Programme') {
+      console.log('Attaching scroll listener to terms container for Marriage Prep Programme');
+      const container = this.termsContainerRef.current;
+      
+      // Log container dimensions for debugging
+      console.log('Container dimensions:', {
+        scrollHeight: container.scrollHeight,
+        clientHeight: container.clientHeight,
+        isScrollable: container.scrollHeight > container.clientHeight
+      });
+      
+      container.addEventListener('scroll', this.handleTermsScroll);
+      this.scrollListenerAttached = true;
+      
+      // If content is not scrollable, auto-select immediately after a short delay
+      if (container.scrollHeight <= container.clientHeight + 10) { // Add 10px tolerance
+        console.log('Content is not scrollable, auto-selecting IMMEDIATELY');
+        setTimeout(() => {
+          if (!this.state.autoSelected && !this.state.marriagePrepConsent1 && !this.state.marriagePrepConsent2) {
+            this.autoSelectConsents();
+          }
+        }, 1000); // 1 second delay to allow reading the visible content
+      }
+    }
+  };
+
+  componentWillUnmount() {
+    // Clean up scroll listener
+    if (this.termsContainerRef.current && this.scrollListenerAttached) {
+      this.termsContainerRef.current.removeEventListener('scroll', this.handleTermsScroll);
+      this.scrollListenerAttached = false;
+    }
+    // Clear timeout
+    if (this.scrollTimeout) {
+      clearTimeout(this.scrollTimeout);
+    }
+  }
+
+  // Reset scroll detection state - useful for testing
+  resetScrollDetection = () => {
+    this.setState({
+      hasReadTerms: false,
+      isScrolling: false,
+      autoSelected: false,
+      showAutoSelectMessage: false
+    });
+    if (this.scrollTimeout) {
+      clearTimeout(this.scrollTimeout);
+    }
+  };
+
+  // Handle scroll detection in terms container
+  handleTermsScroll = () => {
+    const container = this.termsContainerRef.current;
+    if (!container || this.props.courseType !== 'Marriage Preparation Programme') {
+      console.log('No container found or not Marriage Prep Programme');
+      return;
+    }
+
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
+    const pixelsFromBottom = scrollHeight - (scrollTop + clientHeight);
+    
+    console.log('Scroll event detected:', {
+      scrollTop,
+      scrollHeight,
+      clientHeight,
+      scrollPercentage: Math.round(scrollPercentage * 100) + '%',
+      pixelsFromBottom,
+      hasReadTerms: this.state.hasReadTerms,
+      autoSelected: this.state.autoSelected,
+      alreadySelected: this.state.marriagePrepConsent1 && this.state.marriagePrepConsent2
+    });
+
+    // Don't auto-select if user has already manually selected both
+    if (this.state.marriagePrepConsent1 && this.state.marriagePrepConsent2) {
+      console.log('Both consents already selected manually, skipping auto-select');
+      return;
+    }
+
+    // Clear existing timeout
+    if (this.scrollTimeout) {
+      clearTimeout(this.scrollTimeout);
+    }
+
+    this.setState({ isScrolling: true });
+
+    // Set timeout to detect when user stops scrolling
+    this.scrollTimeout = setTimeout(() => {
+      this.setState({ isScrolling: false });
+      
+      // Check if user has scrolled to the very bottom - immediate detection
+      const isAtBottom = pixelsFromBottom <= 10; // Within 10 pixels of bottom
+      const hasScrolledCompletely = scrollPercentage >= 1.0; // Scrolled 100% of the way
+      
+      if ((isAtBottom || hasScrolledCompletely) && !this.state.hasReadTerms && !this.state.autoSelected) {
+        console.log('User has scrolled to bottom or 100% - auto-selecting consents IMMEDIATELY');
+        console.log('Triggering auto-select with:', { isAtBottom, hasScrolledCompletely, pixelsFromBottom });
+        
+        this.setState({ hasReadTerms: true });
+        
+        // Auto-select both consents IMMEDIATELY - no delay
+        this.autoSelectConsents();
+      }
+    }, 150); // Reduced wait time for more responsive detection
+  };
+
+  // Auto-select both consents
+  autoSelectConsents = () => {
+    console.log('autoSelectConsents called for Marriage Prep Programme');
+    console.log('Current state:', {
+      marriagePrepConsent1: this.state.marriagePrepConsent1,
+      marriagePrepConsent2: this.state.marriagePrepConsent2,
+      autoSelected: this.state.autoSelected
+    });
+    
+    // Only auto-select if not already selected
+    if (!this.state.marriagePrepConsent1 || !this.state.marriagePrepConsent2) {
+      console.log('Auto-selecting consent checkboxes for Marriage Prep Programme');
+      
+      const newState = {
+        marriagePrepConsent1: true,
+        marriagePrepConsent2: true,
+        marriagePrepInteracted: true,
+        autoSelected: true,
+        showAutoSelectMessage: true
+      };
+      
+      this.setState(newState);
+
+      // Update parent component with new consent values
+      if (this.props.onChange) {
+        this.props.onChange({
+          marriagePrepConsent1: true,
+          marriagePrepConsent2: true
+        });
+      }
+
+      console.log('Auto-select completed - checkboxes should now be checked');
+
+      // Hide the auto-select message after 3 seconds
+      setTimeout(() => {
+        this.setState({ showAutoSelectMessage: false });
+      }, 3000);
+    } else {
+      console.log('Consents already selected, not auto-selecting');
+    }
+  };
 
   // Handle payment selection and call onChange prop
   handleAgreementChange = (event) => {
@@ -32,6 +211,8 @@ class AgreementDetailsSection extends Component {
   // Handle Marriage Preparation Programme consent checkboxes
   handleMarriagePrepConsentChange = (consentType) => (event) => {
     const isChecked = event.target.checked;
+    console.log(`${consentType} changed to:`, isChecked);
+    
     this.setState(prevState => {
       const newState = {
         ...prevState,
@@ -39,19 +220,27 @@ class AgreementDetailsSection extends Component {
         marriagePrepInteracted: true
       };
 
-      // Update parent component with both consent values
-      this.props.onChange({
-        ...this.props.formData,
-        marriagePrepConsent1: newState.marriagePrepConsent1,
-        marriagePrepConsent2: newState.marriagePrepConsent2
-      });
+      // Update parent component with new consent values
+      if (this.props.onChange) {
+        const updateData = {};
+        updateData[consentType] = isChecked;
+        // Also send the other consent value to maintain state
+        if (consentType === 'marriagePrepConsent1') {
+          updateData.marriagePrepConsent2 = newState.marriagePrepConsent2;
+        } else {
+          updateData.marriagePrepConsent1 = newState.marriagePrepConsent1;
+        }
+        
+        console.log('Updating parent with:', updateData);
+        this.props.onChange(updateData);
+      }
 
       return newState;
     });
   };
 
   render() {
-    const { selectedChoice, isSelected, marriagePrepConsent1, marriagePrepConsent2, marriagePrepInteracted } = this.state;
+    const { selectedChoice, isSelected, marriagePrepConsent1, marriagePrepConsent2, marriagePrepInteracted, hasReadTerms, showAutoSelectMessage } = this.state;
     const { agreement, errors, courseType } = this.props;
     const isMarriagePrep = courseType === 'Marriage Preparation Programme';
     console.log("AgreementDetailsSection - courseType:", isMarriagePrep);
@@ -78,7 +267,7 @@ class AgreementDetailsSection extends Component {
             {/* Terms and Conditions Card */}
             <div className="input-group1">
               <label>Consent for Collection, Use and Disclosure of Personal Information</label>
-              <div className="agreement-detail-text-container">
+              <div className="agreement-detail-text-container" ref={this.termsContainerRef}>
                 <span className="agreement-detail-text">
                   <strong>TERMS AND CONDITIONS FOR COLLECTION, USE AND DISCLOSURE OF PERSONAL INFORMATION FOR FAMILIES FOR LIFE MARRIAGE PREPARATION PROGRAMME</strong>
                   <br /><br />
@@ -192,9 +381,8 @@ class AgreementDetailsSection extends Component {
               </div>
             </div>
             
-            {/* Consent Checkboxes Card */}
+            {/* First Consent Section - Data Collection and Use */}
             <div className="input-group1">
-              <label>Select all that applies</label>
               <div className="agreement-options marriage-prep-checkboxes">
                 <label>
                   <input
@@ -202,20 +390,28 @@ class AgreementDetailsSection extends Component {
                     checked={marriagePrepConsent1}
                     onChange={this.handleMarriagePrepConsentChange('marriagePrepConsent1')}
                   />
-                  I confirm that my spouse/spouse-to-be and I understand and agree to the collection, use and disclosure of our Personal Information as set out above
+                  I confirm that my spouse/spouse-to-be and I understand and agree to the collection and use of our Personal Information for programme administration, research, evaluation, and improvement purposes as set out above
                 </label>
+              </div>
+              {marriagePrepInteracted && !marriagePrepConsent1 && (
+                <span className="error-message3">This consent must be selected to proceed</span>
+              )}
+            </div>
+
+            {/* Second Consent Section - Disclosure and Publicity */}
+            <div className="input-group1">
+              <div className="agreement-options marriage-prep-checkboxes">
                 <label>
                   <input
                     type="checkbox"
                     checked={marriagePrepConsent2}
                     onChange={this.handleMarriagePrepConsentChange('marriagePrepConsent2')}
                   />
-                  I confirm that I have read and understood the Terms of Consent as set out above
+                  I confirm that my spouse/spouse-to-be and I agree to the disclosure of our Personal Information to relevant parties and the use of photos/videos taken during the programme for publicity and promotional purposes as set out above
                 </label>
               </div>
-              <br/>
-              {marriagePrepInteracted && (!marriagePrepConsent1 || !marriagePrepConsent2) && (
-                <span className="error-message3">Both consent options must be selected to proceed</span>
+              {marriagePrepInteracted && !marriagePrepConsent2 && (
+                <span className="error-message3">This consent must be selected to proceed</span>
               )}
             </div>
           </>

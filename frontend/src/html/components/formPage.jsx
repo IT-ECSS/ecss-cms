@@ -420,8 +420,8 @@ class FormPage extends Component {
         } else if (type === 'NSA') {
           bgColor = '#003366';
         } else if (type === 'Marriage Preparation Programme') {
-          bgColor = '#f5f5f5';
-          formContainerBg = '#f5f5f5';
+          bgColor = '#800000';     
+          formContainerBg = '#40E0D0';
         }
         
         let selectedLocation = matchedCourse.attributes[1].options[0];
@@ -1432,7 +1432,7 @@ class FormPage extends Component {
     return (
       <div className="formwholepage" style={{ backgroundColor: bgColor }}>
         <div className="form-page">
-          <div className="form-container" style={this.state.formContainerBg ? { backgroundColor: this.state.formContainerBg } : {}}>
+          <div className={`form-container ${(formData.type === 'NSA' || formData.type === 'ILP') ? 'nsa-ilp-form' : ''}`} style={this.state.formContainerBg ? { backgroundColor: this.state.formContainerBg } : {}}>
             {/* MyInfo Service Status Indicator */}
             <MyInfoStatusIndicator 
               status={this.state.myInfoServiceStatus}
@@ -1513,7 +1513,9 @@ class FormPage extends Component {
                 courseType={formData.type}
               />
             )}
-            {currentSection === 4 && formData.type !== 'Marriage Preparation Programme' && <SubmitDetailsSection />}
+            {currentSection === 4 && formData.type !== 'Marriage Preparation Programme' && (
+              <SubmitDetailsSection />
+            )}
             {currentSection === 5 && formData.type === 'Marriage Preparation Programme' && <SubmitDetailsSection />}
           </div>
         </div>

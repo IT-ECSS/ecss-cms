@@ -10,7 +10,7 @@
   display: block; /* Make label a block element */
   margin-bottom: 5px; /* Space between label and input */
   font-weight: bold; /* Optional: make label text bold */
-  font-size: 2em;
+  font-size: clamp(1.4rem, 4vw, 3rem);
 }
 
 /* Input Field Styling */
@@ -18,7 +18,7 @@
   width: 100%; /* Full width */
   padding: 10px; /* Padding for better spacing */
   border-radius: 5px; /* Rounded corners */
-  font-size: 2em; /* Font size */
+  font-size: clamp(1.2rem, 3.8vw, 2.5rem); /* Responsive font size */
 }
 
 .personal-info-input1:focus {
@@ -28,7 +28,7 @@
 
 /* General Personal Info Input Styling */
 .personal-info-input {
-  font-size: 2em;
+  font-size: clamp(1.2rem, 3.8vw, 2.5rem);
   width: 95%;
 }
 
@@ -160,23 +160,247 @@
 
 /* Mobile Responsive Adjustments */
 
+/* Marriage Preparation Programme Specific Responsive Styles for Personal/Spouse Info */
+
+/* Mobile First (320px - 480px) for Marriage Prep Forms */
+@media screen and (max-width: 480px) {
+  /* Enhanced input groups for Marriage Prep mobile */
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .input-group1 {
+    margin: 0.5rem 0;
+    padding: 0.8rem;
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .input-group1 label {
+    font-size: 1.8rem !important;
+    margin-bottom: 0.5rem;
+    color: #333;
+    font-weight: 700;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .personal-info-input,
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .personal-info-input1 {
+    font-size: 1.4rem !important;
+    padding: 0.6rem !important;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    width: 100%;
+    box-sizing: border-box;
+    background-color: white;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .personal-info-input:focus,
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .personal-info-input1:focus {
+    border-color: #40E0D0;
+    box-shadow: 0 0 0 2px rgba(64, 224, 208, 0.2);
+  }
+  
+  /* Radio button adjustments for Marriage Prep mobile */
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .radio-group1 {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 0.5rem 0;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .radio-option1 {
+    flex-direction: row;
+    align-items: center;
+    padding: 0.5rem;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 6px;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .radio-option1 input {
+    margin-right: 0.7rem;
+    transform: scale(1.2);
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .radio-option1 label {
+    font-size: 1.3rem !important;
+    margin-bottom: 0 !important;
+  }
+  
+  /* Calendar popup for Marriage Prep mobile */
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .calendar-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 350px;
+    margin: 0;
+    z-index: 2000;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* Small Mobile (320px and below) for Marriage Prep */
+@media screen and (max-width: 320px) {
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .input-group1 {
+    padding: 0.6rem;
+    margin: 0.4rem 0;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .input-group1 label {
+    font-size: 1.6rem !important;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .personal-info-input,
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .personal-info-input1 {
+    font-size: 1.2rem !important;
+    padding: 0.5rem !important;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .calendar-popup {
+    width: 95%;
+    max-width: 300px;
+  }
+}
+
+/* Large Mobile / Small Tablet (481px - 768px) for Marriage Prep */
+@media screen and (min-width: 481px) and (max-width: 768px) {
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .input-group1 {
+    padding: 1rem;
+    margin: 0.8rem 0;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .input-group1 label {
+    font-size: 1.7rem !important;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .personal-info-input,
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .personal-info-input1 {
+    font-size: 1.6rem !important;
+    padding: 0.7rem !important;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .radio-group1 {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 1.2rem;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .radio-option1 {
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 0.6rem;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .calendar-popup {
+    width: 70%;
+    max-width: 400px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* Tablet (769px - 1024px) for Marriage Prep */
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .input-group1 {
+    padding: 1.2rem;
+    margin: 1rem 0;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .input-group1 label {
+    font-size: 1.9rem !important;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .personal-info-input,
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .personal-info-input1 {
+    font-size: 1.8rem !important;
+    padding: 0.8rem !important;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .radio-group1 {
+    gap: 1.5rem;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .calendar-popup {
+    width: 60%;
+    max-width: 450px;
+  }
+}
+
+/* Desktop (1025px and above) for Marriage Prep */
+@media screen and (min-width: 1025px) {
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .input-group1 {
+    padding: 1.5rem;
+    margin: 1.2rem 0;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .input-group1 label {
+    font-size: 2rem !important;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .personal-info-input,
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .personal-info-input1 {
+    font-size: 1.9rem !important;
+    padding: 0.9rem !important;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .radio-group1 {
+    gap: 2rem;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .calendar-popup {
+    width: 50%;
+    max-width: 500px;
+    margin-left: 25%;
+  }
+}
+
+/* Ultra-wide screens adjustments for Marriage Prep */
+@media screen and (min-width: 1440px) {
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .input-group1 {
+    padding: 1.8rem;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .calendar-popup {
+    margin-left: 30%;
+  }
+}
+
+/* Landscape orientation for mobile Marriage Prep */
+@media screen and (orientation: landscape) and (max-height: 500px) {
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .input-group1 {
+    margin: 0.3rem 0;
+    padding: 0.6rem;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .radio-group1 {
+    flex-direction: row;
+    gap: 0.8rem;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .calendar-popup {
+    width: 80%;
+    max-width: 400px;
+  }
+}
+
+/* High DPI adjustments for Marriage Prep forms */
+@media screen and (-webkit-min-device-pixel-ratio: 2) {
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .personal-info-input,
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .personal-info-input1 {
+    border-width: 1px;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .input-group1 {
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  }
+}
+
 /* For screens up to 768px (tablets and small screens) */
 @media (max-width: 768px) {
   /* Input group adjustments */
   .input-group1 {
       margin: 0.8rem 0;
       padding: 0.8rem;
-  }
-
-  /* Label font size adjustment */
-  .input-group1 label {
-      font-size: 1.5em; /* Smaller font size for readability */
-  }
-
-  /* Input field adjustments */
-  .personal-info-input1 {
-      font-size: 1.3em; /* Slightly smaller font for readability */
-      padding: 0.8rem; /* Increased padding for easier typing */
   }
 
   /* Radio buttons stack vertically on smaller screens */
@@ -220,7 +444,7 @@
   .personal-info-input
   {
     width: 60%; 
-    font-size: 1.2rem;
+    font-size: 2.2rem;
   }
 }
 
@@ -231,17 +455,6 @@
   .input-group1 {
       margin: 0.5rem 0;
       padding: 0.6rem;
-  }
-
-  /* Label font size adjustment */
-  .input-group1 label {
-      font-size: 1.2em; /* Further reduced font size for mobile */
-  }
-
-  /* Input field adjustments */
-  .personal-info-input1 {
-      font-size: 1.1em; /* Adjust font size for smaller screens */
-      padding: 0.6rem; /* Slightly reduced padding */
   }
 
   .calendar-popup
@@ -291,7 +504,7 @@
   .personal-info-input
   {
     width: 60%; 
-    font-size: 1.2rem;
+    font-size: 2.2rem;
   }
 
   .custom-icon {

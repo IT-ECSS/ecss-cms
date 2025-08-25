@@ -16,6 +16,7 @@
   display: block; /* Make label take up a full line */
   font-weight: bold; /* Bold text for labels */
   margin-bottom: 0.5rem; /* Space between label and input */
+  font-size: clamp(1.4rem, 4vw, 3rem); /* Responsive font size for labels */
 }
 
 /* Course Detail Input */
@@ -24,7 +25,7 @@
   padding: 0.5rem; /* Padding inside input */
   border: 1px solid #ccc; /* Light gray border */
   border-radius: 4px; /* Slightly rounded corners */
-  font-size: 2em; /* Font size */
+  font-size: clamp(1.2rem, 3.8vw, 2.5rem); /* Responsive font size */
 }
 
 /* Focused Input Styling */
@@ -35,7 +36,7 @@
 
 /* Course Detail Text */
 .course-detail-text {
-  font-size: 2em;
+  font-size: clamp(1.2rem, 3.8vw, 2.5rem);
 }
 
 /* Error Message Styling */
@@ -55,10 +56,237 @@
 .payment-options label {
   display: flex; /* Keep label as flex for alignment */
   align-items: center; /* Center radio buttons vertically */
+  font-size: clamp(0.8rem, 2.5vw, 1.2rem); /* Responsive font size */
 }
 
 .payment-options input {
   width: fit-content;
+  margin-right: 0.5rem;
+}
+
+/* Additional Responsive Breakpoints */
+
+/* Large tablets and small desktops (769px to 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .course-details-section {
+    padding: 1.2rem;
+  }
+  
+  .input-group {
+    margin-bottom: 1.3rem;
+  }
+}
+
+/* Marriage Preparation Programme Specific Responsive Styles for Course Details */
+
+/* Mobile First (320px - 480px) for Marriage Prep Course Details */
+@media screen and (max-width: 480px) {
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .course-details-section {
+    padding: 0.8rem;
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 8px;
+    margin: 0.5rem 0;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .input-group {
+    margin-bottom: 1rem;
+    background-color: transparent;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .input-group label {
+    font-size: 1.8rem !important;
+    color: #333;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .course-detail-input {
+    font-size: 1.4rem !important;
+    padding: 0.6rem !important;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    background-color: white;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .course-detail-input:focus {
+    border-color: #40E0D0;
+    box-shadow: 0 0 0 2px rgba(64, 224, 208, 0.2);
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .payment-options {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 8px;
+    margin-top: 1rem;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .payment-options label {
+    font-size: 1.3rem !important;
+    padding: 0.5rem;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .payment-options input {
+    margin-right: 0.7rem;
+    transform: scale(1.2);
+  }
+}
+
+/* Small Mobile (320px and below) for Marriage Prep Course Details */
+@media screen and (max-width: 320px) {
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .course-details-section {
+    padding: 0.6rem;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .input-group label {
+    font-size: 1.6rem !important;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .course-detail-input {
+    font-size: 1.2rem !important;
+    padding: 0.5rem !important;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .payment-options label {
+    font-size: 1.1rem !important;
+  }
+}
+
+/* Large Mobile / Small Tablet (481px - 768px) for Marriage Prep Course Details */
+@media screen and (min-width: 481px) and (max-width: 768px) {
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .course-details-section {
+    padding: 1rem;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .input-group label {
+    font-size: 1.7rem !important;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .course-detail-input {
+    font-size: 1.6rem !important;
+    padding: 0.7rem !important;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .payment-options {
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .payment-options label {
+    font-size: 1.5rem !important;
+  }
+}
+
+/* Tablet (769px - 1024px) for Marriage Prep Course Details */
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .course-details-section {
+    padding: 1.2rem;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .input-group label {
+    font-size: 1.9rem !important;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .course-detail-input {
+    font-size: 1.8rem !important;
+    padding: 0.8rem !important;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .payment-options {
+    flex-direction: row;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .payment-options label {
+    font-size: 1.7rem !important;
+    flex: 1 1 45%;
+  }
+}
+
+/* Desktop (1025px and above) for Marriage Prep Course Details */
+@media screen and (min-width: 1025px) {
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .course-details-section {
+    padding: 1.5rem;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .input-group label {
+    font-size: 2rem !important;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .course-detail-input {
+    font-size: 1.9rem !important;
+    padding: 0.9rem !important;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .payment-options {
+    flex-direction: row;
+    gap: 2rem;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .payment-options label {
+    font-size: 1.8rem !important;
+  }
+}
+
+/* Ultra-wide screens for Marriage Prep Course Details */
+@media screen and (min-width: 1440px) {
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .course-details-section {
+    padding: 1.8rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+}
+
+/* Landscape orientation for Marriage Prep Course Details */
+@media screen and (orientation: landscape) and (max-height: 500px) {
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .course-details-section {
+    padding: 0.8rem;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .input-group {
+    margin-bottom: 0.8rem;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .payment-options {
+    flex-direction: row;
+    gap: 1rem;
+  }
+}
+
+/* Large desktops (1025px and up) */
+@media (min-width: 1025px) {
+  .course-details-section {
+    padding: 1.5rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  
+  .input-group {
+    margin-bottom: 1.8rem;
+  }
+}
+
+/* Extra small screens (320px and below) */
+@media (max-width: 320px) {
+  .course-details-section {
+    padding: 0.5rem;
+  }
+  
+  .input-group {
+    margin-bottom: 0.6rem;
+  }
+  
+  .course-detail-input {
+    padding: 0.5rem;
+  }
 }
 
 /* Mobile Responsiveness */
@@ -70,20 +298,9 @@
     margin-bottom: 1rem; /* Reduced spacing for smaller screens */
   }
 
-  /* Label font size adjustment */
-  .label {
-    font-size: 1.5em; /* Smaller font size for better readability */
-  }
-
   /* Course Detail Input Adjustments */
   .course-detail-input {
-    font-size: 1.3em; /* Slightly smaller font size */
     padding: 0.8rem; /* Increased padding for better touch targets */
-  }
-
-  /* Course Detail Text Adjustments */
-  .course-detail-text {
-    font-size: 1.5em; /* Adjust font size for readability */
   }
 
   /* Payment Options Styling */
@@ -93,7 +310,7 @@
   }
 
   .payment-options label {
-    font-size: 1.2em; /* Adjust font size */
+    font-size: clamp(0.8rem, 2.5vw, 1.2rem); /* Responsive font size */
   }
 }
 
@@ -104,20 +321,9 @@
     margin-bottom: 0.8rem; /* Further reduced spacing */
   }
 
-  /* Label font size adjustment */
-  .label {
-    font-size: 1.3em; /* Smaller font size for mobile */
-  }
-
   /* Course Detail Input Adjustments */
   .course-detail-input {
-    font-size: 1.2em; /* Adjust font size for small screens */
     padding: 0.7rem; /* Slightly reduced padding */
-  }
-
-  /* Course Detail Text Adjustments */
-  .course-detail-text {
-    font-size: 1.3em; /* Smaller text for mobile screens */
   }
 
   /* Payment Options Styling */
@@ -127,6 +333,6 @@
   }
 
   .payment-options label {
-    font-size: 1.1em; /* Adjust font size */
+    font-size: clamp(0.7rem, 2vw, 1rem); /* Responsive font size for mobile */
   }
 }

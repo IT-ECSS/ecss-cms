@@ -31,6 +31,33 @@ msalInstance.initialize().then(() => {
 
 class App extends Component
 {
+  componentDidMount() {
+    // Set CSS custom property for accurate viewport height
+    const setVH = () => {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    };
+
+    // Set initial value
+    setVH();
+
+    // Update on resize and orientation change
+    window.addEventListener('resize', setVH);
+    window.addEventListener('orientationchange', setVH);
+
+    // Cleanup function
+    this.cleanup = () => {
+      window.removeEventListener('resize', setVH);
+      window.removeEventListener('orientationchange', setVH);
+    };
+  }
+
+  componentWillUnmount() {
+    if (this.cleanup) {
+      this.cleanup();
+    }
+  }
+
   render() 
   {
     return (

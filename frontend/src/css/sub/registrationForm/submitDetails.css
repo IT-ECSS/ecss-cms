@@ -1,148 +1,390 @@
-/* Base Styles */
+/* Base Styles - Stay within form container */
 .submit-details-section {
   width: 100%;
-  max-width: 1200px;
-  margin: auto;
-  height: 100vh;
+  min-height: auto;
+  display: block;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  position: relative;
+  background-color: #ffffff !important;
+  overflow: visible;
 }
 
 .input-group2 {
-  background-color: #f9f9f9;
-  border-radius: 12px;
-  padding: 25px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  height: 90vh;
-  margin-right: auto;
-  margin-left: auto;
-  width: 90%;
+  background-color: #ffffff !important;
+  border-radius: 0;
+  padding: clamp(15px, 3vw, 40px);
+  box-shadow: none !important;
+  border: none !important;
+  outline: none !important;
+  width: 100%;
+  max-width: 100%;
+  min-width: auto;
+  text-align: center;
+  margin: 0 auto;
+  position: relative;
+  display: block;
+  overflow: visible;
+  box-sizing: border-box;
 }
 
-/* Header Styling */
 .submit-detail-header {
-  color: #2c3e50;
+  color: #333333 !important;
+  font-weight: 700;
   text-align: center;
-  margin-bottom: 15px;
-  line-height: 1.3;
-  letter-spacing: 0.5px;
-  font-size: 5rem;
+  line-height: 1.2;
+  margin-bottom: clamp(15px, 3vw, 25px);
+  font-size: clamp(3rem, 7vw, 3.31rem);
+  background-color: transparent !important;
 }
 
-/* Sub-header Styling */
 .submit-detail-sub-header {
-  color: #34495e;
+  color: #555555 !important;
+  font-weight: 600;
   text-align: center;
-  display: block;
-  margin-bottom: 20px;
-  font-weight: 500;
-  line-height: 1.4;
-  font-size: 2.5rem;
+  line-height: 1.3;
+  margin-bottom: clamp(18px, 4vw, 30px);
+  font-size: clamp(1.32rem, 3.78vw, 2.08rem);
+  background-color: transparent !important;
 }
 
-/* Text Content Styling */
 .submit-detail-text {
-  color: #000000;
-  text-align: left;
-  display: block;
-  line-height: 1.6;
-  font-size: 1.5rem;
+  color: #666666 !important;
+  font-weight: 400;
+  text-align: center;
+  line-height: 1.4;
+  margin-bottom: clamp(12px, 2.5vw, 20px);
+  font-size: clamp(1.04rem, 3.31vw, 1.70rem);
+  background-color: transparent !important;
+  word-spacing: normal;
 }
 
-/* Desktop Screens (1024px to 1439px) */
-@media (max-width: 1440px) {
-  .submit-details-section {
-    max-width: 900px;
-  }
-  
-  .input-group1 {
-    padding: 25px 40px;
-  }
-  
-  .submit-detail-header {
-    font-size: 36px; /* Increased from 28px */
-  }
-  
-  .submit-detail-sub-header {
-    font-size: 28px; /* Increased from 22px */
-  }
-  
-  .submit-detail-text {
-    font-size: 24px; /* Increased from 20px */
-    max-width: 800px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-}
+/* Marriage Preparation Programme Specific Responsive Styles for Submit Details */
 
-/* Tablet Screens (768px to 1023px) */
-@media (max-width: 1024px) {
-  .submit-details-section {
-    max-width: 700px;
+/* Mobile First (320px - 480px) for Marriage Prep Submit Details */
+@media screen and (max-width: 480px) {
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .submit-details-section {
+    padding: 0;
+    background-color: transparent !important;
   }
   
-  .input-group1 {
-    padding: 20px 30px;
-  }
-  
-  .submit-detail-header {
-    font-size: 32px; /* Increased from 24px */
-  }
-  
-  .submit-detail-sub-header {
-    font-size: 26px; /* Increased from 20px */
-  }
-  
-  .submit-detail-text {
-    font-size: 22px; /* Increased from 18px */
-    max-width: 650px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-}
-
-/* Mobile Screens (480px to 767px) */
-@media (max-width: 768px) {
-  .submit-details-section {
-  }
-  
-  .input-group1 {
-    padding: 15px 20px;
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .input-group2 {
+    padding: 15px;
+    background-color: rgba(255, 255, 255, 0.95) !important;
     border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    border: 2px solid #40E0D0 !important;
+    margin: 0 auto;
+    text-align: center;
   }
   
-  .submit-detail-header {
-    font-size: 28px; /* Increased from 22px */
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .submit-detail-header {
+    font-size: 1.8rem !important;
+    margin-bottom: 12px;
+    line-height: 1.2;
+    color: #333 !important;
+    font-weight: 700;
   }
   
-  .submit-detail-sub-header {
-    font-size: 24px; /* Increased from 18px */
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .submit-detail-sub-header {
+    font-size: 1.5rem !important;
+    margin-bottom: 15px;
+    color: #555 !important;
+    font-weight: 600;
   }
   
-  .submit-detail-text {
-    font-size: 20px; /* Increased from 16px */
-    line-height: 1.5;
-  }
-}
-
-/* Small Mobile Screens (Less than 480px) */
-@media (max-width: 480px) {
-  .submit-details-section {
-  }
-  
-  .input-group1 {
-    padding: 10px 15px;
-    border-radius: 6px;
-  }
-  
-  .submit-detail-header {
-    font-size: 26px; /* Increased from 20px */
-  }
-  
-  .submit-detail-sub-header {
-    font-size: 22px; /* Increased from 16px */
-  }
-  
-  .submit-detail-text {
-    font-size: 18px; /* Increased from 14px */
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .submit-detail-text {
+    font-size: 1.3rem !important;
+    margin-bottom: 10px;
+    color: #666 !important;
     line-height: 1.4;
   }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .submit-detail-price {
+    font-size: 1.6rem !important;
+    color: #800000 !important;
+    font-weight: 700;
+    margin: 12px 0;
+    padding: 8px;
+    background-color: rgba(64, 224, 208, 0.1);
+    border-radius: 6px;
+  }
+}
+
+/* Small Mobile (320px and below) for Marriage Prep Submit Details */
+@media screen and (max-width: 320px) {
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .input-group2 {
+    padding: 12px;
+    margin: 0 5px;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .submit-detail-header {
+    font-size: 1.6rem !important;
+    margin-bottom: 10px;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .submit-detail-sub-header {
+    font-size: 1.3rem !important;
+    margin-bottom: 12px;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .submit-detail-text {
+    font-size: 1.1rem !important;
+    margin-bottom: 8px;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .submit-detail-price {
+    font-size: 1.4rem !important;
+    margin: 10px 0;
+    padding: 6px;
+  }
+}
+
+/* Large Mobile / Small Tablet (481px - 768px) for Marriage Prep Submit Details */
+@media screen and (min-width: 481px) and (max-width: 768px) {
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .input-group2 {
+    padding: 20px;
+    border-radius: 10px;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .submit-detail-header {
+    font-size: 2rem !important;
+    margin-bottom: 15px;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .submit-detail-sub-header {
+    font-size: 1.7rem !important;
+    margin-bottom: 18px;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .submit-detail-text {
+    font-size: 1.5rem !important;
+    margin-bottom: 12px;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .submit-detail-price {
+    font-size: 1.8rem !important;
+    margin: 15px 0;
+    padding: 10px;
+  }
+}
+
+/* Tablet (769px - 1024px) for Marriage Prep Submit Details */
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .input-group2 {
+    padding: 25px;
+    border-radius: 12px;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .submit-detail-header {
+    font-size: 2.2rem !important;
+    margin-bottom: 18px;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .submit-detail-sub-header {
+    font-size: 1.9rem !important;
+    margin-bottom: 20px;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .submit-detail-text {
+    font-size: 1.7rem !important;
+    margin-bottom: 14px;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .submit-detail-price {
+    font-size: 2rem !important;
+    margin: 18px 0;
+    padding: 12px;
+  }
+}
+
+/* Desktop (1025px and above) for Marriage Prep Submit Details */
+@media screen and (min-width: 1025px) {
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .input-group2 {
+    padding: 30px;
+    border-radius: 15px;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .submit-detail-header {
+    font-size: 2.4rem !important;
+    margin-bottom: 20px;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .submit-detail-sub-header {
+    font-size: 2.1rem !important;
+    margin-bottom: 22px;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .submit-detail-text {
+    font-size: 1.8rem !important;
+    margin-bottom: 16px;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .submit-detail-price {
+    font-size: 2.2rem !important;
+    margin: 20px 0;
+    padding: 15px;
+  }
+}
+
+/* Ultra-wide screens for Marriage Prep Submit Details */
+@media screen and (min-width: 1440px) {
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .input-group2 {
+    padding: 35px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .submit-detail-header {
+    font-size: 2.6rem !important;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .submit-detail-sub-header {
+    font-size: 2.3rem !important;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .submit-detail-text {
+    font-size: 2rem !important;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .submit-detail-price {
+    font-size: 2.4rem !important;
+  }
+}
+
+/* Landscape orientation for Marriage Prep Submit Details */
+@media screen and (orientation: landscape) and (max-height: 500px) {
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .input-group2 {
+    padding: 15px;
+    margin: 10px auto;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .submit-detail-header {
+    font-size: 1.6rem !important;
+    margin-bottom: 8px;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .submit-detail-sub-header {
+    font-size: 1.4rem !important;
+    margin-bottom: 10px;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .submit-detail-text {
+    font-size: 1.2rem !important;
+    margin-bottom: 6px;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .submit-detail-price {
+    font-size: 1.5rem !important;
+    margin: 8px 0;
+    padding: 6px;
+  }
+}
+
+/* High DPI adjustments for Marriage Prep Submit Details */
+@media screen and (-webkit-min-device-pixel-ratio: 2) {
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .input-group2 {
+    border-width: 1px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  }
+}
+
+/* Mobile First (320px - 480px) */
+@media screen and (max-width: 480px) {
+  .submit-details-section {
+    padding: 0;
+    background-color: #ffffff !important;
+  }
+  
+  .input-group2 {
+    padding: 20px 15px;
+    background-color: #ffffff !important;
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 auto;
+    text-align: center;
+  }
+  
+  .submit-detail-header {
+    font-size: clamp(2.45rem, 8.16vw, 3.39rem);
+    margin-bottom: 15px;
+    line-height: 1.1;
+  }
+  
+  .submit-detail-sub-header {
+    font-size: clamp(1.78rem, 6.13vw, 2.45rem);
+    margin-bottom: 18px;
+  }
+  
+  .submit-detail-text {
+    font-size: clamp(1.50rem, 5.17vw, 2.05rem);
+    margin-bottom: 12px;
+    line-height: 1.3;
+  }
+}
+
+/* Large Mobile (481px - 768px) */
+@media screen and (min-width: 481px) and (max-width: 768px) {
+  .submit-details-section {
+    padding: 0;
+    background-color: #ffffff !important;
+  }
+  
+  .input-group2 {
+    padding: 25px 20px;
+    background-color: #ffffff !important;
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 auto;
+    text-align: center;
+  }
+  
+  .submit-detail-header {
+    font-size: clamp(2.99rem, 6.82vw, 4.10rem);
+    margin-bottom: 20px;
+  }
+  
+  .submit-detail-sub-header {
+    font-size: clamp(2.18rem, 5.17vw, 2.72rem);
+    margin-bottom: 22px;
+  }
+  
+  .submit-detail-text {
+    font-size: clamp(1.78rem, 4.35vw, 2.32rem);
+    margin-bottom: 15px;
+  }
+}
+
+/* Tablet and larger screens */
+@media screen and (min-width: 769px) {
+  .input-group2 {
+    padding: 30px 25px;
+  }
+  
+  .submit-detail-header {
+    font-size: clamp(4.86rem, 7.78vw, 6.22rem);
+    margin-bottom: 22px;
+  }
+  
+  .submit-detail-sub-header {
+    font-size: clamp(3.50rem, 5.84vw, 4.48rem);
+    margin-bottom: 25px;
+  }
+  
+  .submit-detail-text {
+    font-size: clamp(2.72rem, 4.86vw, 3.70rem);
+    margin-bottom: 18px;
+  }
+}
+
+/* Force white background for all elements */
+.submit-details-section,
+.submit-details-section *,
+.input-group2,
+.input-group2 *,
+.submit-detail-header,
+.submit-detail-sub-header,
+.submit-detail-text {
+  background-color: #ffffff !important;
 }

@@ -1,322 +1,658 @@
 /* Agreement Details Section Styling */
 .agreement-details-section {
-  padding: 1rem; /* Adjust padding as necessary */
-  border: 1px solid #ccc; /* Optional: adds a border around the section */
-  border-radius: 0.5rem; /* Optional: rounds the corners */
-  margin-bottom: 1rem; /* Space between sections */
-  background-color: #f9f9f9; /* Light background for better visibility */
-  height: 100vh;
+  margin: 20px 0;
 }
 
 /* Input Group */
-.input-group {
-  margin-bottom: 1rem; /* Space between input groups */
+.input-group1 {
+  margin-bottom: 25px;
+  padding: 0;
 }
 
 /* Label Styling */
-.input-group label {
-  font-weight: bold; /* Make labels bold */
-  display: block; /* Ensures the label takes the full width */
-  margin-bottom: 0.5rem; /* Space below the label */
-}
-
-/* Agreement Detail Text */
-.agreement-detail-text {
-  font-size: 2em; /* Adjust font size as necessary */
-  color: #333; /* Dark text color for readability */
-}
-
-/* Agreement Options Styling */
-.agreement-options {
-  display: flex; /* Use Flexbox to arrange the labels in a row */
-  align-items: center; /* Center radio buttons vertically */
-  gap: 1rem; /* Space between radio options */
-  margin-top: 0.5rem; /* Space between the label and options */
-}
-
-.agreement-options label {
-  display: flex; /* Keep label as flex for alignment */
-  align-items: center; /* Center radio buttons vertically */
-}
-
-.agreement-options input {
-  width: fit-content; /* Fit input width to content */
-}
-
-/* Marriage Preparation Programme checkboxes - force vertical layout */
-.agreement-options.marriage-prep-checkboxes {
-  flex-direction: column !important;
-  align-items: flex-start !important;
-}
-
-.agreement-options.marriage-prep-checkboxes label {
-  margin-bottom: 1rem;
-  width: 100%;
-  align-items: flex-start;
-}
-
-.ag-cell-label-container {
-  display: flex;
-  flex-direction: row-reverse;
-  align-items: center; /* Vertically center */
-  justify-content: center; /* Horizontally center */
-  height: 100%;
-  width: 100%;
-  padding-top: 10px;
-} 
-
-/* Marriage Preparation Programme Consent Styling */
-.marriage-prep-consent-options {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 1rem;
-  margin-top: 0.5rem;
-  align-items: flex-start;
-  justify-content: flex-start;
-  width: 100%;
-}
-
-.marriage-prep-consent-options .checkbox-label {
-  display: flex !important;
-  align-items: flex-start;
-  gap: 0.5rem;
-  font-weight: normal !important;
-  cursor: pointer;
-  line-height: 1.4;
-  width: 100%;
-  margin-bottom: 0.5rem;
-  flex-direction: row;
-  box-sizing: border-box;
-}
-
-.checkbox-label input[type="checkbox"] {
-  margin-top: 0.2rem;
-  flex-shrink: 0;
-}
-
-.error-message3 {
-  color: #e74c3c;
-  font-size: 0.9em;
-  margin-top: 0.5rem;
+.input-group1 label {
+  font-weight: 600;
+  font-size: clamp(1.4rem, 4vw, 2rem);
+  color: #333;
+  margin-bottom: 12px;
   display: block;
 }
 
-/* Marriage Preparation Programme Terms Container */
+/* Terms and Conditions Container */
 .agreement-detail-text-container {
-  max-height: 600px;
+  max-height: clamp(280px, 45vh, 450px);
   overflow-y: auto;
-  border: 1px solid #ddd;
-  padding: 1rem;
-  margin: 1rem 0;
-  border-radius: 4px;
-  background-color: #fff;
+  overflow-x: hidden;
+  border: 2px solid #e0e0e0;
+  border-radius: clamp(6px, 1.5vw, 12px);
+  padding: clamp(15px, 4vw, 25px);
+  background-color: #f9f9f9;
+  margin-bottom: clamp(15px, 3vw, 25px);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-spacing: 0.02em;
+  letter-spacing: 0.015em;
+  text-align: justify;
+  text-justify: inter-word;
+  font-size: clamp(1.2rem, 3.5vw, 2.2rem);
+  line-height: clamp(1.5, 0.3vw + 1.3, 1.7);
+  color: #444;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.agreement-detail-text-container .agreement-detail-text {
-  font-size: 1.2em !important;
+/* Standard consent text container (for NSA/ILP courses) */
+.agreement-detail-text {
+  font-size: clamp(1.2rem, 3.5vw, 2.2rem);
+  line-height: clamp(1.5, 0.3vw + 1.3, 1.7);
+  color: #444;
+  text-align: justify;
+  font-weight: 500;
+  max-height: clamp(250px, 40vh, 350px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  border: 2px solid #e0e0e0;
+  border-radius: clamp(6px, 1.5vw, 12px);
+  padding: clamp(15px, 4vw, 25px);
+  background-color: #f9f9f9;
+  display: block;
+  margin-top: clamp(10px, 2vw, 15px);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-spacing: 0.02em;
+  letter-spacing: 0.015em;
+  text-justify: inter-word;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.agreement-detail-text strong {
+  color: #2c3e50;
+  font-weight: 700;
+  word-spacing: inherit;
+  letter-spacing: inherit;
+}
+
+.agreement-detail-text a {
+  color: #3498db;
+  text-decoration: underline;
+  word-spacing: inherit;
+  letter-spacing: inherit;
+}
+
+.agreement-detail-text a:hover {
+  color: #2980b9;
+}
+
+/* Ensure all text elements in containers maintain equal spacing */
+.agreement-detail-text-container *,
+.agreement-detail-text * {
+  word-spacing: inherit;
+  letter-spacing: inherit;
+}
+
+/* Marriage Prep Checkboxes */
+.marriage-prep-checkboxes {
+  background-color: #fff;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 15px;
+}
+
+.marriage-prep-checkboxes label {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 15px;
+  font-size: clamp(1.3rem, 3.8vw, 2.2rem);
   line-height: 1.5;
   color: #333;
-}
-
-.agreement-detail-text-container .agreement-detail-text strong {
+  cursor: pointer;
   font-weight: bold;
-  color: #000;
 }
 
-.agreement-detail-text-container .agreement-detail-text a {
-  color: #007bff;
-  text-decoration: underline;
+.marriage-prep-checkboxes label:last-child {
+  margin-bottom: 0;
 }
 
-.agreement-detail-text-container .agreement-detail-text a:hover {
-  color: #0056b3;
+.marriage-prep-checkboxes input[type="checkbox"] {
+  margin-right: 12px;
+  margin-top: 2px;
+  width: clamp(18px, 2vw, 24px);
+  height: clamp(18px, 2vw, 24px);
+  accent-color: #3498db;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
-/* Ensure Marriage Preparation Programme checkboxes are always vertical */
-.marriage-prep-consent-options {
-  display: block !important;
-  width: 100% !important;
+/* Standard Agreement Options (for NSA/ILP courses) */
+.agreement-options {
+  margin-top: 10px;
 }
 
-.marriage-prep-consent-options .checkbox-label {
-  display: block !important;
-  width: 100% !important;
-  margin-bottom: 1rem !important;
-  padding: 0.5rem 0 !important;
-  clear: both !important;
+.agreement-options label {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: clamp(1.2rem, 3.5vw, 2rem);
+  color: #333;
+  cursor: pointer;
+  font-weight: bold;
 }
 
-.marriage-prep-consent-options .checkbox-label input[type="checkbox"] {
-  display: inline-block !important;
-  margin-right: 0.5rem !important;
-  vertical-align: top !important;
-  float: none !important;
+.agreement-options input[type="radio"] {
+  margin-right: 10px;
+  width: clamp(16px, 1.8vw, 22px);
+  height: clamp(16px, 1.8vw, 22px);
+  accent-color: #3498db;
+  cursor: pointer;
 }
 
-/* Force vertical layout with CSS Grid as fallback */
-.marriage-prep-consent-options {
-  display: grid !important;
-  grid-template-columns: 1fr !important;
-  gap: 1rem !important;
-  width: 100% !important;
+/* Error Messages */
+.error-message3 {
+  color: #e74c3c;
+  font-size: clamp(1rem, 3vw, 1.6rem);
+  font-weight: 500;
+  display: block;
+  margin-top: 8px;
 }
+/* Responsive Design - Mobile First Approach with Natural Spacing */
 
-/* Force checkboxes to display vertically - Nuclear option */
-.input-group1 .marriage-prep-consent-options,
-.agreement-details-section .marriage-prep-consent-options,
-div.marriage-prep-consent-options {
-  display: block !important;
-  flex-direction: column !important;
-  flex-wrap: nowrap !important;
-  width: 100% !important;
-}
-
-.input-group1 .marriage-prep-consent-options .checkbox-label,
-.agreement-details-section .marriage-prep-consent-options .checkbox-label,
-div.marriage-prep-consent-options .checkbox-label,
-.marriage-prep-consent-options label.checkbox-label {
-  display: block !important;
-  width: 100% !important;
-  float: none !important;
-  clear: both !important;
-  margin-bottom: 1rem !important;
-  box-sizing: border-box !important;
-}
-
-/* Reset any inherited flex or inline styles */
-.marriage-prep-consent-options * {
-  box-sizing: border-box !important;
-}
-
-/* Mobile Responsiveness */
-
-/* For screens up to 768px (tablets and small screens) */
-@media (max-width: 768px) {
-  /* Agreement Detail Text Adjustment */
-  .agreement-detail-text {
-    font-size: 1.5em; /* Adjust font size for smaller screens */
-  }
-
-  /* Agreement Options Styling */
-  .agreement-options {
-    flex-direction: column; /* Stack the radio options vertically */
-    gap: 1rem; /* Increased space between options for readability */
-  }
-
-  .agreement-options label {
-    font-size: 1.2em; /* Adjust font size for better readability */
-  }
-
-  /* Input Group Label Adjustment */
-  .input-group label {
-    font-size: 1.5em; /* Adjust label font size for mobile */
-  }
-
-  .marriage-prep-consent-options {
-    gap: 0.8rem !important;
-    flex-direction: column !important;
-  }
-
-  .marriage-prep-consent-options .checkbox-label {
-    font-size: 1.1em;
-    min-width: auto;
-  }
-
+/* Extra small screens (280px - 375px) */
+@media (max-width: 375px) {
   .agreement-detail-text-container {
-    max-height: 450px;
-    padding: 0.8rem;
-    margin: 0.8rem 0;
-  }
-
-  .agreement-detail-text-container .agreement-detail-text {
-    font-size: 1.0em !important;
-  }
-}
-
-@media (max-width: 768px) {
-  html, body {
-    height: 100%;
-    margin: 0;
-    padding: 0;
-  }
-
-  .agreement-details-section {
-    height: 40vh; /* Full height of the screen */
-    overflow-y: auto; /* Enable vertical scrolling */
-    margin: 10px;
-    display: flex;
-    flex-direction: column;
+    max-height: 45vh;
+    padding: clamp(12px, 3vw, 18px);
+    margin-bottom: clamp(12px, 3vw, 18px);
+    font-size: clamp(1.0rem, 4.5vw, 1.4rem);
+    line-height: 1.4;
+    word-spacing: 0.01em;
+    letter-spacing: 0.01em;
   }
   
-  .agreement-detail-text
-  {
-    font-size: 0.5em;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
+  .agreement-detail-text {
+    max-height: 35vh;
+    padding: clamp(10px, 3vw, 15px);
+    font-size: clamp(1.0rem, 4.5vw, 1.4rem);
+    line-height: 1.4;
   }
-
-  .introduction {
-    padding: 15px;
-    font-size: 2em;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    position: sticky;
-    top: 0;
-    z-index: 1; /* Ensure it stays above other content */
-    background-color: #fff; /* Prevent transparency when scrolling */
+  
+  .marriage-prep-checkboxes {
+    padding: clamp(12px, 3vw, 18px);
+    margin-top: clamp(12px, 3vw, 18px);
   }
-
-  .image-container {
-    margin-top: 20px;
-    padding: 15px;
-  }
-
-  .registration-image {
-    max-width: 100%;
-    height: auto;
+  
+  .input-group1 label {
+    font-size: clamp(1.1rem, 4.5vw, 1.5rem);
+    margin-bottom: clamp(8px, 2vw, 12px);
   }
 }
 
-
-/*/* For smaller screens up to 480px (mobile phones) */
-@media (max-width: 480px) {
-  /* Agreement Detail Text Adjustment */
-  .agreement-detail-text {
-    font-size: 1.04em; /* Further reduce font size for mobile phones */
-  }
-
-  /* Agreement Options Styling */
-  .agreement-options {
-    flex-direction: column; /* Stack the radio options vertically */
-    gap: 0.8rem; /* Reduced gap between options */
-  }
-
-  .agreement-options label {
-    font-size: 1em; /* Adjust font size */
-  }
-
-  /* Input Group Label Adjustment */
-  .input-group label {
-    font-size: 1; /* Smaller label font size for mobile phones */
-  }
-
-  .marriage-prep-consent-options {
-    gap: 0.6rem !important;
-    flex-direction: column !important;
-  }
-
-  .marriage-prep-consent-options .checkbox-label {
-    font-size: 1em;
-    min-width: auto;
-  }
-
+/* Small screens (376px - 480px) */
+@media (min-width: 376px) and (max-width: 480px) {
   .agreement-detail-text-container {
-    max-height: 400px;
-    padding: 0.6rem;
-    margin: 0.6rem 0;
+    max-height: 50vh;
+    padding: clamp(15px, 3.5vw, 20px);
+    margin-bottom: clamp(15px, 3vw, 20px);
+    font-size: clamp(1.2rem, 4vw, 1.6rem);
+    line-height: 1.5;
   }
+  
+  .agreement-detail-text {
+    max-height: 40vh;
+    padding: clamp(12px, 3vw, 18px);
+    font-size: clamp(1.2rem, 4vw, 1.6rem);
+    line-height: 1.5;
+  }
+  
+  .marriage-prep-checkboxes {
+    padding: clamp(15px, 3.5vw, 20px);
+  }
+  
+  .input-group1 label {
+    font-size: clamp(1.3rem, 4vw, 1.7rem);
+  }
+}
 
-  .agreement-detail-text-container .agreement-detail-text {
-    font-size: 0.9em !important;
+/* Medium screens (481px - 768px) */
+@media (min-width: 481px) and (max-width: 768px) {
+  .agreement-detail-text-container {
+    max-height: clamp(300px, 45vh, 400px);
+    padding: clamp(18px, 3.5vw, 24px);
+    margin-bottom: clamp(18px, 3vw, 24px);
+    font-size: clamp(1.4rem, 3.5vw, 1.8rem);
+    line-height: 1.6;
   }
+  
+  .agreement-detail-text {
+    max-height: clamp(250px, 40vh, 320px);
+    padding: clamp(15px, 3vw, 20px);
+    font-size: clamp(1.4rem, 3.5vw, 1.8rem);
+    line-height: 1.6;
+  }
+  
+  .marriage-prep-checkboxes {
+    padding: clamp(18px, 3.5vw, 24px);
+  }
+}
+
+/* Tablet screens (769px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .agreement-detail-text-container {
+    max-height: clamp(350px, 45vh, 450px);
+    padding: clamp(20px, 3vw, 26px);
+    margin-bottom: clamp(20px, 3vw, 26px);
+    font-size: clamp(1.5rem, 3vw, 1.9rem);
+    line-height: 1.65;
+  }
+  
+  .agreement-detail-text {
+    max-height: clamp(280px, 40vh, 360px);
+    padding: clamp(18px, 2.5vw, 24px);
+    font-size: clamp(1.5rem, 3vw, 1.9rem);
+    line-height: 1.65;
+  }
+  
+  .marriage-prep-checkboxes {
+    padding: clamp(20px, 3vw, 26px);
+  }
+}
+
+/* Desktop screens (1025px - 1440px) */
+@media (min-width: 1025px) and (max-width: 1440px) {
+  .agreement-detail-text-container {
+    max-height: clamp(400px, 45vh, 500px);
+    padding: clamp(22px, 2.5vw, 28px);
+    margin-bottom: clamp(22px, 2.5vw, 28px);
+    font-size: clamp(1.6rem, 2.5vw, 2.0rem);
+    line-height: 1.7;
+  }
+  
+  .agreement-detail-text {
+    max-height: clamp(320px, 40vh, 400px);
+    padding: clamp(20px, 2vw, 26px);
+    font-size: clamp(1.6rem, 2.5vw, 2.0rem);
+    line-height: 1.7;
+  }
+  
+  .marriage-prep-checkboxes {
+    padding: clamp(22px, 2.5vw, 28px);
+  }
+}
+
+/* Large desktop screens (1441px and above) */
+@media (min-width: 1441px) {
+  .agreement-detail-text-container {
+    max-height: 500px;
+    padding: 30px;
+    margin-bottom: 30px;
+    font-size: 2.0rem;
+    line-height: 1.7;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
+  .agreement-detail-text {
+    max-height: 400px;
+    padding: 28px;
+    font-size: 2.0rem;
+    line-height: 1.7;
+  }
+  
+  .marriage-prep-checkboxes {
+    padding: 30px;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/* Marriage Preparation Programme Specific Responsive Styles for Agreement Details */
+
+/* Mobile First (280px - 480px) for Marriage Prep Agreement */
+@media screen and (max-width: 480px) {
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .agreement-detail-text-container {
+    max-height: clamp(200px, 45vh, 280px);
+    padding: clamp(12px, 4vw, 18px);
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: clamp(6px, 2vw, 10px);
+    border: 2px solid #ddd;
+    margin-bottom: clamp(15px, 3vw, 20px);
+    font-size: clamp(1.0rem, 4.5vw, 1.4rem);
+    line-height: clamp(1.3, 0.2vw + 1.2, 1.5);
+    word-spacing: 0.01em;
+    letter-spacing: 0.01em;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .agreement-detail-text {
+    max-height: clamp(160px, 35vh, 220px);
+    padding: clamp(10px, 3vw, 15px);
+    font-size: clamp(1.0rem, 4.5vw, 1.4rem);
+    line-height: clamp(1.3, 0.2vw + 1.2, 1.5);
+    background-color: white;
+    border-radius: clamp(4px, 1.5vw, 8px);
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .marriage-prep-checkboxes {
+    padding: clamp(12px, 4vw, 18px);
+    background-color: rgba(255, 255, 255, 0.95);
+    border: 2px solid #40E0D0;
+    border-radius: clamp(6px, 2vw, 10px);
+    margin-top: clamp(15px, 3vw, 20px);
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .marriage-prep-checkboxes label {
+    font-size: clamp(1.1rem, 4vw, 1.4rem) !important;
+    line-height: clamp(1.3, 0.2vw + 1.2, 1.5);
+    margin-bottom: clamp(10px, 2.5vw, 15px);
+    display: flex;
+    align-items: flex-start;
+    padding: clamp(6px, 2vw, 10px);
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: clamp(4px, 1.5vw, 8px);
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .marriage-prep-checkboxes input[type="checkbox"] {
+    width: clamp(16px, 4vw, 20px);
+    height: clamp(16px, 4vw, 20px);
+    margin-right: clamp(8px, 2vw, 12px);
+    margin-top: 2px;
+    flex-shrink: 0;
+    accent-color: #40E0D0;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .agreement-options label {
+    font-size: clamp(1.0rem, 4vw, 1.3rem) !important;
+    padding: clamp(6px, 2vw, 10px);
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: clamp(4px, 1.5vw, 8px);
+    margin-bottom: clamp(8px, 2vw, 12px);
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .input-group1 label {
+    font-size: clamp(1.1rem, 4.5vw, 1.5rem) !important;
+    margin-bottom: clamp(8px, 2vw, 12px);
+  }
+}
+
+/* Large Mobile / Small Tablet (481px - 768px) for Marriage Prep Agreement */
+@media screen and (min-width: 481px) and (max-width: 768px) {
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .agreement-detail-text-container {
+    max-height: clamp(280px, 45vh, 350px);
+    padding: clamp(16px, 3.5vw, 22px);
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: clamp(8px, 2vw, 12px);
+    margin-bottom: clamp(18px, 3vw, 24px);
+    font-size: clamp(1.3rem, 3.5vw, 1.7rem);
+    line-height: clamp(1.4, 0.2vw + 1.3, 1.6);
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .agreement-detail-text {
+    max-height: clamp(220px, 40vh, 280px);
+    padding: clamp(14px, 3vw, 18px);
+    font-size: clamp(1.3rem, 3.5vw, 1.7rem);
+    line-height: clamp(1.4, 0.2vw + 1.3, 1.6);
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .marriage-prep-checkboxes {
+    padding: clamp(16px, 3.5vw, 22px);
+    border-radius: clamp(8px, 2vw, 12px);
+    margin-top: clamp(18px, 3vw, 24px);
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .marriage-prep-checkboxes label {
+    font-size: clamp(1.4rem, 3.2vw, 1.7rem) !important;
+    margin-bottom: clamp(12px, 2.5vw, 18px);
+    padding: clamp(8px, 2vw, 12px);
+    border-radius: clamp(6px, 1.5vw, 10px);
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .marriage-prep-checkboxes input[type="checkbox"] {
+    width: clamp(18px, 3vw, 22px);
+    height: clamp(18px, 3vw, 22px);
+    margin-right: clamp(10px, 2.5vw, 14px);
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .agreement-options label {
+    font-size: clamp(1.3rem, 3vw, 1.6rem) !important;
+    padding: clamp(8px, 2vw, 12px);
+    border-radius: clamp(6px, 1.5vw, 10px);
+  }
+}
+
+/* Tablet (769px - 1024px) for Marriage Prep Agreement */
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .agreement-detail-text-container {
+    max-height: clamp(350px, 45vh, 450px);
+    padding: clamp(20px, 3vw, 26px);
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: clamp(10px, 2vw, 14px);
+    margin-bottom: clamp(22px, 3vw, 28px);
+    font-size: clamp(1.5rem, 2.8vw, 1.9rem);
+    line-height: clamp(1.5, 0.2vw + 1.4, 1.7);
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .agreement-detail-text {
+    max-height: clamp(280px, 40vh, 360px);
+    padding: clamp(18px, 2.5vw, 24px);
+    font-size: clamp(1.5rem, 2.8vw, 1.9rem);
+    line-height: clamp(1.5, 0.2vw + 1.4, 1.7);
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .marriage-prep-checkboxes {
+    padding: clamp(20px, 3vw, 26px);
+    border-radius: clamp(10px, 2vw, 14px);
+    margin-top: clamp(22px, 3vw, 28px);
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .marriage-prep-checkboxes label {
+    font-size: clamp(1.6rem, 2.5vw, 1.9rem) !important;
+    margin-bottom: clamp(15px, 2.5vw, 20px);
+    padding: clamp(10px, 2vw, 14px);
+    border-radius: clamp(8px, 1.5vw, 12px);
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .marriage-prep-checkboxes input[type="checkbox"] {
+    width: clamp(20px, 2.5vw, 24px);
+    height: clamp(20px, 2.5vw, 24px);
+    margin-right: clamp(12px, 2.5vw, 16px);
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .agreement-options label {
+    font-size: clamp(1.5rem, 2.5vw, 1.8rem) !important;
+    padding: clamp(10px, 2vw, 14px);
+    border-radius: clamp(8px, 1.5vw, 12px);
+  }
+}
+
+/* Desktop (1025px and above) for Marriage Prep Agreement */
+@media screen and (min-width: 1025px) {
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .agreement-detail-text-container {
+    max-height: clamp(400px, 45vh, 500px);
+    padding: clamp(24px, 2.5vw, 30px);
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: clamp(12px, 2vw, 16px);
+    margin-bottom: clamp(26px, 3vw, 32px);
+    font-size: clamp(1.7rem, 2.2vw, 2.1rem);
+    line-height: clamp(1.6, 0.1vw + 1.5, 1.8);
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .agreement-detail-text {
+    max-height: clamp(320px, 40vh, 420px);
+    padding: clamp(22px, 2.2vw, 28px);
+    font-size: clamp(1.7rem, 2.2vw, 2.1rem);
+    line-height: clamp(1.6, 0.1vw + 1.5, 1.8);
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .marriage-prep-checkboxes {
+    padding: clamp(24px, 2.5vw, 30px);
+    border-radius: clamp(12px, 2vw, 16px);
+    margin-top: clamp(26px, 3vw, 32px);
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .marriage-prep-checkboxes label {
+    font-size: clamp(1.7rem, 2.2vw, 2.0rem) !important;
+    margin-bottom: clamp(18px, 2.5vw, 24px);
+    padding: clamp(12px, 2vw, 16px);
+    border-radius: clamp(10px, 1.5vw, 14px);
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .marriage-prep-checkboxes input[type="checkbox"] {
+    width: clamp(22px, 2.2vw, 26px);
+    height: clamp(22px, 2.2vw, 26px);
+    margin-right: clamp(14px, 2.5vw, 18px);
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .agreement-options label {
+    font-size: clamp(1.6rem, 2.2vw, 1.9rem) !important;
+    padding: clamp(12px, 2vw, 16px);
+    border-radius: clamp(10px, 1.5vw, 14px);
+  }
+}
+
+/* Ultra-wide screens for Marriage Prep Agreement */
+@media screen and (min-width: 1440px) {
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .agreement-detail-text-container {
+    max-height: 500px;
+    padding: 30px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .agreement-detail-text {
+    max-height: 400px;
+    padding: 25px;
+    font-size: 1.9rem;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .marriage-prep-checkboxes {
+    padding: 30px;
+  }
+}
+
+/* Landscape orientation for Marriage Prep Agreement */
+@media screen and (orientation: landscape) and (max-height: 500px) {
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .agreement-detail-text-container {
+    max-height: 150px;
+    padding: 10px;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .agreement-detail-text {
+    max-height: 100px;
+    padding: 8px;
+    font-size: 1.2rem;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .marriage-prep-checkboxes {
+    padding: 12px;
+  }
+  
+  .formwholepage[style*="background-color: rgb(128, 0, 0)"] .marriage-prep-checkboxes label {
+    font-size: 1.3rem !important;
+    margin-bottom: 8px;
+  }
+}
+
+/* Custom scrollbar for Marriage Prep Agreement sections */
+.formwholepage[style*="background-color: rgb(128, 0, 0)"] .agreement-detail-text-container::-webkit-scrollbar,
+.formwholepage[style*="background-color: rgb(128, 0, 0)"] .agreement-detail-text::-webkit-scrollbar {
+  width: 8px;
+}
+
+.formwholepage[style*="background-color: rgb(128, 0, 0)"] .agreement-detail-text-container::-webkit-scrollbar-track,
+.formwholepage[style*="background-color: rgb(128, 0, 0)"] .agreement-detail-text::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.formwholepage[style*="background-color: rgb(128, 0, 0)"] .agreement-detail-text-container::-webkit-scrollbar-thumb,
+.formwholepage[style*="background-color: rgb(128, 0, 0)"] .agreement-detail-text::-webkit-scrollbar-thumb {
+  background: #40E0D0;
+  border-radius: 4px;
+}
+
+.formwholepage[style*="background-color: rgb(128, 0, 0)"] .agreement-detail-text-container::-webkit-scrollbar-thumb:hover,
+.formwholepage[style*="background-color: rgb(128, 0, 0)"] .agreement-detail-text::-webkit-scrollbar-thumb:hover {
+  background: #339999;
+}
+
+/* Extra large screens */
+@media (min-width: 1440px) {
+  .agreement-detail-text-container {
+    max-height: 600px;
+    padding: 30px;
+  }
+  
+  .agreement-detail-text {
+    max-height: 500px;
+    padding: 30px;
+  }
+  
+  .marriage-prep-checkboxes {
+    padding: 30px;
+  }
+}
+
+/* Enhanced Scrollbar Styling for Natural Look Across All Screens */
+.agreement-detail-text-container::-webkit-scrollbar,
+.agreement-detail-text::-webkit-scrollbar {
+  width: clamp(6px, 1.2vw, 12px);
+}
+
+.agreement-detail-text-container::-webkit-scrollbar-track,
+.agreement-detail-text::-webkit-scrollbar-track {
+  background: rgba(241, 241, 241, 0.8);
+  border-radius: clamp(3px, 0.6vw, 6px);
+  margin: clamp(2px, 0.4vw, 4px);
+}
+
+.agreement-detail-text-container::-webkit-scrollbar-thumb,
+.agreement-detail-text::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #c1c1c1 0%, #a8a8a8 100%);
+  border-radius: clamp(3px, 0.6vw, 6px);
+  border: 1px solid rgba(160, 160, 160, 0.3);
+}
+
+.agreement-detail-text-container::-webkit-scrollbar-thumb:hover,
+.agreement-detail-text::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #a8a8a8 0%, #909090 100%);
+}
+
+.agreement-detail-text-container::-webkit-scrollbar-thumb:active,
+.agreement-detail-text::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(180deg, #909090 0%, #787878 100%);
+}
+
+/* Enhanced Marriage Prep scrollbar styling */
+.formwholepage[style*="background-color: rgb(128, 0, 0)"] .agreement-detail-text-container::-webkit-scrollbar,
+.formwholepage[style*="background-color: rgb(128, 0, 0)"] .agreement-detail-text::-webkit-scrollbar {
+  width: clamp(6px, 1.2vw, 12px);
+}
+
+.formwholepage[style*="background-color: rgb(128, 0, 0)"] .agreement-detail-text-container::-webkit-scrollbar-track,
+.formwholepage[style*="background-color: rgb(128, 0, 0)"] .agreement-detail-text::-webkit-scrollbar-track {
+  background: rgba(241, 241, 241, 0.9);
+  border-radius: clamp(3px, 0.6vw, 6px);
+  margin: clamp(2px, 0.4vw, 4px);
+}
+
+.formwholepage[style*="background-color: rgb(128, 0, 0)"] .agreement-detail-text-container::-webkit-scrollbar-thumb,
+.formwholepage[style*="background-color: rgb(128, 0, 0)"] .agreement-detail-text::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #40E0D0 0%, #339999 100%);
+  border-radius: clamp(3px, 0.6vw, 6px);
+  border: 1px solid rgba(64, 224, 208, 0.3);
+}
+
+.formwholepage[style*="background-color: rgb(128, 0, 0)"] .agreement-detail-text-container::-webkit-scrollbar-thumb:hover,
+.formwholepage[style*="background-color: rgb(128, 0, 0)"] .agreement-detail-text::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #339999 0%, #2c7a7a 100%);
+}
+
+/* Touch device enhancements */
+.agreement-detail-text-container,
+.agreement-detail-text {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 rgba(241, 241, 241, 0.8);
 }

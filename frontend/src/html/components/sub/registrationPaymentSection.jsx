@@ -773,7 +773,7 @@ class RegistrationPaymentSection extends Component {
                 console.log(`${value} For This Course:`, course);
         
                 //const registration_id = id;
-                const receiptNo = await this.generateReceiptNumber(course, course.payment, "", "");
+                const receiptNo = await this.generateReceiptNumber(course, course.payment, "", "", "");
                 console.log("Receipt N11o:", receiptNo);
                 await this.generatePDFReceipt(id, participant, course, receiptNo, value);
                 await this.createReceiptInDatabase(receiptNo, course.courseLocation, id, "");  
@@ -788,7 +788,7 @@ class RegistrationPaymentSection extends Component {
         else if (value === "Generating SkillsFuture Invoice") {
             try {
               console.log("Generating SkillsFuture invoice for course:", course);
-              const invoiceNo = await this.generateReceiptNumber(course, "", "", "");
+              const invoiceNo = await this.generateReceiptNumber(course, "", "", "", "");
               console.log("Invoice No:", invoiceNo);
               await this.generatePDFInvoice(id, participant, course, invoiceNo, value);  
               await this.createReceiptInDatabase(invoiceNo, course.courseLocation, id, ""); 
@@ -813,7 +813,7 @@ class RegistrationPaymentSection extends Component {
                  console.log(`${value} For This Course12345:`, course);
         
                 //const registration_id = id;
-                const receiptNo = await this.generateReceiptNumber(course, newMethod, course.courseType, course.courseEngName);
+                const receiptNo = await this.generateReceiptNumber(course, newMethod, course.courseType, course.courseEngName, course.courseDuration);
                 console.log("Receipt N111o:", receiptNo);
                 await this.generatePDFReceipt(id, participant, course, receiptNo, value);
                 await this.createReceiptInDatabase(receiptNo, course.courseLocation, id, "");  
@@ -823,7 +823,7 @@ class RegistrationPaymentSection extends Component {
                 console.log(`${value} For This Course:`, course);
         
                 //const registration_id = id;
-                const receiptNo = await this.generateReceiptNumber(course, newMethod, "", "");
+                const receiptNo = await this.generateReceiptNumber(course, newMethod, "", "", "");
                 console.log("Receipt N11o:", receiptNo);
                 await this.generatePDFReceipt(id, participant, course, receiptNo, value);
                 await this.createReceiptInDatabase(receiptNo, course.courseLocation, id, "");  
@@ -842,7 +842,7 @@ class RegistrationPaymentSection extends Component {
             console.log("Generating receipt for course:", course);
     
             const registration_id = id;
-            const invoiceNo = await this.generateReceiptNumber(course, newMethod, "", "");
+            const invoiceNo = await this.generateReceiptNumber(course, newMethod, "", "", "");
             console.log("Invoice No:", invoiceNo);
             await this.generatePDFReceipt(id, participant, course, invoiceNo, value);
             await this.createReceiptInDatabase(invoiceNo, course.courseLocation, id, "");    
