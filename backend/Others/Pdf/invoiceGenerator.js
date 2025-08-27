@@ -618,8 +618,15 @@ class invoiceGenerator {
         doc.font(fontPathBold).text(invoiceText, columnPositions.fullCourse + 10, currentY + 10); 
         
         const payablePrice = array.reduce((acc, item) => {
-            const coursePrice = parseFloat(subsidizedPrice.replace('$', '').trim());
-            return acc + coursePrice;
+            let subsidizedPrice = 0;
+            
+            if(age >= 50) {
+                subsidizedPrice = parseFloat(item.course.coursePrice.replace('$', '').trim());
+            } else {
+                subsidizedPrice = parseFloat(item.course.coursePrice.replace('$', '').trim()) * 5;
+            }
+            
+            return acc + subsidizedPrice;
         }, 0);
 
         doc.text(`$${payablePrice.toFixed(2)}`, columnPositions.subsidised + 10, currentY + 10);
