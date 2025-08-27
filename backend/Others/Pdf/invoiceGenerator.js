@@ -559,7 +559,7 @@ class invoiceGenerator {
 
             doc.text(formattedStartDate, columnPositions.startDate+ 5, currentY + 3); 
             doc.text(formattedEndDate, columnPositions.endDate+ 5, currentY + 3); 
-                       let coursePrice = 0;
+            let coursePrice = 0;
             let subsidizedPrice = 0;
             let totalPrice = 0;
             if(age >= 50)
@@ -618,7 +618,7 @@ class invoiceGenerator {
         doc.font(fontPathBold).text(invoiceText, columnPositions.fullCourse + 10, currentY + 10); 
         
         const payablePrice = array.reduce((acc, item) => {
-            const coursePrice = parseFloat(item.course.coursePrice.replace('$', '').trim());
+            const coursePrice = parseFloat(subsidizedPrice.replace('$', '').trim());
             return acc + coursePrice;
         }, 0);
 
