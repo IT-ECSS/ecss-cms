@@ -1058,7 +1058,6 @@ class RegistrationPaymentSection extends Component {
             return paymentStatus === "Confirmed";
           }
         });
-    
         // Sort participants alphabetically
         filteredRows.sort((a, b) => {
           const nameA = a.participantInfo.name.trim().toLowerCase();

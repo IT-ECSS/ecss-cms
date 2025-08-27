@@ -254,7 +254,7 @@ class invoiceGenerator {
         return `${day}-${monthAbbr}-${year}`;
     }
         
-    async addBody(doc, array, currentPage, totalPages, name, receiptNo) {
+    async addBody(doc, array, age) {
         const fontSize = 24;
 
         const leftMargin = 2.54 * 28.35; // 2.54 cm to points
@@ -274,7 +274,7 @@ class invoiceGenerator {
         doc.moveDown(0.5);
     
         // Create the course table
-        this.createCourseTable(doc, array, "Course Ref. No. ", "Course Title", "Start Date", "End Date", "Full Course Fee (S$)", "Subsidised Fee Payable (S$)");
+        this.createCourseTable(doc, array, "Course Ref. No. ", "Course Title", "Start Date", "End Date", "Full Course Fee (S$)", "Subsidised Fee Payable (S$)", age);
         currentY = doc.y; // Update currentY to the bottom of the table
     
         doc.moveDown(15);
@@ -286,7 +286,7 @@ class invoiceGenerator {
         doc.moveDown(0.5);
     
         // Create the participants table (uncomment if needed)
-        this.createParticipantsTable(doc, array, "NRIC. No. ", "Name of Participant", "Full Course Fee (S$)", "Subsidised Fee Payable (S$)", "Cash", "SFC Claim");
+        this.createParticipantsTable(doc, array, "NRIC. No. ", "Name of Participant", "Full Course Fee (S$)", "Subsidised Fee Payable (S$)", "Cash", "SFC Claim", age);
         
     }
     
@@ -467,7 +467,7 @@ class invoiceGenerator {
         }
     }*/
       
-    async createCourseTable(doc, array, header1, header2, header3, header4, header5, header6) {
+    async createCourseTable(doc, array, header1, header2, header3, header4, header5, header6, age) {
         const fontPathBold = path.join(__dirname, '../../fonts/ARIALBD.TTF'); 
         const fontPathRegular = path.join(__dirname, '../../fonts/ARIAL.TTF'); 
         const chineseFontPath = path.join(__dirname, '../../fonts/NotoSansSC-Regular.ttf');
@@ -559,8 +559,21 @@ class invoiceGenerator {
 
             doc.text(formattedStartDate, columnPositions.startDate+ 5, currentY + 3); 
             doc.text(formattedEndDate, columnPositions.endDate+ 5, currentY + 3); 
-            const coursePrice = parseFloat(item.course.coursePrice.replace('$', '').trim());
-            const totalPrice = coursePrice * 5;
+                       let coursePrice = 0;
+            let subsidizedPrice = 0;
+            let totalPrice = 0;
+            if(age >= 50)
+            {
+                coursePrice = parseFloat(item.course.coursePrice.replace('$', '').trim());
+                totalPrice =  parseFloat(item.course.coursePrice.replace('$', '').trim())*5;
+                subsidizedPrice = coursePrice;
+            }
+            else
+            {
+                coursePrice = parseFloat(item.course.coursePrice.replace('$', '').trim())*5;
+                totalPrice =  parseFloat(item.course.coursePrice.replace('$', '').trim())*5;
+                subsidizedPrice = totalPrice;
+            }
             doc.text(`$     ${totalPrice.toFixed(2)}`, columnPositions.fullCourse+ 5, currentY + 3); 
             doc.text(`$     ${coursePrice.toFixed(2)}`, columnPositions.subsidised+ 5, currentY + 3); 
         
@@ -627,7 +640,7 @@ class invoiceGenerator {
             .stroke('black');
     }
 
-    async createParticipantsTable(doc, array, header1, header2, header3, header4, header5, header6) {
+    async createParticipantsTable(doc, array, header1, header2, header3, header4, header5, header6, age) {
         const fontPathBold = path.join(__dirname, '../../fonts/ARIALBD.TTF');
         const fontPathRegular = path.join(__dirname, '../../fonts/ARIAL.TTF');
     
@@ -709,10 +722,23 @@ class invoiceGenerator {
             doc.text(item.participant.nric, columnPositions.nric + 5, currentY + 10);
             doc.text(item.participant.name, columnPositions.pName + 5, currentY + 10);
     
-            const coursePrice = parseFloat(item.course.coursePrice.replace('$', '').trim());
-            const totalPrice = coursePrice * 5;
+            let coursePrice = 0;
+            let subsidizedPrice = 0;
+            let totalPrice = 0;
+            if(age >= 50)
+            {
+                coursePrice = parseFloat(item.course.coursePrice.replace('$', '').trim());
+                totalPrice =  parseFloat(item.course.coursePrice.replace('$', '').trim())*5;
+                subsidizedPrice = coursePrice;
+            }
+            else
+            {
+                coursePrice = parseFloat(item.course.coursePrice.replace('$', '').trim())*5;
+                totalPrice =  parseFloat(item.course.coursePrice.replace('$', '').trim())*5;
+                subsidizedPrice = totalPrice;
+            }
             doc.text(`$ ${totalPrice.toFixed(2)}`, columnPositions.fullCourse + 5, currentY + 10);
-            doc.text(`$ ${coursePrice.toFixed(2)}`, columnPositions.subsidised + 5, currentY + 10);
+            doc.text(`$ ${subsidizedPrice.toFixed(2)}`, columnPositions.subsidised + 5, currentY + 10);
             doc.text('-', columnPositions.cash + 5, currentY + 10);
             doc.text(`$ ${coursePrice.toFixed(2)}`, columnPositions.sFCClaim + 5, currentY + 10);
     
@@ -745,8 +771,8 @@ class invoiceGenerator {
     }
     
 
-    async addContent(doc, array, name, receiptNo) {
-        console.log("Add Content:", name);
+    async addContent(doc, array, name, receiptNo, age) {
+        console.log("Add Content:", name,age);
         
         // Initial header addition for the first page
         await this.addHeader(doc, receiptNo); // Add header to the first page
@@ -754,7 +780,7 @@ class invoiceGenerator {
         doc.moveDown(3);
     
         // Add body content for the first page
-        await this.addBody(doc, array, name, receiptNo);
+        await this.addBody(doc, array, age);
     
         // Adjust the vertical position for the footer
         const footerY = doc.y+45; // 20 units below the current position
@@ -762,7 +788,7 @@ class invoiceGenerator {
         // Add footer content
         await this.addFooter(doc, footerY);
     }
-    async generateInvoice(res, array, name, receiptNo) {
+    async generateInvoice(res, array, name, receiptNo, age) {
         console.log(array, name, receiptNo);
     
         try {
@@ -797,7 +823,7 @@ class invoiceGenerator {
             doc.pipe(res);
     
             // Ensure addContent is called correctly with await
-            await this.addContent(doc, array, name, receiptNo);
+            await this.addContent(doc, array, name, receiptNo, age);
     
             // Finalize the document
             doc.end();
