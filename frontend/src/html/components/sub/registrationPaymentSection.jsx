@@ -538,7 +538,6 @@ class RegistrationPaymentSection extends Component {
 
       receiptShown = async (participant, course, receiptNo, officialInfo) => {
         try {
-          console.log("Generating receipt for course:", course);
           // Define the purpose based on payment type
           let purpose = course.payment === "Cash" || course.payment === "PayNow" ? "receipt" : "invoice";
       
