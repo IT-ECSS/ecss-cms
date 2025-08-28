@@ -86,10 +86,10 @@ router.post('/', async function(req, res, next)
     // Initialize controllers once at the top
     const participantsController = new ParticipantsController();
     const registrationController = new RegistrationController();
+    const io = req.app.get('io');
     
     if(req.body.purpose === "insert")
     {
-        const io = req.app.get('io');
         var participantsParticulars = req.body.participantDetails;
         console.log("Participant Details:", participantsParticulars);
 
@@ -469,14 +469,13 @@ router.post('/', async function(req, res, next)
             const result = await registrationController.bulkUpdateParticipants(updates, staff, date, time);
             
             if (result.success) {
-                 if (io) {
-                console.log("Emitting registration event to all connected clients");
-                io.emit('registration', {
-                    participant: participantsParticulars.participant,
-                    course: participantsParticulars.course,
-                    registrationDate: participantsParticulars.registrationDate
+                if (io) {
+                    console.log("Emitting registration event to all connected clients");
+                    io.emit('registration', {
+                    date: date,
+                    time: time
                 });
-         }
+                }
                 return res.json({
                     result: true,
                     message: result.message || `Successfully updated ${updates.length} records`,

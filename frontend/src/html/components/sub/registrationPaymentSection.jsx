@@ -3631,9 +3631,9 @@ debugMarriagePrepData = () => {
       alert('Please select a status or payment method to update.');
       return;
     }
-
+  
     this.props.showUpdatePopup(`Updating ${selectedRows.length} records... Please wait...`);
-
+  
     try {
       // Prepare bulk update data
       const bulkUpdateData = {
@@ -3645,18 +3645,57 @@ debugMarriagePrepData = () => {
         })),
         staff: this.props.userName
       };
-
+  
       // Send single request to backend
       const response = await axios.post(
         `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
         bulkUpdateData
       );
-
-      if (response.data.result === true) {
+  
+      if (response.data.result === true) 
+      {
         this.closeBulkUpdateModal();
-        await this.refreshChild();
-        this.props.closePopup();
-        alert(`Successfully updated ${selectedRows.length} records.`);
+        
+        if (bulkUpdateStatus) 
+        {
+          // Update popup message for WooCommerce updates
+          this.props.showUpdatePopup(`Database updated successfully. Now updating WooCommerce for ${selectedRows.length} records... Please wait...`);
+          
+          console.log(`Updating WooCommerce for ${selectedRows.length} records with status: ${bulkUpdateStatus}`);
+        
+          // Process WooCommerce updates one by one in sequence
+          for (let i = 0; i < selectedRows.length; i++) {
+            const row = selectedRows[i];
+            try {
+              // Update popup with current progress
+              this.props.showUpdatePopup(`Updating WooCommerce... Processing record ${i + 1} of ${selectedRows.length}`);
+              
+              await this.updateWooCommerceForRegistrationPayment(
+                row.courseChi || row.courseInfo?.courseChiName,
+                row.course || row.courseInfo?.courseEngName,
+                row.location || row.courseInfo?.courseLocation,
+                bulkUpdateStatus
+              );
+            } catch (error) {
+              console.error(`Failed to update WooCommerce for row ${row.id}:`, error);
+              // Continue with next row even if one fails
+            }
+          }
+          
+          console.log('WooCommerce bulk updates completed');
+          
+          // Final success popup
+          this.props.showUpdatePopup(`All updates completed successfully! ${selectedRows.length} records updated.`);
+          
+          // Close popup after a brief delay to show success message
+          setTimeout(() => {
+            this.props.closePopup();
+            alert(`Successfully updated ${selectedRows.length} records.`);
+          }, 1500);
+        } else {
+          this.props.closePopup();
+          alert(`Successfully updated ${selectedRows.length} records.`);
+        }
       } else {
         throw new Error(response.data.message || 'Bulk update failed');
       }
@@ -3957,10 +3996,13 @@ debugMarriagePrepData = () => {
                     onChange={(e) => this.setState({ bulkUpdateStatus: e.target.value })}
                   >
                     <option value="">-- No Change --</option>
-                    <option value="Paid">Paid</option>
                     <option value="Pending">Pending</option>
-                    <option value="Unpaid">Unpaid</option>
+                    <option value="Paid">Paid</option>
+                    <option value="Cancelled">Cancelled</option>
+                    <option value="Withdrawn">Withdrawn</option>
                     <option value="Refunded">Refunded</option>
+                    <option value="Generating SkillsFuture Invoice">Generating SkillsFuture Invoice</option>
+                    <option value="SkillsFuture Done">SkillsFuture Done</option>
                     <option value="Confirmed">Confirmed</option>
                   </select>
                 </div>
