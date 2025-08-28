@@ -1181,7 +1181,7 @@ class RegistrationPaymentSection extends Component {
           switch (course) {
               case "不和慢性病做朋友":
                   return "ECSS-CBO-M-016C";
-              case "我的故事 – 中文":
+              case "我的故事":
                   return "ECSS-CBO-M-016C";
               case "和谐粉彩绘画基础班":
                   return "ECSS-CBO-M-019C";
