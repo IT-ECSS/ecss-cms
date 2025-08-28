@@ -18,7 +18,7 @@ class QRCodeGenerator {
             const buffer = await QRCode.toBuffer(this.text, this.options);
 
             // Save the buffer to a JPG file
-            const filename = `掌握沟通艺术。 拥有快乐的家 Art of Positive Communication builds happy homes (CT Hub).jpg`;
+            const filename = `我的故事 – 中文 My Story – Mandarin (Tampines North Community Centre).jpg`;
             fs.writeFileSync(filename, buffer);
             console.log(`QR code generated and saved as ${filename}`);
         } catch (error) {
@@ -28,5 +28,5 @@ class QRCodeGenerator {
 }
 
 // Usage
-const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/%e6%8e%8c%e6%8f%a1%e6%b2%9f%e9%80%9a%e8%89%ba%e6%9c%af%e3%80%82-%e6%8b%a5%e6%9c%89%e5%bf%ab%e4%b9%90%e7%9a%84%e5%ae%b6art-of-positive-communication-builds-happy-homesct-hub/`);
+const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/%e6%88%91%e7%9a%84%e6%95%85%e4%ba%8b-%e4%b8%ad%e6%96%87my-story-mandarintampines-north-community-centre/`);
 qrCodeGenerator.generate();

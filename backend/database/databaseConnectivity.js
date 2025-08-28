@@ -1443,9 +1443,13 @@ class DatabaseConnectivity {
                 // For Tampines 253 Centre in 2026 and beyond, start from 1
                 nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 91;
             } 
-            else if (centreLocation === "Pasir Ris West Wellness Centre") {
-                // For Pasir Ris West Wellness Centre in 2026 and beyond, start from 1
-                nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 13 ;
+             else if (centreLocation === "Tampines North Community Centre") 
+            {
+               nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
+            } 
+            else if (centreLocation === "Pasir Ris West Wellness Centre") 
+            {
+                nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
             }
             else if (centreLocation === "Renewal Christian Church") {
                 // For Pasir Ris West Wellness Centre in 2026 and beyond, start from 1
@@ -1462,6 +1466,10 @@ class DatabaseConnectivity {
                 nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
             } else if (centreLocation === "Pasir Ris West Wellness Centre") {
                 // For Pasir Ris West Wellness Centre in 2026 and beyond, start from 1
+                nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
+            }
+            else if (centreLocation === "Pasir Ris West Wellness Centre") 
+            {
                 nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
             }
             else if (centreLocation === "Renewal Christian Church") {
@@ -1484,6 +1492,10 @@ class DatabaseConnectivity {
             {
                 nextNumber = `R${nextNumber.toString().padStart(3, '0')}`; // Pad to 3 digits if less than 3
             }
+            else if (centreLocation === "Tampines North Community Centre") 
+            {
+               nextNumber = `TNCC${nextNumber.toString().padStart(3, '0')}`; // Pad to 3 digits if less than 3
+            } 
             else
             {
                 nextNumber = nextNumber.toString().padStart(3, '0'); // Pad to 3 digits if less than 3
@@ -1499,6 +1511,10 @@ class DatabaseConnectivity {
             {
                 nextNumber = `R${nextNumber.toString().padStart(3, '0')}`; // Pad to 3 digits if less than 3
             }
+            else if (centreLocation === "Tampines North Community Centre") 
+            {
+               nextNumber = `TNCC${nextNumber.toString().padStart(3, '0')}`; // Pad to 3 digits if less than 3
+            } 
             else
             {
                 nextNumber = nextNumber.toString().padStart(3, '0'); // Pad to 3 digits if less than 3
@@ -1544,13 +1560,16 @@ class DatabaseConnectivity {
             // For CT Hub, it uses the same logic as the others
             nextNumber =  maxReceiptNumber + 1;
         } 
-    
         else if (centreLocation === "Renewal Christian Church") {
             // For CT Hub, it uses the same logic as the others
            // console.log("This is a new location");
             nextNumber =  maxReceiptNumber + 1;
         } 
-    
+        else if (centreLocation === "Tampines North Community Centre") {
+            // Custom logic for Tampines North Community Centre
+            nextNumber =  maxReceiptNumber + 1;
+        } 
+
         // Determine the length of the next number based on the nextNumber value
         let numberLength = nextNumber.toString().length;
     

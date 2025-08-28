@@ -163,69 +163,21 @@ class RegistrationPaymentSection extends Component {
       return array;
     }
 
-    /*async componentDidMount() { 
-     // this.props.onResetSearch();
-      const { language, siteIC, role } = this.props;
-      const {data, data1} = await this.fetchCourseRegistrations(language);
-      //.log('All Courses Registration:  ', data);
-      // Call anomaliesAlert only once
-      var locations = await this.getAllLocations(data);
-      var types = await this.getAllTypes(data);
-      var names = await this.getAllNames(data);
-      var quarters = await this.getAllQuarters(data);
-      this.props.passDataToParent(locations, types, names, quarters);
+    async componentDidMount() 
+    {
+      await this.fetchAndSetRegistrationData();
 
-      const statuses = data.map(item => item.status); // Extract statuses
-      console.log('Statuses:', statuses); // Log the array of statuses
-      
-      await this.props.getTotalNumberofDetails(data.length);
-
-      // Initialize inputValues for each index based on fetched data
-      const inputValues = {};
-      data.forEach((item, index) => {
-        inputValues[index] = item.status || "Pending"; // Use item.status or default to "Pending"
+      // --- Live update via Socket.IO ---
+      this.socket = io(
+        window.location.hostname === "localhost"
+          ? "http://localhost:3001"
+          : "https://ecss-backend-node.azurewebsites.net"
+      );
+      this.socket.on('registration', (data) => {
+        console.log("Socket event received", data);
+        this.fetchAndSetRegistrationData();
       });
-
-      const inputValues1 = {};
-      data.forEach((item, index) => {
-        inputValues1[index] = item.official.remarks; // Use item.status or default to "Pending"
-        console.log("Current Remarks: ", item.official.remarks)
-      });    
-
-      this.setState({
-        originalData: data,
-        registerationDetails: data, // Update with fetched dat
-        isLoading: false, // Set loading to false after data is fetche
-        inputValues: inputValues,  // Show dropdown for the focused input
-        remarks: inputValues1,  // Show dropdown for the focused input
-        locations: locations, // Set locations in state
-        names: names,
-        //rowData: data
-      });
-      await this.getRowData(data);
-      if (!this.state.isAlertShown) {
-       await this.anomalitiesAlert(data1);
-        // Use a callback to set the state after the alert has been shown
-        this.setState({ isAlertShown: true });
-      }
-    
-      this.props.closePopup();
-    }*/
-
-    async componentDidMount() {
-    await this.fetchAndSetRegistrationData();
-
-    // --- Live update via Socket.IO ---
-    this.socket = io(
-      window.location.hostname === "localhost"
-        ? "http://localhost:3001"
-        : "https://ecss-backend-node.azurewebsites.net"
-    );
-    this.socket.on('registration', (data) => {
-      console.log("Socket event received", data);
-      this.fetchAndSetRegistrationData();
-    });
-  }
+    }
 
   componentWillUnmount() {
     if (this.socket) {
