@@ -1765,10 +1765,11 @@ class RegistrationPaymentSection extends Component {
     let paymentMethods;
     if(type === "NSA")
     {
+      console.log("Type:", type, "Location:", location);
       // List of payment methods
       if(location === "Pasir Ris West Wellness Centre")
       {
-        if(courseName !== "Community Ukulele – Mandarin")
+        if((courseName !== "Community Ukulele – Mandarin") && (courseName !== "My Story – Mandarin"))
         {
           paymentMethods = ['PayNow', 'SkillsFuture'];
         }
@@ -1779,7 +1780,7 @@ class RegistrationPaymentSection extends Component {
       }
       else
       {
-        if(courseName !== "Community Ukulele – Mandarin")
+        if((courseName !== "Community Ukulele – Mandarin") && (courseName !== "My Story – Mandarin"))
         {
           paymentMethods = ['Cash', 'PayNow', 'SkillsFuture'];
         }
@@ -1791,15 +1792,7 @@ class RegistrationPaymentSection extends Component {
     }
     else if(type === "Marriage Preparation Programme")
     {
-      // For Marriage Preparation Programme, exclude SkillsFuture
-      /*if(location === "Pasir Ris West Wellness Centre")
-      {
-        paymentMethods = ['PayNow'];
-      }
-      else
-      {*/
-        paymentMethods = ['Cash', 'PayNow'];
-      //}
+      paymentMethods = ['Cash', 'PayNow'];
     }
     else
     {

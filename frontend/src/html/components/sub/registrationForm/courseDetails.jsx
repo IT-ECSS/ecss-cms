@@ -129,6 +129,7 @@ class CourseDetailsSection extends Component {
                 isNSA && (
                   courseEnglishName === 'Community Ukulele – Mandarin L2A' ||
                   courseEnglishName === 'Community Ukulele – Mandarin L2B' ||
+                  courseEnglishName === 'My Story – Mandarin' ||
                   (courseEnglishName !== 'Community Ukulele – Mandarin L1' && courseChineseName !== "音乐祝福社区四弦琴班")
                 )
               ) || !isMarriagePrep ? (
