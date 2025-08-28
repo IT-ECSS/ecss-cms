@@ -1174,48 +1174,14 @@ class RegistrationPaymentSection extends Component {
       }
     };
 
-
-    /*ecssCourseCode(course) {
-        //The Rest Note of Life – Mandarin 14-Feb
-        course = course.trim();
-        console.log("Course Name111: ", course);
-    
-        //Therapeutic Basic Line Work
-        const courseMap = {
-            "TCM – Don’t be a friend of Chronic Diseases": "ECSS-CBO-M-016C",
-            "Nagomi Pastel Art Basic": "ECSS-CBO-M-019C",
-            "Therapeutic Watercolour Painting for Beginners": "ECSS-CBO-M-024E",
-            "Chinese Calligraphy Intermediate": "ECSS-CBO-M-021C",
-            "Chinese Calligraphy Basic": "ECSS-CBO-M-020C",
-            "Nagomi Pastel Art Appreciation": "ECSS-CBO-M-018C",
-            "Community Ukulele – Mandarin": "ECSS-CBO-M-004C",
-            "Community Singing – Mandarin": "ECSS-CBO-M-003C",
-            "Self-Care TCM Wellness – Mandarin": "ECSS-CBO-M-001C",
-            "Hanyu Pinyin for Beginners": "ECSS-CBO-M-011C",
-            "The Rest Note of Life – Mandarin": "ECSS-CBO-M-023C",
-            "TCM Diet & Therapy": "ECSS-CBO-M-010C",
-            "Therapeutic Basic Line Work": "ECSS-CBO-M-030E",
-            "Healthy Minds, Healthy Lives – Mandarin": "ECSS-CBO-M-028C",
-            "Smartphone Photography": "ECSS-CBO-M-038C",
-            "Art of Positive Communication builds happy homes": "ECSS-CBO-M-031C"
-            //Healthy Minds, Healthy Lives – Mandarin
-        };
-
-        // Check for exact match
-        if (courseMap[course]) {
-            return courseMap[course];
-        }
-    
-        // If no match, return a default value
-        return "";
-      }*/
-
-      ecssChineseCourseCode(course) {
+    ecssChineseCourseCode(course) {
           if (!course) return "";
           course = course.trim();
       
           switch (course) {
               case "不和慢性病做朋友":
+                  return "ECSS-CBO-M-016C";
+              case "我的故事 – 中文":
                   return "ECSS-CBO-M-016C";
               case "和谐粉彩绘画基础班":
                   return "ECSS-CBO-M-019C";

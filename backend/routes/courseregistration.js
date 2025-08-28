@@ -469,6 +469,14 @@ router.post('/', async function(req, res, next)
             const result = await registrationController.bulkUpdateParticipants(updates, staff, date, time);
             
             if (result.success) {
+                 if (io) {
+                console.log("Emitting registration event to all connected clients");
+                io.emit('registration', {
+                    participant: participantsParticulars.participant,
+                    course: participantsParticulars.course,
+                    registrationDate: participantsParticulars.registrationDate
+                });
+         }
                 return res.json({
                     result: true,
                     message: result.message || `Successfully updated ${updates.length} records`,
