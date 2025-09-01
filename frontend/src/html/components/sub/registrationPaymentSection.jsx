@@ -1174,77 +1174,234 @@ class RegistrationPaymentSection extends Component {
       }
     };
 
-    ecssChineseCourseCode(course) {
-          if (!course) return "";
-          course = course.trim();
+    convertDateToYYYYMMDD = (dateString) => 
+    {
+      if (!dateString) return '';
       
-          switch (course) {
-              case "不和慢性病做朋友":
-                  return "ECSS-CBO-M-016C";
-              case "我的故事":
-                  return "ECSS-CBO-M-016C";
-              case "和谐粉彩绘画基础班":
-                  return "ECSS-CBO-M-019C";
-              case "和谐粉彩绘画体验班":
-                  return "ECSS-CBO-M-018C";
-              case "疗愈水彩画基础班":
-                  return "ECSS-CBO-M-024E";
-              case "中文书法中级班":
-                  return "ECSS-CBO-M-021C";
-              case "中文书法初级班":
-                  return "ECSS-CBO-M-020C";
-              case "音乐祝福社区四弦琴班":
-                  return "ECSS-CBO-M-004C";
-              case "音乐祝福社区四弦琴班第2阶":
-                  return "ECSS-CBO-M-037C";
-              case "音乐祝福社区歌唱班":
-                  return "ECSS-CBO-M-003C";
-              case "自我养生保健":
-                  return "ECSS-CBO-M-001C";
-              case "汉语拼音基础班":
-                  return "ECSS-CBO-M-011C";
-              case "汉语拼音中级班":
-                  return "ECSS-CBO-M-025C";
-              case "汉语拼音之–《唐诗三百首》":
-                  return "ECSS-CBO-M-036C";
-              case "人生休止符":
-                  return "ECSS-CBO-M-023C";
-              case "食疗与健康":
-                  return "ECSS-CBO-M-010C";
-              case "疗愈基础素描":
-                  return "ECSS-CBO-M-030E";
-              case "健康心灵，健康生活":
-                  return "ECSS-CBO-M-028C";
-              case "智能手机摄影":
-                  return "ECSS-CBO-M-038C";
-              case "掌握沟通艺术。 拥有快乐的家":
-                  return "ECSS-CBO-M-031C";
-              case "和谐粉彩绘画基础班-第2阶":
-                  return "ECSS-CBO-M-039C";
-              case "中级疗愈水彩班":
-                  return "ECSS-CBO-M-040C";
-              case "自我成长":
-                  return "ECSS-CBO-M-013C";
-              case "我的故事":
-                  return "ECSS-CBO-M-007C";
-              case "如何退而不休活得精彩":
-                  return "ECSS-CBO-M-006C";
-              case "活跃乐龄大使":
-                  return "ECSS-CBO-M-005C";
-              case "预防跌倒与功能强化训练":
-                  return "ECSS-CBO-M-002C";
-              case "C3A心理健康课程: 以微笑应万变":
-                  return "ECSS-CBO-M-017C";
-              case "智慧理财基础知识":
-                  return "ECSS-CBO-M-029C";
-              case "盆栽课程":
-                  return "ECSS-CBO-M-034C";
-              case "乐龄儿孙乐":
-                  return "ECSS-CBO-M-035C";
-              default:
-                  return "";
-          }
+      try {
+        // Split the dd/mm/yyyy format
+        const [day, month, year] = dateString.split('/');
+        
+        // Validate the parts exist
+        if (!day || !month || !year) return dateString;
+        
+        // Return in yyyy/mm/dd format
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      } catch (error) {
+        console.error('Error converting date format:', error);
+        return dateString; // Return original if conversion fails
       }
+  };
+
+  exportToMarriagePreparationProgramme = async () => {
+    try {
+      const { selectedRows } = this.state;
+      if (!selectedRows.length) {
+        return this.props.warningPopUpMessage("No rows selected. Please select rows to export.");
+      }
+  
+      let filePath, outputFileName;
+      const firstType = selectedRows[0]?.courseInfo?.courseType;
+      
+      if (firstType === "Marriage Preparation Programme") {
+        filePath = '/external/default-template-Marriage_Preparation_Programme.xlsx';
+        outputFileName = `default-template-Marriage_Preparation_Programme as of ${this.getCurrentDateTime()}.xlsx`;
+      }
+    
+      // Fetch the Excel file
+      const response = await fetch(filePath);
+      if (!response.ok) {
+        return this.props.warningPopUpMessage("Error fetching the Excel file.");
+      }
+  
+      const data = await response.arrayBuffer();
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(data);
+  
+      const sourceSheet = workbook.getWorksheet('Template');
+      if (!sourceSheet) {
+        return this.props.warningPopUpMessage("Sheet 'Template' not found!");
+      }
+  
+      const originalRow = sourceSheet.getRow(4); // Row 4 is the template row to copy
+      const startRow = 4;
+  
+      console.log("Selected Rows:", selectedRows);
+  
+      // Filter to only include rows with specific payment statuses
+      const filteredRows = selectedRows.filter(row => {
+        const paymentStatus = row.paymentStatus;
+        if (firstType === "Marriage Preparation Programme") {
+          return paymentStatus === "Paid";
+        }
+      });
+  
+      // Sort participants alphabetically
+      filteredRows.sort((a, b) => {
+        const nameA = a.participantInfo.name.trim().toLowerCase();
+        const nameB = b.participantInfo.name.trim().toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+  
+      filteredRows.forEach((detail, index) => {
+        const rowIndex = startRow + index;
+        const newDataRow = sourceSheet.getRow(rowIndex);
+        newDataRow.height = originalRow.height;
+  
+        if (firstType === "Marriage Preparation Programme") {
+          sourceSheet.getCell(`C${rowIndex}`).value = detail.participantInfo.nric;
+          sourceSheet.getCell(`D${rowIndex}`).value = detail.participantInfo.name;
+          sourceSheet.getCell(`E${rowIndex}`).value = detail.participantInfo.email;
+          sourceSheet.getCell(`F${rowIndex}`).value = detail.participantInfo.contactNumber;
+          sourceSheet.getCell(`G${rowIndex}`).value = detail.courseInfo.courseEngName;
+          sourceSheet.getCell(`H${rowIndex}`).value = detail.participantInfo.name;
+          sourceSheet.getCell(`I${rowIndex}`).value = detail.participantInfo.email;
+          sourceSheet.getCell(`J${rowIndex}`).value = this.convertDateToYYYYMMDD(detail.participantInfo.dateOfBirth);
+          sourceSheet.getCell(`K${rowIndex}`).value = detail.participantInfo.residentialStatus;
+          sourceSheet.getCell(`L${rowIndex}`).value = detail.participantInfo.gender;
+          sourceSheet.getCell(`M${rowIndex}`).value = detail.participantInfo.race;
+          sourceSheet.getCell(`N${rowIndex}`).value = detail.marriageDetails?.maritalStatus;
+          sourceSheet.getCell(`O${rowIndex}`).value = detail.participantInfo.postalCode;
+          sourceSheet.getCell(`P${rowIndex}`).value = detail.participantInfo.educationLevel;
+          sourceSheet.getCell(`Q${rowIndex}`).value = detail.marriageDetails?.housingType;
+          sourceSheet.getCell(`R${rowIndex}`).value = detail.marriageDetails?.grossMonthlyIncome;
+          sourceSheet.getCell(`S${rowIndex}`).value = detail.marriageDetails?.marriageDuration;
+          sourceSheet.getCell(`T${rowIndex}`).value = detail.marriageDetails?.typeOfMarriage;
+          sourceSheet.getCell(`U${rowIndex}`).value = detail.marriageDetails?.hasChildren;
+          sourceSheet.getCell(`V${rowIndex}`).value = detail.spouse?.name;
+          sourceSheet.getCell(`W${rowIndex}`).value = detail.spouse?.nric;
+          sourceSheet.getCell(`X${rowIndex}`).value = this.convertDateToYYYYMMDD(detail.spouse?.dateOfBirth);
+          sourceSheet.getCell(`Y${rowIndex}`).value = detail.spouse?.residentialStatus;
+          sourceSheet.getCell(`Z${rowIndex}`).value = detail.spouse?.sex;
+          sourceSheet.getCell(`AA${rowIndex}`).value = detail.spouse?.ethnicity;
+          sourceSheet.getCell(`AB${rowIndex}`).value = detail.spouse?.maritalStatus;
+          sourceSheet.getCell(`AC${rowIndex}`).value = detail.spouse?.postalCode;
+          sourceSheet.getCell(`AD${rowIndex}`).value = detail.spouse?.mobile;
+          sourceSheet.getCell(`AE${rowIndex}`).value = detail.spouse?.email;
+          sourceSheet.getCell(`AF${rowIndex}`).value = detail.spouse?.education;
+          sourceSheet.getCell(`AG${rowIndex}`).value = detail.spouse?.housingType;
+          sourceSheet.getCell(`AH${rowIndex}`).value = detail.marriageDetails?.howFoundOut;
+          sourceSheet.getCell(`AI${rowIndex}`).value = detail.marriageDetails?.howFoundOutOthers;
+          sourceSheet.getCell(`AJ${rowIndex}`).value = detail.marriageDetails?.sourceOfReferral;
+          sourceSheet.getCell(`AK${rowIndex}`).value = detail.consent?.marriagePrepConsent1 
+            ? 'I confirm that my spouse/spouse-to-be and I understand and agree to the collection, use and disclosure of our Personal Information as set out in the link above'
+            : '';
+          sourceSheet.getCell(`AL${rowIndex}`).value = detail.consent?.marriagePrepConsent2 
+            ? 'I confirm that I have read and understood the Terms of Consent as set out in the link above'
+            : '';
+        }
+      });
+
+      // Auto-adjust column widths for better visibility
+      sourceSheet.columns.forEach((column, index) => {
+        let maxLength = 0;
+        
+        // Check all cells in the column to find the maximum content length
+        column.eachCell({ includeEmpty: true }, (cell) => {
+          const cellValue = cell.value ? cell.value.toString() : '';
+          if (cellValue.length > maxLength) {
+            maxLength = cellValue.length;
+          }
+        });
+        
+        // Set column width with some padding
+        // Minimum width of 10, maximum of 100 for very long content
+        const width = Math.min(Math.max(maxLength + 2, 10), 100);
+        column.width = width;
+      });
+      
+      // Manually set wider widths for consent columns (columns AK and AL)
+      if (sourceSheet.getColumn('AK')) {
+        sourceSheet.getColumn('AK').width = 150; // Very wide for consent text
+      }
+      if (sourceSheet.getColumn('AL')) {
+        sourceSheet.getColumn('AL').width = 150; // Very wide for consent text
+      }
+  
+      // Save and download
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+      saveAs(blob, outputFileName);
+    } catch (error) {
+      console.error("Error exporting Marriage Preparation Programme:", error);
+      this.props.warningPopUpMessage("An error occurred during export.");
+    }
+  };
+
+  ecssChineseCourseCode(course)
+  {
+    if (!course) return "";
+    course = course.trim();
+
+    switch (course) {
+        case "不和慢性病做朋友":
+            return "ECSS-CBO-M-016C";
+        case "我的故事":
+            return "ECSS-CBO-M-016C";
+        case "和谐粉彩绘画基础班":
+            return "ECSS-CBO-M-019C";
+        case "和谐粉彩绘画体验班":
+            return "ECSS-CBO-M-018C";
+        case "疗愈水彩画基础班":
+            return "ECSS-CBO-M-024E";
+        case "中文书法中级班":
+            return "ECSS-CBO-M-021C";
+        case "中文书法初级班":
+            return "ECSS-CBO-M-020C";
+        case "音乐祝福社区四弦琴班":
+            return "ECSS-CBO-M-004C";
+        case "音乐祝福社区四弦琴班第2阶":
+            return "ECSS-CBO-M-037C";
+        case "音乐祝福社区歌唱班":
+            return "ECSS-CBO-M-003C";
+        case "自我养生保健":
+            return "ECSS-CBO-M-001C";
+        case "汉语拼音基础班":
+            return "ECSS-CBO-M-011C";
+        case "汉语拼音中级班":
+            return "ECSS-CBO-M-025C";
+        case "汉语拼音之–《唐诗三百首》":
+            return "ECSS-CBO-M-036C";
+        case "人生休止符":
+            return "ECSS-CBO-M-023C";
+        case "食疗与健康":
+            return "ECSS-CBO-M-010C";
+        case "疗愈基础素描":
+            return "ECSS-CBO-M-030E";
+        case "健康心灵，健康生活":
+            return "ECSS-CBO-M-028C";
+        case "智能手机摄影":
+            return "ECSS-CBO-M-038C";
+        case "掌握沟通艺术。 拥有快乐的家":
+            return "ECSS-CBO-M-031C";
+        case "和谐粉彩绘画基础班-第2阶":
+            return "ECSS-CBO-M-039C";
+        case "中级疗愈水彩班":
+            return "ECSS-CBO-M-040C";
+        case "自我成长":
+            return "ECSS-CBO-M-013C";
+        case "我的故事":
+            return "ECSS-CBO-M-007C";
+        case "如何退而不休活得精彩":
+            return "ECSS-CBO-M-006C";
+        case "活跃乐龄大使":
+            return "ECSS-CBO-M-005C";
+        case "预防跌倒与功能强化训练":
+            return "ECSS-CBO-M-002C";
+        case "C3A心理健康课程: 以微笑应万变":
+            return "ECSS-CBO-M-017C";
+        case "智慧理财基础知识":
+            return "ECSS-CBO-M-029C";
+        case "盆栽课程":
+            return "ECSS-CBO-M-034C";
+        case "乐龄儿孙乐":
+            return "ECSS-CBO-M-035C";
+        default:
+            return "";
+    }
+}
       
 
       ecssEnglishCourseCode(course) {
@@ -3940,7 +4097,7 @@ debugMarriagePrepData = () => {
           <button className="save-btn" onClick={() => this.archiveData()}>
             Archive Data
           </button>
-          {this.props.role !== "Social Worker" && (
+         {this.props.role !== "Social Worker" ? (
             <>
               <button className="export-btn" 
                       onClick={this.exportToLOP}
@@ -3954,6 +4111,12 @@ debugMarriagePrepData = () => {
                 Export Attendance
               </button>
             </>
+          ) : (
+            <button className="export-btn2" 
+                    onClick={this.exportToMarriagePreparationProgramme}
+                    disabled={selectedRows.length === 0}>
+              Export to Marriage Preparation Programme
+            </button>
           )}
           <button 
             className="bulk-update-btn" 
