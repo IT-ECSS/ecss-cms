@@ -13,6 +13,7 @@ import React, { Component } from 'react';
   import DashboardSection from './sub/dashboardSection';
   import AttendanceSection from './sub/AttendanceSection';
   import MembershipSection from './sub/MembershipSection';
+  import FitnessSection from './sub/FitnessSection';
   import ReportSection from './sub/reportSection';
   import WelcomeSection from './sub/welcomeSection';
   import { withAuth } from '../../AuthContext';
@@ -85,6 +86,8 @@ import React, { Component } from 'react';
         membershipSearchQuery: '',
         searchQuery: '',
         resetMembershipTable: false,
+        isFitnessVisible: false,
+        fitnessSearchQuery: '',
         accessRights: {} // Access rights from sidebar
       };
   
@@ -104,6 +107,7 @@ import React, { Component } from 'react';
       this.handleRegPaymentSearchFromChild = this.handleRegPaymentSearchFromChild.bind(this);
       this.handleMembershipSelectFromChild = this.handleMembershipSelectFromChild.bind(this);
       this.handleMembershipSearchFromChild = this.handleMembershipSearchFromChild.bind(this);
+      this.handleFitnessSearchFromChild = this.handleFitnessSearchFromChild.bind(this);
       this.handlePageChange = this.handlePageChange.bind(this);
       this.toggleViewMode = this.toggleViewMode.bind(this); 
       this.toggleRegistrationPaymentComponent = this.toggleRegistrationPaymentComponent.bind(this);
@@ -267,7 +271,8 @@ import React, { Component } from 'react';
             reportVisibility: true, 
             reportType: reportType,
             attendanceVisibility: false,
-            isMembershipVisible: false
+            isMembershipVisible: false,
+            isFitnessVisible: false
           });
       } 
       catch (error) 
@@ -304,7 +309,8 @@ import React, { Component } from 'react';
               dashboard: false, // Added this - was missing
               attendanceVisibility: true,
               attendanceType: attendanceType,  // Added parameter to store attendance type,
-              isMembershipVisible: false
+              isMembershipVisible: false,
+              isFitnessVisible: false
             });
           });
       } 
@@ -365,6 +371,56 @@ import React, { Component } from 'react';
         this.setState({
           isPopupOpen: true,
           popupMessage: "Error loading membership view",
+          popupType: "error-message"
+        });
+      }
+    }
+
+    toggleFitnessComponent = async() => {
+      console.log("toggleFitnessComponent called - starting fitness navigation");
+      try {
+        // Reset search and filters
+        this.setState({ resetSearch: true, }, () => {
+          this.setState({ resetSearch: false });
+        });
+
+        console.log("Showing loading popup for fitness module");
+        // First show loading popup
+        this.setState({
+          isPopupOpen: true,
+          popupMessage: "Loading Fitness Module",
+          popupType: "loading",
+        }, () => {
+          console.log("Setting fitness visibility states");
+          // After loading popup is shown, update the visibility states
+          this.setState({
+            courseType: null,
+            sidebarVisible: false,
+            isRegistrationPaymentVisible: false,
+            isReceiptVisible: false,
+            section: "fitness", // Set section name
+            accountType: null,
+            createAccount: false,
+            reportVisibility: false,
+            dashboard: false,
+            attendanceVisibility: false,
+            attendanceType: "",
+            isMembershipVisible: false,
+            isFitnessVisible: true,
+            // Reset fitness filtering state
+            fitnessSearchQuery: '',
+            searchQuery: ''
+          }, () => {
+            console.log("Fitness module state updated successfully - isFitnessVisible:", this.state.isFitnessVisible);
+          });
+        });
+      } 
+      catch (error) {
+        console.log("Error in toggleFitnessComponent:", error);
+        // Show error message
+        this.setState({
+          isPopupOpen: true,
+          popupMessage: "Error loading fitness module",
           popupType: "error-message"
         });
       }
@@ -1104,6 +1160,15 @@ import React, { Component } from 'react';
       });
     };
     
+    // Handler for fitness search query from child components
+    handleFitnessSearchFromChild = (searchQuery) => {
+      console.log('Fitness search query:', searchQuery);
+      this.setState({
+        fitnessSearchQuery: searchQuery,
+        searchQuery: searchQuery // Also update the general searchQuery for compatibility
+      });
+    };
+    
     // Handle attendance search query
     handleAttendanceSearchFromChild = (data) => {
       console.log("Attendance Search Query:", data);
@@ -1168,6 +1233,10 @@ import React, { Component } from 'react';
         case 'access-rights':
           this.toggleAccountsComponent('Access Rights');
           break;
+        case 'fitness':
+        case 'fft-results':
+          this.toggleFitnessComponent();
+          break;
         default:
           console.log('Navigation section not found:', section);
       }
@@ -1186,6 +1255,7 @@ import React, { Component } from 'react';
         dashboard: false,
         attendanceVisibility: false,
         isMembershipVisible: false,
+        isFitnessVisible: false,
         isReceiptVisible: false,
         section: '',
         submenuVisible: null
@@ -1198,7 +1268,7 @@ import React, { Component } from 'react';
       const userName = this.props.location.state?.name || 'User';
       const role = this.props.location.state?.role;
       const siteIC = this.props.location.state?.siteIC;
-      const {membershipType, membershipTypes, membershipSearchQuery, isMembershipVisible, attendanceVisibility, reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo, selectedQuarter, quarters, attendanceFilterType, attendanceFilterCode, attendanceFilterLocation, attendanceSearchQuery, attendanceTypes, activityCodes, attendanceLocations} = this.state;
+      const {membershipType, membershipTypes, membershipSearchQuery, isMembershipVisible, isFitnessVisible, fitnessSearchQuery, attendanceVisibility, reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo, selectedQuarter, quarters, attendanceFilterType, attendanceFilterCode, attendanceFilterLocation, attendanceSearchQuery, attendanceTypes, activityCodes, attendanceLocations} = this.state;
 
       return (
         <>
@@ -1244,6 +1314,7 @@ import React, { Component } from 'react';
                   toggleReportComponent = {this.toggleReportComponent}
                   toggleAttendanceComponent = {this.toggleAttendanceComponent}
                   toggleMembershipComponent = {this.toggleMembershipComponent}
+                  toggleFitnessComponent = {this.toggleFitnessComponent}
                   onAccessRightsUpdate = {this.handleAccessRightsData}
                   key={this.state.refreshKey}
                 />
@@ -1259,6 +1330,7 @@ import React, { Component } from 'react';
                 dashboard === false &&
                 attendanceVisibility === false &&
                 isMembershipVisible === false &&
+                isFitnessVisible === false &&
                 isReceiptVisible === false &&
                 (
                   <>
@@ -1389,6 +1461,32 @@ import React, { Component } from 'react';
                             closePopup1={this.closePopup}
                             searchQuery={searchQuery}
                             membershipType={membershipType}
+                            resetSearch={resetSearch}
+                            language={language}
+                            key={this.state.refreshKey}
+                            refreshChild={this.refreshChild}
+                          />
+                        </div>
+                    </>
+                }
+                {isFitnessVisible && 
+                    <>
+                        <div className="search-section">
+                            <Search
+                              section={section}
+                              language={language}
+                              resetSearch={resetSearch}
+                              passSearchedValueToParent={this.handleFitnessSearchFromChild}
+                            />
+                        </div>
+                        <div className="fitness-content">
+                          <FitnessSection 
+                            section={section}
+                            userName={userName}
+                            role={role}
+                            siteIC={siteIC}
+                            closePopup1={this.closePopup}
+                            searchQuery={searchQuery}
                             resetSearch={resetSearch}
                             language={language}
                             key={this.state.refreshKey}

@@ -191,6 +191,15 @@ class WelcomeSection extends Component {
                 action: () => this.props.onNavigate('delete-qr-code'),
                 accessKey: 'Delete QR Code',
                 parentKey: 'QR Code'
+            },
+            { 
+                key: 'FFT Results', 
+                title: 'FFT Results', 
+                icon: 'fas fa-file-alt', 
+                description: 'View fitness assessment results and tracking', 
+                action: () => this.props.onNavigate('fitness'),
+                accessKey: 'FFT Results',
+                parentKey: 'Fitness'
             }
         ];
 
@@ -267,7 +276,77 @@ class WelcomeSection extends Component {
 
         // Sort by priority and limit to top 6 most relevant actions
         const prioritizedActions = prioritizeActions(userActions);
-        return prioritizedActions;
+        
+        // Add any additional dynamic actions from database that aren't in the predefined list
+        const dynamicActions = [];
+        const iconMapping = {
+            'Create Account': 'fas fa-user-plus',
+            'Account Table': 'fas fa-users-cog',
+            'Access Rights Table': 'fas fa-shield-alt',
+            'NSA Courses': 'fas fa-graduation-cap',
+            'ILP Courses': 'fas fa-book-open',
+            'Marriage Preparation Programme Courses': 'fas fa-heart',
+            'Registration And Payment Table': 'fas fa-credit-card',
+            'Monthly Report': 'fas fa-chart-bar',
+            'Payment Report': 'fas fa-file-invoice-dollar',
+            'Upload Courses': 'fas fa-upload',
+            'Create QR Code': 'fas fa-qrcode',
+            'QR Code Table': 'fas fa-table',
+            'Delete QR Code': 'fas fa-trash-alt',
+            'View Attendance': 'fas fa-calendar-check',
+            'View Membership': 'fas fa-id-card'
+        };
+
+        const navigationMapping = {
+            'Create Account': 'create-account',
+            'Account Table': 'accounts',
+            'Access Rights Table': 'access-rights',
+            'NSA Courses': 'nsa-courses',
+            'ILP Courses': 'ilp-courses',
+            'Marriage Preparation Programme Courses': 'marriage-courses',
+            'Registration And Payment Table': 'registration',
+            'Monthly Report': 'monthly-report',
+            'Payment Report': 'payment-report',
+            'Upload Courses': 'upload-courses',
+            'Create QR Code': 'qr-code',
+            'QR Code Table': 'qr-code-table',
+            'Delete QR Code': 'delete-qr-code',
+            'View Attendance': 'attendance',
+            'View Membership': 'membership'
+        };
+
+        // Scan database access rights for any subkeys not in predefined actions
+        Object.keys(accessRights).forEach((mainKey) => {
+            const value = accessRights[mainKey];
+            
+            if (typeof value === 'object' && value !== null) {
+                Object.keys(value).forEach((subKey) => {
+                    if (value[subKey] === true) {
+                        // Check if this subkey is not already in prioritizedActions
+                        const exists = prioritizedActions.find(action => action.key === subKey);
+                        if (!exists) {
+                            dynamicActions.push({
+                                key: subKey,
+                                title: subKey,
+                                icon: iconMapping[subKey] || 'fas fa-cog',
+                                description: `Access ${subKey} functionality`,
+                                action: () => {
+                                    const navKey = navigationMapping[subKey] || subKey.toLowerCase().replace(/\s+/g, '-');
+                                    this.props.onNavigate(navKey);
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+        });
+
+        // Combine predefined and dynamic actions, prioritize predefined ones
+        const allDynamicActions = [...prioritizedActions, ...dynamicActions];
+        
+        console.log('Final actions (predefined + dynamic):', allDynamicActions.map(a => a.title));
+        
+        return allDynamicActions;
     };
 
     // Get navigation cards based on access rights (simulating sidebar structure)
@@ -282,7 +361,8 @@ class WelcomeSection extends Component {
             "Membership": 'fas fa-address-card',
             "QR Code": 'fas fa-qrcode',
             "Reports": 'fas fa-table',
-            "Attendances": 'fas fa-calendar-days'
+            "Attendances": 'fas fa-calendar-days',
+            "Fitness": 'fas fa-dumbbell'
         };
 
         // Define sub-key descriptions
@@ -349,10 +429,10 @@ class WelcomeSection extends Component {
     };
 
     componentDidMount() {
-        // Update time every minute
+        // Update time every second to show seconds
         this.timeInterval = setInterval(() => {
             this.setState({ currentTime: new Date() });
-        }, 60000);
+        }, 1000);
     }
 
     componentWillUnmount() {
@@ -375,6 +455,19 @@ class WelcomeSection extends Component {
             month: 'long',
             day: 'numeric'
         });
+    };
+
+    formatTime = () => {
+        // Use Singapore timezone directly
+        const singaporeTime = new Date().toLocaleString("en-US", {
+            timeZone: "Asia/Singapore",
+            hour12: false,
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+        
+        return singaporeTime;
     };
 
   handleSubKeyNavigation = (subKey) => {
@@ -438,6 +531,10 @@ class WelcomeSection extends Component {
                             <div className="meta-item">
                                 <i className="fas fa-calendar-day"></i>
                                 <span>{this.formatDate()}</span>
+                            </div>
+                            <div className="meta-item">
+                                <i className="fas fa-clock"></i>
+                                <span>{this.formatTime()}</span>
                             </div>
                             <div className="meta-item">
                                 <i className="fas fa-user-shield"></i>

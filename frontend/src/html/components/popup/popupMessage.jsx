@@ -903,6 +903,7 @@ class Popup extends Component {
                   mainKey === "attendance" ? "Attendances" : 
                   mainKey === "reports" ? "Reports" : 
                   mainKey === "membership" ? "Membership" : 
+                  mainKey === "fitness" ? "Fitness" : 
                   mainKey;
 
                 return (

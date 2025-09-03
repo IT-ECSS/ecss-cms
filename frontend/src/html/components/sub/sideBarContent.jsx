@@ -149,6 +149,17 @@ class SideBarContent extends Component {
         console.log("View Membership clicked");
         this.props.toggleMembershipComponent(subKey);
        }
+       else if(subKey === "FFT Results")
+       {
+        console.log("FFT Results clicked in sidebar");
+        console.log("toggleFitnessComponent function exists:", !!this.props.toggleFitnessComponent);
+        if (this.props.toggleFitnessComponent) {
+          console.log("Calling toggleFitnessComponent...");
+          this.props.toggleFitnessComponent(subKey);
+        } else {
+          console.error("toggleFitnessComponent function not found in props");
+        }
+       }
     }
 
     closeSubMenu = () =>
@@ -158,7 +169,7 @@ class SideBarContent extends Component {
 
     render() {
         const { accessRights, openKey } = this.state;
-        console.log("Access Rights:", accessRights);
+        console.log("Access Rights (Now):", accessRights);
 
         // Map of icons for each main item
         const iconMap = {
@@ -170,7 +181,8 @@ class SideBarContent extends Component {
             "Membership": 'fa-solid fas fa-address-card',
             "QR Code": 'fa-solid fa-qrcode',
             "Reports": 'fa-solid fa-table',
-            "Attendances": 'fa-solid fa-calendar-days'
+            "Attendances": 'fa-solid fa-calendar-days',
+            "Fitness": 'fa-solid fa-dumbbell'
         };
 
         return (
@@ -191,38 +203,44 @@ class SideBarContent extends Component {
                     {Object.keys(accessRights).map((key) => {
                         const value = accessRights[key];
 
-                        // Check if the value is exactly true or an object with true sub-keys
+                        // Handle both boolean values and objects
                         if (value === true) {
+                            // Simple boolean true value
                             return (
                                 <li key={key} onClick={() => this.toggleMainMenu(key)}>
-                                    <i className={iconMap[key]} aria-hidden="true"></i> {/* Display the icon */}
-                                    <span>{key}</span> {/* Display the main key */}
+                                    <i className={iconMap[key]} aria-hidden="true"></i>
+                                    <span style={{marginLeft: "5px"}}>{key}</span>
                                 </li>
                             );
                         } else if (typeof value === 'object' && value !== null) {
-                            // If value is an object, check its sub-keys
-                            const subKeys = Object.keys(value).filter(subKey => value[subKey] === true);
-                            if (subKeys.length > 0) {
-                                return (
-                                    <li key={key}>
-                                        <div onClick={() => this.toggleMainMenu(key)}>
-                                            <i className={iconMap[key]} aria-hidden="true"></i> {/* Display the icon */}
-                                            {key} {/* Display the main key */}
-                                        </div>
-                                        {openKey === key && ( // Render sub-keys only if this main key is open
-                                            <ul>
-                                                {subKeys.map(subKey => (
-                                                    <li key={subKey} onClick={() => this.handleSubKeyClick(subKey)}>
-                                                        <span>{subKey}</span>{/* Display the sub-key */}
+                            // Object with sub-keys - show ALL sub-keys regardless of true/false
+                            const allSubKeys = Object.keys(value);
+                            return (
+                                <li key={key}>
+                                    <div onClick={() => this.toggleMainMenu(key)}>
+                                        <i className={iconMap[key]} aria-hidden="true"></i>
+                                        <span style={{marginLeft: "5px"}}>{key}</span>
+                                    </div>
+                                    {openKey === key && (
+                                        <ul>
+                                            {allSubKeys.map(subKey => {
+                                                const isEnabled = value[subKey] === true;
+                                                return (
+                                                    <li 
+                                                        key={subKey} 
+                                                        onClick={isEnabled ? () => this.handleSubKeyClick(subKey) : undefined}
+                                                        className={isEnabled ? 'enabled-item' : 'disabled-item'}
+                                                    >
+                                                        <span>{subKey}</span>
                                                     </li>
-                                                ))}
-                                            </ul>
-                                        )}
-                                    </li>
-                                );
-                            }
+                                                );
+                                            })}
+                                        </ul>
+                                    )}
+                                </li>
+                            );
                         }
-                        return null; // Do not render anything if the value is not true
+                        return null;
                     })}
                 </ul>
             </div>

@@ -82,7 +82,7 @@ class AccessRightController
                 var databaseName = "Company-Management-System";
                 var collectionName = "Access Rights";
                 var connectedDatabase = await this.databaseConnectivity.retrieveOneFromDatabase(databaseName, collectionName, accountId);   
-                var accessRights = {"Account": connectedDatabase["Account"], "Courses": connectedDatabase["Courses"], "Membership": connectedDatabase["Membership"], "Registration And Payment": connectedDatabase["Registration And Payment"], "QR Code":  connectedDatabase["QR Code"], "Reports":  connectedDatabase["Reports"], "Attendances":  connectedDatabase["Attendances"]}
+                var accessRights = {"Account": connectedDatabase["Account"], "Courses": connectedDatabase["Courses"], "Membership": connectedDatabase["Membership"], "Registration And Payment": connectedDatabase["Registration And Payment"], "QR Code":  connectedDatabase["QR Code"], "Reports":  connectedDatabase["Reports"], "Attendances":  connectedDatabase["Attendances"], "Membership": connectedDatabase["Membership"], "Fitness": connectedDatabase["Fitness"]}
                 return accessRights;
             }
         } 

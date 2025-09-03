@@ -205,6 +205,7 @@ class AccountsSection extends Component {
       var roles = this.getAllRolesAccessRight(response.data.result);
 
       await this.props.getTotalNumberofAccounts(response.data.result.length);
+      console.log("Access Rights123:", response.data.result);
       this.props.passDataToParent(roles);
       this.props.closePopup();
       
@@ -242,6 +243,7 @@ class AccountsSection extends Component {
          attendance: item["Attendances"],
          membership: item["Membership"],
          reports: item["Reports"],
+         fitness: item["Fitness"] || {}
        };
      });
    
@@ -869,6 +871,18 @@ class AccountsSection extends Component {
                       <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
                         <strong>Viewing Attendance: </strong>
                         {this.state.accessRightsRowData[this.state.expandedRowIndex].attendance["View Attendance"] ? (
+                          <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
+                        ) : (
+                          <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
+                        )}
+                      </p>
+                    </div>
+                    <br/>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                      <strong>Fitness Module | </strong>
+                      <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
+                        <strong>FFT Results: </strong>
+                        {this.state.accessRightsRowData[this.state.expandedRowIndex].fitness["FFT Results"] ? (
                           <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
                         ) : (
                           <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
