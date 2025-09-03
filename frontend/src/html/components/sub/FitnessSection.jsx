@@ -110,13 +110,24 @@ const AdvancedFitnessTable = ({ data, calculateChange, getStationStats, onSelect
       ),
       filterFn: 'equals',
     },
-    {
+      {
       accessorKey: 'location',
       header: 'Location',
       size: 150,
-      cell: ({ getValue }) => (
-        <span className="location-badge">{getValue()}</span>
-      ),
+      cell: ({ getValue }) => {
+        const location = getValue();
+        let badgeClass = 'location-badge'; // base class
+
+        if (location === 'CT Hub') {
+          badgeClass += ' green';
+        } else if (location === 'Tampines North Community Centre') {
+          badgeClass += ' brown';
+        } else if (location === 'Pasir Ris West') {
+          badgeClass += ' grey';
+        }
+
+        return <span className={badgeClass}>{location}</span>;
+      },
       filterFn: 'includesString',
     },
     {
@@ -409,7 +420,9 @@ class FitnessSection extends Component {
       selectedParticipantForDetail: null,
       yearFrom: '',
       yearTo: '',
-      availableYears: []
+      availableYears: [],
+      selectedLocation: '', // Added location filter
+      availableLocations: [] // Added available locations
     };
   }
 
@@ -428,8 +441,10 @@ class FitnessSection extends Component {
       if (response.data.success) {
         console.log("Fitness Report Data:", response.data.data);
         
-        // Extract available years from the main keys of participant data
+        // Extract available years and locations from the participant data
         const years = new Set();
+        const locations = new Set();
+        
         response.data.data.forEach(participant => {
           Object.keys(participant).forEach(key => {
             // Only look at main keys that are 4-digit years, excluding other fields like 'name', 'dob', etc.
@@ -437,14 +452,23 @@ class FitnessSection extends Component {
               years.add(key);
             }
           });
+          
+          // Extract locations
+          if (participant.location) {
+            locations.add(participant.location);
+          }
         });
         
         const sortedYears = Array.from(years).sort();
+        const sortedLocations = Array.from(locations).sort();
+        
         console.log("Available years found:", sortedYears);
+        console.log("Available locations found:", sortedLocations);
         
         this.setState({ 
           fftData: response.data.data,
-          availableYears: sortedYears
+          availableYears: sortedYears,
+          availableLocations: sortedLocations
         });
       } else {
         console.error('Error fetching fitness data:', response.data.message);
@@ -496,7 +520,16 @@ class FitnessSection extends Component {
   }
 
   getFilteredData = () => {
-    return [...this.state.fftData];
+    let filtered = [...this.state.fftData];
+    
+    // Filter by location if selected
+    if (this.state.selectedLocation) {
+      filtered = filtered.filter(participant => 
+        participant.location === this.state.selectedLocation
+      );
+    }
+    
+    return filtered;
   }
 
   handleSelectionChange = (selectedData) => {
@@ -519,6 +552,10 @@ class FitnessSection extends Component {
     this.setState({ yearTo: event.target.value });
   }
 
+  handleLocationChange = (event) => {
+    this.setState({ selectedLocation: event.target.value });
+  }
+
   // Enhanced table component using React Table
   renderAdvancedTable = () => {
     const stationMetrics = [
@@ -531,10 +568,12 @@ class FitnessSection extends Component {
       { key: 'squat', name: '30s Squat', isHigherBetter: true, unit: '' }
     ];
 
+    const filteredData = this.getFilteredData();
+
     return (
       <>
         <AdvancedFitnessTable 
-          data={this.state.fftData} 
+          data={filteredData} 
           calculateChange={this.calculateChange}
           getStationStats={this.getStationStats}
           onSelectionChange={this.handleSelectionChange}
@@ -565,7 +604,7 @@ class FitnessSection extends Component {
   }
 
   getStationStats = (metricKey, isHigherBetter = true) => {
-    const participants = this.state.fftData;
+    const participants = this.getFilteredData(); // Use filtered data instead of all data
     const { yearFrom, yearTo } = this.state;
     let improved = 0;
     let declined = 0;
@@ -596,7 +635,7 @@ class FitnessSection extends Component {
   }
 
   render() {
-    const { loading, yearFrom, yearTo, availableYears } = this.state;
+    const { loading, yearFrom, yearTo, availableYears, selectedLocation, availableLocations } = this.state;
     const filteredData = this.getFilteredData();
     const totalCount = filteredData.length;
     const bothYearsSelected = yearFrom && yearTo && yearFrom !== yearTo;
@@ -643,10 +682,29 @@ class FitnessSection extends Component {
                 ))}
               </select>
             </div>
+            
+            {bothYearsSelected && (
+              <div className="date-input-group">
+                <label htmlFor="location">Location</label>
+                <select 
+                  id="location"
+                  value={selectedLocation} 
+                  onChange={this.handleLocationChange}
+                  className="date-select"
+                >
+                  <option value="">All Locations</option>
+                  {availableLocations.map(location => (
+                    <option key={location} value={location}>
+                      {location}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         </div>
 
-        {bothYearsSelected && (
+        {selectedLocation && (
           <div className="report-content">
             {loading ? (
               <div className="loading-state">
@@ -654,10 +712,7 @@ class FitnessSection extends Component {
                 <p>Loading fitness data...</p>
               </div>
             ) : totalCount === 0 ? (
-              <div className="empty-state">
-                <h3>📭 No participants found</h3>
-                <p>No fitness data available for {yearFrom} vs {yearTo}</p>
-              </div>
+             <></>
             ) : (
               this.renderAdvancedTable()
             )}

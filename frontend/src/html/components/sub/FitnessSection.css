@@ -389,15 +389,31 @@
   color: #c2185b;
 }
 
-.location-badge {
-  display: inline-block;
-  padding: 4px 10px;
-  background: #f0f2f5;
-  color: #5a6c7d;
-  border-radius: 12px;
-  font-size: 0.85rem;
-  font-weight: 500;
-}
+  .location-badge {
+    padding: 0.3rem 0.6rem;
+    border-radius: 0.4rem;
+  }
+
+  .location-badge.green {
+    background-color: green;
+    color: white;
+    font-weight: bold;
+    text-transform: capitalize;
+  }
+
+  .location-badge.brown {
+    background-color: brown;
+    color: white;
+    font-weight: bold;
+    text-transform: capitalize;
+  }
+
+  .location-badge.grey {
+    background-color: grey;
+    color: white;
+    font-weight: bold;
+    text-transform: capitalize;
+  }
 
 .phone-cell {
   font-family: 'Monaco', 'Menlo', monospace;
