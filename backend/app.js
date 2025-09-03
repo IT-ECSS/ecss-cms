@@ -22,6 +22,7 @@ var attendanceRouter = require('./routes/attendance');
 var membershipRouter = require('./routes/membership');
 var jwksRouter = require('./routes/jwks');
 var whatsappRouter = require('./routes/whatsapp');
+var fitnessRouter = require('./routes/fitness');
 
 app.use(cors()); // Enable CORS
 app.use(logger('dev')); // HTTP request logger
@@ -78,6 +79,7 @@ app.use("/coursesRegistered", coursesRegisteredRouter);
 app.use("/attendance", attendanceRouter);
 app.use("/membership", membershipRouter);
 app.use("/whatsapp", whatsappRouter);
+app.use("/fitness", fitnessRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

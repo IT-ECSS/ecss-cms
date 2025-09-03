@@ -1479,7 +1479,6 @@ import React, { Component } from 'react';
                               passSearchedValueToParent={this.handleFitnessSearchFromChild}
                             />
                         </div>
-                        <div className="fitness-content">
                           <FitnessSection 
                             section={section}
                             userName={userName}
@@ -1491,8 +1490,8 @@ import React, { Component } from 'react';
                             language={language}
                             key={this.state.refreshKey}
                             refreshChild={this.refreshChild}
+                            onDataLoaded={this.closePopup}
                           />
-                        </div>
                     </>
                 }             
                 { isRegistrationPaymentVisible&& 
