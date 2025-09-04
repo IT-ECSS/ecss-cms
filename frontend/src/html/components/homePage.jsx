@@ -259,7 +259,7 @@ import React, { Component } from 'react';
           this.setState({ resetSearch: true, }, () => {
             this.setState({ resetSearch: false });
           });
-
+    
          
           this.setState({
             courseType: null,
@@ -272,7 +272,7 @@ import React, { Component } from 'react';
             reportType: reportType,
             attendanceVisibility: false,
             isMembershipVisible: false,
-            isFitnessVisible: false
+            isFitnessVisible: false // Added this
           });
       } 
       catch (error) 
@@ -334,7 +334,7 @@ import React, { Component } from 'react';
           this.setState({ resetSearch: true, }, () => {
             this.setState({ resetSearch: false });
           });
-
+    
       
           // First show loading popup
           this.setState({
@@ -356,6 +356,7 @@ import React, { Component } from 'react';
               attendanceVisibility: false,
               attendanceType: "",
               isMembershipVisible: true,
+              isFitnessVisible: false, // Added this
               // Reset membership filtering state
               membershipType: 'All Types',
               membershipSearchQuery: '',
@@ -383,7 +384,7 @@ import React, { Component } from 'react';
         this.setState({ resetSearch: true, }, () => {
           this.setState({ resetSearch: false });
         });
-
+    
         console.log("Showing loading popup for fitness module");
         // First show loading popup
         this.setState({
@@ -394,24 +395,40 @@ import React, { Component } from 'react';
           console.log("Setting fitness visibility states");
           // After loading popup is shown, update the visibility states
           this.setState({
+            // Explicitly set ALL other visibility flags to false
             courseType: null,
-            sidebarVisible: false,
-            isRegistrationPaymentVisible: false,
-            isReceiptVisible: false,
-            section: "fitness", // Set section name
             accountType: null,
             createAccount: false,
-            reportVisibility: false,
             dashboard: false,
+            isRegistrationPaymentVisible: false,
+            isReceiptVisible: false,
+            reportVisibility: false,
             attendanceVisibility: false,
-            attendanceType: "",
             isMembershipVisible: false,
+            
+            // Set ONLY fitness to true
             isFitnessVisible: true,
+            
+            // Reset other states
+            sidebarVisible: false,
+            section: "fitness",
+            attendanceType: "",
+            
             // Reset fitness filtering state
             fitnessSearchQuery: '',
             searchQuery: ''
           }, () => {
             console.log("Fitness module state updated successfully - isFitnessVisible:", this.state.isFitnessVisible);
+            console.log("All other visibility flags should be false:");
+            console.log("- courseType:", this.state.courseType);
+            console.log("- accountType:", this.state.accountType);
+            console.log("- createAccount:", this.state.createAccount);
+            console.log("- dashboard:", this.state.dashboard);
+            console.log("- isRegistrationPaymentVisible:", this.state.isRegistrationPaymentVisible);
+            console.log("- isReceiptVisible:", this.state.isReceiptVisible);
+            console.log("- reportVisibility:", this.state.reportVisibility);
+            console.log("- attendanceVisibility:", this.state.attendanceVisibility);
+            console.log("- isMembershipVisible:", this.state.isMembershipVisible);
           });
         });
       } 
@@ -482,7 +499,7 @@ import React, { Component } from 'react';
         this.setState({ resetSearch: true, }, () => {
           this.setState({ resetSearch: false });
         });
-
+    
         this.setState({
           isPopupOpen: true,
           popupMessage: "Loading In Progress",
@@ -495,7 +512,8 @@ import React, { Component } from 'react';
           createAccount: false,
           isReceiptVisible: false,
           reportVisibility: false,
-          isMembershipVisible: false
+          isMembershipVisible: false,
+          isFitnessVisible: false // Added this
         });
       } catch (error) {
         console.log(error);
@@ -579,6 +597,7 @@ import React, { Component } from 'react';
             reportVisibility: false,
             attendanceVisibility: false,
             isMembershipVisible: false,
+            isFitnessVisible: false, // Added this
             
             // Set dashboard to true
             dashboard: true,
@@ -607,9 +626,9 @@ import React, { Component } from 'react';
           this.setState({ resetSearch: true, }, () => {
             this.setState({ resetSearch: false });
           });
-
+    
           console.log("Account Type:", accountType);
-
+    
           this.setState({
             isPopupOpen: true,
             popupMessage: "Loading In Progress",
@@ -622,7 +641,8 @@ import React, { Component } from 'react';
             createAccount: false,
             reportVisibility: false,
             attendanceVisibility: false,
-            isMembershipVisible: false
+            isMembershipVisible: false,
+            isFitnessVisible: false // Added this
           });
         }
         else
@@ -638,8 +658,9 @@ import React, { Component } from 'react';
             accountType: null,
             createAccount: true,
             reportVisibility: false,
-             attendanceVisibility: false,
-              isMembershipVisible: false
+            attendanceVisibility: false,
+            isMembershipVisible: false,
+            isFitnessVisible: false // Added this
           });
         }
       } 
@@ -825,6 +846,59 @@ import React, { Component } from 'react';
       this.setState({ nofCourses: total });
     };
 
+    toggleRegistrationPaymentComponent = (item) =>
+    {
+      console.log("Selected Item:", item);
+      if(item === "Registration And Payment Table")
+      {
+        this.setState({ resetSearch: true, }, () => {
+          this.setState({ resetSearch: false });
+        });
+
+        this.setState((prevState) => ({
+            courseType: "",
+            isRegistrationPaymentVisible: !prevState.isRegistrationPaymentVisible, // Toggle visibility
+            isPopupOpen: true,
+            popupMessage: "Loading In Progress",
+            popupType: "loading",
+            sidebarVisible: false,
+            section: "registration",
+            accountType: null,
+            createAccount: false,
+            isReceiptVisible: false,
+            item: item,
+            reportVisibility: false,
+            attendanceVisibility: false,
+            isMembershipVisible: false,
+            isFitnessVisible: false // Added this
+            //viewMode: "full"
+        }));
+      }
+      else if(item === "Receipt Table")
+      {
+          this.setState({ resetSearch: true, }, () => {
+            this.setState({ resetSearch: false });
+          });
+
+          this.setState((prevState) => ({
+              courseType: "",
+              isRegistrationPaymentVisible: false, // Toggle visibility
+              isPopupOpen: true,
+              popupMessage: "Loading In Progress",
+              popupType: "loading",
+              sidebarVisible: false,
+              section: "registration",
+              accountType: null,
+              createAccount: false,
+              isReceiptVisible: !prevState.isReceiptVisible,
+              item: item,
+              attendanceVisibility: false,
+              isMembershipVisible: false,
+              isFitnessVisible: false // Added this
+              //viewMode: "full"
+          }));
+      }
+    }
     getTotalNumberofDetails = async (total) =>
     {
         console.log("Registration:", total);
@@ -880,57 +954,7 @@ import React, { Component } from 'react';
         }
     };
 
-    toggleRegistrationPaymentComponent(item)
-    {
-      console.log("Selected Item:", item);
-      if(item === "Registration And Payment Table")
-      {
-        this.setState({ resetSearch: true, }, () => {
-          this.setState({ resetSearch: false });
-        });
-
-        this.setState((prevState) => ({
-            courseType: "",
-            isRegistrationPaymentVisible: !prevState.isRegistrationPaymentVisible, // Toggle visibility
-            isPopupOpen: true,
-            popupMessage: "Loading In Progress",
-            popupType: "loading",
-            sidebarVisible: false,
-            section: "registration",
-            accountType: null,
-            createAccount: false,
-            isReceiptVisible: false,
-            item: item,
-            reportVisibility: false,
-            attendanceVisibility: false,
-            isMembershipVisible: false
-            //viewMode: "full"
-        }));
-      }
-      else if(item === "Receipt Table")
-      {
-          this.setState({ resetSearch: true, }, () => {
-            this.setState({ resetSearch: false });
-          });
-  
-          this.setState((prevState) => ({
-              courseType: "",
-              isRegistrationPaymentVisible: false, // Toggle visibility
-              isPopupOpen: true,
-              popupMessage: "Loading In Progress",
-              popupType: "loading",
-              sidebarVisible: false,
-              section: "registration",
-              accountType: null,
-              createAccount: false,
-              isReceiptVisible: !prevState.isReceiptVisible,
-              item: item,
-              attendanceVisibility: false,
-              isMembershipVisible: false
-              //viewMode: "full"
-          }));
-      }
-  }
+ 
   
   onResetSearch = () =>
   {
@@ -1255,7 +1279,7 @@ import React, { Component } from 'react';
         dashboard: false,
         attendanceVisibility: false,
         isMembershipVisible: false,
-        isFitnessVisible: false,
+        isFitnessVisible: false, // This one was already there
         isReceiptVisible: false,
         section: '',
         submenuVisible: null

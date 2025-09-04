@@ -4086,7 +4086,8 @@ debugMarriagePrepData = () => {
                 borderRadius: '4px',
                 cursor: 'pointer',
                 marginRight: '10px',
-                fontSize: '14px'
+                fontSize: '14px',
+                whiteSpace: "nowrap"
               }}
             >
               {this.state.hideMarriagePrepFields ? 'Show Marriage Prep Fields' : 'Hide Marriage Prep Fields'}
@@ -4110,7 +4111,7 @@ debugMarriagePrepData = () => {
               </button>
             </>
           )}
-          {this.props.role === "Social Worker" && (this.props.role === "Admin" || this.props.role === "Sub Admin")  && (
+          {(this.props.role === "Social Worker" || this.props.role === "Admin" || this.props.role === "Sub Admin")  && (
             <button className="export-btn2" 
                     onClick={this.exportToMarriagePreparationProgramme}
                     disabled={selectedRows.length === 0}>
