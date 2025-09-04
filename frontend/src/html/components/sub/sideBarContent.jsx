@@ -35,23 +35,10 @@ class SideBarContent extends Component {
         return true; // Objects are equal
     }
 
-    componentWillUpdate = async (prevProps, prevState) => {
+    componentDidUpdate = async (prevProps, prevState) => {
         // Check if accountId has changed
-       if (prevProps.accountId !== this.props.accountId) {
-            this.getAccessRight(this.props.accountId);
-        }
-        
-        // Only refresh when accessRights differ and it's the first call after accountId change
-        if (prevState.accessRights !== this.state.accessRights) {
-            // Avoid calling getAccessRight again if accessRights is already being updated
-            if (!this.accessRightsUpdated) {
-                this.accessRightsUpdated = true; // Set the flag to indicate we've called it
-                this.getAccessRight(this.props.accountId);
-                //this.props.refreshChild();
-            }
-        } else {
-            // Reset the flag if accountId hasn't changed
-            this.accessRightsUpdated = false;
+        if (prevProps.accountId !== this.props.accountId) {
+            await this.getAccessRight(this.props.accountId);
         }
     }
 
@@ -84,86 +71,69 @@ class SideBarContent extends Component {
         }));
     }
     
-    toggleDashboard = () =>
-    {
+    toggleDashboard = () => {
         this.props.toggleDashboardComponent();
     }
 
-    toggleHome = () =>
-    {
+    toggleHome = () => {
         this.props.toggleHomeComponent();
     }
 
     handleSubKeyClick = (subKey) => {
-        // Add any additional functionality you want to execute on sub-menu item click
-       // console.log(`${subKey} clicked`); // Example of handling sub-key click
-       console.log("Selected:", subKey);
-       if(subKey === "Create Account")
-       {
-         this.props.toggleAccountsComponent(subKey);
-       }
-       else if(subKey === "Account Table")
-       {
+        console.log("Selected:", subKey);
+        if(subKey === "Create Account") {
+            this.props.toggleAccountsComponent(subKey);
+        }
+        else if(subKey === "Account Table") {
             subKey = "Accounts";
             this.props.toggleAccountsComponent(subKey);
-       }
-       else if(subKey === "Access Rights Table")
-       {
-        subKey = "Access Rights";
-        this.props.toggleAccountsComponent(subKey);
-       } 
-       else if(subKey === "NSA Courses")
-       {
-        subKey = "NSA";
-        this.props.toggleCourseComponent(subKey);
-       }
-       else if(subKey === "ILP Courses")
-       {
-         subKey = "ILP";
-         this.props.toggleCourseComponent(subKey);
-       }
-        else if(subKey === "Marriage Preparation Programme Courses")
-       {
-         subKey = "Marriage Preparation Programme";
-         this.props.toggleCourseComponent(subKey);
-       }
-       else if(subKey === "Registration And Payment Table")
-       {
-          this.props.toggleRegistrationPaymentComponent(subKey);
-       }
-       else if(subKey === "Monthly Report")
-       {
-         this.props.toggleReportComponent(subKey);
-       }
-       else if(subKey === "Payment Report")
-       {
-        this.props.toggleReportComponent(subKey);
-       }
-       else if(subKey === "View Attendance")
-       {
-        console.log("View Attendance clicked");
-        this.props.toggleAttendanceComponent(subKey);
-       }
-       else if(subKey === "View Membership")
-       {
-        console.log("View Membership clicked");
-        this.props.toggleMembershipComponent(subKey);
-       }
-       else if(subKey === "FFT Results")
-       {
-        console.log("FFT Results clicked in sidebar");
-        console.log("toggleFitnessComponent function exists:", !!this.props.toggleFitnessComponent);
-        if (this.props.toggleFitnessComponent) {
-          console.log("Calling toggleFitnessComponent...");
-          this.props.toggleFitnessComponent(subKey);
-        } else {
-          console.error("toggleFitnessComponent function not found in props");
         }
-       }
+        else if(subKey === "Access Rights Table") {
+            subKey = "Access Rights";
+            this.props.toggleAccountsComponent(subKey);
+        } 
+        else if(subKey === "NSA Courses") {
+            subKey = "NSA";
+            this.props.toggleCourseComponent(subKey);
+        }
+        else if(subKey === "ILP Courses") {
+            subKey = "ILP";
+            this.props.toggleCourseComponent(subKey);
+        }
+        else if(subKey === "Marriage Preparation Programme Courses") {
+            subKey = "Marriage Preparation Programme";
+            this.props.toggleCourseComponent(subKey);
+        }
+        else if(subKey === "Registration And Payment Table") {
+            this.props.toggleRegistrationPaymentComponent(subKey);
+        }
+        else if(subKey === "Monthly Report") {
+            this.props.toggleReportComponent(subKey);
+        }
+        else if(subKey === "Payment Report") {
+            this.props.toggleReportComponent(subKey);
+        }
+        else if(subKey === "View Attendance") {
+            console.log("View Attendance clicked");
+            this.props.toggleAttendanceComponent(subKey);
+        }
+        else if(subKey === "View Membership") {
+            console.log("View Membership clicked");
+            this.props.toggleMembershipComponent(subKey);
+        }
+        else if(subKey === "FFT Results") {
+            console.log("FFT Results clicked in sidebar");
+            console.log("toggleFitnessComponent function exists:", !!this.props.toggleFitnessComponent);
+            if (this.props.toggleFitnessComponent) {
+                console.log("Calling toggleFitnessComponent...");
+                this.props.toggleFitnessComponent(subKey);
+            } else {
+                console.error("toggleFitnessComponent function not found in props");
+            }
+        }
     }
 
-    closeSubMenu = () =>
-    {
+    closeSubMenu = () => {
         this.setState({ openKey: null }); 
     }
 
@@ -186,7 +156,7 @@ class SideBarContent extends Component {
         };
 
         return (
-            <div className="sidebar-content"  onMouseLeave={this.closeSubMenu}>
+            <div className="sidebar-content" onMouseLeave={this.closeSubMenu}>
                 <ul>
                     <div style={{marginBottom: "-20px"}}> 
                         <li key={"Home"} onClick={() => this.toggleHome()}>
@@ -202,10 +172,11 @@ class SideBarContent extends Component {
                     </div>
                     {Object.keys(accessRights).map((key) => {
                         const value = accessRights[key];
-
+                        console.log("Rendering main key123:", key, value);
+                        
                         // Handle both boolean values and objects
                         if (value === true) {
-                            // Simple boolean true value
+                            // Simple boolean true value - show the menu item
                             return (
                                 <li key={key} onClick={() => this.toggleMainMenu(key)}>
                                     <i className={iconMap[key]} aria-hidden="true"></i>
@@ -213,33 +184,35 @@ class SideBarContent extends Component {
                                 </li>
                             );
                         } else if (typeof value === 'object' && value !== null) {
-                            // Object with sub-keys - show ALL sub-keys regardless of true/false
-                            const allSubKeys = Object.keys(value);
-                            return (
-                                <li key={key}>
-                                    <div onClick={() => this.toggleMainMenu(key)}>
-                                        <i className={iconMap[key]} aria-hidden="true"></i>
-                                        <span style={{marginLeft: "5px"}}>{key}</span>
-                                    </div>
-                                    {openKey === key && (
-                                        <ul>
-                                            {allSubKeys.map(subKey => {
-                                                const isEnabled = value[subKey] === true;
-                                                return (
+                            // Object with sub-keys - only show if at least one sub-key is true
+                            const enabledSubKeys = Object.keys(value).filter(subKey => value[subKey] === true);
+                            
+                            // Only render the main menu if there are enabled sub-keys
+                            if (enabledSubKeys.length > 0) {
+                                return (
+                                    <li key={key}>
+                                        <div onClick={() => this.toggleMainMenu(key)}>
+                                            <i className={iconMap[key]} aria-hidden="true"></i>
+                                            <span style={{marginLeft: "5px"}}>{key}</span>
+                                        </div>
+                                        {openKey === key && (
+                                            <ul>
+                                                {enabledSubKeys.map(subKey => (
                                                     <li 
                                                         key={subKey} 
-                                                        onClick={isEnabled ? () => this.handleSubKeyClick(subKey) : undefined}
-                                                        className={isEnabled ? 'enabled-item' : 'disabled-item'}
+                                                        onClick={() => this.handleSubKeyClick(subKey)}
+                                                        className="enabled-item"
                                                     >
                                                         <span>{subKey}</span>
                                                     </li>
-                                                );
-                                            })}
-                                        </ul>
-                                    )}
-                                </li>
-                            );
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </li>
+                                );
+                            }
                         }
+                        // If value is false or no enabled sub-keys, don't render anything
                         return null;
                     })}
                 </ul>
