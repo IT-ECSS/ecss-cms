@@ -1254,8 +1254,6 @@ class RegistrationPaymentSection extends Component {
           sourceSheet.getCell(`E${rowIndex}`).value = detail.participantInfo.email;
           sourceSheet.getCell(`F${rowIndex}`).value = detail.participantInfo.contactNumber;
           sourceSheet.getCell(`G${rowIndex}`).value = detail.courseInfo.courseEngName;
-          sourceSheet.getCell(`H${rowIndex}`).value = detail.participantInfo.name;
-          sourceSheet.getCell(`I${rowIndex}`).value = detail.participantInfo.email;
           sourceSheet.getCell(`J${rowIndex}`).value = this.convertDateToYYYYMMDD(detail.participantInfo.dateOfBirth);
           sourceSheet.getCell(`K${rowIndex}`).value = detail.participantInfo.residentialStatus;
           sourceSheet.getCell(`L${rowIndex}`).value = detail.participantInfo.gender;
