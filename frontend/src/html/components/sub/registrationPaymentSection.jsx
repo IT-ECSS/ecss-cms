@@ -4095,7 +4095,7 @@ debugMarriagePrepData = () => {
           <button className="save-btn" onClick={() => this.archiveData()}>
             Archive Data
           </button>
-         {this.props.role !== "Social Worker" ? (
+         {this.props.role !== "Social Worker" && (
             <>
               <button className="export-btn" 
                       onClick={this.exportToLOP}
@@ -4109,7 +4109,8 @@ debugMarriagePrepData = () => {
                 Export Attendance
               </button>
             </>
-          ) : (
+          )}
+          {this.props.role === "Social Worker" && (this.props.role === "Admin" || this.props.role === "Sub Admin")  && (
             <button className="export-btn2" 
                     onClick={this.exportToMarriagePreparationProgramme}
                     disabled={selectedRows.length === 0}>
