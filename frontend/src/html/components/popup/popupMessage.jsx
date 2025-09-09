@@ -911,7 +911,7 @@ class Popup extends Component {
                     <h3>{formattedKey}</h3>
                     <div className="sub-keys">
                       <div className="checkbox-container">
-                        {Object.keys(message4[mainKey])
+                        {Object.keys(message4[mainKey]|| {})
                           .filter(subKey => subKey !== "Account ID")
                           .map((subKey) => {
                             const value = message4[mainKey][subKey];
