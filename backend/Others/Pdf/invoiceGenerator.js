@@ -474,11 +474,17 @@ class invoiceGenerator {
     
         const leftMargin = 2.54 * 28.35 - 60; 
         const tableTop = doc.y; 
-        const rowHeight = 35; 
+        const minRowHeight = 35; 
         const borderExternalThickness = 2; 
         const borderInternalThickness = 1; 
-        const headerHeight = rowHeight; 
+        const headerHeight = minRowHeight;
+        const cellPadding = 5;
+        const lineHeight = 12; 
     
+        // Calculate 97% of paper width for table
+        const paperWidth = doc.page.width;
+        const totalTableWidth = paperWidth * 0.97;
+        
         const headerWidths = [
             doc.widthOfString(header1),
             doc.widthOfString(header2),
@@ -488,35 +494,89 @@ class invoiceGenerator {
             doc.widthOfString(header6),
         ];
     
+        // Proportionally distribute column widths based on 97% paper width
         const columnWidths = {
-            courseRef: Math.min(headerWidths[0], 100), 
-            courseTitle: Math.max(headerWidths[1], 275),
-            startDate: Math.max(headerWidths[2], 80),
-            endDate: Math.max(headerWidths[3], 80),
-            fullCourse: Math.min(headerWidths[4], 145),
-            subsidised: Math.min(headerWidths[5], 140)
+            courseRef: totalTableWidth * 0.121, // ~12.1% of table width
+            courseTitle: totalTableWidth * 0.303, // ~30.3% of table width  
+            startDate: totalTableWidth * 0.097, // ~9.7% of table width
+            endDate: totalTableWidth * 0.097, // ~9.7% of table width
+            fullCourse: totalTableWidth * 0.176, // ~17.6% of table width
+            subsidised: totalTableWidth * 0.206 // ~20.6% of table width
         };
-    
-        const totalTableWidth = columnWidths.courseRef + columnWidths.courseTitle + columnWidths.startDate + columnWidths.endDate + columnWidths.fullCourse + columnWidths.subsidised-10;
     
         const columnPositions = {
             courseRef: leftMargin,
-            courseTitle: leftMargin + columnWidths.courseRef-10,
+            courseTitle: leftMargin + columnWidths.courseRef,
             startDate: leftMargin + columnWidths.courseRef + columnWidths.courseTitle,
             endDate: leftMargin + columnWidths.courseRef + columnWidths.courseTitle + columnWidths.startDate,
             fullCourse: leftMargin + columnWidths.courseRef + columnWidths.courseTitle + columnWidths.startDate + columnWidths.endDate,
             subsidised: leftMargin + columnWidths.courseRef + columnWidths.courseTitle + columnWidths.startDate + columnWidths.endDate + columnWidths.fullCourse,
         };
+
+        // Helper function to wrap text
+        const wrapText = (text, maxWidth) => {
+            const words = text.split(' ');
+            const lines = [];
+            let currentLine = '';
+
+            words.forEach(word => {
+                const testLine = currentLine ? `${currentLine} ${word}` : word;
+                const testWidth = doc.widthOfString(testLine);
+                
+                if (testWidth <= maxWidth) {
+                    currentLine = testLine;
+                } else {
+                    if (currentLine) {
+                        lines.push(currentLine);
+                        currentLine = word;
+                    } else {
+                        // Word is too long, break it
+                        lines.push(word);
+                    }
+                }
+            });
+            
+            if (currentLine) {
+                lines.push(currentLine);
+            }
+            
+            return lines;
+        };
+
+        // Helper function to calculate row height based on wrapped text
+        const calculateRowHeight = (item) => {
+            const courseRefCode = this.courseReferenceCode(item.course.courseEngName);
+            const courseName = item.course.courseEngName;
+            
+            const refLines = wrapText(courseRefCode, columnWidths.courseRef - cellPadding * 2);
+            const nameLines = wrapText(courseName, columnWidths.courseTitle - cellPadding * 2);
+            
+            const durationParts = item.course.courseDuration.split('-');
+            const startDate = durationParts[0].trim();
+            const endDate = durationParts[1].trim();
+            const formattedStartDate = this.formatDate(startDate);
+            const formattedEndDate = this.formatDate(endDate);
+            
+            const startDateLines = wrapText(formattedStartDate, columnWidths.startDate - cellPadding * 2);
+            const endDateLines = wrapText(formattedEndDate, columnWidths.endDate - cellPadding * 2);
+            
+            const maxLines = Math.max(refLines.length, nameLines.length, startDateLines.length, endDateLines.length, 1);
+            const hasWrappedText = maxLines > 1;
+            const extraGap = hasWrappedText ? 10 : 5; // More gap for wrapped text rows
+            return Math.max(minRowHeight, maxLines * lineHeight + cellPadding * 2 + extraGap);
+        };
     
         doc.rect(leftMargin, tableTop, totalTableWidth, headerHeight).fill('#FBFBFB');
     
         doc.fontSize(10).fillColor('black').font(fontPathBold);
-        doc.text(header1, columnPositions.courseRef + columnWidths.courseRef / 2 - headerWidths[0] / 2+2, tableTop + 12);
-        doc.text(header2, columnPositions.courseTitle + columnWidths.courseTitle / 2 - headerWidths[1] / 2, tableTop + 12);
-        doc.text(header3, columnPositions.startDate + columnWidths.startDate / 2 - headerWidths[2] / 2, tableTop + 12);
-        doc.text(header4, columnPositions.endDate + columnWidths.endDate / 2 - headerWidths[3] / 2, tableTop + 12);
-        doc.text(header5, columnPositions.fullCourse + columnWidths.fullCourse / 2 - headerWidths[4] / 2, tableTop + 12);
-        doc.text(header6, columnPositions.subsidised  + columnWidths.subsidised / 2 - headerWidths[5] / 2+12, tableTop + 2);
+        
+        // Draw table headers starting from left within each cell boundary
+        doc.text(header1, columnPositions.courseRef + cellPadding, tableTop + 12, { width: columnWidths.courseRef - cellPadding * 2, align: 'left' });
+        doc.text(header2, columnPositions.courseTitle + cellPadding, tableTop + 12, { width: columnWidths.courseTitle - cellPadding * 2, align: 'left' });
+        doc.text(header3, columnPositions.startDate + cellPadding, tableTop + 12, { width: columnWidths.startDate - cellPadding * 2, align: 'left' });
+        doc.text(header4, columnPositions.endDate + cellPadding, tableTop + 12, { width: columnWidths.endDate - cellPadding * 2, align: 'left' });
+        doc.text(header5, columnPositions.fullCourse + cellPadding, tableTop + 12, { width: columnWidths.fullCourse - cellPadding * 2, align: 'left' });
+        doc.text(header6, columnPositions.subsidised + cellPadding, tableTop + 12, { width: columnWidths.subsidised - cellPadding * 2, align: 'left' });
     
         doc.lineWidth(borderExternalThickness)
             .moveTo(leftMargin, tableTop + headerHeight)
@@ -533,89 +593,120 @@ class invoiceGenerator {
     
         let currentY = tableTop + headerHeight; 
         doc.fontSize(9).fillColor('black').font(fontPathRegular);
+        
+        // Draw table rows with text wrapping
         array.forEach((item, index) => {
-           // console.log("Course Reference Code:", this.courseReferenceCode(item.course.courseEngName));
-            //const courseRefCode =  this.getChineseCourseCode(item.course.courseChiName) || this.getEnglishCourseCode(item.course.courseEngName);
-            //const courseName = item.course.courseChiName || item.course.courseEngName;
-             const courseRefCode = this.courseReferenceCode(item.course.courseEngName);
+            const rowHeight = calculateRowHeight(item);
+            
+            const courseRefCode = this.courseReferenceCode(item.course.courseEngName);
             const courseName = item.course.courseEngName;
             console.log("Course Reference Code:", courseRefCode);
-           const containsChinese = /[\u4e00-\u9fff]/.test(courseName);     
+            
+            const containsChinese = /[\u4e00-\u9fff]/.test(courseName);     
             if (containsChinese) {
                 doc.font(chineseFontPath);  // Use Chinese font
-            } 
-            else {
+            } else {
                 doc.font(fontPathRegular);  // Use English font (Arial)
             }
-            console.log("Course Name:", courseName);
-            doc.text(courseRefCode, columnPositions.courseRef + 2, currentY + 3)
-            doc.text(courseName, columnPositions.courseTitle + 2, currentY + 3, { maxWidth: headerWidths[1]});
+            
+            // Wrap text for each column
+            const refLines = wrapText(courseRefCode, columnWidths.courseRef - cellPadding * 2);
+            const nameLines = wrapText(courseName, columnWidths.courseTitle - cellPadding * 2);
+            
             const durationParts = item.course.courseDuration.split('-');
-            const startDate = durationParts[0].trim(); // '23 January 2025'
-            const endDate = durationParts[1].trim(); // '23 January 2025'
-
+            const startDate = durationParts[0].trim();
+            const endDate = durationParts[1].trim();
             const formattedStartDate = this.formatDate(startDate);
             const formattedEndDate = this.formatDate(endDate);
-
-            doc.text(formattedStartDate, columnPositions.startDate+ 5, currentY + 3); 
-            doc.text(formattedEndDate, columnPositions.endDate+ 5, currentY + 3); 
+            
+            const startDateLines = wrapText(formattedStartDate, columnWidths.startDate - cellPadding * 2);
+            const endDateLines = wrapText(formattedEndDate, columnWidths.endDate - cellPadding * 2);
+            
+            // Draw wrapped text in columns
+            refLines.forEach((line, lineIndex) => {
+                doc.text(line, columnPositions.courseRef + cellPadding, currentY + cellPadding + lineIndex * lineHeight);
+            });
+            
+            nameLines.forEach((line, lineIndex) => {
+                doc.text(line, columnPositions.courseTitle + cellPadding, currentY + cellPadding + lineIndex * lineHeight);
+            });
+            
+            startDateLines.forEach((line, lineIndex) => {
+                doc.text(line, columnPositions.startDate + cellPadding, currentY + cellPadding + lineIndex * lineHeight);
+            });
+            
+            endDateLines.forEach((line, lineIndex) => {
+                doc.text(line, columnPositions.endDate + cellPadding, currentY + cellPadding + lineIndex * lineHeight);
+            });
+            
             let coursePrice = 0;
             let subsidizedPrice = 0;
             let totalPrice = 0;
-            if(age >= 50)
-            {
+            if(age >= 50) {
                 coursePrice = parseFloat(item.course.coursePrice.replace('$', '').trim());
-                totalPrice =  parseFloat(item.course.coursePrice.replace('$', '').trim())*5;
+                totalPrice = parseFloat(item.course.coursePrice.replace('$', '').trim()) * 5;
                 subsidizedPrice = coursePrice;
-            }
-            else
-            {
-                coursePrice = parseFloat(item.course.coursePrice.replace('$', '').trim())*5;
-                totalPrice =  parseFloat(item.course.coursePrice.replace('$', '').trim())*5;
+            } else {
+                coursePrice = parseFloat(item.course.coursePrice.replace('$', '').trim()) * 5;
+                totalPrice = parseFloat(item.course.coursePrice.replace('$', '').trim()) * 5;
                 subsidizedPrice = totalPrice;
             }
-            doc.text(`$     ${totalPrice.toFixed(2)}`, columnPositions.fullCourse+ 5, currentY + 3); 
-            doc.text(`$     ${coursePrice.toFixed(2)}`, columnPositions.subsidised+ 5, currentY + 3); 
+            
+            const fullCourseLines = wrapText(`$ ${totalPrice.toFixed(2)}`, columnWidths.fullCourse - cellPadding * 2);
+            const subsidisedLines = wrapText(`$ ${coursePrice.toFixed(2)}`, columnWidths.subsidised - cellPadding * 2);
+            
+            fullCourseLines.forEach((line, lineIndex) => {
+                doc.text(line, columnPositions.fullCourse + cellPadding, currentY + cellPadding + lineIndex * lineHeight);
+            });
+            
+            subsidisedLines.forEach((line, lineIndex) => {
+                doc.text(line, columnPositions.subsidised + cellPadding, currentY + cellPadding + lineIndex * lineHeight);
+            }); 
         
-            // Draw borders for the first row
-            if (index === 0) {
-                doc.lineWidth(borderInternalThickness)
-                    .moveTo(leftMargin, currentY + rowHeight)
-                    .lineTo(leftMargin + totalTableWidth, currentY + rowHeight)
+            // Draw row borders
+            doc.lineWidth(borderInternalThickness)
+                .moveTo(leftMargin, currentY)
+                .lineTo(leftMargin + totalTableWidth, currentY)
+                .stroke('black');
+
+            // Draw vertical borders for each column
+            Object.values(columnPositions).forEach((position) => {
+                doc.moveTo(position, currentY)
+                    .lineTo(position, currentY + rowHeight)
                     .stroke('black');
-        
-                for (let column in columnPositions) {
-                    doc.lineWidth(borderInternalThickness)
-                        .moveTo(columnPositions[column], currentY)
-                        .lineTo(columnPositions[column], currentY + rowHeight)
-                        .stroke('black');
-                }
-            }
-        
-            // Draw borders for the remaining rows except the last row
-            if (index > 0 && index < array.length - 1) {
-                doc.lineWidth(borderInternalThickness)
-                    .moveTo(leftMargin, currentY + rowHeight)
-                    .lineTo(leftMargin + totalTableWidth, currentY + rowHeight)
-                    .stroke('black');
-            }
+            });
         
             currentY += rowHeight; 
         });
+
+        // Draw bottom border for the main table data
+        doc.lineWidth(borderInternalThickness)
+            .moveTo(leftMargin, currentY)
+            .lineTo(leftMargin + totalTableWidth, currentY)
+            .stroke('black');
                   
+        // Draw table borders
         doc.lineWidth(borderInternalThickness)
-        .moveTo(leftMargin, tableTop) // Start from the left margin at the top
-        .lineTo(leftMargin + totalTableWidth, tableTop) // End at the right margin at the top
-        .stroke('black');    
+            .moveTo(leftMargin, tableTop)
+            .lineTo(leftMargin + totalTableWidth, tableTop)
+            .stroke('black');    
         
+        // Draw left border
         doc.lineWidth(borderInternalThickness)
-        .moveTo(leftMargin + totalTableWidth, tableTop) // Starting from the top-right corner
-        .lineTo(leftMargin + totalTableWidth, currentY + rowHeight) // Ending at the bottom-right corner
-        .stroke('black');
+            .moveTo(leftMargin, tableTop)
+            .lineTo(leftMargin, currentY)
+            .stroke('black');
         
-        // Add the last row with specific border logic
+        // Draw right border
+        doc.lineWidth(borderInternalThickness)
+            .moveTo(leftMargin + totalTableWidth, tableTop)
+            .lineTo(leftMargin + totalTableWidth, currentY)
+            .stroke('black');
+        
+        // Add the invoice total row
+        const invoiceRowHeight = minRowHeight;
         const invoiceText = 'Invoice Total';
-        doc.font(fontPathBold).text(invoiceText, columnPositions.fullCourse + 10, currentY + 10); 
+        doc.font(fontPathBold).text(invoiceText, columnPositions.fullCourse + cellPadding, currentY + cellPadding); 
         
         const payablePrice = array.reduce((acc, item) => {
             let subsidizedPrice = 0;
@@ -629,34 +720,49 @@ class invoiceGenerator {
             return acc + subsidizedPrice;
         }, 0);
 
-        doc.text(`$${payablePrice.toFixed(2)}`, columnPositions.subsidised + 10, currentY + 10);
+        doc.text(`$${payablePrice.toFixed(2)}`, columnPositions.subsidised + cellPadding, currentY + cellPadding);
 
-        // Draw borders only for the 4th, 5th, and 6th columns
-        ['endDate', 'subsidised'].forEach((column) => {
+        // Draw borders for the invoice total row (fullCourse, subsidised columns only)
+        ['fullCourse', 'subsidised'].forEach((column) => {
             const position = columnPositions[column];
             doc.lineWidth(borderInternalThickness)
-                .moveTo(position, currentY) // Start from the last row start
-                .lineTo(position, currentY + rowHeight) // Extend to the last row height
+                .moveTo(position, currentY)
+                .lineTo(position, currentY + invoiceRowHeight)
                 .stroke('black');
         });
         
-        // Draw the bottom border for the last row (for the last 3 columns: endDate, subsidised, and totalPrice)
+        // Draw the bottom border for the invoice total row (starting from fullCourse column)
         doc.lineWidth(borderInternalThickness)
-            .moveTo(columnPositions.endDate, currentY + rowHeight) // Starting from the endDate column
-            .lineTo(columnPositions.subsidised + columnWidths.subsidised-10, currentY + rowHeight) // Extending to the end of the subsidised column
+            .moveTo(columnPositions.fullCourse, currentY + invoiceRowHeight)
+            .lineTo(columnPositions.subsidised + columnWidths.subsidised, currentY + invoiceRowHeight)
             .stroke('black');
+
+        // Extend the right border to include invoice total row
+        doc.lineWidth(borderInternalThickness)
+            .moveTo(leftMargin + totalTableWidth, currentY)
+            .lineTo(leftMargin + totalTableWidth, currentY + invoiceRowHeight)
+            .stroke('black');
+
+        // Update currentY and add gap at the bottom
+        currentY += invoiceRowHeight + 20;
     }
 
     async createParticipantsTable(doc, array, header1, header2, header3, header4, header5, header6, age) {
         const fontPathBold = path.join(__dirname, '../../fonts/ARIALBD.TTF');
         const fontPathRegular = path.join(__dirname, '../../fonts/ARIAL.TTF');
     
-        const leftMargin = 1 * 28.35-5; // Left margin
+        const leftMargin = 2.54 * 28.35 - 60; // Same left margin as course table
         const tableTop = doc.y; // Top position of the table
-        const rowHeight = 30; // Row height
+        const minRowHeight = 35; // Match course table row height
         const borderInternalThickness = 1; // Border thickness
-        const headerHeight = rowHeight; // Header row height
+        const headerHeight = minRowHeight; // Header row height
+        const cellPadding = 5; // Padding inside cells
+        const lineHeight = 12; // Line height for wrapped text
     
+        // Calculate 97% of paper width for table (same as course table)
+        const paperWidth = doc.page.width;
+        const totalTableWidth = paperWidth * 0.97;
+        
         const headerWidths = [
             doc.widthOfString(header1),
             doc.widthOfString(header2),
@@ -665,23 +771,16 @@ class invoiceGenerator {
             doc.widthOfString(header5),
             doc.widthOfString(header6),
         ];
-
+        
+        // Proportionally distribute column widths based on 97% paper width
         const columnWidths = {
-            nric: Math.max(headerWidths[0], 100),
-            pName: Math.max(headerWidths[1], 135),
-            fullCourse: Math.max(headerWidths[2], 100),
-            subsidised: Math.max(headerWidths[3], 100),
-            cash: Math.max(headerWidths[4], 100),
-            sFCClaim: Math.max(headerWidths[5], 100),
+            nric: totalTableWidth * 0.121, // ~12.1% of table width
+            pName: totalTableWidth * 0.255, // ~25.5% of table width
+            fullCourse: totalTableWidth * 0.151, // ~15.1% of table width
+            subsidised: totalTableWidth * 0.151, // ~15.1% of table width
+            cash: totalTableWidth * 0.109, // ~10.9% of table width
+            sFCClaim: totalTableWidth * 0.213, // ~21.3% of table width
         };
-    
-        const totalTableWidth =
-            columnWidths.nric +
-            columnWidths.pName +
-            columnWidths.fullCourse +
-            columnWidths.subsidised +
-            columnWidths.cash +
-            columnWidths.sFCClaim+45;
     
         const columnPositions = {
             nric: leftMargin,
@@ -691,17 +790,86 @@ class invoiceGenerator {
             cash: leftMargin + columnWidths.nric + columnWidths.pName + columnWidths.fullCourse + columnWidths.subsidised,
             sFCClaim: leftMargin + columnWidths.nric + columnWidths.pName + columnWidths.fullCourse + columnWidths.subsidised + columnWidths.cash,
         };
+
+        // Helper function to wrap text
+        const wrapText = (text, maxWidth) => {
+            const words = text.split(' ');
+            const lines = [];
+            let currentLine = '';
+
+            words.forEach(word => {
+                const testLine = currentLine ? `${currentLine} ${word}` : word;
+                const testWidth = doc.widthOfString(testLine);
+                
+                if (testWidth <= maxWidth) {
+                    currentLine = testLine;
+                } else {
+                    if (currentLine) {
+                        lines.push(currentLine);
+                        currentLine = word;
+                    } else {
+                        // Word is too long, break it
+                        lines.push(word);
+                    }
+                }
+            });
+            
+            if (currentLine) {
+                lines.push(currentLine);
+            }
+            
+            return lines;
+        };
+
+        // Helper function to calculate row height based on wrapped text
+        const calculateRowHeight = (item) => {
+            const nricLines = wrapText(item.participant.nric, columnWidths.nric - cellPadding * 2);
+            const nameLines = wrapText(item.participant.name, columnWidths.pName - cellPadding * 2);
+            
+            let coursePrice = 0;
+            let subsidizedPrice = 0;
+            let totalPrice = 0;
+            if(age >= 50) {
+                coursePrice = parseFloat(item.course.coursePrice.replace('$', '').trim());
+                totalPrice = parseFloat(item.course.coursePrice.replace('$', '').trim()) * 5;
+                subsidizedPrice = coursePrice;
+            } else {
+                coursePrice = parseFloat(item.course.coursePrice.replace('$', '').trim()) * 5;
+                totalPrice = parseFloat(item.course.coursePrice.replace('$', '').trim()) * 5;
+                subsidizedPrice = totalPrice;
+            }
+            
+            const fullCourseLines = wrapText(`$ ${totalPrice.toFixed(2)}`, columnWidths.fullCourse - cellPadding * 2);
+            const subsidisedLines = wrapText(`$ ${subsidizedPrice.toFixed(2)}`, columnWidths.subsidised - cellPadding * 2);
+            const cashLines = wrapText('-', columnWidths.cash - cellPadding * 2);
+            const sfcClaimLines = wrapText(`$ ${coursePrice.toFixed(2)}`, columnWidths.sFCClaim - cellPadding * 2);
+            
+            const maxLines = Math.max(
+                nricLines.length, 
+                nameLines.length, 
+                fullCourseLines.length, 
+                subsidisedLines.length, 
+                cashLines.length, 
+                sfcClaimLines.length, 
+                1
+            );
+            const hasWrappedText = maxLines > 1;
+            const extraGap = hasWrappedText ? 10 : 5; // More gap for wrapped text rows
+            return Math.max(minRowHeight, maxLines * lineHeight + cellPadding * 2 + extraGap);
+        };
     
+        // Draw header background
+        doc.rect(leftMargin, tableTop, totalTableWidth, headerHeight).fill('#FBFBFB');
+        
         doc.fontSize(10).fillColor('black').font(fontPathBold);
     
-        // Draw table headers
-        Object.entries(columnPositions).forEach(([key, position], index) => {
-            doc.text(
-                [header1, header2, header3, header4, header5, header6][index],
-                position + columnWidths[key] / 2 - headerWidths[index] / 2,
-                tableTop + 10
-            );
-        });
+        // Draw table headers starting from left within each cell boundary
+        doc.text(header1, columnPositions.nric + cellPadding, tableTop + 12, { width: columnWidths.nric - cellPadding * 2, align: 'left' });
+        doc.text(header2, columnPositions.pName + cellPadding, tableTop + 12, { width: columnWidths.pName - cellPadding * 2, align: 'left' });
+        doc.text(header3, columnPositions.fullCourse + cellPadding, tableTop + 12, { width: columnWidths.fullCourse - cellPadding * 2, align: 'left' });
+        doc.text(header4, columnPositions.subsidised + cellPadding, tableTop + 12, { width: columnWidths.subsidised - cellPadding * 2, align: 'left' });
+        doc.text(header5, columnPositions.cash + cellPadding, tableTop + 12, { width: columnWidths.cash - cellPadding * 2, align: 'left' });
+        doc.text(header6, columnPositions.sFCClaim + cellPadding, tableTop + 12, { width: columnWidths.sFCClaim - cellPadding * 2, align: 'left' });
     
         // Draw header borders
         doc.lineWidth(borderInternalThickness)
@@ -713,41 +881,71 @@ class invoiceGenerator {
             .lineTo(leftMargin + totalTableWidth, tableTop + headerHeight)
             .stroke('black');
     
-        // Draw vertical column borders
+        // Draw vertical column borders for header
         Object.values(columnPositions).forEach((position) => {
             doc.moveTo(position, tableTop)
                 .lineTo(position, tableTop + headerHeight)
                 .stroke('black');
         });
+        
+        // Draw right border for header
+        doc.moveTo(leftMargin + totalTableWidth, tableTop)
+            .lineTo(leftMargin + totalTableWidth, tableTop + headerHeight)
+            .stroke('black');
     
         let currentY = tableTop + headerHeight;
-        doc.fontSize(10).fillColor('black').font(fontPathRegular);
+        doc.fontSize(9).fillColor('black').font(fontPathRegular);
     
-        // Draw table rows
+        // Draw table rows with text wrapping
         array.forEach((item, index) => {
-            // Draw text in columns
-            doc.text(item.participant.nric, columnPositions.nric + 5, currentY + 10);
-            doc.text(item.participant.name, columnPositions.pName + 5, currentY + 10);
+            const rowHeight = calculateRowHeight(item);
+            
+            // Wrap text for each column
+            const nricLines = wrapText(item.participant.nric, columnWidths.nric - cellPadding * 2);
+            const nameLines = wrapText(item.participant.name, columnWidths.pName - cellPadding * 2);
     
             let coursePrice = 0;
             let subsidizedPrice = 0;
             let totalPrice = 0;
-            if(age >= 50)
-            {
+            if(age >= 50) {
                 coursePrice = parseFloat(item.course.coursePrice.replace('$', '').trim());
-                totalPrice =  parseFloat(item.course.coursePrice.replace('$', '').trim())*5;
+                totalPrice = parseFloat(item.course.coursePrice.replace('$', '').trim()) * 5;
                 subsidizedPrice = coursePrice;
-            }
-            else
-            {
-                coursePrice = parseFloat(item.course.coursePrice.replace('$', '').trim())*5;
-                totalPrice =  parseFloat(item.course.coursePrice.replace('$', '').trim())*5;
+            } else {
+                coursePrice = parseFloat(item.course.coursePrice.replace('$', '').trim()) * 5;
+                totalPrice = parseFloat(item.course.coursePrice.replace('$', '').trim()) * 5;
                 subsidizedPrice = totalPrice;
             }
-            doc.text(`$ ${totalPrice.toFixed(2)}`, columnPositions.fullCourse + 5, currentY + 10);
-            doc.text(`$ ${subsidizedPrice.toFixed(2)}`, columnPositions.subsidised + 5, currentY + 10);
-            doc.text('-', columnPositions.cash + 5, currentY + 10);
-            doc.text(`$ ${coursePrice.toFixed(2)}`, columnPositions.sFCClaim + 5, currentY + 10);
+            
+            const fullCourseLines = wrapText(`$ ${totalPrice.toFixed(2)}`, columnWidths.fullCourse - cellPadding * 2);
+            const subsidisedLines = wrapText(`$ ${subsidizedPrice.toFixed(2)}`, columnWidths.subsidised - cellPadding * 2);
+            const cashLines = wrapText('-', columnWidths.cash - cellPadding * 2);
+            const sfcClaimLines = wrapText(`$ ${coursePrice.toFixed(2)}`, columnWidths.sFCClaim - cellPadding * 2);
+
+            // Draw wrapped text in all columns
+            nricLines.forEach((line, lineIndex) => {
+                doc.text(line, columnPositions.nric + cellPadding, currentY + cellPadding + lineIndex * lineHeight);
+            });
+            
+            nameLines.forEach((line, lineIndex) => {
+                doc.text(line, columnPositions.pName + cellPadding, currentY + cellPadding + lineIndex * lineHeight);
+            });
+            
+            fullCourseLines.forEach((line, lineIndex) => {
+                doc.text(line, columnPositions.fullCourse + cellPadding, currentY + cellPadding + lineIndex * lineHeight);
+            });
+            
+            subsidisedLines.forEach((line, lineIndex) => {
+                doc.text(line, columnPositions.subsidised + cellPadding, currentY + cellPadding + lineIndex * lineHeight);
+            });
+            
+            cashLines.forEach((line, lineIndex) => {
+                doc.text(line, columnPositions.cash + cellPadding, currentY + cellPadding + lineIndex * lineHeight);
+            });
+            
+            sfcClaimLines.forEach((line, lineIndex) => {
+                doc.text(line, columnPositions.sFCClaim + cellPadding, currentY + cellPadding + lineIndex * lineHeight);
+            });
     
             // Draw row borders
             doc.lineWidth(borderInternalThickness)
@@ -771,10 +969,20 @@ class invoiceGenerator {
             .lineTo(leftMargin + totalTableWidth, currentY)
             .stroke('black');
     
-            doc.lineWidth(borderInternalThickness)
+        // Draw left border
+        doc.lineWidth(borderInternalThickness)
+            .moveTo(leftMargin, tableTop)
+            .lineTo(leftMargin, currentY)
+            .stroke('black');
+    
+        // Draw right border
+        doc.lineWidth(borderInternalThickness)
             .moveTo(leftMargin + totalTableWidth, tableTop)
             .lineTo(leftMargin + totalTableWidth, currentY)
             .stroke('black');
+
+        // Add gap at the bottom
+        doc.y = currentY + 20;
     }
     
 
@@ -790,7 +998,7 @@ class invoiceGenerator {
         await this.addBody(doc, array, age);
     
         // Adjust the vertical position for the footer
-        const footerY = doc.y+45; // 20 units below the current position
+        const footerY = doc.y+36; // Reduced gap by 20% (was 45, now 36)
     
         // Add footer content
         await this.addFooter(doc, footerY);
