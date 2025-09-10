@@ -1073,13 +1073,8 @@ class RegistrationPaymentSection extends Component {
             } else {
               sourceSheet.getCell(`P${rowIndex}`).value = courseName.split("–")[0].trim();
             }
-            sourceSheet.getCell(`R${rowIndex}`).value = detail.courseInfo.coursePrice;
-            let priceStr = detail.courseInfo.coursePrice;
-            let numericValue = parseFloat(priceStr.replace('$', ''));
-            let multiplied = numericValue * 5;
-            let formattedPrice = `$${multiplied.toFixed(2)}`;
-            sourceSheet.getCell(`Q${rowIndex}`).value = formattedPrice;
-    
+            sourceSheet.getCell(`Q${rowIndex}`).value = `$${(parseFloat(detail.courseInfo.coursePrice.replace('$', ''))*5).toFixed(2)}`;
+            sourceSheet.getCell(`R${rowIndex}`).value = `$${(parseFloat(detail.courseInfo.coursePrice.replace('$', ''))*4).toFixed(2)}`;
             const [startDate, endDate] = detail.courseInfo.courseDuration.split(" - ");
             sourceSheet.getCell(`S${rowIndex}`).value = this.convertDateFormat1(startDate);
             sourceSheet.getCell(`T${rowIndex}`).value = this.convertDateFormat1(endDate);
@@ -2810,6 +2805,7 @@ debugMarriagePrepData = () => {
 
     // Render the detailed view of a row when expanded
     renderDetailView = (rowData) => {
+      console.log('Rendering detail view for row data:', rowData);
       if (!rowData) return null;
       
       const { participantInfo, courseInfo, officialInfo, status, id, marriageDetails, spouse, consent } = rowData;
@@ -4184,11 +4180,29 @@ debugMarriagePrepData = () => {
         )}
 
         {/* Expanded Row Detail View */}
-        {expandedRowIndex !== null && (
-          <div className="expanded-row-detail">
-            {this.renderDetailView(this.state.rowData[expandedRowIndex])}
-          </div>
-        )}
+        {(() => {
+          console.log('Expanded Row Debug:', {
+            expandedRowIndex,
+            hasRowData: !!this.state.rowData,
+            rowDataLength: this.state.rowData?.length || 0,
+            isValidIndex: expandedRowIndex !== null && expandedRowIndex < (this.state.rowData?.length || 0)
+          });
+          
+          return expandedRowIndex !== null && 
+                 this.state.rowData && 
+                 this.state.rowData.length > 0 && 
+                 expandedRowIndex < this.state.rowData.length && (
+                <div className="expanded-row-detail" style={{
+                  display: 'flex',
+                  marginLeft: '10%',
+                  marginRight: '10%',
+                  padding: '15px',
+                  marginTop: '20px',
+                }}>
+                  {this.renderDetailView(this.state.rowData[expandedRowIndex])}
+                </div>
+              );
+        })()}
       </div>
     );
   }
