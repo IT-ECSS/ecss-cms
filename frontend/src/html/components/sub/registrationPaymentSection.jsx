@@ -4192,13 +4192,7 @@ debugMarriagePrepData = () => {
                  this.state.rowData && 
                  this.state.rowData.length > 0 && 
                  expandedRowIndex < this.state.rowData.length && (
-                <div className="expanded-row-detail" style={{
-                  display: 'flex',
-                  marginLeft: '10%',
-                  marginRight: '10%',
-                  padding: '15px',
-                  marginTop: '20px',
-                }}>
+               <div className="expanded-row-detail">
                   {this.renderDetailView(this.state.rowData[expandedRowIndex])}
                 </div>
               );

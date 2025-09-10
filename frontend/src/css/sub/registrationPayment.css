@@ -466,8 +466,8 @@
 }
 
 .detail-view-container {
-  width: 100%;
-  max-width: 100%;
+  width: 95%;
+  max-width: 95%;
   background: #FDFD96;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.08);
@@ -475,6 +475,8 @@
   overflow-x: auto;
   overflow-y: auto;
   max-height: 400px; /* Make it scrollable if content is long */
+  margin-top: -4%;
+  margin-left: -1%;
 }
 
 .detail-view-content {
