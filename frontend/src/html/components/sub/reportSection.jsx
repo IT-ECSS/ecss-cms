@@ -333,7 +333,7 @@ class ReportSection extends Component {
                 return (
                   payment >= fromParsed &&
                   payment <= toParsed &&
-                  courseLocation === "CT Hub" &&
+                  (courseLocation === "CT Hub" || courseLocation === "Sree Narayana Mission" || courseLocation === "Renewal Christian Church") &&
                   item.course.payment !== "SkillsFuture" &&
                   item.status !== "Pending"
                 );
