@@ -2,23 +2,22 @@ const { MongoClient, ObjectId } = require('mongodb');
 
 // MongoDB connection string - should use environment variable
 //const uri = 'mongodb+srv://moseslee:Mlxy6695@ecss-course.hejib.mongodb.net/?retryWrites=true&w=majority&appName=ECSS-Course';
-const uri = "mongodb+srv://MosesLee:Mlxy%406695@company-management-syst.ulotbgi.mongodb.net/?retryWrites=true&w=majority&appName=Company-Management-System"
-// MongoDB connection options for high availability and multiple concurrent users
+const uri =  "mongodb+srv://MosesLee:Mlxy%406695@company-management-syst.ulotbgi.mongodb.net/?retryWrites=true&w=majority&appName=Company-Management-System"
+// MongoDB connection options for better performance and stability
 const mongoOptions = {
-    maxPoolSize: 50, // Increase pool size for multiple concurrent users
-    serverSelectionTimeoutMS: 0, // No timeout - wait indefinitely for server selection
-    socketTimeoutMS: 0, // No socket timeout - keep connections alive indefinitely
-    connectTimeoutMS: 0, // No connection timeout - wait indefinitely for initial connection
+    maxPoolSize: 10, // Maintain up to 10 socket connections
+    serverSelectionTimeoutMS: 30000, // Keep trying to send operations for 30 seconds (increased)
+    socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+    connectTimeoutMS: 30000, // Give more time to establish connection (increased)
     heartbeatFrequencyMS: 10000, // Check server health every 10 seconds
-    maxIdleTimeMS: 0, // Never close idle connections
-    minPoolSize: 5, // Maintain minimum 5 connections always ready
+    maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
     // Note: bufferMaxEntries and bufferCommands are Mongoose-specific, not native MongoDB driver options
     // useUnifiedTopology is now default and deprecated as an option
 };
 
 class DatabaseConnectivity {
     constructor() {
-        this.client = new MongoClient(uri);
+        this.client = new MongoClient(uri, mongoOptions);
         this.isConnected = false;
         this.connectionPromise = null;
     }
@@ -34,8 +33,12 @@ class DatabaseConnectivity {
                 // Create connection promise to avoid multiple simultaneous connections
                 this.connectionPromise = this.client.connect();
                 
-                // Remove timeout - wait indefinitely for connection to succeed
-                await this.connectionPromise;
+                // Set a timeout for connection with more generous timeout for Azure
+                const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('MongoDB connection timeout after 30 seconds')), 30000)
+                );
+                
+                await Promise.race([this.connectionPromise, timeoutPromise]);
                 this.isConnected = true;
                 this.connectionPromise = null;
                 console.log("Connected to MongoDB Atlas successfully!");
@@ -58,20 +61,18 @@ class DatabaseConnectivity {
         }
     }
 
-    // Add connection health check with automatic reconnection for concurrent users
+    // Add connection health check with automatic reconnection
     async ensureConnection() {
         try {
             if (!this.isConnected) {
                 await this.initialize();
             } else {
-                // Test the connection with a simple ping - no timeout
+                // Test the connection with a simple ping
                 await this.client.db('admin').command({ ping: 1 });
             }
         } catch (error) {
             console.log("Connection test failed, reinitializing...", error.message);
             this.isConnected = false;
-            // Wait a brief moment before reinitializing to handle concurrent requests
-            await new Promise(resolve => setTimeout(resolve, 100));
             await this.initialize();
         }
     }
@@ -119,7 +120,6 @@ class DatabaseConnectivity {
 
     async participantsLogin(dbname, collectionName, username, password)
     {
-        await this.ensureConnection(); // Ensure we have a good connection
         const db = this.client.db(dbname);
         try
         {
@@ -130,7 +130,7 @@ class DatabaseConnectivity {
                 contactNumber: username // This checks if contactNumber equals password too
             });
 
-            if (userByUsername && userByUsername.contactNumber === password) {
+            if (userByUsername.contactNumber === password) {
                 // User found, login successful
                 return {
                     success: true,
@@ -158,7 +158,6 @@ class DatabaseConnectivity {
 
     async updateParticipant(databaseName, collectionName, participantId, updateData)
     {
-        await this.ensureConnection(); // Ensure we have a good connection
         const db = this.client.db(databaseName);
         try
         {
@@ -205,15 +204,13 @@ class DatabaseConnectivity {
             console.error("Update participant error:", error);
             return {
                 success: false,
-                message: "Error updating participant",
-                error: error.message
+                message: "Error updating participant"
             };
         }
     }
 
     async logout(dbname, collectionName, accountId, date, time)
     {
-        await this.ensureConnection(); // Ensure we have a good connection
         const db = this.client.db(dbname);
         try
         {
@@ -231,23 +228,22 @@ class DatabaseConnectivity {
                     }
                 );
     
-            // User found, logout successful
+            // User found, login successful
             return {
                 success: true,
                 message: 'Logout successful',
             };
             } else {
-            // No user found, logout failed
+            // No user found, login failed
             return {
                 success: false,
-                message: 'User not found'
+                message: 'Invalid email or password'
             };
             }
         }
         catch(error)
         {
-            console.error("Logout error:", error);
-            throw error; // Re-throw to let caller handle
+            console.log(error);
         }
     }
     
@@ -566,9 +562,8 @@ class DatabaseConnectivity {
     
         try {
             const participants = await table.find().toArray();
-            //console.log("Participants retrieved:", participants);
-
-             return {
+            
+            return {
                 success: true,
                 message: `Retrieved ${participants.length} participants for AI analysis`,
                 participants: participants
@@ -816,13 +811,7 @@ class DatabaseConnectivity {
                     } else {
                         console.log("SiteIC is null, not filtering by location");
                     }
-                }
-                else if (role === "Social Worker") {
-                        console.log("Processing Social Worker filtering...");
-                        query["course.courseType"] = "Marriage Preparation Programme";
-                        console.log("Filtering for Marriage Preparation Programme courses only");
-                }  
-                else {
+                } else {
                     console.log("Role is not Site in-charge, returning all documents");
                 }
                 // If role is not "Site in-charge", return all documents (empty query retrieves all)
@@ -1173,8 +1162,8 @@ class DatabaseConnectivity {
             return { success: false, error };
         }
     }
-
-    async getNextReceiptNumber(databaseName, collectionName, courseLocation, centreLocation, courseType, courseEngName, courseDuration) {
+    
+    async getNextReceiptNumber(databaseName, collectionName, courseLocation, centreLocation, courseType, courseEngName) {
         const db = this.client.db(databaseName);
         const collection = db.collection(collectionName);
         console.log("Locations345:", courseLocation, centreLocation);
@@ -1185,22 +1174,15 @@ class DatabaseConnectivity {
         const isMarriagePrep = courseType && courseType.trim() === "Marriage Preparation Programme";
         const isGroupClass = courseEngName && (
             courseEngName.includes("Marriage Preparation Programme Group Class") ||
-            (courseEngName.includes("P/E MPrep") && courseEngName.includes("Marriage Preparation Programme") && courseEngName.includes("Group Class")) ||
-            (courseEngName.includes("F/B MPrep") && courseEngName.includes("Marriage Preparation Programme") && courseEngName.includes("Group Class"))
-        );
-        const isIndividualClass = courseEngName && (
-            courseEngName.includes("Marriage Preparation Programme Individual Class") ||
-            (courseEngName.includes("P/E MPrep") && courseEngName.includes("Marriage Preparation Programme") && courseEngName.includes("Individual Class")) ||
-            (courseEngName.includes("F/B MPrep") && courseEngName.includes("Marriage Preparation Programme") && courseEngName.includes("Individual Class"))
+            (courseEngName.includes("P/E MPrep") && courseEngName.includes("Marriage Preparation Programme"))
         );
         
         console.log("Is Marriage Prep:", isMarriagePrep);
         console.log("Is Group Class:", isGroupClass);
-        console.log("Is Individual Class:", isIndividualClass);
         
-        if (isMarriagePrep && (isGroupClass || isIndividualClass)) {
+        if (isMarriagePrep && isGroupClass) {
             console.log("Detected Marriage Preparation Programme - using dedicated function");
-            const marriagePrepReceiptNumber = await this.getNextMarriagePrepReceiptNumber(databaseName, collectionName, courseLocation, centreLocation, courseType, courseEngName, courseDuration);
+            const marriagePrepReceiptNumber = await this.getNextMarriagePrepReceiptNumber(databaseName, collectionName, courseLocation, centreLocation, courseType, courseEngName);
             console.log("Marriage Prep Receipt Number Generated:", marriagePrepReceiptNumber);
             return marriagePrepReceiptNumber;
         }
@@ -1215,18 +1197,21 @@ class DatabaseConnectivity {
         if (centreLocation === "Tampines 253 Centre" && courseLocation.startsWith("ECSS/SFC")) {
             regexPattern = `${courseLocation}TP`; // Ensure "TP" appears after courseLocation
         }
+        else if (centreLocation === "Sree Narayana Mission" && courseLocation.startsWith("ECSS/SFC")) {
+            regexPattern = `${courseLocation}SNM`; // Ensure "SNM" appears after courseLocation
+        }
         else if (centreLocation === "Renewal Christian Church" && courseLocation.startsWith("ECSS/SFC")) {
             regexPattern = `${courseLocation}R`; // Ensure "R" appears after courseLocation
         }
     
-        console.log("Regex Pattern:", regexPattern);
+        //console.log("Regex Pattern:", regexPattern);
         
         const existingReceipts = await collection.find({
             receiptNo: { $regex: regexPattern },
             location: centreLocation
         }).toArray();
         
-        console.log("Existing Receipts:", existingReceipts);
+       // console.log("Existing Receipts:", existingReceipts);
     
         let formattedReceiptNumber;
     
@@ -1237,7 +1222,7 @@ class DatabaseConnectivity {
             // Filter receipts to get only those from the current year
             const validReceipts = existingReceipts.filter(receipt => {
                 let regexPattern;
-                console.log("Centre Location:", centreLocation);
+               // console.log("Centre Location:", centreLocation);
                 // Check if the location is Tampines 253 Centre
                 if (centreLocation === "Tampines 253 Centre") {
                     // Ensure "TP" appears for Tampines 253 Centre
@@ -1252,7 +1237,7 @@ class DatabaseConnectivity {
                 }
                 return regexPattern.test(receipt.receiptNo);
             });
-            console.log("Valid Receipts:", courseLocation, validReceipts);
+            //console.log("Valid Receipts:", courseLocation, validReceipts);
         
             // Get the current year's receipt numbers for the specific location (centreLocation)
             const centreReceiptNumbers = validReceipts.map(receipt => {
@@ -1264,7 +1249,10 @@ class DatabaseConnectivity {
                 } else if (centreLocation === "Renewal Christian Church") {
                     // Enforce "R" for Renewal Christian Church receipts
                     regexPattern = new RegExp(`^${courseLocation}R(\\d+)(?:/\\d+| - \\d+)$`);
-                } 
+                }
+                else if (centreLocation === "Sree Narayana Mission" && courseLocation.startsWith("ECSS/SFC")) {
+                    regexPattern = `${courseLocation}SNM`; // Ensure "SNM" appears after courseLocation
+                }   
                 else {
                     // Default pattern without "TP"
                     regexPattern = new RegExp(`^${courseLocation}(\\d+)(?:/\\d+| - \\d+)$`);
@@ -1273,7 +1261,7 @@ class DatabaseConnectivity {
                 return match ? parseInt(match[1], 10) : null;
             }).filter(num => num !== null);
             
-            console.log(courseLocation, centreReceiptNumbers, centreLocation, currentYear);
+           // console.log(courseLocation, centreReceiptNumbers, centreLocation, currentYear);
             formattedReceiptNumber = this.getNextReceiptNumberForSkillsFuture(courseLocation, centreReceiptNumbers, centreLocation, currentYear);
         } 
         else 
@@ -1286,138 +1274,83 @@ class DatabaseConnectivity {
         return formattedReceiptNumber;
     }
 
-    async getNextMarriagePrepReceiptNumber(databaseName, collectionName, courseLocation, centreLocation, courseType, courseEngName, courseDuration) {
+    async getNextMarriagePrepReceiptNumber(databaseName, collectionName, courseLocation, centreLocation, courseType, courseEngName) {
         const db = this.client.db(databaseName);
         const collection = db.collection(collectionName);
     
-        // Validate that this is indeed a Marriage Preparation Programme - using flexible matching
+        // Validate that this is indeed a Marriage Preparation Programme Group Class - using flexible matching
         const isMarriagePrep = courseType && courseType.trim() === "Marriage Preparation Programme";
         const isGroupClass = courseEngName && (
             courseEngName.includes("Marriage Preparation Programme Group Class") ||
-            (courseEngName.includes("P/E MPrep") && courseEngName.includes("Marriage Preparation Programme") && courseEngName.includes("Group Class")) ||
-            (courseEngName.includes("F/B MPrep") && courseEngName.includes("Marriage Preparation Programme") && courseEngName.includes("Group Class"))
-        );
-        const isIndividualClass = courseEngName && (
-            courseEngName.includes("Marriage Preparation Programme Individual Class") ||
-            (courseEngName.includes("P/E MPrep") && courseEngName.includes("Marriage Preparation Programme") && courseEngName.includes("Individual Class")) ||
-            (courseEngName.includes("F/B MPrep") && courseEngName.includes("Marriage Preparation Programme") && courseEngName.includes("Individual Class"))
+            (courseEngName.includes("P/E MPrep") && courseEngName.includes("Marriage Preparation Programme"))
         );
         
-        if (!isMarriagePrep || (!isGroupClass && !isIndividualClass)) {
-            throw new Error("This function is only for Marriage Preparation Programme Group Class or Individual Class");
+        if (!isMarriagePrep || !isGroupClass) {
+            throw new Error("This function is only for Marriage Preparation Programme Group Class");
         }
     
-        // Parse the start date from courseDuration to get month and year
-        const startDate = courseDuration.split(" - ")[0];
-        
-        // Parse the date string (format: "xx Month full name and year")
-        // Example: "15 January 2025" -> "Jan25"
-        const dateParts = startDate.trim().split(' ');
-        const monthName = dateParts[1]; // Full month name
-        const year = dateParts[2]; // Full year
-        
-        // Convert full month name to abbreviated format
-        const monthMap = {
-            "January": "Jan", "February": "Feb", "March": "Mar", "April": "Apr",
-            "May": "May", "June": "Jun", "July": "Jul", "August": "Aug",
-            "September": "Sep", "October": "Oct", "November": "Nov", "December": "Dec"
-        };
-        
-        const currentMonth = monthMap[monthName] || monthName.substring(0, 3); // Fallback to first 3 chars
-        const currentYear = year; // Last 2 digits of year
+        // Get current month and year
+        const currentDate = new Date();
+        const currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0'); // 01-12
+        const currentYear = currentDate.getFullYear().toString().slice(-2); // Last 2 digits of year
     
-        // Determine the class type and program type for the receipt prefix
-        const classType = isGroupClass ? "Group" : "Individual";
-        
-        // Determine the program type (PE or FB) based on course name
-        let programType;
-        if (courseEngName.includes("P/E MPrep")) {
-            programType = "PE";
-        } else if (courseEngName.includes("F/B MPrep")) {
-            programType = "FB";
-        } else {
-            // Default fallback (for other Marriage Prep courses)
-            programType = "PE";
-        }
-        
-        // Create the receipt prefix: ECSS_PE/FB(Group/Individual)_courseLocation_MonthYY
-        const receiptPrefix = `ECSS_${programType}(${classType})_${courseLocation}_${currentMonth}${currentYear}`;
+        // Create the receipt prefix: PE(Group)_courseLocation_MMYY
+        const receiptPrefix = `PE(Group)_${courseLocation}_${currentMonth}${currentYear}`;
         
         console.log("Receipt Prefix:", receiptPrefix);
     
         try {
-            // Create regex pattern to find Marriage Prep receipts for this SPECIFIC program type, class type, location, AND CURRENT YEAR
-            // This ensures year-based reset while keeping different program types and classes separate
-            const currentYearPattern = `^ECSS_${programType}\\(${classType}\\)_${courseLocation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}_[A-Za-z]{3}${currentYear}_\\d+$`;
+            // Create regex pattern to find existing receipts with this prefix
+            // Escape special characters in the prefix for regex
+            const escapedPrefix = receiptPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regexPattern = `^${escapedPrefix}_\\d+$`;
             
-            console.log("Current Year Pattern for Marriage Prep:", currentYearPattern);
+            console.log("Regex Pattern for Marriage Prep:", regexPattern);
     
-            // Find existing Marriage Prep receipts for this specific program type, class type, location, and CURRENT YEAR only
+            // Find all existing receipts matching this pattern for the specific location
             const existingReceipts = await collection.find({
-                receiptNo: { $regex: currentYearPattern },
+                receiptNo: { $regex: regexPattern },
                 location: centreLocation
             }).toArray();
     
-            console.log(`Existing ${programType}(${classType}) Marriage Prep Receipts for ${currentYear}:`, existingReceipts);
+            console.log("Existing Marriage Prep Receipts:", existingReceipts);
     
-            // Extract running numbers from existing Marriage Prep receipts of this program and class type for CURRENT YEAR only
+            // Extract running numbers from existing receipts
             const runningNumbers = existingReceipts.map(receipt => {
-                // Create regex to extract the running number from Marriage Prep receipts for current year
-                // Pattern: ECSS_PE/FB(Group/Individual)_courseLocation_MonthYY_NUMBER (supports 4+ digit numbers)
-                const numberRegex = new RegExp(`^ECSS_${programType}\\(${classType}\\)_${courseLocation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}_[A-Za-z]{3}${currentYear}_(\\d+)$`);
+                // Create regex to extract the running number
+                const numberRegex = new RegExp(`^${escapedPrefix}_(\\d+)$`);
                 const match = receipt.receiptNo.match(numberRegex);
                 
                 if (match && match[1]) {
                     const number = parseInt(match[1], 10);
-                    console.log(`Extracted ${programType}(${classType}) running number for ${currentYear}: ${number} from ${receipt.receiptNo}`);
+                    console.log(`Extracted running number: ${number} from ${receipt.receiptNo}`);
                     return number;
                 }
                 return null;
             }).filter(num => num !== null && !isNaN(num));
     
-            console.log(`Valid ${programType}(${classType}) Running Numbers for ${currentYear}:`, runningNumbers);
+            console.log("Valid Running Numbers:", runningNumbers);
     
-            // Determine the next running number for this specific program and class type in the current year
+            // Determine the next running number
             let nextRunningNumber;
             if (runningNumbers.length === 0) {
-                // No existing receipts for this program and class type in current year, start with base numbers
-                if (classType === "Group") {
-                    if (programType === "PE") {
-                        nextRunningNumber = 1; // PE Group classes start from 1 each year
-                    } else if (programType === "FB") {
-                        nextRunningNumber = 1; // FB Group classes start from 1 each year
-                    }
-                } else { // Individual class
-                    if (programType === "PE") {
-                        nextRunningNumber = 1; // PE Individual classes start from 1 each year
-                    } else if (programType === "FB") {
-                        nextRunningNumber = 1; // FB Individual classes start from 1 each year
-                    }
-                }
-                console.log(`No existing ${programType}(${classType}) receipts found for year ${currentYear}, starting with ${String(nextRunningNumber).padStart(4, '0')}`);
+                // No existing receipts, start with 001
+                nextRunningNumber = 1;
+                console.log("No existing receipts found, starting with 001");
             } else {
-                // Find the maximum for current year and increment
+                // Find the maximum and increment
                 const maxNumber = Math.max(...runningNumbers);
                 nextRunningNumber = maxNumber + 1;
-                console.log(`Max existing ${programType}(${classType}) number for ${currentYear}: ${maxNumber}, next number: ${nextRunningNumber}`);
+                console.log(`Max existing number: ${maxNumber}, next number: ${nextRunningNumber}`);
             }
     
-            // Format the running number based on size:
-            // If < 1000: pad to 4 digits (0001-0999)
-            // If >= 1000: use actual number (1001, 1002, etc.)
-            let formattedRunningNumber;
-            if (nextRunningNumber < 1000) {
-                formattedRunningNumber = String(nextRunningNumber).padStart(4, '0');
-                console.log(`${programType}(${classType}) number < 1000, formatted as: ${formattedRunningNumber}`);
-            } else {
-                formattedRunningNumber = String(nextRunningNumber);
-                console.log(`${programType}(${classType}) number >= 1000, formatted as: ${formattedRunningNumber}`);
-            }
+            // Format the running number with leading zeros (3 digits)
+            const formattedRunningNumber = String(nextRunningNumber).padStart(3, '0');
             
             // Create the complete receipt number
             const completeReceiptNumber = `${receiptPrefix}_${formattedRunningNumber}`;
             
-            console.log(`Generated ${programType}(${classType}) Marriage Prep Receipt Number for ${currentYear}:`, completeReceiptNumber);
+            console.log("Generated Marriage Prep Receipt Number:", completeReceiptNumber);
     
             return completeReceiptNumber;
     
@@ -1426,7 +1359,7 @@ class DatabaseConnectivity {
             throw new Error(`Failed to generate Marriage Preparation Programme receipt number: ${error.message}`);
         }
     }
-
+    
     getNextReceiptNumberForSkillsFuture(courseLocation, centreReceiptNumbers, centreLocation, currentYear) 
     {
         let nextNumber;
@@ -1443,12 +1376,12 @@ class DatabaseConnectivity {
                 // For Tampines 253 Centre in 2026 and beyond, start from 1
                 nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 91;
             } 
-             else if (centreLocation === "Tampines North Community Centre") 
-            {
-               nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
-            } 
-            else if (centreLocation === "Pasir Ris West Wellness Centre") 
-            {
+            else if (centreLocation === "Pasir Ris West Wellness Centre") {
+                // For Pasir Ris West Wellness Centre in 2026 and beyond, start from 1
+                nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 13 ;
+            }
+            else if (centreLocation === "Sree Narayana Mission") {
+                // For Pasir Ris West Wellness Centre in 2026 and beyond, start from 1
                 nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
             }
             else if (centreLocation === "Renewal Christian Church") {
@@ -1468,8 +1401,8 @@ class DatabaseConnectivity {
                 // For Pasir Ris West Wellness Centre in 2026 and beyond, start from 1
                 nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
             }
-            else if (centreLocation === "Pasir Ris West Wellness Centre") 
-            {
+            else if (centreLocation === "Sree Narayana Mission") {
+                // For Pasir Ris West Wellness Centre in 2026 and beyond, start from 1
                 nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
             }
             else if (centreLocation === "Renewal Christian Church") {
@@ -1492,10 +1425,10 @@ class DatabaseConnectivity {
             {
                 nextNumber = `R${nextNumber.toString().padStart(3, '0')}`; // Pad to 3 digits if less than 3
             }
-            else if (centreLocation === "Tampines North Community Centre") 
-            {
-               nextNumber = `TNCC${nextNumber.toString().padStart(3, '0')}`; // Pad to 3 digits if less than 3
-            } 
+            else if (centreLocation === "Sree Narayana Mission") {
+                // For Pasir Ris West Wellness Centre in 2026 and beyond, start from 1
+               nextNumber = `SNM${nextNumber.toString().padStart(3, '0')}`; // Pad to 3 digits if less than 3
+            }
             else
             {
                 nextNumber = nextNumber.toString().padStart(3, '0'); // Pad to 3 digits if less than 3
@@ -1507,14 +1440,14 @@ class DatabaseConnectivity {
             {
                 nextNumber = `TP${nextNumber.toString().padStart(3, '0')}`; // Pad to 3 digits if less than 3
             }
+            else if (centreLocation === "Sree Narayana Mission") {
+                // For Pasir Ris West Wellness Centre in 2026 and beyond, start from 1
+               nextNumber = `SNM${nextNumber.toString().padStart(3, '0')}`; // Pad to 3 digits if less than 3
+            }
             else if(centreLocation === "Renewal Christian Church")
             {
                 nextNumber = `R${nextNumber.toString().padStart(3, '0')}`; // Pad to 3 digits if less than 3
             }
-            else if (centreLocation === "Tampines North Community Centre") 
-            {
-               nextNumber = `TNCC${nextNumber.toString().padStart(3, '0')}`; // Pad to 3 digits if less than 3
-            } 
             else
             {
                 nextNumber = nextNumber.toString().padStart(3, '0'); // Pad to 3 digits if less than 3
@@ -1529,7 +1462,7 @@ class DatabaseConnectivity {
     getNextReceiptNumberForPayNowCash(courseLocation, existingReceipts, centreLocation, currentYear) {
         let nextNumber;
     
-        //console.log("Centre Receipt Number:", courseLocation, existingReceipts, centreLocation, currentYear);
+        console.log("Centre Receipt Number:", courseLocation, existingReceipts, centreLocation, currentYear);
     
 
          // Filter the existing receipts based on the location
@@ -1545,7 +1478,8 @@ class DatabaseConnectivity {
 
         //console.log("Centre Receipt Numbers11:", centreReceiptNumbers);
 
-       const maxReceiptNumber = existingReceipts.length > 0 ? Math.max(...centreReceiptNumbers) : 0;
+        const maxReceiptNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) : 0;
+    
         //console.log("Latest Receipt Numbers:", maxReceiptNumber);
        // Handle specific logic for each centre location
         if (centreLocation === "Tampines 253 Centre") {
@@ -1560,16 +1494,22 @@ class DatabaseConnectivity {
             // For CT Hub, it uses the same logic as the others
             nextNumber =  maxReceiptNumber + 1;
         } 
+    
         else if (centreLocation === "Renewal Christian Church") {
             // For CT Hub, it uses the same logic as the others
            // console.log("This is a new location");
             nextNumber =  maxReceiptNumber + 1;
         } 
-        else if (centreLocation === "Tampines North Community Centre") {
-            // Custom logic for Tampines North Community Centre
+        else if (centreLocation === "Sree Narayana Mission") {
+            // For Sree Narayana Mission, it uses the same logic as the others
+           // console.log("This is a new location");
             nextNumber =  maxReceiptNumber + 1;
         } 
-
+        else {
+            // Default case for any other centre location
+            nextNumber = maxReceiptNumber + 1;
+        }
+    
         // Determine the length of the next number based on the nextNumber value
         let numberLength = nextNumber.toString().length;
     
@@ -1580,7 +1520,7 @@ class DatabaseConnectivity {
         // Return the formatted receipt number in the format: "courseLocation - 0001"
         return `${courseLocation} - ${formattedNextNumber}`;
     }
-    
+     
     async newInvoice(databaseName, collectionName, invoiceNumber, month, username, date, time) {
         try {
             // Connect to the database and collection
