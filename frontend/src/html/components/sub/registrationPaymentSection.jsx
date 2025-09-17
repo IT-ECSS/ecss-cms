@@ -1402,6 +1402,12 @@ class RegistrationPaymentSection extends Component {
         course = course.trim();
     
         switch (course) {
+            case "Community Ukulele – Mandarin L2":
+              return "ECSS-CBO-M-037C";
+            case "Community Ukulele – Mandarin L2A":
+              return "ECSS-CBO-M-037C";
+            case "Community Ukulele – Mandarin L2B":
+              return "ECSS-CBO-M-037C";
             case "TCM – Don’t be a friend of Chronic Diseases":
                 return "ECSS-CBO-M-016C";
             case "Nagomi Pastel Art Basic":
