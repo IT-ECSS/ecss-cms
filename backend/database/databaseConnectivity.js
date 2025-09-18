@@ -1231,13 +1231,18 @@ class DatabaseConnectivity {
                 else if (centreLocation === "Renewal Christian Church") {
                     // Ensure "R" appears for Renewal Christian Church
                     regexPattern = new RegExp(`^${courseLocation}R\\d+/(${currentYear})$`);
-                } else {
+                }
+                else if (centreLocation === "Sree Narayana Mission") {
+                    // Ensure "SNM" appears for Sree Narayana Mission
+                    regexPattern = new RegExp(`^${courseLocation}SNM\\d+/(${currentYear})$`);
+                } 
+                else {
                     // Default pattern without "TP"
                     regexPattern = new RegExp(`^${courseLocation}\\d+/(${currentYear})$`);
                 }
                 return regexPattern.test(receipt.receiptNo);
             });
-            //console.log("Valid Receipts:", courseLocation, validReceipts);
+            console.log("Valid Receipts for SNM:", courseLocation, validReceipts.length, "receipts found");
         
             // Get the current year's receipt numbers for the specific location (centreLocation)
             const centreReceiptNumbers = validReceipts.map(receipt => {
@@ -1251,7 +1256,8 @@ class DatabaseConnectivity {
                     regexPattern = new RegExp(`^${courseLocation}R(\\d+)(?:/\\d+| - \\d+)$`);
                 }
                 else if (centreLocation === "Sree Narayana Mission" && courseLocation.startsWith("ECSS/SFC")) {
-                    regexPattern = `${courseLocation}SNM`; // Ensure "SNM" appears after courseLocation
+                    // Enforce "SNM" for Sree Narayana Mission receipts
+                    regexPattern = new RegExp(`^${courseLocation}SNM(\\d+)(?:/\\d+| - \\d+)$`);
                 }   
                 else {
                     // Default pattern without "TP"
@@ -1261,7 +1267,7 @@ class DatabaseConnectivity {
                 return match ? parseInt(match[1], 10) : null;
             }).filter(num => num !== null);
             
-           // console.log(courseLocation, centreReceiptNumbers, centreLocation, currentYear);
+            console.log("SNM Debug - courseLocation:", courseLocation, "centreReceiptNumbers:", centreReceiptNumbers, "centreLocation:", centreLocation, "currentYear:", currentYear);
             formattedReceiptNumber = this.getNextReceiptNumberForSkillsFuture(courseLocation, centreReceiptNumbers, centreLocation, currentYear);
         } 
         else 
@@ -1440,7 +1446,7 @@ class DatabaseConnectivity {
                 nextNumber = `R${nextNumber.toString().padStart(3, '0')}`; // Pad to 3 digits if less than 3
             }
             else if (centreLocation === "Sree Narayana Mission") {
-                // For Pasir Ris West Wellness Centre in 2026 and beyond, start from 1
+                // For Sree Narayana Mission, pad with SNM prefix
                nextNumber = `SNM${nextNumber.toString().padStart(3, '0')}`; // Pad to 3 digits if less than 3
             }
             else
@@ -1455,7 +1461,7 @@ class DatabaseConnectivity {
                 nextNumber = `TP${nextNumber.toString().padStart(3, '0')}`; // Pad to 3 digits if less than 3
             }
             else if (centreLocation === "Sree Narayana Mission") {
-                // For Pasir Ris West Wellness Centre in 2026 and beyond, start from 1
+                // For Sree Narayana Mission, pad with SNM prefix
                nextNumber = `SNM${nextNumber.toString().padStart(3, '0')}`; // Pad to 3 digits if less than 3
             }
             else if(centreLocation === "Renewal Christian Church")
@@ -1477,15 +1483,18 @@ class DatabaseConnectivity {
     getNextReceiptNumberForPayNowCash(courseLocation, existingReceipts, centreLocation, currentYear) {
         let nextNumber;
     
-        console.log("Centre Receipt Number:", courseLocation, existingReceipts, centreLocation, currentYear);
-    
+        console.log("=== PayNow/Cash Receipt Generation Debug ===");
+        console.log("Course Location:", courseLocation);
+        console.log("Centre Location:", centreLocation);
+        console.log("Current Year:", currentYear);
+        console.log("Existing Receipts Count:", existingReceipts.length);
+        console.log("Existing Receipts:", existingReceipts.map(r => ({ receiptNo: r.receiptNo, location: r.location })));
 
-         // Filter the existing receipts based on the location
-        //const filteredReceipts = existingReceipts.filter(receipt => receipt.location === centreLocation);
-        const filteredReceipts = existingReceipts;
-        //console.log("Filtered Receipts for Centre Location:", filteredReceipts);
+         // Filter the existing receipts based on the location (already filtered in main function, but double-check)
+        const filteredReceipts = existingReceipts.filter(receipt => receipt.location === centreLocation);
+        console.log("Filtered Receipts for Centre Location:", filteredReceipts.length);
 
-        // Extract the numeric part of the receiptNo (before the "-") and get the numbers
+        // Extract the numeric part of the receiptNo (after the " - ") and get the numbers
         const centreReceiptNumbers = filteredReceipts.map(receipt => {
                 const receiptNumberMatch = receipt.receiptNo.split(" - ")[1]; // Split by " - " and get the number part
                 return receiptNumberMatch ? parseInt(receiptNumberMatch, 10) : null;
@@ -1495,7 +1504,9 @@ class DatabaseConnectivity {
 
         const maxReceiptNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) : 0;
     
-        //console.log("Latest Receipt Numbers:", maxReceiptNumber);
+        console.log("Latest Receipt Numbers for", centreLocation, ":", maxReceiptNumber);
+        console.log("Centre Receipt Numbers:", centreReceiptNumbers);
+        
        // Handle specific logic for each centre location
         if (centreLocation === "Tampines 253 Centre") {
             // Custom logic for Tampines 253 Centre
@@ -1511,26 +1522,24 @@ class DatabaseConnectivity {
         } 
     
         else if (centreLocation === "Renewal Christian Church") {
-            // For CT Hub, it uses the same logic as the others
-           // console.log("This is a new location");
+            // For Renewal Christian Church, it uses the same logic as the others
+            console.log("This is Renewal Christian Church");
             nextNumber =  maxReceiptNumber + 1;
         } 
         else if (centreLocation === "Sree Narayana Mission") {
-            // For Sree Narayana Mission, it uses the same logic as the others
-           // console.log("This is a new location");
-            nextNumber =  maxReceiptNumber + 1;
+            // For Sree Narayana Mission, ensure proper incremental numbering
+            console.log("This is Sree Narayana Mission - PayNow/Cash");
+            // If no existing receipts, start from 1, otherwise increment from the maximum
+            nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
         } 
         else {
             // Default case for any other centre location
             nextNumber = maxReceiptNumber + 1;
         }
     
-        // Determine the length of the next number based on the nextNumber value
-        let numberLength = nextNumber.toString().length;
-    
-        // Format the next number dynamically with leading zeros based on its length
-        let formattedNextNumber = String(nextNumber).padStart(numberLength + 3, '0');  // Start with length 4, increase as needed
-       // console.log(`Latest Receipt Number1234: ${courseLocation} - ${formattedNextNumber}`)
+        // Format the next number with consistent 4-digit padding (0001, 0002, etc.)
+        let formattedNextNumber = String(nextNumber).padStart(4, '0');
+        console.log(`Generated Receipt Number for ${centreLocation}: ${courseLocation} - ${formattedNextNumber}`);
     
         // Return the formatted receipt number in the format: "courseLocation - 0001"
         return `${courseLocation} - ${formattedNextNumber}`;
