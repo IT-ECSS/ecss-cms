@@ -1363,7 +1363,7 @@ class DatabaseConnectivity {
     getNextReceiptNumberForSkillsFuture(courseLocation, centreReceiptNumbers, centreLocation, currentYear) 
     {
         let nextNumber;
-       // console.log("Centre Receipt Number:", centreReceiptNumbers, centreLocation);
+        console.log("Debug - Centre Receipt Numbers:", centreReceiptNumbers, "Centre Location:", centreLocation, "Current Year:", currentYear);
         // Logic for 2025
         if (currentYear === 25) {
             if (centreLocation === "CT Hub") 
@@ -1373,20 +1373,24 @@ class DatabaseConnectivity {
             }             
             else if (centreLocation === "Tampines 253 Centre") 
             {             
-                // For Tampines 253 Centre in 2026 and beyond, start from 1
+                // For Tampines 253 Centre in 2025, start from 91
                 nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 91;
             } 
             else if (centreLocation === "Pasir Ris West Wellness Centre") {
-                // For Pasir Ris West Wellness Centre in 2026 and beyond, start from 1
+                // For Pasir Ris West Wellness Centre in 2025, start from 13
                 nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 13 ;
             }
             else if (centreLocation === "Sree Narayana Mission") {
-                // For Pasir Ris West Wellness Centre in 2026 and beyond, start from 1
+                // For Sree Narayana Mission in 2025, start from 1
                 nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
             }
             else if (centreLocation === "Renewal Christian Church") {
-                // For Pasir Ris West Wellness Centre in 2026 and beyond, start from 1
+                // For Renewal Christian Church in 2025, start from 16
                 nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 16 ;
+            }
+            else {
+                // Default case for any other centre location in 2025
+                nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
             }
         } 
         // Logic for 2026 and beyond
@@ -1402,14 +1406,24 @@ class DatabaseConnectivity {
                 nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
             }
             else if (centreLocation === "Sree Narayana Mission") {
-                // For Pasir Ris West Wellness Centre in 2026 and beyond, start from 1
+                // For Sree Narayana Mission in 2026 and beyond, start from 1
                 nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
             }
             else if (centreLocation === "Renewal Christian Church") {
-                // For Pasir Ris West Wellness Centre in 2026 and beyond, start from 1
+                // For Renewal Christian Church in 2026 and beyond, start from 1
+                nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
+            }
+            else {
+                // Default case for any other centre location in 2026 and beyond
                 nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
             }
         }
+        else {
+            // Default case for years before 2025
+            nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
+        }
+
+        console.log("Debug - Next Number before formatting:", nextNumber);
 
       //  console.log("Tampines 253 Centre Next Receipt:", nextNumber);
     
@@ -1455,6 +1469,7 @@ class DatabaseConnectivity {
         }
             
         // Return the formatted receipt number ok 
+        console.log("Debug - Final formatted receipt number:", `${courseLocation}${nextNumber}/${currentYear.toString()}`);
        return `${courseLocation}${nextNumber}/${currentYear.toString()}`;
     }
     
