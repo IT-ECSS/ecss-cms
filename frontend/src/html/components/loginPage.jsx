@@ -249,13 +249,13 @@ class LoginPage extends Component {
       <>
         En Community Services Society
         <br />
-        Courses Management System
+        Company Management System
       </>
     );
     const loginText = 'Login';
     const copyrightText = (
       <>
-        © 2024 En Community Service Society Courses Management System.
+        © 2024 En Community Service Society Company Management System.
         <br />
         All rights reserved.
       </>

@@ -778,7 +778,7 @@ class DatabaseConnectivity {
                 console.log("SiteIC Value:", siteIC);
                 console.log("SiteIC JSON:", JSON.stringify(siteIC));
 
-                // If role is "Site in-charge", filter by course.courseLocation
+                // Handle different roles and their specific filters
                 if (role === "Site in-charge") {
                     console.log("Processing Site in-charge filtering...");
                     if (siteIC != null) {
@@ -811,10 +811,15 @@ class DatabaseConnectivity {
                     } else {
                         console.log("SiteIC is null, not filtering by location");
                     }
+                } else if (role === "Social Worker") {
+                    console.log("Processing Social Worker filtering...");
+                    // Social Workers can only see Marriage Preparation Programme courses
+                    query["course.courseType"] = "Marriage Preparation Programme";
+                    console.log("Filtering for Marriage Preparation Programme courses only");
                 } else {
-                    console.log("Role is not Site in-charge, returning all documents");
+                    console.log("Role has no specific filters, returning all documents");
                 }
-                // If role is not "Site in-charge", return all documents (empty query retrieves all)
+                // If role has no specific filters, return all documents (empty query retrieves all)
                 
                 console.log("Final MongoDB query:", JSON.stringify(query));
                 

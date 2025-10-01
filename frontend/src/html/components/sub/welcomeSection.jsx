@@ -526,7 +526,7 @@ class WelcomeSection extends Component {
                 <div className="welcome-header">
                     <div className="welcome-content">
                         <h1>{this.getGreeting()}, {userName}!</h1>
-                        <p>Welcome to ECSS Course Management System</p>
+                        <p></p>
                         <div className="welcome-meta">
                             <div className="meta-item">
                                 <i className="fas fa-calendar-day"></i>

@@ -1650,7 +1650,7 @@ import React, { Component } from 'react';
               </div>
             </div>
             <div className="footer">
-              <p>© 2024 En Community Service Society Courses Management System.<br />
+              <p>© 2024 En Community Service Society Company Management System.<br />
                 All rights reserved.</p>
             </div>
           </div>
