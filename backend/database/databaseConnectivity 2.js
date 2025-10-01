@@ -1500,7 +1500,7 @@ class DatabaseConnectivity {
                 return receiptNumberMatch ? parseInt(receiptNumberMatch, 10) : null;
             }).filter(num => num !== null);
 
-        //console.log("Centre Receipt Numbers11:", centreReceiptNumbers);
+        //console.log("Centre Receipt Numbers11:", centreReceiptNumbers);ok
 
         const maxReceiptNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) : 0;
     
