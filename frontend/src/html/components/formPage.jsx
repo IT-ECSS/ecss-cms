@@ -1602,7 +1602,7 @@ class FormPage extends Component {
                 minWidth: '100px'
               }}
             >
-              Done
+              OK
             </button>
           </div>
         )}
