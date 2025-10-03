@@ -1579,6 +1579,34 @@ class FormPage extends Component {
           </div>
         )}
 
+        {/* Continue button for Submit Details section */}
+        {((currentSection === 4 && formData.type !== 'Marriage Preparation Programme') ||
+          (currentSection === 5 && formData.type === 'Marriage Preparation Programme')) && (
+          <div className="button-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <button 
+              className="submit-details-button" 
+              onClick={() => {
+                window.location.href = 'https://ecss.org.sg/product-category/courses/';
+              }}
+              style={{
+                marginTop: '20px',
+                padding: '10px 20px',
+                backgroundColor: '#007bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '1rem',
+                fontWeight: '500',
+                transition: 'background-color 0.3s ease',
+                minWidth: '100px'
+              }}
+            >
+              Done
+            </button>
+          </div>
+        )}
+
 
         {/* MyInfo Error Testing Mode Indicator */}
         {FORCE_MYINFO_ERROR && (
