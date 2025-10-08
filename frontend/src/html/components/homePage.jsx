@@ -1235,6 +1235,9 @@ import React, { Component } from 'react';
         case 'marriage-preparation-programme-courses':
           this.toggleCourseComponent('Marriage Preparation Programme');
           break;
+        case 'talks-and-seminar':
+          this.toggleCourseComponent('Talks And Seminar');
+          break;
         case 'attendance':
           this.toggleAttendanceComponent('All Types');
           break;

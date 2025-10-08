@@ -342,7 +342,7 @@ class PersonalInfo extends Component {
   };
 
   render() {
-    const { data = {}, errors, singPassPopulatedFields, onClearSingPassData, hideMyInfoOptions } = this.props;
+    const { data = {}, errors, singPassPopulatedFields, onClearSingPassData, hideMyInfoOptions, showLimitedFields } = this.props;
 
     // Check if any SingPass fields are populated (only if not Marriage Preparation Programme)
     const hasSingPassData = !hideMyInfoOptions && singPassPopulatedFields && Object.values(singPassPopulatedFields).some(field => field === true);
@@ -350,12 +350,29 @@ class PersonalInfo extends Component {
     // Get course type from props if available
     const courseType = this.props.data?.type;
     const isMarriagePreparation = courseType === 'Marriage Preparation Programme';
+    const isTalksAndSeminar = showLimitedFields === true;
 
     // Define sections based on course type
     let sections;
     let optionMappings = {};
 
-    if (isMarriagePreparation) {
+    if (isTalksAndSeminar) {
+      // Limited fields for Talks And Seminar: Name, Phone Number, Date of Birth (Year), Residential Status, Postal Code
+      sections = [
+        { name: 'pName', label: 'Name 姓名', placeholder: 'Name 姓名', isSelect: false, isRadio: false },
+        { name: 'cNO', label: 'Contact No. 联络号码', placeholder: 'Contact No. 联络号码', isSelect: false, isRadio: false, isPhone: true },
+        { name: 'dOB', label: 'Date of Birth 出生日期', placeholder: 'Date of Birth 出生日期', isSelect: true, isDate: true },
+        { name: 'rESIDENTIALSTATUS', label: 'Residential Status 居民身份', placeholder: 'Residential Status 居民身份', isSelect: true, isRadio: true },
+        { name: 'postalCode', label: 'Postal Code 邮编', placeholder: 'Postal Code 邮编', isSelect: false, isRadio: false, isNumber: true }
+      ];
+
+      // Options for Talks And Seminar
+      const residentalStatusOptions = ['SC 新加坡公民', 'PR 永久居民'];
+      
+      optionMappings = {
+        rESIDENTIALSTATUS: residentalStatusOptions,
+      };
+    } else if (isMarriagePreparation) {
       // Marriage Preparation Programme specific fields - following exact specification
       sections = [
         { name: 'pName', label: 'Full Name', placeholder: 'Full Name', isSelect: false, isRadio: false },
@@ -474,8 +491,8 @@ class PersonalInfo extends Component {
 
     return (
       <div>
-        {/* Title for Marriage Preparation Programme */}
-        {isMarriagePreparation && (
+        {/* Title for Marriage Preparation Programme and Talks And Seminar */}
+        {(isMarriagePreparation || isTalksAndSeminar) && (
           <h3 style={{ marginBottom: '20px', color: '#333', borderBottom: '2px solid #eee', paddingBottom: '10px' }}>
             Personal Information
           </h3>
@@ -618,8 +635,8 @@ class PersonalInfo extends Component {
           </div>
         ))}
         
-        {/* Contact Number and Email - Only show for NSA/ILP (not Marriage Preparation Programme) */}
-        {!isMarriagePreparation && (
+        {/* Contact Number and Email - Only show for NSA/ILP (not Marriage Preparation Programme or Talks And Seminar) */}
+        {!isMarriagePreparation && !isTalksAndSeminar && (
           <>
             <div className="input-group1">
               <label htmlFor="cNO">Contact No. 联络号码</label>

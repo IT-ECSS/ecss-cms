@@ -38,6 +38,9 @@ class CourseDetailsSection extends Component {
     const isNSA = courseType === 'NSA';
     const isILP = courseType === 'ILP';
     const isMarriagePrep = courseType === 'Marriage Preparation Programme';
+    const isTalksAndSeminar = courseType === 'Talks And Seminar';
+    const talksPrice = parseFloat(this.props.coursePrice?.replace('$', '') || '0');
+    const isPaidTalks = isTalksAndSeminar && talksPrice > 0;
     //Marriage Preparation Programme
     console.log('CourseDetailsSection props:', this.props);
 
@@ -65,18 +68,22 @@ class CourseDetailsSection extends Component {
             {this.props.courseLocation}
           </span>
         </div>
-        {isNSA && (  
+        {(isNSA || isPaidTalks) && (  
         <div className="input-group1">
           <label htmlFor="coursePrice">Course Price 价格</label>
           <span className="course-detail-text" id="coursePrice">
             {(() => {
-              // Calculate age from date of birth if available
-              if (this.props.age < 50) {
-                // Extract numeric value from coursePrice (remove $ and parse)
-                const basePrice = parseFloat(this.props.coursePrice.replace('$', ''));
-                const adjustedPrice = basePrice * 5;
-                return `$${adjustedPrice.toFixed(2)}`;
+              if (isNSA) {
+                // Calculate age from date of birth if available
+                if (this.props.age < 50) {
+                  // Extract numeric value from coursePrice (remove $ and parse)
+                  const basePrice = parseFloat(this.props.coursePrice.replace('$', ''));
+                  const adjustedPrice = basePrice * 5;
+                  return `$${adjustedPrice.toFixed(2)}`;
+                }
+                return this.props.coursePrice;
               }
+              // For paid Talks and Seminar, show the course price as-is
               return this.props.coursePrice;
             })()}
           </span>
@@ -98,13 +105,13 @@ class CourseDetailsSection extends Component {
           </span>
         </div>)}
   
-        {(isNSA || isMarriagePrep) && (  // Payment Options Section for NSA and Marriage Preparation Programme
+        {(isNSA || isMarriagePrep || isPaidTalks) && (  // Payment Options Section for NSA, Marriage Preparation Programme, and paid Talks And Seminar
           <div className="input-group1">
             <label>I wish to pay by:</label>
             <label>我希望通过以下方式付款：</label>
             <div className="payment-options">
-              {/* For NSA, keep existing logic. For Marriage Prep, always show all three options. */}
-              {(isNSA && courseLocation !== 'Pasir Ris West Wellness Centre') || isMarriagePrep ? (
+              {/* For NSA, keep existing logic. For Marriage Prep and paid Talks, always show Cash option if applicable. */}
+              {(isNSA && courseLocation !== 'Pasir Ris West Wellness Centre') || isMarriagePrep || isPaidTalks ? (
                 <label>
                   <input
                     type="radio"
@@ -124,7 +131,7 @@ class CourseDetailsSection extends Component {
                 />
                 PayNow
               </label>
-              {/* NSA: Conditionally render SkillsFuture. Marriage Prep: always show. */}
+              {/* NSA: Conditionally render SkillsFuture. Marriage Prep: always show. Paid Talks: exclude SkillsFuture. */}
               {(
                 isNSA && (
                   courseEnglishName === 'Community Ukulele – Mandarin L2A' ||
@@ -132,7 +139,7 @@ class CourseDetailsSection extends Component {
                   (courseEnglishName !== 'My Story – Mandarin' &&
                   courseEnglishName !== 'Community Ukulele – Mandarin L1' && courseChineseName !== "音乐祝福社区四弦琴班")
                 )
-              ) && !isMarriagePrep ? (
+              ) && !isMarriagePrep && !isPaidTalks ? (
                 <label>
                   <input
                     type="radio"
@@ -145,8 +152,8 @@ class CourseDetailsSection extends Component {
               ) : null}
               
             </div>
-            {/* Display error message if no payment option is selected, paymentTouched is true, and courseType is NSA or Marriage Prep */}
-            {(isNSA || isMarriagePrep) && !selectedPayment && paymentTouched && (
+            {/* Display error message if no payment option is selected, paymentTouched is true, and courseType is NSA, Marriage Prep, or paid Talks */}
+            {(isNSA || isMarriagePrep || isPaidTalks) && !selectedPayment && paymentTouched && (
               <>
                 <span className="error-message3">Please select a payment option.</span>
                 <span className="error-message3">请选择付款方式。</span>

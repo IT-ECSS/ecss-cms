@@ -754,6 +754,15 @@ class AccountsSection extends Component {
                       </p>
 
                       <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
+                        <strong>Talks And Seminar: </strong>
+                        {this.state.accessRightsRowData[this.state.expandedRowIndex].courses["Talks And Seminar"] ? (
+                          <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
+                        ) : (
+                          <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
+                        )}
+                      </p>
+
+                      <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
                         <strong>Update Course(s): </strong>
                         {this.state.accessRightsRowData[this.state.expandedRowIndex].courses["Update Courses"] ? (
                           <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>

@@ -206,7 +206,17 @@ class RegistrationPaymentSection extends Component {
 
     const inputValues = {};
     data.forEach((item, index) => {
-      inputValues[index] = item.status || "Pending";
+      // Set initial status based on course type and payment method
+      let initialStatus = item.status || "Pending";
+      
+      // If no payment method is available (empty or null) and course type is ILP or free Talks And Seminar
+      if ((!item.course?.payment || item.course.payment === '') && 
+          (item.course?.courseType === "ILP" || 
+           (item.course?.courseType === "Talks And Seminar" && item.course?.coursePrice === 0))) {
+        initialStatus = item.status || "Pending"; // Keep existing logic but ensure ILP courses can have their status
+      }
+      
+      inputValues[index] = initialStatus;
     });
 
     const inputValues1 = {};
@@ -1883,6 +1893,7 @@ class RegistrationPaymentSection extends Component {
     // Custom cell renderer for Payment Method with Buttons
   paymentMethodRenderer = (params, courseName, location, type) => {
     const currentPaymentMethod = params.value; // Get the current payment method value
+    const { courseInfo } = params.data; // Get course info to access price
   
     let paymentMethods;
     if(type === "NSA")
@@ -1915,6 +1926,19 @@ class RegistrationPaymentSection extends Component {
     else if(type === "Marriage Preparation Programme")
     {
       paymentMethods = ['Cash', 'PayNow'];
+    }
+    else if(type === "Talks And Seminar")
+    {
+      // Check if the course price is greater than 0
+      const coursePrice = parseFloat((courseInfo?.coursePrice || '0').replace('$', ''));
+      if(coursePrice > 0)
+      {
+        paymentMethods = ['Cash', 'PayNow']; // No SkillsFuture for paid Talks And Seminar
+      }
+      else
+      {
+        paymentMethods = []; // No payment methods for free Talks And Seminar
+      }
     }
     else
     {
@@ -2114,20 +2138,28 @@ class RegistrationPaymentSection extends Component {
       cellEditorParams: (params) => {
         const { paymentMethod, courseInfo, paymentStatus } = params.data;
         const courseType = courseInfo.courseType;
+        const coursePrice = courseInfo.coursePrice;
 
-        const initialOptions =
-          courseType === "NSA"
-            ? paymentMethod === "SkillsFuture"
-              ? [
-                  "Pending",
-                  "Generating SkillsFuture Invoice",
-                  "SkillsFuture Done",
-                  "Cancelled",
-                  "Withdrawn",
-                  "Refunded",
-                ]
-              : ["Pending", "Paid", "Cancelled", "Withdrawn", "Refunded"]
-            : ["Pending", "Paid", "Withdrawn", "Refunded"];
+        let initialOptions;
+        
+        if (courseType === "NSA") {
+          initialOptions = paymentMethod === "SkillsFuture"
+            ? [
+                "Pending",
+                "Generating SkillsFuture Invoice",
+                "SkillsFuture Done",
+                "Cancelled",
+                "Withdrawn",
+                "Refunded",
+              ]
+            : ["Pending", "Paid", "Cancelled", "Withdrawn", "Refunded"];
+        } else if (courseType === "ILP" || (courseType === "Talks And Seminar" && parseFloat(coursePrice) === 0)) {
+          initialOptions = ["Pending", "Confirmed", "Withdrawn"];
+        } else if (courseType === "Talks And Seminar" && parseFloat(coursePrice) > 0) {
+          initialOptions = ["Pending", "Paid", "Cancelled", "Withdrawn", "Refunded"];
+        } else {
+          initialOptions = ["Pending", "Paid", "Withdrawn", "Refunded"];
+        }
 
         let options;
         if (paymentStatus === "Pending") {
@@ -2158,6 +2190,7 @@ class RegistrationPaymentSection extends Component {
           Paid: "#008000",
           Confirmed: "#008000",
           Refunded: "#D2691E",
+          ILP: "#008000", // Adding ILP status color
         };
         const statusText = params.value;
         const backgroundColor = statusStyles[statusText] || "#D3D3D3";
@@ -2793,10 +2826,17 @@ debugMarriagePrepData = () => {
       };
     }
 
-        // ILP: soft pastel green
+    // ILP: soft pastel green
     if (row && row.courseInfo && row.courseInfo.courseType === "Marriage Preparation Programme") {
       return {
         background: '#fff9c4' // soft pastel yellow
+      };
+    }
+
+    if (row && row.courseInfo && row.courseInfo.courseType === "Talks And Seminar") 
+    {
+      return {
+        background: '#D8D8D8' // soft pastel yellow
       };
     }
   
@@ -3332,6 +3372,56 @@ debugMarriagePrepData = () => {
               if(newValue === "Confirmed")
               { 
                 console.log("Confirm ILP Course")
+                const performParallelTasks = async () => {
+                  try {
+                    // Run the two functions in parallel using Promise.all
+                    await Promise.all([
+                      this.updateWooCommerceForRegistrationPayment(courseChiName, courseName, courseLocation, newValue),
+                      this.automatedWhatsappMessage(participantInfo, courseInfo, "course_reservation_successful_ilp", "payment")
+                    ]);
+                    console.log("Both tasks completed successfully.");
+                  } catch (error) {
+                    console.error("Error occurred during parallel task execution:", error);
+                  }};
+                  await performParallelTasks();
+              }
+              else if(newValue === "Cancelled" || newValue === "Withdrawn")
+              { 
+                console.log("Cancel/Withdraw ILP Course")
+                const performParallelTasks = async () => {
+                  try {
+                    // Run the two functions in parallel using Promise.all
+                    await Promise.all([
+                      this.updateWooCommerceForRegistrationPayment(courseChiName, courseName, courseLocation, newValue),
+                    ]);
+                    console.log("Both tasks completed successfully.");
+                  } catch (error) {
+                    console.error("Error occurred during parallel task execution:", error);
+                  }};
+                  await performParallelTasks();
+              }
+            }
+            else if(courseInfo.courseType === "Talks And Seminar")
+            {
+              if(newValue === "Confirmed")
+              { 
+                console.log("Confirm Talks And Seminar")
+                const performParallelTasks = async () => {
+                  try {
+                    // Run the two functions in parallel using Promise.all
+                    await Promise.all([
+                      this.updateWooCommerceForRegistrationPayment(courseChiName, courseName, courseLocation, newValue),
+                      this.automatedWhatsappMessage(participantInfo, courseInfo, "course_reservation_successful_ilp", "payment")
+                    ]);
+                    console.log("Both tasks completed successfully.");
+                  } catch (error) {
+                    console.error("Error occurred during parallel task execution:", error);
+                  }};
+                  await performParallelTasks();
+              }
+              else if(newValue === "Paid")
+              { 
+                console.log("Confirm Talks And Seminar")
                 const performParallelTasks = async () => {
                   try {
                     // Run the two functions in parallel using Promise.all

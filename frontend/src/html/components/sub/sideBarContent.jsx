@@ -104,6 +104,10 @@ class SideBarContent extends Component {
             subKey = "Marriage Preparation Programme";
             this.props.toggleCourseComponent(subKey);
         }
+        else if(subKey === "Talks And Seminar") {
+            subKey = "Talks And Seminar";
+            this.props.toggleCourseComponent(subKey);
+        }
         else if(subKey === "Registration And Payment Table") {
             this.props.toggleRegistrationPaymentComponent(subKey);
         }

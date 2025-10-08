@@ -390,9 +390,32 @@ class FormPage extends Component {
         if (
           matchedCourse.categories &&
           Array.isArray(matchedCourse.categories) &&
+          matchedCourse.categories.length === 2
+        ) {
+          // Handle the case where there are exactly 2 categories
+          // Check if first category is "Talks And Seminar"
+          if (matchedCourse.categories[0] && 
+              typeof matchedCourse.categories[0].name === 'string' &&
+              matchedCourse.categories[0].name === 'Talks And Seminar') {
+            type = 'Talks And Seminar';
+          }
+          // Check second category for other course types (NSA, ILP, Marriage Preparation Programme)
+          else if (matchedCourse.categories[1] && 
+                   typeof matchedCourse.categories[1].name === 'string') {
+            const nameParts = matchedCourse.categories[1].name.split(":");
+            if (nameParts.length > 1 && typeof nameParts[1] === 'string') {
+              type = nameParts[1].trim();
+            } else {
+              type = nameParts[0].trim();
+            }
+          }
+        } else if (
+          matchedCourse.categories &&
+          Array.isArray(matchedCourse.categories) &&
           matchedCourse.categories[1] &&
           typeof matchedCourse.categories[1].name === 'string'
         ) {
+          // Original logic for backward compatibility
           const nameParts = matchedCourse.categories[1].name.split(":");
           if (nameParts.length > 1 && typeof nameParts[1] === 'string') {
             type = nameParts[1].trim();
@@ -419,7 +442,11 @@ class FormPage extends Component {
           bgColor = '#006400';
         } else if (type === 'NSA') {
           bgColor = '#003366';
-        } else if (type === 'Marriage Preparation Programme') {
+        }
+        else if (type === 'Talks And Seminar') {
+          bgColor = '#DAA520';
+        }
+         else if (type === 'Marriage Preparation Programme') {
           bgColor = '#800000';     
           formContainerBg = '#40E0D0';
         }
@@ -521,7 +548,7 @@ class FormPage extends Component {
         } else if (courseParts.length === 2) {
           courseData = {
             englishName: courseParts[0] || '',
-            //chineseName: courseParts[1] || '',
+            chineseName: courseParts[1] || '', // Re-enable for Malay names in Talks And Seminar
             location: selectedLocation,
             price: formattedPrice,
             type,
@@ -600,6 +627,7 @@ class FormPage extends Component {
     try {
       var response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3002" : "https://ecss-backend-django.azurewebsites.net"}/courses/`, {courseType});
       var courses = response.data.courses;
+      console.log("Fetched Courses:", courses);
       return courses;
     }
     catch(error) {
@@ -658,9 +686,10 @@ class FormPage extends Component {
     try {
       const userData = this.getSingPassUserData();
       
-      // Skip SingPass population for Marriage Preparation Programme
-      if (this.state.formData.type === 'Marriage Preparation Programme') {
-        console.log('Marriage Preparation Programme detected, skipping SingPass data population');
+      // Skip SingPass population for Marriage Preparation Programme and Talks And Seminar
+      if (this.state.formData.type === 'Marriage Preparation Programme' || 
+          this.state.formData.type === 'Talks And Seminar') {
+        console.log(`${this.state.formData.type} detected, skipping SingPass data population`);
         this.navigateToSection(1);
         return;
       }
@@ -732,9 +761,10 @@ class FormPage extends Component {
 
   // Add method to clear SingPass data without reloading
   clearSingPassData = () => {
-    // Skip clearing for Marriage Preparation Programme since they don't use SingPass
-    if (this.state.formData.type === 'Marriage Preparation Programme') {
-      console.log('Marriage Preparation Programme detected, SingPass clearing not applicable');
+    // Skip clearing for Marriage Preparation Programme and Talks And Seminar since they don't use SingPass
+    if (this.state.formData.type === 'Marriage Preparation Programme' || 
+        this.state.formData.type === 'Talks And Seminar') {
+      console.log(`${this.state.formData.type} detected, SingPass clearing not applicable`);
       return;
     }
     
@@ -801,8 +831,8 @@ class FormPage extends Component {
     const { currentSection, formData } = this.state;
     console.log("Current Section:", currentSection);
 
-    // For Marriage Preparation Programme, treat section 0 as section 1 for validation
-    const effectiveSection = (formData.type === 'Marriage Preparation Programme' && currentSection === 0) ? 1 : currentSection;
+    // For Marriage Preparation Programme and Talks And Seminar, treat section 0 as section 1 for validation
+    const effectiveSection = ((formData.type === 'Marriage Preparation Programme' || formData.type === 'Talks And Seminar') && currentSection === 0) ? 1 : currentSection;
 
     // Validation logic for different sections based on course type
     if (formData.type === 'Marriage Preparation Programme') {
@@ -882,8 +912,8 @@ class FormPage extends Component {
   isCurrentSectionValid = () => {
     const { currentSection, formData } = this.state;
     
-    // For Marriage Preparation Programme, allow navigation without validation
-    if (formData.type === 'Marriage Preparation Programme') {
+    // For Marriage Preparation Programme and Talks And Seminar, allow navigation without validation
+    if (formData.type === 'Marriage Preparation Programme' || formData.type === 'Talks And Seminar') {
       return true;
     }
     
@@ -1153,16 +1183,16 @@ class FormPage extends Component {
     const { currentSection, formData } = this.state;
     const errors = {};
     
-    // For Marriage Preparation Programme, treat section 0 as section 1 for validation
-    const effectiveSection = (formData.type === 'Marriage Preparation Programme' && currentSection === 0) ? 1 : currentSection;
+    // For Marriage Preparation Programme and Talks And Seminar, treat section 0 as section 1 for validation
+    const effectiveSection = ((formData.type === 'Marriage Preparation Programme' || formData.type === 'Talks And Seminar') && currentSection === 0) ? 1 : currentSection;
     
     if (effectiveSection === 0) {
       return errors;
     }
     if (effectiveSection === 1) {
-      // Skip all validation for Marriage Preparation Programme - allow direct navigation
-      if (formData.type === 'Marriage Preparation Programme') {
-        // No validation required for Marriage Preparation Programme
+      // Skip all validation for Marriage Preparation Programme and Talks And Seminar - allow direct navigation
+      if (formData.type === 'Marriage Preparation Programme' || formData.type === 'Talks And Seminar') {
+        // No validation required for Marriage Preparation Programme and Talks And Seminar
         return errors;
       }
       
@@ -1447,6 +1477,7 @@ class FormPage extends Component {
                 onAuthenticationChange={(authStatus) => this.setState({ isAuthenticated: authStatus })}
                 onProceedWithoutSingPass={this.handleProceedWithoutSingPass}
                 validationErrors={validationErrors}
+                hideSingPass={formData.type === 'Talks And Seminar'}
               />
             )}
             {(currentSection === 1 || (currentSection === 0 && formData.type === 'Marriage Preparation Programme')) && (
@@ -1454,9 +1485,10 @@ class FormPage extends Component {
                 data={formData}
                 onChange={this.handleDataChange}
                 errors={validationErrors}
-                singPassPopulatedFields={formData.type === 'Marriage Preparation Programme' ? {} : this.state.singPassPopulatedFields}
-                onClearSingPassData={formData.type === 'Marriage Preparation Programme' ? null : this.clearSingPassData}
-                hideMyInfoOptions={formData.type === 'Marriage Preparation Programme'}
+                singPassPopulatedFields={formData.type === 'Marriage Preparation Programme' || formData.type === 'Talks And Seminar' ? {} : this.state.singPassPopulatedFields}
+                onClearSingPassData={formData.type === 'Marriage Preparation Programme' || formData.type === 'Talks And Seminar' ? null : this.clearSingPassData}
+                hideMyInfoOptions={formData.type === 'Marriage Preparation Programme' || formData.type === 'Talks And Seminar'}
+                showLimitedFields={formData.type === 'Talks And Seminar'}
               />
             )}
             {currentSection === 2 && formData.type === 'Marriage Preparation Programme' && (
@@ -1520,8 +1552,21 @@ class FormPage extends Component {
           </div>
         </div>
 
+        {/* Show Next button for Talks And Seminar (with SingPass hidden) */}
+        {currentSection === 0 && formData.type === 'Talks And Seminar' && (
+          <div className="button-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <button 
+              onClick={this.handleNext} 
+              disabled={!this.isCurrentSectionValid()}
+              className="next-button"
+            >
+              Next 下一步
+            </button>
+          </div>
+        )}
+
         {/* Simplified button structure - remove authentication logic */}
-        {currentSection === 0 && formData.type !== 'Marriage Preparation Programme' && (
+        {currentSection === 0 && formData.type !== 'Marriage Preparation Programme' && formData.type !== 'Talks And Seminar' && (
           <div className="flex-button-container">
             <button 
               onClick={this.handleNext} 

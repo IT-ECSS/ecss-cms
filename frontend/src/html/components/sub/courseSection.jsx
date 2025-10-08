@@ -650,7 +650,7 @@ class CoursesSection extends Component {
       <div className="nsa-course-container">
         <div className="nsa-course-heading">
           <h1 style={{ textAlign: 'center' }}>
-            {this.props.courseType === "NSA" ? "NSA Courses" : this.props.courseType === "ILP" ? "ILP Courses" : this.props.courseType === "Marriage Preparation Programme" ? "Marriage Preparation Programme" : "Courses"}
+            {this.props.courseType === "NSA" ? "NSA Courses" : this.props.courseType === "ILP" ? "ILP Courses" : this.props.courseType === "Marriage Preparation Programme" ? "Marriage Preparation Programme" : this.props.courseType === "Talks And Seminar" ? "Talks And Seminar" : "Courses"}
           </h1>
           <div className="button-row4">
             <button className="save-btn" onClick={() => this.saveData(this.state.rowData)}>

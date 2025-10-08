@@ -83,6 +83,15 @@ class WelcomeSection extends Component {
                 parentKey: 'Courses'
             },
             { 
+                key: 'Talks And Seminar', 
+                title: 'Talks And Seminar', 
+                icon: 'fas fa-microphone', 
+                description: 'Manage talks and seminar offerings', 
+                action: () => this.props.onNavigate('talks-and-seminar'),
+                accessKey: 'Talks And Seminar',
+                parentKey: 'Courses'
+            },
+            { 
                 key: 'View Attendance', 
                 title: 'View Attendance', 
                 icon: 'fas fa-clipboard-check', 
@@ -286,6 +295,7 @@ class WelcomeSection extends Component {
             'NSA Courses': 'fas fa-graduation-cap',
             'ILP Courses': 'fas fa-book-open',
             'Marriage Preparation Programme Courses': 'fas fa-heart',
+            'Talks And Seminar': 'fas fa-microphone',
             'Registration And Payment Table': 'fas fa-credit-card',
             'Monthly Report': 'fas fa-chart-bar',
             'Payment Report': 'fas fa-file-invoice-dollar',
@@ -304,6 +314,7 @@ class WelcomeSection extends Component {
             'NSA Courses': 'nsa-courses',
             'ILP Courses': 'ilp-courses',
             'Marriage Preparation Programme Courses': 'marriage-courses',
+            'Talks And Seminar': 'talks-and-seminar',
             'Registration And Payment Table': 'registration',
             'Monthly Report': 'monthly-report',
             'Payment Report': 'payment-report',
