@@ -91,20 +91,109 @@ class CourseSelectionPage extends Component {
   };
 
   
+  addToCartWithQuantity = (course, quantity) => {
+    console.log("Add To Cart with Quantity:", course, quantity);
+    this.setState((prevState) => {
+      // Check if item already exists in cart
+      const existingItemIndex = prevState.cartItems.findIndex(item => item.course.id === course.id);
+      
+      if (existingItemIndex !== -1) {
+        // Item exists
+        if (quantity === 0) {
+          // Remove item from cart if quantity is 0
+          const updatedCartItems = prevState.cartItems.filter((item, index) => index !== existingItemIndex);
+          const newCartItemCount = updatedCartItems.reduce((total, item) => total + item.quantity, 0);
+          
+          return {
+            cartItemCount: newCartItemCount,
+            cartItems: updatedCartItems
+          };
+        } else {
+          // Update quantity
+          const updatedCartItems = [...prevState.cartItems];
+          updatedCartItems[existingItemIndex] = {
+            ...updatedCartItems[existingItemIndex],
+            quantity: quantity
+          };
+          
+          const newCartItemCount = updatedCartItems.reduce((total, item) => total + item.quantity, 0);
+          
+          return {
+            cartItemCount: newCartItemCount,
+            cartItems: updatedCartItems
+          };
+        }
+      } else {
+        // Item doesn't exist, only add if quantity > 0
+        if (quantity > 0) {
+          const newItem = {
+            imageUrl: course.images[0].src,
+            name: course.name,
+            price: course.price,
+            course: course,
+            quantity: quantity
+          };
+          
+          const updatedCartItems = [...prevState.cartItems, newItem];
+          const newCartItemCount = updatedCartItems.reduce((total, item) => total + item.quantity, 0);
+          
+          return {
+            cartItemCount: newCartItemCount,
+            cartItems: updatedCartItems
+          };
+        }
+        // If quantity is 0 and item doesn't exist, do nothing
+        return prevState;
+      }
+    });
+  };
+
   addToCart = (course) => {
     console.log("Add To Cart:", course);
-    this.setState((prevState) => ({
-      cartItemCount: prevState.cartItemCount + 1,
-      cartItems: [
-        ...prevState.cartItems,
-        {
-          imageUrl: course.images[0].src,  // assuming the course object contains this
-          name: course.name,
-          price: course.price,
-          course: course
-        },
-      ],
-    }));
+    this.setState((prevState) => {
+      // Check if item already exists in cart
+      const existingItemIndex = prevState.cartItems.findIndex(item => item.course.id === course.id);
+      
+      if (existingItemIndex !== -1) {
+        // Item exists, increase quantity
+        const updatedCartItems = [...prevState.cartItems];
+        updatedCartItems[existingItemIndex] = {
+          ...updatedCartItems[existingItemIndex],
+          quantity: (updatedCartItems[existingItemIndex].quantity || 1) + 1
+        };
+        
+        return {
+          cartItemCount: prevState.cartItemCount + 1,
+          cartItems: updatedCartItems
+        };
+      } else {
+        // Item doesn't exist, add new item
+        return {
+          cartItemCount: prevState.cartItemCount + 1,
+          cartItems: [
+            ...prevState.cartItems,
+            {
+              imageUrl: course.images[0].src,  // assuming the course object contains this
+              name: course.name,
+              price: course.price,
+              course: course,
+              quantity: 1
+            },
+          ]
+        };
+      }
+    });
+  };
+
+  // Handle cart updates from the popup
+  updateCartItems = (updatedCartItems) => {
+    // Calculate total item count
+    const cartItemCount = updatedCartItems.reduce((total, item) => total + item.quantity, 0);
+    
+    this.setState({
+      cartItems: updatedCartItems,
+      cartItemCount: cartItemCount
+    });
   };
 
   showMoreInfo = (course) => {
@@ -364,8 +453,10 @@ class CourseSelectionPage extends Component {
           <CoursesList
             courses={filteredCourses}  // Use filtered courses
             addToCart={this.addToCart}
+            addToCartWithQuantity={this.addToCartWithQuantity}
             showMoreInfo={this.showMoreInfo}
             renderCourseName={this.renderCourseName}
+            cartItems={cartItems}
           />
         </div>
 
@@ -374,13 +465,23 @@ class CourseSelectionPage extends Component {
           <CartPopup 
             cartItems={cartItems} 
             onClose={this.handleCartClick}
+            onCartUpdate={this.updateCartItems}
             renderCourseName1={this.renderCourseName1}
             handleCheckout={this.handleCheckout}
           />
         )}
 
         {showPopup && selectedCourse && (
-          <MoreInfoPopup selectedCourse={selectedCourse} renderCourseName2={this.renderCourseName2}  renderDescription={this.renderDescription} renderCourseDetails = {this.renderCourseDetails} handleClose={this.closePopup} handleAddToCart={this.addToCart} />
+          <MoreInfoPopup 
+            selectedCourse={selectedCourse} 
+            renderCourseName2={this.renderCourseName2}  
+            renderDescription={this.renderDescription} 
+            renderCourseDetails={this.renderCourseDetails} 
+            handleClose={this.closePopup} 
+            handleAddToCart={this.addToCart}
+            handleAddToCartWithQuantity={this.addToCartWithQuantity}
+            cartItems={cartItems}
+          />
         )}
       </div>
     );

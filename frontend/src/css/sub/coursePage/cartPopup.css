@@ -17,15 +17,16 @@
   padding: 2rem;
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  width: 80%;
-  max-width: 500px;
+  width: 90%;
+  max-width: 600px; /* Increased max-width for better layout */
   overflow-y: auto; /* Allow scrolling if the content is too large */
-  max-height: 70vh; /* Max height of the popup */
+  max-height: 80vh; /* Max height of the popup */
   text-align: center;
 }
 
 .cart-popup h2 {
   margin-bottom: 1rem;
+  color: #2c3e50;
 }
 
 /* Cart Items List */
@@ -34,32 +35,23 @@
   overflow-y: auto; /* Enable scrolling for long lists */
 }
 
-.cart-item {
+/* Grand Total */
+.cart-grand-total {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: #2c3e50;
+  color: white;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 1.2rem;
+}
+
+/* Button Container */
+.button-container {
   display: flex;
-  align-items: center;
-  margin-bottom: 1rem;
-  border-bottom: 1px solid #ddd;
-  padding-bottom: 1rem;
-}
-
-.cart-item-image {
-  width: 50px;
-  height: 50px;
-  object-fit: cover;
-  margin-right: 1rem;
-}
-
-.cart-item-details {
-  text-align: left;
-}
-
-.cart-item-name {
-  font-weight: bold;
-}
-
-.cart-item-price {
-  color: #27ae60;
-  font-size: 1rem;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 1.5rem;
 }
 
 .cart-popup button {
@@ -70,7 +62,7 @@
   border-radius: 5px;
   cursor: pointer;
   transition: background-color 0.3s ease;
-  margin-top: 1rem;
+  font-weight: 600;
 }
 
 .cart-popup button:hover {

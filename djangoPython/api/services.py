@@ -174,6 +174,53 @@ class WooCommerceAPI:
                 break
         return all_products
 
+    def get_fundraising_products(self):
+        """Fetch and filter fundraising products from WooCommerce."""
+        all_products = []
+        page = 1
+        per_page = 100  # Maximum number of products per page for WooCommerce API
+
+        while True:
+            try:
+                # Construct the API URL with pagination
+                url = f"{self.base_url}products"
+                params = {
+                    'per_page': per_page,
+                    'page': page
+                }
+                
+                # Make the API request
+                response = requests.get(url, params=params, auth=self.auth)
+                response.raise_for_status()  # Check for request errors
+
+                # Parse the response as JSON
+                products = response.json()
+                print(products)
+                if not products:
+                    break  # Exit the loop if no products are returned
+
+                # Filter products based on the criteria for fundraising
+                filtered_products = [
+                    product for product in products
+                    if product.get('status') == 'publish'
+                    and 'categories' in product
+                    and len(product['categories']) == 1
+                    and any(category.get('name') == 'Support Us' for category in product['categories'])
+                ]
+
+                # Add filtered products to the list
+                all_products.extend(filtered_products)
+
+                # Increment page to fetch next set of products
+                page += 1
+
+            except requests.exceptions.RequestException as e:
+                # Handle any errors during the request
+                print(f"Error while fetching fundraising products: {e}")
+                break
+
+        return all_products
+
     def getProductId(self, chinese, english, location):
         """Fetches the product ID by matching Chinese, English, and Location names from WooCommerce."""
         try:
@@ -243,6 +290,8 @@ class WooCommerceAPI:
             # Handle any errors during the request
             print(f"Error fetching products: {e}")
             return None
+        
+    
 
     def updateCourseQuantity(request, product_id, status):
         """

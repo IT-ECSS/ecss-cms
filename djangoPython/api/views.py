@@ -44,6 +44,28 @@ def product_list(request):
         # Catch and log unexpected errors
         print("Error:", e)
         return JsonResponse({"error": "An error occurred while processing the request."}, status=500)
+    
+@csrf_exempt  # Temporarily disable CSRF validation for this view
+def fundraising_list(request):
+    """Fetches and returns a list of products from WooCommerce based on the courseType."""
+    try:
+        # Initialize WooCommerce API instance
+        woo_api = WooCommerceAPI()
+
+        products = woo_api.get_fundraising_products()
+
+        #print(products)
+
+        # Return the products as a JSON response
+        return JsonResponse({"fundraising": products})
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON input."}, status=400)
+
+    except Exception as e:
+        # Catch and log unexpected errors
+        print("Error:", e)
+        return JsonResponse({"error": "An error occurred while processing the request."}, status=500)
 
 import re
 import json

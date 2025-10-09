@@ -1,0 +1,496 @@
+/* Cart Item Component Styles */
+.cart-item {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  grid-template-areas: 
+    "image header"
+    "image controls";
+  gap: 0.5rem;
+  margin-bottom: 0;
+  border-radius: 6px;
+  padding: 0.75rem;
+  background-color: transparent;
+  align-items: start;
+  min-height: 100px;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Left section - Product image */
+.item-image {
+  grid-area: image;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: white;
+  border-radius: 4px;
+  border: none;
+  padding: 4px;
+  overflow: hidden;
+}
+
+.item-image img {
+  width: 100%;
+  height: 72px;
+  object-fit: contain;
+  border-radius: 2px;
+  background-color: transparent;
+}
+
+/* Header - Product name and details */
+.item-details {
+  grid-area: header;
+  align-self: start;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.item-name {
+  font-weight: bold;
+  font-size: 1rem;
+  color: #2c3e50;
+  line-height: 1.2;
+  margin: 0;
+  word-wrap: break-word;
+  flex: 1;
+}
+
+.item-price {
+  display: none; /* Hide individual price as we show total */
+}
+
+/* Header - Delete icon positioned beside product name */
+.fa-solid.fa-trash-can {
+  color: #000000;
+  font-size: 0.9rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: inline-block;
+  line-height: 1;
+}
+
+/* Removed hover effect for remove item */
+
+/* React Icons FaTrash styling */
+.remove-item svg {
+  width: 1rem;
+  height: 1rem;
+  color: #e74c3c;
+}
+
+/* Font Awesome solid trash can icon styling */
+.remove-item .fa-solid.fa-trash-can,
+.remove-item .fas.fa-trash {
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* Hide any text content - only show icon */
+.remove-item {
+  font-size: 0; /* Hide any text content */
+  color: #e74c3c;
+}
+
+/* Controls row - Create a horizontal layout for quantity and total */
+.cart-item .item-quantity {
+  grid-area: controls;
+  justify-self: start;
+  align-self: center;
+}
+
+.cart-item .item-total {
+  grid-area: controls;
+  justify-self: end;
+  align-self: center;
+}
+
+/* Body - Quantity controls */
+.item-quantity {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-direction: row;
+  gap: 0.1rem;
+  border: none;
+  border-radius: 0;
+  background-color: transparent;
+  width: fit-content;
+  height: auto;
+  flex-shrink: 0;
+}
+
+/* Body - Total price */
+.item-total {
+  font-weight: normal;
+  color: #2c3e50;
+  font-size: 0.8rem;
+  text-align: right;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* Legacy support */
+.delete-btn {
+  background-color: transparent;
+  color: #e74c3c;
+  border: none;
+  padding: 0.25rem;
+  cursor: pointer;
+  transition: color 0.3s ease;
+  font-size: 1.2rem;
+  font-weight: bold;
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+/* Removed hover effects for delete and remove item buttons */
+
+/* Legacy support */
+.delete-btn {
+  background-color: transparent;
+  color: #e74c3c;
+  border: none;
+  padding: 0.25rem;
+  cursor: pointer;
+  transition: color 0.3s ease;
+  font-size: 1.2rem;
+  font-weight: bold;
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+/* Removed hover effect for delete button */
+
+/* Quantity controls - Allow reduction to 0 to clear item */
+.item-quantity {
+  display: flex;
+  align-items: center;
+  gap: 0.025rem;
+  border: none;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.quantity-btn {
+  background-color: transparent;
+  border: none;
+  padding: 0.3rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2c3e50;
+  min-width: 24px;
+  height: 24px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  border-radius: 4px;
+}
+
+.quantity-btn:hover {
+  background-color: transparent !important;
+  color: #2c3e50 !important;
+}
+
+.quantity-btn:active {
+  background-color: transparent !important;
+  color: #2c3e50 !important;
+}
+
+.quantity-btn:disabled {
+  color: #ccc;
+  cursor: not-allowed;
+}
+
+.quantity {
+  min-width: 24px;
+  text-align: center;
+  font-weight: 600;
+  padding: 0.2rem 0.1rem;
+  border: none;
+  background-color: transparent;
+  font-size: 0.8rem;
+  color: #2c3e50;
+  outline: none;
+  appearance: textfield; /* Hide spinner */
+  -moz-appearance: textfield; /* Hide spinner in Firefox */
+}
+
+.quantity::-webkit-outer-spin-button,
+.quantity::-webkit-inner-spin-button {
+  -webkit-appearance: none; /* Hide spinner in Chrome/Safari */
+  margin: 0;
+}
+
+.quantity:focus {
+  outline: none;
+}
+
+.quantity-input {
+  min-width: 40px;
+  max-width: 50px;
+  text-align: center;
+  font-weight: 600;
+  padding: 0.2rem 0.1rem;
+  background-color: transparent;
+  font-size: 0.8rem;
+  color: #2c3e50;
+  border-radius: 4px;
+  appearance: textfield; /* Hide spinner */
+  -moz-appearance: textfield; /* Hide spinner in Firefox */
+}
+
+.quantity-input::-webkit-outer-spin-button,
+.quantity-input::-webkit-inner-spin-button {
+  -webkit-appearance: none; /* Hide spinner in Chrome/Safari */
+  margin: 0;
+}
+
+/* Item total price */
+.item-total {
+  font-weight: normal;
+  color: #2c3e50;
+  font-size: 0.8rem;
+  text-align: right;
+  min-width: 60px;
+}
+
+/* Legacy support */
+.cart-item-name {
+  font-weight: bold;
+  font-size: 1.1rem;
+  color: #2c3e50;
+  line-height: 1.3;
+  margin-bottom: auto;
+  display: block;
+  width: calc(100% - 2rem); /* Account for delete button space */
+}
+
+/* Controls row with quantity and total price */
+.controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+/* Quantity controls */
+.quantity-controls {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border: none;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.quantity-btn {
+  background-color: transparent;
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2c3e50;
+  min-width: 32px;
+  height: 32px;
+  font-size: 0.8rem;
+}
+
+.quantity-btn:hover {
+  background-color: transparent !important;
+  color: #2c3e50 !important;
+}
+
+.quantity-btn:active {
+  background-color: transparent !important;
+  color: #2c3e50 !important;
+}
+
+.quantity-btn:disabled {
+  color: #ccc;
+  cursor: not-allowed;
+}
+
+.quantity-value {
+  min-width: 32px;
+  text-align: center;
+  font-weight: 600;
+  padding: 0.5rem 0.25rem;
+  border-left: 1px solid #ddd;
+  border-right: 1px solid #ddd;
+  background-color: #f8f9fa;
+  font-size: 0.9rem;
+}
+
+/* Item total price */
+.item-total-price {
+  font-weight: bold;
+  color: #2c3e50;
+  font-size: 1.1rem;
+  text-align: right;
+  min-width: 60px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .cart-item {
+    grid-template-columns: 60px 1fr;
+    grid-template-areas: 
+      "image header"
+      "image controls";
+    gap: 0.4rem;
+    padding: 0.5rem;
+    min-height: 80px;
+  }
+  
+  .item-details {
+    gap: 0.4rem; /* Smaller gap on tablet */
+  }
+  
+  .remove-item {
+    font-size: 0; /* Hide text content */
+    padding: 0.2rem;
+  }
+  
+  .remove-item svg {
+    width: 0.9rem;
+    height: 0.9rem;
+  }
+  
+  .remove-item .fa-solid.fa-trash-can,
+  .remove-item .fas.fa-trash {
+    font-size: 0.9rem;
+  }
+  
+  .item-image {
+    padding: 3px;
+  }
+  
+  .item-image img {
+    height: 54px;
+    object-fit: contain;
+    background-color: transparent;
+  }
+  
+  .item-name {
+    font-size: 0.9rem;
+    line-height: 1.1;
+  }
+  
+  .item-quantity {
+    gap: 0.05rem;
+  }
+  
+  .quantity-btn {
+    min-width: 20px;
+    height: 22px;
+    padding: 0.1rem;
+    font-size: 0.7rem;
+  }
+  
+  .quantity {
+    min-width: 20px;
+    padding: 0.1rem;
+    font-size: 0.7rem;
+    border: none;
+    background-color: transparent;
+    outline: none;
+  }
+  
+  .quantity-input {
+    min-width: 32px;
+    max-width: 40px;
+    padding: 0.1rem;
+    font-size: 0.7rem;
+  }
+  
+  .item-total {
+    font-size: 0.7rem;
+  }
+  
+  .remove-item {
+    font-size: 1rem;
+    padding: 0.2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .cart-item {
+    grid-template-columns: 50px 1fr;
+    grid-template-areas: 
+      "image header"
+      "image controls";
+    gap: 0.3rem;
+    padding: 0.4rem;
+  }
+  
+  .item-details {
+    gap: 0.3rem; /* Even smaller gap on mobile */
+  }
+  
+  .remove-item {
+    font-size: 0; /* Hide text content */
+    padding: 0.15rem;
+  }
+  
+  .remove-item .fa-solid.fa-trash-can,
+  .remove-item .fas.fa-trash {
+    font-size: 0.8rem;
+  }
+  
+  .remove-item:not(:has(.fa-solid)):not(:has(.fas))::before {
+    font-size: 0.8rem;
+  }
+  
+  .item-image {
+    padding: 2px;
+  }
+  
+  .item-image img {
+    height: 46px;
+    object-fit: contain;
+    background-color: transparent;
+  }
+  
+  .item-quantity {
+    gap: 0.05rem;
+  }
+  
+  .quantity-btn {
+    min-width: 18px;
+    height: 20px;
+    padding: 0.05rem;
+    font-size: 0.6rem;
+  }
+  
+  .quantity {
+    min-width: 18px;
+    padding: 0.05rem;
+    font-size: 0.6rem;
+    border: none;
+    background-color: transparent;
+    outline: none;
+  }
+  
+  .quantity-input {
+    min-width: 28px;
+    max-width: 35px;
+    padding: 0.05rem;
+    font-size: 0.6rem;
+  }
+  
+  .item-total {
+    font-size: 0.6rem;
+  }
+}

@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
 import LoginPage from './html/components/loginPage';
 import NewCustomersPage from './html/components/newCustomers';
+import FundraisingPage from './html/components/FundraisingPage';
 import HomePage from './html/components/homePage';
 import FormPage from './html/components/formPage';
 import MassImportPage from './html/components/massImportPage';
@@ -66,6 +67,7 @@ class App extends Component
         <Switch>
           <Route exact path="/" component={LoginPage} />
           <ProtectedRoute path="/home" component={HomePage} />
+          <Route path="/fundraising" component={FundraisingPage} />
           <Route path="/form" component={FormPage} />
           <Route path="/new" component={NewCustomersPage} />
           <Route path="/mass" component={MassImportPage} />
