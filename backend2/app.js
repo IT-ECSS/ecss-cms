@@ -99,17 +99,4 @@ app.use(function(err, req, res, next) {
   res.render('error');
 });
 
-// Graceful shutdown handling
-process.on('SIGTERM', async () => {
-  console.log('SIGTERM received, shutting down gracefully');
-  await databaseManager.shutdown();
-  process.exit(0);
-});
-
-process.on('SIGINT', async () => {
-  console.log('SIGINT received, shutting down gracefully');
-  await databaseManager.shutdown();
-  process.exit(0);
-});
-
 module.exports = app;
