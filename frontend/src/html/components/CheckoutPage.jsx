@@ -220,8 +220,20 @@ class CheckoutPage extends Component {
         message: ''
       }
     }, () => {
-      // After hiding the modal, if it was a success modal, redirect back
+      // After hiding the modal, if it was a success modal, perform cleanup and redirect back
       if (wasSuccessModal) {
+        // Clear the cart after user acknowledges successful order
+        const { onClearCart } = this.props;
+        if (onClearCart) {
+          onClearCart();
+        }
+        // Also clear from localStorage as backup
+        localStorage.removeItem('cartItems');
+        
+        // Clear checkout form state after successful order
+        this.clearCheckoutStateFromLocalStorage();
+        
+        // Then redirect back
         this.handleGoBack();
       }
     });
@@ -367,23 +379,12 @@ class CheckoutPage extends Component {
 
       console.log('Order response:', response.data);
       
-      // Show success modal
+      // Show success modal (cart will be cleared when user clicks OK)
       this.showModal(
         'success',
         '✓',
         'Order Successfully Placed!'
       );
-      
-      // Clear the cart after successful order
-      const { onClearCart } = this.props;
-      if (onClearCart) {
-        onClearCart();
-      }
-      // Also clear from localStorage as backup
-      localStorage.removeItem('cartItems');
-      
-      // Clear checkout form state after successful order
-      this.clearCheckoutStateFromLocalStorage();
       
     } catch (error) {
       console.error('Error placing order:', error);
