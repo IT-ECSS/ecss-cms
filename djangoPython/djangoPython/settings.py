@@ -28,7 +28,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-u=^cvw++1jd=0wwq6e2j*
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
 #ecss-backend-django-backup.azurewebsites.net
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'ecss-backend-django-backup.azurewebsites.net', 'ecss-backend-django.azurewebsites.net', 'ecss.org.sg', '169.254.130.2', '169.254.131.2']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'ecss-backend-django-backup.azurewebsites.net', 'ecss-backend-django.azurewebsites.net', 'ecss.org.sg', '169.254.130.2', '169.254.131.2', '169.254.130.3']
 
 WOOCOMMERCE_API_URL = os.environ.get('WOOCOMMERCE_API_URL', 'https://ecss.org.sg/wp-json/wc/v3/')
 WOOCOMMERCE_CONSUMER_KEY = os.environ.get('WOOCOMMERCE_CONSUMER_KEY', 'ck_be09fee650a20cf08d693e4fe88d340a8f2c63ec')
@@ -56,6 +56,7 @@ CSRF_TRUSTED_ORIGINS = [
     'https://ecss-backend-django.azurewebsites.net',
     'https://169.254.130.2',
     'https://169.254.131.2',
+    'https://169.254.130.3',
     'https://ecss.org.sg'
 ]
 
@@ -67,6 +68,7 @@ CORS_ALLOWED_ORIGINS = [
     'https://ecss-backend-django.azurewebsites.net',
     'https://169.254.130.2',
     'https://169.254.131.2',
+    'https://169.254.130.3',
     'https://ecss.org.sg'
 ]
 
