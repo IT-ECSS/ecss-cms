@@ -72,6 +72,15 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_296E2EE7C8BA44FFBDA9FE34766E895F }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_4697C944127647B2B3ED5F687F386577 }}
 
+      - name: Clear Azure Web App cache and data
+        run: |
+          echo "Clearing Azure Web App cache and data..."
+          az webapp restart --name ecss-backend-node --resource-group $(az webapp show --name ecss-backend-node --query resourceGroup -o tsv)
+          az webapp log tail --name ecss-backend-node --resource-group $(az webapp show --name ecss-backend-node --query resourceGroup -o tsv) &
+          sleep 10
+          kill %1 2>/dev/null || true
+        continue-on-error: true
+
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
@@ -79,3 +88,4 @@ jobs:
           app-name: 'ecss-backend-node'
           slot-name: 'Production'
           package: .
+          clean: true
