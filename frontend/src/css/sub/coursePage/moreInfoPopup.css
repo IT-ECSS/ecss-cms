@@ -177,6 +177,7 @@
   justify-content: center;
   gap: 12px;
   margin-bottom: 1rem;
+  border: 0px solid black !important;
 }
 
 .quantity-btn {
@@ -192,17 +193,6 @@
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
-}
-
-.quantity-btn:hover:not(:disabled) {
-  background-color: #f0f0f0;
-  border-color: #bbb;
-}
-
-.quantity-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background-color: #f5f5f5;
 }
 
 .quantity-input {

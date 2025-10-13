@@ -241,7 +241,7 @@
   color: #333;
 }
 
-.quantity-controls {
+. {
   display: flex;
   align-items: center;
   justify-content: center;

@@ -175,11 +175,11 @@
   gap: 0.025rem;
   border: none;
   border-radius: 4px;
-  background-color: transparent;
+  background-color:white;
 }
 
 .quantity-btn {
-  background-color: transparent;
+  background-color: white;
   border: none;
   padding: 0.3rem;
   cursor: pointer;
@@ -195,19 +195,10 @@
 }
 
 .quantity-btn:hover {
-  background-color: transparent !important;
+  background-color: white !important;
   color: #2c3e50 !important;
 }
 
-.quantity-btn:active {
-  background-color: transparent !important;
-  color: #2c3e50 !important;
-}
-
-.quantity-btn:disabled {
-  color: #ccc;
-  cursor: not-allowed;
-}
 
 .quantity {
   min-width: 24px;

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const CartPopup = ({ isOpen, cartItems, onClose, onRemoveItem, onUpdateQuantity }) => {
+const CartPopup = ({ isOpen, cartItems, onClose, onRemoveItem, onUpdateQuantity, onProceedToCheckout }) => {
   const [inputValues, setInputValues] = useState({});
 
   if (!isOpen) return null;
@@ -36,12 +36,14 @@ const CartPopup = ({ isOpen, cartItems, onClose, onRemoveItem, onUpdateQuantity 
                   />
                 </div>
                 <div className="item-details">
-                  <div className="item-name" dangerouslySetInnerHTML={{ __html: item.name }}></div>
-                  <i 
-                    className="fa-solid fa-trash-can"
-                    onClick={() => onRemoveItem(index)}
-                    title="Remove item"
-                  ></i>
+                  <div className="item-name-container">
+                    <div className="item-name" dangerouslySetInnerHTML={{ __html: item.name }}></div>
+                    <i 
+                      className="fa-solid fa-trash-can cart-trash-icon"
+                      onClick={() => onRemoveItem(index)}
+                      title="Remove item"
+                    ></i>
+                  </div>
                   <div className="item-price">${item.price}</div>
                 </div>
                 <div className="item-quantity">
@@ -131,7 +133,12 @@ const CartPopup = ({ isOpen, cartItems, onClose, onRemoveItem, onUpdateQuantity 
             <div className="cart-total">
               <strong>Total: ${calculateTotal()}</strong>
             </div>
-            <button className="checkout-btn">Proceed to Checkout</button>
+            <button 
+              className="checkout-btn"
+              onClick={onProceedToCheckout}
+            >
+              Proceed to Checkout
+            </button>
           </div>
         )}
     </div>

@@ -89,7 +89,7 @@ const FilterSidebar = ({ onPriceFilter, searchTerm, onSearchChange, products = [
     <div className="sidebar1">
       {/* Search Filter */}
       <div className="filter-section">
-        <h3 className="filter-title">SEARCH</h3>
+        <h3 className="search-filter-title">SEARCH</h3>
         <div className="search-input-container">
           <input 
             type="text" 
@@ -103,7 +103,7 @@ const FilterSidebar = ({ onPriceFilter, searchTerm, onSearchChange, products = [
 
       {/* Price Filter */}
       <div className="filter-section">
-        <h3 className="filter-title">PRICE</h3>
+        <h3 className="price-filter-title">PRICE</h3>
         <div className="price-range">
           <div className="price-slider-container">
             <div className="slider-track"></div>

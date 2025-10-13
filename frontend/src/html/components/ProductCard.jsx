@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useHistory } from 'react-router-dom';
 
 const ProductCard = ({ product, cartQuantity = 0, onAddToCart, onMoreDetails, onUpdateCartQuantity }) => {
   const [inputValue, setInputValue] = useState();

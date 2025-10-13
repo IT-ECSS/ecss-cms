@@ -4,6 +4,7 @@ import ProductCatalog from './ProductCatalog';
 import FilterSidebar from './FilterSidebar';
 import Header from './Header';
 import ProductDetailsModal from './ProductDetailsModal';
+import CheckoutPage from './CheckoutPage';
 import '../../css/fundraisingPage.css';
 
 class FundraisingPage extends Component {
@@ -14,10 +15,12 @@ class FundraisingPage extends Component {
       filteredItems: [],
       searchTerm: '',
       priceRange: [0, 100],
+      sortBy: 'default',
       isLoading: true,
       cartItems: [],
       selectedProduct: null,
-      isModalOpen: false
+      isModalOpen: false,
+      showCheckoutPage: false
     };
   }
 
@@ -30,6 +33,27 @@ class FundraisingPage extends Component {
 
     // Set initial value
     setVH();
+
+    // Check if user was in checkout mode before refresh
+    const wasInCheckoutMode = localStorage.getItem('isInCheckoutMode') === 'true';
+
+    // Load cart items from localStorage
+    const savedCartItems = localStorage.getItem('cartItems');
+    if (savedCartItems) {
+      try {
+        const parsedCartItems = JSON.parse(savedCartItems);
+        this.setState({ 
+          cartItems: parsedCartItems,
+          showCheckoutPage: wasInCheckoutMode // Restore checkout page if user was there
+        });
+      } catch (error) {
+        console.error('Error parsing saved cart items:', error);
+        localStorage.removeItem('cartItems');
+        this.setState({ showCheckoutPage: wasInCheckoutMode });
+      }
+    } else {
+      this.setState({ showCheckoutPage: wasInCheckoutMode });
+    }
 
     try {
       console.log('Fetching fundraising items...');
@@ -66,6 +90,14 @@ class FundraisingPage extends Component {
     }
   }
 
+  saveCartToLocalStorage = (cartItems) => {
+    try {
+      localStorage.setItem('cartItems', JSON.stringify(cartItems));
+    } catch (error) {
+      console.error('Error saving cart to localStorage:', error);
+    }
+  }
+
   handleSearch = (e) => {
     const searchTerm = e.target.value;
     this.setState({ searchTerm }, this.filterItems);
@@ -75,26 +107,41 @@ class FundraisingPage extends Component {
     this.setState({ priceRange: [priceRange.min, priceRange.max] }, this.filterItems);
   }
 
+  handleSortChange = (e) => {
+    const sortBy = e.target.value;
+    this.setState({ sortBy }, this.filterItems);
+  }
+
   handleAddToCart = (newItem) => {
     this.setState(prevState => {
       const existingItemIndex = prevState.cartItems.findIndex(item => item.id === newItem.id);
       
+      let updatedCartItems;
       if (existingItemIndex !== -1) {
         // Item already exists, increase quantity
-        const updatedCartItems = [...prevState.cartItems];
+        updatedCartItems = [...prevState.cartItems];
         updatedCartItems[existingItemIndex].quantity += newItem.quantity;
-        return { cartItems: updatedCartItems };
       } else {
         // New item, add to cart
-        return { cartItems: [...prevState.cartItems, newItem] };
+        updatedCartItems = [...prevState.cartItems, newItem];
       }
+      
+      // Save to localStorage
+      this.saveCartToLocalStorage(updatedCartItems);
+      
+      return { cartItems: updatedCartItems };
     });
   }
 
   handleRemoveFromCart = (index) => {
-    this.setState(prevState => ({
-      cartItems: prevState.cartItems.filter((_, i) => i !== index)
-    }));
+    this.setState(prevState => {
+      const updatedCartItems = prevState.cartItems.filter((_, i) => i !== index);
+      
+      // Save to localStorage
+      this.saveCartToLocalStorage(updatedCartItems);
+      
+      return { cartItems: updatedCartItems };
+    });
   }
 
   handleUpdateCartQuantity = (index, newQuantity) => {
@@ -106,28 +153,37 @@ class FundraisingPage extends Component {
     this.setState(prevState => {
       const updatedCartItems = [...prevState.cartItems];
       updatedCartItems[index].quantity = newQuantity;
+      
+      // Save to localStorage
+      this.saveCartToLocalStorage(updatedCartItems);
+      
       return { cartItems: updatedCartItems };
     });
   }
 
   handleUpdateCartQuantityById = (productId, newQuantity) => {
     this.setState(prevState => {
+      let updatedCartItems;
+      
       if (newQuantity <= 0) {
         // Remove item from cart
-        return {
-          cartItems: prevState.cartItems.filter(item => item.id !== productId)
-        };
+        updatedCartItems = prevState.cartItems.filter(item => item.id !== productId);
+      } else {
+        const existingItemIndex = prevState.cartItems.findIndex(item => item.id === productId);
+        if (existingItemIndex !== -1) {
+          // Update existing item
+          updatedCartItems = [...prevState.cartItems];
+          updatedCartItems[existingItemIndex].quantity = newQuantity;
+        } else {
+          // Item not found, return unchanged state
+          return prevState;
+        }
       }
       
-      const existingItemIndex = prevState.cartItems.findIndex(item => item.id === productId);
-      if (existingItemIndex !== -1) {
-        // Update existing item
-        const updatedCartItems = [...prevState.cartItems];
-        updatedCartItems[existingItemIndex].quantity = newQuantity;
-        return { cartItems: updatedCartItems };
-      }
+      // Save to localStorage
+      this.saveCartToLocalStorage(updatedCartItems);
       
-      return prevState; // No change if item not found
+      return { cartItems: updatedCartItems };
     });
   }
 
@@ -146,8 +202,28 @@ class FundraisingPage extends Component {
     });
   }
 
+  handleProceedToCheckout = () => {
+    this.setState({
+      showCheckoutPage: true
+    });
+  }
+
+  handleBackFromCheckout = () => {
+    this.setState({
+      showCheckoutPage: false
+    });
+  }
+
+  handleClearCart = () => {
+    this.setState({
+      cartItems: []
+    });
+    // Also clear from localStorage
+    this.saveCartToLocalStorage([]);
+  }
+
   filterItems = () => {
-    const { fundraisingItems, searchTerm, priceRange } = this.state;
+    const { fundraisingItems, searchTerm, priceRange, sortBy } = this.state;
     
     let filtered = fundraisingItems.filter(item => {
       const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -157,11 +233,48 @@ class FundraisingPage extends Component {
       return matchesSearch && matchesPrice;
     });
 
+    // Apply sorting
+    switch (sortBy) {
+      case 'popularity':
+        // Sort by popularity (assuming higher ratings/reviews = more popular)
+        filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        break;
+      case 'latest':
+        // Sort by latest (assuming there's a date field or use ID as proxy)
+        filtered.sort((a, b) => (b.id || 0) - (a.id || 0));
+        break;
+      case 'price-low':
+        // Sort by price: low to high
+        filtered.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
+        break;
+      case 'price-high':
+        // Sort by price: high to low
+        filtered.sort((a, b) => parseFloat(b.price) - parseFloat(a.price));
+        break;
+      case 'default':
+      default:
+        // Keep original order
+        break;
+    }
+
     this.setState({ filteredItems: filtered });
   }
 
   render() {
-    const { filteredItems, searchTerm, isLoading, fundraisingItems, cartItems, selectedProduct, isModalOpen } = this.state;
+    const { filteredItems, searchTerm, isLoading, fundraisingItems, cartItems, selectedProduct, isModalOpen, sortBy, showCheckoutPage } = this.state;
+
+    // Show checkout page if user clicked "Proceed to Checkout"
+    if (showCheckoutPage) {
+      return (
+        <CheckoutPage 
+          cartItems={cartItems} 
+          onGoBack={this.handleBackFromCheckout}
+          onUpdateCartItemQuantity={this.handleUpdateCartQuantity}
+          onRemoveCartItem={this.handleRemoveFromCart}
+          onClearCart={this.handleClearCart}
+        />
+      );
+    }
 
     // Show loading state
     if (isLoading) {
@@ -181,6 +294,7 @@ class FundraisingPage extends Component {
           cartItems={cartItems}
           onRemoveFromCart={this.handleRemoveFromCart}
           onUpdateCartQuantity={this.handleUpdateCartQuantity}
+          onProceedToCheckout={this.handleProceedToCheckout}
         />
         <div className="fundraising-page fade-in">
           {/* Left Sidebar - Filters */}
@@ -195,6 +309,24 @@ class FundraisingPage extends Component {
 
           {/* Right Content - Products */}
           <div className="content-area">
+            {/* Results Header */}
+            <div className="results-header">
+              <div className="results-count">
+                SHOWING {filteredItems.length > 0 ? '1-' + Math.min(9, filteredItems.length) : '0'} OF {filteredItems.length} RESULTS
+              </div>
+              <select 
+                className="sort-dropdown" 
+                value={sortBy} 
+                onChange={this.handleSortChange}
+              >
+                <option value="default">Default sorting</option>
+                <option value="popularity">Sort by popularity</option>
+                <option value="latest">Sort by latest</option>
+                <option value="price-low">Sort by price: low to high</option>
+                <option value="price-high">Sort by price: high to low</option>
+              </select>
+            </div>
+            
             <ProductCatalog 
               products={filteredItems} 
               cartItems={cartItems}
