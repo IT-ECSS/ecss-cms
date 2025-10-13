@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+
+# Sitemap (optional - add your sitemap URL if you have one)
+# Sitemap: https://ecss-backend-django.azurewebsites.net/sitemap.xml
+
+# Disallow crawling of admin areas
+Disallow: /admin/
+Disallow: /api/admin/
+
+# Allow crawling of API endpoints (adjust as needed)
+Allow: /api/
+
+# Crawl delay (optional - helps prevent overwhelming your server)
+Crawl-delay: 1
