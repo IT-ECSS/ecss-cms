@@ -17,10 +17,11 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include, re_path
-from robots_view import robots_txt
+from robots_view import robots_txt, health_check
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('health/', health_check, name='health_check'),
     path('robots.txt', robots_txt, name='robots_txt'),
     re_path(r'^robots\d*\.txt$', robots_txt, name='robots_txt_with_numbers'),
     path('', include('api.urls'))
