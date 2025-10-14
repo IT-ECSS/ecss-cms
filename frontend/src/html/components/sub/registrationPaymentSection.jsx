@@ -2728,6 +2728,7 @@ debugMarriagePrepData = () => {
         }
         else if (columnName === "Receipt/Invoice Number")
         {
+          console.log()
           if(receiptInvoice !== "")
           {
             this.props.showUpdatePopup("In Progress... Please wait...");
@@ -2735,9 +2736,10 @@ debugMarriagePrepData = () => {
             this.props.closePopup();
           }
         }
-        else if (columnName === "Contact Number")
+        else if (columnName === "Sending Payment Details")
         {
-            console.log("Entry (Contact Number):", event.data.paymentStatus);
+          console.log("Entry (Sending Payment Details):", event.data.sendDetails);
+            console.log("Entry (Contact Number):", event.data.paymentStatus,  courseType);
             if(participantInfo && participantInfo.contactNumber && courseInfo.payment === "SkillsFuture")
             {
               const phoneNumber = participantInfo.contactNumber.replace(/\D/g, ""); // Remove non-numeric characters
@@ -2753,7 +2755,9 @@ debugMarriagePrepData = () => {
               participantInfo &&
               participantInfo.contactNumber &&
               (courseInfo.payment === "PayNow" || courseInfo.payment === "Cash")
+              && courseInfo.courseType === "NSA" 
             ) {
+              console.log("Open Whatsapp Web for PayNow or Cash - NSA");
               const phoneNumber = participantInfo.contactNumber.replace(/\D/g, ""); // Remove non-numeric characters
               let message = `${courseInfo.courseEngName} - ${courseInfo.courseDuration.split("–")[0]}
               Course subsidy applies to only Singaporeans and PRs aged 50yrs and above
@@ -2784,8 +2788,24 @@ debugMarriagePrepData = () => {
               console.log("Whatsapp Link:", whatsappWebURL)
               window.open(whatsappWebURL, "_blank"); // Opens in a new browser tab
             }
+            else if (
+              participantInfo &&
+              participantInfo.contactNumber &&
+              event.data.paymentStatus === "Confirmed" &&
+              courseInfo.courseType === "ILP" 
+            ) {
+              const phoneNumber = participantInfo.contactNumber.replace(/\D/g, ""); // Remove non-numeric characters
+              let message = `Hi ${participantInfo.name},
+                            Thank you for your your support. We wish to confirm your place for the ILP programme.
+                           We wish to confirm your place for the ILP programme ${courseInfo.courseEngName} on ${courseInfo.courseDuration.split("-")[0]} at ${courseInfo.courseLocation}.
+                           Please contact this number if your require more information.
+                           Thank you `;
+              const whatsappWebURL = `https://web.whatsapp.com/send?phone=+65${phoneNumber}&text=${encodeURIComponent(message)}`;
+              console.log("Whatsapp Link:", whatsappWebURL)
+              window.open(whatsappWebURL, "_blank"); // Opens in a new browser tab
+            }
             console.log("Submitted Id:", id);
-            await this.sendDetails(id);
+             await this.sendDetails(id);
             //await this.refreshChild();
         }
       }
