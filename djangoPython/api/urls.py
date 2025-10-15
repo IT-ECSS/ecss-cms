@@ -10,5 +10,6 @@ urlpatterns = [
     path('sales_report/', views.sales_report_view_react, name='sales_report_react'),
     path('generate_monthly_report/', views.generate_report, name='generate_report'),
     path('update_stock/', views.update_stock, name='update_stock'),
+    path('reduce_stock/', views.update_stock, name='reduce_stock'),
     path('port_over/', views.port_over, name='port_over')
 ]

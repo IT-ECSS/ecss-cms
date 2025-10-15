@@ -893,6 +893,22 @@ class Popup extends Component {
               <h2 className="access-right-title">Update Access Rights</h2>
               {Object.keys(message4)
               .filter(mainKey => mainKey !== "id" && mainKey !== 'accType' && mainKey !== 'name' && mainKey !== 'sn') // Exclude unnecessary keys
+              .sort((a, b) => {
+                // Define the formatted names for sorting
+                const getFormattedName = (key) => {
+                  return key === "accounts" ? "Account" : 
+                         key === "regPay" ? "Registration And Payment" : 
+                         key === "qRCode" ? "QR Code" : 
+                         key === "courses" ? "Courses" : 
+                         key === "attendance" ? "Attendances" : 
+                         key === "reports" ? "Reports" : 
+                         key === "membership" ? "Membership" : 
+                         key === "fitness" ? "Fitness" : 
+                         key === "fundraising" ? "Fundraising" : 
+                         key.charAt(0).toUpperCase() + key.slice(1);
+                };
+                return getFormattedName(a).localeCompare(getFormattedName(b));
+              })
               .map((mainKey) => {
                 console.log("Main Key:", mainKey);
                 const formattedKey = 
@@ -904,7 +920,8 @@ class Popup extends Component {
                   mainKey === "reports" ? "Reports" : 
                   mainKey === "membership" ? "Membership" : 
                   mainKey === "fitness" ? "Fitness" : 
-                  mainKey;
+                  mainKey === "fundraising" ? "Fundraising" : 
+                  mainKey.charAt(0).toUpperCase() + mainKey.slice(1);
 
                 return (
                   <div key={formattedKey} className="main-key">

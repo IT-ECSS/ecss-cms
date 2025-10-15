@@ -19,6 +19,14 @@ router.post('/', async function(req, res, next)
                 result: result
             });
         }
+        else if(req.body.purpose === "retrieve") {
+            const result = await fundraisingController.getFundraisingOrders();
+            console.log("Retrieve result:", result);
+            
+            return res.json({ 
+                result: result
+            });
+        }
     } catch (error) {
         console.error("Fundraising route error:", error);
         return res.status(500).json({ 

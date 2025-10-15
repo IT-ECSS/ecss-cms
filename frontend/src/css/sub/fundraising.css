@@ -1,0 +1,1125 @@
+/* Container styling for table - matching Registration & Payment Details */
+.fundraising-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem; /* Padding using rem units */
+  z-index: 0;
+  margin-top: -9rem;
+}
+
+/* Center the heading container - matching Registration & Payment Details */
+.fundraising-heading {
+  text-align: center;
+  width: 100%;
+  height: auto;
+}
+
+.fundraising-heading h2 {
+  color: #333;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.input-container {
+  position: relative; /* Ensure the input container is positioned */
+}
+
+.input-container input[type=text]
+{
+  border: 0;
+  font: inherit;
+}
+
+ /* Table wrapper to control scrolling */
+ .table-wrapper {
+  width: 80vw; /* Table wrapper occupies 80% of the width of its container */
+  max-width: 120rem; /* Maximum width for large screens */
+  height: 50vh;/*height: 50vh*/ /* Table wrapper occupies 70% of the viewport height */
+  overflow: auto; /* Enable both vertical and horizontal scrolling */
+  margin: 0 auto; /* Center the wrapper horizontally */
+  margin-left: 8rem;
+}
+
+  
+::-webkit-scrollbar {
+  width: 8px; /* Hides vertical scrollbar */
+  height: 8px; /* Keeps horizontal scrollbar */
+}
+
+
+/* Customize horizontal scrollbar */
+::-webkit-scrollbar-horizontal {
+  height: 8px; /* Set height for horizontal scrollbar */
+}
+
+/* Optional: Customize the appearance of the horizontal scrollbar */
+::-webkit-scrollbar-thumb {
+  background-color: #888; /* Color of the scrollbar thumb */
+  border-radius: 10px; /* Rounded corners for the scrollbar thumb */
+}
+
+/* Optional: Customize the scrollbar track */
+::-webkit-scrollbar-track {
+  background-color: #f1f1f1; /* Color of the scrollbar track */
+}
+
+.suggestions-list {
+  list-style-type: none; /* Remove bullets */
+  margin: 0;
+  padding: 0;
+  background-color: #ffffff; /* Background color for dropdown */
+  position: absolute; /* Position dropdown absolutely */
+  top: 100%; /* Position it directly below the input */
+  left: 0; /* Align with the left of the input */
+  right: 0; /* Align with the right of the input */
+  z-index: 10; /* Ensure it's above other content */
+  border: none;
+}
+
+.suggestions-list li {
+  padding: 8px; /* Add padding */
+  cursor: pointer; /* Pointer cursor on hover */
+}
+
+.button-row3 {
+  display: flex; /* Flexbox layout for aligning items in a row */
+  align-items: center; /* Vertically aligns items in the center */
+  justify-content: flex-start; /* Aligns buttons to the left */
+  margin-top: 1rem;
+  margin-left: 8rem;
+  margin-bottom: 2rem;
+  gap: 1rem; /* Adds consistent space between items */
+}
+
+.button-row3 button, 
+.button-row3 .custom-file-input {
+  width: 7rem; /* Set uniform width for buttons and file label */
+  height: 2rem; /* Set uniform height for buttons and file label */
+  display: flex; /* Use flexbox for centering text */
+  justify-content: center; /* Horizontally center the text */
+  align-items: center; /* Vertically center the text */
+  cursor: pointer;
+  border: none; /* Remove default borders */
+  border-radius: 0.25rem; /* Optional: rounded corners */
+  text-align: center;
+}
+
+.button-row3 .custom-file-input {
+  background-color: #007bff; /* Example background color */
+  color: white;
+  margin-bottom: 0rem;
+}
+
+.file-input-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.file-input {
+  display: none; /* Keep the actual file input hidden */
+}
+
+/* All AG Grid styles moved to ag-grid-custom-theme.css */
+
+/* All AG Grid styles moved to ag-grid-custom-theme.css */
+
+/* Container for the slide button */
+.slide-button-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 4%;
+  margin-bottom: auto;
+}
+
+/* Style for the slider checkbox */
+.slide-button {
+  width: 50px;
+  height: 25px;
+  -webkit-appearance: none;
+  appearance: none;
+  background-color: #ddd;
+  outline: none;
+  border-radius: 25px;
+  transition: background-color 0.3s;
+  cursor: pointer;
+  position: relative;
+}
+
+/* The circle inside the slider */
+.slide-button::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: white;
+  transition: transform 0.3s;
+}
+
+/* When checked, change the background color and move the circle */
+.slide-button:checked {
+  background-color: #4CAF50; /* Green when checked */
+}
+
+/* Move the circle to the right when checked */
+.slide-button:checked::before {
+  transform: translateX(25px); /* Move the circle to the right */
+}
+
+/* Optional: Style for the checkbox when it's not checked */
+.slide-button:focus {
+  outline: none;
+}
+
+/* Container to hold the payment method buttons */
+.payment-method-buttons-container {
+  display: flex;
+  justify-content: space-around;
+  width: auto;  /* Container width adjusts to its content */
+  flex-wrap: wrap;  /* Allow wrapping if needed */
+  margin-top: 0.25rem;
+  background-color: transparent;
+}
+
+/* Style for each button */
+.payment-method-button {
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  padding: 5px 10px;
+  margin: 0 5px;
+  cursor: pointer;
+  border-radius: 5px;
+  font-size: 1rem;
+  width: auto;  /* Set width to auto for each button */
+  display: inline-block;  /* Ensure buttons behave inline */
+  color: #B8B8B8;
+}
+
+/* Highlight the selected payment method */
+.payment-method-button.active {
+  background-color: #4CAF50;
+  color: white;
+}
+
+/* On hover, change background color */
+.payment-method-button:hover {
+  background-color: #ddd;
+}
+
+.dashboard-container {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 20px;
+}
+
+.button-row {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1rem 0;
+  top: 1rem;
+  margin-left: 5%;
+  width: 55rem;
+}
+
+.save-btn, .export-btn, .export-btn2, .attendance-btn, .view-btn, .bulk-update-btn {
+  padding: 0.8rem 1.2rem;
+  font-size: 0.9rem;
+  border: 2px solid #ccc;
+  border-radius: 0.5rem;
+  background-color: #f5f5f5;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+  white-space: nowrap;
+}
+
+.save-btn:hover, .export-btn:hover, .export-btn2:hover, .attendance-btn:hover, .view-btn:hover, .bulk-update-btn:hover {
+  background-color: #e0e0e0;
+  transform: translateY(-2px);
+}
+
+.save-btn:active, .export-btn:active, .export-btn2:active, .attendance-btn:active, .view-btn:active {
+  transform: translateY(1px);
+}
+
+.save-btn {
+  color: #4CAF50;
+  border-color: #4CAF50;
+}
+
+.view-btn {
+  color: #8B4513;
+  border-color: #8B4513;
+}
+
+.export-btn {
+  color: #2196F3;
+  border-color: #2196F3;
+}
+
+.export-btn2 {
+  color: #808080;
+  border-color: #808080;
+}
+
+.bulk-update-btn
+{
+  color: #9C27B0;
+  border-color: #9C27B0;
+}
+
+.attendance-btn {
+  color: #FF0000;
+  border-color: #FF0000;
+}
+
+.save-btn:hover {
+  background-color: #d4e8d0;
+}
+
+.export-btn:hover {
+  background-color: #d0e2f5;
+}
+
+.export-btn2:hover {
+  background-color: #E5E5E5;
+}
+
+.attendance-btn:hover {
+  background-color: #FFCCCC;
+}
+
+.view-btn:hover {
+  background-color: #f5e9d6;
+}
+
+.bulk-update-btn:hover {
+  background-color: #E1BEE7; /* Light purple on hover */
+}
+
+/* View Items Button */
+.view-items-btn {
+  background-color: #007bff !important;
+  color: white !important;
+  border: none !important;
+  padding: 5px 10px !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  font-size: 12px !important;
+}
+
+.view-items-btn:hover {
+  background-color: #0056b3 !important;
+}
+
+/* Modal Styling for Bulk Update */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 99999; /* Extremely high z-index to ensure it's on top */
+}
+
+.modal-content {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  max-width: 500px;
+  width: 90%;
+}
+
+.modal-content h3 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  color: #333;
+  text-align: center;
+}
+
+.bulk-update-options {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.update-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.update-section label {
+  font-weight: bold;
+  color: #333;
+}
+
+.update-section select {
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 0.25rem;
+  font-size: 1rem;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.update-btn, .cancel-btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-size: 1rem;
+  flex: 1;
+}
+
+.update-btn {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.update-btn:hover {
+  background-color: #45a049;
+}
+
+.cancel-btn {
+  background-color: #f44336;
+  color: white;
+}
+
+.cancel-btn:hover {
+  background-color: #da190b;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #eee;
+  background-color: #f8f9fa;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.close-button:hover {
+  background-color: #e9ecef;
+  color: #333;
+}
+
+.modal-body {
+  padding: 20px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+/* Items List Styles */
+.items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  background-color: #f8f9fa;
+}
+
+.item-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.item-details strong {
+  color: #333;
+  font-size: 16px;
+}
+
+.item-quantity {
+  color: #666;
+  font-size: 14px;
+}
+
+/* AG-Grid Custom Styles */
+.ag-header-cell-label {
+  font-weight: bold;
+  color: #333;
+}
+
+/* Expanded Row Detail Styles */
+.expanded-row-detail {
+  width: 90vw;
+  margin-left: 6%;
+  margin-top: 4%;
+  display: flex;
+  justify-content: center;
+}
+
+.detail-view-container {
+  width: 95%;
+  max-width: 95%;
+  background: #FDFD96;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  padding: 24px;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 400px; /* Make it scrollable if content is long */
+  margin-top: -4%;
+  margin-left: -1%;
+}
+
+.detail-view-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.detail-view-section {
+  margin-bottom: 16px;
+}
+
+.detail-view-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.detail-field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 8px;
+}
+
+.detail-label {
+  font-size: 0.85rem;
+  color: #888;
+  margin-bottom: 2px;
+}
+
+.detail-value {
+  font-size: 1rem;
+  color: #222;
+  font-weight: 500;
+  word-break: break-word;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .grid-container {
+    width: 100% !important;
+  }
+  
+  .modal-content {
+    width: 95%;
+    margin: 10px;
+  }
+  
+  .modal-header,
+  .modal-body {
+    padding: 15px;
+  }
+  
+  .item-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* Items Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #eee;
+  background-color: #f8f9fa;
+  border-radius: 8px 8px 0 0;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 1.5rem;
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #999;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.modal-close-btn:hover {
+  background-color: #e9ecef;
+  color: #333;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.order-info {
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+}
+
+.order-info h4 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 1.2rem;
+}
+
+.order-info p {
+  margin: 5px 0;
+  color: #666;
+}
+
+.status-pending { color: #FFA500; font-weight: bold; }
+.status-paid { color: #17a2b8; font-weight: bold; }
+.status-delivered { color: #28a745; font-weight: bold; }
+.status-collected { color: #28a745; font-weight: bold; }
+.status-completed { color: #228B22; font-weight: bold; }
+.status-refunded { color: #dc3545; font-weight: bold; }
+
+.items-section {
+  width: 100%;
+}
+
+.items-section h4 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+.items-list {
+  margin-bottom: 20px;
+}
+
+.items-list-scrollable {
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 10px;
+  margin-bottom: 20px;
+}
+
+.items-list-scrollable::-webkit-scrollbar {
+  width: 6px;
+}
+
+.items-list-scrollable::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.items-list-scrollable::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.items-list-scrollable::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Professional Modal Styles */
+.professional-modal {
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.professional-header {
+  background: transparent;
+  color: #333;
+  padding: 20px 24px;
+  border-bottom: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.professional-header h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.order-count {
+  font-size: 0.875rem;
+  opacity: 0.9;
+  font-weight: 400;
+}
+
+.professional-header .modal-close-btn {
+  background: transparent;
+  color: #333;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: none;
+}
+
+.professional-header .modal-close-btn:hover {
+  background: transparent;
+  transform: none;
+}
+
+.professional-body {
+  padding: 0;
+  background: white;
+  width: 100%;
+}
+
+.list-header {
+  display: flex;
+  align-items: center;
+  padding: 12px 24px 8px 24px;
+  background: transparent;
+  border: none;
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.header-item {
+  flex: 1;
+  text-align: left;
+  margin-right: 40px;
+  min-width: 0;
+  padding-left: 0;
+}
+
+.header-qty {
+  flex-shrink: 0;
+  text-align: right;
+  min-width: 60px;
+  margin-left: auto;
+  padding-right: 0;
+}
+
+.items-list-professional {
+  max-height: 300px;
+  overflow-y: auto;
+  background: white;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.items-list-professional::-webkit-scrollbar {
+  width: 6px;
+}
+
+.items-list-professional::-webkit-scrollbar-track {
+  background: #f8f9fa;
+}
+
+.items-list-professional::-webkit-scrollbar-thumb {
+  background: #dee2e6;
+  border-radius: 3px;
+}
+
+.items-list-professional::-webkit-scrollbar-thumb:hover {
+  background: #adb5bd;
+}
+
+.professional-item-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px 24px;
+  border-bottom: 1px solid #f1f3f4;
+  transition: none;
+  background: transparent;
+}
+
+.professional-item-row:hover {
+  background: transparent;
+}
+
+.professional-item-row:last-child {
+  border-bottom: none;
+}
+
+.item-number {
+  background: #667eea;
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+.item-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.item-name {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.item-name-horizontal {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 0;
+  box-sizing: border-box;
+}
+
+.item-name-horizontal .item-name {
+  flex: 1;
+  margin-right: 40px;
+  text-align: left;
+  min-width: 0;
+  padding-left: 0;
+}
+
+.quantity-text {
+  color: #333;
+  font-size: 0.875rem;
+  font-weight: bold;
+  flex-shrink: 0;
+  margin-left: auto;
+  text-align: right;
+  min-width: 60px;
+  padding-right: 0;
+}
+
+.item-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.quantity-badge {
+  background: #e5e7eb;
+  color: #374151;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.price-info {
+  color: #6b7280;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.subtotal {
+  color: #059669;
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin-left: auto;
+}
+
+.order-total-section {
+  background: #f8fafc;
+  border-top: 2px solid #e5e7eb;
+  padding: 20px 24px;
+}
+
+.total-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.total-label {
+  font-weight: 600;
+  color: #374151;
+  font-size: 1.1rem;
+}
+
+.total-amount {
+  font-weight: 700;
+  color: #059669;
+  font-size: 1.25rem;
+}
+
+.item-card {
+  background-color: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  padding: 15px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.item-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.item-name {
+  font-weight: bold;
+  color: #333;
+  flex: 1;
+}
+
+.item-details {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  color: #666;
+}
+
+.quantity {
+  background-color: #e9ecef;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.price {
+  color: #007bff;
+  font-weight: 500;
+}
+
+.total {
+  color: #28a745;
+  font-weight: bold;
+}
+
+.order-summary {
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.summary-row:last-child {
+  border-bottom: none;
+}
+
+.total-row {
+  font-weight: bold;
+  font-size: 1.1rem;
+  color: #333;
+  border-top: 2px solid #007bff;
+  margin-top: 10px;
+  padding-top: 15px;
+}
+
+.amount {
+  color: #28a745;
+  font-weight: bold;
+}
+
+.modal-footer {
+  padding: 15px 20px;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: flex-end;
+  background-color: #f8f9fa;
+  border-radius: 0 0 8px 8px;
+}
+
+/* Responsive design for modal */
+@media (max-width: 768px) {
+  .modal-content {
+    width: 95%;
+    max-height: 90vh;
+  }
+  
+  .item-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .item-details {
+    gap: 10px;
+  }
+  
+  .modal-header {
+    padding: 15px;
+  }
+  
+  .modal-body {
+    padding: 15px;
+  }
+}
+
+/* Fundraising Table Cell Renderers */
+.fundraising-view-items-btn {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 1em;
+  transition: background-color 0.2s ease;
+}
+
+.fundraising-view-items-btn:hover {
+  background-color: #0056b3;
+}
+
+.fundraising-no-items {
+  color: #666;
+  font-style: italic;
+}
+
+.fundraising-status-container {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  margin: 0;
+}
+
+.fundraising-status-badge {
+  display: inline-block;
+  padding: 0.15em 0.8em;
+  border-radius: 999px;
+  font-weight: bold;
+  color: #fff;
+  font-size: 1em;
+  text-align: center;
+  width: 80px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  letter-spacing: 0.02em;
+  line-height: 1.6;
+}
+
+/* Status color variations */
+.fundraising-status-badge.pending {
+  background-color: #FFA500;
+}
+
+.fundraising-status-badge.paid {
+  background-color: #17a2b8;
+}
+
+.fundraising-status-badge.delivered {
+  background-color: #28a745;
+}
+
+.fundraising-status-badge.collected {
+  background-color: #28a745;
+}
+
+.fundraising-status-badge.completed {
+  background-color: #228B22;
+}
+
+.fundraising-status-badge.refunded {
+  background-color: #dc3545;
+}
+
+.fundraising-status-badge.default {
+  background-color: #6c757d;
+}

@@ -3,6 +3,7 @@ import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
 import "../../../css/sub/attendance.css";
 import "../../../css/homePage.css";
+import '../../../css/ag-grid-custom-theme.css'; // Import custom AgGrid theme
 
 // Register AG Grid modules
 ModuleRegistry.registerModules([AllCommunityModule]);

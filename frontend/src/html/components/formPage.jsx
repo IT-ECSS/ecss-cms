@@ -885,7 +885,8 @@ class FormPage extends Component {
       
       // Handle submission for both course types
       if ((formData.type === 'Marriage Preparation Programme' && this.state.currentSection === 4) ||
-          (formData.type !== 'Marriage Preparation Programme' && this.state.currentSection === 3)) {
+          (formData.type === 'Talks And Seminar' && this.state.currentSection === 2) ||
+          (formData.type !== 'Marriage Preparation Programme' && formData.type !== 'Talks And Seminar' && this.state.currentSection === 3)) {
         this.handleSubmit();
       }
     } else {
@@ -1527,7 +1528,7 @@ class FormPage extends Component {
                 onChange={this.handleDataChange}
               />
             )}
-            {currentSection === 3 && formData.type !== 'Marriage Preparation Programme' && (
+            {currentSection === 3 && formData.type !== 'Marriage Preparation Programme' && formData.type !== 'Talks And Seminar' && (
               <AgreementDetailsSection
                 ref={(ref) => (this.agreementDetailsRef = ref)}
                 agreement={formData.agreement}
@@ -1545,10 +1546,9 @@ class FormPage extends Component {
                 courseType={formData.type}
               />
             )}
-            {currentSection === 4 && formData.type !== 'Marriage Preparation Programme' && (
-              <SubmitDetailsSection />
-            )}
-            {currentSection === 5 && formData.type === 'Marriage Preparation Programme' && <SubmitDetailsSection />}
+            {((currentSection === 4 && formData.type !== 'Marriage Preparation Programme' && formData.type !== 'Talks And Seminar') ||
+              (currentSection === 5 && formData.type === 'Marriage Preparation Programme') ||
+              (currentSection === 3 && formData.type === 'Talks And Seminar')) && <SubmitDetailsSection />}
           </div>
         </div>
 
@@ -1617,16 +1617,18 @@ class FormPage extends Component {
               disabled={!this.isCurrentSectionValid()}
               style={{ marginLeft: 'auto' }}
             >
-              {(currentSection === 3 && formData.type !== 'Marriage Preparation Programme') || 
-               (currentSection === 4 && formData.type === 'Marriage Preparation Programme') ? 
+              {(currentSection === 3 && formData.type !== 'Marriage Preparation Programme' && formData.type !== 'Talks And Seminar') || 
+               (currentSection === 4 && formData.type === 'Marriage Preparation Programme') ||
+               (currentSection === 2 && formData.type === 'Talks And Seminar') ? 
                'Submit 提交' : 'Next 下一步'}
             </button>
           </div>
         )}
 
         {/* Continue button for Submit Details section */}
-        {((currentSection === 4 && formData.type !== 'Marriage Preparation Programme') ||
-          (currentSection === 5 && formData.type === 'Marriage Preparation Programme')) && (
+        {((currentSection === 4 && formData.type !== 'Marriage Preparation Programme' && formData.type !== 'Talks And Seminar') ||
+          (currentSection === 5 && formData.type === 'Marriage Preparation Programme') ||
+          (currentSection === 3 && formData.type === 'Talks And Seminar')) && (
           <div className="button-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
             <button 
               className="submit-details-button" 

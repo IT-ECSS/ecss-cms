@@ -116,66 +116,7 @@
   display: none; /* Keep the actual file input hidden */
 }
 
-.grid-container {
-  width: 89vw;  /* Full width of the parent */
-  height: 50vh;  /* Set a fixed height or use 100% if you want it to fill the remaining space */
-  display: block;  /* Ensure that the grid takes up the expected space */
-  overflow: auto;  /* Scrollbars will appear if the content overflows */
-  box-sizing: border-box;  /* Includes padding and border in the element's total width and height */
-  margin-left: 5%;
-}
-
-.ag-header {
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 1 !important;
-  background-color: #E7B8B0;  /* Warm turquoise */
-  color: white;               /* White text */
-  text-align: center;         /* Center-align the text */
-  border: none;               /* Remove the border */
-  box-shadow: none;           /* Remove any shadow if present */
-}
-
-.ag-header-cell-resize {
-  display: none !important; /* Hide the column resize handle */
-}
-
-.ag-pinned-left .ag-cell {
-  border: none !important; /* Remove any borders for pinned columns */
-}
-
-.ag-row
-{
-  background-color: #EBC0A3;
-}
-
-.ag-cell input[type="text"],
-.ag-cell select {
-  background-color: transparent !important; /* Make textboxes and select boxes transparent */
-  border: 1px solid #ccc; /* Optional: Add a border to textboxes and select boxes */
-}
-
-.ag-cell input[type="text"]:focus,
-.ag-cell select:focus {
-  outline: none; /* Optional: Remove outline on focus */
-}
-
-.ag-wrapper .ag-picker-field-wrapper .ag-picker-collapsed input[type="text"],
-.ag-wrapper .ag-picker-field-wrapper .ag-picker-collapsed {
-  background-color: transparent !important; /* Make textboxes and select boxes transparent */
-  border: 1px solid #ccc; /* Optional: Add a border to textboxes and select boxes */
-}
-
-.ag-wrapper .ag-picker-field-wrapper .ag-picker-collapsed input[type="text"]:focus,
-.ag-wrapper .ag-picker-field-wrapper .ag-picker-collapsed select:focus {
-  outline: none; /* Optional: Remove outline on focus */
-}
-
-.ag-cell-edit-wrapper, .ag-cell-editor, .ag-cell-wrapper, :where(.ag-cell-editor) .ag-input-field-input, :where(.ag-cell-editor) .ag-wrapper
-{
-  background-color: transparent !important; /* Make textboxes and select boxes transparent */
-  border: 1px solid #ccc; /* Optional: Add a border to textboxes and select boxes */
-}
+/* All AG Grid styles moved to ag-grid-custom-theme.css */
 
 /* Container for the slide button */
 .slide-button-container {
@@ -261,20 +202,6 @@
 /* On hover, change background color */
 .payment-method-button:hover {
   background-color: #ddd;
-}
-
-/* Custom styles for the select box */
-.ag-cell-editor-select {
-  background-color: #f8f9fa; /* Light background for the select box */
-  border: 1px solid #ccc; /* Border color */
-  padding: 5px;
-  font-size: 14px;
-}
-
-/* Custom styles for the options inside the select */
-.ag-select-option {
-  padding: 5px;
-  font-size: 14px;
 }
 
 .dashboard-container {

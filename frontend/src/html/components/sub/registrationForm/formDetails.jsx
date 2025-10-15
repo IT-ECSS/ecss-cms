@@ -6,10 +6,11 @@ class FormDetailsSection extends Component {
   render() {
     const { courseType } = this.props;
     const isMarriagePrep = courseType === 'Marriage Preparation Programme';
+    const isTalksAndSeminar = courseType === 'Talks And Seminar';
     return (
       <div className="form-details-section">
         {/* Hide intro, description, and image if Marriage Preparation Programme */}
-        {!isMarriagePrep && (
+        {!isMarriagePrep && !isTalksAndSeminar && (
           <>
             <div className="introduction">
               <h1>ECSS Course Registration Page</h1>
@@ -44,6 +45,22 @@ class FormDetailsSection extends Component {
             </div>
             <div className="image-container">
               <img src={"https://ecss.org.sg/wp-content/uploads/2024/09/NSA-En.jpg"} alt="Description of the image" className="registration-image" />
+            </div>
+          </>
+        )}
+        {isTalksAndSeminar && (
+          <>
+            <div className="introduction">
+              <h1>ECSS Talks And Seminar Registration Page</h1>
+              <p className="description">
+                By submitting this form, I consent to En Community Services Society (ECSS) in collecting, using, and disclosing my personal data for purposes related to programme administration, communications, and publicity, in accordance with the Personal Data Protection Act 2012 and our data protection policy, which is available upon request.
+              </p>
+              <p className="description">
+                I understand that photographs, audio, and videos which include me may be taken during ECSS events and activities, and I consent to the use of such media for publicity and promotional purposes, which include but is not limited to printed publications, websites, and official social media channels. ECSS, its affiliates, employees, representatives and agents are released from any and all claims, demands, costs, and liability that may arise from the use of such media as described above.
+              </p>
+            </div>
+            <div className="image-container" style={{textAlign: "center"}}>
+              <img src={"https://ecss.org.sg/wp-content/uploads/2023/07/En_logo_Final_Large_RGB.png"} alt="Talks And Seminar" className="registration-image" style={{width: "25%", height: "auto"}} />
             </div>
           </>
         )}

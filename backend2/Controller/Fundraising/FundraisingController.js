@@ -22,8 +22,19 @@ class FundraisingController {
                     minute: '2-digit' 
                 }); // hh:mm 24-hour format
 
+                // Calculate total price from items if not provided or is 0
+                let totalPrice = orderData.totalPrice || 0;
+                if (totalPrice === 0 && orderData.items && orderData.items.length > 0) {
+                    totalPrice = orderData.items.reduce((total, item) => {
+                        const itemPrice = item.price || item.unitPrice || 0;
+                        const quantity = item.quantity || 1;
+                        return total + (itemPrice * quantity);
+                    }, 0);
+                }
+
                 const orderDocument = {
                     ...orderData,
+                    totalPrice,
                     orderDate,
                     orderTime,
                     status: 'Pending', // Default status
@@ -60,6 +71,44 @@ class FundraisingController {
             return {
                 success: false,
                 message: "Error saving fundraising order",
+                error: error.message
+            };
+        } finally {
+            await this.databaseConnectivity.close();
+        }
+    }
+
+    async getFundraisingOrders(filterData) {
+        try {
+            const result = await this.databaseConnectivity.initialize();
+            
+            if (result === "Connected to MongoDB Atlas!") {
+                const databaseName = "Company-Management-System";
+                const collectionName = "Fundraising";
+
+                const database = this.databaseConnectivity.client.db(databaseName);
+                const collection = database.collection(collectionName);
+                
+                // Find fundraising orders based on filter (if any)
+                const orders = await collection.find(filterData).toArray();
+
+                return {
+                    success: true,
+                    message: "Fundraising orders retrieved successfully",
+                    data: orders,
+                    count: orders.length
+                };
+            } else {
+                return {
+                    success: false,
+                    message: "Database connection failed"
+                };
+            }
+        } catch (error) {
+            console.error("Get fundraising orders error:", error);
+            return {
+                success: false,
+                message: "Error retrieving fundraising orders",
                 error: error.message
             };
         } finally {

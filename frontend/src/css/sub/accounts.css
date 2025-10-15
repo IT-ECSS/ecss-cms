@@ -22,55 +22,8 @@
     margin-right: auto;
   }
 
-  .ag-header {
-    position: sticky !important;
-    top: 0 !important;
-    z-index: 1 !important;
-    background-color: #E7B8B0;  /* Warm turquoise */
-    color: white;               /* White text */
-    text-align: center;         /* Center-align the text */
-    border: none;               /* Remove the border 8.5/
-    box-shadow: none;           /* Remove any shadow if present */
-  }
-  
-  .ag-header-cell-resize {
-    display: none !important; /* Hide the column resize handle */
-  }
-  
-  .ag-row
-  {
-    background-color: #EBC0A3;
-  }
-  
-  .ag-cell input[type="text"],
-  .ag-cell select {
-    background-color: transparent !important; /* Make textboxes and select boxes transparent */
-    border: 1px solid #ccc; /* Optional: Add a border to textboxes and select boxes */
-  }
-  
-  .ag-cell input[type="text"]:focus,
-  .ag-cell select:focus {
-    outline: none; /* Optional: Remove outline on focus */
-  }
-  
-  .ag-wrapper .ag-picker-field-wrapper .ag-picker-collapsed input[type="text"],
-  .ag-wrapper .ag-picker-field-wrapper .ag-picker-collapsed {
-    background-color: transparent !important; /* Make textboxes and select boxes transparent */
-    border: 1px solid #ccc; /* Optional: Add a border to textboxes and select boxes */
-  }
-  
-  .ag-wrapper .ag-picker-field-wrapper .ag-picker-collapsed input[type="text"]:focus,
-  .ag-wrapper .ag-picker-field-wrapper .ag-picker-collapsed select:focus {
-    outline: none; /* Optional: Remove outline on focus */
-  }
-  
-  .ag-cell-edit-wrapper, .ag-cell-editor, .ag-cell-wrapper, :where(.ag-cell-editor) .ag-input-field-input, :where(.ag-cell-editor) .ag-wrapper
-  {
-    background-color: transparent !important; /* Make textboxes and select boxes transparent */
-    border: 1px solid #ccc; /* Optional: Add a border to textboxes and select boxes */
-  }
-  
-  
+  /* All AG Grid styles moved to ag-grid-custom-theme.css */
+
   /* Hide webkit scrollbars */
   ::-webkit-scrollbar {
     width: 8px;

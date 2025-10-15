@@ -19,7 +19,6 @@ class RegistrationDashboard extends Component {
             selectedCourseTypeOverviewTab: 'NSA', // New state for course type overview: 'NSA', 'ILP', etc.
             selectedNSASubTab: 'payment', // New state for NSA sub-tabs: 'payment', 'methods'
             selectedMarriagePrepSubTab: 'payment', // New state for Marriage Prep sub-tabs: 'payment', 'methods'
-            selectedILPSubTab: 'confirmation', // New state for ILP sub-tabs: 'confirmation', 'status'
             selectedILPSubTab: 'registration', // New state for ILP sub-tabs: 'registration', 'attendance'
             statistics: {
                 totalRegistrations: 0,

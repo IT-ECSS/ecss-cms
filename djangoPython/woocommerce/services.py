@@ -302,3 +302,134 @@ class WooCommerceAPI:
                 print(f"Error while fetching products: {e}")
                 break
         return all_products
+
+    def reduce_stock(self, product_id, quantity_to_reduce):
+        """Reduce stock quantity for a specific product in WooCommerce."""
+        try:
+            # First, get the current product data to retrieve current stock
+            url = f"{self.base_url}products/{product_id}"
+            response = requests.get(url, auth=self.auth)
+            response.raise_for_status()
+            
+            product_data = response.json()
+            print(f"Current product data for ID {product_id}: {product_data}")
+            
+            # Get current stock quantity
+            current_stock = product_data.get('stock_quantity', 0)
+            if current_stock is None:
+                current_stock = 0
+            
+            # Calculate new stock quantity
+            new_stock = max(0, current_stock - quantity_to_reduce)  # Ensure stock doesn't go below 0
+            # Update the product with new stock quantity
+            update_data = {
+                'stock_quantity': new_stock,
+                'manage_stock': True  # Ensure stock management is enabled
+            }
+            
+            response = requests.put(url, json=update_data, auth=self.auth)
+            response.raise_for_status()
+            
+            updated_product = response.json()
+            print(f"Stock update successful. New stock quantity: {updated_product.get('stock_quantity', 'N/A')}")
+            
+            return {
+                'success': True,
+                'previous_stock': current_stock,
+                'new_stock': new_stock,
+                'reduced_by': quantity_to_reduce
+            }
+            
+        except requests.exceptions.RequestException as e:
+            print(f"Error reducing stock for product {product_id}: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+        except Exception as e:
+            print(f"Unexpected error reducing stock: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+
+    def getProductIdByName(self, product_name):
+        """Fetches the product ID by matching product name from WooCommerce."""
+        try:
+            page = 1
+            per_page = 100  # Number of products to fetch per page
+            matched_product_id = None  # Variable to store matched product ID
+
+            while True:
+                # Fetch products for the current page
+                url = f"{self.base_url}products"
+                params = {
+                    'per_page': per_page,
+                    'page': page,
+                }
+
+                response = requests.get(url, params=params, auth=self.auth)
+                response.raise_for_status()  # Ensure we raise an error for bad requests
+
+                products = response.json()  # Get products from the response
+
+                # If no products are returned, break the loop
+                if not products:
+                    break
+
+                # Check each product for exact name match
+                for product in products:
+                    # Check for exact match first
+                    if product['name'] == product_name:
+                        matched_product_id = product['id']
+                        print(f"Exact match found: {product['name']} -> ID: {matched_product_id}")
+                        break
+                    
+                    # Also check if the product name contains the search term (for partial matches)
+                    if product_name.lower() in product['name'].lower():
+                        matched_product_id = product['id']
+                        print(f"Partial match found: {product['name']} -> ID: {matched_product_id}")
+                        break
+
+                # If we found the matched product ID, stop fetching more pages
+                if matched_product_id:
+                    break
+
+                page += 1  # Move to the next page
+
+            # Return the matched product ID if found, otherwise None
+            if matched_product_id:
+                return {"id": matched_product_id, "exist": True}
+            else:
+                print(f"No product found with name: {product_name}")
+                return {"id": None, "exist": False}
+
+        except requests.exceptions.RequestException as e:
+            # Handle any errors during the request
+            print(f"Error fetching products: {e}")
+            return {"id": None, "exist": False}
+
+    def reduce_stock_by_name(self, product_name, quantity_to_reduce):
+        """Reduce stock quantity for a product by its name - specifically for fundraising items."""
+        try:
+            # First, find the product by name
+            product_result = self.getProductIdByName(product_name)
+            
+            if not product_result.get('exist'):
+                return {
+                    'success': False,
+                    'error': f'Product not found: {product_name}'
+                }
+            
+            product_id = product_result['id']
+            print(f"Found product '{product_name}' with ID: {product_id}")
+            
+            # Now reduce the stock using the existing reduce_stock method
+            return self.reduce_stock(product_id, quantity_to_reduce)
+            
+        except Exception as e:
+            print(f"Error in reduce_stock_by_name: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }

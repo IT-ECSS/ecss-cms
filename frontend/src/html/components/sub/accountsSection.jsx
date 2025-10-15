@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import axios from 'axios';
 import '../../../css/sub/accounts.css';
+import '../../../css/ag-grid-custom-theme.css'; // Import custom AgGrid theme
 import { AgGridReact } from 'ag-grid-react'; // React Data Grid Component
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community'; 
 
@@ -243,7 +244,8 @@ class AccountsSection extends Component {
          attendance: item["Attendances"],
          membership: item["Membership"],
          reports: item["Reports"],
-         fitness: item["Fitness"] || {}
+         fitness: item["Fitness"] || {},
+         fundraising: item["Fundraising"] || {}
        };
      });
    
@@ -698,14 +700,6 @@ class AccountsSection extends Component {
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                     <strong>Account Modules | </strong>
                     <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
-                      <strong>Account Table: </strong>
-                      {this.state.accessRightsRowData[this.state.expandedRowIndex].accounts["Account Table"] ? (
-                        <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
-                      ) : (
-                        <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
-                      )}
-                    </p>
-                    <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
                         <strong>Access Rights Table: </strong>
                         {this.state.accessRightsRowData[this.state.expandedRowIndex].accounts["Access Rights Table"] ? (
                           <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
@@ -713,22 +707,33 @@ class AccountsSection extends Component {
                           <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
                         )}
                     </p>
+                    <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
+                      <strong>Account Table: </strong>
+                      {this.state.accessRightsRowData[this.state.expandedRowIndex].accounts["Account Table"] ? (
+                        <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
+                      ) : (
+                        <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
+                      )}
+                    </p>
                     </div>
                     <br />
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                      <strong>Courses Modules |  </strong>
+                      <strong>Attendances Module | </strong>
                       <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
-                        <strong>Upload Course(s): </strong>
-                        {this.state.accessRightsRowData[this.state.expandedRowIndex].courses["Upload Courses"] ? (
+                        <strong>Viewing Attendance: </strong>
+                        {this.state.accessRightsRowData[this.state.expandedRowIndex].attendance["View Attendance"] ? (
                           <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
                         ) : (
                           <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
                         )}
                       </p>
-
+                    </div>
+                    <br/>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                      <strong>Courses Modules |  </strong>
                       <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
-                        <strong>NSA Courses: </strong>
-                        {this.state.accessRightsRowData[this.state.expandedRowIndex].courses["NSA Courses"] ? (
+                        <strong>Delete Course(s): </strong>
+                        {this.state.accessRightsRowData[this.state.expandedRowIndex].courses["Delete Courses"] ? (
                           <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
                         ) : (
                           <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
@@ -754,6 +759,15 @@ class AccountsSection extends Component {
                       </p>
 
                       <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
+                        <strong>NSA Courses: </strong>
+                        {this.state.accessRightsRowData[this.state.expandedRowIndex].courses["NSA Courses"] ? (
+                          <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
+                        ) : (
+                          <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
+                        )}
+                      </p>
+
+                      <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
                         <strong>Talks And Seminar: </strong>
                         {this.state.accessRightsRowData[this.state.expandedRowIndex].courses["Talks And Seminar"] ? (
                           <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
@@ -772,8 +786,8 @@ class AccountsSection extends Component {
                       </p>
 
                       <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
-                        <strong>Delete Course(s): </strong>
-                        {this.state.accessRightsRowData[this.state.expandedRowIndex].courses["Delete Courses"] ? (
+                        <strong>Upload Course(s): </strong>
+                        {this.state.accessRightsRowData[this.state.expandedRowIndex].courses["Upload Courses"] ? (
                           <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
                         ) : (
                           <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
@@ -781,6 +795,30 @@ class AccountsSection extends Component {
                       </p>
                     </div>
                     <br />
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                      <strong>Fitness Module | </strong>
+                      <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
+                        <strong>FFT Results: </strong>
+                        {this.state.accessRightsRowData[this.state.expandedRowIndex].fitness["FFT Results"] ? (
+                          <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
+                        ) : (
+                          <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
+                        )}
+                      </p>
+                    </div>
+                    <br/>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                      <strong>Fundraising Module | </strong>
+                      <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
+                        <strong>Fundraising Table: </strong>
+                        {this.state.accessRightsRowData[this.state.expandedRowIndex].fundraising["Fundraising Table"] ? (
+                          <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
+                        ) : (
+                          <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
+                        )}
+                      </p>
+                    </div>
+                    <br/>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                       <strong>Membership Module |  </strong>
                       <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
@@ -794,10 +832,10 @@ class AccountsSection extends Component {
                     </div>
                     <br />
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                      <strong>Registration And Payment Module |  </strong>
+                      <strong>QR Code Modules | </strong>
                       <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
-                        <strong>Registration And Payment Table: </strong>
-                        {this.state.accessRightsRowData[this.state.expandedRowIndex].regPay["Registration And Payment Table"] ? (
+                        <strong>QR Code Creation: </strong>
+                        {this.state.accessRightsRowData[this.state.expandedRowIndex].qRCode["Create QR Code"] ? (
                           <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
                         ) : (
                           <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
@@ -805,20 +843,8 @@ class AccountsSection extends Component {
                       </p>
 
                       <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
-                        <strong>Invoice Table: </strong>
-                        {this.state.accessRightsRowData[this.state.expandedRowIndex].regPay["Invoice Table"] ? (
-                          <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
-                        ) : (
-                          <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
-                        )}
-                      </p>
-                    </div>
-                    <br />
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                      <strong>QR Code Modules | </strong>
-                      <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
-                        <strong>QR Code Creation: </strong>
-                        {this.state.accessRightsRowData[this.state.expandedRowIndex].qRCode["Create QR Code"] ? (
+                        <strong>QR Code Deletion: </strong>
+                        {this.state.accessRightsRowData[this.state.expandedRowIndex].qRCode["Delete QR Code"] ? (
                           <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
                         ) : (
                           <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
@@ -842,10 +868,22 @@ class AccountsSection extends Component {
                           <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
                         )}
                       </p>
+                    </div>
+                    <br />
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                      <strong>Registration And Payment Module |  </strong>
+                      <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
+                        <strong>Invoice Table: </strong>
+                        {this.state.accessRightsRowData[this.state.expandedRowIndex].regPay["Invoice Table"] ? (
+                          <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
+                        ) : (
+                          <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
+                        )}
+                      </p>
 
                       <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
-                        <strong>QR Code Deletion: </strong>
-                        {this.state.accessRightsRowData[this.state.expandedRowIndex].qRCode["Delete QR Code"] ? (
+                        <strong>Registration And Payment Table: </strong>
+                        {this.state.accessRightsRowData[this.state.expandedRowIndex].regPay["Registration And Payment Table"] ? (
                           <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
                         ) : (
                           <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
@@ -868,30 +906,6 @@ class AccountsSection extends Component {
                         <strong>Payment Reports: </strong>
                         {this.state.accessRightsRowData[this.state.expandedRowIndex].reports &&
                         this.state.accessRightsRowData[this.state.expandedRowIndex].reports["Payment Report"] === true ? (
-                          <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
-                        ) : (
-                          <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
-                        )}
-                      </p>
-                    </div>
-                    <br/>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                      <strong>Attendances Module | </strong>
-                      <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
-                        <strong>Viewing Attendance: </strong>
-                        {this.state.accessRightsRowData[this.state.expandedRowIndex].attendance["View Attendance"] ? (
-                          <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
-                        ) : (
-                          <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
-                        )}
-                      </p>
-                    </div>
-                    <br/>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                      <strong>Fitness Module | </strong>
-                      <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
-                        <strong>FFT Results: </strong>
-                        {this.state.accessRightsRowData[this.state.expandedRowIndex].fitness["FFT Results"] ? (
                           <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
                         ) : (
                           <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>

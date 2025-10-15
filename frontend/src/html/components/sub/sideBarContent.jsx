@@ -135,6 +135,16 @@ class SideBarContent extends Component {
                 console.error("toggleFitnessComponent function not found in props");
             }
         }
+        else if(subKey === "Fundraising Table") {
+            console.log("Fundraising Table clicked in sidebar");
+            console.log("toggleFundraisingTableComponent function exists:", !!this.props.toggleFundraisingTableComponent);
+            if (this.props.toggleFundraisingTableComponent) {
+                console.log("Calling toggleFundraisingTableComponent...");
+                this.props.toggleFundraisingTableComponent();
+            } else {
+                console.error("toggleFundraisingTableComponent function not found in props");
+            }
+        }
     }
 
     closeSubMenu = () => {
@@ -156,7 +166,8 @@ class SideBarContent extends Component {
             "QR Code": 'fa-solid fa-qrcode',
             "Reports": 'fa-solid fa-table',
             "Attendances": 'fa-solid fa-calendar-days',
-            "Fitness": 'fa-solid fa-dumbbell'
+            "Fitness": 'fa-solid fa-dumbbell',
+            "Fundraising": 'fa-solid fa-gift'
         };
 
         return (

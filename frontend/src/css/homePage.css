@@ -297,6 +297,16 @@
     height: fit-content;
   }
 
+
+  .fundraising-section
+  {
+    grid-row: 3;
+    z-index: 0;
+    margin-left: -6.1rem;
+    margin-top: 5rem;
+    height: fit-content;
+  }
+
   .pagination-section
   {
     grid-row: 4;

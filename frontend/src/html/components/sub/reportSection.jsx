@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import axios from 'axios';
 import '../../../css/sub/invoiceSection.css';
+import '../../../css/ag-grid-custom-theme.css'; // Import custom AgGrid theme
 import { AgGridReact } from 'ag-grid-react'; // React Data Grid Component
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
 import * as XLSX from 'xlsx'; // Import the XLSX library

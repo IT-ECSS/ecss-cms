@@ -14,6 +14,7 @@ import React, { Component } from 'react';
   import AttendanceSection from './sub/AttendanceSection';
   import MembershipSection from './sub/MembershipSection';
   import FitnessSection from './sub/FitnessSection';
+  import FundraisingTable from './sub/FundraisingTable';
   import ReportSection from './sub/reportSection';
   import WelcomeSection from './sub/welcomeSection';
   import { withAuth } from '../../AuthContext';
@@ -88,6 +89,8 @@ import React, { Component } from 'react';
         resetMembershipTable: false,
         isFitnessVisible: false,
         fitnessSearchQuery: '',
+        isFundraisingTableVisible: false,
+        fundraisingSearchQuery: '',
         accessRights: {} // Access rights from sidebar
       };
   
@@ -108,6 +111,7 @@ import React, { Component } from 'react';
       this.handleMembershipSelectFromChild = this.handleMembershipSelectFromChild.bind(this);
       this.handleMembershipSearchFromChild = this.handleMembershipSearchFromChild.bind(this);
       this.handleFitnessSearchFromChild = this.handleFitnessSearchFromChild.bind(this);
+      this.handleFundraisingSearchFromChild = this.handleFundraisingSearchFromChild.bind(this);
       this.handlePageChange = this.handlePageChange.bind(this);
       this.toggleViewMode = this.toggleViewMode.bind(this); 
       this.toggleRegistrationPaymentComponent = this.toggleRegistrationPaymentComponent.bind(this);
@@ -272,7 +276,8 @@ import React, { Component } from 'react';
             reportType: reportType,
             attendanceVisibility: false,
             isMembershipVisible: false,
-            isFitnessVisible: false // Added this
+            isFitnessVisible: false, // Added this
+            isFundraisingTableVisible: false
           });
       } 
       catch (error) 
@@ -310,7 +315,8 @@ import React, { Component } from 'react';
               attendanceVisibility: true,
               attendanceType: attendanceType,  // Added parameter to store attendance type,
               isMembershipVisible: false,
-              isFitnessVisible: false
+              isFitnessVisible: false,
+              isFundraisingTableVisible: false
             });
           });
       } 
@@ -357,6 +363,7 @@ import React, { Component } from 'react';
               attendanceType: "",
               isMembershipVisible: true,
               isFitnessVisible: false, // Added this
+              isFundraisingTableVisible: false,
               // Reset membership filtering state
               membershipType: 'All Types',
               membershipSearchQuery: '',
@@ -408,6 +415,7 @@ import React, { Component } from 'react';
             
             // Set ONLY fitness to true
             isFitnessVisible: true,
+            isFundraisingTableVisible: false,
             
             // Reset other states
             sidebarVisible: false,
@@ -438,6 +446,56 @@ import React, { Component } from 'react';
         this.setState({
           isPopupOpen: true,
           popupMessage: "Error loading fitness module",
+          popupType: "error-message"
+        });
+      }
+    }
+
+    toggleFundraisingTableComponent = async() => {
+      console.log("toggleFundraisingTableComponent called - showing fundraising table only");
+      try {
+        // Reset search and filters
+        this.setState({ resetSearch: true, }, () => {
+          this.setState({ resetSearch: false });
+        });
+
+        this.setState({
+          // Explicitly set ALL other visibility flags to false
+          courseType: null,
+          accountType: null,
+          createAccount: false,
+          dashboard: false,
+          isRegistrationPaymentVisible: false,
+          isReceiptVisible: false,
+          reportVisibility: false,
+          attendanceVisibility: false,
+          isMembershipVisible: false,
+          isFitnessVisible: false,
+          
+          // Set table-only mode
+          isFundraisingTableVisible: true,
+          
+          // Popup settings
+          isPopupOpen: true,
+          popupMessage: "Loading Fundraising Table",
+          popupType: "loading",
+          
+          // Reset other states
+          sidebarVisible: false,
+          section: "fundraising-table",
+          attendanceType: "",
+          
+          // Reset fundraising filtering state
+          fundraisingSearchQuery: '',
+          searchQuery: ''
+        });
+      } 
+      catch (error) {
+        console.log("Error in toggleFundraisingTableComponent:", error);
+        // Show error message
+        this.setState({
+          isPopupOpen: true,
+          popupMessage: "Error loading fundraising table",
           popupType: "error-message"
         });
       }
@@ -513,7 +571,8 @@ import React, { Component } from 'react';
           isReceiptVisible: false,
           reportVisibility: false,
           isMembershipVisible: false,
-          isFitnessVisible: false // Added this
+          isFitnessVisible: false, // Added this
+          isFundraisingTableVisible: false
         });
       } catch (error) {
         console.log(error);
@@ -598,6 +657,7 @@ import React, { Component } from 'react';
             attendanceVisibility: false,
             isMembershipVisible: false,
             isFitnessVisible: false, // Added this
+            isFundraisingTableVisible: false,
             
             // Set dashboard to true
             dashboard: true,
@@ -642,7 +702,8 @@ import React, { Component } from 'react';
             reportVisibility: false,
             attendanceVisibility: false,
             isMembershipVisible: false,
-            isFitnessVisible: false // Added this
+            isFitnessVisible: false, // Added this
+            isFundraisingTableVisible: false
           });
         }
         else
@@ -660,7 +721,8 @@ import React, { Component } from 'react';
             reportVisibility: false,
             attendanceVisibility: false,
             isMembershipVisible: false,
-            isFitnessVisible: false // Added this
+            isFitnessVisible: false, // Added this
+            isFundraisingTableVisible: false
           });
         }
       } 
@@ -870,7 +932,8 @@ import React, { Component } from 'react';
             reportVisibility: false,
             attendanceVisibility: false,
             isMembershipVisible: false,
-            isFitnessVisible: false // Added this
+            isFitnessVisible: false, // Added this
+            isFundraisingTableVisible: false
             //viewMode: "full"
         }));
       }
@@ -894,11 +957,13 @@ import React, { Component } from 'react';
               item: item,
               attendanceVisibility: false,
               isMembershipVisible: false,
-              isFitnessVisible: false // Added this
+              isFitnessVisible: false, // Added this
+              isFundraisingTableVisible: false
               //viewMode: "full"
           }));
       }
     }
+
     getTotalNumberofDetails = async (total) =>
     {
         console.log("Registration:", total);
@@ -1192,6 +1257,14 @@ import React, { Component } from 'react';
         searchQuery: searchQuery // Also update the general searchQuery for compatibility
       });
     };
+
+    handleFundraisingSearchFromChild = (searchQuery) => {
+      console.log('Fundraising search query:', searchQuery);
+      this.setState({
+        fundraisingSearchQuery: searchQuery,
+        searchQuery: searchQuery // Also update the general searchQuery for compatibility
+      });
+    };
     
     // Handle attendance search query
     handleAttendanceSearchFromChild = (data) => {
@@ -1264,6 +1337,9 @@ import React, { Component } from 'react';
         case 'fft-results':
           this.toggleFitnessComponent();
           break;
+        case 'fundraising-table':
+          this.toggleFundraisingTableComponent();
+          break;
         default:
           console.log('Navigation section not found:', section);
       }
@@ -1283,6 +1359,7 @@ import React, { Component } from 'react';
         attendanceVisibility: false,
         isMembershipVisible: false,
         isFitnessVisible: false, // This one was already there
+        isFundraisingTableVisible: false,
         isReceiptVisible: false,
         section: '',
         submenuVisible: null
@@ -1295,7 +1372,7 @@ import React, { Component } from 'react';
       const userName = this.props.location.state?.name || 'User';
       const role = this.props.location.state?.role;
       const siteIC = this.props.location.state?.siteIC;
-      const {membershipType, membershipTypes, membershipSearchQuery, isMembershipVisible, isFitnessVisible, fitnessSearchQuery, attendanceVisibility, reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo, selectedQuarter, quarters, attendanceFilterType, attendanceFilterCode, attendanceFilterLocation, attendanceSearchQuery, attendanceTypes, activityCodes, attendanceLocations} = this.state;
+      const {membershipType, membershipTypes, membershipSearchQuery, isMembershipVisible, isFitnessVisible, fitnessSearchQuery, isFundraisingTableVisible, fundraisingSearchQuery, attendanceVisibility, reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo, selectedQuarter, quarters, attendanceFilterType, attendanceFilterCode, attendanceFilterLocation, attendanceSearchQuery, attendanceTypes, activityCodes, attendanceLocations} = this.state;
 
       return (
         <>
@@ -1342,6 +1419,7 @@ import React, { Component } from 'react';
                   toggleAttendanceComponent = {this.toggleAttendanceComponent}
                   toggleMembershipComponent = {this.toggleMembershipComponent}
                   toggleFitnessComponent = {this.toggleFitnessComponent}
+                  toggleFundraisingTableComponent = {this.toggleFundraisingTableComponent}
                   onAccessRightsUpdate = {this.handleAccessRightsData}
                   key={this.state.refreshKey}
                 />
@@ -1358,6 +1436,7 @@ import React, { Component } from 'react';
                 attendanceVisibility === false &&
                 isMembershipVisible === false &&
                 isFitnessVisible === false &&
+                isFundraisingTableVisible === false &&
                 isReceiptVisible === false &&
                 (
                   <>
@@ -1519,6 +1598,31 @@ import React, { Component } from 'react';
                             refreshChild={this.refreshChild}
                             onDataLoaded={this.closePopup}
                           />
+                    </>
+                }
+                {isFundraisingTableVisible && 
+                    <>
+                      <div className="search-section">
+                            <Search
+                              section={section}
+                              language={language}
+                              resetSearch={resetSearch}
+                              passSearchedValueToParent={this.handleFundraisingSearchFromChild}
+                            />
+                        </div>
+                        <div className="fundraising-section">
+                          <FundraisingTable 
+                            section={section}
+                            userName={userName}
+                            role={role}
+                            siteIC={siteIC}
+                            closePopup1={this.closePopup}
+                            language={language}
+                            key={this.state.refreshKey}
+                            refreshChild={this.refreshChild}
+                            onDataLoaded={this.closePopup}
+                          />
+                        </div>
                     </>
                 }             
                 { isRegistrationPaymentVisible&& 

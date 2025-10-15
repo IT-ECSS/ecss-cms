@@ -21,8 +21,16 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3000,  // Set port to 3000
+    port: 3000,
+    host: true, // Allow network access
     historyApiFallback: true, // Enable SPA fallback for client-side routing
+    hmr: {
+      overlay: false // Disable error overlay for better performance
+    },
+    watch: {
+      // Reduce file watching for better performance
+      ignored: ['**/node_modules/**', '**/.git/**']
+    }
   },
   preview: {
     port: 3000,
@@ -50,8 +58,8 @@ export default defineConfig({
     rollupOptions: {
       external: [], // Don't externalize any modules for SPA
       output: {
-        // More aggressive chunk splitting to stay under 250MB total
-        manualChunks: (id) => {
+        // More aggressive chunk splitting to stay under 250MB total (production only)
+        manualChunks: process.env.NODE_ENV === 'production' ? (id) => {
           // Critical packages - keep very small
           if (id.includes('react/') || id.includes('react-dom/')) {
             return 'react-core';
@@ -182,9 +190,9 @@ export default defineConfig({
               // Create individual chunks for each module to maximize splitting
               return `vendor-${moduleName.replace(/[@]/g, '').replace(/[^a-zA-Z0-9]/g, '-')}`;
             }
-            return 'vendor-misc';
+            return `vendor-misc`;
           }
-        },
+        } : undefined, // Simplified chunking for development
         // Optimize chunk file names for better caching
         chunkFileNames: (chunkInfo) => {
           return `assets/[name]-[hash:8].js`;
@@ -207,13 +215,23 @@ export default defineConfig({
     treeshaking: true
   },
   optimizeDeps: {
-    // Pre-bundle problematic dependencies
+    // Pre-bundle problematic dependencies for faster dev loading
     include: [
       'react',
       'react-dom',
-      'axios'
+      'axios',
+      '@mui/material',
+      '@emotion/react',
+      '@emotion/styled',
+      'ag-grid-community',
+      'ag-grid-react',
+      'react-router-dom',
+      'socket.io-client'
     ],
-    force: true
+    force: false, // Don't force re-optimization every time
+    esbuildOptions: {
+      target: 'esnext' // Use latest JS features for faster bundling
+    }
   },
   // Environment-specific settings
   mode: process.env.NODE_ENV === 'production' ? 'production' : 'development',

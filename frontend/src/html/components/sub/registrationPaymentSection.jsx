@@ -2,12 +2,12 @@ import React, { Component } from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
 import '../../../css/sub/registrationPayment.css';
+import '../../../css/ag-grid-custom-theme.css'; // Import custom AgGrid theme
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { AgGridReact } from 'ag-grid-react'; // React Data Grid Component
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community'; 
-import JSZip from 'jszip';
 import { io } from 'socket.io-client';
 
 // Register the community modules
@@ -1385,8 +1385,6 @@ class RegistrationPaymentSection extends Component {
             return "ECSS-CBO-M-040C";
         case "自我成长":
             return "ECSS-CBO-M-013C";
-        case "我的故事":
-            return "ECSS-CBO-M-007C";
         case "如何退而不休活得精彩":
             return "ECSS-CBO-M-006C";
         case "活跃乐龄大使":
@@ -2014,8 +2012,11 @@ class RegistrationPaymentSection extends Component {
   };
   
  getColumnDefs = (optionalRowData = null) => {
-  const { role, siteIC } = this.props; // Get the role from props
+  const { role, siteIC, selectedCourseType } = this.props; // Get the role and selectedCourseType from props
   console.log("Props123455:", siteIC);
+  
+  // Check if we're filtering by ILP course type
+  const isFilteringILP = selectedCourseType === 'ILP';
   
   // Debug: Check current state for Marriage Preparation Programme data
   // Use optionalRowData if provided, otherwise fall back to state
@@ -2083,27 +2084,7 @@ class RegistrationPaymentSection extends Component {
       },
       editable: false,
       width: 500,
-      hide: false // Always show column, but render N/A for Marriage Preparation Programme
-    },
-    {
-      headerName: "Sending Payment Details",
-      field: "sendDetails",
-      width: 300,
-      cellRenderer: (params) => {
-        const isSent = params.data?.sendDetails;
-        if (isSent === undefined) return null;
-        const imageSrc = isSent
-          ? "https://upload.wikimedia.org/wikipedia/commons/2/29/Tick-green.png"
-          : "https://upload.wikimedia.org/wikipedia/commons/5/5f/Red_X.svg";
-        return (
-          <img
-            src={imageSrc}
-            alt={isSent ? "Sent" : "Not Sent"}
-            width="20"
-            height="20"
-          />
-        );
-      },
+      hide: isFilteringILP // Hide Payment Method column when filtering by ILP
     },
     {
       headerName: "Confirmation",
@@ -2113,23 +2094,27 @@ class RegistrationPaymentSection extends Component {
       width: 180,
       cellStyle: (params) =>
         params.data.paymentMethod !== "SkillsFuture" ? { display: "none" } : {},
+      hide: isFilteringILP // Hide Confirmation column when filtering by ILP
     },
     {
       headerName: "Receipt/Invoice Number",
       field: "recinvNo",
       width: 500,
+      hide: isFilteringILP // Hide Receipt/Invoice Number column when filtering by ILP
     },
     {
       headerName: "Payment Date",
       field: "paymentDate",
       width: 350,
       editable: true,
+      hide: isFilteringILP // Hide Payment Date column when filtering by ILP
     },
     {
       headerName: "Refunded Date",
       field: "refundedDate",
       width: 350,
       editable: true,
+      hide: isFilteringILP // Hide Refunded Date column when filtering by ILP
     },
  {
       headerName: "Payment Status",
@@ -2220,6 +2205,26 @@ class RegistrationPaymentSection extends Component {
       editable: true,
       width:  350,
     },
+        {
+      headerName: "Sending Message Details",
+      field: "sendDetails",
+      width: 300,
+      cellRenderer: (params) => {
+        const isSent = params.data?.sendDetails;
+        if (isSent === undefined) return null;
+        const imageSrc = isSent
+          ? "https://upload.wikimedia.org/wikipedia/commons/2/29/Tick-green.png"
+          : "https://upload.wikimedia.org/wikipedia/commons/5/5f/Red_X.svg";
+        return (
+          <img
+            src={imageSrc}
+            alt={isSent ? "Sent" : "Not Sent"}
+            width="20"
+            height="20"
+          />
+        );
+      },
+    },
     {
       headerName: "Remarks",
       field: "remarks",
@@ -2277,7 +2282,6 @@ class RegistrationPaymentSection extends Component {
   // Only add Marriage Preparation Programme specific columns if there are Marriage Preparation Programme entries
   // Check if current filtered data contains any Marriage Preparation Programme courses
   const { rowData: currentRowData } = this.state;
-  const { selectedCourseType } = this.props;
   
   // If specifically filtering by NSA or ILP, don't show Marriage Preparation Programme columns
   const isFilteringNSAorILP = selectedCourseType === 'NSA' || selectedCourseType === 'ILP';
@@ -2736,7 +2740,7 @@ debugMarriagePrepData = () => {
             this.props.closePopup();
           }
         }
-        else if (columnName === "Sending Payment Details")
+        else if (columnName === "Sending Message Details")
         {
           console.log("Entry (Sending Payment Details):", event.data.sendDetails);
             console.log("Entry (Contact Number):", event.data.paymentStatus,  courseType);

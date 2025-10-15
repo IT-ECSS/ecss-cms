@@ -209,6 +209,15 @@ class WelcomeSection extends Component {
                 action: () => this.props.onNavigate('fitness'),
                 accessKey: 'FFT Results',
                 parentKey: 'Fitness'
+            },
+            { 
+                key: 'Fundraising Table', 
+                title: 'Fundraising Table', 
+                icon: 'fa-solid fa-hand-holding-dollar', 
+                description: 'Manage fundraising orders and products', 
+                action: () => this.props.onNavigate('fundraising-table'),
+                accessKey: 'Fundraising Table',
+                parentKey: 'Fundraising'
             }
         ];
 
@@ -269,6 +278,8 @@ class WelcomeSection extends Component {
                 'Invoice Table': 3,
                 'Upload Courses': 2,
                 'Update Courses': 2,
+                'Fundraising Table': 4,
+                'FFT Results': 2,
                 'Create QR Code': 1,
                 'QR Code Table': 1,
                 'Update QR Code': 1,
@@ -373,7 +384,8 @@ class WelcomeSection extends Component {
             "QR Code": 'fas fa-qrcode',
             "Reports": 'fas fa-table',
             "Attendances": 'fas fa-calendar-days',
-            "Fitness": 'fas fa-dumbbell'
+            "Fitness": 'fas fa-dumbbell',
+            "Fundraising": 'fa-solid fa-gift'
         };
 
         // Define sub-key descriptions
@@ -388,7 +400,9 @@ class WelcomeSection extends Component {
             "Monthly Report": "Generate monthly analytics and reports",
             "Payment Report": "View payment summaries and financial reports",
             "View Attendance": "Monitor and record student attendance",
-            "View Membership": "Manage member information and records"
+            "View Membership": "Manage member information and records",
+            "FFT Results": "View fitness assessment results and tracking",
+            "Fundraising Table": "Manage fundraising orders and products"
         };
 
         const navigationCards = [];
@@ -518,12 +532,15 @@ class WelcomeSection extends Component {
             case "View Membership":
                 navigationKey = "membership";
                 break;
+            case "Fundraising Table":
+                navigationKey = "fundraising-table";
+                break;
             default:
                 navigationKey = subKey;
         }
         this.props.onNavigate(navigationKey);
     }
-};
+  };
 
     render() {
         const { userName, role, onNavigate } = this.props;
