@@ -91,6 +91,12 @@ import React, { Component } from 'react';
         fitnessSearchQuery: '',
         isFundraisingTableVisible: false,
         fundraisingSearchQuery: '',
+        fundraisingPaymentMethod: 'All Payment Methods',
+        fundraisingCollectionMode: 'All Collection Modes',
+        fundraisingStatus: 'All Statuses',
+        fundraisingPaymentMethods: [],
+        fundraisingCollectionModes: [],
+        fundraisingStatuses: [],
         accessRights: {} // Access rights from sidebar
       };
   
@@ -1265,6 +1271,38 @@ import React, { Component } from 'react';
         searchQuery: searchQuery // Also update the general searchQuery for compatibility
       });
     };
+
+    // Handle fundraising filter selection (payment method, collection mode, status)
+    handleFundraisingSelectFromChild = (updateState, dropdown) => {
+      console.log("Selected Fundraising Filter:", updateState, dropdown);
+      
+      if (dropdown === 'showPaymentMethodDropdown') {
+        this.setState({
+          fundraisingPaymentMethod: updateState.paymentMethod || updateState.fundraisingPaymentMethod
+        });
+      } else if (dropdown === 'showCollectionModeDropdown') {
+        this.setState({
+          fundraisingCollectionMode: updateState.collectionMode || updateState.fundraisingCollectionMode
+        });
+      } else if (dropdown === 'showStatusDropdown') {
+        this.setState({
+          fundraisingStatus: updateState.status || updateState.fundraisingStatus
+        });
+      }
+    };
+
+    // Add method to receive fundraising filter options from FundraisingTable
+    handleFundraisingFiltersLoaded = (paymentMethods, collectionModes, statuses) => {
+      console.log("Received payment methods:", paymentMethods);
+      console.log("Received collection modes:", collectionModes);
+      console.log("Received statuses:", statuses);
+      
+      this.setState({
+        fundraisingPaymentMethods: paymentMethods || ['All Payment Methods'],
+        fundraisingCollectionModes: collectionModes || ['All Collection Modes'],
+        fundraisingStatuses: statuses || ['All Statuses']
+      });
+    };
     
     // Handle attendance search query
     handleAttendanceSearchFromChild = (data) => {
@@ -1372,7 +1410,7 @@ import React, { Component } from 'react';
       const userName = this.props.location.state?.name || 'User';
       const role = this.props.location.state?.role;
       const siteIC = this.props.location.state?.siteIC;
-      const {membershipType, membershipTypes, membershipSearchQuery, isMembershipVisible, isFitnessVisible, fitnessSearchQuery, isFundraisingTableVisible, fundraisingSearchQuery, attendanceVisibility, reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo, selectedQuarter, quarters, attendanceFilterType, attendanceFilterCode, attendanceFilterLocation, attendanceSearchQuery, attendanceTypes, activityCodes, attendanceLocations} = this.state;
+      const {membershipType, membershipTypes, membershipSearchQuery, isMembershipVisible, isFitnessVisible, fitnessSearchQuery, isFundraisingTableVisible, fundraisingSearchQuery, fundraisingPaymentMethod, fundraisingCollectionMode, fundraisingStatus, fundraisingPaymentMethods, fundraisingCollectionModes, fundraisingStatuses, attendanceVisibility, reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo, selectedQuarter, quarters, attendanceFilterType, attendanceFilterCode, attendanceFilterLocation, attendanceSearchQuery, attendanceTypes, activityCodes, attendanceLocations} = this.state;
 
       return (
         <>
@@ -1607,7 +1645,11 @@ import React, { Component } from 'react';
                               section={section}
                               language={language}
                               resetSearch={resetSearch}
+                              passSelectedValueToParent={this.handleFundraisingSelectFromChild}
                               passSearchedValueToParent={this.handleFundraisingSearchFromChild}
+                              fundraisingPaymentMethods={fundraisingPaymentMethods}
+                              fundraisingCollectionModes={fundraisingCollectionModes}
+                              fundraisingStatuses={fundraisingStatuses}
                             />
                         </div>
                         <div className="fundraising-section">
@@ -1621,6 +1663,11 @@ import React, { Component } from 'react';
                             key={this.state.refreshKey}
                             refreshChild={this.refreshChild}
                             onDataLoaded={this.closePopup}
+                            paymentMethod={fundraisingPaymentMethod}
+                            collectionMode={fundraisingCollectionMode}
+                            status={fundraisingStatus}
+                            searchQuery={fundraisingSearchQuery}
+                            onFiltersLoaded={this.handleFundraisingFiltersLoaded}
                           />
                         </div>
                     </>

@@ -57,6 +57,19 @@ class SearchSection extends Component {
     membershipTypes: [], // Default membership types
     filteredMembershipTypes: [], // Default filtered membership types
     showMembershipTypeDropdown: false, // Add for membership type dropdown
+    // Fundraising filter states
+    paymentMethod: '',
+    collectionMode: '',
+    fundraisingStatus: '',
+    fundraisingPaymentMethods: ['All Payment Methods'],
+    fundraisingCollectionModes: ['All Collection Modes'],
+    fundraisingStatuses: ['All Statuses'],
+    filteredPaymentMethods: ['All Payment Methods'],
+    filteredCollectionModes: ['All Collection Modes'],
+    filteredFundraisingStatuses: ['All Statuses'],
+    showPaymentMethodDropdown: false,
+    showCollectionModeDropdown: false,
+    showStatusDropdown: false,
   };
   this.locationDropdownRef = React.createRef();
   this.languageDropdownRef = React.createRef();
@@ -68,6 +81,9 @@ class SearchSection extends Component {
   this.attendanceLocationDropdownRef = React.createRef(); // Add this ref for the attendance location dropdown
   this.activityCodeDropdownRef = React.createRef(); // Add this ref for the activity code dropdown
   this.membershipTypeDropdownRef = React.createRef(); // Add this ref for the membership type dropdown
+  this.paymentMethodDropdownRef = React.createRef(); // Add this ref for the payment method dropdown
+  this.collectionModeDropdownRef = React.createRef(); // Add this ref for the collection mode dropdown
+  this.statusDropdownRef = React.createRef(); // Add this ref for the status dropdown
   this.searchInputRef = React.createRef(); // Make sure the search field has a ref
 }
 
@@ -169,6 +185,30 @@ handleChange = (event) => {
         membershipType: value
       });
     }
+    else if (name === 'paymentMethod') {
+      this.setState({
+        filteredPaymentMethods: this.state.fundraisingPaymentMethods.filter(method =>
+          method.toLowerCase().includes(value.toLowerCase())
+        ),
+        paymentMethod: value
+      });
+    }
+    else if (name === 'collectionMode') {
+      this.setState({
+        filteredCollectionModes: this.state.fundraisingCollectionModes.filter(mode =>
+          mode.toLowerCase().includes(value.toLowerCase())
+        ),
+        collectionMode: value
+      });
+    }
+    else if (name === 'fundraisingStatus') {
+      this.setState({
+        filteredFundraisingStatuses: this.state.fundraisingStatuses.filter(status =>
+          status.toLowerCase().includes(value.toLowerCase())
+        ),
+        fundraisingStatus: value
+      });
+    }
   });
 };
 
@@ -217,6 +257,21 @@ handleDropdownToggle = (dropdown) =>
     else if(dropdown === 'showMembershipTypeDropdown')
     {
       this.setState({ showMembershipTypeDropdown: true });
+    }
+    else if(dropdown === 'showPaymentMethodDropdown')
+    {
+      console.log("Toggling payment method dropdown");
+      this.setState({ showPaymentMethodDropdown: true });
+    }
+    else if(dropdown === 'showCollectionModeDropdown')
+    {
+      console.log("Toggling collection mode dropdown");
+      this.setState({ showCollectionModeDropdown: true });
+    }
+    else if(dropdown === 'showStatusDropdown')
+    {
+      console.log("Toggling status dropdown");
+      this.setState({ showStatusDropdown: true });
     }
 }
 
@@ -348,6 +403,30 @@ handleOptionSelect = (value, dropdown) => {
         showActivityCodeDropdown: false
       };
     }
+    else if (dropdown === 'showPaymentMethodDropdown') {
+      updatedState = {
+        paymentMethod: value,
+        showPaymentMethodDropdown: false,
+        showCollectionModeDropdown: false,
+        showStatusDropdown: false
+      };
+    }
+    else if (dropdown === 'showCollectionModeDropdown') {
+      updatedState = {
+        collectionMode: value,
+        showPaymentMethodDropdown: false,
+        showCollectionModeDropdown: false,
+        showStatusDropdown: false
+      };
+    }
+    else if (dropdown === 'showStatusDropdown') {
+      updatedState = {
+        fundraisingStatus: value,
+        showPaymentMethodDropdown: false,
+        showCollectionModeDropdown: false,
+        showStatusDropdown: false
+      };
+    }
 
 
     this.setState(updatedState, () => {
@@ -379,7 +458,10 @@ handleClickOutside = (event) => {
     this.activityCodeDropdownRef.current &&
     !this.activityCodeDropdownRef.current.contains(event.target) &&
     this.membershipTypeDropdownRef.current &&
-    !this.membershipTypeDropdownRef.current.contains(event.target)
+    !this.membershipTypeDropdownRef.current.contains(event.target) &&
+    (!this.paymentMethodDropdownRef.current || !this.paymentMethodDropdownRef.current.contains(event.target)) &&
+    (!this.collectionModeDropdownRef.current || !this.collectionModeDropdownRef.current.contains(event.target)) &&
+    (!this.statusDropdownRef.current || !this.statusDropdownRef.current.contains(event.target))
   ) {
     this.setState({
       showLocationDropdown: false,
@@ -391,7 +473,10 @@ handleClickOutside = (event) => {
       showAttendanceTypeDropdown: false,
       showAttendanceLocationDropdown: false,
       showActivityCodeDropdown: false,
-      showMembershipTypeDropdown: false
+      showMembershipTypeDropdown: false,
+      showPaymentMethodDropdown: false,
+      showCollectionModeDropdown: false,
+      showStatusDropdown: false
     });
   }
 
@@ -422,6 +507,27 @@ handleClickOutside = (event) => {
   ) {
     this.setState({ showMembershipTypeDropdown: false });
   }
+  if (
+    this.paymentMethodDropdownRef &&
+    this.paymentMethodDropdownRef.current &&
+    !this.paymentMethodDropdownRef.current.contains(event.target)
+  ) {
+    this.setState({ showPaymentMethodDropdown: false });
+  }
+  if (
+    this.collectionModeDropdownRef &&
+    this.collectionModeDropdownRef.current &&
+    !this.collectionModeDropdownRef.current.contains(event.target)
+  ) {
+    this.setState({ showCollectionModeDropdown: false });
+  }
+  if (
+    this.statusDropdownRef &&
+    this.statusDropdownRef.current &&
+    !this.statusDropdownRef.current.contains(event.target)
+  ) {
+    this.setState({ showStatusDropdown: false });
+  }
 };
 
   componentDidMount() {
@@ -446,6 +552,31 @@ handleClickOutside = (event) => {
         filteredMembershipTypes: membershipTypes
       });
     }
+
+    // Initialize fundraising filter options if available
+    if (this.props.fundraisingPaymentMethods) {
+      const paymentMethods = this.props.fundraisingPaymentMethods || ['All Payment Methods'];
+      this.setState({
+        fundraisingPaymentMethods: paymentMethods,
+        filteredPaymentMethods: paymentMethods
+      });
+    }
+    
+    if (this.props.fundraisingCollectionModes) {
+      const collectionModes = this.props.fundraisingCollectionModes || ['All Collection Modes'];
+      this.setState({
+        fundraisingCollectionModes: collectionModes,
+        filteredCollectionModes: collectionModes
+      });
+    }
+    
+    if (this.props.fundraisingStatuses) {
+      const statuses = this.props.fundraisingStatuses || ['All Statuses'];
+      this.setState({
+        fundraisingStatuses: statuses,
+        filteredFundraisingStatuses: statuses
+      });
+    }
   }
 
   componentDidUpdate(prevProps) {
@@ -458,12 +589,18 @@ handleClickOutside = (event) => {
         role: '',
         courseName: '',
         quarter: '',
+        paymentMethod: '',
+        collectionMode: '',
+        fundraisingStatus: '',
         showLocationDropdown: false,
         showLanguageDropdown: false,
         showTypeDropdown: false,
         showAccountTypeDropdown: false,
         showCourseDropdown: false,
-        showQuarterDropdown: false
+        showQuarterDropdown: false,
+        showPaymentMethodDropdown: false,
+        showCollectionModeDropdown: false,
+        showStatusDropdown: false
       });
     }
   
@@ -580,6 +717,45 @@ handleClickOutside = (event) => {
       });
     }
 
+    // Check if fundraising payment methods from props have changed
+    if (this.props.fundraisingPaymentMethods !== prevProps.fundraisingPaymentMethods) {
+      const paymentMethods = this.props.fundraisingPaymentMethods || ['All Payment Methods'];
+      if (!paymentMethods.includes('All Payment Methods')) {
+        paymentMethods.unshift('All Payment Methods');
+      }
+      
+      this.setState({
+        fundraisingPaymentMethods: paymentMethods,
+        filteredPaymentMethods: paymentMethods
+      });
+    }
+
+    // Check if fundraising collection modes from props have changed
+    if (this.props.fundraisingCollectionModes !== prevProps.fundraisingCollectionModes) {
+      const collectionModes = this.props.fundraisingCollectionModes || ['All Collection Modes'];
+      if (!collectionModes.includes('All Collection Modes')) {
+        collectionModes.unshift('All Collection Modes');
+      }
+      
+      this.setState({
+        fundraisingCollectionModes: collectionModes,
+        filteredCollectionModes: collectionModes
+      });
+    }
+
+    // Check if fundraising statuses from props have changed
+    if (this.props.fundraisingStatuses !== prevProps.fundraisingStatuses) {
+      const statuses = this.props.fundraisingStatuses || ['All Statuses'];
+      if (!statuses.includes('All Statuses')) {
+        statuses.unshift('All Statuses');
+      }
+      
+      this.setState({
+        fundraisingStatuses: statuses,
+        filteredFundraisingStatuses: statuses
+      });
+    }
+
     // Reset search input field when searchQuery changes to empty string
     if (prevProps.searchQuery !== this.props.searchQuery && this.props.searchQuery === '') {
       // Clear the input field
@@ -677,7 +853,7 @@ componentWillUnmount() {
   
 render() 
 {
-  const { membershipType, showNameDropdown, typename, filteredName, staffName, searchQuery, centreLocation, language, quarter, courseQuarters, filteredQuarters, filteredLocations, filteredLanguages, filteredTypes, showLocationDropdown, showLanguageDropdown, showTypeDropdown, courseType, showAccountTypeDropdown, role, roles, filteredRoles, coursesName, showCourseDropdown, filteredCoursesName, courseName, showQuarterDropdown } = this.state;
+  const { membershipType, showNameDropdown, typename, filteredName, staffName, searchQuery, centreLocation, language, quarter, courseQuarters, filteredQuarters, filteredLocations, filteredLanguages, filteredTypes, showLocationDropdown, showLanguageDropdown, showTypeDropdown, courseType, showAccountTypeDropdown, role, roles, filteredRoles, coursesName, showCourseDropdown, filteredCoursesName, courseName, showQuarterDropdown, paymentMethod, collectionMode, fundraisingStatus, filteredPaymentMethods, filteredCollectionModes, filteredFundraisingStatuses, showPaymentMethodDropdown, showCollectionModeDropdown, showStatusDropdown } = this.state;
   const { section } = this.props; // Destructure section from props
 
   console.log("Course Name List:", this.state);
@@ -1110,6 +1286,122 @@ render()
                 value={searchQuery}
                 onChange={this.handleChange}
                 placeholder={this.props.language === 'zh' ? '搜索会员' : 'Search membership'}
+                autoComplete="off"
+              />
+              <i className="fas fa-search search-icon"></i>
+            </div>
+          </div>
+        </>
+      )}
+
+      {section === "fundraising-table" && (
+        <>
+          <div className="form-group">
+            <label htmlFor="paymentMethod">{this.props.language === 'zh' ? '付款方式' : 'Payment Method'}</label>
+            <div
+              className={`dropdown-container ${this.state.showPaymentMethodDropdown ? 'open' : ''}`}
+              ref={this.paymentMethodDropdownRef}
+            >
+              <input
+                type="text"
+                id="paymentMethod"
+                name="paymentMethod"
+                value={paymentMethod}
+                onChange={this.handleChange}
+                onClick={() => this.handleDropdownToggle('showPaymentMethodDropdown')}
+                placeholder={this.props.language === 'zh' ? '按付款方式筛选' : 'Filter by payment method'}
+                autoComplete="off"
+              />
+              {showPaymentMethodDropdown && (
+                <ul className="dropdown-list">
+                  {filteredPaymentMethods.map((method, index) => (
+                    <li
+                      key={index}
+                      onMouseDown={() => this.handleOptionSelect(method, 'showPaymentMethodDropdown')}
+                    >
+                      {method}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <i className="fas fa-angle-down dropdown-icon"></i>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="collectionMode">{this.props.language === 'zh' ? '收集方式' : 'Collection Mode'}</label>
+            <div
+              className={`dropdown-container ${showCollectionModeDropdown ? 'open' : ''}`}
+              ref={this.collectionModeDropdownRef}
+            >
+              <input
+                type="text"
+                id="collectionMode"
+                name="collectionMode"
+                value={collectionMode}
+                onChange={this.handleChange}
+                onClick={() => this.handleDropdownToggle('showCollectionModeDropdown')}
+                placeholder={this.props.language === 'zh' ? '按收集方式筛选' : 'Filter by collection mode'}
+                autoComplete="off"
+              />
+              {showCollectionModeDropdown && (
+                <ul className="dropdown-list">
+                  {filteredCollectionModes.map((mode, index) => (
+                    <li
+                      key={index}
+                      onMouseDown={() => this.handleOptionSelect(mode, 'showCollectionModeDropdown')}
+                    >
+                      {mode}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <i className="fas fa-angle-down dropdown-icon"></i>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="fundraisingStatus">{this.props.language === 'zh' ? '状态' : 'Status'}</label>
+            <div
+              className={`dropdown-container ${showStatusDropdown ? 'open' : ''}`}
+              ref={this.statusDropdownRef}
+            >
+              <input
+                type="text"
+                id="fundraisingStatus"
+                name="fundraisingStatus"
+                value={fundraisingStatus}
+                onChange={this.handleChange}
+                onClick={() => this.handleDropdownToggle('showStatusDropdown')}
+                placeholder={this.props.language === 'zh' ? '按状态筛选' : 'Filter by status'}
+                autoComplete="off"
+              />
+              {showStatusDropdown && (
+                <ul className="dropdown-list">
+                  {filteredFundraisingStatuses.map((status, index) => (
+                    <li
+                      key={index}
+                      onMouseDown={() => this.handleOptionSelect(status, 'showStatusDropdown')}
+                    >
+                      {status}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <i className="fas fa-angle-down dropdown-icon"></i>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="searchQuery">{this.props.language === 'zh' ? '搜寻' : 'Search'}</label>
+            <div className="search-container">
+              <input
+                type="text"
+                id="searchQuery"
+                name="searchQuery"
+                value={searchQuery}
+                onChange={this.handleChange}
+                placeholder={this.props.language === 'zh' ? '搜索...' : 'Search...'}
                 autoComplete="off"
               />
               <i className="fas fa-search search-icon"></i>

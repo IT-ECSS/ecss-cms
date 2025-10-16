@@ -43,6 +43,7 @@
   border: none; /* Border to match the dropdown look */
   border-radius: 4px; /* Rounded corners */
   position: relative; /* Position relative to contain the icon */
+  min-width: 300px; /* Ensures minimum width for longer placeholder text */
 }
 
 .form-group input[type="text"]:focus {

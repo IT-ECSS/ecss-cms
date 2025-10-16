@@ -314,6 +314,126 @@ class FundraisingTable extends Component {
       }
     }
 
+    componentDidUpdate(prevProps) {
+      // Check if filter props have changed and apply filtering
+      if (
+        prevProps.paymentMethod !== this.props.paymentMethod ||
+        prevProps.collectionMode !== this.props.collectionMode ||
+        prevProps.status !== this.props.status ||
+        prevProps.searchQuery !== this.props.searchQuery
+      ) {
+        this.applyFilters();
+      }
+    }
+
+    // Method to apply filters based on current props
+    applyFilters = () => {
+      const { paymentMethod, collectionMode, status, searchQuery } = this.props;
+      const { originalData } = this.state;
+
+      console.log("FundraisingTable - applyFilters called with props:", { 
+        paymentMethod, 
+        collectionMode, 
+        status, 
+        searchQuery,
+        originalDataLength: originalData ? originalData.length : 0
+      });
+
+      if (!originalData || originalData.length === 0) {
+        console.log("FundraisingTable - No original data available for filtering");
+        return;
+      }
+
+      let filteredData = [...originalData];
+
+      // Apply payment method filter
+      if (paymentMethod && paymentMethod !== 'All Payment Methods' && paymentMethod !== '') {
+        filteredData = filteredData.filter(record => 
+          record.paymentMethod && record.paymentMethod.toLowerCase().includes(paymentMethod.toLowerCase())
+        );
+      }
+
+      // Apply collection mode filter
+      if (collectionMode && collectionMode !== 'All Collection Modes' && collectionMode !== '') {
+        filteredData = filteredData.filter(record => 
+          record.collectionMode && record.collectionMode.toLowerCase().includes(collectionMode.toLowerCase())
+        );
+      }
+
+      // Apply status filter
+      if (status && status !== 'All Statuses' && status !== '') {
+        filteredData = filteredData.filter(record => 
+          record.status && record.status.toLowerCase().includes(status.toLowerCase())
+        );
+      }
+
+      // Apply search query filter
+      if (searchQuery && searchQuery.trim() !== '') {
+        const query = searchQuery.toLowerCase();
+        console.log("FundraisingTable - Applying search filter with query:", query);
+        const beforeSearchLength = filteredData.length;
+        
+        filteredData = filteredData.filter(record => {
+          // Helper function to recursively search through nested objects
+          const searchInObject = (obj) => {
+            if (obj === null || obj === undefined) return false;
+            
+            if (typeof obj === 'string' || typeof obj === 'number') {
+              return obj.toString().toLowerCase().includes(query);
+            }
+            
+            if (Array.isArray(obj)) {
+              return obj.some(item => searchInObject(item));
+            }
+            
+            if (typeof obj === 'object') {
+              return Object.values(obj).some(value => searchInObject(value));
+            }
+            
+            return false;
+          };
+
+          // Search in the main record fields
+          const mainFieldsMatch = [
+            record.firstName,
+            record.lastName, 
+            record.contactNumber,
+            record.email,
+            record.receiptNumber,
+            record.paymentMethod,
+            record.collectionMode,
+            record.status,
+            record.donationAmount,
+            record.totalPrice,
+            record.fundraisingKey
+          ].some(field => field && field.toString().toLowerCase().includes(query));
+
+          // Search in personalInfo if it exists
+          const personalInfoMatch = record.personalInfo ? searchInObject(record.personalInfo) : false;
+
+          // Search in items array if it exists
+          const itemsMatch = record.items ? searchInObject(record.items) : false;
+
+          return mainFieldsMatch || personalInfoMatch || itemsMatch;
+        });
+        
+        console.log("FundraisingTable - Search results:", {
+          searchQuery: query,
+          beforeSearch: beforeSearchLength,
+          afterSearch: filteredData.length
+        });
+      }
+
+      console.log("Applied filters:", { paymentMethod, collectionMode, status, searchQuery });
+      console.log("Filtered data length:", filteredData.length);
+
+      this.setState({
+        fundraisingData: filteredData
+      }, () => {
+        this.getRowData(filteredData);
+      });
+    };
+
     // Preload product details for all fundraising orders
     preloadAllProductDetails = async () => {
       try {
@@ -359,6 +479,15 @@ class FundraisingTable extends Component {
       // Enhanced data processing: Enrich fundraising data with WooCommerce product details
       const enrichedData = this.enrichFundraisingDataWithProductDetails(safeData);
 
+      // Extract unique values for filters
+      const uniquePaymentMethods = ['All Payment Methods', ...new Set(enrichedData.map(record => record.paymentMethod).filter(Boolean))];
+      const uniqueCollectionModes = ['All Collection Modes', ...new Set(enrichedData.map(record => record.collectionMode).filter(Boolean))];
+      const uniqueStatuses = ['All Statuses', ...new Set(enrichedData.map(record => record.status).filter(Boolean))];
+
+      console.log("Unique payment methods:", uniquePaymentMethods);
+      console.log("Unique collection modes:", uniqueCollectionModes);
+      console.log("Unique statuses:", uniqueStatuses);
+
       this.setState({
         originalData: enrichedData,
         fundraisingData: enrichedData,
@@ -366,6 +495,11 @@ class FundraisingTable extends Component {
       }, () => {
         console.log("Enhanced data loaded with product details, originalData length:", enrichedData || 0);
         this.getRowData(enrichedData);
+
+        // Pass filter options to parent component if callback is provided
+        if (this.props.onFiltersLoaded) {
+          this.props.onFiltersLoaded(uniquePaymentMethods, uniqueCollectionModes, uniqueStatuses);
+        }
 
         // Restore scroll position and page after data is set
         if (gridContainer) {
@@ -1571,12 +1705,306 @@ class FundraisingTable extends Component {
       console.log("Grid API initialized successfully");
     };
 
+    // Export table data to Excel
+    exportToExcel = async () => {
+      try {
+        // Create a new workbook
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Fundraising Orders Archive');
+
+        // Define headers based on visible columns
+        const headers = [
+          'S/N',
+          'First Name',
+          'Last Name',
+          'Contact Number',
+          'Email',
+          'Total Price',
+          'Payment Method',
+          'Items Summary',
+          'Collection Mode',
+          'Status',
+          'Receipt Number',
+          'Order Date',
+          'Items Detail'
+        ];
+
+        // Add headers to worksheet
+        worksheet.addRow(headers);
+
+        // Style the header row
+        const headerRow = worksheet.getRow(1);
+        headerRow.font = { bold: true };
+        headerRow.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFE0E0E0' }
+        };
+
+        // Process each row of data
+        this.state.rowData.forEach((row, index) => {
+          // Format items for summary
+          let itemsSummary = '';
+          let itemsDetail = '';
+          
+          if (row.items && row.items.length > 0) {
+            itemsSummary = row.items.map(item => {
+              const name = item.productName || item.name || item.itemName || 'Unknown Item';
+              const quantity = item.quantity || 1;
+              return `${name} (x${quantity})`;
+            }).join(', ');
+
+            // Detailed items information
+            itemsDetail = row.items.map(item => {
+              const name = item.productName || item.name || item.itemName || 'Unknown Item';
+              const quantity = item.quantity || 1;
+              const price = item.price || item.unitPrice || 0;
+              const subtotal = (price * quantity).toFixed(2);
+              return `${name}: Qty ${quantity} @ $${price} = $${subtotal}`;
+            }).join('; ');
+          }
+
+          // Format total price
+          let totalPrice = row.donationAmount;
+          if (row.enrichedTotalPrice > 0) {
+            totalPrice = `$${row.enrichedTotalPrice.toFixed(2)}`;
+          } else if (totalPrice && !isNaN(totalPrice)) {
+            totalPrice = `$${parseFloat(totalPrice).toFixed(2)}`;
+          } else {
+            totalPrice = '$0.00';
+          }
+
+          // Format order date if available
+          let orderDate = '';
+          if (row.createdAt || row.orderDate || row.timestamp) {
+            const date = new Date(row.createdAt || row.orderDate || row.timestamp);
+            if (!isNaN(date.getTime())) {
+              orderDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+            }
+          }
+
+          const rowData = [
+            row.sn || index + 1,
+            row.firstName || '',
+            row.lastName || '',
+            row.contactNumber || '',
+            row.email || '',
+            totalPrice,
+            row.paymentMethod || '',
+            itemsSummary,
+            row.collectionMode || '',
+            row.status || '',
+            row.receiptNumber || '',
+            orderDate,
+            itemsDetail
+          ];
+
+          worksheet.addRow(rowData);
+        });
+
+        // Auto-fit columns
+        worksheet.columns.forEach(column => {
+          let maxLength = 10;
+          column.eachCell({ includeEmpty: true }, (cell) => {
+            const cellValue = cell.value ? cell.value.toString() : '';
+            maxLength = Math.max(maxLength, cellValue.length);
+          });
+          column.width = Math.min(maxLength + 2, 50); // Cap at 50 characters
+        });
+
+        // Generate filename with timestamp
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
+        const filename = `Fundraising_Orders_Archive_${timestamp}.xlsx`;
+
+        // Save the file
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { 
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+        });
+        saveAs(blob, filename);
+
+        console.log('Excel export completed successfully');
+        
+        // Optional: Show success message
+        alert(`Excel file "${filename}" has been downloaded successfully!`);
+
+      } catch (error) {
+        console.error('Error exporting to Excel:', error);
+        alert('Failed to export data to Excel. Please try again.');
+      }
+    };
+
+    // Generate Payment Report with Total
+    generatePaymentReport = async () => {
+      try {
+        // Create a new workbook
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Payment Report');
+
+        // Define headers for payment report
+        const headers = [
+          'S/N',
+          'First Name',
+          'Last Name',
+          'Contact Number',
+          'Email',
+          'Total Price',
+          'Payment Method',
+          'Collection Mode',
+          'Status',
+          'Receipt Number',
+          'Order Date'
+        ];
+
+        // Add headers to worksheet
+        worksheet.addRow(headers);
+
+        // Style the header row
+        const headerRow = worksheet.getRow(1);
+        headerRow.font = { bold: true };
+        headerRow.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFE0E0E0' }
+        };
+
+        let grandTotal = 0;
+
+        // Process each row of data and calculate total
+        this.state.rowData.forEach((row, index) => {
+          // Calculate numerical total price for summation
+          let totalPriceValue = 0;
+          let totalPriceDisplay = '';
+
+          if (row.enrichedTotalPrice > 0) {
+            totalPriceValue = row.enrichedTotalPrice;
+            totalPriceDisplay = `$${row.enrichedTotalPrice.toFixed(2)}`;
+          } else if (row.donationAmount) {
+            // Extract numerical value from donation amount
+            const cleanAmount = row.donationAmount.toString().replace(/[^0-9.-]/g, '');
+            if (!isNaN(cleanAmount) && cleanAmount !== '' && cleanAmount !== '-') {
+              totalPriceValue = parseFloat(cleanAmount);
+              totalPriceDisplay = `$${totalPriceValue.toFixed(2)}`;
+            } else {
+              totalPriceValue = 0;
+              totalPriceDisplay = '$0.00';
+            }
+          } else {
+            totalPriceValue = 0;
+            totalPriceDisplay = '$0.00';
+          }
+
+          // Only add to grand total if the value is positive
+          if (totalPriceValue > 0) {
+            grandTotal += totalPriceValue;
+          }
+
+          // Format order date if available
+          let orderDate = '';
+          if (row.createdAt || row.orderDate || row.timestamp) {
+            const date = new Date(row.createdAt || row.orderDate || row.timestamp);
+            if (!isNaN(date.getTime())) {
+              orderDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+            }
+          }
+
+          const rowData = [
+            row.sn || index + 1,
+            row.firstName || '',
+            row.lastName || '',
+            row.contactNumber || '',
+            row.email || '',
+            totalPriceDisplay,
+            row.paymentMethod || '',
+            row.collectionMode || '',
+            row.status || '',
+            row.receiptNumber || '',
+            orderDate
+          ];
+
+          worksheet.addRow(rowData);
+        });
+
+        // Add empty row after data
+        worksheet.addRow([]);
+
+        // Add total row
+        const totalRowData = [
+          '', '', '', '', '', // Empty cells
+          `$${grandTotal.toFixed(2)}`, // Total price in the Total Price column
+          '', '', '', '', '' // Empty cells for remaining columns
+        ];
+        const totalRow = worksheet.addRow(totalRowData);
+
+        // Style the total row
+        totalRow.font = { bold: true };
+        totalRow.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFFFCC00' } // Light yellow background
+        };
+
+        // Add "TOTAL:" label in the previous cell
+        const labelCell = worksheet.getCell(totalRow.number, 5); // Column E (Email column)
+        labelCell.value = 'TOTAL:';
+        labelCell.font = { bold: true };
+        labelCell.alignment = { horizontal: 'right' };
+
+        // Auto-fit columns
+        worksheet.columns.forEach(column => {
+          let maxLength = 10;
+          column.eachCell({ includeEmpty: true }, (cell) => {
+            const cellValue = cell.value ? cell.value.toString() : '';
+            maxLength = Math.max(maxLength, cellValue.length);
+          });
+          column.width = Math.min(maxLength + 2, 50); // Cap at 50 characters
+        });
+
+        // Generate filename with timestamp
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
+        const filename = `Payment_Report_${timestamp}.xlsx`;
+
+        // Save the file
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { 
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+        });
+        saveAs(blob, filename);
+
+        console.log('Payment report export completed successfully');
+        console.log('Grand Total:', grandTotal.toFixed(2));
+        
+        // Show success message with total
+        alert(`Payment report "${filename}" has been downloaded successfully!\nTotal Amount: $${grandTotal.toFixed(2)}`);
+
+      } catch (error) {
+        console.error('Error generating payment report:', error);
+        alert('Failed to generate payment report. Please try again.');
+      }
+    };
+
     render() 
     {
       return (
         <div className="fundraising-container">
           <div className="fundraising-heading">
-            <h2>Fundraising Orders</h2>
+            <h2>Fundraising Table</h2>
+             <div className="button-row"> 
+              <button 
+                className="fundraising-export-btn"
+                onClick={this.exportToExcel}
+                title="Export all fundraising orders to Excel file"
+              >
+              Archive Data
+              </button>
+              <button 
+                className="fundraising-payment-report-btn"
+                onClick={this.generatePaymentReport}
+                title="Generate payment report with total amount"
+              >
+              Generate Payment Report
+              </button>
+            </div>
           </div>
 
           <div className="grid-container">
