@@ -7,22 +7,14 @@ const path = require('path');
 // Constants defined at top level - Azure SWA environment handling
 //const CLIENT_ID = "mHlUcRS43LOQAjkYJ22MNvSpE8vzPmfo";
 const CLIENT_ID = "ZrjDybXZeOFUA70KYMwb1dnfmdEXFfAS"
-//const JWTTOKENURL = "id.singpass.gov.sg";
+//const JWTTOKENURL = "https://stg-id.singpass.gov.sg";
 const JWTTOKENURL = "https://id.singpass.gov.sg";
 //const SPTOKENURL = "https://stg-id.singpass.gov.sg/token";
 const SPTOKENURL = "https://id.singpass.gov.sg/token";
 
 process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 
-// Azure SWA environment-aware redirect URI
-/*const REDIRECT_URI = process.env.NODE_ENV === 'production' 
-  ? "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback"  // Updated to match frontend
-  : "http://localhost:3000/callback";*/
-
-/*const REDIRECT_URI = window.location.hostname === "localhost"
-  ? "http://localhost:3000/callback"
-  : "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback";*/
-
+//const REDIRECT_URI = "http://localhost:3000/callback";
 const REDIRECT_URI = "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback";
 
 //const USERINFO_URL = "https://stg-id.singpass.gov.sg/userinfo";
@@ -733,11 +725,8 @@ async function invokeUserEndpoint(accessToken, options = {}) {
 // Update the main token endpoint to use Step 5: User Endpoint instead of UserInfo
 router.post('/token', async (req, res) => {
   try {
-    // Set CORS headers for Azure SWA
-    /*res.header('Access-Control-Allow-Origin', process.env.NODE_ENV === 'production' 
-      ? 'https://salmon-wave-09f02b100.6.azurestaticapps.net' 
-      : 'http://localhost:3000');*/
     res.header('Access-Control-Allow-Origin', 'https://salmon-wave-09f02b100.6.azurestaticapps.net');
+    //res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Platform');
     res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
     
@@ -762,10 +751,6 @@ router.post('/token', async (req, res) => {
         error_description: "Missing required parameter: code_verifier" 
       });
     }
-    
-    //console.log('Processing token exchange for SingPass Step 4...');
-    //console.log('Platform detected:', platform || 'web');
-    //console.log('Environment:', process.env.NODE_ENV);
     
     // Load configuration and keys
     const SIGNATURE_PRIVATE_KEY = require("../Others/SingPass/Keys/private-signing-key.jwk.json");
@@ -798,51 +783,14 @@ router.post('/token', async (req, res) => {
       });
     }
 
-    // Step 4.2: Determine correct redirect URI based on platform and environment
-    /*const getCorrectRedirectUri = (platform, env) => {
-      //console.log('Determining redirect URI for platform:', platform, 'env:', env);
-
-      // Check if request came from Android app
-      if ((platform === undefined || platform === 'android') && env === undefined ) {
-        console.log('Using Android deep link redirect URI');
-        return "com.ecss.ecssapp://callback";
-      }
-      
-      // Web platform redirect URIs
-      if (env === 'production') {
-        console.log('Using production web redirect URI');
-        return "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback";
-      } else {
-        console.log('Using development web redirect URI');
-        return "http://localhost:3000/callback";
-      }
-    };*/
-
-    const getCorrectRedirectUri = (platform, env) => {
-        return "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback";
-    };
-
-    console.log("href:", href);
-    // Helper to determine redirect URI based on href
-    /*const getRedirectUriFromHref = (href) => {
-      if (typeof href === 'string' && href.includes('localhost')) {
-        return "http://localhost:3000/callback";
-      }
-      if (typeof href === 'string' && href.includes('salmon-wave')) {
-        return "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback";
-      }
-      // Default to production if not localhost
-      return "com.ecss.ecssapp://callback";
-    };*/
-
       const getRedirectUriFromHref = (href) => {
+        //return "http://localhost:3000/callback";
         return "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback";
       };
 
 
     // Usage: Dynamically set REDIRECT_URI based on req.body.href
     const dynamicRedirectUri = getRedirectUriFromHref(href);
-    console.log('Using dynamic redirect URI:', dynamicRedirectUri);
 
     // Step 4.2: Exchange authorization code for tokens with correct configuration
     let tokenData;
@@ -860,18 +808,6 @@ router.post('/token', async (req, res) => {
         client_assertion: clientAssertion
       };
 
-      /*console.log("Token request:", tokenRequest);
-
-      console.log("Token request parameters:", {
-        grant_type: tokenRequest.grant_type,
-        client_id: tokenRequest.client_id,
-        redirect_uri: tokenRequest.redirect_uri,
-        client_assertion_type: tokenRequest.client_assertion_type,
-        code: 'REDACTED',
-        code_verifier: 'REDACTED',
-        client_assertion: 'REDACTED'
-      });*/
-      
       // Make the token exchange request with proper headers
       const response = await axios.post(
         SPTOKENURL,
@@ -890,15 +826,8 @@ router.post('/token', async (req, res) => {
         }
       );
 
-     // console.log("Token exchange response received", response);
-
-     // console.log("Token exchange response status:", response.status);
-      //console.log("Token exchange response headers:", response.headers);
-      
       if (response.status !== 200) {
-        //console.error("Token exchange failed with status:", response.status);
-        //console.error("Token exchange error response:", response.data);
-        
+
         return res.status(response.status).json({ 
           error: "token_exchange_failed", 
           error_description: "SingPass token exchange failed",
@@ -913,7 +842,7 @@ router.post('/token', async (req, res) => {
       
       tokenData = response.data;
       console.log("Token exchange successful");
-      console.log("Token response fields:", Object.keys(tokenData));
+     // console.log("Token response fields:", Object.keys(tokenData));
       
       // Validate token response
       if (!tokenData.access_token) {
@@ -986,7 +915,6 @@ router.post('/token', async (req, res) => {
       const joseLib = await initializeJose();
       const idTokenClaims = joseLib.decodeJwt(idToken);
       console.log("ID token decoded successfully");
-      console.log("ID token claims:", Object.keys(idTokenClaims));
       
       // Extract user identifier
       const userUuid = idTokenClaims.sub;

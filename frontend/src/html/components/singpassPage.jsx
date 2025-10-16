@@ -60,9 +60,10 @@ class SingpassPage extends Component {
       let redirectLink = urlParams.get('link');
       if (redirectLink) {
         var decodedLink = this.decodeUrlSafely(redirectLink);
-        redirectLink = `http://localhost:3000/form`;
+        //redirectLink = `http://localhost:3000/form`;
+        redirectLink = `https://salmon-wave-09f02b100.6.azurestaticapps.net/form`;
       }
-      if (redirectLink) {
+     /* if (redirectLink) {
         sessionStorage.setItem('course_link', decodedLink);
         const azureMetadata = {
           environment: "development",
@@ -72,7 +73,7 @@ class SingpassPage extends Component {
           timestamp: new Date().toISOString()
         };
         sessionStorage.setItem('azure_swa_environment_info', JSON.stringify(azureMetadata));
-      }
+      }*/
       const codeVerifier = this.generateCodeVerifier();
       const codeChallenge = await this.generateCodeChallenge(codeVerifier);
       const state = window.crypto.randomUUID();
@@ -84,7 +85,8 @@ class SingpassPage extends Component {
         client_id: "ZrjDybXZeOFUA70KYMwb1dnfmdEXFfAS",
         response_type: "code",
         scope: "openid dob email mobileno name race regadd residentialstatus sex uinfin",
-        redirect_uri: "http://localhost:3000/callback",
+        //redirect_uri: "http://localhost:3000/callback",
+        redirect_uri: "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback",
         state: state,
         nonce: nonce,
         code_challenge: codeChallenge,

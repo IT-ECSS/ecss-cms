@@ -45,8 +45,29 @@ app.set('trust proxy', 1);
 app.use(logger('dev'));
 
 // CORS configuration
+const allowedOrigins = process.env.NODE_ENV === 'production' 
+  ? ['https://salmon-wave-09f02b100.6.azurestaticapps.net'] // Production only
+  : [
+      'https://salmon-wave-09f02b100.6.azurestaticapps.net', // Production frontend
+      'http://localhost:3000', // Development frontend
+      'http://localhost:3001', // Alternative dev port
+      'http://127.0.0.1:3000'  // Alternative localhost format
+    ];
+
 app.use(cors({
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true, // Important for SingPass authentication
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Content-Disposition'], 
   exposedHeaders: ['Content-Disposition']
 }));
