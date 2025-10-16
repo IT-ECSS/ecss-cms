@@ -732,6 +732,73 @@ def update_stock(request):
 
     
 @csrf_exempt
+def update_fundraising_product(request):
+    """Updates a fundraising product's price and stock quantity based on product ID."""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Invalid method, please use POST'})
+
+    try:
+        # Parse the request body as JSON
+        data = json.loads(request.body)
+        print("Data received for fundraising product update:", data)
+
+        # Get required fields from the request body
+        product_id = data.get('product_id')
+        price = data.get('price')
+        stock_quantity = data.get('stock_quantity')
+        
+        # Validate required fields
+        if not product_id:
+            return JsonResponse({'success': False, 'error': 'Product ID is required'})
+        
+        if price is None:
+            return JsonResponse({'success': False, 'error': 'Price is required'})
+            
+        if stock_quantity is None:
+            return JsonResponse({'success': False, 'error': 'Stock quantity is required'})
+        
+        # Validate data types and values
+        try:
+            price = float(price)
+            if price < 0:
+                return JsonResponse({'success': False, 'error': 'Price must be non-negative'})
+        except (ValueError, TypeError):
+            return JsonResponse({'success': False, 'error': 'Invalid price format'})
+            
+        try:
+            stock_quantity = int(stock_quantity)
+            if stock_quantity < 0:
+                return JsonResponse({'success': False, 'error': 'Stock quantity must be non-negative'})
+        except (ValueError, TypeError):
+            return JsonResponse({'success': False, 'error': 'Invalid stock quantity format'})
+        
+        # Initialize WooCommerce API and update the product
+        woo_api = WooCommerceAPI()
+        result = woo_api.update_fundraising_product_details(product_id, price, stock_quantity)
+        
+        if result['success']:
+            return JsonResponse({
+                'success': True,
+                'message': result['message'],
+                'product_id': product_id,
+                'updated_price': price,
+                'updated_stock_quantity': stock_quantity
+            })
+        else:
+            return JsonResponse({
+                'success': False, 
+                'error': result.get('error', 'Unknown error occurred'),
+                'message': result.get('message', 'Failed to update product')
+            })
+
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON format'})
+    except Exception as e:
+        print("Error in update_fundraising_product:", e)
+        return JsonResponse({'success': False, 'error': str(e)})
+
+    
+@csrf_exempt
 def port_over(request):
     """Fetches and returns a list of products from WooCommerce based on the courseType."""
     if request.method != 'POST':

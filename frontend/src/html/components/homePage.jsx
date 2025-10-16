@@ -15,6 +15,7 @@ import React, { Component } from 'react';
   import MembershipSection from './sub/MembershipSection';
   import FitnessSection from './sub/FitnessSection';
   import FundraisingTable from './sub/FundraisingTable';
+  import FundraisingInventory from './sub/FundraisingInventory';
   import ReportSection from './sub/reportSection';
   import WelcomeSection from './sub/welcomeSection';
   import { withAuth } from '../../AuthContext';
@@ -90,6 +91,7 @@ import React, { Component } from 'react';
         isFitnessVisible: false,
         fitnessSearchQuery: '',
         isFundraisingTableVisible: false,
+        isFundraisingInventoryVisible: false,
         fundraisingSearchQuery: '',
         fundraisingPaymentMethod: 'All Payment Methods',
         fundraisingCollectionMode: 'All Collection Modes',
@@ -502,6 +504,57 @@ import React, { Component } from 'react';
         this.setState({
           isPopupOpen: true,
           popupMessage: "Error loading fundraising table",
+          popupType: "error-message"
+        });
+      }
+    }
+
+    toggleFundraisingInventoryComponent = async() => {
+      console.log("toggleFundraisingInventoryComponent called - showing fundraising inventory only");
+      try {
+        // Reset search and filters
+        this.setState({ resetSearch: true, }, () => {
+          this.setState({ resetSearch: false });
+        });
+
+        this.setState({
+          // Explicitly set ALL other visibility flags to false
+          courseType: null,
+          accountType: null,
+          createAccount: false,
+          dashboard: false,
+          isRegistrationPaymentVisible: false,
+          isReceiptVisible: false,
+          reportVisibility: false,
+          attendanceVisibility: false,
+          isMembershipVisible: false,
+          isFitnessVisible: false,
+          isFundraisingTableVisible: false,
+          
+          // Set inventory-only mode
+          isFundraisingInventoryVisible: true,
+          
+          // Popup settings
+          isPopupOpen: true,
+          popupMessage: "Loading Fundraising Inventory",
+          popupType: "loading",
+          
+          // Reset other states
+          sidebarVisible: false,
+          section: "fundraising-inventory",
+          attendanceType: "",
+          
+          // Reset search state
+          fundraisingSearchQuery: '',
+          searchQuery: ''
+        });
+      } 
+      catch (error) {
+        console.log("Error in toggleFundraisingInventoryComponent:", error);
+        // Show error message
+        this.setState({
+          isPopupOpen: true,
+          popupMessage: "Error loading fundraising inventory",
           popupType: "error-message"
         });
       }
@@ -1378,6 +1431,9 @@ import React, { Component } from 'react';
         case 'fundraising-table':
           this.toggleFundraisingTableComponent();
           break;
+        case 'fundraising-inventory':
+          this.toggleFundraisingInventoryComponent();
+          break;
         default:
           console.log('Navigation section not found:', section);
       }
@@ -1398,6 +1454,7 @@ import React, { Component } from 'react';
         isMembershipVisible: false,
         isFitnessVisible: false, // This one was already there
         isFundraisingTableVisible: false,
+        isFundraisingInventoryVisible: false,
         isReceiptVisible: false,
         section: '',
         submenuVisible: null
@@ -1410,7 +1467,7 @@ import React, { Component } from 'react';
       const userName = this.props.location.state?.name || 'User';
       const role = this.props.location.state?.role;
       const siteIC = this.props.location.state?.siteIC;
-      const {membershipType, membershipTypes, membershipSearchQuery, isMembershipVisible, isFitnessVisible, fitnessSearchQuery, isFundraisingTableVisible, fundraisingSearchQuery, fundraisingPaymentMethod, fundraisingCollectionMode, fundraisingStatus, fundraisingPaymentMethods, fundraisingCollectionModes, fundraisingStatuses, attendanceVisibility, reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo, selectedQuarter, quarters, attendanceFilterType, attendanceFilterCode, attendanceFilterLocation, attendanceSearchQuery, attendanceTypes, activityCodes, attendanceLocations} = this.state;
+      const {membershipType, membershipTypes, membershipSearchQuery, isMembershipVisible, isFitnessVisible, fitnessSearchQuery, isFundraisingTableVisible, isFundraisingInventoryVisible, fundraisingSearchQuery, fundraisingPaymentMethod, fundraisingCollectionMode, fundraisingStatus, fundraisingPaymentMethods, fundraisingCollectionModes, fundraisingStatuses, attendanceVisibility, reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo, selectedQuarter, quarters, attendanceFilterType, attendanceFilterCode, attendanceFilterLocation, attendanceSearchQuery, attendanceTypes, activityCodes, attendanceLocations} = this.state;
 
       return (
         <>
@@ -1475,6 +1532,7 @@ import React, { Component } from 'react';
                 isMembershipVisible === false &&
                 isFitnessVisible === false &&
                 isFundraisingTableVisible === false &&
+                isFundraisingInventoryVisible === false &&
                 isReceiptVisible === false &&
                 (
                   <>
@@ -1671,6 +1729,35 @@ import React, { Component } from 'react';
                           />
                         </div>
                     </>
+                }             
+                {isFundraisingInventoryVisible && 
+                <>
+                  <div className="search-section">
+                            <Search
+                              section={section}
+                              language={language}
+                              resetSearch={resetSearch}
+                              passSelectedValueToParent={this.handleFundraisingSelectFromChild}
+                              passSearchedValueToParent={this.handleFundraisingSearchFromChild}
+                              fundraisingPaymentMethods={fundraisingPaymentMethods}
+                              fundraisingCollectionModes={fundraisingCollectionModes}
+                              fundraisingStatuses={fundraisingStatuses}
+                            />
+                    </div>
+                    <div className="fundraising-inventory-section">
+                      <FundraisingInventory 
+                        section={section}
+                        userName={userName}
+                        role={role}
+                        siteIC={siteIC}
+                        closePopup1={this.closePopup}
+                        language={language}
+                        key={this.state.refreshKey}
+                        refreshChild={this.refreshChild}
+                        onDataLoaded={this.closePopup}
+                      />
+                    </div>
+                  </>
                 }             
                 { isRegistrationPaymentVisible&& 
                   <>

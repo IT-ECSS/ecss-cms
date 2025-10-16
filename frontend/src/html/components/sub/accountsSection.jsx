@@ -810,6 +810,14 @@ class AccountsSection extends Component {
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                       <strong>Fundraising Module | </strong>
                       <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
+                        <strong>Fundraising Inventory: </strong>
+                        {this.state.accessRightsRowData[this.state.expandedRowIndex].fundraising["Fundraising Inventory"] ? (
+                          <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
+                        ) : (
+                          <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
+                        )}
+                      </p>
+                      <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
                         <strong>Fundraising Table: </strong>
                         {this.state.accessRightsRowData[this.state.expandedRowIndex].fundraising["Fundraising Table"] ? (
                           <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>

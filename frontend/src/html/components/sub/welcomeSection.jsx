@@ -211,6 +211,15 @@ class WelcomeSection extends Component {
                 parentKey: 'Fitness'
             },
             { 
+                key: 'Fundraising Inventory', 
+                title: 'Fundraising Inventory', 
+                icon: 'fa-solid fa-boxes-stacked', 
+                description: 'Manage fundraising inventory and stock', 
+                action: () => this.props.onNavigate('fundraising-inventory'),
+                accessKey: 'Fundraising Inventory',
+                parentKey: 'Fundraising'
+            },
+            { 
                 key: 'Fundraising Table', 
                 title: 'Fundraising Table', 
                 icon: 'fa-solid fa-hand-holding-dollar', 
@@ -279,6 +288,7 @@ class WelcomeSection extends Component {
                 'Upload Courses': 2,
                 'Update Courses': 2,
                 'Fundraising Table': 4,
+                'Fundraising Inventory': 4,
                 'FFT Results': 2,
                 'Create QR Code': 1,
                 'QR Code Table': 1,
@@ -402,7 +412,8 @@ class WelcomeSection extends Component {
             "View Attendance": "Monitor and record student attendance",
             "View Membership": "Manage member information and records",
             "FFT Results": "View fitness assessment results and tracking",
-            "Fundraising Table": "Manage fundraising orders and products"
+            "Fundraising Table": "Manage fundraising orders and products",
+            "Fundraising Inventory": "Manage fundraising inventory and stock"
         };
 
         const navigationCards = [];
@@ -534,6 +545,9 @@ class WelcomeSection extends Component {
                 break;
             case "Fundraising Table":
                 navigationKey = "fundraising-table";
+                break;
+            case "Fundraising Inventory":
+                navigationKey = "fundraising-inventory";
                 break;
             default:
                 navigationKey = subKey;

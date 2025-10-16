@@ -595,3 +595,46 @@ class WooCommerceAPI:
         except requests.exceptions.RequestException as e:
             print(f"Error updating fundraising product stock: {e}")
             return False
+
+    def update_fundraising_product_details(self, product_id, price, stock_quantity):
+        """
+        Updates a fundraising product's price and stock quantity.
+        
+        Args:
+            product_id: The ID of the product to update.
+            price: The new price for the product.
+            stock_quantity: The new stock quantity for the product.
+        
+        Returns:
+            dict: Success status and updated product data or error message.
+        """
+        try:
+            # Prepare the update data
+            update_data = {
+                "regular_price": str(price),
+                "price": str(price),
+                "stock_quantity": int(stock_quantity)
+            }
+            
+            # Make the API request to update the product
+            url = f"{settings.WOOCOMMERCE_API_URL}products/{product_id}"
+            auth = (settings.WOOCOMMERCE_CONSUMER_KEY, settings.WOOCOMMERCE_CONSUMER_SECRET)
+            
+            response = requests.put(url, json=update_data, auth=auth)
+            response.raise_for_status()
+            
+            updated_product = response.json()
+            
+            return {
+                "success": True,
+                "product": updated_product,
+                "message": f"Product {product_id} updated successfully"
+            }
+            
+        except requests.exceptions.RequestException as e:
+            print(f"Error updating fundraising product details: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "message": f"Failed to update product {product_id}"
+            }
