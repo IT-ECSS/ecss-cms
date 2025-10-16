@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import axios from 'axios';
-import '../../../css/sub/fundraising.css';
 import '../../../css/sub/fundraisingInventory.css';
+import '../../../css/ag-grid-custom-theme.css';
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
 import * as XLSX from 'xlsx';
@@ -101,6 +101,13 @@ class FundraisingInventory extends Component {
         this.setState({ 
             rowData,
             columnDefs: this.getColumnDefs()
+        }, () => {
+            // Refresh grid after data update (removed sizeColumnsToFit for horizontal scrolling)
+            if (this.gridApi) {
+                setTimeout(() => {
+                    this.gridApi.refreshCells();
+                }, 100);
+            }
         });
     };
 
@@ -110,17 +117,21 @@ class FundraisingInventory extends Component {
             {
                 headerName: "Product Id",
                 field: "sn",
-                width: 150
+                width: 160,
+                resizable: true,
+                suppressSizeToFit: true
             },
             {
                 headerName: "Product Image",
                 field: "images",
-                width: 300,
+                width: 350,
+                resizable: true,
+                suppressSizeToFit: true,
                 cellRenderer: (params) => {
                     const images = params.value;
                     if (images && images.length > 0) {
                         return (
-                            <div className="product-image-container">
+                            <>
                                 <img 
                                     src={images[0].src} 
                                     alt={params.data.name}
@@ -133,14 +144,12 @@ class FundraisingInventory extends Component {
                                 <div className="image-placeholder" style={{ display: 'none' }}>
                                     No Image
                                 </div>
-                            </div>
+                            </>
                         );
                     }
                     return (
-                        <div className="product-image-container">
-                            <div className="image-placeholder">
-                                No Image
-                            </div>
+                        <div className="image-placeholder">
+                            No Image
                         </div>
                     );
                 }
@@ -148,7 +157,9 @@ class FundraisingInventory extends Component {
             {
                 headerName: "Product Name",
                 field: "name",
-                width: 600,
+                width: 500,
+                resizable: true,
+                suppressSizeToFit: true,
                 cellRenderer: (params) => {
                     return (
                         <div 
@@ -160,17 +171,59 @@ class FundraisingInventory extends Component {
                 }
             },
             {
-                headerName: "Price ($)",
+                headerName: "Price",
                 field: "price",
-                width: 200,
+                width: 180,
+                resizable: true,
+                suppressSizeToFit: true,
                 cellRenderer: (params) => {
                     return `$${params.value.toFixed(2)}`;
                 }
             },
             {
-                headerName: "Current Quantity",
+                headerName: "Current Stock",
                 field: "stock_quantity",
-                width: 250
+                width: 180,
+                resizable: true,
+                suppressSizeToFit: true
+            },
+            {
+                headerName: "Stock Status",
+                field: "stock_status",
+                width: 200,
+                resizable: true,
+                suppressSizeToFit: true,
+                cellRenderer: (params) => {
+                    const stockQuantity = params.data.stock_quantity;
+                    const statusValue = stockQuantity > 0 ? 'In Stock' : 'Out of Stock';
+                    
+                    const statusStyles = {
+                      'In Stock': "#32CD32",  // Green (LimeGreen)
+                      'Out of Stock': "#FF0000",  // Red
+                    };
+              
+                    const backgroundColor = statusStyles[statusValue] || "#D3D3D3"; // Default light gray for unknown values
+              
+                    return (
+                      <span
+                        style={{
+                          fontWeight: "bold",
+                          color: "white",
+                          textAlign: "center",
+                          display: "inline-block",
+                          borderRadius: "20px",
+                          paddingLeft: "30px",
+                          paddingRight: "30px",
+                          width: "fit-content",
+                          lineHeight: "30px",
+                          whiteSpace: "nowrap",
+                          backgroundColor: backgroundColor
+                        }}
+                      >
+                        {statusValue}
+                      </span>
+                    );
+                }
             }
         ];
     };
@@ -185,7 +238,7 @@ class FundraisingInventory extends Component {
                 'Product Id': index + 1,
                 'Product Name': product.name,
                 'Price ($)': parseFloat(product.price).toFixed(2),
-                'Current Quantity': product.stock_quantity,
+                'Current Stock': product.stock_quantity,
                 'Description': product.description || ''
             }));
 
@@ -400,7 +453,7 @@ class FundraisingInventory extends Component {
                                 />
                             </div>
                             <div className="edit-field">
-                                <label>Current Quantity:</label>
+                                <label>Current Stock:</label>
                                 <input
                                     type="text"
                                     value={product.stock_quantity || ''}
@@ -409,7 +462,6 @@ class FundraisingInventory extends Component {
                                     placeholder="0"
                                 />
                             </div>
-                            
                             <button 
                                 className="card-update-btn"
                                 onClick={() => this.updateIndividualProduct(product.id)}
@@ -427,6 +479,18 @@ class FundraisingInventory extends Component {
     onGridReady = (params) => {
         this.gridApi = params.api;
         this.gridColumnApi = params.columnApi;
+        
+        // Don't auto-size columns to enable horizontal scrolling with fixed column widths
+        // params.api.sizeColumnsToFit(); - Removed to allow horizontal scrolling
+        
+        // Optional: Listen for window resize to refresh grid layout
+        window.addEventListener('resize', () => {
+            setTimeout(() => {
+                if (params.api) {
+                    params.api.refreshCells();
+                }
+            }, 100);
+        });
     };
 
     render() {
@@ -476,7 +540,7 @@ class FundraisingInventory extends Component {
                 </div>
 
                 {viewMode === 'table' ? (
-                    <div className="grid-container">
+                    <div className="table-wrapper">
                         <AgGridReact
                             ref={this.gridRef}
                             rowData={rowData}
@@ -488,14 +552,17 @@ class FundraisingInventory extends Component {
                             domLayout="normal"
                             defaultColDef={{
                                 resizable: true,
-                                sortable: true
+                                sortable: true,
+                                suppressSizeToFit: true
                             }}
                             rowHeight={100}
                             headerHeight={50}
                             suppressMenuHide={true}
-                            suppressColumnVirtualisation={true}
+                            suppressColumnVirtualisation={false}
                             enableRangeSelection={true}
                             animateRows={true}
+                            suppressHorizontalScroll={false}
+                            maintainColumnOrder={true}
                         />
                     </div>
                 ) : (

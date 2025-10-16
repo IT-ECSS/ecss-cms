@@ -285,7 +285,8 @@ import React, { Component } from 'react';
             attendanceVisibility: false,
             isMembershipVisible: false,
             isFitnessVisible: false, // Added this
-            isFundraisingTableVisible: false
+            isFundraisingTableVisible: false,
+            isFundraisingInventoryVisible: false // Added this missing line
           });
       } 
       catch (error) 
@@ -324,7 +325,8 @@ import React, { Component } from 'react';
               attendanceType: attendanceType,  // Added parameter to store attendance type,
               isMembershipVisible: false,
               isFitnessVisible: false,
-              isFundraisingTableVisible: false
+              isFundraisingTableVisible: false,
+              isFundraisingInventoryVisible: false // Added this missing line
             });
           });
       } 
@@ -372,6 +374,7 @@ import React, { Component } from 'react';
               isMembershipVisible: true,
               isFitnessVisible: false, // Added this
               isFundraisingTableVisible: false,
+              isFundraisingInventoryVisible: false, // Added this missing line
               // Reset membership filtering state
               membershipType: 'All Types',
               membershipSearchQuery: '',
@@ -424,6 +427,7 @@ import React, { Component } from 'react';
             // Set ONLY fitness to true
             isFitnessVisible: true,
             isFundraisingTableVisible: false,
+            isFundraisingInventoryVisible: false, // Added this missing line
             
             // Reset other states
             sidebarVisible: false,
@@ -482,6 +486,7 @@ import React, { Component } from 'react';
           
           // Set table-only mode
           isFundraisingTableVisible: true,
+          isFundraisingInventoryVisible: false, // Added this missing line
           
           // Popup settings
           isPopupOpen: true,
@@ -631,7 +636,8 @@ import React, { Component } from 'react';
           reportVisibility: false,
           isMembershipVisible: false,
           isFitnessVisible: false, // Added this
-          isFundraisingTableVisible: false
+          isFundraisingTableVisible: false,
+          isFundraisingInventoryVisible: false // Added this missing line
         });
       } catch (error) {
         console.log(error);
@@ -717,6 +723,7 @@ import React, { Component } from 'react';
             isMembershipVisible: false,
             isFitnessVisible: false, // Added this
             isFundraisingTableVisible: false,
+            isFundraisingInventoryVisible: false, // Added this missing line
             
             // Set dashboard to true
             dashboard: true,
@@ -762,7 +769,8 @@ import React, { Component } from 'react';
             attendanceVisibility: false,
             isMembershipVisible: false,
             isFitnessVisible: false, // Added this
-            isFundraisingTableVisible: false
+            isFundraisingTableVisible: false,
+            isFundraisingInventoryVisible: false // Added this missing line
           });
         }
         else
@@ -781,7 +789,8 @@ import React, { Component } from 'react';
             attendanceVisibility: false,
             isMembershipVisible: false,
             isFitnessVisible: false, // Added this
-            isFundraisingTableVisible: false
+            isFundraisingTableVisible: false,
+            isFundraisingInventoryVisible: false // Added this missing line
           });
         }
       } 
@@ -992,7 +1001,8 @@ import React, { Component } from 'react';
             attendanceVisibility: false,
             isMembershipVisible: false,
             isFitnessVisible: false, // Added this
-            isFundraisingTableVisible: false
+            isFundraisingTableVisible: false,
+            isFundraisingInventoryVisible: false // Added this missing line
             //viewMode: "full"
         }));
       }
@@ -1017,7 +1027,8 @@ import React, { Component } from 'react';
               attendanceVisibility: false,
               isMembershipVisible: false,
               isFitnessVisible: false, // Added this
-              isFundraisingTableVisible: false
+              isFundraisingTableVisible: false,
+              isFundraisingInventoryVisible: false // Added this missing line
               //viewMode: "full"
           }));
       }
@@ -1515,6 +1526,7 @@ import React, { Component } from 'react';
                   toggleMembershipComponent = {this.toggleMembershipComponent}
                   toggleFitnessComponent = {this.toggleFitnessComponent}
                   toggleFundraisingTableComponent = {this.toggleFundraisingTableComponent}
+                  toggleFundraisingInventoryComponent = {this.toggleFundraisingInventoryComponent}
                   onAccessRightsUpdate = {this.handleAccessRightsData}
                   key={this.state.refreshKey}
                 />
@@ -1733,16 +1745,6 @@ import React, { Component } from 'react';
                 {isFundraisingInventoryVisible && 
                 <>
                   <div className="search-section">
-                            <Search
-                              section={section}
-                              language={language}
-                              resetSearch={resetSearch}
-                              passSelectedValueToParent={this.handleFundraisingSelectFromChild}
-                              passSearchedValueToParent={this.handleFundraisingSearchFromChild}
-                              fundraisingPaymentMethods={fundraisingPaymentMethods}
-                              fundraisingCollectionModes={fundraisingCollectionModes}
-                              fundraisingStatuses={fundraisingStatuses}
-                            />
                     </div>
                     <div className="fundraising-inventory-section">
                       <FundraisingInventory 

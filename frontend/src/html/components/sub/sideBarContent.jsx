@@ -145,6 +145,16 @@ class SideBarContent extends Component {
                 console.error("toggleFundraisingTableComponent function not found in props");
             }
         }
+        else if(subKey === "Fundraising Inventory") {
+            console.log("Fundraising Inventory clicked in sidebar");
+            console.log("toggleFundraisingInventoryComponent function exists:", !!this.props.toggleFundraisingInventoryComponent);
+            if (this.props.toggleFundraisingInventoryComponent) {
+                console.log("Calling toggleFundraisingInventoryComponent...");
+                this.props.toggleFundraisingInventoryComponent();
+            } else {
+                console.error("toggleFundraisingInventoryComponent function not found in props");
+            }
+        }
     }
 
     closeSubMenu = () => {

@@ -76,8 +76,8 @@
   gap: 0.5rem;
   padding: 0.3rem 0;
   margin-left: 8rem; /* Align with table-wrapper */
-  width: 80vw; /* Match table wrapper width */
-  max-width: 120rem; /* Match table wrapper max-width */
+  width: 80%;
+  max-width: none;
 }
 
 /* Export button styling - matching FundraisingTable */
@@ -126,140 +126,65 @@
   transform: translateY(1px);
 }
 
-/* Grid container - matching FundraisingTable */
+/* Grid container - 80% width with default scrollbars */
 .grid-container {
-  width: 80vw;
-  max-width: 120rem;
+  width: 80%;
+  max-width: none;
   margin: 0 auto;
   margin-left: 8rem;
   margin-top: 1.5rem;
-  overflow: auto;
-}
-
-/* AG-Grid cell vertical alignment */
-.grid-container .ag-cell {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: flex-start !important;
-  padding: 0.5rem !important;
-}
-
-/* Center content in ag-grid cells */
-.grid-container .ag-cell-wrapper {
-  display: flex !important;
-  align-items: center !important;
-  width: 100% !important;
-  height: 100% !important;
-}
-
-/* Specific alignment for different cell types */
-.grid-container .ag-cell[col-id="sn"] {
-  justify-content: flex-start !important;
-}
-
-.grid-container .ag-cell[col-id="price"] {
-  justify-content: flex-start !important;
-}
-
-.grid-container .ag-cell[col-id="stock_quantity"] {
-  justify-content: flex-start !important;
-}
-
-/* Product image cell alignment */
-.grid-container .ag-cell[col-id="images"] {
-  justify-content: flex-start !important;
-}
-
-.grid-container .ag-cell[col-id="images"] .product-image-container {
-  margin: 0;
-}
-
-/* Product name cell alignment */
-.grid-container .ag-cell[col-id="name"] .product-name-cell {
-  display: flex;
-  align-items: center;
-  height: 100%;
-}
-
-/* Form fields styling (direct in card content) */
-.edit-field {
-  margin-bottom: 1rem;
-}
-
-.edit-field:last-child {
-  margin-bottom: 0;
-}
-
-.edit-field label {
-  display: block;
-  font-weight: 600;
-  color: #495057;
-  margin-bottom: 0.5rem;
-  font-size: 0.95rem;
-}
-
-.edit-field input {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border: 2px solid #e9ecef;
+  overflow: auto; /* Enable both horizontal and vertical scrollbars */
+  border: 1px solid #ddd;
   border-radius: 0.5rem;
-  font-size: 1rem;
-  font-weight: 500;
-  background-color: #ffffff;
-  transition: all 0.3s ease;
-  box-sizing: border-box;
-  text-align: left;
+  height: 600px; /* Set a fixed height to enable vertical scrolling */
 }
 
-.edit-field input:focus {
-  outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
-  background-color: #f8f9fa;
+/* Table wrapper to control scrolling */
+.table-wrapper {
+  width: 80vw; /* Table wrapper occupies 80% of the width of its container */
+  max-width: 120rem; /* Maximum width for large screens */
+  margin: 0 auto; /* Center horizontally */
+  margin-left: 8rem; /* Offset to align with button row */
+  margin-top: 1.5rem; /* Add some spacing above */
+  overflow: auto; /* Add scrolling capability */
+  background: white; /* Background color for the table area */
+  border-radius: 0.5rem; /* Rounded corners */
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); /* Subtle shadow */
 }
 
-.edit-field input::placeholder {
-  color: #adb5bd;
-  font-weight: 400;
+.product-image {
+  max-width: 100%;
+  max-height: 80px;
+  object-fit: contain;
+  border-radius: 4px;
 }
 
-.card-price-input {
-  color: #000000;
-  font-weight: 600;
-}
-
-.card-stock-input {
-  color: #495057;
-  font-weight: 600;
-}
-
-.card-update-btn {
+.image-placeholder {
   width: 100%;
-  background-color: #28a745;
-  color: white;
-  border: none;
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  height: 80px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  margin-top: 1rem;
+  background-color: #f8f9fa;
+  color: #6c757d;
+  border: 1px dashed #dee2e6;
+  border-radius: 4px;
+  font-size: 0.8rem;
 }
 
+/* Product Name Cell Styling */
+.product-name-cell {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.2;
+}
 
-/* Card view container */
-.card-view-container {
-  width: 80vw;
-  max-width: 120rem;
-  margin: 0 auto;
-  margin-left: 8rem;
-  margin-top: 1.5rem;
-  padding: 1rem 0;
+.product-name-cell br {
+  margin: 0;
+  padding: 0;
+  line-height: 0;
 }
 
 /* Card grid layout */
@@ -297,61 +222,46 @@
   padding: 0.5rem;
 }
 
-
 .card-image-placeholder {
   width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #e9ecef;
+  background-color: #f8f9fa;
   color: #6c757d;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 1rem;
+  border: 2px dashed #dee2e6;
+  margin: 0.5rem;
+  border-radius: 8px;
 }
 
 /* Card content */
 .card-content {
-  padding: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  padding: 1.5rem;
 }
 
-.card-product-name {
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.card-id {
+  font-size: 0.9rem;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.card-name {
   font-size: 1.1rem;
   font-weight: 600;
   color: #333;
-  margin: 0 0 1rem 0;
+  margin-bottom: 1rem;
   line-height: 1.4;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  white-space: normal;
-  display: block;
 }
 
-/* Remove spacing from br tags in product names */
-.card-product-name br {
-  margin: 0;
-  padding: 0;
-  line-height: 0;
-}
-
-/* Product name cell styling */
-.product-name-cell {
-  font-weight: 500;
-  color: #333;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  line-height: 1.2;
-}
-
-.product-name-cell br {
-  margin: 0;
-  padding: 0;
-  line-height: 0;
-}
 .card-details {
   display: flex;
   justify-content: space-between;
@@ -388,14 +298,12 @@
 .card-stock {
   font-size: 0.9rem;
   color: #6c757d;
-  background: #f8f9fa;
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  border: 1px solid #e9ecef;
 }
 
 .card-stock.editable {
   cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
   transition: background-color 0.2s ease;
   position: relative;
   display: flex;
@@ -404,188 +312,131 @@
 }
 
 .card-stock.editable:hover {
-  background-color: #e9ecef;
+  background-color: #f8f9fa;
 }
 
-.edit-icon {
-  font-size: 0.75rem;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  color: #6c757d;
-}
-
-.editable:hover .edit-icon {
-  opacity: 1;
-}
-
-.card-price-input,
-.card-stock-input {
-  font-size: 1rem;
+/* Stock status indicator */
+.stock-status {
   padding: 0.25rem 0.5rem;
+  border-radius: 50%;
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  text-align: center;
+  min-width: 50px;
+  max-width: 50px;
+  height: 50px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  line-height: 1;
+}
+
+.stock-status.in-stock {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.stock-status.out-of-stock {
+  background-color: #9E9E9E;
+  color: white;
+}
+
+.stock-status.ongoing {
+  background-color: #FF6B35;
+  color: white;
+}
+
+.stock-status.available {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.stock-status.ended {
+  background-color: #9E9E9E;
+  color: white;
+}
+
+/* Edit input styles */
+.card-edit-input {
+  padding: 0.5rem;
   border: 2px solid #007bff;
   border-radius: 4px;
-  background: white;
-  color: #333;
-  font-weight: 600;
-  min-width: 80px;
+  font-size: 1rem;
+  width: 100px;
   text-align: center;
 }
 
-.card-price-input:focus,
-.card-stock-input:focus {
+.card-edit-input:focus {
   outline: none;
   border-color: #0056b3;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
-/* Update button for editing mode */
+/* Update button */
 .card-update-btn {
   background-color: #28a745;
   color: white;
   border: none;
   padding: 0.5rem 1rem;
-  border-radius: 0.25rem;
-  font-size: 0.85rem;
-  font-weight: 600;
+  border-radius: 4px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  margin-top: 0.75rem;
-  width: 100%;
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
 }
 
 .card-update-btn:hover {
   background-color: #218838;
-  transform: translateY(-1px);
 }
 
-.card-update-btn:active {
-  transform: translateY(0);
-}
-
-/* Edit mode container */
-.card-edit-mode {
-  background-color: #f8f9fa;
-  border: 2px solid #007bff;
-  border-radius: 0.5rem;
-  padding: 0.75rem;
-  margin-top: 0.5rem;
-}
-
-.edit-field {
-  margin-bottom: 0.75rem;
-}
-
-.edit-field label {
-  display: block;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 0.25rem;
-  font-size: 0.9rem;
-}
-
-.edit-field input {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #ced4da;
-  border-radius: 0.25rem;
-  font-size: 0.9rem;
-}
-
-.edit-field input:focus {
-  outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
-}
-
-.card-edit-actions {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
-}
-
-.card-save-btn,
-.card-cancel-btn {
-  flex: 1;
-  padding: 0.5rem;
-  border: none;
-  border-radius: 0.25rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.card-save-btn {
-  background-color: #28a745;
-  color: white;
-}
-
-.card-save-btn:hover {
-  background-color: #218838;
-}
-
-.card-cancel-btn {
+.card-update-btn:disabled {
   background-color: #6c757d;
-  color: white;
+  cursor: not-allowed;
 }
 
-.card-cancel-btn:hover {
-  background-color: #5a6268;
+/* Edit icon */
+.edit-icon {
+  color: #007bff;
+  font-size: 0.8rem;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
 }
 
-/* Product status styling */
-.product-status {
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
-  font-size: 0.75rem;
-  font-weight: bold;
-  text-transform: uppercase;
+.edit-icon:hover {
+  opacity: 1;
 }
 
-.product-status.publish {
-  background-color: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
+/* Card view container */
+.card-view-container {
+  width: 80%;
+  max-width: none;
+  margin: 0 auto;
+  margin-left: 8rem;
+  margin-top: 1.5rem;
+  padding: 1rem 0;
 }
 
-.product-status.draft {
-  background-color: #fff3cd;
-  color: #856404;
-  border: 1px solid #ffeaa7;
-}
-
-.product-status.private {
-  background-color: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
-}
-
-/* Product name cell styling */
-.product-name-cell {
-  font-weight: 500;
-  color: #333;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Error container styling */
+/* Error handling */
 .error-container {
   text-align: center;
   padding: 2rem;
-  background: #f8f9fa;
+  color: #721c24;
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
   border-radius: 0.5rem;
-  border: 1px solid #dee2e6;
+  margin: 2rem;
 }
 
 .error-container h3 {
-  color: #dc3545;
   margin-bottom: 1rem;
-}
-
-.error-container p {
-  color: #6c757d;
-  margin-bottom: 1.5rem;
+  color: #721c24;
 }
 
 .retry-btn {
