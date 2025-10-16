@@ -9,6 +9,47 @@
   --ag-border-color: transparent;
   --ag-cell-horizontal-border: none;
   --ag-row-border-color: transparent;
+  --ag-row-border-width: 0px;
+  --ag-borders: none;
+  --ag-borders-row: none;
+  --ag-borders-side-button: none;
+}
+
+/* Remove all borders from rows and cells */
+.ag-theme-alpine .ag-row {
+  border: none !important;
+  border-bottom: none !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  background-color: transparent !important; /* Ensure transparent background for getRowStyle */
+}
+
+.ag-cell {
+  border: none !important;
+  border-right: none !important;
+  border-left: none !important;
+  border-top: none !important;
+  border-bottom: none !important;
+}
+
+/* Remove borders from all cell types */
+.ag-cell-wrapper {
+  border: none !important;
+}
+
+/* Remove horizontal lines between rows */
+.ag-theme-alpine .ag-row:not(.ag-row-last) {
+  border-bottom: none !important;
+}
+
+/* Remove any remaining grid lines */
+.ag-theme-alpine .ag-cell-range-selected:not(.ag-cell-range-single-cell) {
+  border: none !important;
+}
+
+.ag-theme-alpine .ag-cell-range-selected {
+  border: none !important;
 }
 
 .ag-header {
@@ -28,17 +69,6 @@
 
 .ag-pinned-left .ag-cell {
   border: none !important; /* Remove any borders for pinned columns */
-}
-
-.ag-theme-alpine .ag-row {
-  border: none !important;
-  border-bottom: none !important;
-  background-color: transparent !important; /* Ensure transparent background for getRowStyle */
-}
-
-.ag-cell {
-  border: none !important;
-  border-right: none !important;
 }
 
 /* Specific styling for status column to eliminate gaps */

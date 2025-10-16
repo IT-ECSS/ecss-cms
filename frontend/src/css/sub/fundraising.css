@@ -766,6 +766,13 @@
   box-sizing: border-box;
 }
 
+.list-header.enhanced {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 20px;
+  align-items: center;
+}
+
 .header-item {
   flex: 1;
   text-align: left;
@@ -779,6 +786,13 @@
   text-align: right;
   min-width: 60px;
   margin-left: auto;
+  padding-right: 0;
+}
+
+.header-subtotal {
+  flex-shrink: 0;
+  text-align: right;
+  min-width: 80px;
   padding-right: 0;
 }
 
@@ -814,7 +828,7 @@
   align-items: flex-start;
   gap: 16px;
   padding: 16px 24px;
-  border-bottom: 1px solid #f1f3f4;
+  border-bottom: none;
   transition: none;
   background: transparent;
 }
@@ -865,6 +879,19 @@
   box-sizing: border-box;
 }
 
+.item-name-horizontal.enhanced {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 20px;
+  align-items: center;
+  padding: 12px 24px;
+  border-bottom: none;
+}
+
+.item-name-horizontal.enhanced:last-child {
+  border-bottom: none;
+}
+
 .item-name-horizontal .item-name {
   flex: 1;
   margin-right: 40px;
@@ -881,6 +908,16 @@
   margin-left: auto;
   text-align: right;
   min-width: 60px;
+  padding-right: 0;
+}
+
+.subtotal-text {
+  color: #28a745;
+  font-size: 0.875rem;
+  font-weight: bold;
+  flex-shrink: 0;
+  text-align: right;
+  min-width: 80px;
   padding-right: 0;
 }
 
@@ -916,8 +953,6 @@
 }
 
 .order-total-section {
-  background: #f8fafc;
-  border-top: 2px solid #e5e7eb;
   padding: 20px 24px;
 }
 
@@ -935,7 +970,6 @@
 
 .total-amount {
   font-weight: 700;
-  color: #059669;
   font-size: 1.25rem;
 }
 
@@ -1007,7 +1041,6 @@
   font-weight: bold;
   font-size: 1.1rem;
   color: #333;
-  border-top: 2px solid #007bff;
   margin-top: 10px;
   padding-top: 15px;
 }
@@ -1019,10 +1052,8 @@
 
 .modal-footer {
   padding: 15px 20px;
-  border-top: 1px solid #eee;
   display: flex;
   justify-content: flex-end;
-  background-color: #f8f9fa;
   border-radius: 0 0 8px 8px;
 }
 
@@ -1122,4 +1153,352 @@
 
 .fundraising-status-badge.default {
   background-color: #6c757d;
+}
+
+/* WooCommerce Enhanced Order List Modal Styles */
+.modal-content.woocommerce-enhanced {
+  max-width: 90vw;
+  width: 1200px;
+  max-height: 90vh;
+}
+
+.loading-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  color: #666;
+  gap: 10px;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.list-header.enhanced {
+  display: grid;
+  grid-template-columns: 1fr 120px;
+  gap: 15px;
+  padding: 15px 20px;
+  background: transparent;
+  color: #333;
+  font-weight: 600;
+  border-radius: 8px 8px 0 0;
+}
+
+.items-list-professional.enhanced {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.professional-item-row.enhanced {
+  display: grid;
+  grid-template-columns: 1fr 120px;
+  gap: 15px;
+  align-items: start;
+}
+
+.item-photo {
+  position: relative;
+  width: 70px;
+  height: 70px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f8f9fa;
+}
+
+.product-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+  border: none;
+}
+
+/* Product row layout with image and details side by side */
+.product-row {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.product-image-container {
+  width: 100px;
+  height: 100px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+.product-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e9ecef;
+  color: #6c757d;
+  font-size: 10px;
+  text-align: center;
+  border-radius: 8px;
+}
+
+.no-image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e9ecef;
+  color: #6c757d;
+  font-size: 10px;
+  border-radius: 8px;
+}
+
+.item-details.enhanced {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.item-name-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.item-name {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 1rem;
+  margin: 0;
+}
+
+.woo-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.item-description {
+  font-size: 0.85rem;
+  color: #6c757d;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.item-description p {
+  margin: 0;
+}
+
+.stock-info {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.stock-quantity {
+  font-size: 0.8rem;
+  color: #495057;
+  background: #f8f9fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.stock-status {
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.stock-status.in-stock {
+  color: #28a745;
+  background: #d4edda;
+}
+
+.stock-status.out-of-stock {
+  color: #dc3545;
+  background: #f8d7da;
+}
+
+.item-price {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.price-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.current-price {
+  font-weight: 600;
+  color: #28a745;
+  font-size: 1.1rem;
+}
+
+.regular-price {
+  font-size: 0.85rem;
+  color: #6c757d;
+  text-decoration: line-through;
+}
+
+.original-order-price {
+  font-size: 0.8rem;
+  color: #495057;
+  font-style: italic;
+}
+
+.no-woo-data {
+  font-size: 0.8rem;
+  color: #dc3545;
+  font-style: italic;
+}
+
+.item-quantity {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quantity-value {
+  background: #667eea;
+  color: white;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+
+.item-subtotal {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.subtotal-value {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 1.1rem;
+}
+
+.order-total-section.enhanced {
+  padding: 20px 24px;
+  margin-top: 15px;
+  border-radius: 0 0 8px 8px;
+}
+
+.total-comparison {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #dee2e6;
+  font-size: 0.95rem;
+}
+
+.comparison-label {
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.comparison-amount {
+  color: #495057;
+  font-weight: 600;
+}
+
+.difference {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.difference.increase {
+  color: #dc3545;
+}
+
+.difference.decrease {
+  color: #28a745;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 1024px) {
+  .modal-content.woocommerce-enhanced {
+    width: 95vw;
+    max-width: none;
+  }
+  
+  .list-header.enhanced,
+  .professional-item-row.enhanced {
+    grid-template-columns: 1fr 100px;
+    gap: 10px;
+    padding: 15px;
+  }
+  
+  .item-photo {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .item-name {
+    font-size: 0.9rem;
+  }
+  
+  .item-description {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .list-header.enhanced,
+  .professional-item-row.enhanced {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  
+  .professional-item-row.enhanced {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .product-row {
+    gap: 10px;
+  }
+  
+  .product-image-container {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .item-subtotal {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
 }

@@ -284,6 +284,31 @@ class CheckoutPage extends Component {
     }
   }
 
+  // Function to clean product names - remove HTML tags and Chinese text
+  cleanProductName = (productName) => {
+    if (!productName) return '';
+    
+    // Remove HTML tags like <br>, <div>, etc.
+    let cleaned = productName.replace(/<[^>]*>/g, ' ');
+    
+    // Split by common separators and take only the English part
+    // This handles cases like "English <br> Chinese" or "English - Chinese"
+    const parts = cleaned.split(/\s*(<br>|<BR>|\s-\s|\s\|\s)\s*/);
+    
+    // Take the first part which should be English
+    let englishPart = parts[0];
+    
+    // Additional cleanup: remove Chinese characters (Unicode range for Chinese)
+    englishPart = englishPart.replace(/[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/g, '');
+    
+    // Clean up extra spaces and trim
+    englishPart = englishPart.replace(/\s+/g, ' ').trim();
+    
+    console.log(`Product name cleaned: "${productName}" → "${englishPart}"`);
+    
+    return englishPart;
+  }
+
   handlePlaceOrder = async () => {
     const { personalInfo, paymentMethod, collectionMode } = this.state;
     const { cartItems = [] } = this.props;
@@ -366,7 +391,7 @@ class CheckoutPage extends Component {
       orderTime: orderTime,
       totalPrice: parseFloat(this.calculateTotal()), // Add total price
       items: cartItems.map(item => ({
-        productName: item.name,
+        productName: this.cleanProductName(item.name), // Clean the product name
         quantity: item.quantity
       }))
     };    try {

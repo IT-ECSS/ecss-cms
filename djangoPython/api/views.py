@@ -69,6 +69,40 @@ def fundraising_list(request):
         print("Error:", e)
         return JsonResponse({"error": "An error occurred while processing the request."}, status=500)
 
+@csrf_exempt
+def fundraising_product_details(request):
+    """Fetches fundraising products from WooCommerce filtered by category 'Support Us' across all pages."""
+    try:
+        # Initialize WooCommerce API instance
+        woo_api = WooCommerceAPI()
+        
+        # Get all fundraising products (method handles pagination internally and filters for 'Support Us' category)
+        print("Fetching fundraising products from all pages...")
+        products = woo_api.get_fundraising_products()
+        print(f"Total fundraising products found: {len(products)}")
+
+        # Additional filtering to ensure we have the exact criteria (categories array length 1 with name "Support Us" and id 40)
+        filtered_products = []
+        for product in products:
+            categories = product.get('categories', [])
+            if (len(categories) == 1 and 
+                categories[0].get('name') == 'Support Us' and 
+                categories[0].get('id') == 40):
+                filtered_products.append(product)
+
+        print(f"Products matching exact criteria (id=40): {len(filtered_products)}")
+
+        # Return filtered fundraising products as a JSON response
+        return JsonResponse({
+            "success": True,
+            "fundraising_products": filtered_products
+        })
+
+    except Exception as e:
+        # Catch and log unexpected errors
+        print("Error:", e)
+        return JsonResponse({"error": "An error occurred while processing the request."}, status=500)
+
 import re
 import json
 from django.shortcuts import render
@@ -656,47 +690,44 @@ def sendToWooCommerce(request):
     
 @csrf_exempt
 def update_stock(request):
-    """Fetches and returns a list of products from WooCommerce based on the courseType."""
+    """Updates fundraising product stock based on product name, status, and quantity."""
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Invalid method, please use POST'})
 
     try:
         # Parse the request body as JSON
         data = json.loads(request.body)
-        print("Data received:", data)
+        print("Data received Update Stock:", data)
 
-        # Get courseName from the request body and clean it up
-        courseName = data.get('page')  # Assuming 'page' is where the course name is stored
+        # Get productName from the request body and clean it up
+        productName = data.get('page')  # Assuming 'page' is where the course name is stored
+        product_name = productName.get('productName', '')
+        status = data.get('status', '')  # Get the status for stock update
+        quantity = data.get('quantity', 0)  # Get the quantity, default to 1
         
-        if courseName:
-            # Format the course name details as a string for logging
-            # Get the course name components
-            chi_name = courseName.get('courseChiName', '')
-            eng_name = courseName.get('courseEngName', '')
-            location = courseName.get('courseLocation', '')
-            print(chi_name+"<br />"+eng_name+"<br />"+location)
+        woo_api = WooCommerceAPI()
+        result = woo_api.getFundraisingId(product_name)  # Use the formatted string
 
-            # Initialize WooCommerce API and fetch the product ID
-            woo_api = WooCommerceAPI()
-            result = woo_api.getProductId(chi_name, eng_name, f"({location})")  # Use the formatted string
-            print("Result:", result)
-
-            if result['exist'] == True:
-                print("Update Product Stocks")
-                status = data.get('status') 
-                productId = result['id']
-                print('Product Id:', result)
-                result2 = woo_api.updateCourseQuantity(productId, status)
-
-                print(status)
-
-                return JsonResponse({'success': result2})
-
+        if result and result.get('exist') == True:
+            print("Update Product Stocks")
+            product_id = result['id']
+            print('Product Id:', product_id)
+            
+            # Update the stock quantity based on status and quantity
+            result2 = woo_api.updateFundraisingQuantity(product_id, status, quantity)
+            
+            return JsonResponse({
+                'success': result2, 
+                'product_id': product_id,
+                'quantity_updated': quantity,
+                'status': status
+            })
         else:
-            print("No course data found in the 'page' field.")
+            return JsonResponse({'success': False, 'error': 'Product not found'})
 
     except Exception as e:
         print("Error:", e)  # Log the error to the console
+        return JsonResponse({'success': False, 'error': str(e)})
         return JsonResponse({'success': False, 'error': str(e)})
 
     

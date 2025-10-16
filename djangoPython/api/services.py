@@ -291,7 +291,116 @@ class WooCommerceAPI:
             print(f"Error fetching products: {e}")
             return None
         
-    
+    def getFundraisingId(self, product_name):
+        """Fetches the product ID by matching product name from WooCommerce."""
+        try:
+            page = 1
+            all_products = []  # List to store product id and name pairs
+            per_page = 100  # Number of products to fetch per page
+            matched_product_id = None  # Variable to store matched product ID
+
+            while True:
+                # Fetch products for the current page
+                url = f"{self.base_url}products"
+                params = {
+                    'per_page': per_page,
+                    'page': page,
+                }
+
+                response = requests.get(url, params=params, auth=self.auth)
+                response.raise_for_status()  # Ensure we raise an error for bad requests
+
+                products = response.json()  # Get products from the response
+                
+
+                # If no products are returned, break the loop
+                if not products:
+                    break
+
+                # Check each product for name match
+                for product in products:
+                    current_product_name = product['name']
+                    
+                    # Direct name match for fundraising products
+                    if current_product_name == product_name:
+                        matched_product_id = product['id']
+                        break  # Exit the loop if the product is found
+
+                # If we found the matched product ID, stop fetching more pages
+                if matched_product_id:
+                    break
+
+                page += 1  # Move to the next page
+
+            # Return the matched product ID if found, otherwise None
+            return {"id": matched_product_id, "exist": True}
+
+        except requests.exceptions.RequestException as e:
+            # Handle any errors during the request
+            print(f"Error fetching products: {e}")
+            return None
+
+    def get_fundraising_product_details(self, product_names):
+        """Fetches detailed product information from WooCommerce for multiple products by name."""
+        try:
+            product_details = []
+            
+            for product_name in product_names:
+                page = 1
+                per_page = 100
+                product_found = False
+                
+                while True and not product_found:
+                    # Fetch products for the current page
+                    url = f"{self.base_url}products"
+                    params = {
+                        'per_page': per_page,
+                        'page': page,
+                    }
+
+                    response = requests.get(url, params=params, auth=self.auth)
+                    response.raise_for_status()
+
+                    products = response.json()
+                    
+                    if not products:
+                        break
+
+                    # Check each product for name match
+                    for product in products:
+                        current_product_name = product['name']
+                        
+                        # Direct name match for fundraising products
+                        if current_product_name == product_name:
+                            # Extract the details we need
+                            product_detail = {
+                                'id': product['id'],
+                                'name': product['name'],
+                                'price': product['price'],
+                                'regular_price': product['regular_price'],
+                                'sale_price': product['sale_price'],
+                                'images': product.get('images', []),
+                                'description': product.get('description', ''),
+                                'short_description': product.get('short_description', ''),
+                                'stock_quantity': product.get('stock_quantity'),
+                                'manage_stock': product.get('manage_stock', False),
+                                'in_stock': product.get('in_stock', True)
+                            }
+                            product_details.append(product_detail)
+                            product_found = True
+                            break
+
+                    if product_found:
+                        break
+                        
+                    page += 1
+
+            return product_details
+
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching product details: {e}")
+            return []
+        
 
     def updateCourseQuantity(request, product_id, status):
         """
@@ -441,3 +550,48 @@ class WooCommerceAPI:
             except requests.exceptions.RequestException as e:
                 print(f"Error updating product stock: {e}")
                 return False
+
+    def updateFundraisingQuantity(request, product_id, status, quantity):
+        try:
+            # Fetch current product details
+            url = f"{settings.WOOCOMMERCE_API_URL}products/{product_id}"
+            auth = (settings.WOOCOMMERCE_CONSUMER_KEY, settings.WOOCOMMERCE_CONSUMER_SECRET)
+            response = requests.get(url, auth=auth)
+            response.raise_for_status()
+
+            product = response.json()
+
+            # Get the current stock quantity
+            original_stock_quantity = product.get("stock_quantity", 0)
+            new_stock_quantity = original_stock_quantity  # Start with current stock
+
+            # **Stock Update Logic for Fundraising Products**
+            if status == "Withdrawn":
+                new_stock_quantity += quantity
+
+            elif status == "Refunded":
+                # Increase stock when order is refunded
+                new_stock_quantity += quantity
+                print(f"Increasing stock by {quantity} for refunded order")
+
+            elif status in ["Paid", "Confirmed"]:
+                if new_stock_quantity >= quantity:  # Only decrease if sufficient stock
+                    new_stock_quantity -= quantity
+                else:
+                    new_stock_quantity = 0  # Set to 0 if not enough stock
+            else:
+                print(f"Unhandled status: '{status}' - no stock update performed")
+
+            print("Updated Stock Quantity:", new_stock_quantity)
+
+            # Update stock
+            update_data = {"stock_quantity": new_stock_quantity}
+            update_response = requests.put(f"{settings.WOOCOMMERCE_API_URL}products/{product_id}",
+                                            json=update_data, auth=auth)
+            update_response.raise_for_status()
+
+            return True  # Successfully updated stock
+
+        except requests.exceptions.RequestException as e:
+            print(f"Error updating fundraising product stock: {e}")
+            return False

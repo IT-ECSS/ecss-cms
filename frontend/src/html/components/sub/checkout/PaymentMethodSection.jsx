@@ -34,8 +34,8 @@ class PaymentMethodSection extends Component {
                   <input
                     type="radio"
                     name="paymentMethod"
-                    value="paynow"
-                    checked={paymentMethod === 'paynow'}
+                    value="PayNow"
+                    checked={paymentMethod === 'PayNow'}
                     onChange={(e) => onPaymentMethodChange(e.target.value)}
                   />
                   <span className="radio-label">PayNow</span>

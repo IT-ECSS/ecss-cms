@@ -743,12 +743,6 @@
   font-size: 0.75rem;
 }
 
-.modal-button:hover {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-}
-
 .modal-button:active {
   transform: translateY(0);
 }

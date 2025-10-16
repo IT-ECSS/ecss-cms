@@ -4,9 +4,25 @@ import '../../../css/sub/fundraising.css';
 const OrderDetailsModal = ({ 
   showModal, 
   selectedItems, 
-  onClose 
+  onClose,
+  wooCommerceProductDetails = [] 
 }) => {
   if (!showModal || !selectedItems) return null;
+
+  // Create a map for quick product lookup
+  const productDetailsMap = {};
+  wooCommerceProductDetails.forEach(product => {
+    productDetailsMap[product.name] = product;
+  });
+
+  // Calculate total amount
+  const totalAmount = selectedItems.reduce((total, item) => {
+    const itemName = item.productName || item.name || item.itemName || 'Unknown Item';
+    const quantity = item.quantity || 1;
+    const wooProduct = productDetailsMap[itemName];
+    const itemPrice = wooProduct ? parseFloat(wooProduct.price) : (item.price || item.unitPrice || 0);
+    return total + (itemPrice * quantity);
+  }, 0);
 
   return (
     <div className="professional-modal" onClick={(e) => e.stopPropagation()}>
@@ -18,23 +34,38 @@ const OrderDetailsModal = ({
       </div>
         
       <div className="professional-body">
-        <div className="list-header">
+        <div className="list-header enhanced">
           <div className="header-item">ITEM</div>
           <div className="header-qty">QTY</div>
+          <div className="header-subtotal">SUBTOTAL</div>
         </div>
         <div className="items-list-professional">
           {selectedItems.map((item, index) => {
             const itemName = item.productName || item.name || item.itemName || 'Unknown Item';
             const quantity = item.quantity || 1;
+            const wooProduct = productDetailsMap[itemName];
+            const itemPrice = wooProduct ? parseFloat(wooProduct.price) : (item.price || item.unitPrice || 0);
+            const subtotal = itemPrice * quantity;
             
             return (
-              <div key={index} className="item-name-horizontal">
+              <div key={index} className="item-name-horizontal enhanced">
                 <div className="item-name">{itemName}</div>
                 <div className="quantity-text">{quantity}</div>
+                <div className="subtotal-text">${subtotal.toFixed(2)}</div>
               </div>
             );
           })}
         </div>
+        
+        {/* Order Total Section */}
+        {totalAmount > 0 && (
+          <div className="order-total-section">
+            <div className="total-line">
+              <span className="total-label">Total Amount:</span>
+              <span className="total-amount">${totalAmount.toFixed(2)}</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
