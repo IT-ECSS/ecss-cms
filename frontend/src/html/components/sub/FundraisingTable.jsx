@@ -1271,7 +1271,6 @@ class FundraisingTable extends Component {
           this.handlePdfResponse(response.data.result);
         } else {
           console.error('Failed to generate receipt:', response.data);
-          alert('Failed to generate receipt. Please try again.');
         }
       } catch (error) {
         console.error('Error generating receipt:', error);
@@ -1824,13 +1823,9 @@ class FundraisingTable extends Component {
         saveAs(blob, filename);
 
         console.log('Excel export completed successfully');
-        
-        // Optional: Show success message
-        alert(`Excel file "${filename}" has been downloaded successfully!`);
 
       } catch (error) {
         console.error('Error exporting to Excel:', error);
-        alert('Failed to export data to Excel. Please try again.');
       }
     };
 
@@ -1973,13 +1968,9 @@ class FundraisingTable extends Component {
 
         console.log('Payment report export completed successfully');
         console.log('Grand Total:', grandTotal.toFixed(2));
-        
-        // Show success message with total
-        alert(`Payment report "${filename}" has been downloaded successfully!\nTotal Amount: $${grandTotal.toFixed(2)}`);
 
       } catch (error) {
         console.error('Error generating payment report:', error);
-        alert('Failed to generate payment report. Please try again.');
       }
     };
 
