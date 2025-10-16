@@ -226,8 +226,8 @@ class SingPassButton extends Component {
       
       // Required parameters with EXACT SingPass scopes as approved
       const authParams = new URLSearchParams({
-        client_id: "mHlUcRS43LOQAjkYJ22MNvSpE8vzPmfo",
-        //client_id: "ZrjDybXZeOFUA70KYMwb1dnfmdEXFfAS", // Exact client ID as per SingPass documentation
+        //client_id: "mHlUcRS43LOQAjkYJ22MNvSpE8vzPmfo",
+        client_id: "ZrjDybXZeOFUA70KYMwb1dnfmdEXFfAS", // Exact client ID as per SingPass documentation
         response_type: "code",
         // EXACT SingPass scope format - space-separated as approved by SingPass
         scope: "openid dob email mobileno name race regadd residentialstatus sex uinfin",
