@@ -221,7 +221,7 @@ class SingPassButton extends Component {
       const nonce = window.crypto.randomUUID();
 
       // SingPass Authorization Endpoint - exact URL from documentation
-      const authorizationEndpoint = "https://stg-id.singpass.gov.sg/auth";
+      const authorizationEndpoint = "https://id.singpass.gov.sg/auth";
       //const authorizationEndpoint = "https://id.singpass.gov.sg/auth"
       
       // Required parameters with EXACT SingPass scopes as approved
