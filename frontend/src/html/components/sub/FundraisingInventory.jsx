@@ -117,7 +117,7 @@ class FundraisingInventory extends Component {
             {
                 headerName: "Product Id",
                 field: "sn",
-                width: 160,
+                width: 200,
                 resizable: true,
                 suppressSizeToFit: true
             },
@@ -173,7 +173,7 @@ class FundraisingInventory extends Component {
             {
                 headerName: "Price",
                 field: "price",
-                width: 180,
+                width: 200,
                 resizable: true,
                 suppressSizeToFit: true,
                 cellRenderer: (params) => {
@@ -183,7 +183,7 @@ class FundraisingInventory extends Component {
             {
                 headerName: "Current Stock",
                 field: "stock_quantity",
-                width: 180,
+                width: 200,
                 resizable: true,
                 suppressSizeToFit: true
             },

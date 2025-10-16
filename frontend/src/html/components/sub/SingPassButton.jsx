@@ -222,7 +222,7 @@ class SingPassButton extends Component {
 
       // SingPass Authorization Endpoint - exact URL from documentation
       const authorizationEndpoint = "https://id.singpass.gov.sg/auth";
-      //const authorizationEndpoint = "https://id.singpass.gov.sg/auth"
+      //const authorizationEndpoint = "https://stg-id.singpass.gov.sg/auth"
       
       // Required parameters with EXACT SingPass scopes as approved
       const authParams = new URLSearchParams({
@@ -231,9 +231,8 @@ class SingPassButton extends Component {
         response_type: "code",
         // EXACT SingPass scope format - space-separated as approved by SingPass
         scope: "openid dob email mobileno name race regadd residentialstatus sex uinfin",
-        redirect_uri: window.location.hostname === "localhost" 
-          ? "http://localhost:3000/callback" 
-          : "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback",
+        //redirect_uri:"http://localhost:3000/callback",
+        redirect_uri:"https://salmon-wave-09f02b100.6.azurestaticapps.net/callback",
         state: state,
         nonce: nonce,
         code_challenge: codeChallenge,
