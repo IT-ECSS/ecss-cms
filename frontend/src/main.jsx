@@ -9,8 +9,8 @@ import './index.css'
 const oidcConfig = {
   //authority: "https://stg-id.singpass.gov.sg", // Staging discovery endpoint
   authority: "https://id.singpass.gov.sg",
-  //client_id: "ZrjDybXZeOFUA70KYMwb1dnfmdEXFfAS",
-  client_id: "mHlUcRS43LOQAjkYJ22MNvSpE8vzPmfo",
+  client_id: "ZrjDybXZeOFUA70KYMwb1dnfmdEXFfAS",
+  //client_id: "mHlUcRS43LOQAjkYJ22MNvSpE8vzPmfo",
   //redirect_uri: "http://localhost:3000/callback",
   redirect_uri: "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback",
   response_type: "code",
