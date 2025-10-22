@@ -212,14 +212,14 @@ class FormPage extends Component {
     if (isTalksAndSeminar) {
       // English + Malay format for Talks And Seminar
       statusMap = {
-        'SC': 'SC Singapore Citizen Warganegara Singapura',
-        'PR': 'PR Permanent Resident Pemastautin Tetap'
+        'SC': 'SC Warganegara Singapura',
+        'PR': 'PR Pemastautin Tetap'
       };
     } else {
       // English + Chinese format for other courses
       statusMap = {
-        'SC': 'SC Singapore Citizen SC 新加坡公民',
-        'PR': 'PR Permanent Resident PR 永久居民'
+        'SC': 'SC 新加坡公民',
+        'PR': 'PR 永久居民'
       };
     }
     
@@ -662,7 +662,7 @@ class FormPage extends Component {
 
         // Determine if this is English+Chinese or English+Malay based on language attributes
         // Check if any language option contains 'Chinese' or 'Malay'
-        const isChineseLanguage = languageOptions.some(option => option.includes('Chinese'));
+        const isChineseLanguage = languageOptions.some(option => option.includes('Mandarin'));
         const isMalayLanguage = languageOptions.some(option => option.includes('Malay'));
         
         // Log language detection for debugging
@@ -1535,7 +1535,7 @@ class FormPage extends Component {
           
           // Clear session storage after successful submission
           // Send WhatsApp registration message via backend using Interakt template "course_registration_submission"
-          axios.post(
+          /*axios.post(
             `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/whatsapp`,
             {
               phoneNumber: participantDetails.participant.contactNumber,
@@ -1561,7 +1561,7 @@ class FormPage extends Component {
               setTimeout(() => {
                 //window.close(); // This will close the window after 10 seconds
               }, 10000);
-          });
+          })*/
 
 
           // Success alert
@@ -1600,16 +1600,16 @@ class FormPage extends Component {
     // Special handling for Talks And Seminar - year only format (yyyy)
     if (courseType === 'Talks And Seminar') {
       if (!dob) {
-        return { isValid: false, error: 'Birth Year is required. 出生年份是必填项。' };
+        return { isValid: false, error: this.getErrorMessage('Birth Year is required.', '出生年份是必填项。', 'Tahun Lahir diperlukan.') };
       }
       // Check if it's a 4-digit year
       if (!/^\d{4}$/.test(dob)) {
-        return { isValid: false, error: 'Birth Year must be a 4-digit year. 出生年份必须是4位数字。' };
+        return { isValid: false, error: this.getErrorMessage('Birth Year must be a 4-digit year.', '出生年份必须是4位数字。', 'Tahun Lahir mesti 4 digit.') };
       }
       const year = parseInt(dob, 10);
       const currentYear = new Date().getFullYear();
       if (year < 1900 || year > currentYear + 10) {
-        return { isValid: false, error: `Birth Year must be between 1900 and ${currentYear + 10}. 出生年份必须在1900年至${currentYear + 10}年之间。` };
+        return { isValid: false, error: this.getErrorMessage(`Birth Year must be between 1900 and ${currentYear + 10}.`, `出生年份必须在1900年至${currentYear + 10}年之间。`, `Tahun Lahir mesti antara 1900 dan ${currentYear + 10}.`) };
       }
       return { isValid: true, error: null };
     }
@@ -1681,7 +1681,20 @@ class FormPage extends Component {
     }
     return { isValid: false, error: 'Date of Birth is required. 出生日期是必填项。' };
   }
-  
+
+  // Helper function to get language-appropriate error messages for Talks And Seminar
+  getErrorMessage = (english, chinese, malay) => {
+    const { formData } = this.state;
+    console.log("Form Data:", formData);
+    // For Talks And Seminar courses with Malay language option, show English and Malay
+    if (formData.type === 'Talks And Seminar' && formData.isMalayLanguage) {
+      return `${english} ${malay}`;
+    }
+    else
+    {
+     return `${english} ${chinese}`;
+    }
+  };
 
   validateForm = () => {
     const { currentSection, formData } = this.state;
@@ -1704,22 +1717,22 @@ class FormPage extends Component {
       if (formData.type === 'Talks And Seminar') {
         // Required fields for Talks And Seminar: Name, Contact No., Birth Year, Residential Status, Postal Code
         if (!formData.pName) {
-          errors.pName = 'Name is required. 姓名是必填项。';
+          errors.pName = this.getErrorMessage('Name is required.', '姓名是必填项。', 'Nama diperlukan.');
         }
         if (!formData.cNO) {
-          errors.cNO = 'Contact No. is required. 联系号码是必填项。';
+          errors.cNO = this.getErrorMessage('Contact No. is required.', '联系号码是必填项。', 'No. Telefon diperlukan.');
         }
         if (formData.cNO && !/^\d+$/.test(formData.cNO)) {
-          errors.cNO = 'Contact No. must contain only numbers. 联系号码只能包含数字。';
+          errors.cNO = this.getErrorMessage('Contact No. must contain only numbers.', '联系号码只能包含数字。', 'No. Telefon hanya boleh mengandungi nombor.');
         }
         if (formData.cNO && formData.cNO.length !== 8) {
-          errors.cNO = 'Contact No. must be exactly 8 digits. 联系号码必须是8位数字。';
+          errors.cNO = this.getErrorMessage('Contact No. must be exactly 8 digits.', '联系号码必须是8位数字。', 'No. Telefon mesti tepat 8 digit.');
         }
         if (formData.cNO && !/^[89]/.test(formData.cNO)) {
-          errors.cNO = 'Contact No. must start with 8 or 9. 联系号码必须以8或9开头。';
+          errors.cNO = this.getErrorMessage('Contact No. must start with 8 or 9.', '联系号码必须以8或9开头。', 'No. Telefon mesti bermula dengan 8 atau 9.');
         }
         if (!formData.dOB) {
-          errors.dOB = 'Birth Year is required. 出生年份是必填项。';
+          errors.dOB = this.getErrorMessage('Birth Year is required.', '出生年份是必填项。', 'Tahun Lahir diperlukan.');
         }
         if (formData.dOB) {
           const { isValid, error } = this.isValidDOB(formData.dOB, formData.type);
@@ -1728,13 +1741,13 @@ class FormPage extends Component {
           }
         }
         if (!formData.rESIDENTIALSTATUS) {
-          errors.rESIDENTIALSTATUS = 'Residential Status is required. 居民身份是必填项。';
+          errors.rESIDENTIALSTATUS = this.getErrorMessage('Residential Status is required.', '居民身份是必填项。', 'Status Kediaman diperlukan.');
         }
         if (!formData.postalCode) {
-          errors.postalCode = 'Postal Code is required. 邮编是必填项。';
+          errors.postalCode = this.getErrorMessage('Postal Code is required.', '邮编是必填项。', 'Poskod diperlukan.');
         }
         if (formData.postalCode && !/^\d{6}$/.test(formData.postalCode)) {
-          errors.postalCode = 'Postal Code must be exactly 6 digits. 邮编必须是6位数字。';
+          errors.postalCode = this.getErrorMessage('Postal Code must be exactly 6 digits.', '邮编必须是6位数字。', 'Poskod mesti tepat 6 digit.');
         }
         return errors;
       }
@@ -1798,10 +1811,6 @@ class FormPage extends Component {
         errors.wORKING = 'Work Status is required. 工作状态是必填项。';
       }
     }
-
-
-    
-
     return errors;
   };
 

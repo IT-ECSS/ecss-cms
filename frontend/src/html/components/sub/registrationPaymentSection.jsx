@@ -2023,7 +2023,8 @@ class RegistrationPaymentSection extends Component {
   // Check if we should hide Course Time column for NSA, ILP, and Marriage Preparation Programme
   const isFilteringNSA = selectedCourseType === 'NSA';
   const isFilteringMarriagePrepForCourseTime = selectedCourseType === 'Marriage Preparation Programme';
-  const shouldHideCourseTimeColumn = isFilteringNSA || isFilteringILP || isFilteringMarriagePrepForCourseTime;
+  // Remove course time hiding - always show course time
+  const shouldHideCourseTimeColumn = false;
   
   // Debug: Check current state for Marriage Preparation Programme data
   // Use optionalRowData if provided, otherwise fall back to state
@@ -2080,7 +2081,7 @@ class RegistrationPaymentSection extends Component {
       headerName: "Course Time",
       field: "courseTime",
       width: 300,
-      hide: shouldHideCourseTimeColumn, // Hide for NSA, ILP, and Marriage Preparation Programme
+      hide: shouldHideCourseTimeColumn, // Always visible now
     },
     {
       headerName: "Payment Method",
@@ -2646,7 +2647,7 @@ debugMarriagePrepData = () => {
       courseChi: item.course.courseChiName,
       location: item.course.courseLocation,
       courseMode: item.course.courseMode === "Face-to-Face" ? "F2F" : item.course?.courseMode,
-      courseTime: item.course.courseTime,
+      courseTime: item.course.courseTime || '',
       paymentMethod: item.course.payment,
       confirmed: item.official.confirmed,
       paymentStatus: item.status,
@@ -2687,6 +2688,15 @@ debugMarriagePrepData = () => {
     // Debug: Check if we have Marriage Preparation Programme data
     const marriagePrepCount = rowData.filter(row => row.courseInfo?.courseType === 'Marriage Preparation Programme').length;
     console.log('Marriage Preparation Programme registrations found:', marriagePrepCount);
+    
+    // Debug courseTime values
+    const courseTimeDebug = rowData.slice(0, 3).map(row => ({
+      courseName: row.course,
+      courseTime: row.courseTime,
+      originalCourseTime: registerationDetails.find(item => item._id === row.id)?.course?.courseTime
+    }));
+    console.log('Course Time Debug (first 3 rows):', courseTimeDebug);
+    
     if (marriagePrepCount > 0) {
       const marriagePrepSample = rowData.find(row => row.courseInfo?.courseType === 'Marriage Preparation Programme');
       console.log('Marriage Preparation Programme data sample:', marriagePrepSample);
@@ -3249,7 +3259,7 @@ debugMarriagePrepData = () => {
                         this.updateWooCommerceForRegistrationPayment(courseChiName, courseName, courseLocation, "Paid"),
                         //console.log("Course Info:", courseInfo)
                         this.autoReceiptGenerator(id, participantInfo, courseInfo, officialInfo, newValue, "Paid"),
-                        this.generatedWhatsappMessage(participantInfo, courseInfo, "course_reservation_successful_om", "payment")
+                        //this.generatedWhatsappMessage(participantInfo, courseInfo, "course_reservation_successful_om", "payment")
                       ]);
                       console.log("Updated Successfully");
                     } catch (error) {
@@ -3376,7 +3386,7 @@ debugMarriagePrepData = () => {
                         this.updateWooCommerceForRegistrationPayment(courseChiName, courseName, courseLocation, newValue),
                         this.receiptGenerator(id, participantInfo, courseInfo, officialInfo, newValue),
                         // WhatsApp automation for Paid status
-                        newValue === "Paid" ? this.generatedWhatsappMessage(participantInfo, courseInfo, "course_reservation_successful_om", "payment") : Promise.resolve()
+                        /*newValue === "Paid" ? this.generatedWhatsappMessage(participantInfo, courseInfo, "course_reservation_successful_om", "payment") : */Promise.resolve()
                       ]);
                       console.log("Both tasks completed successfully.");
                     } catch (error) {
@@ -3455,7 +3465,7 @@ debugMarriagePrepData = () => {
                     // Run the two functions in parallel using Promise.all
                     await Promise.all([
                       this.updateWooCommerceForRegistrationPayment(courseChiName, courseName, courseLocation, newValue),
-                      this.generatedWhatsappMessage(participantInfo, courseInfo, "course_reservation_successful_ilp", "payment")
+                      //this.generatedWhatsappMessage(participantInfo, courseInfo, "course_reservation_successful_ilp", "payment")
                     ]);
                     console.log("Both tasks completed successfully.");
                   } catch (error) {
@@ -3504,7 +3514,7 @@ debugMarriagePrepData = () => {
                     // Run the two functions in parallel using Promise.all
                     await Promise.all([
                       this.updateWooCommerceForRegistrationPayment(courseChiName, courseName, courseLocation, newValue),
-                      this.generatedWhatsappMessage(participantInfo, courseInfo, "course_reservation_successful_ilp", "payment")
+                      //this.generatedWhatsappMessage(participantInfo, courseInfo, "course_reservation_successful_ilp", "payment")
                     ]);
                     console.log("Both tasks completed successfully.");
                   } catch (error) {
@@ -3520,7 +3530,7 @@ debugMarriagePrepData = () => {
                     // Run the two functions in parallel using Promise.all
                     await Promise.all([
                       this.updateWooCommerceForRegistrationPayment(courseChiName, courseName, courseLocation, newValue),
-                      this.generatedWhatsappMessage(participantInfo, courseInfo, "course_reservation_successful_ilp", "payment")
+                      //this.generatedWhatsappMessage(participantInfo, courseInfo, "course_reservation_successful_ilp", "payment")
                     ]);
                     console.log("Both tasks completed successfully.");
                   } catch (error) {
@@ -3861,6 +3871,7 @@ debugMarriagePrepData = () => {
             courseChi: item.course?.courseChiName || '',  // Course Chinese name
             location: item.course?.courseLocation || '',  // Course location
             courseMode: item.course?.courseMode === "Face-to-Face" ? "F2F" : (item.course?.courseMode || ''),
+            courseTime: item.course?.courseTime || '',  // Ensure courseTime is included
             paymentMethod: item.course?.payment || '',  // Payment method
             confirmed: item.official?.confirmed || false,  // Confirmation status
             paymentStatus: item.status || '',  // Payment status
