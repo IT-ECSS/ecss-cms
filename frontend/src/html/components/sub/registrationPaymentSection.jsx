@@ -661,7 +661,7 @@ class RegistrationPaymentSection extends Component {
     };
   
     // Helper to send WhatsApp message
-  automatedWhatsappMessage = async (participantInfo, courseInfo, template, purpose) => {
+  generatedWhatsappMessage = async (participantInfo, courseInfo, template, purpose) => {
     try {
       console.log("Sending WhatsApp message with template", participantInfo, courseInfo, template, purpose);
       const payload = {
@@ -2015,8 +2015,10 @@ class RegistrationPaymentSection extends Component {
   const { role, siteIC, selectedCourseType } = this.props; // Get the role and selectedCourseType from props
   console.log("Props123455:", siteIC);
   
-  // Check if we're filtering by ILP course type
+  // Check if we're filtering by ILP or Talks And Seminar course type
   const isFilteringILP = selectedCourseType === 'ILP';
+  const isFilteringTalksAndSeminar = selectedCourseType === 'Talks And Seminar';
+  const shouldHidePaymentColumns = isFilteringILP || isFilteringTalksAndSeminar;
   
   // Debug: Check current state for Marriage Preparation Programme data
   // Use optionalRowData if provided, otherwise fall back to state
@@ -2084,7 +2086,7 @@ class RegistrationPaymentSection extends Component {
       },
       editable: false,
       width: 500,
-      hide: isFilteringILP // Hide Payment Method column when filtering by ILP
+      hide: shouldHidePaymentColumns // Hide Payment Method column when filtering by ILP or Talks And Seminar
     },
     {
       headerName: "Confirmation",
@@ -2094,30 +2096,30 @@ class RegistrationPaymentSection extends Component {
       width: 180,
       cellStyle: (params) =>
         params.data.paymentMethod !== "SkillsFuture" ? { display: "none" } : {},
-      hide: isFilteringILP // Hide Confirmation column when filtering by ILP
+      hide: shouldHidePaymentColumns // Hide Confirmation column when filtering by ILP or Talks And Seminar
     },
     {
       headerName: "Receipt/Invoice Number",
       field: "recinvNo",
       width: 500,
-      hide: isFilteringILP // Hide Receipt/Invoice Number column when filtering by ILP
+      hide: shouldHidePaymentColumns // Hide Receipt/Invoice Number column when filtering by ILP or Talks And Seminar
     },
     {
       headerName: "Payment Date",
       field: "paymentDate",
       width: 350,
       editable: true,
-      hide: isFilteringILP // Hide Payment Date column when filtering by ILP
+      hide: shouldHidePaymentColumns // Hide Payment Date column when filtering by ILP or Talks And Seminar
     },
     {
       headerName: "Refunded Date",
       field: "refundedDate",
       width: 350,
       editable: true,
-      hide: isFilteringILP // Hide Refunded Date column when filtering by ILP
+      hide: shouldHidePaymentColumns // Hide Refunded Date column when filtering by ILP or Talks And Seminar
     },
  {
-      headerName: "Payment Status",
+      headerName: "Registration And Payment Status",
       field: "paymentStatus",
       cellEditor: "agSelectCellEditor",
       cellEditorParams: (params) => {
@@ -2137,13 +2139,13 @@ class RegistrationPaymentSection extends Component {
                 "Withdrawn",
                 "Refunded",
               ]
-            : ["Pending", "Paid", "Cancelled", "Withdrawn", "Refunded"];
-        } else if (courseType === "ILP" || (courseType === "Talks And Seminar" && parseFloat(coursePrice) === 0)) {
-          initialOptions = ["Pending", "Confirmed", "Withdrawn"];
-        } else if (courseType === "Talks And Seminar" && parseFloat(coursePrice) > 0) {
-          initialOptions = ["Pending", "Paid", "Cancelled", "Withdrawn", "Refunded"];
+            : ["Pending", "Paid", "Cancelled", "Withdrawn", "Refunded", "Not Successful"];
+        } else if (courseType === "ILP" || (courseType === "Talks And Seminar" && parseFloat((coursePrice || '0').replace('$', '')) === 0)) {
+          initialOptions = ["Pending", "Confirmed", "Withdrawn", "Not Successful"];
+        } else if (courseType === "Talks And Seminar" && parseFloat((coursePrice || '0').replace('$', '')) > 0) {
+          initialOptions = ["Pending", "Paid", "Cancelled", "Withdrawn", "Refunded", "Not Successful"];
         } else {
-          initialOptions = ["Pending", "Paid", "Withdrawn", "Refunded"];
+          initialOptions = ["Pending", "Paid", "Withdrawn", "Refunded", "Not Successful"];
         }
 
         let options;
@@ -2175,7 +2177,7 @@ class RegistrationPaymentSection extends Component {
           Paid: "#008000",
           Confirmed: "#008000",
           Refunded: "#D2691E",
-          ILP: "#008000", // Adding ILP status color
+          "Not Successful": "#A9A9A9", // Adding ILP status color
         };
         const statusText = params.value;
         const backgroundColor = statusStyles[statusText] || "#D3D3D3";
@@ -2800,8 +2802,24 @@ debugMarriagePrepData = () => {
             ) {
               const phoneNumber = participantInfo.contactNumber.replace(/\D/g, ""); // Remove non-numeric characters
               let message = `Hi ${participantInfo.name},
-                            Thank you for your your support. We wish to confirm your place for the ILP programme.
-                           We wish to confirm your place for the ILP programme ${courseInfo.courseEngName} on ${courseInfo.courseDuration.split("-")[0]} at ${courseInfo.courseLocation}.
+                            Thank you for your your support.
+                           We wish to confirm your place for  ${courseInfo.courseEngName} on ${courseInfo.courseDuration.split("-")[0]} at ${courseInfo.courseLocation}.
+                           Please contact this number if your require more information.
+                           Thank you `;
+              const whatsappWebURL = `https://web.whatsapp.com/send?phone=+65${phoneNumber}&text=${encodeURIComponent(message)}`;
+              console.log("Whatsapp Link:", whatsappWebURL)
+              window.open(whatsappWebURL, "_blank"); // Opens in a new browser tab
+            }
+             else if (
+              participantInfo &&
+              participantInfo.contactNumber &&
+              event.data.paymentStatus === "Confirmed" &&
+              courseInfo.courseType === "Talks And Seminar" 
+            ) {
+              const phoneNumber = participantInfo.contactNumber.replace(/\D/g, ""); // Remove non-numeric characters
+              let message = `Hi ${participantInfo.name},
+                            Thank you for your your support.
+                           We wish to confirm your place for  ${courseInfo.courseEngName} on ${courseInfo.courseDuration.split("-")[0]} at ${courseInfo.courseLocation}.
                            Please contact this number if your require more information.
                            Thank you `;
               const whatsappWebURL = `https://web.whatsapp.com/send?phone=+65${phoneNumber}&text=${encodeURIComponent(message)}`;
@@ -3196,7 +3214,7 @@ debugMarriagePrepData = () => {
                         this.updateWooCommerceForRegistrationPayment(courseChiName, courseName, courseLocation, "Paid"),
                         //console.log("Course Info:", courseInfo)
                         this.autoReceiptGenerator(id, participantInfo, courseInfo, officialInfo, newValue, "Paid"),
-                        this.automatedWhatsappMessage(participantInfo, courseInfo, "course_reservation_successful_om", "payment")
+                        this.generatedWhatsappMessage(participantInfo, courseInfo, "course_reservation_successful_om", "payment")
                       ]);
                       console.log("Updated Successfully");
                     } catch (error) {
@@ -3255,7 +3273,7 @@ debugMarriagePrepData = () => {
           }
           console.log("Change SkillsFuture Confirmation");
         }
-        else if (columnName === "Payment Status") 
+        else if (columnName === "Registration And Payment Status") 
         {
           this.props.showUpdatePopup("Updating in progress... Please wait ...");
           
@@ -3323,7 +3341,7 @@ debugMarriagePrepData = () => {
                         this.updateWooCommerceForRegistrationPayment(courseChiName, courseName, courseLocation, newValue),
                         this.receiptGenerator(id, participantInfo, courseInfo, officialInfo, newValue),
                         // WhatsApp automation for Paid status
-                        newValue === "Paid" ? this.automatedWhatsappMessage(participantInfo, courseInfo, "course_reservation_successful_om", "payment") : Promise.resolve()
+                        newValue === "Paid" ? this.generatedWhatsappMessage(participantInfo, courseInfo, "course_reservation_successful_om", "payment") : Promise.resolve()
                       ]);
                       console.log("Both tasks completed successfully.");
                     } catch (error) {
@@ -3393,6 +3411,7 @@ debugMarriagePrepData = () => {
             }
             else if(courseInfo.courseType === "ILP")
             {
+              console.log("ILP Course Type - Payment Status Change"); 
               if(newValue === "Confirmed")
               { 
                 console.log("Confirm ILP Course")
@@ -3401,7 +3420,7 @@ debugMarriagePrepData = () => {
                     // Run the two functions in parallel using Promise.all
                     await Promise.all([
                       this.updateWooCommerceForRegistrationPayment(courseChiName, courseName, courseLocation, newValue),
-                      this.automatedWhatsappMessage(participantInfo, courseInfo, "course_reservation_successful_ilp", "payment")
+                      this.generatedWhatsappMessage(participantInfo, courseInfo, "course_reservation_successful_ilp", "payment")
                     ]);
                     console.log("Both tasks completed successfully.");
                   } catch (error) {
@@ -3424,6 +3443,21 @@ debugMarriagePrepData = () => {
                   }};
                   await performParallelTasks();
               }
+              else if(newValue === "Not Successful")
+              {
+                console.log("ILP Course - Not Successful");
+                const performParallelTasks = async () => {
+                  try {
+                    // Run the two functions in parallel using Promise.all
+                    await Promise.all([
+                      this.updateWooCommerceForRegistrationPayment(courseChiName, courseName, courseLocation, newValue),
+                    ]);
+                    console.log("Both tasks completed successfully.");
+                  } catch (error) {
+                    console.error("Error occurred during parallel task execution:", error);
+                  }};
+                  await performParallelTasks()
+              }
             }
             else if(courseInfo.courseType === "Talks And Seminar")
             {
@@ -3435,7 +3469,7 @@ debugMarriagePrepData = () => {
                     // Run the two functions in parallel using Promise.all
                     await Promise.all([
                       this.updateWooCommerceForRegistrationPayment(courseChiName, courseName, courseLocation, newValue),
-                      this.automatedWhatsappMessage(participantInfo, courseInfo, "course_reservation_successful_ilp", "payment")
+                      this.generatedWhatsappMessage(participantInfo, courseInfo, "course_reservation_successful_ilp", "payment")
                     ]);
                     console.log("Both tasks completed successfully.");
                   } catch (error) {
@@ -3451,7 +3485,7 @@ debugMarriagePrepData = () => {
                     // Run the two functions in parallel using Promise.all
                     await Promise.all([
                       this.updateWooCommerceForRegistrationPayment(courseChiName, courseName, courseLocation, newValue),
-                      this.automatedWhatsappMessage(participantInfo, courseInfo, "course_reservation_successful_ilp", "payment")
+                      this.generatedWhatsappMessage(participantInfo, courseInfo, "course_reservation_successful_ilp", "payment")
                     ]);
                     console.log("Both tasks completed successfully.");
                   } catch (error) {
