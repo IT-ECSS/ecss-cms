@@ -2020,6 +2020,11 @@ class RegistrationPaymentSection extends Component {
   const isFilteringTalksAndSeminar = selectedCourseType === 'Talks And Seminar';
   const shouldHidePaymentColumns = isFilteringILP || isFilteringTalksAndSeminar;
   
+  // Check if we should hide Course Time column for NSA, ILP, and Marriage Preparation Programme
+  const isFilteringNSA = selectedCourseType === 'NSA';
+  const isFilteringMarriagePrepForCourseTime = selectedCourseType === 'Marriage Preparation Programme';
+  const shouldHideCourseTimeColumn = isFilteringNSA || isFilteringILP || isFilteringMarriagePrepForCourseTime;
+  
   // Debug: Check current state for Marriage Preparation Programme data
   // Use optionalRowData if provided, otherwise fall back to state
   const { rowData: debugRowData } = this.state;
@@ -2070,6 +2075,12 @@ class RegistrationPaymentSection extends Component {
       headerName: "Course Mode",
       field: "courseMode",
       width: 150,
+    },
+    {
+      headerName: "Course Time",
+      field: "courseTime",
+      width: 300,
+      hide: shouldHideCourseTimeColumn, // Hide for NSA, ILP, and Marriage Preparation Programme
     },
     {
       headerName: "Payment Method",
@@ -2635,6 +2646,7 @@ debugMarriagePrepData = () => {
       courseChi: item.course.courseChiName,
       location: item.course.courseLocation,
       courseMode: item.course.courseMode === "Face-to-Face" ? "F2F" : item.course?.courseMode,
+      courseTime: item.course.courseTime,
       paymentMethod: item.course.payment,
       confirmed: item.official.confirmed,
       paymentStatus: item.status,
@@ -2822,7 +2834,7 @@ debugMarriagePrepData = () => {
               const phoneNumber = participantInfo.contactNumber.replace(/\D/g, ""); // Remove non-numeric characters
               let message = `Hi ${participantInfo.name},
                             Thank you for your your support.
-                           We wish to confirm your place for  ${courseInfo.courseEngName} on ${courseInfo.courseDuration.split("-")[0]} at ${courseInfo.courseLocation}.
+                           We wish to confirm your place for  ${courseInfo.courseEngName} on ${courseInfo.courseDuration.split("-")[0]} ${courseInfo.courseTime.split("–")[0]} at ${courseInfo.courseLocation}.
                            Please contact this number if your require more information.
                            Thank you `;
               const whatsappWebURL = `https://web.whatsapp.com/send?phone=+65${phoneNumber}&text=${encodeURIComponent(message)}`;
@@ -2838,7 +2850,7 @@ debugMarriagePrepData = () => {
               const phoneNumber = participantInfo.contactNumber.replace(/\D/g, ""); // Remove non-numeric characters
               let message = `Hi ${participantInfo.name},
                             Thank you for your your support.
-                           We wish to confirm your place for  ${courseInfo.courseEngName} on ${courseInfo.courseDuration.split("-")[0]} at ${courseInfo.courseLocation}.
+                           We wish to confirm your place for  ${courseInfo.courseEngName} on ${courseInfo.courseDuration.split("-")[0]} ${courseInfo.courseTime.split("–")[0]} at ${courseInfo.courseLocation}.
                            Please contact this number if your require more information.
                            Thank you `;
               const whatsappWebURL = `https://web.whatsapp.com/send?phone=+65${phoneNumber}&text=${encodeURIComponent(message)}`;
@@ -3127,6 +3139,10 @@ debugMarriagePrepData = () => {
                   <span className="detail-label">Duration:</span>
                   <span className="detail-value">{courseInfo.courseDuration}</span>
                 </div>
+                <div className="detail-field">
+                  <span className="detail-label">Course Time:</span>
+                  <span className="detail-value">{courseInfo.courseTime}</span>
+                </div>
               </div>
             </div>
             
@@ -3292,7 +3308,7 @@ debugMarriagePrepData = () => {
           }
           console.log("Change SkillsFuture Confirmation");
         }
-        else if (columnName === "Registration And Payment Status") 
+        else if (columnName === "Registration And Payment Status" || columnName === "Registration Status" || columnName === "Payment Status") 
         {
           this.props.showUpdatePopup("Updating in progress... Please wait ...");
           

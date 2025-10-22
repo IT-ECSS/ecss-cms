@@ -190,7 +190,7 @@ class FormPage extends Component {
     if (!status) return '';
     
     // Handle if status is already formatted
-    if (typeof status === 'string' && (status.includes('新加坡公民') || status.includes('永久居民'))) {
+    if (typeof status === 'string' && (status.includes('新加坡公民') || status.includes('永久居民') || status.includes('Warganegara') || status.includes('Pemastautin'))) {
       return status;
     }
     
@@ -203,13 +203,25 @@ class FormPage extends Component {
     
     console.log("Status Code:", statusCode);
     
-    // Format according to your requirements
-    const statusMap = {
-      'SC': 'SC 新加坡公民',
-      'C': 'SC 新加坡公民',
-      'PR': 'PR 永久居民',
-      'P': 'PR 永久居民'
-    };
+    // Check if this is for Talks And Seminar course type to determine format
+    const courseType = this.state?.formData?.type;
+    const isTalksAndSeminar = courseType === 'Talks And Seminar';
+    
+    // Format according to course type
+    let statusMap;
+    if (isTalksAndSeminar) {
+      // English + Malay format for Talks And Seminar
+      statusMap = {
+        'SC': 'SC Singapore Citizen Warganegara Singapura',
+        'PR': 'PR Permanent Resident Pemastautin Tetap'
+      };
+    } else {
+      // English + Chinese format for other courses
+      statusMap = {
+        'SC': 'SC Singapore Citizen SC 新加坡公民',
+        'PR': 'PR Permanent Resident PR 永久居民'
+      };
+    }
     
     return statusMap[statusCode] || statusCode;
   };
@@ -1421,7 +1433,7 @@ class FormPage extends Component {
     var courseEngName = this.decodeHtmlEntities(formData.englishName);
     // courseChiName contains either Chinese name or Malay name depending on language
     var courseChiName = this.decodeHtmlEntities(formData.chineseName);
-    var courseLocation = formData.location; // Use simple location instead of detailed address
+    var courseLocation = formData.location; // Use simple location name, not detailed address
     var coursePrice = formData.price; 
     var courseDuration = formData.courseDuration;
     var courseMode = formData.courseMode;
@@ -1454,10 +1466,6 @@ class FormPage extends Component {
           courseDuration: courseDuration,
           courseTime: courseTime,
           courseMode: courseMode,
-          // Only include courseTime for non-Talks And Seminar courses
-          ...(courseType !== 'Talks And Seminar' && { courseTime: courseTime }),
-          // Only include courseLocation for Talks And Seminar courses
-          ...(courseType === 'Talks And Seminar' && formData.courseLocation && { courseLocation: formData.courseLocation }),
           payment: payment
       },
       agreement: agreement,
@@ -2054,13 +2062,13 @@ class FormPage extends Component {
                 ref={(ref) => (this.courseDetailsRef = ref)}
                 courseEnglishName={formData.englishName}
                 courseChineseName={formData.chineseName}
-                courseLocation={formData.location}
+                extractedLocation={formData.courseLocation}
                 coursePrice={formData.price}
                 courseType={formData.type}
                 courseDuration={formData.courseDuration}
                 courseMode={formData.courseMode}
                 courseTime={formData.courseTime}
-                extractedLocation={formData.courseLocation}
+                courseLocation={formData.location}
                 payment={formData.payment}
                 onChange={this.handleDataChange}
                 age={this.state.age}
@@ -2072,13 +2080,13 @@ class FormPage extends Component {
                 ref={(ref) => (this.courseDetailsRef = ref)}
                 courseEnglishName={formData.englishName}
                 courseChineseName={formData.chineseName}
-                courseLocation={formData.location}
+                extractedLocation={formData.location}
                 coursePrice={formData.price}
                 courseType={formData.type}
                 courseDuration={formData.courseDuration}
                 courseMode={formData.courseMode}
                 courseTime={formData.courseTime}
-                extractedLocation={formData.courseLocation}
+                courseLocation={formData.courseLocation}
                 payment={formData.payment}
                 onChange={this.handleDataChange}
                 isMalayLanguage={formData.isMalayLanguage || false}
@@ -2156,13 +2164,9 @@ class FormPage extends Component {
           </div>
         )}
 
-        {/* Show regular Next/Back buttons for other sections - Hide buttons on SubmitDetailsSection */}
-        {((currentSection > 0 && currentSection < 4) || 
-          (currentSection === 4 && formData.type === 'Marriage Preparation Programme')) && 
-          // Hide buttons when on SubmitDetailsSection
-          !((currentSection === 4 && formData.type !== 'Marriage Preparation Programme' && formData.type !== 'Talks And Seminar') ||
-            (currentSection === 5 && formData.type === 'Marriage Preparation Programme') ||
-            (currentSection === 3 && formData.type === 'Talks And Seminar')) && (
+        {/* Show regular Next/Back buttons for other sections */}
+        {((currentSection > 0 && currentSection < 4 && !(currentSection === 3 && formData.type === 'Talks And Seminar')) || 
+          (currentSection === 4 && formData.type === 'Marriage Preparation Programme')) && (
           <div className="button-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             {/* Hide back button only for PersonalInfo section (section 1) of Marriage Preparation Programme */}
             {!(formData.type === 'Marriage Preparation Programme' && (currentSection === 0 || currentSection === 1)) ? (
