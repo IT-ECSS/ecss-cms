@@ -34,7 +34,7 @@ class CourseDetailsSection extends Component {
 
   render() {
     const { selectedPayment, paymentTouched } = this.state;
-    const { courseType, courseLocation, courseEnglishName, courseChineseName } = this.props;
+    const { courseType, courseLocation, courseEnglishName, courseChineseName, isMalayLanguage } = this.props;
     const isNSA = courseType === 'NSA';
     const isILP = courseType === 'ILP';
     const isMarriagePrep = courseType === 'Marriage Preparation Programme';
@@ -44,33 +44,78 @@ class CourseDetailsSection extends Component {
     //Marriage Preparation Programme
     console.log('CourseDetailsSection props:', this.props);
 
+    // Helper function to get language-appropriate labels
+    const getLabel = (english, chinese, malay) => {
+      // Only apply Malay labels for Talks And Seminar courses with Malay language option
+      if (isTalksAndSeminar && isMalayLanguage && malay) {
+        return `${english} ${malay}`;
+      }
+      return `${english} ${chinese}`;
+    };
+
     return (
-      <div className="course-details-section">
+      <div className="course-details-section1">
+        {/* Title for Talks And Seminar */}
+        {isTalksAndSeminar && (
+          <h3 style={{ marginBottom: '20px', color: '#333', borderBottom: '2px solid #eee', paddingBottom: '10px' }}>
+            {getLabel('Course Details', '', '')}
+          </h3>
+        )}
+        
+        {!isTalksAndSeminar && (
+          <div className="input-group1">
+            <label htmlFor="courseType">{getLabel('Course Type', '课程类型', 'Jenis Kursus')}</label>
+            <span className="course-detail-text" id="courseType">
+              {courseType}
+            </span>
+          </div>
+        )}
         <div className="input-group1">
-          <label htmlFor="courseType">Course Type 课程类型</label>
-          <span className="course-detail-text" id="courseType">
-            {courseType}
-          </span>
-        </div>
-        <div className="input-group1">
-          <label htmlFor="courseName">Course Name 课程名称</label>
+          <label htmlFor="courseName">{getLabel('Course Name', '课程名称', 'Nama Kursus')}</label>
           <span className="course-detail-text" id="courseName">
-            English Name: {this.decodeHtmlEntities(this.props.courseEnglishName)}
+            {this.decodeHtmlEntities(this.props.courseEnglishName)}
           </span>
           <br />
           <span className="course-detail-text" id="courseName">
-            中文名: {this.decodeHtmlEntities(this.props.courseChineseName)}
+           {this.decodeHtmlEntities(this.props.courseChineseName)}
           </span>
         </div>
+        
         <div className="input-group1">
-          <label htmlFor="courseLocation">Course Location 课程地点</label>
+          <label htmlFor="courseLocation">{getLabel('Course Location', '课程地点', 'Lokasi Kursus')}</label>
           <span className="course-detail-text" id="courseLocation">
             {this.props.courseLocation}
           </span>
         </div>
+        
+        {isTalksAndSeminar && (
+          <div className="input-group1">
+            <label htmlFor="courseAddress">{getLabel('Course Address', '课程地址', 'Alamat Kursus')}</label>
+            <span className="course-detail-text" id="courseAddress">
+              {(() => {
+                const address = this.props.extractedLocation;
+                // Check if address contains a 6-digit postal code
+                const postalCodeMatch = address.match(/(.+?)\s*(Singapore\s+)?(\d{6})$/i);
+                if (postalCodeMatch) {
+                  const mainAddress = postalCodeMatch[1].trim();
+                  const postalCode = postalCodeMatch[3];
+                  return (
+                    <>
+                      {mainAddress}
+                      <br />
+                      Singapore {postalCode}
+                    </>
+                  );
+                }
+                return address;
+              })()}
+            </span>
+          </div>
+        )}
+        
         {(isNSA || isPaidTalks) && (  
         <div className="input-group1">
-          <label htmlFor="coursePrice">Course Price 价格</label>
+          <label htmlFor="coursePrice">{getLabel('Course Price', '价格', 'Harga Kursus')}</label>
           <span className="course-detail-text" id="coursePrice">
             {(() => {
               if (isNSA) {
@@ -91,15 +136,24 @@ class CourseDetailsSection extends Component {
 
 
         <div className="input-group1">
-          <label htmlFor="courseDuration">Course Duration 课程时长</label>
+          <label htmlFor="courseDuration">{getLabel('Course Duration', '课程时长', 'Tempoh Kursus')}</label>
           <span className="course-detail-text" id="courseDuration">
             {this.props.courseDuration}
           </span>
         </div>
 
+        {isTalksAndSeminar && (
+          <div className="input-group1">
+            <label htmlFor="courseTime">{getLabel('Time', '时间', 'Masa')}</label>
+            <span className="course-detail-text" id="courseTime">
+              {this.props.courseTime || (isMalayLanguage ? 'Masa akan disediakan' : 'Time will be provided')}
+            </span>
+          </div>
+        )}
+
         {isNSA && (  
         <div className="input-group1">
-          <label htmlFor="courseMode">Course Mode 课程模式</label>
+          <label htmlFor="courseMode">{getLabel('Course Mode', '课程模式', 'Mod Kursus')}</label>
           <span className="course-detail-text" id="courseMode">
             {this.props.courseMode}
           </span>
@@ -107,8 +161,7 @@ class CourseDetailsSection extends Component {
   
         {(isNSA || isMarriagePrep || isPaidTalks) && (  // Payment Options Section for NSA, Marriage Preparation Programme, and paid Talks And Seminar
           <div className="input-group1">
-            <label>I wish to pay by:</label>
-            <label>我希望通过以下方式付款：</label>
+            <label>{getLabel('I wish to pay by:', '我希望通过以下方式付款：', 'Saya ingin membayar dengan:')}</label>
             <div className="payment-options">
               {/* For NSA, keep existing logic. For Marriage Prep and paid Talks, always show Cash option if applicable. */}
               {(isNSA && courseLocation !== 'Pasir Ris West Wellness Centre') || isMarriagePrep || isPaidTalks ? (
@@ -154,10 +207,9 @@ class CourseDetailsSection extends Component {
             </div>
             {/* Display error message if no payment option is selected, paymentTouched is true, and courseType is NSA, Marriage Prep, or paid Talks */}
             {(isNSA || isMarriagePrep || isPaidTalks) && !selectedPayment && paymentTouched && (
-              <>
-                <span className="error-message3">Please select a payment option.</span>
-                <span className="error-message3">请选择付款方式。</span>
-              </>
+              <span className="error-message3">
+                {isMalayLanguage ? 'Sila pilih pilihan pembayaran.' : 'Please select a payment option. 请选择付款方式。'}
+              </span>
             )}
           </div>
         )}

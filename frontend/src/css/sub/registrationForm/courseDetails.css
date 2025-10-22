@@ -1,9 +1,9 @@
 /* Course Details Section Styling */
-.course-details-section {
+.course-details-section1 {
   padding: 1rem; /* Padding around the section */
-  border: 1px solid #ccc; /* Light gray border */
-  border-radius: 4px; /* Rounded corners */
-  background-color: #f9f9f9; /* Light background color */
+  /* border: 1px solid #ccc; */ /* Light gray border - removed */
+  /* border-radius: 4px; */ /* Rounded corners - removed */
+  /*background-color: #f9f9f9;*/ /* Light background color */
 }
 
 /* Input Group */

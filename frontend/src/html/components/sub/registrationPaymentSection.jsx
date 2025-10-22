@@ -2119,7 +2119,26 @@ class RegistrationPaymentSection extends Component {
       hide: shouldHidePaymentColumns // Hide Refunded Date column when filtering by ILP or Talks And Seminar
     },
  {
-      headerName: "Registration And Payment Status",
+      headerName: (() => {
+        // Determine header name based on course types in the data
+        if (dataToCheck && dataToCheck.length > 0) {
+          const courseTypes = dataToCheck.map(row => row.courseInfo?.courseType);
+          const hasNSA = courseTypes.includes('NSA');
+          const hasMarriagePrep = courseTypes.includes('Marriage Preparation Programme');
+          const hasILP = courseTypes.includes('ILP');
+          const hasTalksAndSeminar = courseTypes.includes('Talks And Seminar');
+          
+          // If filtering by specific course type
+          if (selectedCourseType === 'NSA' || selectedCourseType === 'Marriage Preparation Programme') {
+            return "Payment Status";
+          } else if (selectedCourseType === 'ILP' || selectedCourseType === 'Talks And Seminar') {
+            return "Registration Status";
+          }
+        }
+        
+        // Default fallback
+        return "Registration and Payment Status";
+      })(),
       field: "paymentStatus",
       cellEditor: "agSelectCellEditor",
       cellEditorParams: (params) => {

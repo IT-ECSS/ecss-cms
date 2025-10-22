@@ -53,6 +53,7 @@ class FormPage extends Component {
         bgColor: '',
         courseMode: '',
         courseTime: '',
+        courseLocation: '', // Add courseLocation to store venue location from course data
         // Marriage Preparation Programme specific fields
         mARITALSTATUS: '',
         hOUSINGTYPE: '',
@@ -320,6 +321,7 @@ class FormPage extends Component {
     await this.loadCourseData(link, hasSectionParam);
   };
 
+
   // Add method to navigate with section parameter while preserving course link
   navigateToSection = (section) => {
     const params = new URLSearchParams(window.location.search);
@@ -334,7 +336,9 @@ class FormPage extends Component {
     params.set('section', section);
     const newUrl = `${window.location.pathname}?${decodeURIComponent(params.toString())}`;
     window.history.pushState(null, '', newUrl);
-    this.setState({ currentSection: section });
+    if (this._isMounted) {
+      this.setState({ currentSection: section });
+    }
   };
 
   // Update loadCourseData to handle both encoded and decoded links
@@ -521,6 +525,107 @@ class FormPage extends Component {
           console.error("Error extracting course time:", error);
         }
 
+        // Extract course location from short_description
+        let courseLocation = '';
+        try {
+          console.log("Extracting location from short description:", shortDescription);
+          
+          // Look for location patterns in the entire short description
+          const fullDescription = this.decodeHtmlEntities(shortDescription);
+          console.log("Decoded description:", fullDescription);
+          
+          // Split by common separators and look for location patterns
+          const lines = fullDescription.split(/[<>]/g).filter(line => line.trim().length > 0);
+          
+          // First, try to find location with specific keywords
+          for (let line of lines) {
+            const cleanLine = line.replace(/<[^>]*>/g, '').trim();
+            
+            // Look for "Lokasi Location:" pattern followed by address
+            if (cleanLine.match(/(?:Lokasi|Location):\s*(.+)/i)) {
+              const locationMatch = cleanLine.match(/(?:Lokasi|Location):\s*(.+)/i);
+              if (locationMatch && locationMatch[1]) {
+                courseLocation = locationMatch[1].trim();
+                console.log("Successfully extracted location from Lokasi/Location pattern:", courseLocation);
+                break;
+              }
+            }
+            
+            // Look for Singapore addresses or common location patterns with postal codes
+            if (cleanLine.includes('Singapore') || 
+                cleanLine.match(/\d+[A-Z]?\s+[A-Za-z\s]+(?:Road|Street|Avenue|Drive|Lane|Walk|Close|Crescent|Place|Way|Boulevard|Circuit|Park|View|Gardens?|Centre|Building|Tower|Plaza|Square|Mall|Hub)/i) ||
+                cleanLine.match(/^\d+[A-Z]?\s+.+\s+Singapore\s+\d{6}$/i) ||
+                cleanLine.match(/Block\s+\d+/i) ||
+                cleanLine.match(/\d{6}$/i) || // Lines ending with 6-digit postal code
+                (cleanLine.includes('Level') || cleanLine.includes('Floor')) && cleanLine.length > 20) {
+              
+              courseLocation = cleanLine;
+              console.log("Successfully extracted location from address pattern:", courseLocation);
+              break;
+            }
+          }
+          
+          // If no location found with strict patterns, look for any line that might contain location info
+          if (!courseLocation && type === 'Talks And Seminar') {
+            for (let line of lines) {
+              const cleanLine = line.replace(/<[^>]*>/g, '').trim();
+              
+              // Look for lines that might contain venue information, including postal codes
+              if (cleanLine.length > 15 && 
+                  !cleanLine.match(/^\d{1,2}[:.]\d{2}[ap]m/i) && // Not a time
+                  !cleanLine.match(/^\d{1,2}\/\d{1,2}\/\d{4}/) && // Not a date
+                  !cleanLine.includes('http') && // Not a URL
+                  !cleanLine.includes('Contact Number') && // Not contact info
+                  !cleanLine.includes('Fee') && // Not fee info
+                  !cleanLine.includes('$') && // Not price info
+                  (cleanLine.includes('Centre') || cleanLine.includes('Building') || 
+                   cleanLine.includes('Hall') || cleanLine.includes('Room') ||
+                   cleanLine.includes('Level') || cleanLine.includes('Floor') ||
+                   cleanLine.includes('Block') || cleanLine.includes('Unit') ||
+                   cleanLine.includes('Community') || cleanLine.includes('Club') ||
+                   cleanLine.match(/\d{6}/))) { // Also include lines with postal codes
+                
+                courseLocation = cleanLine;
+                console.log("Found potential location:", courseLocation);
+                break;
+              }
+            }
+          }
+          
+          // Additional enhancement: Try to find and append postal code if missing
+          if (courseLocation && !courseLocation.match(/\d{6}/)) {
+            console.log("Location found but no postal code detected, searching for postal code...");
+            for (let line of lines) {
+              const cleanLine = line.replace(/<[^>]*>/g, '').trim();
+              const postalCodeMatch = cleanLine.match(/\b(\d{6})\b/);
+              if (postalCodeMatch && postalCodeMatch[1]) {
+                // Check if this postal code line seems related to the location
+                if (cleanLine.length < 50 && // Short line likely just postal code or address fragment
+                    !cleanLine.includes('Contact') && 
+                    !cleanLine.includes('Fee') && 
+                    !cleanLine.includes('$')) {
+                  courseLocation += ` Singapore ${postalCodeMatch[1]}`;
+                  console.log("Enhanced location with postal code:", courseLocation);
+                  break;
+                }
+              }
+            }
+          }
+          
+          if (!courseLocation) {
+            console.log("Could not extract location from short description");
+          }
+          
+          // Standardize the extracted course location address format
+          if (courseLocation) {
+            courseLocation = this.standardizeLocationAddress(courseLocation, selectedLocation);
+            console.log("Standardized course location:", courseLocation);
+          }
+          
+        } catch (error) {
+          console.error("Error extracting course location:", error);
+        }
+
         const cleanedStartDate = startDateParagraph.replace("<strong>", "").replace("</strong>", "").replace("</p>", "").split("<br />")[2];
         const cleanedEndDate = endDateParagraph.replace("<strong>", "").replace("</strong>", "").replace("</p>", "").split("<br />")[2];
         
@@ -532,39 +637,129 @@ class FormPage extends Component {
         const courseParts = matchedCourse.name.split(/<br\s*\/?>/).map(part => part.trim());
         const formattedPrice = matchedCourse.price ? `$${parseFloat(matchedCourse.price).toFixed(2)}` : "$0.00";
 
+        // Check language attribute to determine naming strategy
+        let languageOptions = [];
+        if (matchedCourse.attributes && 
+            matchedCourse.attributes[0] && 
+            matchedCourse.attributes[0].slug === 'pa_language' &&
+            matchedCourse.attributes[0].options && 
+            matchedCourse.attributes[0].options.length > 0) {
+          languageOptions = matchedCourse.attributes[0].options;
+          console.log("Course language attributes:", languageOptions);
+        }
+
+        // Determine if this is English+Chinese or English+Malay based on language attributes
+        // Check if any language option contains 'Chinese' or 'Malay'
+        const isChineseLanguage = languageOptions.some(option => option.includes('Chinese'));
+        const isMalayLanguage = languageOptions.some(option => option.includes('Malay'));
+        
+        // Log language detection for debugging
+        if (type === 'Talks And Seminar') {
+          console.log("Talks And Seminar course detected");
+          console.log("Language options:", languageOptions);
+          console.log("Is Chinese Language:", isChineseLanguage);
+          console.log("Is Malay Language:", isMalayLanguage);
+        }
+
         // Update course details in state - consolidated to avoid setState before mount
         let courseData = {};
+        
         if (courseParts.length === 3) {
-          courseData = {
-            chineseName: courseParts[0],
-            englishName: courseParts[1],
-            location: selectedLocation,
-            price: formattedPrice,
-            type,
-            courseDuration,
-            courseTime,
-            courseMode
-          };
+          if (isChineseLanguage) {
+            // Chinese + English - keep both
+            courseData = {
+              chineseName: courseParts[0],
+              englishName: courseParts[1],
+              location: selectedLocation,
+              price: formattedPrice,
+              type,
+              courseDuration,
+              courseTime,
+              courseMode,
+              courseLocation
+            };
+          } else if (isMalayLanguage) {
+            // Malay + English - store Malay in chineseName field
+            courseData = {
+              englishName: courseParts[1],
+              chineseName: courseParts[0], // Store Malay name in chineseName field
+              isMalayLanguage: true, // Flag to indicate this is Malay content
+              location: selectedLocation,
+              price: formattedPrice,
+              type,
+              courseDuration,
+              courseTime,
+              courseMode,
+              courseLocation
+            };
+          } else {
+            // Default behavior
+            courseData = {
+              chineseName: courseParts[0],
+              englishName: courseParts[1],
+              location: selectedLocation,
+              price: formattedPrice,
+              type,
+              courseDuration,
+              courseTime,
+              courseMode,
+              courseLocation
+            };
+          }
         } else if (courseParts.length === 2) {
-          courseData = {
-            englishName: courseParts[0] || '',
-            chineseName: courseParts[1] || '', // Re-enable for Malay names in Talks And Seminar
-            location: selectedLocation,
-            price: formattedPrice,
-            type,
-            courseDuration,
-            courseTime,
-            courseMode
-          };
+          if (isChineseLanguage) {
+            // English + Chinese - keep both
+            courseData = {
+              englishName: courseParts[0] || '',
+              chineseName: courseParts[1] || '',
+              location: selectedLocation,
+              price: formattedPrice,
+              type,
+              courseDuration,
+              courseTime,
+              courseMode,
+              courseLocation
+            };
+          } else if (isMalayLanguage) {
+            // English + Malay - store Malay in chineseName field
+            courseData = {
+              englishName: courseParts[0] || '',
+              chineseName: courseParts[1] || '', // Store Malay name in chineseName field
+              isMalayLanguage: true, // Flag to indicate this is Malay content
+              location: selectedLocation,
+              price: formattedPrice,
+              type,
+              courseDuration,
+              courseTime,
+              courseMode,
+              courseLocation
+            };
+          } else {
+            // Default behavior - detect language in content
+            const processedNames = this.processCourseName(courseParts);
+            courseData = {
+              englishName: processedNames.englishName,
+              chineseName: processedNames.chineseName || '',
+              location: selectedLocation,
+              price: formattedPrice,
+              type,
+              courseDuration,
+              courseTime,
+              courseMode,
+              courseLocation
+            };
+          }
         } else if (courseParts.length === 1) {
           courseData = {
             englishName: courseParts[0],
+            chineseName: '',
             location: selectedLocation,
             price: formattedPrice,
             type,
             courseDuration,
             courseTime,
-            courseMode
+            courseMode,
+            courseLocation
           };
         }
 
@@ -637,24 +832,26 @@ class FormPage extends Component {
 
   handleDataChange = (newData) => {
     try {
-      this.setState((prevState) => {
-        const updatedFormData = {
-          ...prevState.formData,
-          ...newData,
-        };
-        
-        const key = Object.keys(newData)[0];
-        const updatedValidationErrors = { ...prevState.validationErrors };
-    
-        if (updatedValidationErrors[key]) {
-          delete updatedValidationErrors[key];
-        }
-    
-        return {
-          formData: updatedFormData,
-          validationErrors: updatedValidationErrors,
-        };
-      });
+      if (this._isMounted) {
+        this.setState((prevState) => {
+          const updatedFormData = {
+            ...prevState.formData,
+            ...newData,
+          };
+          
+          const key = Object.keys(newData)[0];
+          const updatedValidationErrors = { ...prevState.validationErrors };
+      
+          if (updatedValidationErrors[key]) {
+            delete updatedValidationErrors[key];
+          }
+      
+          return {
+            formData: updatedFormData,
+            validationErrors: updatedValidationErrors,
+          };
+        });
+      }
     }
     catch(error) {
       console.log(error);
@@ -679,7 +876,9 @@ class FormPage extends Component {
     this.navigateToSection(1);
     window.scrollTo(0, 0);
     
-    this.setState({ isAuthenticated: true });
+    if (this._isMounted) {
+      this.setState({ isAuthenticated: true });
+    }
   };
 
   populateFormWithSingPassData = () => {
@@ -738,13 +937,15 @@ class FormPage extends Component {
         eMAIL: false
       };
   
-      this.setState(prevState => ({
-        formData: {
-          ...prevState.formData,
-          ...formattedData
-        },
-        singPassPopulatedFields: singPassPopulatedFields
-      }));
+      if (this._isMounted) {
+        this.setState(prevState => ({
+          formData: {
+            ...prevState.formData,
+            ...formattedData
+          },
+          singPassPopulatedFields: singPassPopulatedFields
+        }));
+      }
   
       console.log('Form populated with SingPass data successfully');
     } catch (error) {
@@ -789,12 +990,14 @@ class FormPage extends Component {
     };
 
     // Reset state
-    this.setState({
-      isAuthenticated: false,
-      singPassPopulatedFields: {},
-      formData: clearedFormData,
-      validationErrors: {}
-    });
+    if (this._isMounted) {
+      this.setState({
+        isAuthenticated: false,
+        singPassPopulatedFields: {},
+        formData: clearedFormData,
+        validationErrors: {}
+      });
+    }
 
     console.log('SingPass data cleared successfully');
   };
@@ -802,34 +1005,52 @@ class FormPage extends Component {
   // Handle MyInfo/SingPass error
   handleMyInfoError = (errorMessage = 'MyInfo is currently unavailable.') => {
     console.log('MyInfo error occurred:', errorMessage);
-    this.setState({
-      myInfoError: true,
-      showMyInfoErrorModal: true,
-      myInfoErrorMessage: errorMessage
-    });
+    if (this._isMounted) {
+      this.setState({
+        myInfoError: true,
+        showMyInfoErrorModal: true,
+        myInfoErrorMessage: errorMessage
+      });
+    }
   };
 
   // Handle closing MyInfo error modal and proceed with manual entry
   handleCloseMyInfoErrorModal = () => {
-    this.setState({
-      showMyInfoErrorModal: false
-    });
+    if (this._isMounted) {
+      this.setState({
+        showMyInfoErrorModal: false
+      });
+    }
   };
 
   // Handle proceeding with manual form entry after MyInfo error
   handleProceedManually = () => {
-    this.setState({
-      showMyInfoErrorModal: false,
-      isAuthenticated: true,
-      currentSection: 1 // Move to personal info section for manual entry
-    });
+    if (this._isMounted) {
+      this.setState({
+        showMyInfoErrorModal: false,
+        isAuthenticated: true,
+        currentSection: 1 // Move to personal info section for manual entry
+      });
+    }
   };
 
   handleNext = () => {
     console.log("Pressed Next");
-    const errors = this.validateForm();
     const { currentSection, formData } = this.state;
     console.log("Current Section:", currentSection);
+    console.log("Form Data:", formData);
+
+    // Special case: For Talks And Seminar in section 0, skip validation and go directly to next section
+    if (formData.type === 'Talks And Seminar' && currentSection === 0) {
+      console.log("Talks And Seminar section 0 - skipping validation, going to section 1");
+      this.navigateToSection(1);
+      window.scrollTo(0, 0);
+      return;
+    }
+
+    // For all other cases, run validation
+    const errors = this.validateForm();
+    console.log("Validation Errors:", errors);
 
     // For Marriage Preparation Programme and Talks And Seminar, treat section 0 as section 1 for validation
     const effectiveSection = ((formData.type === 'Marriage Preparation Programme' || formData.type === 'Talks And Seminar') && currentSection === 0) ? 1 : currentSection;
@@ -851,6 +1072,10 @@ class FormPage extends Component {
           this.agreementDetailsRef.setState({ marriagePrepInteracted: true });
         }
       }
+    } else if (formData.type === 'Talks And Seminar') {
+      // Talks And Seminar flow: 0 (PersonalInfo) -> 1 (CourseDetails) -> 2 -> 3 (Submit)
+      // No additional validation needed for course details section
+      console.log("Talks And Seminar - Go Next");
     } else {
       // Original flow for NSA/ILP: 0 -> 1 -> 2 -> 3 -> 4
       if (effectiveSection === 2) {
@@ -869,28 +1094,26 @@ class FormPage extends Component {
     }
 
     if (Object.keys(errors).length === 0) {
-      const maxSection = formData.type === 'Marriage Preparation Programme' ? 5 : 4;
+      let nextSection = this.state.currentSection + 1;
       
-      if (this.state.currentSection < maxSection) {
-        let nextSection = this.state.currentSection + 1;
-        
-        // For Marriage Preparation Programme, skip section 1 if starting from section 0
-        if (formData.type === 'Marriage Preparation Programme' && currentSection === 0) {
-          nextSection = 2; // Skip section 1 (PersonalInfo is shown in section 0)
-        }
-        
-        this.navigateToSection(nextSection);
-        window.scrollTo(0, 0);
+      // For Marriage Preparation Programme, skip section 1 if starting from section 0
+      if (formData.type === 'Marriage Preparation Programme' && currentSection === 0) {
+        nextSection = 2; // Skip section 1 (PersonalInfo is shown in section 0)
       }
+      
+      this.navigateToSection(nextSection);
+      window.scrollTo(0, 0);
       
       // Handle submission for both course types
       if ((formData.type === 'Marriage Preparation Programme' && this.state.currentSection === 4) ||
-          (formData.type === 'Talks And Seminar' && this.state.currentSection === 2) ||
+          (formData.type === 'Talks And Seminar' && this.state.currentSection === 3) ||
           (formData.type !== 'Marriage Preparation Programme' && formData.type !== 'Talks And Seminar' && this.state.currentSection === 3)) {
         this.handleSubmit();
       }
     } else {
-      this.setState({ validationErrors: errors });
+      if (this._isMounted) {
+        this.setState({ validationErrors: errors });
+      }
     }
   };
 
@@ -913,8 +1136,11 @@ class FormPage extends Component {
   isCurrentSectionValid = () => {
     const { currentSection, formData } = this.state;
     
+    console.log("isCurrentSectionValid check - currentSection:", currentSection, "formData.type:", formData.type);
+    
     // For Marriage Preparation Programme and Talks And Seminar, allow navigation without validation
     if (formData.type === 'Marriage Preparation Programme' || formData.type === 'Talks And Seminar') {
+      console.log("Returning true for Marriage Prep or Talks And Seminar");
       return true;
     }
     
@@ -948,6 +1174,229 @@ class FormPage extends Component {
     const decodedString = parser.parseFromString(`<!doctype html><body>${text}`, "text/html").body.textContent;
     return decodedString;
   }
+
+  // Function to dynamically standardize course location addresses
+  standardizeLocationAddress = (location, locationName) => {
+    if (!location && !locationName) return '';
+    
+    console.log('Standardizing location:', { location, locationName });
+    
+    // Venue postal code lookup for cases where postal code is missing
+    const venuePostalCodes = {
+      'CT Hub': '529684',
+      'Our Tampines Hub': '529684', 
+      'Tampines Hub': '529684',
+      'Tampines North Community Centre': '529204',
+      'Tampines North CC': '529204',
+      'Tampines North Community Club': '529204',
+      'Tampines 253 Centre': '520253',
+      '恩 Project@253': '520253',
+      'Pasir Ris West Wellness Centre': '519639',
+      'Pasir Ris West': '519639'
+    };
+    
+    // If we have a clean location string that already looks like a proper address, use it
+    if (location) {
+      const cleanLocation = location.trim();
+      
+      // Check if it already has a good format (contains street number, name, and postal code)
+      const hasStreetNumber = /^\d+[A-Z]?\s/.test(cleanLocation);
+      const hasPostalCode = /\d{6}/.test(cleanLocation);
+      const hasStreetName = /(?:Street|Road|Avenue|Drive|Lane|Walk|Close|Crescent|Place|Way|Boulevard|Circuit|Park|View|Gardens?|Centre|Building|Tower|Plaza|Square|Mall|Hub)/i.test(cleanLocation);
+      
+      if (hasStreetNumber && hasPostalCode && hasStreetName) {
+        // Address looks complete, just ensure proper formatting
+        let standardized = cleanLocation;
+        
+        // Ensure "Singapore" is included before postal code if not present
+        if (!standardized.includes('Singapore')) {
+          standardized = standardized.replace(/(\d{6})/, 'Singapore $1');
+        }
+        
+        // Clean up extra spaces and ensure proper comma placement
+        standardized = standardized
+          .replace(/\s+/g, ' ')                    // Multiple spaces to single space
+          .replace(/,\s*,/g, ',')                  // Remove double commas
+          .replace(/,\s*Singapore/g, ', Singapore') // Ensure comma before Singapore
+          .trim();
+        
+        console.log('Address already well-formatted:', standardized);
+        return standardized;
+      }
+      
+      // Try to extract components from a less formatted address
+      const components = this.extractAddressComponents(cleanLocation);
+      
+      // If no postal code found but we have venue name, try to add it
+      if (!components.postalCode && locationName && venuePostalCodes[locationName]) {
+        components.postalCode = venuePostalCodes[locationName];
+        console.log(`Added postal code ${components.postalCode} for venue: ${locationName}`);
+      }
+      
+      // Also check if the location text itself contains a venue name
+      if (!components.postalCode) {
+        for (const [venueName, postal] of Object.entries(venuePostalCodes)) {
+          if (cleanLocation.toLowerCase().includes(venueName.toLowerCase())) {
+            components.postalCode = postal;
+            console.log(`Found venue ${venueName} in location text, added postal code: ${postal}`);
+            break;
+          }
+        }
+      }
+      
+      if (components.streetNumber && components.streetName) {
+        const formatted = this.formatAddressComponents(components);
+        console.log('Formatted extracted components:', formatted);
+        return formatted;
+      }
+      
+      // If we still don't have a complete address but have some components, format what we have
+      if (components.streetNumber || components.streetName || components.buildingName) {
+        // Add postal code if we can identify the venue
+        if (!components.postalCode && locationName && venuePostalCodes[locationName]) {
+          components.postalCode = venuePostalCodes[locationName];
+        }
+        
+        const formatted = this.formatAddressComponents(components);
+        if (formatted) {
+          console.log('Formatted partial components:', formatted);
+          return formatted;
+        }
+      }
+    }
+    
+    // If locationName exists and we have a postal code for it, try to construct a basic address
+    if (locationName && venuePostalCodes[locationName]) {
+      const basicAddress = `${locationName}, Singapore ${venuePostalCodes[locationName]}`;
+      console.log('Created basic address from venue name:', basicAddress);
+      return basicAddress;
+    }
+    
+    console.log('Using original location as fallback:', location || locationName || '');
+    return location || locationName || '';
+  };
+
+  // Extract address components from unformatted text
+  extractAddressComponents = (text) => {
+    const components = {
+      streetNumber: '',
+      streetName: '',
+      unitNumber: '',
+      buildingName: '',
+      postalCode: '',
+      country: 'Singapore'
+    };
+    
+    console.log('Extracting components from:', text);
+    
+    // Extract postal code (6 digits anywhere in the text)
+    const postalMatch = text.match(/\b(\d{6})\b/);
+    if (postalMatch) {
+      components.postalCode = postalMatch[1];
+      console.log('Found postal code:', components.postalCode);
+    }
+    
+    // Extract street number (number at the beginning or after common prefixes)
+    const streetNumberMatch = text.match(/(?:^|\s)(\d+[A-Z]?)\s+(?:Tampines|Pasir Ris|Block|Street|Road|Avenue)/i) || 
+                             text.match(/^(\d+[A-Z]?)\s/);
+    if (streetNumberMatch) {
+      components.streetNumber = streetNumberMatch[1];
+      console.log('Found street number:', components.streetNumber);
+    }
+    
+    // Extract unit number (format like #01-03, #B1-31, etc.)
+    const unitMatch = text.match(/#([^,\s]+)/);
+    if (unitMatch) {
+      components.unitNumber = unitMatch[1];
+      console.log('Found unit number:', components.unitNumber);
+    }
+    
+    // Extract street name (more flexible patterns)
+    let streetNameMatch = text.match(/\d+[A-Z]?\s+([^#,]+?)(?:\s+#|\s*,|\s+Singapore|\s*\d{6}|\s*$)/i);
+    if (!streetNameMatch) {
+      // Try alternative patterns for street names
+      streetNameMatch = text.match(/(?:Tampines|Pasir Ris)\s+([^#,]+?)(?:\s+#|\s*,|$)/i) ||
+                       text.match(/Block\s+\d+[A-Z]?\s+([^#,]+?)(?:\s+#|\s*,|$)/i) ||
+                       text.match(/(\w+\s+(?:Street|Road|Avenue|Drive|Lane|Walk|Close|Crescent|Place|Way|Boulevard|Circuit|Park|View))/i);
+    }
+    if (streetNameMatch) {
+      components.streetName = streetNameMatch[1].trim();
+      console.log('Found street name:', components.streetName);
+    }
+    
+    // Extract building name (text after unit number or descriptive building names)
+    let buildingMatch = text.match(/#[^,]*,?\s*([^,]+?)(?:\s*,\s*Singapore|\s*Singapore|\s*\d{6}|\s*$)/i);
+    if (!buildingMatch) {
+      // Try alternative patterns for building names
+      buildingMatch = text.match(/(?:Community Centre|Community Club|Centre|Building|Hub|Tower|Plaza|Mall)([^,]*)/i) ||
+                     text.match(/([^,]*(?:Community Centre|Community Club|Centre|Building|Hub|Tower|Plaza|Mall))/i);
+    }
+    if (buildingMatch) {
+      const building = buildingMatch[1].trim();
+      // Exclude single digit numbers, postal codes, or meaningless fragments
+      if (building && 
+          !building.match(/^\d{6}$/) && // Not a postal code
+          !building.match(/^\d{1,2}$/) && // Not a single/double digit number
+          building.length > 2 && // Must be longer than 2 characters
+          !building.match(/^[,\s]+$/)) { // Not just punctuation and spaces
+        components.buildingName = building;
+        console.log('Found building name:', components.buildingName);
+      }
+    }
+    
+    // If no specific building name found, but we have descriptive text, use it
+    if (!components.buildingName) {
+      // Look for venue-specific names
+      const venueMatch = text.match(/(CT Hub|Our Tampines Hub|Tampines Hub|Community Centre|Community Club|Wellness Centre)/i);
+      if (venueMatch) {
+        components.buildingName = venueMatch[1];
+        console.log('Found venue name:', components.buildingName);
+      }
+    }
+    
+    console.log('Extracted components:', components);
+    return components;
+  };
+
+  // Format address components into standardized format
+  formatAddressComponents = (components) => {
+    const parts = [];
+    
+    console.log('Formatting components:', components);
+    
+    // Street number and name
+    if (components.streetNumber && components.streetName) {
+      parts.push(`${components.streetNumber} ${components.streetName}`);
+    } else if (components.streetNumber) {
+      // If we have street number but no street name, still include it
+      parts.push(components.streetNumber);
+    } else if (components.streetName) {
+      // If we have street name but no number, still include it
+      parts.push(components.streetName);
+    }
+    
+    // Unit number
+    if (components.unitNumber) {
+      parts.push(`#${components.unitNumber}`);
+    }
+    
+    // Building name
+    if (components.buildingName) {
+      parts.push(components.buildingName);
+    }
+    
+    // Country and postal code
+    if (components.postalCode) {
+      parts.push(`${components.country} ${components.postalCode}`);
+    } else if (parts.length > 0) {
+      // If we have address parts but no postal code, still add Singapore
+      parts.push(components.country);
+    }
+    
+    const formatted = parts.join(', ');
+    console.log('Formatted address:', formatted);
+    return formatted;
+  };
   
 
   handleSubmit = () => {
@@ -970,8 +1419,9 @@ class FormPage extends Component {
     // Course 
     var courseType = formData.type;
     var courseEngName = this.decodeHtmlEntities(formData.englishName);
+    // courseChiName contains either Chinese name or Malay name depending on language
     var courseChiName = this.decodeHtmlEntities(formData.chineseName);
-    var courseLocation = formData.location;
+    var courseLocation = formData.location; // Use simple location instead of detailed address
     var coursePrice = formData.price; 
     var courseDuration = formData.courseDuration;
     var courseMode = formData.courseMode;
@@ -1002,8 +1452,12 @@ class FormPage extends Component {
           courseLocation: courseLocation,
           coursePrice: coursePrice,
           courseDuration: courseDuration,
-          courseMode: courseMode,
           courseTime: courseTime,
+          courseMode: courseMode,
+          // Only include courseTime for non-Talks And Seminar courses
+          ...(courseType !== 'Talks And Seminar' && { courseTime: courseTime }),
+          // Only include courseLocation for Talks And Seminar courses
+          ...(courseType === 'Talks And Seminar' && formData.courseLocation && { courseLocation: formData.courseLocation }),
           payment: payment
       },
       agreement: agreement,
@@ -1055,6 +1509,22 @@ class FormPage extends Component {
       .then((response) => {
         console.log('Form submitted successfully', response.data);
         if (response.data) {
+          // Navigate to SubmitDetailsSection after successful submission
+          const { formData } = this.state;
+          let nextSection;
+          
+          if (formData.type === 'Marriage Preparation Programme') {
+            nextSection = 5; // Section 5 for Marriage Preparation Programme
+          } else if (formData.type === 'Talks And Seminar') {
+            nextSection = 3; // Section 3 for Talks And Seminar
+          } else {
+            nextSection = 4; // Section 4 for regular courses (NSA/ILP)
+          }
+          
+          // Navigate to the submit details section
+          this.navigateToSection(nextSection);
+          window.scrollTo(0, 0);
+          
           // Clear session storage after successful submission
           // Send WhatsApp registration message via backend using Interakt template "course_registration_submission"
           axios.post(
@@ -1119,6 +1589,23 @@ class FormPage extends Component {
   }
 
   isValidDOB(dob, courseType) {
+    // Special handling for Talks And Seminar - year only format (yyyy)
+    if (courseType === 'Talks And Seminar') {
+      if (!dob) {
+        return { isValid: false, error: 'Birth Year is required. 出生年份是必填项。' };
+      }
+      // Check if it's a 4-digit year
+      if (!/^\d{4}$/.test(dob)) {
+        return { isValid: false, error: 'Birth Year must be a 4-digit year. 出生年份必须是4位数字。' };
+      }
+      const year = parseInt(dob, 10);
+      const currentYear = new Date().getFullYear();
+      if (year < 1900 || year > currentYear + 10) {
+        return { isValid: false, error: `Birth Year must be between 1900 and ${currentYear + 10}. 出生年份必须在1900年至${currentYear + 10}年之间。` };
+      }
+      return { isValid: true, error: null };
+    }
+    
     // Only enforce 50+ age restriction for ILP and NSA
     if (courseType !== 'ILP' && courseType !== 'NSA') {
       // For Marriage Preparation Programme and other types, just check DOB is present and valid format
@@ -1154,7 +1641,11 @@ class FormPage extends Component {
       const currentYear = new Date().getFullYear();
       const birthYear = dobDate.getFullYear();
       const age = currentYear - birthYear;
-      this.setState({ age });
+      if (this._isMounted) {
+        this.setState({ age });
+      } else {
+        this.state.age = age;
+      }
       /*if (age < 50) {
         return { isValid: false, error: 'Age must be at least 50 years. 年龄必须至少为50岁。' };
       }*/
@@ -1167,7 +1658,11 @@ class FormPage extends Component {
       const currentYear = new Date().getFullYear();
       const birthYear = new Date(dob.formattedDate1).getFullYear();
       const age = currentYear - birthYear;
-      this.setState({ age });
+      if (this._isMounted) {
+        this.setState({ age });
+      } else {
+        this.state.age = age;
+      }
       /*if (age < 50) {
         return { isValid: false, error: 'Age must be at least 50 years. 年龄必须至少为50岁。' };
       }*/
@@ -1191,9 +1686,48 @@ class FormPage extends Component {
       return errors;
     }
     if (effectiveSection === 1) {
-      // Skip all validation for Marriage Preparation Programme and Talks And Seminar - allow direct navigation
-      if (formData.type === 'Marriage Preparation Programme' || formData.type === 'Talks And Seminar') {
-        // No validation required for Marriage Preparation Programme and Talks And Seminar
+      // Skip all validation for Marriage Preparation Programme - allow direct navigation
+      if (formData.type === 'Marriage Preparation Programme') {
+        // No validation required for Marriage Preparation Programme
+        return errors;
+      }
+      
+      // Validation for Talks And Seminar courses
+      if (formData.type === 'Talks And Seminar') {
+        // Required fields for Talks And Seminar: Name, Contact No., Birth Year, Residential Status, Postal Code
+        if (!formData.pName) {
+          errors.pName = 'Name is required. 姓名是必填项。';
+        }
+        if (!formData.cNO) {
+          errors.cNO = 'Contact No. is required. 联系号码是必填项。';
+        }
+        if (formData.cNO && !/^\d+$/.test(formData.cNO)) {
+          errors.cNO = 'Contact No. must contain only numbers. 联系号码只能包含数字。';
+        }
+        if (formData.cNO && formData.cNO.length !== 8) {
+          errors.cNO = 'Contact No. must be exactly 8 digits. 联系号码必须是8位数字。';
+        }
+        if (formData.cNO && !/^[89]/.test(formData.cNO)) {
+          errors.cNO = 'Contact No. must start with 8 or 9. 联系号码必须以8或9开头。';
+        }
+        if (!formData.dOB) {
+          errors.dOB = 'Birth Year is required. 出生年份是必填项。';
+        }
+        if (formData.dOB) {
+          const { isValid, error } = this.isValidDOB(formData.dOB, formData.type);
+          if (!isValid) {
+            errors.dOB = error;
+          }
+        }
+        if (!formData.rESIDENTIALSTATUS) {
+          errors.rESIDENTIALSTATUS = 'Residential Status is required. 居民身份是必填项。';
+        }
+        if (!formData.postalCode) {
+          errors.postalCode = 'Postal Code is required. 邮编是必填项。';
+        }
+        if (formData.postalCode && !/^\d{6}$/.test(formData.postalCode)) {
+          errors.postalCode = 'Postal Code must be exactly 6 digits. 邮编必须是6位数字。';
+        }
         return errors;
       }
       
@@ -1323,12 +1857,14 @@ class FormPage extends Component {
     const { message, severity, category, suggestedAction } = errorInfo;
     
     // Update state with error information
-    this.setState({
-      myInfoError: true,
-      showMyInfoErrorModal: true,
-      myInfoErrorMessage: message,
-      serviceRecommendations: this.myInfoErrorHandler.getErrorRecommendations()
-    });
+    if (this._isMounted) {
+      this.setState({
+        myInfoError: true,
+        showMyInfoErrorModal: true,
+        myInfoErrorMessage: message,
+        serviceRecommendations: this.myInfoErrorHandler.getErrorRecommendations()
+      });
+    }
 
     // Log for debugging
     console.error('Real-time MyInfo error:', {
@@ -1344,14 +1880,18 @@ class FormPage extends Component {
     const { type, status } = statusInfo;
     
     if (type === 'service') {
-      this.setState({
-        myInfoServiceStatus: status,
-        serviceRecommendations: this.myInfoErrorHandler.getErrorRecommendations()
-      });
+      if (this._isMounted) {
+        this.setState({
+          myInfoServiceStatus: status,
+          serviceRecommendations: this.myInfoErrorHandler.getErrorRecommendations()
+        });
+      }
     } else if (type === 'network') {
-      this.setState({
-        networkOnline: status === 'online'
-      });
+      if (this._isMounted) {
+        this.setState({
+          networkOnline: status === 'online'
+        });
+      }
     }
   };
 
@@ -1459,6 +1999,15 @@ class FormPage extends Component {
         </div>
       );
     }     
+
+    // Helper function to get language-appropriate button labels for Talks And Seminar
+    const getButtonLabel = (english, chinese, malay) => {
+      // For Talks And Seminar courses with Malay language option, show English and Malay
+      if (formData.type === 'Talks And Seminar' && formData.isMalayLanguage && malay) {
+        return `${english} ${malay}`;
+      }
+      return `${english} ${chinese}`;
+    };
   
     return (
       <div className="formwholepage" style={{ backgroundColor: bgColor }}>
@@ -1490,6 +2039,7 @@ class FormPage extends Component {
                 onClearSingPassData={formData.type === 'Marriage Preparation Programme' || formData.type === 'Talks And Seminar' ? null : this.clearSingPassData}
                 hideMyInfoOptions={formData.type === 'Marriage Preparation Programme' || formData.type === 'Talks And Seminar'}
                 showLimitedFields={formData.type === 'Talks And Seminar'}
+                isMalayLanguage={formData.isMalayLanguage || false} // Pass Malay language flag
               />
             )}
             {currentSection === 2 && formData.type === 'Marriage Preparation Programme' && (
@@ -1509,9 +2059,12 @@ class FormPage extends Component {
                 courseType={formData.type}
                 courseDuration={formData.courseDuration}
                 courseMode={formData.courseMode}
+                courseTime={formData.courseTime}
+                extractedLocation={formData.courseLocation}
                 payment={formData.payment}
                 onChange={this.handleDataChange}
-                  age={this.state.age}
+                age={this.state.age}
+                isMalayLanguage={formData.isMalayLanguage || false}
               />
             )}
             {currentSection === 3 && formData.type === 'Marriage Preparation Programme' && (
@@ -1524,8 +2077,11 @@ class FormPage extends Component {
                 courseType={formData.type}
                 courseDuration={formData.courseDuration}
                 courseMode={formData.courseMode}
+                courseTime={formData.courseTime}
+                extractedLocation={formData.courseLocation}
                 payment={formData.payment}
                 onChange={this.handleDataChange}
+                isMalayLanguage={formData.isMalayLanguage || false}
               />
             )}
             {currentSection === 3 && formData.type !== 'Marriage Preparation Programme' && formData.type !== 'Talks And Seminar' && (
@@ -1548,7 +2104,11 @@ class FormPage extends Component {
             )}
             {((currentSection === 4 && formData.type !== 'Marriage Preparation Programme' && formData.type !== 'Talks And Seminar') ||
               (currentSection === 5 && formData.type === 'Marriage Preparation Programme') ||
-              (currentSection === 3 && formData.type === 'Talks And Seminar')) && <SubmitDetailsSection />}
+              (currentSection === 3 && formData.type === 'Talks And Seminar')) && 
+              <SubmitDetailsSection 
+                courseType={formData.type}
+                isMalayLanguage={formData.isMalayLanguage || false}
+              />}
           </div>
         </div>
 
@@ -1560,7 +2120,7 @@ class FormPage extends Component {
               disabled={!this.isCurrentSectionValid()}
               className="next-button"
             >
-              Next 下一步
+              {getButtonLabel('Next', '下一步', 'Seterusnya')}
             </button>
           </div>
         )}
@@ -1573,7 +2133,7 @@ class FormPage extends Component {
               disabled={!this.isCurrentSectionValid()}
               className="next-button"
             >
-              Next 下一步
+              {getButtonLabel('Next', '下一步', 'Seterusnya')}
             </button>
             <SingPassButton 
               buttonText="Retrieve Myinfo with" 
@@ -1596,10 +2156,13 @@ class FormPage extends Component {
           </div>
         )}
 
-        {/* Show regular Next/Back buttons for other sections */}
+        {/* Show regular Next/Back buttons for other sections - Hide buttons on SubmitDetailsSection */}
         {((currentSection > 0 && currentSection < 4) || 
-          (currentSection === 0 && formData.type === 'Marriage Preparation Programme') ||
-          (currentSection === 4 && formData.type === 'Marriage Preparation Programme')) && (
+          (currentSection === 4 && formData.type === 'Marriage Preparation Programme')) && 
+          // Hide buttons when on SubmitDetailsSection
+          !((currentSection === 4 && formData.type !== 'Marriage Preparation Programme' && formData.type !== 'Talks And Seminar') ||
+            (currentSection === 5 && formData.type === 'Marriage Preparation Programme') ||
+            (currentSection === 3 && formData.type === 'Talks And Seminar')) && (
           <div className="button-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             {/* Hide back button only for PersonalInfo section (section 1) of Marriage Preparation Programme */}
             {!(formData.type === 'Marriage Preparation Programme' && (currentSection === 0 || currentSection === 1)) ? (
@@ -1607,20 +2170,23 @@ class FormPage extends Component {
                 onClick={this.handleBack} 
                 disabled={currentSection === 0}
               >
-                Back 返回
+                {getButtonLabel('Back', '返回', 'Kembali')}
               </button>
             ) : (
               <div></div> // Empty div to maintain flex spacing
             )}
             <button 
-              onClick={this.handleNext} 
+              onClick={(currentSection === 3 && formData.type !== 'Marriage Preparation Programme' && formData.type !== 'Talks And Seminar') || 
+                       (currentSection === 4 && formData.type === 'Marriage Preparation Programme') ||
+                       (currentSection === 2 && formData.type === 'Talks And Seminar') ? 
+                       this.handleSubmit : this.handleNext} 
               disabled={!this.isCurrentSectionValid()}
               style={{ marginLeft: 'auto' }}
             >
-              {(currentSection === 3 && formData.type !== 'Marriage Preparation Programme' && formData.type !== 'Talks And Seminar') || 
+              {(currentSection === 3 && formData.type !== 'Marriage Preparation Programme') || 
                (currentSection === 4 && formData.type === 'Marriage Preparation Programme') ||
                (currentSection === 2 && formData.type === 'Talks And Seminar') ? 
-               'Submit 提交' : 'Next 下一步'}
+               getButtonLabel('Submit', '提交', 'Hantar') : getButtonLabel('Next', '下一步', 'Seterusnya')}
             </button>
           </div>
         )}
@@ -1649,7 +2215,7 @@ class FormPage extends Component {
                 minWidth: '100px'
               }}
             >
-              OK
+              {getButtonLabel('OK', 'OK', 'Baik')}
             </button>
           </div>
         )}

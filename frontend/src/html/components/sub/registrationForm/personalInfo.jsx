@@ -180,7 +180,7 @@ class PersonalInfo extends Component {
   };
 
   handleChange1 = (e, field) => {
-    const { singPassPopulatedFields } = this.props;
+    const { singPassPopulatedFields, showLimitedFields } = this.props;
     
     if (field === "DOB") {
       // Don't allow changes to DOB if it's populated by SingPass
@@ -189,47 +189,348 @@ class PersonalInfo extends Component {
       }
       
       let { name, value } = e.target;
-  
-      // Remove all non-digit characters first
-      value = value.replace(/\D/g, '');
-  
-      // Auto-insert slashes as needed
-      if (value.length >= 3 && value.length <= 4) {
-        value = value.slice(0, 2) + '/' + value.slice(2);
-      } else if (value.length > 4 && value.length <= 8) {
-        value = value.slice(0, 2) + '/' + value.slice(2, 4) + '/' + value.slice(4);
-      }
-  
-      // Limit to 10 characters (dd/mm/yyyy)
-      if (value.length > 10) value = value.slice(0, 10);
-  
-      // Update input value live
-      this.setState({ manualDate: value });
-  
-      // If the auto-formatted value is valid, pass it to parent
-      if (this.isValidDDMMYYYY(value)) {
-        console.log("✅ Valid date:", value);
-        this.props.onChange({ [name]: value });
-        this.setState({ selectedDate: new Date(value.split('/').reverse().join('-')) });
+      const input = e.target;
+      const cursorPosition = input.selectionStart;
+      const selectionEnd = input.selectionEnd;
+      const oldValue = this.state.manualDate;
+      const isTalksAndSeminar = showLimitedFields === true;
+      
+      // Check if user has selected text (for copy/paste or bulk delete operations)
+      const hasSelection = cursorPosition !== selectionEnd;
+
+      if (isTalksAndSeminar) {
+        // For Talks And Seminar: Only allow year format (yyyy)
+        // Remove all non-digit characters
+        value = value.replace(/\D/g, '');
+        
+        // Limit to 4 digits (yyyy)
+        if (value.length > 4) value = value.slice(0, 4);
+        
+        // Update input value live
+        this.setState({ manualDate: value });
+        
+        // Set cursor position after the newly typed character
+        setTimeout(() => {
+          input.selectionStart = input.selectionEnd = value.length;
+        }, 0);
+        
+        // If 4 digits entered, validate and pass to parent
+        if (value.length === 4) {
+          const year = parseInt(value, 10);
+          if (year >= 1900 && year <= new Date().getFullYear() + 10) {
+            console.log("✅ Valid year:", value);
+            this.props.onChange({ [name]: value });
+            this.setState({ selectedDate: new Date(year, 0, 1) });
+          } else {
+            console.warn("❌ Invalid year. Expected range 1900 to current year + 10");
+          }
+        } else if (value === '') {
+          // Allow clearing the field
+          this.props.onChange({ [name]: '' });
+        }
       } else {
-        console.warn("❌ Invalid date format. Expected dd/mm/yyyy");
+        // For other course types: Allow full date format (dd/mm/yyyy) with persistent slashes
+        
+        // If user had text selected and is replacing it, handle it normally
+        if (hasSelection || value === '' || value.replace(/\D/g, '').length === 0) {
+          // Extract only digits from input
+          const digitsOnly = value.replace(/\D/g, '');
+          
+          // Format with persistent slashes
+          let formattedValue = '';
+          
+          if (digitsOnly.length === 0) {
+            formattedValue = '';
+          } else if (digitsOnly.length <= 2) {
+            // Day only: "dd"
+            formattedValue = digitsOnly + (digitsOnly.length === 2 ? '/' : '');
+          } else if (digitsOnly.length <= 4) {
+            // Day and month: "dd/mm"
+            formattedValue = digitsOnly.slice(0, 2) + '/' + digitsOnly.slice(2) + (digitsOnly.length === 4 ? '/' : '');
+          } else {
+            // Day, month, and year: "dd/mm/yyyy"
+            formattedValue = digitsOnly.slice(0, 2) + '/' + digitsOnly.slice(2, 4) + '/' + digitsOnly.slice(4, 8);
+          }
+
+          // Update input value live
+          this.setState({ manualDate: formattedValue });
+
+          // Set cursor to end for bulk operations
+          setTimeout(() => {
+            input.selectionStart = input.selectionEnd = formattedValue.length;
+          }, 0);
+
+          // Validate and pass to parent if complete and valid
+          if (digitsOnly.length === 8) {
+            const fullDate = formattedValue;
+            
+            if (this.isValidDDMMYYYY(fullDate)) {
+              console.log("✅ Valid date:", fullDate);
+              this.props.onChange({ [name]: fullDate });
+              this.setState({ selectedDate: new Date(fullDate.split('/').reverse().join('-')) });
+            } else {
+              console.warn("❌ Invalid date format. Expected valid dd/mm/yyyy");
+            }
+          } else if (digitsOnly.length === 0) {
+            // Allow clearing the field
+            this.props.onChange({ [name]: '' });
+          }
+          
+          return; // Exit early for selection-based operations
+        }
+        
+        // Extract only digits from input
+        const digitsOnly = value.replace(/\D/g, '');
+        const oldDigitsOnly = oldValue.replace(/\D/g, '');
+        
+        // Format with persistent slashes
+        let formattedValue = '';
+        
+        if (digitsOnly.length === 0) {
+          formattedValue = '';
+        } else if (digitsOnly.length <= 2) {
+          // Day only: "dd"
+          formattedValue = digitsOnly + (digitsOnly.length === 2 ? '/' : '');
+        } else if (digitsOnly.length <= 4) {
+          // Day and month: "dd/mm"
+          formattedValue = digitsOnly.slice(0, 2) + '/' + digitsOnly.slice(2) + (digitsOnly.length === 4 ? '/' : '');
+        } else {
+          // Day, month, and year: "dd/mm/yyyy"
+          formattedValue = digitsOnly.slice(0, 2) + '/' + digitsOnly.slice(2, 4) + '/' + digitsOnly.slice(4, 8);
+        }
+
+        // Update input value live
+        this.setState({ manualDate: formattedValue });
+
+        // Calculate cursor position based on where the user was typing
+        let newCursorPos;
+        
+        // For single character input (not bulk operations), maintain exact cursor position
+        if (!hasSelection && oldDigitsOnly.length + 1 === digitsOnly.length) {
+          // User typed one character - keep cursor at the same position it was at
+          newCursorPos = cursorPosition;
+          
+          // Adjust if cursor would land on a newly added slash
+          if (formattedValue[cursorPosition] === '/') {
+            newCursorPos = cursorPosition + 1;
+          }
+        } else {
+          // For other operations, use section-aware positioning
+          // Parse the current formatted value to understand sections
+          const currentSections = formattedValue.split('/');
+          const daySection = currentSections[0] || '';
+          const monthSection = currentSections[1] || '';
+          const yearSection = currentSections[2] || '';
+          
+          // Determine which section the user was editing based on cursor position
+          if (cursorPosition <= 2) {
+            // User was in day section - cursor stays within day section
+            newCursorPos = Math.min(daySection.length, 2);
+          } else if (cursorPosition <= 5) {
+            // User was in month section - cursor stays within month section
+            const monthStartPos = daySection.length > 0 ? daySection.length + 1 : 0; // Position after "dd/"
+            
+            // Calculate how many digits the user has typed in the month section
+            const monthDigitsTyped = Math.min(monthSection.length, 2);
+            
+            // Position cursor right after the last month digit typed
+            newCursorPos = monthStartPos + monthDigitsTyped;
+          } else {
+            // User was in year section - cursor stays within year section
+            const dayLen = daySection.length;
+            const monthLen = monthSection.length;
+            
+            let yearStartPos = 0;
+            if (dayLen > 0) yearStartPos += dayLen + 1; // "dd/"
+            if (monthLen > 0) yearStartPos += monthLen + 1; // "mm/"
+            
+            // Position cursor right after the last year digit typed
+            newCursorPos = yearStartPos + yearSection.length;
+          }
+        }
+
+        // Ensure cursor doesn't go past the formatted value length
+        newCursorPos = Math.min(newCursorPos, formattedValue.length);
+
+        // Set cursor position after the newly typed content
+        setTimeout(() => {
+          input.selectionStart = input.selectionEnd = newCursorPos;
+        }, 0);
+
+        // Validate and pass to parent if complete and valid
+        if (digitsOnly.length === 8) {
+          const fullDate = formattedValue;
+          
+          if (this.isValidDDMMYYYY(fullDate)) {
+            console.log("✅ Valid date:", fullDate);
+            this.props.onChange({ [name]: fullDate });
+            this.setState({ selectedDate: new Date(fullDate.split('/').reverse().join('-')) });
+          } else {
+            console.warn("❌ Invalid date format. Expected valid dd/mm/yyyy");
+          }
+        } else if (digitsOnly.length === 0) {
+          // Allow clearing the field
+          this.props.onChange({ [name]: '' });
+        }
       }
     }
   };
 
   // Handle backspace dynamically
   handleBackspace = (event) => {
+    const { showLimitedFields } = this.props;
+    const isTalksAndSeminar = showLimitedFields === true;
+    
     if (event.key === "Backspace") {
+      const input = event.target;
       const inputDate = this.state.manualDate;
-      const newLength = inputDate.length - 1;
-
-      if (newLength <= 0) {
-        this.setState({ manualDate: '' });
-        this.props.onChange({ dOB: '' });
+      const cursorPosition = input.selectionStart;
+      const selectionEnd = input.selectionEnd;
+      
+      // Check if user has selected text for bulk deletion
+      const hasSelection = cursorPosition !== selectionEnd;
+      
+      if (hasSelection) {
+        // Allow normal backspace behavior for selected text
+        return; // Don't prevent default - let browser handle selection deletion
+      }
+      
+      event.preventDefault(); // Prevent default backspace behavior for single character deletion
+      
+      if (isTalksAndSeminar) {
+        // For Talks And Seminar: Simple character removal for year format based on cursor position
+        if (inputDate.length > 0 && cursorPosition > 0) {
+          const newValue = inputDate.slice(0, cursorPosition - 1) + inputDate.slice(cursorPosition);
+          this.setState({ manualDate: newValue });
+          
+          // Set cursor position after state update
+          setTimeout(() => {
+            input.selectionStart = input.selectionEnd = cursorPosition - 1;
+          }, 0);
+          
+          if (newValue === '') {
+            this.props.onChange({ dOB: '' });
+          }
+        }
       } else {
-        const newValue = inputDate.substring(0, newLength);
-        this.setState({ manualDate: newValue });
-        this.props.onChange({ dOB: newValue });
+        // For other course types: Handle backspace with persistent slash formatting based on cursor position
+        if (inputDate.length === 0 || cursorPosition === 0) return;
+        
+        // Get the character at cursor position - 1
+        const charToDelete = inputDate[cursorPosition - 1];
+        
+        // If trying to delete a slash, skip to the digit before it
+        if (charToDelete === '/') {
+          // Move cursor to before the slash, then delete the digit before the slash
+          let digitPosition = cursorPosition - 2;
+          if (digitPosition < 0) return; // Can't delete if no digit before slash
+          
+          // Remove the digit at the specific position, preserving section structure
+          const beforeDigit = inputDate.slice(0, digitPosition);
+          const afterDigit = inputDate.slice(digitPosition + 1);
+          const newValue = beforeDigit + afterDigit;
+          
+          // Parse the sections to maintain structure
+          const parts = newValue.split('/');
+          let day = parts[0] || '';
+          let month = parts[1] || '';
+          let year = parts[2] || '';
+          
+          // Clean up only digits
+          day = day.replace(/\D/g, '');
+          month = month.replace(/\D/g, '');
+          year = year.replace(/\D/g, '');
+          
+          // Rebuild with proper formatting
+          let formattedValue = '';
+          if (day.length > 0) {
+            formattedValue = day;
+            if (day.length === 2 || month.length > 0 || year.length > 0) {
+              formattedValue += '/';
+              if (month.length > 0) {
+                formattedValue += month;
+                if (month.length === 2 || year.length > 0) {
+                  formattedValue += '/';
+                  if (year.length > 0) {
+                    formattedValue += year;
+                  }
+                }
+              }
+            }
+          }
+          
+          this.setState({ manualDate: formattedValue });
+          
+          // Keep cursor at the position where the digit was deleted (stay at same position)
+          setTimeout(() => {
+            input.selectionStart = input.selectionEnd = digitPosition;
+          }, 0);
+          
+          if (formattedValue === '') {
+            this.props.onChange({ dOB: '' });
+          }
+          
+        } else {
+          // Deleting a digit (not a slash) - maintain section structure
+          const beforeCursor = inputDate.slice(0, cursorPosition - 1);
+          const afterCursor = inputDate.slice(cursorPosition);
+          const newValue = beforeCursor + afterCursor;
+          
+          // Parse the sections to maintain structure
+          const parts = newValue.split('/');
+          let day = parts[0] || '';
+          let month = parts[1] || '';
+          let year = parts[2] || '';
+          
+          // Clean up only digits
+          day = day.replace(/\D/g, '');
+          month = month.replace(/\D/g, '');
+          year = year.replace(/\D/g, '');
+          
+          // Rebuild with proper formatting, maintaining section boundaries
+          let formattedValue = '';
+          if (day.length > 0) {
+            formattedValue = day;
+            if (day.length === 2 || month.length > 0 || year.length > 0) {
+              formattedValue += '/';
+              if (month.length > 0) {
+                formattedValue += month;
+                if (month.length === 2 || year.length > 0) {
+                  formattedValue += '/';
+                  if (year.length > 0) {
+                    formattedValue += year;
+                  }
+                }
+              }
+            }
+          }
+          
+          this.setState({ manualDate: formattedValue });
+          
+          // Keep cursor at the exact position where backspace was pressed
+          let newCursorPos = cursorPosition - 1;
+          
+          // Ensure cursor doesn't go past the end of the formatted value
+          newCursorPos = Math.min(newCursorPos, formattedValue.length);
+          
+          // Ensure cursor doesn't go below 0
+          newCursorPos = Math.max(0, newCursorPos);
+          
+          // If the character at the new cursor position is a slash, stay at the same position
+          if (formattedValue[newCursorPos] === '/') {
+            // Keep cursor at the position where we backspaced (before the slash)
+            newCursorPos = cursorPosition - 1;
+          }
+          
+          setTimeout(() => {
+            input.selectionStart = input.selectionEnd = Math.max(0, newCursorPos);
+          }, 0);
+          
+          if (formattedValue === '') {
+            this.props.onChange({ dOB: '' });
+          }
+        }
+        
       }
     }
   };
@@ -342,7 +643,7 @@ class PersonalInfo extends Component {
   };
 
   render() {
-    const { data = {}, errors, singPassPopulatedFields, onClearSingPassData, hideMyInfoOptions, showLimitedFields } = this.props;
+    const { data = {}, errors, singPassPopulatedFields, onClearSingPassData, hideMyInfoOptions, showLimitedFields, isMalayLanguage } = this.props;
 
     // Check if any SingPass fields are populated (only if not Marriage Preparation Programme)
     const hasSingPassData = !hideMyInfoOptions && singPassPopulatedFields && Object.values(singPassPopulatedFields).some(field => field === true);
@@ -352,6 +653,15 @@ class PersonalInfo extends Component {
     const isMarriagePreparation = courseType === 'Marriage Preparation Programme';
     const isTalksAndSeminar = showLimitedFields === true;
 
+    // Helper function to get language-appropriate labels
+    const getLabel = (english, chinese, malay) => {
+      // Only apply Malay labels for Talks And Seminar courses with Malay language option
+      if (isTalksAndSeminar && isMalayLanguage && malay) {
+        return `${english} ${malay}`;
+      }
+      return `${english} ${chinese}`;
+    };
+
     // Define sections based on course type
     let sections;
     let optionMappings = {};
@@ -359,15 +669,20 @@ class PersonalInfo extends Component {
     if (isTalksAndSeminar) {
       // Limited fields for Talks And Seminar: Name, Phone Number, Date of Birth (Year), Residential Status, Postal Code
       sections = [
-        { name: 'pName', label: 'Name 姓名', placeholder: 'Name 姓名', isSelect: false, isRadio: false },
-        { name: 'cNO', label: 'Contact No. 联络号码', placeholder: 'Contact No. 联络号码', isSelect: false, isRadio: false, isPhone: true },
-        { name: 'dOB', label: 'Date of Birth 出生日期', placeholder: 'Date of Birth 出生日期', isSelect: true, isDate: true },
-        { name: 'rESIDENTIALSTATUS', label: 'Residential Status 居民身份', placeholder: 'Residential Status 居民身份', isSelect: true, isRadio: true },
-        { name: 'postalCode', label: 'Postal Code 邮编', placeholder: 'Postal Code 邮编', isSelect: false, isRadio: false, isNumber: true }
+        { name: 'pName', label: getLabel('Name', '姓名', 'Nama'), placeholder: getLabel('Name', '姓名', 'Nama'), isSelect: false, isRadio: false },
+        { name: 'cNO', label: getLabel('Contact No.', '联络号码', 'Nombor Hubungan'), placeholder: getLabel('Contact No.', '联络号码', 'Nombor Hubungan'), isSelect: false, isRadio: false, isPhone: true },
+        { name: 'dOB', label: getLabel('Birth Year', '出生年份', 'Tahun Lahir'), placeholder: getLabel('Year', '年份', 'Tahun'), isSelect: true, isDate: true },
+        { name: 'rESIDENTIALSTATUS', label: getLabel('Residential Status', '居民身份', 'Status Pemastautin'), placeholder: getLabel('Residential Status', '居民身份', 'Status Pemastautin'), isSelect: true, isRadio: true },
+        { name: 'postalCode', label: getLabel('Postal Code', '邮编', 'Poskod'), placeholder: getLabel('Postal Code', '邮编', 'Poskod'), isSelect: false, isRadio: false, isNumber: true }
       ];
 
-      // Options for Talks And Seminar
-      const residentalStatusOptions = ['SC 新加坡公民', 'PR 永久居民'];
+      // Options for Talks And Seminar - language-aware options
+      let residentalStatusOptions;
+      if (isMalayLanguage) {
+        residentalStatusOptions = ['SC Warganegara Singapura', 'PR Pemastautin Tetap'];
+      } else {
+        residentalStatusOptions = ['SC 新加坡公民', 'PR 永久居民'];
+      }
       
       optionMappings = {
         rESIDENTIALSTATUS: residentalStatusOptions,
@@ -445,7 +760,7 @@ class PersonalInfo extends Component {
         hASCHILDREN: hasChildrenOptions
       };
     } else {
-      // Original sections for NSA/ILP courses
+      // Original sections for NSA/ILP courses - always use English/Chinese labels
       sections = [
         { name: 'pName', label: 'Name 姓名', placeholder: 'Name 姓名 (As in NRIC 与身份证相符)', isSelect: false, isRadio: false },
         { name: 'nRIC', label: 'NRIC Number 身份证号码', placeholder: 'NRIC Number 身份证号码', isSelect: false, isRadio: false },
@@ -566,7 +881,7 @@ class PersonalInfo extends Component {
                     section.name === 'dOB' ? (this.state.manualDate || data[section.name] || '') :
                     (data[section.name] || '')
                   }
-                  placeholder="dd/mm/yyyy"
+                  placeholder={isTalksAndSeminar ? getLabel('Year', '年份', 'Tahun') : "dd/mm/yyyy"}
                   onChange={(e) => { 
                     e.stopPropagation(); 
                     if (section.name === 'dOB') {
@@ -576,6 +891,20 @@ class PersonalInfo extends Component {
                     }
                   }}
                   onKeyDown={section.name === 'dOB' ? this.handleBackspace : undefined}
+                  onPaste={(e) => {
+                    // Allow paste if user wants to replace all content
+                    const pastedText = e.clipboardData.getData('text');
+                    const digitsOnly = pastedText.replace(/\D/g, '');
+                    
+                    // If pasting valid date digits, allow it
+                    if (digitsOnly.length <= 8) {
+                      // Let the onChange handler process the pasted content
+                      return;
+                    } else {
+                      // Prevent paste if too many digits
+                      e.preventDefault();
+                    }
+                  }}
                   onBlur={this.closeCalendar}
                   autoComplete='off'
                   disabled={singPassPopulatedFields?.[section.name]}
