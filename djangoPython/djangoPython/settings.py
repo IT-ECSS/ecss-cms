@@ -161,6 +161,14 @@ STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
+# Media files configuration for uploaded images
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# File upload settings - set to 2MB to match WordPress limits
+FILE_UPLOAD_MAX_MEMORY_SIZE = 2097152  # 2MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 2097152  # 2MB
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 

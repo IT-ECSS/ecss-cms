@@ -3,6 +3,8 @@ from .services import WooCommerceAPI
 from django.views.decorators.csrf import csrf_exempt  # Temporarily disable CSRF validation for this view
 from django.conf import settings
 import os
+import requests
+import base64
 
 import json
 import plotly.express as px
@@ -843,4 +845,165 @@ def port_over(request):
         print("Error:", e)  # Log the error to the console
         return JsonResponse({'success': False, 'error': str(e)})
 
+
+@csrf_exempt
+def upload_product_image(request):
+    """Upload product image directly to WordPress Media Library using REST API."""
+    print("DEBUG: upload_product_image called")
+    print(f"DEBUG: Request method: {request.method}")
     
+    if request.method != 'POST':
+        print("DEBUG: Invalid method - not POST")
+        return JsonResponse({'success': False, 'error': 'Invalid method, please use POST'})
+    
+    try:
+        print("DEBUG: Checking for image file in request.FILES")
+        print(f"DEBUG: request.FILES keys: {list(request.FILES.keys())}")
+        print(f"DEBUG: request.POST keys: {list(request.POST.keys())}")
+        print(f"DEBUG: Content-Type: {request.content_type}")
+        
+        # Check if image file is in the request (check both 'image' and 'file' keys)
+        image_file = None
+        if 'image' in request.FILES:
+            image_file = request.FILES['image']
+            print("DEBUG: Found image file with 'image' key")
+        elif 'file' in request.FILES:
+            image_file = request.FILES['file']
+            print("DEBUG: Found image file with 'file' key")
+        else:
+            print("DEBUG: No image file found with 'image' or 'file' key")
+            return JsonResponse({'success': False, 'error': 'No image file provided'})
+        
+        print(f"DEBUG: Image file found - name: {image_file.name}, size: {image_file.size}, content_type: {image_file.content_type}")
+        
+        # Validate file type
+        allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/jpg']
+        print(f"DEBUG: Validating file type. Content type: {image_file.content_type}")
+        if image_file.content_type not in allowed_types:
+            print(f"DEBUG: Invalid file type: {image_file.content_type}")
+            return JsonResponse({'success': False, 'error': 'Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.'})
+        
+        # Validate file size (2MB limit to match WordPress)
+        max_size = 2 * 1024 * 1024  # 2MB in bytes
+        print(f"DEBUG: Validating file size. Size: {image_file.size}, Max: {max_size}")
+        if image_file.size > max_size:
+            print(f"DEBUG: File too large: {image_file.size} bytes")
+            return JsonResponse({'success': False, 'error': 'File size too large. Maximum 2MB allowed to match WordPress limits.'})
+        
+        # Process image to prevent WordPress from creating scaled versions
+        from PIL import Image
+        import io
+        
+        # Reset file pointer and read the image
+        image_file.seek(0)
+        original_image = Image.open(image_file)
+        
+        # WordPress creates scaled versions for images larger than 2560px
+        # Resize if the image is too large to prevent scaling
+        max_dimension = 2560
+        width, height = original_image.size
+        
+        if width > max_dimension or height > max_dimension:
+            # Calculate new dimensions maintaining aspect ratio
+            if width > height:
+                new_width = max_dimension
+                new_height = int((height * max_dimension) / width)
+            else:
+                new_height = max_dimension
+                new_width = int((width * max_dimension) / height)
+            
+            print(f"DEBUG: Resizing image from {width}x{height} to {new_width}x{new_height}")
+            resized_image = original_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+        else:
+            print(f"DEBUG: Image size {width}x{height} is within limits, no resizing needed")
+            resized_image = original_image
+        
+        # Convert back to bytes for upload
+        output = io.BytesIO()
+        # Preserve original format
+        format = original_image.format or 'JPEG'
+        if format == 'JPEG':
+            resized_image.save(output, format='JPEG', quality=95, optimize=True)
+        else:
+            resized_image.save(output, format=format, optimize=True)
+        
+        file_content = output.getvalue()
+        print(f"DEBUG: Processed image size: {len(file_content)} bytes")
+        
+        # Upload to WordPress using REST API directly
+        import requests
+        import base64
+        
+        # WordPress REST API endpoint
+        wp_url = "https://ecss.org.sg/wp-json/wp/v2/media"
+        
+        # WordPress credentials - using Application Password
+        username = "encommunity"
+        # Application Password (remove spaces)
+        app_password = "8aiteLJsa7fV5eFePP5ym8Zv"
+        
+        print("DEBUG: Using WordPress Application Password for authentication")
+        print(f"DEBUG: Username: {username}")
+        print(f"DEBUG: App Password length: {len(app_password)} characters")
+        
+        # Create basic auth header with Application Password
+        credentials = base64.b64encode(f"{username}:{app_password}".encode()).decode()
+        
+        # Try different approach - use files parameter for multipart upload
+        original_filename = image_file.name
+        print(f"DEBUG: Original filename: '{original_filename}'")
+        
+        files = {'file': (original_filename, file_content, image_file.content_type)}
+        
+        # Prepare headers for WordPress API (simpler headers for files upload)
+        headers = {
+            'Authorization': f'Basic {credentials}',
+            'User-Agent': 'Django-WP-Upload/1.0'
+        }
+        
+        print("DEBUG: Uploading to WordPress via REST API using files parameter")
+        print(f"DEBUG: Sending file: '{original_filename}', content-type: {image_file.content_type}")
+        
+        # Make the request to WordPress using files parameter
+        response = requests.post(wp_url, headers=headers, files=files)
+        
+        print(f"DEBUG: WordPress API response status: {response.status_code}")
+        print(f"DEBUG: WordPress API response headers: {dict(response.headers)}")
+        
+        if response.status_code == 201:
+            # Success
+            wp_response = response.json()
+            
+            # Get the image URL and media ID from WordPress response
+            image_url = wp_response.get('source_url', '')
+            media_id = wp_response.get('id', '')
+            
+            print(f"DEBUG: Image uploaded successfully - ID: {media_id}, URL: {image_url}")
+            
+            return JsonResponse({
+                'success': True,
+                'image_url': image_url,
+                'media_id': media_id,
+                'filename': original_filename,
+                'message': 'Image uploaded to WordPress Media Library successfully'
+            })
+        else:
+            # Error response
+            error_message = f"WordPress upload failed with status {response.status_code}"
+            try:
+                error_data = response.json()
+                error_message += f": {error_data.get('message', 'Unknown error')}"
+                print(f"DEBUG: Error details: {error_data}")
+            except:
+                error_message += f": {response.text}"
+                print(f"DEBUG: Raw error response: {response.text}")
+            
+            return JsonResponse({
+                'success': False,
+                'error': error_message
+            })
+        
+    except Exception as e:
+        print("DEBUG: Exception occurred in upload_product_image")
+        print("Error in upload_product_image:", e)
+        return JsonResponse({'success': False, 'error': str(e)})

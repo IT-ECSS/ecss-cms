@@ -12,5 +12,6 @@ urlpatterns = [
     path('generate_monthly_report/', views.generate_report, name='generate_report'),
     path('update_stock/', views.update_stock, name='update_stock'),
     path('update_fundraising_product/', views.update_fundraising_product, name='update_fundraising_product'),
-    path('port_over/', views.port_over, name='port_over')
+    path('port_over/', views.port_over, name='port_over'),
+    path('upload-product-image/', views.upload_product_image, name='upload_product_image'),
 ]

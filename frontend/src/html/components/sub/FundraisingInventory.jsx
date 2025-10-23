@@ -6,6 +6,7 @@ import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import ImageUploadPopup from './ImageUploadPopup';
 
 // Register the community modules
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -25,7 +26,8 @@ class FundraisingInventory extends Component {
             editingProduct: null,
             editValues: {},
             cardEditMode: true, // Default to edit mode for cards
-            editingFields: {} // Track which fields are being edited
+            editingFields: {}, // Track which fields are being edited
+            isImageUploadOpen: false // New popup component state
         };
         this.gridRef = React.createRef();
     }
@@ -376,6 +378,69 @@ class FundraisingInventory extends Component {
         this.fetchInventoryData();
     };
 
+    // Handle adding a new item
+    handleAddNewItem = () => {
+        // Show the image upload popup
+        this.setState({
+            isImageUploadOpen: true
+        });
+    };
+
+    // Handle creating item with uploaded images
+    handleCreateItemWithImages = (uploadedImageUrls) => {
+        // Create a new empty product object with uploaded images
+        const newProduct = {
+            id: Date.now(), // Temporary ID until saved to backend
+            product_name: '',
+            description: '',
+            price: 0,
+            stock_quantity: 0,
+            category: '',
+            image_url: uploadedImageUrls,
+            is_new: true // Flag to identify new items
+        };
+
+        // Add to the beginning of the inventory data
+        this.setState(prevState => ({
+            inventoryData: [newProduct, ...prevState.inventoryData],
+            filteredData: [newProduct, ...prevState.filteredData],
+            editingProduct: newProduct.id, // Start editing the new item immediately
+            editValues: {
+                product_name: '',
+                description: '',
+                price: 0,
+                stock_quantity: 0,
+                category: ''
+            },
+            isImageUploadOpen: false // Close the popup
+        }), () => {
+            this.updateRowData();
+        });
+    };
+
+    // Handle removing an item
+    handleRemoveItem = () => {
+        const { editingProduct } = this.state;
+        
+        if (!editingProduct) {
+            alert('Please select an item to remove by clicking on it first.');
+            return;
+        }
+
+        if (window.confirm('Are you sure you want to remove this item from the inventory?')) {
+            this.setState(prevState => ({
+                inventoryData: prevState.inventoryData.filter(item => item.id !== editingProduct),
+                filteredData: prevState.filteredData.filter(item => item.id !== editingProduct),
+                editingProduct: null,
+                editValues: {}
+            }), () => {
+                this.updateRowData();
+                // Here you would typically also make an API call to delete from backend
+                // this.deleteItemFromBackend(editingProduct);
+            });
+        }
+    };
+
     // Render card view
     renderCardView = () => {
         const { filteredData } = this.state;
@@ -566,10 +631,35 @@ class FundraisingInventory extends Component {
                         />
                     </div>
                 ) : (
-                    <div className="card-view-container">
-                        {this.renderCardView()}
-                    </div>
+                    <>
+                        <div className="card-view-actions">
+                            <button 
+                                className="action-btn add-item-btn"
+                                onClick={this.handleAddNewItem}
+                                title="Add a new item to inventory"
+                            >
+                                <i className="fas fa-plus"></i> Add New Item
+                            </button>
+                            <button 
+                                className="action-btn remove-item-btn"
+                                onClick={this.handleRemoveItem}
+                                title="Remove selected item from inventory"
+                            >
+                                Remove Item
+                            </button>
+                        </div>
+                        <div className="card-view-container">
+                            {this.renderCardView()}
+                        </div>
+                    </>
                 )}
+                
+                {/* Image Upload Popup */}
+                <ImageUploadPopup
+                    isOpen={this.state.isImageUploadOpen}
+                    onClose={() => this.setState({ isImageUploadOpen: false })}
+                    onUpload={this.handleCreateItemWithImages}
+                />
             </div>
         );
     }

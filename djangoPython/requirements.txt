@@ -29,3 +29,6 @@ inflect==7.4.0
 plotly
 numpy
 pandas
+
+# Image Processing
+Pillow==12.0.0
