@@ -28,7 +28,8 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-u=^cvw++1jd=0wwq6e2j*
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
 #ecss-backend-django-backup.azurewebsites.net
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'ecss-backend-django-backup.azurewebsites.net', 'ecss-backend-django.azurewebsites.net', 'ecss.org.sg', '169.254.130.2', '169.254.131.2', '169.254.130.3']
+#ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'ecss-backend-django-backup.azurewebsites.net', 'ecss-backend-django.azurewebsites.net', 'ecss.org.sg', '169.254.130.2', '169.254.131.2', '169.254.130.3']
+ALLOWED_HOSTS = ['*']
 
 WOOCOMMERCE_API_URL = os.environ.get('WOOCOMMERCE_API_URL', 'https://ecss.org.sg/wp-json/wc/v3/')
 WOOCOMMERCE_CONSUMER_KEY = os.environ.get('WOOCOMMERCE_CONSUMER_KEY', 'ck_be09fee650a20cf08d693e4fe88d340a8f2c63ec')
@@ -48,29 +49,35 @@ INSTALLED_APPS = [
     'corsheaders'
 ]
 
-CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:3000', 
-    'http://localhost:3001', 
-    'http://localhost:3002',
-    'https://ecss-backend-django-backup.azurewebsites.net', #https://ecss-backend-django-backup.azurewebsites.net/
-    'https://ecss-backend-django.azurewebsites.net',
-    'https://169.254.130.2',
-    'https://169.254.131.2',
-    'https://169.254.130.3',
-    'https://ecss.org.sg'
-]
+# Allow CSRF from any origin
+CSRF_TRUSTED_ORIGINS = ['*']
 
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000', 
-    'http://localhost:3001', 
-    'http://localhost:3002',
-    'https://ecss-backend-django-backup.azurewebsites.net', #https://ecss-backend-django-backup.azurewebsites.net/
-    'https://ecss-backend-django.azurewebsites.net',
-    'https://169.254.130.2',
-    'https://169.254.131.2',
-    'https://169.254.130.3',
-    'https://ecss.org.sg'
-]
+# Allow CORS from any origin  
+CORS_ALLOWED_ORIGINS = ['*']
+
+# CSRF_TRUSTED_ORIGINS = [
+#     'http://localhost:3000', 
+#     'http://localhost:3001', 
+#     'http://localhost:3002',
+#     'https://ecss-backend-django-backup.azurewebsites.net',
+#     'https://ecss-backend-django.azurewebsites.net',
+#     'https://169.254.130.2',
+#     'https://169.254.131.2',
+#     'https://169.254.130.3',
+#     'https://ecss.org.sg'
+# ]
+
+# CORS_ALLOWED_ORIGINS = [
+#     'http://localhost:3000', 
+#     'http://localhost:3001', 
+#     'http://localhost:3002',
+#     'https://ecss-backend-django-backup.azurewebsites.net',
+#     'https://ecss-backend-django.azurewebsites.net',
+#     'https://169.254.130.2',
+#     'https://169.254.131.2',
+#     'https://169.254.130.3',
+#     'https://ecss.org.sg'
+# ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
