@@ -3554,6 +3554,7 @@ debugMarriagePrepData = () => {
                   await performParallelTasks();
               }
             }
+            this.props.closePopup();
           }
         }
         else if (columnName === "Remarks")
