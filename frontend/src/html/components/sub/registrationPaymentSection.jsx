@@ -3318,10 +3318,9 @@ debugMarriagePrepData = () => {
           }
           console.log("Change SkillsFuture Confirmation");
         }
-        else if (columnName === "Registration And Payment Status" || columnName === "Registration Status" || columnName === "Payment Status") 
+        else if (columnName === "Registration and Payment Status" || columnName === "Registration Status" || columnName === "Payment Status") 
         {
           this.props.showUpdatePopup("Updating in progress... Please wait ...");
-          
           console.log('Cell clicked', event);
           const response = await axios.post(
             `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
@@ -3332,7 +3331,8 @@ debugMarriagePrepData = () => {
               staff: this.props.userName
             }
           );
-            console.log("Response for Payment Status1:", response);
+          console.log("Response for Payment Status1:", response);
+
             if (response.data.result === true) 
             {
               console.log("New Payment Status:", newValue);
@@ -3386,7 +3386,7 @@ debugMarriagePrepData = () => {
                         this.updateWooCommerceForRegistrationPayment(courseChiName, courseName, courseLocation, newValue),
                         this.receiptGenerator(id, participantInfo, courseInfo, officialInfo, newValue),
                         // WhatsApp automation for Paid status
-                        /*newValue === "Paid" ? this.generatedWhatsappMessage(participantInfo, courseInfo, "course_reservation_successful_om", "payment") : */Promise.resolve()
+                        newValue === "Paid" ? this.generatedWhatsappMessage(participantInfo, courseInfo, "course_reservation_successful_om", "payment") : Promise.resolve()
                       ]);
                       console.log("Both tasks completed successfully.");
                     } catch (error) {
