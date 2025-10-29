@@ -1115,13 +1115,6 @@ class FormPage extends Component {
       
       this.navigateToSection(nextSection);
       window.scrollTo(0, 0);
-      
-      // Handle submission for both course types
-      if ((formData.type === 'Marriage Preparation Programme' && this.state.currentSection === 4) ||
-          (formData.type === 'Talks And Seminar' && this.state.currentSection === 3) ||
-          (formData.type !== 'Marriage Preparation Programme' && formData.type !== 'Talks And Seminar' && this.state.currentSection === 3)) {
-        this.handleSubmit();
-      }
     } else {
       if (this._isMounted) {
         this.setState({ validationErrors: errors });
