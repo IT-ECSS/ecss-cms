@@ -161,8 +161,12 @@ class WooCommerceAPI:
                     product for product in products
                     if product.get('status') == 'publish'
                     and 'categories' in product
-                    and len(product['categories']) == 2
-                    and product['categories'][0].get('name') == 'Talks And Seminar'
+                    and len(product['categories']) >= 1
+                    and (
+                        (len(product['categories']) >= 1 and product['categories'][0].get('name') == 'Talks And Seminar') or
+                        (len(product['categories']) >= 2 and product['categories'][1].get('name') == 'Talks And Seminar') or
+                        (len(product['categories']) >= 3 and product['categories'][2].get('name') == 'Talks And Seminar')
+                    )
                 ]
                 # Add filtered products to the list
                 all_products.extend(filtered_products)
