@@ -6,7 +6,7 @@ import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-import ImageUploadPopup from './ImageUploadPopup';
+import NewProductPopup from './NewProductPopup';
 
 // Register the community modules
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -27,7 +27,7 @@ class FundraisingInventory extends Component {
             editValues: {},
             cardEditMode: true, // Default to edit mode for cards
             editingFields: {}, // Track which fields are being edited
-            isImageUploadOpen: false // New popup component state
+            isNewProductPopupOpen: false // New popup component state
         };
         this.gridRef = React.createRef();
     }
@@ -378,24 +378,83 @@ class FundraisingInventory extends Component {
         this.fetchInventoryData();
     };
 
+    // Save new product to backend
+    saveProduct = async (productId, productData) => {
+        try {
+            const baseUrl = window.location.hostname === "localhost" 
+                ? "http://localhost:3002" 
+                : "https://ecss-backend-django.azurewebsites.net";
+            
+            const saveData = {
+                product_name: productData.product_name,
+                description: productData.description,
+                price: parseFloat(productData.price) || 0,
+                stock_quantity: parseInt(productData.stock_quantity) || 0,
+                category: productData.category,
+                image_url: productData.image_url || []
+            };
+
+            // Call the create endpoint for new products
+            const response = await axios.post(`${baseUrl}/create_fundraising_product/`, saveData);
+
+            if (response.data.success) {
+                console.log('Product created successfully!');
+                console.log('Product creation response:', response.data);
+                
+                // Update the product with the real ID from backend
+                this.setState(prevState => {
+                    const updatedData = prevState.inventoryData.map(product => {
+                        if (product.id === productId) {
+                            return {
+                                ...product,
+                                id: response.data.product_id || product.id,
+                                is_new: false
+                            };
+                        }
+                        return product;
+                    });
+                    
+                    return {
+                        inventoryData: updatedData,
+                        filteredData: updatedData
+                    };
+                }, () => {
+                    this.updateRowData();
+                });
+                
+            } else {
+                throw new Error(response.data.error || response.data.message || 'Save failed');
+            }
+            
+        } catch (error) {
+            console.error('Error saving product:', error);
+            
+            if (error.response && error.response.data) {
+                console.error(`Failed to save product: ${error.response.data.error || error.response.data.message}`);
+            } else {
+                console.error('Failed to save product. Please try again.');
+            }
+        }
+    };
+
     // Handle adding a new item
     handleAddNewItem = () => {
-        // Show the image upload popup
+        // Show the new product popup
         this.setState({
-            isImageUploadOpen: true
+            isNewProductPopupOpen: true
         });
     };
 
     // Handle creating item with uploaded images
-    handleCreateItemWithImages = (uploadedImageUrls) => {
-        // Create a new empty product object with uploaded images
+    handleCreateItemWithImages = (uploadedImageUrls, productData = null) => {
+        // Create a new product object with uploaded images and form data
         const newProduct = {
             id: Date.now(), // Temporary ID until saved to backend
-            product_name: '',
-            description: '',
-            price: 0,
-            stock_quantity: 0,
-            category: '',
+            product_name: productData ? productData.product_name : '',
+            description: productData ? productData.description : '',
+            price: productData ? productData.price : 0,
+            stock_quantity: productData ? productData.stock_quantity : 0,
+            category: productData ? productData.category : '',
             image_url: uploadedImageUrls,
             is_new: true // Flag to identify new items
         };
@@ -404,17 +463,22 @@ class FundraisingInventory extends Component {
         this.setState(prevState => ({
             inventoryData: [newProduct, ...prevState.inventoryData],
             filteredData: [newProduct, ...prevState.filteredData],
-            editingProduct: newProduct.id, // Start editing the new item immediately
-            editValues: {
+            editingProduct: productData ? null : newProduct.id, // Only auto-edit if no form data provided
+            editValues: productData ? {} : {
                 product_name: '',
                 description: '',
                 price: 0,
                 stock_quantity: 0,
                 category: ''
             },
-            isImageUploadOpen: false // Close the popup
+            isNewProductPopupOpen: false // Close the popup
         }), () => {
             this.updateRowData();
+            
+            // If we have complete product data, save immediately
+            if (productData && productData.product_name) {
+                this.saveProduct(newProduct.id, newProduct);
+            }
         });
     };
 
@@ -654,11 +718,11 @@ class FundraisingInventory extends Component {
                     </>
                 )}
                 
-                {/* Image Upload Popup */}
-                <ImageUploadPopup
-                    isOpen={this.state.isImageUploadOpen}
-                    onClose={() => this.setState({ isImageUploadOpen: false })}
-                    onUpload={this.handleCreateItemWithImages}
+                {/* New Product Popup */}
+                <NewProductPopup
+                    isOpen={this.state.isNewProductPopupOpen}
+                    onClose={() => this.setState({ isNewProductPopupOpen: false })}
+                    onCreateItem={this.handleCreateItemWithImages}
                 />
             </div>
         );

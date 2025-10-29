@@ -1,5 +1,5 @@
-import QRCode from 'qrcode';
-import fs from 'fs';
+const QRCode = require('qrcode');
+const fs = require('fs');
 
 class QRCodeGenerator {
     constructor(text) {
@@ -18,7 +18,7 @@ class QRCodeGenerator {
             const buffer = await QRCode.toBuffer(this.text, this.options);
 
             // Save the buffer to a JPG file
-            const filename = `我的故事 – 中文 My Story – Mandarin (Tampines North Community Centre).jpg`;
+            const filename = `音乐祝福社区木箱鼓基础1 Community Cajon Foundation 1 (CT Hub).jpg`;
             fs.writeFileSync(filename, buffer);
             console.log(`QR code generated and saved as ${filename}`);
         } catch (error) {
@@ -28,5 +28,5 @@ class QRCodeGenerator {
 }
 
 // Usage
-const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/%e6%88%91%e7%9a%84%e6%95%85%e4%ba%8b-%e4%b8%ad%e6%96%87my-story-mandarintampines-north-community-centre/`);
+const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/%e9%9f%b3%e4%b9%90%e7%a5%9d%e7%a6%8f%e7%a4%be%e5%8c%ba%e6%9c%a8%e7%ae%b1%e9%bc%93%e5%9f%ba%e7%a1%801community-cajon-foundation-1ct-hub/`);
 qrCodeGenerator.generate();

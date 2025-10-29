@@ -103,7 +103,7 @@ class MoreInfoPopup extends Component
         return (
         <div className="course-popup">
             <div className="popup-overlay1" onClick={handleClose}></div>
-            <div className="popup-content1">
+            <div className="1">
             <div className="course-details">
                 <div className="course-header1">
                 <img
