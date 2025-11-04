@@ -2,6 +2,7 @@ var express = require('express');
 var router = express.Router();
 var FundraisingController = require('../Controller/Fundraising/FundraisingController');
 var fundRaisingGenerator = require('../Others/Pdf/fundRaisingGenerator');
+var CheckoutInvoiceGenerator = require('../Others/Pdf/checkoutInvoiceGenerator');
 
 router.post('/', async function(req, res, next) 
 {
@@ -15,6 +16,86 @@ router.post('/', async function(req, res, next)
             
             // Save the fundraising order
             const result = await fundraisingController.saveFundraisingOrder(req.body.orderData);
+            const items = req.body.orderData.orderDetails.items || [];
+            
+            console.log("Save result:", result);
+            console.log("Order ID from result:", result.orderId);
+            
+            // Get the correct order ID from the result
+            const orderId = result.orderId;
+            
+            if (!orderId) {
+                console.error("No order ID found in save result:", result);
+                return res.status(500).json({ 
+                    result: {
+                        success: false,
+                        message: "Failed to get order ID after saving"
+                    }
+                });
+            }
+            
+            // Generate invoice number (receipt number) using the same logic as fundraising orders
+            let invoiceNumber;
+            try {
+                // Don't pass orderId to avoid automatic receiptNumber update - we only want invoiceNumber for insert
+                invoiceNumber = await fundraisingController.generateReceiptNumber(items);
+                console.log("Generated invoice number for checkout order:", invoiceNumber);
+            } catch (receiptError) {
+                console.error("Error generating invoice number:", receiptError);
+            }
+
+            // Update Fundraising table with InvoiceNumber
+            if (invoiceNumber) {
+                try {
+                    const updateResult = await fundraisingController.updateFundraisingOrder(
+                        orderId, 
+                        { invoiceNumber: invoiceNumber }
+                    );
+                    
+                    if (updateResult.success) {
+                        console.log("Successfully updated Fundraising order with InvoiceNumber:", invoiceNumber);
+                    } else {
+                        console.error("Failed to update Fundraising order with InvoiceNumber:", updateResult.message);
+                    }
+                } catch (updateError) {
+                    console.error("Error updating Fundraising order with InvoiceNumber:", updateError);
+                }
+            }
+
+            // Insert receipt record into Receipts collection
+            try {
+                const receiptResult = await fundraisingController.insertReceiptRecord(
+                    orderId, 
+                    invoiceNumber
+                );
+
+            } catch (receiptInsertError) {
+                console.error("Error inserting receipt record:", receiptInsertError);
+            }
+
+            // Generate invoice PDF using CheckoutInvoiceGenerator for insert operation
+            let invoiceData = null;
+            try {
+                console.log("Starting invoice generation for checkout order using CheckoutInvoiceGenerator...");
+                
+                // Generate checkout invoice PDF with the order data
+                const checkoutInvoiceGenerator = new CheckoutInvoiceGenerator();
+                const invoiceResult = await checkoutInvoiceGenerator.generateCheckoutInvoice(req.body.orderData, invoiceNumber);
+                
+                // Convert buffer to base64 for sending to frontend
+                const pdfBase64 = invoiceResult.buffer.toString('base64');
+                
+                invoiceData = {
+                    pdfData: pdfBase64,
+                    filename: invoiceResult.filename,
+                    invoiceNumber: invoiceNumber // Use the generated invoice number
+                };
+                
+            } catch (invoiceError) {
+                console.error("Error generating invoice using CheckoutInvoiceGenerator:", invoiceError);
+                console.error("Invoice error stack:", invoiceError.stack);
+                // Don't fail the order if invoice generation fails
+            }
             
             // Emit Socket.IO event to update frontend
             if (io && result.success) {
@@ -27,7 +108,8 @@ router.post('/', async function(req, res, next)
             }
             
             return res.json({ 
-                result: result
+                result: result,
+                invoice: invoiceData
             });
         }
         else if(req.body.purpose === "retrieve") {
@@ -93,6 +175,10 @@ router.post('/', async function(req, res, next)
 
             // Extract subtotal information from frontend
             const subtotalInfo = req.body.subtotalInfo;
+            const newStatus = req.body.newStatus;
+            const isPaidStatus = newStatus === "Paid";
+            const isPendingStatus = newStatus === "Pending";
+            
             console.log("Received subtotal information:", subtotalInfo);
 
             // Get existing order to check current status
@@ -105,45 +191,54 @@ router.post('/', async function(req, res, next)
             
             let receiptNumber;
             
-            // Always generate a new receipt number for "Paid" status updates
-            if (req.body.newStatus === "Paid") {
-                console.log("Status is being changed to Paid - generating receipt number");
-                
-                // First check if frontend provided a receipt number (with product-specific format)
-                if (req.body.receiptNumber && req.body.receiptNumber.trim() !== '') {
-                    receiptNumber = req.body.receiptNumber;
-                    console.log("Using receipt number from frontend:", receiptNumber);
-                } else {
-                    // Fallback to backend generation if frontend didn't provide one
-                    // Pass items to enable Panettone format detection
-                    const items = req.body.items || [];
-                    receiptNumber = await fundraisingController.generateReceiptNumber(items);
+            // Handle receipt number based on status
+            if (isPaidStatus) {
+                // Get receiptNo from Receipts table
+                receiptNumber = await fundraisingController.getReceiptNumberByRegistrationId(req.body._id);
+                console.log("Receipt number for Paid status:", receiptNumber);
+                            if (result.success) {
+                try {
+                    // Generate PDF with order data and subtotal info
+                    const pdfData = { ...result.data, subtotalInfo };
+                    const fundraisingPdfGenerator = new fundRaisingGenerator();
+                    const pdfBuffer = await fundraisingPdfGenerator.generateFundraisingReceipt(pdfData);
                     
-                    if (!receiptNumber) {
-                        return res.status(500).json({ 
-                            result: {
-                                success: false,
-                                message: "Failed to generate receipt number"
-                            }
-                        });
-                    }
-                    console.log("Generated new receipt number (backend fallback):", receiptNumber);
+                    // Create filename and add PDF data to result
+                    const customerName = result.data.personalInfo 
+                        ? `${result.data.personalInfo.firstName || ''}_${result.data.personalInfo.lastName || ''}`.replace(/[^a-zA-Z0-9_]/g, '').trim()
+                        : 'customer';
+                    const paymentMethod = result.data.paymentDetails.paymentMethod.replace(/[^a-zA-Z0-9_]/g, '');
+                    const receiptNum = (result.data.receiptNumber || 'receipt').replace(/[^a-zA-Z0-9_]/g, '');
+                    
+                    result.pdfGenerated = true;
+                    result.pdfData = pdfBuffer.toString('base64');
+                    result.pdfFilename = `${customerName}_${paymentMethod}_${receiptNum}.pdf`;
+                    
+                } catch (pdfError) {
+                    console.error("Error generating PDF for Paid status:", pdfError);
+                    result.pdfGenerated = false;
+                    result.pdfError = pdfError.message;
                 }
-            } else {
-                // For other statuses, keep existing receipt number if it exists
-                if (existingOrder && existingOrder.receiptNumber && existingOrder.receiptNumber.trim() !== '') {
-                    receiptNumber = existingOrder.receiptNumber;
-                    console.log("Keeping existing receipt number:", receiptNumber);
-                } else {
-                    receiptNumber = null; // No receipt number for non-paid status
-                    console.log("No receipt number for status:", req.body.newStatus);
-                }
+            }
+            } else if (isPendingStatus) {
+                // Remove receipt number for Pending status
+                receiptNumber = null;
+                console.log("Status is Pending - receiptNumber will be removed");
             }
 
             const updateData = { 
-                status: req.body.newStatus,
-                receiptNumber: receiptNumber // Use the receipt number as fundraising key
+                status: newStatus
             };
+
+            // Handle receiptNumber field based on status
+            if (isPendingStatus) {
+                // Remove receiptNumber field for Pending status using $unset
+                updateData.$unset = { receiptNumber: "" };
+                console.log("Will remove receiptNumber field for Pending status");
+            } else if (receiptNumber !== null) {
+                // Set receiptNumber for other statuses if it exists
+                updateData.receiptNumber = receiptNumber;
+            }
             
             console.log("Attempting to update order with data:", updateData);
             console.log("Order ID to update:", req.body._id);
@@ -155,70 +250,29 @@ router.post('/', async function(req, res, next)
             
             console.log("Update result from controller:", result);
             
-            // If update was successful and payment status is "Paid", generate PDF and insert receipt record
-            if (result.success) {
-                console.log("Update was successful, processing next steps...");
-                // Only generate PDF if payment status is "Paid"
-                if (req.body.newStatus === "Paid") {
-                    try {
-                        // Insert receipt record into Receipts collection (only if doesn't exist)
-                        const receiptResult = await fundraisingController.insertReceiptRecord(
-                            result.data._id, 
-                            receiptNumber
-                        );
-                        
-                        if (receiptResult.success) {
-                            if (receiptResult.alreadyExists) {
-                                console.log("Receipt already exists for this order:", receiptResult.receiptNo);
-                            } else {
-                                console.log("Receipt record inserted successfully:", receiptResult.receiptNo);
-                            }
-                        } else {
-                            console.error("Failed to insert receipt record:", receiptResult.message);
-                            // Continue with PDF generation even if receipt insertion fails
-                        }
-
-                        // Prepare data for PDF generation including subtotal information
-                        const pdfData = {
-                            ...result.data,
-                            subtotalInfo: subtotalInfo // Pass subtotal information to PDF generator
-                        };
-                        
-                        // Generate fundraising PDF with the updated order data and subtotal info
-                        const fundraisingPdfGenerator = new fundRaisingGenerator();
-                        const pdfBuffer = await fundraisingPdfGenerator.generateFundraisingReceipt(pdfData);
-                        
-                        // Convert buffer to base64 for sending to frontend
-                        const pdfBase64 = pdfBuffer.toString('base64');
-                        
-                        console.log("Fundraising PDF generated successfully with subtotal info");
-                        
-                        // Create filename with customer name, payment method, and receipt number
-                        const customerName = result.data.personalInfo 
-                            ? `${result.data.personalInfo.firstName || ''}_${result.data.personalInfo.lastName || ''}`.replace(/[^a-zA-Z0-9_]/g, '').trim()
-                            : 'customer';
-                        const paymentMethod = (result.data.paymentDetails.paymentMethod).replace(/[^a-zA-Z0-9_]/g, '');
-                        const receiptNum = (result.data.receiptNumber || 'receipt').replace(/[^a-zA-Z0-9_]/g, '');
-                        const filename = `${customerName}_${paymentMethod}_${receiptNum}.pdf`;
-                        
-                        // Add PDF data to the result
-                        result.pdfGenerated = true;
-                        result.pdfData = pdfBase64;
-                        result.pdfFilename = filename;
-                        result.receiptInserted = receiptResult.success;
-                        result.receiptAlreadyExists = receiptResult.alreadyExists || false;
-                        
-                    } catch (pdfError) {
-                        console.error("Error generating fundraising PDF:", pdfError);
-                        // Don't fail the whole request if PDF generation fails
-                        result.pdfGenerated = false;
-                        result.pdfError = pdfError.message;
-                    }
-                } else {
-                    console.log(`Payment status is "${req.body.newStatus}" - PDF generation skipped (only generated for "Paid" status)`);
+            // Generate PDF for "Paid" status updates
+            if (result.success && req.body.newStatus === "Paid") {
+                try {
+                    // Generate PDF with order data and subtotal info
+                    const pdfData = { ...result.data, subtotalInfo };
+                    const fundraisingPdfGenerator = new fundRaisingGenerator();
+                    const pdfBuffer = await fundraisingPdfGenerator.generateFundraisingReceipt(pdfData);
+                    
+                    // Create filename and add PDF data to result
+                    const customerName = result.data.personalInfo 
+                        ? `${result.data.personalInfo.firstName || ''}_${result.data.personalInfo.lastName || ''}`.replace(/[^a-zA-Z0-9_]/g, '').trim()
+                        : 'customer';
+                    const paymentMethod = result.data.paymentDetails.paymentMethod.replace(/[^a-zA-Z0-9_]/g, '');
+                    const receiptNum = (result.data.receiptNumber || 'receipt').replace(/[^a-zA-Z0-9_]/g, '');
+                    
+                    result.pdfGenerated = true;
+                    result.pdfData = pdfBuffer.toString('base64');
+                    result.pdfFilename = `${customerName}_${paymentMethod}_${receiptNum}.pdf`;
+                    
+                } catch (pdfError) {
+                    console.error("Error generating PDF for Paid status:", pdfError);
                     result.pdfGenerated = false;
-                    result.pdfSkipped = true;
-                    result.pdfSkipReason = "PDF only generated for Paid status";
+                    result.pdfError = pdfError.message;
                 }
             }
             

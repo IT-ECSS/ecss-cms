@@ -194,18 +194,9 @@ class fundRaisingGenerator {
         const fontPathTimesRegular = path.join(__dirname, '../../fonts/timesNewRoman.ttf'); // Path to your Times New Roman font file
 
         // Set the font to Arial Bold and add the title "RECEIPT"
-        if(!receiptNo.includes("SFC"))
-        {
-            doc.font(fontPathBold).fontSize(16).text('RECEIPT', {
-                align: 'center' // Center the text
-            });
-        }
-        else
-        {
-            doc.font(fontPathBold).fontSize(16).text('INVOICE', {
-                align: 'center' // Center the text
-            });
-        }
+        doc.font(fontPathBold).fontSize(16).text('RECEIPT', {
+            align: 'center' // Center the text
+        });
 
         // Move down for spacing after the title
         doc.moveDown(2); // Adjust the space after the title
@@ -279,7 +270,7 @@ class fundRaisingGenerator {
         doc.moveDown(1);
 
         // Add the date on a new line
-        doc.font(fontPathTimesRegular).fontSize(12).text("This is a computer generated invoice and requires no signature.", leftMargin, doc.y, {
+        doc.font(fontPathTimesRegular).fontSize(12).text("This is a computer generated receipt and requires no signature.", leftMargin, doc.y, {
             align: 'left' // Align the date to the left
         });
 
@@ -1218,7 +1209,7 @@ class fundRaisingGenerator {
         doc.moveDown(1);
 
         // Add signature line - match the image format
-        doc.font(fontPathTimesRegular).fontSize(12).text("This is a computer generated invoice and requires no signature.", leftMargin);
+        doc.font(fontPathTimesRegular).fontSize(12).text("This is a computer generated receipt and requires no signature.", leftMargin);
     }
 
     // Create table for fundraising items

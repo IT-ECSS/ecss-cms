@@ -139,11 +139,6 @@ class FundraisingController {
 
                 const database = this.databaseConnectivity.client.db(databaseName);
                 const collection = database.collection(collectionName);
-
-                console.log("FundraisingController - updateFundraisingOrder called with:");
-                console.log("Order ID:", orderId);
-                console.log("Order ID type:", typeof orderId);
-                console.log("Update data:", updateData);
                 
                 // Validate ObjectId format
                 if (!ObjectId.isValid(orderId)) {
@@ -167,9 +162,23 @@ class FundraisingController {
                 // Update the fundraising order directly without adding timestamps
                 console.log("Attempting MongoDB update with ObjectId:", new ObjectId(orderId));
                 
+                // Prepare update operations
+                const updateOperations = {};
+                
+                // Handle $unset operations (for removing fields)
+                if (updateData.$unset) {
+                    updateOperations.$unset = updateData.$unset;
+                    delete updateData.$unset; // Remove from updateData so it's not included in $set
+                }
+                
+                // Handle $set operations (for setting/updating fields)
+                if (Object.keys(updateData).length > 0) {
+                    updateOperations.$set = updateData;
+                }
+                
                 const updateResult = await collection.updateOne(
                     { _id: new ObjectId(orderId) },
-                    { $set: updateData }
+                    updateOperations
                 );
                 
                 console.log("MongoDB update result:", updateResult);
@@ -351,7 +360,8 @@ class FundraisingController {
 
     // Generate next receipt number from Receipts table
     // items parameter is optional - if provided, will check for Panettone products
-    async generateReceiptNumber(items = null) {
+    // orderId parameter is optional - if provided, will associate the receipt with the order
+    async generateReceiptNumber(items, orderId) {
         try {
             const result = await this.databaseConnectivity.initialize();
             
@@ -400,7 +410,29 @@ class FundraisingController {
                 const formattedNumber = nextNumber.toString().padStart(3, '0');
                 const receiptNumber = `${receiptPrefix}/${formattedNumber}/${currentYear}`;
 
-                console.log(`Generated receipt number: ${receiptNumber} (Year: 20${currentYear}, Contains Panettone: ${containsPanettone})`);
+                // If orderId is provided, update the order document with the receipt number
+                if (orderId) {
+                    try {
+                        const fundraisingCollectionName = "Fundraising";
+                        const fundraisingCollection = database.collection(fundraisingCollectionName);
+                        
+                        const updateResult = await fundraisingCollection.updateOne(
+                            { _id: new ObjectId(orderId) },
+                            { $set: { receiptNumber: receiptNumber } }
+                        );
+
+                        if (updateResult.modifiedCount > 0) {
+                            console.log(`Updated order ${orderId} with receipt number: ${receiptNumber}`);
+                        } else {
+                            console.warn(`Failed to update order ${orderId} with receipt number`);
+                        }
+                    } catch (updateError) {
+                        console.error("Error updating order with receipt number:", updateError);
+                        // Don't fail the receipt generation if update fails
+                    }
+                }
+
+                console.log(`Generated receipt number: ${receiptNumber} (Year: 20${currentYear}, Contains Panettone: ${containsPanettone}, Order ID: ${orderId || 'N/A'})`);
                 return receiptNumber;
             } else {
                 console.error("Database connection failed for receipt number generation");
@@ -408,6 +440,66 @@ class FundraisingController {
             }
         } catch (error) {
             console.error("Error generating receipt number:", error);
+            return null;
+        } finally {
+            await this.databaseConnectivity.close();
+        }
+    }
+
+    // Get receipt number from Receipts table based on registration_id (order _id)
+    // Also updates the corresponding Fundraising record with the receipt number
+    async getReceiptNumberByRegistrationId(registrationId) {
+        try {
+            const result = await this.databaseConnectivity.initialize();
+            
+            if (result === "Connected to MongoDB Atlas!") {
+                const databaseName = "Company-Management-System";
+                const receiptsCollectionName = "Receipts";
+                const fundraisingCollectionName = "Fundraising";
+
+                const database = this.databaseConnectivity.client.db(databaseName);
+                const receiptsCollection = database.collection(receiptsCollectionName);
+                const fundraisingCollection = database.collection(fundraisingCollectionName);
+
+                // Find receipt record by registration_id
+                console.log("Searching for receipt with registration_id:", registrationId);
+                const receiptRecord = await receiptsCollection.findOne({
+                    registration_id: new ObjectId(registrationId)
+                });
+
+                console.log("Receipt search result:", receiptRecord);
+
+                if (receiptRecord && receiptRecord.receiptNo) {
+                    console.log(`Found receipt number ${receiptRecord.receiptNo} for registration_id: ${registrationId}`);
+                    
+                    // Update the Fundraising table with the receipt number
+                    try {
+                        const updateResult = await fundraisingCollection.updateOne(
+                            { _id: new ObjectId(registrationId) },
+                            { $set: { receiptNumber: receiptRecord.receiptNo } }
+                        );
+
+                        if (updateResult.modifiedCount > 0) {
+                            console.log(`Updated Fundraising record ${registrationId} with receipt number: ${receiptRecord.receiptNo}`);
+                        } else {
+                            console.log(`Fundraising record ${registrationId} already has receipt number or not found`);
+                        }
+                    } catch (updateError) {
+                        console.error("Error updating Fundraising record with receipt number:", updateError);
+                        // Don't fail the receipt lookup if update fails
+                    }
+                    
+                    return receiptRecord.receiptNo;
+                } else {
+                    console.log(`No receipt found for registration_id: ${registrationId}`);
+                    return null;
+                }
+            } else {
+                console.error("Database connection failed for receipt lookup");
+                return null;
+            }
+        } catch (error) {
+            console.error("Error getting receipt number by registration_id:", error);
             return null;
         } finally {
             await this.databaseConnectivity.close();

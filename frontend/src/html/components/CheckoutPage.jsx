@@ -380,6 +380,54 @@ class CheckoutPage extends Component {
     return cleaned;
   }
 
+  // Function to preview and download invoice PDF
+  downloadInvoice = (invoiceData) => {
+    try {
+      console.log('Starting invoice preview and download...');
+      
+      // Convert base64 to blob
+      const byteCharacters = atob(invoiceData.pdfData);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'application/pdf' });
+
+      // Create object URL for the PDF
+      const url = URL.createObjectURL(blob);
+      
+      // Open PDF in new tab for preview
+      const newTab = window.open(url, '_blank');
+      if (newTab) {
+        newTab.focus();
+        console.log('Invoice opened in new tab for preview');
+      } else {
+        console.warn('Popup blocked - falling back to direct download');
+      }
+      
+      // Also trigger automatic download
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = invoiceData.filename || 'invoice.pdf';
+      link.style.display = 'none';
+      
+      // Add to DOM, click, and remove
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up the object URL after a delay to allow download
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 1000);
+      
+      console.log('Invoice preview and download initiated:', invoiceData.filename);
+    } catch (error) {
+      console.error('Error processing invoice:', error);
+    }
+  }
+
   handlePlaceOrder = async () => {
     const { personalInfo, paymentMethod, collectionMode, collectionLocation, deliveryToAddress, shipToBillingAddress } = this.state;
     const { cartItems = [] } = this.props;
@@ -501,7 +549,8 @@ class CheckoutPage extends Component {
       totalPrice: parseFloat(this.calculateTotal()), // Add total price
       items: cartItems.map(item => ({
         productName: this.cleanProductName(item.name), // Clean the product name
-        quantity: item.quantity
+        quantity: item.quantity,
+        price: item.price // Include the individual item price
       }))
       }
     };
@@ -516,12 +565,31 @@ class CheckoutPage extends Component {
 
       console.log('Order response:', response.data);
       
-      // Show success modal (cart will be cleared when user clicks OK)
-      this.showModal(
-        'success',
-        '✓',
-        'Order Successfully Placed!'
-      );
+      // Handle invoice download if available
+      if (response.data.invoice && response.data.invoice.pdfData) {
+        console.log('Invoice data received:', {
+          hasInvoice: !!response.data.invoice,
+          hasPdfData: !!response.data.invoice.pdfData,
+          pdfDataLength: response.data.invoice.pdfData ? response.data.invoice.pdfData.length : 0,
+          filename: response.data.invoice.filename
+        });
+        console.log('Invoice generated, preparing preview and download...');
+        this.downloadInvoice(response.data.invoice);
+        
+        // Show success modal with invoice info
+        this.showModal(
+          'success',
+          '✓',
+          'Order Successfully Placed!'
+        );
+      } else {
+        // Show success modal without invoice info
+        this.showModal(
+          'success',
+          '✓',
+          'Order Successfully Placed!'
+        );
+      }
       
     } catch (error) {
       console.error('Error placing order:', error);
