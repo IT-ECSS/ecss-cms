@@ -150,6 +150,88 @@
   cursor: pointer;
 }
 
+/* Collection Mode Button Styles */
+.collection-mode-buttons {
+  display: flex;
+  flex-direction: row;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.collection-mode-button {
+  padding: 0 1.5rem;
+  border: 2px solid #d1d5db !important;
+  background-color: transparent !important;
+  color: #374151 !important;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+  flex: 1;
+  min-width: 150px;
+  outline: none;
+  box-shadow: none;
+  height: 3rem !important;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.collection-mode-button:hover {
+  border-color: #9ca3af !important;
+  background-color: #f9fafb !important;
+}
+
+.collection-mode-button.selected {
+  border-color: #3b82f6 !important;
+  color: #3b82f6 !important;
+  background-color: #eff6ff !important;
+}
+
+/* Payment Method Button Styles */
+.payment-method-buttons {
+  display: flex;
+  flex-direction: row;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.payment-method-button {
+  padding: 0 1.5rem;
+  border: 2px solid #d1d5db !important;
+  background-color: transparent !important;
+  color: #374151 !important;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+  flex: 1;
+  min-width: 150px;
+  outline: none;
+  box-shadow: none;
+  height: 3rem !important;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.payment-method-button:hover {
+  border-color: #9ca3af !important;
+  background-color: #f9fafb !important;
+}
+
+.payment-method-button.selected {
+  border-color: #3b82f6 !important;
+  color: #3b82f6 !important;
+  background-color: #eff6ff !important;
+}
+
 /* Enhanced Cart Items List */
 .order-summary-container {
   display: flex;
@@ -186,10 +268,6 @@
 .cart-items-list.scrollable::-webkit-scrollbar-thumb {
   background: #c1c1c1;
   border-radius: 3px;
-}
-
-.cart-items-list.scrollable::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
 }
 
 .checkout-cart-item {
@@ -726,7 +804,7 @@
   color: #ef4444;
 }
 
-.modal-footer {
+.modal-footer3 {
   display: flex;
   justify-content: center;
 }
@@ -767,5 +845,193 @@
   .modal-button {
     padding: 0.4rem 1rem;
     font-size: 0.7rem;
+  }
+}
+
+/* Collection Location Section Styles */
+.collection-location-form {
+  padding: 0;
+}
+
+.location-buttons {
+  display: flex;
+  flex-direction: row;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.location-button {
+  padding: 0 1.5rem;
+  border: 2px solid #d1d5db !important;
+  background-color: transparent !important;
+  color: #374151 !important;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+  flex: 1;
+  min-width: 150px;
+  height: 3rem !important;
+  box-sizing: border-box;
+  outline: none;
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.location-button:hover {
+  border-color: #9ca3af !important;
+  background-color: #f9fafb !important;
+}
+
+.location-button.selected {
+  border-color: #3b82f6 !important;
+  color: #3b82f6 !important;
+  background-color: #eff6ff !important;
+}
+
+.delivery-options {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.delivery-container {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  align-items: center;
+}
+
+.checkbox-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  cursor: pointer;
+  padding: 1rem 0;
+  border: none !important;
+  background-color: transparent !important;
+  color: #374151 !important;
+  border-radius: 0;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: none;
+  height: auto !important;
+  box-sizing: border-box;
+  outline: none;
+  box-shadow: none;
+}
+
+.checkbox-option:hover {
+  background-color: transparent !important;
+}
+
+.checkbox-option input[type="checkbox"]:checked + .checkbox-label {
+  color: #374151 !important;
+}
+
+.checkbox-option:has(input[type="checkbox"]:checked) {
+  background-color: transparent !important;
+}
+
+.checkbox-option input[type="checkbox"] {
+  width: 1.25rem;
+  height: 1.25rem;
+  cursor: pointer;
+  accent-color: #3b82f6;
+  flex-shrink: 0;
+}
+
+.checkbox-label {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+}
+
+.delivery-address-display {
+  flex: 1;
+}
+
+.delivery-address-textbox {
+  width: 100%;
+  padding: 1.56rem;
+  border: 2px solid #000000 !important;
+  border-radius: 6px;
+  background-color: #ffffff;
+  color: #374151;
+  font-size: 1rem;
+  font-family: inherit;
+  resize: none;
+  height: 3rem !important;
+  box-sizing: border-box;
+}
+
+.delivery-address-textbox:focus {
+  outline: none;
+  border-color: #000000 !important;
+  background-color: #ffffff;
+}
+
+.delivery-address-textbox::placeholder {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+/* Responsive styles for buttons */
+@media (max-width: 768px) {
+  .collection-mode-buttons {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .collection-mode-button {
+    padding: 0.875rem 1rem;
+    font-size: 0.9rem;
+    min-width: auto;
+  }
+  
+  .payment-method-buttons {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .payment-method-button {
+    padding: 0.875rem 1rem;
+    font-size: 0.9rem;
+    min-width: auto;
+  }
+  
+  .location-buttons {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .location-button {
+    padding: 0.875rem 1rem;
+    font-size: 0.9rem;
+    min-width: auto;
+  }
+  
+  .delivery-container {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .checkbox-option {
+    min-width: auto;
+    padding: 0.875rem 1rem;
+    font-size: 0.9rem;
+  }
+  
+  .delivery-address-textbox {
+    padding: 0.75rem;
+    font-size: 0.9rem;
+    min-height: 70px;
   }
 }

@@ -18,28 +18,22 @@ class CollectionModeSection extends Component {
         <div className={`section-content ${expandedSections.collectionMode ? 'expanded' : 'collapsed'}`}>
           <div className="collection-mode-form">
             <div className="form-group">
-              <div className="radio-group">
-                <label className="radio-option">
-                  <input
-                    type="radio"
-                    name="collectionMode"
-                    value="Self-Collection"
-                    checked={collectionMode === 'Self-Collection'}
-                    onChange={(e) => onCollectionModeChange(e.target.value)}
-                  />
-                  <span className="radio-label">Self-Collection</span>
-                </label>
+              <div className="collection-mode-buttons">
+                <button
+                  type="button"
+                  className={`collection-mode-button ${collectionMode === 'Self-Collection' ? 'selected' : ''}`}
+                  onClick={() => onCollectionModeChange('Self-Collection')}
+                >
+                  Self-Collection
+                </button>
                 
-                <label className="radio-option">
-                  <input
-                    type="radio"
-                    name="collectionMode"
-                    value="Delivery"
-                    checked={collectionMode === 'Delivery'}
-                    onChange={(e) => onCollectionModeChange(e.target.value)}
-                  />
-                  <span className="radio-label">Delivery</span>
-                </label>
+                <button
+                  type="button"
+                  className={`collection-mode-button ${collectionMode === 'Delivery' ? 'selected' : ''}`}
+                  onClick={() => onCollectionModeChange('Delivery')}
+                >
+                  Delivery
+                </button>
               </div>
               {fieldErrors.collectionMode && <div className="field-error-message">{fieldErrors.collectionMode}</div>}
             </div>

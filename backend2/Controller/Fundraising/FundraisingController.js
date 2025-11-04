@@ -1,4 +1,5 @@
 const DatabaseConnectivity = require('../../database/databaseConnectivity');
+const { ObjectId } = require('mongodb');
 
 class FundraisingController {
     constructor() {
@@ -13,31 +14,11 @@ class FundraisingController {
                 const databaseName = "Company-Management-System";
                 const collectionName = "Fundraising";
 
-                // Prepare the order document with formatted date and time
-                const now = new Date();
-                const orderDate = now.toLocaleDateString('en-GB'); // dd/mm/yyyy format
-                const orderTime = now.toLocaleTimeString('en-GB', { 
-                    hour12: false, 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                }); // hh:mm 24-hour format
-
-                // Calculate total price from items if not provided or is 0
-                let totalPrice = orderData.totalPrice || 0;
-                if (totalPrice === 0 && orderData.items && orderData.items.length > 0) {
-                    totalPrice = orderData.items.reduce((total, item) => {
-                        const itemPrice = item.price || item.unitPrice || 0;
-                        const quantity = item.quantity || 1;
-                        return total + (itemPrice * quantity);
-                    }, 0);
-                }
-
+                // Use the orderData as-is since frontend already structures it properly
+                // Just add the status field at root level for tracking
                 const orderDocument = {
                     ...orderData,
-                    totalPrice,
-                    orderDate,
-                    orderTime,
-                    status: 'Pending', // Default status
+                    status: 'Pending' // Default status for order tracking
                 };
 
                 // Insert the fundraising order
@@ -159,6 +140,20 @@ class FundraisingController {
                 const database = this.databaseConnectivity.client.db(databaseName);
                 const collection = database.collection(collectionName);
 
+                console.log("FundraisingController - updateFundraisingOrder called with:");
+                console.log("Order ID:", orderId);
+                console.log("Order ID type:", typeof orderId);
+                console.log("Update data:", updateData);
+                
+                // Validate ObjectId format
+                if (!ObjectId.isValid(orderId)) {
+                    console.error("Invalid ObjectId format:", orderId);
+                    return {
+                        success: false,
+                        message: "Invalid order ID format"
+                    };
+                }
+
                 // Calculate total price from items if items are being updated
                 if (updateData.items && updateData.items.length > 0) {
                     updateData.totalPrice = updateData.items.reduce((total, item) => {
@@ -166,14 +161,18 @@ class FundraisingController {
                         const quantity = item.quantity || 1;
                         return total + (itemPrice * quantity);
                     }, 0);
+                    console.log("Calculated total price from items:", updateData.totalPrice);
                 }
 
                 // Update the fundraising order directly without adding timestamps
-                const { ObjectId } = require('mongodb');
+                console.log("Attempting MongoDB update with ObjectId:", new ObjectId(orderId));
+                
                 const updateResult = await collection.updateOne(
                     { _id: new ObjectId(orderId) },
                     { $set: updateData }
                 );
+                
+                console.log("MongoDB update result:", updateResult);
 
                 if (updateResult.acknowledged && updateResult.matchedCount > 0) {
                     // Fetch the updated document
@@ -351,7 +350,8 @@ class FundraisingController {
     }
 
     // Generate next receipt number from Receipts table
-    async generateReceiptNumber() {
+    // items parameter is optional - if provided, will check for Panettone products
+    async generateReceiptNumber(items = null) {
         try {
             const result = await this.databaseConnectivity.initialize();
             
@@ -365,8 +365,21 @@ class FundraisingController {
                 // Get current year in 2-digit format
                 const currentYear = new Date().getFullYear().toString().slice(-2);
 
-                // Find the latest receipt number for the current year
-                const yearPattern = new RegExp(`^ECSS\\/FR\\/\\d+\\/${currentYear}$`);
+                // Check if any item contains "Panettone" substring
+                let containsPanettone = false;
+                if (items && Array.isArray(items)) {
+                    containsPanettone = items.some(item => {
+                        const itemName = item.productName || item.name || item.itemName || '';
+                        return itemName.toLowerCase().includes('panettone');
+                    });
+                }
+
+                // Determine the receipt format based on product content
+                const receiptPrefix = containsPanettone ? 'ECSS/Panettone' : 'ECSS/FR';
+                const receiptPattern = containsPanettone ? 'ECSS\\/Panettone' : 'ECSS\\/FR';
+
+                // Find the latest receipt number for the current year and format
+                const yearPattern = new RegExp(`^${receiptPattern}\\/\\d+\\/${currentYear}$`);
                 const latestReceipt = await receiptsCollection
                     .findOne(
                         { receiptNo: { $exists: true, $regex: yearPattern } },
@@ -376,8 +389,8 @@ class FundraisingController {
                 let nextNumber = 1;
                 
                 if (latestReceipt && latestReceipt.receiptNo) {
-                    // Extract the number from ECSS/FR/xxx/YY format for current year
-                    const match = latestReceipt.receiptNo.match(new RegExp(`^ECSS\\/FR\\/(\\d+)\\/${currentYear}$`));
+                    // Extract the number from ECSS/(FR|Panettone)/xxx/YY format for current year
+                    const match = latestReceipt.receiptNo.match(new RegExp(`^${receiptPattern}\\/(\\d+)\\/${currentYear}$`));
                     if (match) {
                         nextNumber = parseInt(match[1]) + 1;
                     }
@@ -385,9 +398,9 @@ class FundraisingController {
 
                 // Format the number with leading zeros (3 digits minimum)
                 const formattedNumber = nextNumber.toString().padStart(3, '0');
-                const receiptNumber = `ECSS/FR/${formattedNumber}/${currentYear}`;
+                const receiptNumber = `${receiptPrefix}/${formattedNumber}/${currentYear}`;
 
-                console.log(`Generated receipt number: ${receiptNumber} (Year: 20${currentYear})`);
+                console.log(`Generated receipt number: ${receiptNumber} (Year: 20${currentYear}, Contains Panettone: ${containsPanettone})`);
                 return receiptNumber;
             } else {
                 console.error("Database connection failed for receipt number generation");

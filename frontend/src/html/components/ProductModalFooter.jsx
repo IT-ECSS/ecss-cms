@@ -84,7 +84,7 @@ const ProductModalFooter = ({ product, cartQuantity = 0, onAddToCart, onUpdateCa
   }
 
   return (
-    <div className="modal-footer">
+    <div className="modal-footer1">
       <div className="footer-content">
         {/* Single row with one quantity control and Add to Cart button */}
         <div className="modal-footer-row">

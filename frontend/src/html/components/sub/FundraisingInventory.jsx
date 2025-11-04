@@ -345,7 +345,7 @@ class FundraisingInventory extends Component {
                 stock_quantity: parseInt(product.stock_quantity)
             };
 
-            const response = await axios.post(`${baseUrl}/update_fundraising_product/`, updateData);
+            const response = await axios.post(`${baseUrl}/update_fundraising_product_details/`, updateData);
 
             if (response.data.success) {
                 console.log('Product updated successfully!');
@@ -702,14 +702,14 @@ class FundraisingInventory extends Component {
                                 onClick={this.handleAddNewItem}
                                 title="Add a new item to inventory"
                             >
-                                <i className="fas fa-plus"></i> Add New Item
+                                <i className="fas fa-plus"/> Add New Item
                             </button>
                             <button 
                                 className="action-btn remove-item-btn"
                                 onClick={this.handleRemoveItem}
                                 title="Remove selected item from inventory"
                             >
-                                Remove Item
+                                <i className="fas fa-minus"/> Remove Item
                             </button>
                         </div>
                         <div className="card-view-container">

@@ -83,14 +83,16 @@ def fundraising_product_details(request):
         products = woo_api.get_fundraising_products()
         print(f"Total fundraising products found: {len(products)}")
 
-        # Additional filtering to ensure we have the exact criteria (categories array length 1 with name "Support Us" and id 40)
+        # Additional filtering to ensure we have the exact criteria (categories array contains "Support Us" with id 40)
         filtered_products = []
         for product in products:
             categories = product.get('categories', [])
-            if (len(categories) == 1 and 
-                categories[0].get('name') == 'Support Us' and 
-                categories[0].get('id') == 40):
-                filtered_products.append(product)
+            # Check if any category in the array has name "Support Us" and id 40
+            for category in categories:
+                if (category.get('name') == 'Support Us' and 
+                    category.get('id') == 40):
+                    filtered_products.append(product)
+                    break  # Found matching category, no need to check other categories
 
         print(f"Products matching exact criteria (id=40): {len(filtered_products)}")
 
@@ -734,10 +736,9 @@ def update_stock(request):
     except Exception as e:
         print("Error:", e)  # Log the error to the console
         return JsonResponse({'success': False, 'error': str(e)})
-
     
 @csrf_exempt
-def update_fundraising_product(request):
+def update_fundraising_product_details(request):
     """Updates a fundraising product's price and stock quantity based on product ID."""
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Invalid method, please use POST'})
@@ -751,28 +752,11 @@ def update_fundraising_product(request):
         product_id = data.get('product_id')
         price = data.get('price')
         stock_quantity = data.get('stock_quantity')
-        
-        # Validate required fields
-        if not product_id:
-            return JsonResponse({'success': False, 'error': 'Product ID is required'})
-        
-        if price is None:
-            return JsonResponse({'success': False, 'error': 'Price is required'})
-            
-        if stock_quantity is None:
-            return JsonResponse({'success': False, 'error': 'Stock quantity is required'})
-        
-        # Validate data types and values
-        try:
-            price = float(price)
-            if price < 0:
-                return JsonResponse({'success': False, 'error': 'Price must be non-negative'})
-        except (ValueError, TypeError):
-            return JsonResponse({'success': False, 'error': 'Invalid price format'})
-            
+
         try:
             stock_quantity = int(stock_quantity)
-            if stock_quantity < 0:
+            price = float(price)
+            if stock_quantity < 0 and price <= 0:
                 return JsonResponse({'success': False, 'error': 'Stock quantity must be non-negative'})
         except (ValueError, TypeError):
             return JsonResponse({'success': False, 'error': 'Invalid stock quantity format'})
@@ -786,7 +770,55 @@ def update_fundraising_product(request):
                 'success': True,
                 'message': result['message'],
                 'product_id': product_id,
-                'updated_price': price,
+                'updated_stock_quantity': stock_quantity
+            })
+        else:
+            return JsonResponse({
+                'success': False, 
+                'error': result.get('error', 'Unknown error occurred'),
+                'message': result.get('message', 'Failed to update product')
+            })
+
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON format'})
+    except Exception as e:
+        print("Error in update_fundraising_product:", e)
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+    
+@csrf_exempt
+def update_fundraising_product_stock(request):
+    """Updates a fundraising product's price and stock quantity based on product ID."""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Invalid method, please use POST'})
+
+    try:
+        # Parse the request body as JSON
+        data = json.loads(request.body)
+        print("Data received for fundraising product update:", data)
+
+        # Get required fields from the request body
+        product_id = data.get('product_id')
+        method = data.get('method')
+        stock_quantity = data.get('stock_quantity')
+
+        try:
+            stock_quantity = int(stock_quantity)
+            if stock_quantity < 0:
+                return JsonResponse({'success': False, 'error': 'Stock quantity must be non-negative'})
+        except (ValueError, TypeError):
+            return JsonResponse({'success': False, 'error': 'Invalid stock quantity format'})
+        
+        # Initialize WooCommerce API and update the product
+        woo_api = WooCommerceAPI()
+        result = woo_api.update_fundraising_product_stock(product_id, method, stock_quantity)
+        
+        if result['success']:
+            return JsonResponse({
+                'success': True,
+                'message': result['message'],
+                'product_id': product_id,
                 'updated_stock_quantity': stock_quantity
             })
         else:

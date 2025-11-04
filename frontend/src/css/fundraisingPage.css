@@ -990,10 +990,10 @@
 .product-card {
   background: white;
   border-radius: 6px;
+  border: none !important;
   overflow: hidden;
   transition: all 0.3s ease;
   cursor: pointer;
-  border: 1px solid #f0f0f0;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -1323,15 +1323,15 @@
 }
 
 /* Modal Header */
-.modal-header {
+.modal-header1 {
   display: flex;
   justify-content: flex-end;
   align-items: center;
   padding: 16px 20px;
-  background: transparent;
+  background: #ffffff !important;
 }
 
-.modal-close 
+.modal-close
 {
   background: transparent !important;
   background: transparent;
@@ -1590,7 +1590,7 @@
 }
 
 /* Modal Footer */
-.modal-footer {
+.modal-footer1 {
   background: white;
   padding: 20px 24px;
   border-radius: 0 0 16px 16px;
@@ -1656,7 +1656,7 @@
 }
 
 /* Modal footer content layout */
-.modal-footer .footer-content {
+.modal-footer1 .footer-content {
   flex-direction: row;
   gap: 0;
   justify-content: center;
@@ -1729,7 +1729,7 @@
     width: 95%;
   }
   
-  .modal-header {
+  .modal-header1 {
     padding: 16px 20px;
   }
   

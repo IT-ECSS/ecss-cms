@@ -31,7 +31,7 @@ const ProductDetailsModal = ({ isOpen, product, cartItems = [], onClose, onAddTo
     >
       <div className="modal-content">
         {/* Header */}
-        <div className="modal-header">
+        <div className="modal-header1">
           <button className="modal-close" onClick={onClose} aria-label="Close modal">
             ×
           </button>

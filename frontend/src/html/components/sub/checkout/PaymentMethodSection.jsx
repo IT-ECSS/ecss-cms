@@ -18,28 +18,22 @@ class PaymentMethodSection extends Component {
         <div className={`section-content ${expandedSections.paymentMethod ? 'expanded' : 'collapsed'}`}>
           <div className="payment-method-form">
             <div className="form-group">
-              <div className="radio-group">
-                <label className="radio-option">
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="Cash"
-                    checked={paymentMethod === 'Cash'}
-                    onChange={(e) => onPaymentMethodChange(e.target.value)}
-                  />
-                  <span className="radio-label">Cash</span>
-                </label>
+              <div className="payment-method-buttons">
+                <button
+                  type="button"
+                  className={`payment-method-button ${paymentMethod === 'Cash' ? 'selected' : ''}`}
+                  onClick={() => onPaymentMethodChange('Cash')}
+                >
+                  Cash
+                </button>
                 
-                <label className="radio-option">
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="PayNow"
-                    checked={paymentMethod === 'PayNow'}
-                    onChange={(e) => onPaymentMethodChange(e.target.value)}
-                  />
-                  <span className="radio-label">PayNow</span>
-                </label>
+                <button
+                  type="button"
+                  className={`payment-method-button ${paymentMethod === 'PayNow' ? 'selected' : ''}`}
+                  onClick={() => onPaymentMethodChange('PayNow')}
+                >
+                  PayNow
+                </button>
               </div>
               {fieldErrors.paymentMethod && <div className="field-error-message">{fieldErrors.paymentMethod}</div>}
             </div>

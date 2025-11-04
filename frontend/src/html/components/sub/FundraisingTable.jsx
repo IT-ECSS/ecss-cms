@@ -520,6 +520,40 @@ class FundraisingTable extends Component {
       });
     }
 
+    // Generate a new receipt number based on product name and database records
+    generateReceiptNumber = (fundraisingData, currentIndex) => {
+      const currentYear = new Date().getFullYear().toString().slice(-2); // Get last 2 digits of year
+      
+      // Use the current index (position in database) + 1 for the receipt number
+      const receiptNumber = currentIndex + 1;
+      
+      // Format as 3-digit number with leading zeros
+      const formattedNumber = receiptNumber.toString().padStart(3, '0');
+      
+      // Check if any item contains "Panettone" substring
+      const currentOrder = fundraisingData[currentIndex];
+      let containsPanettone = false;
+      
+      if (currentOrder) {
+        // Check both possible locations for items
+        const itemsArray = currentOrder.items || currentOrder.orderDetails?.items || [];
+        
+        if (Array.isArray(itemsArray) && itemsArray.length > 0) {
+          containsPanettone = itemsArray.some(item => {
+            const itemName = item.productName || item.name || item.itemName || '';
+            return itemName.toLowerCase().includes('panettone');
+          });
+        }
+      }
+      
+      // Return appropriate format based on product content
+      if (containsPanettone) {
+        return `ECSS/Panettone/${formattedNumber}/${currentYear}`;
+      } else {
+        return `ECSS/FR/${formattedNumber}/${currentYear}`;
+      }
+    };
+
     getRowData = (fundraisingData) => 
     {
       console.log('Processing enriched fundraising data in getRowData:', fundraisingData);
@@ -543,15 +577,17 @@ class FundraisingTable extends Component {
           lastName: item.personalInfo?.lastName || item.lastName || '',
           contactNumber: item.personalInfo?.phone || item.contactNumber || '',
           email: item.personalInfo?.email || item.email || '',
-          donationAmount: displayAmount,
-          donationDate: item.orderDate,
-          receiptNumber: item.fundraisingKey || item.receiptNumber || '',
-          items: item.items, // This now contains enriched items with WooCommerce details
-          status: item.status || 'Pending',
           address: item.personalInfo?.address || item.address || '',
           postalCode: item.personalInfo?.postalCode || item.postalCode || '',
-          paymentMethod: item.paymentMethod || '',
-          collectionMode: item.collectionMode || '',
+          donationAmount: displayAmount,
+          paymentMethod: item.paymentDetails?.paymentMethod || '',
+          items: item.orderDetails?.items, // This now contains enriched items with WooCommerce details
+          collectionMode: item.collectionDetails?.collectionMode || '',
+          collectionDetails: item.collectionDetails?.CollectionDeliveryLocation,
+          orderDateTime: `${item.orderDetails?.orderDate || ''} ${item.orderDetails?.orderTime || ''}`.trim() || 'Not specified',
+          status: item.status || 'Pending',
+          donationDate: item.orderDate,
+          receiptNumber: (item.status !== 'Pending') ? this.generateReceiptNumber(fundraisingData, index) : '',
           // Add enriched data for easy access
           enrichedTotalPrice: item.enrichedTotalPrice || 0,
           originalTotalPrice: item.originalTotalPrice || 0
@@ -598,6 +634,18 @@ class FundraisingTable extends Component {
           headerName: "Email",
           field: "email",
           width: 250,
+          editable: true,
+        },
+        {
+          headerName: "Address",
+          field: "address",
+          width: 250,
+          editable: true,
+        },
+        {
+          headerName: "Postal Code",
+          field: "postalCode",
+          width: 120,
           editable: true,
         },
         {
@@ -707,12 +755,18 @@ class FundraisingTable extends Component {
         {
           headerName: "Collection Mode",
           field: "collectionMode",
-          width: 150,
-          cellEditor: "agSelectCellEditor",
-          cellEditorParams: {
-            values: ["Delivery", "Self-Collection"]
-          },
-          editable: true,
+          width: 150
+        },
+        {
+          headerName: "Collection/Delivery Details",
+          field: "collectionDetails",
+          width: 500
+        },
+        {
+          headerName: "Order Details",
+          field: "orderDateTime",
+          width: 200,
+          editable: false,
         },
         {
           headerName: "Status",
@@ -726,9 +780,6 @@ class FundraisingTable extends Component {
               return { values: ["Pending", "Paid", "Delivered", "Refunded"] };
             } else if (collectionMode === "Self-Collection") {
               return { values: ["Pending", "Paid", "Collected", "Refunded"] };
-            } else {
-              // Default values if collection mode is not set
-              return { values: ["Pending", "Paid", "Completed", "Refunded"] };
             }
           },
           cellRenderer: (params) => {
@@ -751,26 +802,24 @@ class FundraisingTable extends Component {
           width: 200,
           cellRenderer: (params) => {
             const receiptNumber = params.value;
-            if (receiptNumber && receiptNumber.trim() !== '') {
-              return (
-                <button
-                  className="fundraising-receipt-link"
-                  onClick={() => this.generateReceiptFromNumber(params.data)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'black',
-                    textDecoration: 'unone',
-                    padding: '0',
-                    font: 'inherit'
-                  }}
-                >
-                  {receiptNumber}
-                </button>
-              );
+            const status = params.data.statu
+              // Only make receipt number clickable for "Paid" status 
+                return (
+                  <button
+                    className="fundraising-receipt-link"
+                    onClick={() => this.generateReceiptFromNumber(params.data)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#000000',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {receiptNumber}
+                  </button>
+                )
             }
           }
-        }
       ];
 
       return columnDefs;
@@ -1115,10 +1164,12 @@ class FundraisingTable extends Component {
                   <span className="detail-label">Status:</span>
                   <span className="detail-value">{rowData.status}</span>
                 </div>
-                <div className="detail-field">
-                  <span className="detail-label">Receipt Number:</span>
-                  <span className="detail-value">{rowData.receiptNumber || 'N/A'}</span>
-                </div>
+                {rowData.status !== 'Pending' && (
+                  <div className="detail-field">
+                    <span className="detail-label">Receipt Number:</span>
+                    <span className="detail-value">{rowData.receiptNumber || 'N/A'}</span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1146,10 +1197,17 @@ class FundraisingTable extends Component {
     // Handle cell value changes
     onCellValueChanged = async (params) => {
       console.log('Cell value changed:', params);
+      console.log('Field changed:', params.colDef.field);
+      console.log('Old value:', params.oldValue);
+      console.log('New value:', params.newValue);
       
       // Update the status in the backend first
       if (params.colDef.field === 'status') {
-        const result = await this.updateOrderStatus(params.data.id, params.newValue);
+        console.log(`Status changing from "${params.oldValue}" to "${params.newValue}" for order ID: ${params.data.id}`);
+        
+       const result = await this.updateOrderStatus(params.data.id, params.newValue);
+        
+        console.log('updateOrderStatus result:', result);
         
         // Log the subtotal information that was sent/processed
         if (result && result.success && result.subtotalInfo) {
@@ -1159,15 +1217,19 @@ class FundraisingTable extends Component {
           // For example, updating local state, triggering other actions, etc.
           const { totalSubtotal, items, enrichedTotalPrice } = result.subtotalInfo;
           console.log(`Order total: $${totalSubtotal.toFixed(2)}, Items: ${items.length}, Enriched total: $${enrichedTotalPrice.toFixed(2)}`);
+        } else {
+          console.log('No subtotal info returned or update failed');
         }
 
         // Check if the status field was changed to "Paid"
-        if (params.newValue === 'Paid' && params.oldValue !== 'Paid') {
+        if (params.newValue === 'Paid') {
+          console.log('Processing status change to Paid - handling stock reduction...');
           await this.handleStatusChangeToPaid(params.data);
         }
         
         // Check if the status field was changed to "Refunded"
         if (params.newValue === 'Refunded' && params.oldValue !== 'Refunded') {
+          console.log('Processing status change to Refunded - handling stock increase...');
           await this.handleStatusChangeToRefunded(params.data);
         }
       }
@@ -1195,7 +1257,7 @@ class FundraisingTable extends Component {
         console.log('Extracted total amount:', totalAmount, 'from:', rowData.donationAmount);
         
         // Process items to include pricing information for PDF generation
-        const processedItems = (rowData.items || []).map(item => {
+        const processedItems = (rowData.items || []).map((item, index) => {
           const itemName = item.productName || item.name || item.itemName;
           const quantity = item.quantity || 1;
           
@@ -1207,14 +1269,40 @@ class FundraisingTable extends Component {
             // Use enriched data if available
             unitPrice = item.enrichedData.finalPrice || 0;
             subtotal = item.enrichedData.subtotal;
+
           } else if (item.wooCommerceDetails) {
             // Use WooCommerce details as fallback
             unitPrice = parseFloat(item.wooCommerceDetails.price) || 0;
             subtotal = unitPrice * quantity;
+
           } else {
-            // Final fallback to item's own price
-            unitPrice = item.price || item.unitPrice || 0;
-            subtotal = unitPrice * quantity;
+            // Try to get pricing from WooCommerce product details state
+            const { wooCommerceProductDetails } = this.state;
+            let foundProduct = null;
+            
+            if (wooCommerceProductDetails && wooCommerceProductDetails.length > 0) {
+              // Look for exact match first
+              foundProduct = wooCommerceProductDetails.find(product => product.name === itemName);
+              
+              // If no exact match, try partial matching
+              if (!foundProduct) {
+                foundProduct = wooCommerceProductDetails.find(product => 
+                  product.name.toLowerCase().includes(itemName.toLowerCase()) ||
+                  itemName.toLowerCase().includes(product.name.toLowerCase())
+                );
+              }
+            }
+            
+            if (foundProduct) {
+              unitPrice = parseFloat(foundProduct.price) || 0;
+              subtotal = unitPrice * quantity;
+
+            } else {
+              // Final fallback to item's own price
+              unitPrice = item.price || item.unitPrice || 0;
+              subtotal = unitPrice * quantity;
+
+            }
           }
           
           console.log(`Processing item "${itemName}": price=${unitPrice}, qty=${quantity}, subtotal=${subtotal}`);
@@ -1235,6 +1323,22 @@ class FundraisingTable extends Component {
           console.log('Calculated total from items:', totalAmount);
         }
         
+        // Create subtotal information structure that the backend expects
+        const subtotalInfo = {
+          items: processedItems.map(item => ({
+            productName: item.productName,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice || item.price || 0,
+            subtotal: item.subtotal || 0,
+            matchType: item.enrichedData?.matchType || 'manual'
+          })),
+          totalSubtotal: totalAmount,
+          enrichedTotalPrice: totalAmount,
+          originalTotalPrice: totalAmount
+        };
+
+
+
         // Use the row data directly from the table
         const orderData = {
           _id: rowData.id,
@@ -1252,8 +1356,12 @@ class FundraisingTable extends Component {
           paymentMethod: rowData.paymentMethod,
           collectionMode: rowData.collectionMode,
           status: rowData.status,
-          fundraisingKey: rowData.receiptNumber
+          receiptNumber: rowData.receiptNumber,
+          subtotalInfo: subtotalInfo
         };
+
+        console.log('Receipt number being sent to backend:', rowData.receiptNumber);
+        console.log('Full order data being sent:', orderData);
         
         // Call backend to generate receipt
         const response = await axios.post(
@@ -1281,43 +1389,119 @@ class FundraisingTable extends Component {
     updateOrderStatus = async (orderId, newStatus) => {
       try {
         console.log(`Updating order ${orderId} status to: ${newStatus}`);
+        console.log('Current state:', {
+          fundraisingData: this.state.fundraisingData,
+          fundraisingDataLength: this.state.fundraisingData?.length || 0,
+          originalData: this.state.originalData,
+          originalDataLength: this.state.originalData?.length || 0,
+          isLoading: this.state.isLoading
+        });
+        
+        // Check if fundraisingData exists
+        if (!this.state.fundraisingData || !Array.isArray(this.state.fundraisingData)) {
+          console.error('fundraisingData is not available or not an array:', this.state.fundraisingData);
+          return { success: false, error: 'fundraisingData not available' };
+        }
         
         // Find the order data to get subtotal information
-        const orderData = this.state.fundraisingData.find(order => order._id === orderId);
+        let orderData = this.state.fundraisingData.find(order => order._id === orderId);
+        
+        // If not found in fundraisingData, try originalData as fallback
+        if (!orderData && this.state.originalData && Array.isArray(this.state.originalData)) {
+          console.log('Order not found in fundraisingData, searching in originalData...');
+          orderData = this.state.originalData.find(order => order._id === orderId);
+        }
+        
+        console.log('Found orderData for pricing:', orderData);
+        
         let subtotalInfo = null;
+        let processedItems = [];
+        let processedItemsForBackend = [];
         
         if (orderData) {
-          // Calculate subtotal from enriched data
-          const itemSubtotals = orderData.items ? orderData.items.map(item => {
+          console.log('Order data found, processing items for pricing...');
+          console.log('WooCommerce product details available:', this.state.wooCommerceProductDetails?.length || 0);
+          
+          // Get items from the correct location - could be in orderDetails.items or directly in items
+          const itemsArray = orderData.orderDetails?.items || orderData.items || [];
+          console.log('Items found in orderData:', itemsArray);
+          
+          // Use the same item processing logic as generateReceiptFromNumber
+          processedItems = itemsArray.map((item, index) => {
             const itemName = item.productName || item.name || item.itemName;
             const quantity = item.quantity || 1;
             
-            // Use enriched data if available
+            console.log(`Processing item ${index + 1}: "${itemName}", quantity: ${quantity}`);
+            console.log('Item enriched data:', item.enrichedData);
+            console.log('Item wooCommerce details:', item.wooCommerceDetails);
+            
+            // Extract price information from enriched data or fallback (same logic as generateReceiptFromNumber)
+            let unitPrice = 0;
+            let subtotal = 0;
+            let priceSource = 'none';
+            
             if (item.enrichedData && item.enrichedData.subtotal > 0) {
-              return {
-                productName: itemName,
-                quantity: quantity,
-                unitPrice: item.enrichedData.finalPrice,
-                subtotal: item.enrichedData.subtotal,
-                matchType: item.enrichedData.matchType
-              };
+              // Use enriched data if available
+              unitPrice = item.enrichedData.finalPrice || 0;
+              subtotal = item.enrichedData.subtotal;
+              priceSource = 'enrichedData';
+              console.log(`Using enriched data: price=${unitPrice}, subtotal=${subtotal}`);
+            } else if (item.wooCommerceDetails) {
+              // Use WooCommerce details as fallback
+              unitPrice = parseFloat(item.wooCommerceDetails.price) || 0;
+              subtotal = unitPrice * quantity;
+              priceSource = 'wooCommerceDetails';
+              console.log(`Using wooCommerce details: price=${unitPrice}, subtotal=${subtotal}`);
+            } else {
+              // Try to get pricing from WooCommerce product details state
+              const { wooCommerceProductDetails } = this.state;
+              let foundProduct = null;
+              
+              if (wooCommerceProductDetails && wooCommerceProductDetails.length > 0) {
+                // Look for exact match first
+                foundProduct = wooCommerceProductDetails.find(product => product.name === itemName);
+                
+                // If no exact match, try partial matching
+                if (!foundProduct) {
+                  foundProduct = wooCommerceProductDetails.find(product => 
+                    product.name.toLowerCase().includes(itemName.toLowerCase()) ||
+                    itemName.toLowerCase().includes(product.name.toLowerCase())
+                  );
+                }
+              }
+              
+              if (foundProduct) {
+                unitPrice = parseFloat(foundProduct.price) || 0;
+                subtotal = unitPrice * quantity;
+                priceSource = 'wooCommerceProductDetails';
+                console.log(`Found in WooCommerce details: ${foundProduct.name}, price=${unitPrice}, subtotal=${subtotal}`);
+              } else {
+                // Final fallback to item's own price
+                unitPrice = item.price || item.unitPrice || 0;
+                subtotal = unitPrice * quantity;
+                priceSource = 'itemPrice';
+                console.log(`Using item's own price: price=${unitPrice}, subtotal=${subtotal}`);
+              }
             }
             
-            // Fallback calculation using WooCommerce details
-            const wooCommerceDetails = item.wooCommerceDetails;
-            const unitPrice = wooCommerceDetails ? parseFloat(wooCommerceDetails.price) : (item.price || item.unitPrice || 0);
-            const subtotal = unitPrice * quantity;
+            console.log(`Final pricing for "${itemName}": unitPrice=${unitPrice}, subtotal=${subtotal}, source=${priceSource}`);
             
             return {
               productName: itemName,
               quantity: quantity,
               unitPrice: unitPrice,
               subtotal: subtotal,
-              matchType: wooCommerceDetails ? 'woocommerce' : 'fallback'
+              matchType: item.enrichedData ? item.enrichedData.matchType : (item.wooCommerceDetails ? 'woocommerce' : 'fallback'),
+              priceSource: priceSource
             };
-          }) : [];
+          });
+          
+          // Convert to the format expected by the rest of the function
+          const itemSubtotals = processedItems;
           
           const totalSubtotal = itemSubtotals.reduce((total, item) => total + item.subtotal, 0);
+          console.log('Calculated total subtotal:', totalSubtotal);
+          console.log('Processed items with pricing:', processedItems);
           
           subtotalInfo = {
             items: itemSubtotals,
@@ -1326,7 +1510,29 @@ class FundraisingTable extends Component {
             originalTotalPrice: orderData.originalTotalPrice || orderData.totalPrice || orderData.donationAmount || 0
           };
           
-          console.log(`Order ${orderId} subtotal information:`, subtotalInfo);
+          // Also prepare the processed items for the backend (same as generateReceiptFromNumber)
+          processedItemsForBackend = processedItems.map((item, index) => {
+            // Find the original item from orderData.items (with null checking)
+            const orderItems = orderData.items || [];
+            const originalItem = orderItems.find(originalItem => 
+              (originalItem.productName || originalItem.name || originalItem.itemName) === item.productName
+            ) || orderItems[index] || {}; // Fallback to index-based matching or empty object
+            
+            const backendItem = {
+              ...originalItem,
+              productName: item.productName,
+              quantity: item.quantity,
+              price: item.unitPrice,
+              unitPrice: item.unitPrice,
+              subtotal: item.subtotal
+            };
+            
+            console.log(`Backend item ${index + 1}:`, backendItem);
+            return backendItem;
+          });
+          
+          console.log('Items prepared for backend:', processedItemsForBackend);
+          console.log('Subtotal info being sent:', subtotalInfo);
         }
         
         const response = await axios.post(
@@ -1335,22 +1541,58 @@ class FundraisingTable extends Component {
             purpose: "update",
             _id: orderId,
             newStatus: newStatus,
-            subtotalInfo: subtotalInfo // Include subtotal information in the request
+            clearFundraisingKey: newStatus === "Pending", // Clear fundraisingKey when status is Pending
+            subtotalInfo: subtotalInfo, // Include subtotal information in the request
+            // Include processed items with pricing (same as generateReceiptFromNumber)
+            items: processedItemsForBackend
           }
         );
         
         if (response.data.result && response.data.result.success) {
-          console.log('Order status updated successfully:', response.data.result);
-          console.log('Subtotal information sent:', subtotalInfo);
+          console.log('Update response from backend:', response.data.result);
+          console.log('PDF Generation flags:', {
+            pdfGenerated: response.data.result.pdfGenerated,
+            pdfData: !!response.data.result.pdfData,
+            pdfFilename: response.data.result.pdfFilename,
+            pdfSkipped: response.data.result.pdfSkipped,
+            pdfError: response.data.result.pdfError
+          });
           
-          // Handle PDF generation if it was successful
-          if (response.data.result.pdfGenerated && response.data.result.pdfData) {
-            if(newStatus === "Paid") {
+          // Handle PDF generation if the status was changed to "Paid"
+          if (newStatus === "Paid") {
+            console.log('Status changed to Paid, checking for PDF generation...');
+            
+            // Check if PDF was generated by the backend
+            if (response.data.result.pdfGenerated === true && response.data.result.pdfData) {
+              console.log('PDF was generated by backend, handling PDF response...');
               this.handlePdfResponse(response.data.result);
+            } else {
+              console.log('PDF not generated by backend:', {
+                pdfGenerated: response.data.result.pdfGenerated,
+                hasPdfData: !!response.data.result.pdfData,
+                pdfError: response.data.result.pdfError,
+                pdfSkipped: response.data.result.pdfSkipped,
+                pdfSkipReason: response.data.result.pdfSkipReason
+              });
+              console.log('Attempting manual generation...');
+              
+              // If backend didn't generate PDF, try to generate it manually
+              try {
+                // Find the updated order data
+                const updatedOrderData = this.state.fundraisingData.find(order => order._id === orderId);
+                if (updatedOrderData) {
+                  await this.generateReceiptFromOrderData(updatedOrderData, subtotalInfo, processedItemsForBackend);
+                } else {
+                  console.log('Could not find updated order data for manual generation');
+                }
+              } catch (pdfError) {
+                console.error('Error generating PDF manually:', pdfError);
+              }
             }
-          } else if (response.data.result.pdfError) {
-            console.error('PDF generation failed:', response.data.result.pdfError);
           }
+          
+          // Refresh table data to show updated receipt number and status
+          await this.fetchAndSetFundraisingData();
           
           // Return subtotal information for further use if needed
           return { success: true, subtotalInfo };
@@ -1365,13 +1607,69 @@ class FundraisingTable extends Component {
       }
     };
 
+    // Generate receipt manually when backend doesn't generate it
+    generateReceiptFromOrderData = async (orderData, subtotalInfo, processedItems) => {
+      try {
+        console.log('Generating receipt manually for order:', orderData._id);
+        
+        // Calculate total amount from subtotalInfo or processedItems
+        let totalAmount = subtotalInfo?.totalSubtotal || 0;
+        
+        if (totalAmount === 0 && processedItems && processedItems.length > 0) {
+          totalAmount = processedItems.reduce((total, item) => total + (item.subtotal || 0), 0);
+        }
+        
+        // Construct order data for receipt generation
+        const receiptOrderData = {
+          _id: orderData._id,
+          personalInfo: {
+            firstName: orderData.personalInfo?.firstName || orderData.firstName,
+            lastName: orderData.personalInfo?.lastName || orderData.lastName,
+            phone: orderData.personalInfo?.phone || orderData.contactNumber,
+            email: orderData.personalInfo?.email || orderData.email,
+            address: orderData.personalInfo?.address || orderData.address,
+            postalCode: orderData.personalInfo?.postalCode || orderData.postalCode
+          },
+          items: processedItems || orderData.items || [],
+          totalPrice: totalAmount,
+          donationAmount: totalAmount,
+          paymentMethod: orderData.paymentDetails?.paymentMethod || orderData.paymentMethod,
+          collectionMode: orderData.collectionDetails?.collectionMode || orderData.collectionMode,
+          status: "Paid",
+          receiptNumber: orderData.fundraisingKey || orderData.receiptNumber,
+          subtotalInfo: subtotalInfo
+        };
+        
+        console.log('Sending manual receipt generation request:', receiptOrderData);
+        
+        // Call backend to generate receipt
+        const response = await axios.post(
+          `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/fundraising`,
+          {
+            purpose: "generateReceipt",
+            ...receiptOrderData
+          }
+        );
+
+        console.log('Manual receipt generation response:', response.data);
+        
+        // Handle the PDF response
+        if (response.data.result && response.data.result.success && response.data.result.pdfGenerated) {
+          this.handlePdfResponse(response.data.result);
+        } else {
+          console.error('Failed to generate receipt manually:', response.data);
+        }
+      } catch (error) {
+        console.error('Error in manual receipt generation:', error);
+      }
+    };
+
     // Handle PDF response from backend
     handlePdfResponse = (result) => {
       try {
         const { pdfData, pdfFilename } = result;
         
         if (!pdfData) {
-          console.error('No PDF data received');
           return;
         }
         
@@ -1399,8 +1697,6 @@ class FundraisingTable extends Component {
         downloadLink.click();
         
         window.URL.revokeObjectURL(blobUrl);
-        
-        console.log('PDF handled successfully:', pdfFilename);
         
       } catch (error) {
         console.error('Error handling PDF response:', error);
@@ -1449,107 +1745,52 @@ class FundraisingTable extends Component {
     };
 
     // Reduce stock in WooCommerce
-    reduceWooCommerceStock = async (item, orderData) => {
+    reduceWooCommerceStock = async (item, orderData) => 
+    {
       try {
         const quantity = item.quantity || 1;
-        const originalProductName = item.productName || item.name || item.itemName;
+        const originalProductName = item.productName;
         
-        if (!originalProductName) {
-          console.warn('No product name found for item:', item);
-          return;
-        }
+        // Get product ID from available data
+        let productId = null;
         
-        console.log(`Attempting to reduce stock for "${originalProductName}" by ${quantity}`);
-        
-        // Get the best available product information for matching
-        let productData = {
-          productName: originalProductName,
-          type: "fundraising"
-        };
-        
-        // If we have enriched data with matched product info, use that for better matching
-        if (item.enrichedData && item.enrichedData.matchedProductName && item.enrichedData.matchedProductId) {
-          productData = {
-            productName: item.enrichedData.matchedProductName, // Use the matched WooCommerce product name
-            originalProductName: originalProductName, // Keep original for reference
-            productId: item.enrichedData.matchedProductId, // Include product ID if available
-            matchType: item.enrichedData.matchType,
-            type: "fundraising"
-          };
-          
-          console.log(`Using enriched product data for stock reduction:`, {
-            original: originalProductName,
-            matched: item.enrichedData.matchedProductName,
-            id: item.enrichedData.matchedProductId,
-            matchType: item.enrichedData.matchType
-          });
-        } else if (item.wooCommerceDetails) {
-          // Fallback to wooCommerceDetails if available
-          productData = {
-            productName: item.wooCommerceDetails.name,
-            originalProductName: originalProductName,
-            productId: item.wooCommerceDetails.id,
-            type: "fundraising"
-          };
-          
-          console.log(`Using WooCommerce details for stock reduction:`, {
-            original: originalProductName,
-            wooCommerce: item.wooCommerceDetails.name,
-            id: item.wooCommerceDetails.id
-          });
-        }
-        
-        const requestPayload = {
-          page: productData,
-          status: "Paid", // Indicate we want to reduce stock
-          quantity: quantity // Amount to reduce
-        };
-        
-        console.log('Stock reduction request payload:', requestPayload);
-        
-        // Use your existing Django endpoint for stock updates
-        const response = await axios.post(
-          `${window.location.hostname === "localhost" ? "http://localhost:3002" : "https://ecss-backend-django.azurewebsites.net"}/update_stock/`,
-          requestPayload
+        // Search in wooCommerceProductDetails state
+        const { wooCommerceProductDetails } = this.state;
+        console.log('WooCommerceProductDetails:', wooCommerceProductDetails);
+
+        // Try exact match first
+        let foundProduct = wooCommerceProductDetails.find(product => 
+          //console.log("Product Name: ", product.name, "Original Product Name: ", originalProductName, product.name === originalProductName)
+          product.name === originalProductName
         );
         
-        console.log('Stock reduction response:', response.data);
+        if (foundProduct) {
+          productId = foundProduct.id;
+      }
+    
+      const requestPayload = {
+        product_id: productId,
+        method: "reduce",
+        stock_quantity: quantity // Amount to reduce
+      };
         
-        if (response.data.success) 
-        {
-          // Check if the response contains stock information
-          const stockInfo = response.data.success;
-          let message = `Stock reduced successfully for "${productData.productName}" (Quantity: ${quantity})`;
-          
-          if (typeof stockInfo === 'object' && stockInfo.previous_stock !== undefined) {
-            message += `\nPrevious stock: ${stockInfo.previous_stock}, New stock: ${stockInfo.new_stock}`;
-          }
-          
-          console.log(message);
-        } else {
-          console.error(`Failed to reduce stock for product "${productData.productName}":`, response.data.error || response.data);
-        }
+      // Use your existing Django endpoint for stock updates
+      const response = await axios.post(
+        `${window.location.hostname === "localhost" ? "http://localhost:3002" : "https://ecss-backend-django.azurewebsites.net"}/update_fundraising_product_stock/`,
+        requestPayload
+      );
+      
+      console.log('Stock reduction response:', response.data);
+      
+      if (response.data.success) {
+        console.log(`Stock reduced successfully for "${originalProductName}" (Quantity: ${quantity})`);
+      } else {
+        console.error(`Failed to reduce stock for product "${originalProductName}":`, response.data.error || response.data);
+      }
         
       } catch (error) {
         console.error('Error calling WooCommerce stock reduction API:', error);
-        console.error('Error details:', {
-          message: error.message,
-          response: error.response?.data,
-          status: error.response?.status,
-          item: item,
-          productName: item.productName || item.name || item.itemName
-        });
-        
-        let errorMessage = `Error reducing stock for "${item.productName || item.name || item.itemName || 'Unknown product'}"`;
-        
-        if (error.response && error.response.data && error.response.data.error) {
-          errorMessage += `: ${error.response.data.error}`;
-        } else {
-          errorMessage += `: ${error.message}`;
-        }
-        
-        // Don't throw the error to prevent breaking the entire process
-        console.error(errorMessage);
+        console.error(`Error reducing stock for "${item.productName || item.name || item.itemName || 'Unknown product'}":`, error.message);
       }
     };
 
@@ -1557,104 +1798,47 @@ class FundraisingTable extends Component {
     increaseWooCommerceStock = async (item, orderData) => {
       try {
         const quantity = item.quantity || 1;
-        const originalProductName = item.productName || item.name || item.itemName;
+        const originalProductName = item.productName;
         
-        if (!originalProductName) {
-          console.warn('No product name found for item:', item);
-          return;
+        // Get product ID from available data
+        let productId = null;
+        
+        // Search in wooCommerceProductDetails state
+        const { wooCommerceProductDetails } = this.state;
+        console.log('WooCommerceProductDetails:', wooCommerceProductDetails);
+
+        // Try exact match first
+        let foundProduct = wooCommerceProductDetails.find(product => 
+          product.name === originalProductName
+        );
+        
+        if (foundProduct) {
+          productId = foundProduct.id;
         }
-        
-        console.log(`Attempting to increase stock for "${originalProductName}" by ${quantity}`);
-        
-        // Get the best available product information for matching
-        let productData = {
-          productName: originalProductName,
-          type: "fundraising"
-        };
-        
-        // If we have enriched data with matched product info, use that for better matching
-        if (item.enrichedData && item.enrichedData.matchedProductName && item.enrichedData.matchedProductId) {
-          productData = {
-            productName: item.enrichedData.matchedProductName, // Use the matched WooCommerce product name
-            originalProductName: originalProductName, // Keep original for reference
-            productId: item.enrichedData.matchedProductId, // Include product ID if available
-            matchType: item.enrichedData.matchType,
-            type: "fundraising"
-          };
-          
-          console.log(`Using enriched product data for stock increase:`, {
-            original: originalProductName,
-            matched: item.enrichedData.matchedProductName,
-            id: item.enrichedData.matchedProductId,
-            matchType: item.enrichedData.matchType
-          });
-        } else if (item.wooCommerceDetails) {
-          // Fallback to wooCommerceDetails if available
-          productData = {
-            productName: item.wooCommerceDetails.name,
-            originalProductName: originalProductName,
-            productId: item.wooCommerceDetails.id,
-            type: "fundraising"
-          };
-          
-          console.log(`Using WooCommerce details for stock increase:`, {
-            original: originalProductName,
-            wooCommerce: item.wooCommerceDetails.name,
-            id: item.wooCommerceDetails.id
-          });
-        }
-        
+    
         const requestPayload = {
-          page: productData,
-          status: "Refunded", // Indicate we want to increase stock
-          quantity: quantity // Amount to increase
+          product_id: productId,
+          method: "increase", // Use "increase" to add stock back
+          stock_quantity: quantity // Amount to increase
         };
-        
-        console.log('Stock increase request payload:', requestPayload);
         
         // Use your existing Django endpoint for stock updates
         const response = await axios.post(
-          `${window.location.hostname === "localhost" ? "http://localhost:3002" : "https://ecss-backend-django.azurewebsites.net"}/update_stock/`,
+          `${window.location.hostname === "localhost" ? "http://localhost:3002" : "https://ecss-backend-django.azurewebsites.net"}/update_fundraising_product_stock/`,
           requestPayload
         );
         
         console.log('Stock increase response:', response.data);
         
-        if (response.data.success) 
-        {
-          // Check if the response contains stock information
-          const stockInfo = response.data.success;
-          let message = `Stock increased successfully for "${productData.productName}" (Quantity: ${quantity})`;
-          
-          if (typeof stockInfo === 'object' && stockInfo.previous_stock !== undefined) {
-            message += `\nPrevious stock: ${stockInfo.previous_stock}, New stock: ${stockInfo.new_stock}`;
-          }
-          
-          console.log(message);
+        if (response.data.success) {
+          console.log(`Stock increased successfully for "${originalProductName}" (Quantity: ${quantity})`);
         } else {
-          console.error(`Failed to increase stock for product "${productData.productName}":`, response.data.error || response.data);
+          console.error(`Failed to increase stock for product "${originalProductName}":`, response.data.error || response.data);
         }
         
       } catch (error) {
         console.error('Error calling WooCommerce stock increase API:', error);
-        console.error('Error details:', {
-          message: error.message,
-          response: error.response?.data,
-          status: error.response?.status,
-          item: item,
-          productName: item.productName || item.name || item.itemName
-        });
-        
-        let errorMessage = `Error increasing stock for "${item.productName || item.name || item.itemName || 'Unknown product'}"`;
-        
-        if (error.response && error.response.data && error.response.data.error) {
-          errorMessage += `: ${error.response.data.error}`;
-        } else {
-          errorMessage += `: ${error.message}`;
-        }
-        
-        // Don't throw the error to prevent breaking the entire process
-        console.error(errorMessage);
+        console.error(`Error increasing stock for "${item.productName || item.name || item.itemName || 'Unknown product'}":`, error.message);
       }
     };
 
@@ -1984,14 +2168,12 @@ class FundraisingTable extends Component {
               <button 
                 className="fundraising-export-btn"
                 onClick={this.exportToExcel}
-                title="Export all fundraising orders to Excel file"
               >
               Archive Data
               </button>
               <button 
                 className="fundraising-payment-report-btn"
                 onClick={this.generatePaymentReport}
-                title="Generate payment report with total amount"
               >
               Generate Payment Report
               </button>

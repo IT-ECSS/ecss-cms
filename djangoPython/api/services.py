@@ -208,7 +208,7 @@ class WooCommerceAPI:
                     product for product in products
                     if product.get('status') == 'publish'
                     and 'categories' in product
-                    and len(product['categories']) == 1
+                    and (len(product['categories']) == 2 or len(product['categories']) == 1)
                     and any(category.get('name') == 'Support Us' for category in product['categories'])
                 ]
 
@@ -620,6 +620,104 @@ class WooCommerceAPI:
                 "stock_quantity": int(stock_quantity)
             }
             
+            # Make the API request to update the product
+            url = f"{settings.WOOCOMMERCE_API_URL}products/{product_id}"
+            auth = (settings.WOOCOMMERCE_CONSUMER_KEY, settings.WOOCOMMERCE_CONSUMER_SECRET)
+            
+            response = requests.put(url, json=update_data, auth=auth)
+            response.raise_for_status()
+            
+            updated_product = response.json()
+            
+            return {
+                "success": True,
+                "product": updated_product,
+                "message": f"Product {product_id} updated successfully"
+            }
+            
+        except requests.exceptions.RequestException as e:
+            print(f"Error updating fundraising product details: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "message": f"Failed to update product {product_id}"
+            }
+
+    def get_product_stock(self, product_id):
+        """
+        Gets the current stock quantity of a product by its ID.
+        
+        Args:
+            product_id: The ID of the product to fetch stock for.
+        
+        Returns:
+            dict: Success status and stock data or error message.
+        """
+        try:
+            url = f"{settings.WOOCOMMERCE_API_URL}products/{product_id}"
+            auth = (settings.WOOCOMMERCE_CONSUMER_KEY, settings.WOOCOMMERCE_CONSUMER_SECRET)
+            
+            response = requests.get(url, auth=auth)
+            response.raise_for_status()
+            
+            product = response.json()
+            stock_quantity = product.get('stock_quantity', 0)
+            
+            return {
+                "success": True,
+                "product_id": product_id,
+                "stock_quantity": stock_quantity,
+                "product": product,
+                "message": f"Successfully retrieved stock for product {product_id}"
+            }
+            
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching product stock: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "message": f"Failed to fetch stock for product {product_id}"
+            }
+
+    def update_fundraising_product_stock(self, product_id, method, stock_quantity):
+        """
+        Updates a fundraising product's stock quantity.
+        
+        Args:
+            product_id: The ID of the product to update.
+            method: The method for stock update ('reduce' or 'set').
+                   - 'reduce': Subtracts stock_quantity from current stock
+                   - 'set': Sets stock_quantity as the new stock value
+            stock_quantity: The stock quantity to use (amount to reduce or new value).
+        
+        Returns:
+            dict: Success status and updated product data or error message.
+        """
+        try:
+            # If method is 'reduce', first get the current stock quantity
+            if method.lower() == 'reduce':
+                stock_result = self.get_product_stock(product_id)
+                if not stock_result["success"]:
+                    return stock_result  # Return the error from getting stock
+                
+                current_stock = int(stock_result["stock_quantity"] or 0)
+                new_stock = max(0, current_stock - int(stock_quantity))  # Ensure stock doesn't go negative
+                
+                update_data = {
+                    "stock_quantity": new_stock
+                }
+            elif method.lower() == 'increase':
+                stock_result = self.get_product_stock(product_id)
+                if not stock_result["success"]:
+                    return stock_result  # Return the error from getting stock
+                
+                current_stock = int(stock_result["stock_quantity"] or 0)
+                new_stock = current_stock + int(stock_quantity)
+
+                update_data = {
+                    "stock_quantity": new_stock
+                }
+                
             # Make the API request to update the product
             url = f"{settings.WOOCOMMERCE_API_URL}products/{product_id}"
             auth = (settings.WOOCOMMERCE_CONSUMER_KEY, settings.WOOCOMMERCE_CONSUMER_SECRET)

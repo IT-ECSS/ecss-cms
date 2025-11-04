@@ -4,6 +4,7 @@ import '../../css/checkoutPage.css';
 import PersonalInformationSection from './sub/checkout/PersonalInformationSection';
 import PaymentMethodSection from './sub/checkout/PaymentMethodSection';
 import CollectionModeSection from './sub/checkout/CollectionModeSection';
+import CollectionLocationSection from './sub/checkout/CollectionLocationSection';
 import OrderSummarySection from './sub/checkout/OrderSummarySection';
 import CheckoutActions from './sub/checkout/CheckoutActions';
 
@@ -25,10 +26,14 @@ class CheckoutPage extends Component {
       },
       paymentMethod: savedCheckoutState.paymentMethod || '', // Default to cash
       collectionMode: savedCheckoutState.collectionMode || '', // Default to Self-Collection
+      collectionLocation: savedCheckoutState.collectionLocation || '',
+      deliveryToAddress: savedCheckoutState.deliveryToAddress || '',
+      shipToBillingAddress: savedCheckoutState.shipToBillingAddress || false,
       expandedSections: savedCheckoutState.expandedSections || {
         personalInfo: true,  // Section 1 expanded by default
         paymentMethod: false,
         collectionMode: false,
+        collectionLocation: true, // Collection/Delivery Location expanded by default
         orderSummary: false
       },
       fieldErrors: {
@@ -39,7 +44,10 @@ class CheckoutPage extends Component {
         address: '',
         postalCode: '',
         paymentMethod: '',
-        collectionMode: ''
+        collectionMode: '',
+        collectionLocation: '',
+        deliveryToAddress: '',
+        shipToBillingAddress: ''
       },
       modal: {
         isVisible: false,
@@ -68,6 +76,9 @@ class CheckoutPage extends Component {
       prevState.personalInfo !== this.state.personalInfo ||
       prevState.paymentMethod !== this.state.paymentMethod ||
       prevState.collectionMode !== this.state.collectionMode ||
+      prevState.collectionLocation !== this.state.collectionLocation ||
+      prevState.deliveryToAddress !== this.state.deliveryToAddress ||
+      prevState.shipToBillingAddress !== this.state.shipToBillingAddress ||
       prevState.expandedSections !== this.state.expandedSections
     ) {
       this.saveCheckoutStateToLocalStorage();
@@ -105,6 +116,9 @@ class CheckoutPage extends Component {
         personalInfo: this.state.personalInfo,
         paymentMethod: this.state.paymentMethod,
         collectionMode: this.state.collectionMode,
+        collectionLocation: this.state.collectionLocation,
+        deliveryToAddress: this.state.deliveryToAddress,
+        shipToBillingAddress: this.state.shipToBillingAddress,
         expandedSections: this.state.expandedSections
       };
       localStorage.setItem('checkoutFormState', JSON.stringify(stateToSave));
@@ -119,16 +133,29 @@ class CheckoutPage extends Component {
   }
 
   handlePersonalInfoChange = (field, value) => {
-    this.setState(prevState => ({
-      personalInfo: {
+    this.setState(prevState => {
+      const newPersonalInfo = {
         ...prevState.personalInfo,
         [field]: value
-      },
-      fieldErrors: {
-        ...prevState.fieldErrors,
-        [field]: '' // Clear error when user starts typing
+      };
+      
+      // If shipToBillingAddress is checked and address/postalCode is being updated, 
+      // also update the deliveryToAddress
+      let newDeliveryToAddress = prevState.deliveryToAddress;
+      if (prevState.shipToBillingAddress && (field === 'address' || field === 'postalCode')) {
+        newDeliveryToAddress = newPersonalInfo.address && newPersonalInfo.postalCode ? 
+          `${newPersonalInfo.address}, Singapore ${newPersonalInfo.postalCode}` : '';
       }
-    }));
+      
+      return {
+        personalInfo: newPersonalInfo,
+        deliveryToAddress: newDeliveryToAddress,
+        fieldErrors: {
+          ...prevState.fieldErrors,
+          [field]: '' // Clear error when user starts typing
+        }
+      };
+    });
   }
 
   handlePaymentMethodChange = (method) => {
@@ -144,9 +171,50 @@ class CheckoutPage extends Component {
   handleCollectionModeChange = (mode) => {
     this.setState({
       collectionMode: mode,
+      collectionLocation: '', // Reset collection location when mode changes
+      deliveryToAddress: '', // Reset delivery address when mode changes
+      shipToBillingAddress: false, // Reset checkbox when mode changes
       fieldErrors: {
         ...this.state.fieldErrors,
-        collectionMode: '' // Clear error when user selects
+        collectionMode: '', // Clear error when user selects
+        collectionLocation: '', // Clear location error when mode changes
+        deliveryToAddress: '', // Clear delivery address error when mode changes
+        shipToBillingAddress: '' // Clear checkbox error when mode changes
+      }
+    });
+  }
+
+  handleCollectionLocationChange = (location) => {
+    this.setState({
+      collectionLocation: location,
+      fieldErrors: {
+        ...this.state.fieldErrors,
+        collectionLocation: '' // Clear error when user selects
+      }
+    });
+  }
+
+  handleDeliveryToAddressChange = (address) => {
+    this.setState({
+      deliveryToAddress: address,
+      fieldErrors: {
+        ...this.state.fieldErrors,
+        deliveryToAddress: '' // Clear error when user starts typing
+      }
+    });
+  }
+
+  handleShipToBillingAddressChange = (checked) => {
+    const { personalInfo } = this.state;
+    this.setState({
+      shipToBillingAddress: checked,
+      deliveryToAddress: checked ? 
+        (personalInfo.address && personalInfo.postalCode ? `${personalInfo.address}, Singapore ${personalInfo.postalCode}` : '') : 
+        '', // Reset to empty when unchecked to allow manual input
+      fieldErrors: {
+        ...this.state.fieldErrors,
+        shipToBillingAddress: '',
+        deliveryToAddress: '' // Clear error when checkbox changes
       }
     });
   }
@@ -190,6 +258,7 @@ class CheckoutPage extends Component {
             personalInfo: sectionName === 'personalInfo',
             paymentMethod: sectionName === 'paymentMethod',
             collectionMode: sectionName === 'collectionMode',
+            collectionLocation: sectionName === 'collectionLocation',
             orderSummary: sectionName === 'orderSummary'
           }
         };
@@ -261,6 +330,9 @@ class CheckoutPage extends Component {
       },
       paymentMethod: '',
       collectionMode: '',
+      collectionLocation: '',
+      deliveryToAddress: '',
+      shipToBillingAddress: false,
       fieldErrors: {
         firstName: '',
         lastName: '',
@@ -269,7 +341,10 @@ class CheckoutPage extends Component {
         address: '',
         postalCode: '',
         paymentMethod: '',
-        collectionMode: ''
+        collectionMode: '',
+        collectionLocation: '',
+        deliveryToAddress: '',
+        shipToBillingAddress: ''
       }
     });
   }
@@ -291,26 +366,22 @@ class CheckoutPage extends Component {
     // Remove HTML tags like <br>, <div>, etc.
     let cleaned = productName.replace(/<[^>]*>/g, ' ');
     
-    // Split by common separators and take only the English part
-    // This handles cases like "English <br> Chinese" or "English - Chinese"
-    const parts = cleaned.split(/\s*(<br>|<BR>|\s-\s|\s\|\s)\s*/);
+    // Remove Chinese characters (Unicode range for Chinese) but preserve English text with hyphens
+    cleaned = cleaned.replace(/[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/g, '');
     
-    // Take the first part which should be English
-    let englishPart = parts[0];
+    // Clean up extra spaces and trim, but preserve hyphens and other punctuation
+    cleaned = cleaned.replace(/\s+/g, ' ').trim();
     
-    // Additional cleanup: remove Chinese characters (Unicode range for Chinese)
-    englishPart = englishPart.replace(/[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/g, '');
+    // Remove any trailing separators that might be left after removing Chinese text
+    cleaned = cleaned.replace(/\s*[\-\|]\s*$/, '').trim();
     
-    // Clean up extra spaces and trim
-    englishPart = englishPart.replace(/\s+/g, ' ').trim();
+    console.log(`Product name cleaned: "${productName}" → "${cleaned}"`);
     
-    console.log(`Product name cleaned: "${productName}" → "${englishPart}"`);
-    
-    return englishPart;
+    return cleaned;
   }
 
   handlePlaceOrder = async () => {
-    const { personalInfo, paymentMethod, collectionMode } = this.state;
+    const { personalInfo, paymentMethod, collectionMode, collectionLocation, deliveryToAddress, shipToBillingAddress } = this.state;
     const { cartItems = [] } = this.props;
 
     // Clear all errors first
@@ -322,7 +393,10 @@ class CheckoutPage extends Component {
       address: '',
       postalCode: '',
       paymentMethod: '',
-      collectionMode: ''
+      collectionMode: '',
+      collectionLocation: '',
+      deliveryToAddress: '',
+      shipToBillingAddress: ''
     };
 
     // Validate all required fields are filled
@@ -354,6 +428,25 @@ class CheckoutPage extends Component {
       hasErrors = true;
     }
 
+    // Validate collection location only if Self-Collection is selected
+    if (collectionMode === 'Self-Collection' && !collectionLocation) {
+      newFieldErrors.collectionLocation = 'Collection location is required';
+      hasErrors = true;
+    }
+
+    // Validate delivery address only if Delivery is selected
+    if (collectionMode === 'Delivery') {
+      if (!shipToBillingAddress && !deliveryToAddress) {
+        newFieldErrors.deliveryToAddress = 'Delivery address is required';
+        hasErrors = true;
+      }
+      // If using billing address, check if billing address exists
+      if (shipToBillingAddress && (!personalInfo.address || !personalInfo.postalCode)) {
+        newFieldErrors.deliveryToAddress = 'Please ensure your billing address is complete';
+        hasErrors = true;
+      }
+    }
+
     if (cartItems.length === 0) {
       alert('Your cart is empty');
       return;
@@ -376,6 +469,16 @@ class CheckoutPage extends Component {
       minute: '2-digit' 
     }); // hh:mm 24-hour format
 
+    // Determine the CollectionDeliveryLocation based on collection mode
+    let CollectionDeliveryLocation = null;
+    if (collectionMode === 'Self-Collection') {
+      CollectionDeliveryLocation = collectionLocation;
+    } else if (collectionMode === 'Delivery') {
+      CollectionDeliveryLocation = shipToBillingAddress ? 
+        `${personalInfo.address}, Singapore ${personalInfo.postalCode}` : 
+        deliveryToAddress;
+    }
+
     const orderData = {
       personalInfo: {
         firstName: personalInfo.firstName,
@@ -385,8 +488,14 @@ class CheckoutPage extends Component {
         address: personalInfo.address,
         postalCode: personalInfo.postalCode
       },
-      paymentMethod: paymentMethod,
-      collectionMode: collectionMode,
+      paymentDetails: {
+        paymentMethod: paymentMethod,
+      },
+      collectionDetails: {
+        collectionMode: collectionMode,
+        CollectionDeliveryLocation: CollectionDeliveryLocation
+      },
+      orderDetails: {
       orderDate: orderDate,
       orderTime: orderTime,
       totalPrice: parseFloat(this.calculateTotal()), // Add total price
@@ -394,7 +503,10 @@ class CheckoutPage extends Component {
         productName: this.cleanProductName(item.name), // Clean the product name
         quantity: item.quantity
       }))
-    };    try {
+      }
+    };
+
+    try {
       // Send the orderData to your server
       const baseUrl = window.location.hostname === "localhost" 
         ? "http://localhost:3001" 
@@ -424,7 +536,7 @@ class CheckoutPage extends Component {
   }
 
   render() {
-    const { personalInfo, paymentMethod, collectionMode, expandedSections, fieldErrors, modal } = this.state;
+    const { personalInfo, paymentMethod, collectionMode, collectionLocation, deliveryToAddress, shipToBillingAddress, expandedSections, fieldErrors, modal } = this.state;
     const { cartItems = [] } = this.props;
 
     return (
@@ -463,6 +575,21 @@ class CheckoutPage extends Component {
             onToggleSection={this.toggleSection}
           />
 
+          {/* Collection/Delivery Location Section */}
+          <CollectionLocationSection
+            collectionLocation={collectionLocation}
+            deliveryToAddress={deliveryToAddress}
+            shipToBillingAddress={shipToBillingAddress}
+            expandedSections={expandedSections}
+            fieldErrors={fieldErrors}
+            collectionMode={collectionMode}
+            personalInfo={personalInfo}
+            onCollectionLocationChange={this.handleCollectionLocationChange}
+            onDeliveryToAddressChange={this.handleDeliveryToAddressChange}
+            onShipToBillingAddressChange={this.handleShipToBillingAddressChange}
+            onToggleSection={this.toggleSection}
+          />
+
           {/* Order Summary Section */}
           <OrderSummarySection
             cartItems={cartItems}
@@ -494,7 +621,7 @@ class CheckoutPage extends Component {
               <div className="modal-message">
                 <p className={modal.type}>{modal.message}</p>
               </div>
-              <div className="modal-footer">
+              <div className="modal-footer3">
                 <button className="modal-button" onClick={this.hideModal}>
                   OK
                 </button>

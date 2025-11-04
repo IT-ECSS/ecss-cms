@@ -224,7 +224,7 @@ class fundRaisingGenerator {
         // Store the current y position
         let currentY = doc.y;
 
-        console.log("Receipt Text:", receiptText);
+
 
         // Add the receipt number on the left side and keep the cursor position
         doc.font(fontPathTimesRegular).fontSize(12).text(receiptText, leftMargin, currentY, {
@@ -276,12 +276,6 @@ class fundRaisingGenerator {
 
          this.createTable(doc, array);
 
-
-        //var staffName = `Issue By: ${name}`;
-        var staffName = `Issue By: ${array[0].official.name}`;
-        doc.font(fontPathTimesRegular).fontSize(12).text(staffName, leftMargin, doc.y, {
-            align: 'right' // Align the date to the left
-        });
         doc.moveDown(1);
 
         // Add the date on a new line
@@ -593,7 +587,7 @@ class fundRaisingGenerator {
     }
 
     async addContent(doc, array, name, receiptNo) {
-        console.log("Add Content:", name);
+
         
         // Initial header addition for the first page
         await this.addHeader(doc, receiptNo); // Add header to the first page
@@ -794,7 +788,7 @@ class fundRaisingGenerator {
     
         // Signature Section: Dynamically calculate content height
         const signatureHeight = this.calculateSignatureHeight(doc, fontPathTimesRegular, 20);
-        console.log("Signature Height:", signatureHeight);
+
     
         // If there is no space left for signature block, add a new page
         await checkPageSpaceAndAddNewPage(doc, 250 - signatureHeight, currentPage, totalPages, leftMargin, rightMargin);
@@ -995,10 +989,10 @@ class fundRaisingGenerator {
 }
     
     async generateReceipt(res, array, name, receiptNo) {
-        console.log(array, name, receiptNo);
+
         return new Promise((resolve, reject) => {
             try {
-                console.log("Staff Name:", name);
+
                 // Set headers for PDF
                 const filename = `Moses.pdf`; 
     
@@ -1109,7 +1103,7 @@ class fundRaisingGenerator {
     // New method for fundraising receipts
     async generateFundraisingReceipt(orderData) {
         try {
-            console.log("Generating fundraising receipt for:", orderData);
+
             
             // Create a PDF document in memory (no response object needed)
             const doc = new PDFDocument();
@@ -1164,6 +1158,17 @@ class fundRaisingGenerator {
 
     // Add fundraising body content
     async addFundraisingBody(doc, orderData) {
+        console.log('PDF Generator - Order data structure:', {
+            hasPaymentMethod: !!orderData.paymentMethod,
+            hasPaymentDetails: !!orderData.paymentDetails,
+            paymentMethod: orderData.paymentMethod,
+            paymentDetails: orderData.paymentDetails,
+            hasItems: !!orderData.items,
+            itemsLength: orderData.items ? orderData.items.length : 0,
+            hasSubtotalInfo: !!orderData.subtotalInfo,
+            subtotalInfo: orderData.subtotalInfo
+        });
+        
         const leftMargin = 2.54 * 28.35; // 2.54 cm to points
         const rightMargin = 15.93; // Right margin in points
 
@@ -1178,7 +1183,7 @@ class fundRaisingGenerator {
         doc.moveDown(2);
 
         // Add fundraising key (receipt number) - reduced gap
-        const receiptText = `Receipt No  : ${orderData.fundraisingKey || 'N/A'}`;
+        const receiptText = `Receipt No  : ${orderData.receiptNumber || 'N/A'}`;
         doc.font(fontPathTimesRegular).fontSize(12).text(receiptText, leftMargin);
         doc.moveDown(0.3);
 
@@ -1193,19 +1198,24 @@ class fundRaisingGenerator {
         doc.font(fontPathTimesRegular).fontSize(12).text(customerName, leftMargin);
         doc.moveDown(0.3);
 
-        // Add payment method - reduced gap
-        const paymentMethod = `Payment Method  : ${orderData.paymentMethod || ''}`;
+        // Add payment method - reduced gap with better fallback logic
+        const paymentMethodValue = orderData.paymentMethod || orderData.paymentDetails?.paymentMethod || '';
+        const paymentMethod = `Payment Method  : ${paymentMethodValue}`;
+        console.log('PDF Generator - Payment method value:', paymentMethodValue);
         doc.font(fontPathTimesRegular).fontSize(12).text(paymentMethod, leftMargin);
         doc.moveDown(1.5);
 
         // Create fundraising items table with subtotal information
-        await this.createFundraisingTable(doc, orderData.items || [], orderData.totalPrice || 0, orderData.subtotalInfo);
+        const itemsToUse = orderData.items || orderData.orderDetails?.items || [];
+        const totalPriceToUse = orderData.totalPrice || orderData.donationAmount || 0;
+        console.log('PDF Generator - Items and pricing:', {
+            itemsCount: itemsToUse.length,
+            totalPrice: totalPriceToUse,
+            hasSubtotalInfo: !!orderData.subtotalInfo
+        });
+        await this.createFundraisingTable(doc, itemsToUse, totalPriceToUse, orderData.subtotalInfo);
 
         doc.moveDown(1);
-
-        // Add Issue By line (can be left blank as requested) - reduced gap
-        doc.font(fontPathTimesRegular).fontSize(12).text("Issue By:", leftMargin + 350, doc.y);
-        doc.moveDown(0.5);
 
         // Add signature line - match the image format
         doc.font(fontPathTimesRegular).fontSize(12).text("This is a computer generated invoice and requires no signature.", leftMargin);
@@ -1267,15 +1277,19 @@ class fundRaisingGenerator {
         let currentY = tableTop + headerHeight;
         doc.font(fontPathRegular).fontSize(11);
 
-        console.log("Using subtotal info in PDF generation:", subtotalInfo);
+        console.log("PDF Generator - Using subtotal info:", subtotalInfo);
+        console.log("PDF Generator - Items to process:", items);
 
         // Create a map of subtotal information for quick lookup
         const subtotalMap = {};
         if (subtotalInfo && subtotalInfo.items) {
             subtotalInfo.items.forEach(item => {
                 subtotalMap[item.productName] = item;
+                console.log(`PDF Generator - Added to subtotal map: ${item.productName} -> ${item.subtotal}`);
             });
         }
+        
+        console.log("PDF Generator - Subtotal map:", subtotalMap);
 
         let calculatedTotal = 0;
 
@@ -1283,6 +1297,13 @@ class fundRaisingGenerator {
         items.forEach((item, index) => {
             const quantity = item.quantity || 1;
             const itemName = item.productName || item.name || 'Unknown Item';
+            
+            console.log(`PDF Generator - Processing item ${index + 1}:`, {
+                itemName,
+                quantity,
+                fullItem: item,
+                hasSubtotalMapEntry: !!subtotalMap[itemName]
+            });
             
             // Get subtotal information from subtotalInfo if available
             let subtotal = 0;

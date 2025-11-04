@@ -11,7 +11,8 @@ urlpatterns = [
     path('sales_report/', views.sales_report_view_react, name='sales_report_react'),
     path('generate_monthly_report/', views.generate_report, name='generate_report'),
     path('update_stock/', views.update_stock, name='update_stock'),
-    path('update_fundraising_product/', views.update_fundraising_product, name='update_fundraising_product'),
+    path('update_fundraising_product_stock/', views.update_fundraising_product_stock, name='update_fundraising_product_stock'),
+    path('update_fundraising_product_details/', views.update_fundraising_product_details, name='update_fundraising_product_details'),
     path('port_over/', views.port_over, name='port_over'),
     path('upload-product-image/', views.upload_product_image, name='upload_product_image'),
 ]

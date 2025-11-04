@@ -55,7 +55,7 @@ router.post('/', async function(req, res, next)
                     ? `${req.body.personalInfo.firstName || ''}_${req.body.personalInfo.lastName || ''}`.replace(/[^a-zA-Z0-9_]/g, '').trim()
                     : 'customer';
                 const paymentMethod = (req.body.paymentMethod || 'payment').replace(/[^a-zA-Z0-9_]/g, '');
-                const receiptNumber = (req.body.fundraisingKey || 'receipt').replace(/[^a-zA-Z0-9_]/g, '');
+                const receiptNumber = (req.body.receiptNumber || 'receipt').replace(/[^a-zA-Z0-9_]/g, '');
                 const filename = `${customerName}_${paymentMethod}_${receiptNumber}.pdf`;
                 
                 // Return success result with PDF data
@@ -95,40 +95,69 @@ router.post('/', async function(req, res, next)
             const subtotalInfo = req.body.subtotalInfo;
             console.log("Received subtotal information:", subtotalInfo);
 
-            // Get existing order to check if it already has a receipt number
+            // Get existing order to check current status
             const existingOrder = await fundraisingController.getFundraisingOrderById(req.body._id);
+            console.log("Existing order found:", existingOrder ? "Yes" : "No");
+            if (existingOrder) {
+                console.log("Existing order status:", existingOrder.status);
+                console.log("Existing receiptNumber:", existingOrder.receiptNumber);
+            }
+            
             let receiptNumber;
             
-            if (existingOrder && existingOrder.fundraisingKey && existingOrder.fundraisingKey.trim() !== '') {
-                // Use existing receipt number if it exists
-                receiptNumber = existingOrder.fundraisingKey;
-                console.log("Using existing receipt number:", receiptNumber);
-            } else {
-                // Generate new receipt number only if none exists
-                receiptNumber = await fundraisingController.generateReceiptNumber();
+            // Always generate a new receipt number for "Paid" status updates
+            if (req.body.newStatus === "Paid") {
+                console.log("Status is being changed to Paid - generating receipt number");
                 
-                if (!receiptNumber) {
-                    return res.status(500).json({ 
-                        result: {
-                            success: false,
-                            message: "Failed to generate receipt number"
-                        }
-                    });
+                // First check if frontend provided a receipt number (with product-specific format)
+                if (req.body.receiptNumber && req.body.receiptNumber.trim() !== '') {
+                    receiptNumber = req.body.receiptNumber;
+                    console.log("Using receipt number from frontend:", receiptNumber);
+                } else {
+                    // Fallback to backend generation if frontend didn't provide one
+                    // Pass items to enable Panettone format detection
+                    const items = req.body.items || [];
+                    receiptNumber = await fundraisingController.generateReceiptNumber(items);
+                    
+                    if (!receiptNumber) {
+                        return res.status(500).json({ 
+                            result: {
+                                success: false,
+                                message: "Failed to generate receipt number"
+                            }
+                        });
+                    }
+                    console.log("Generated new receipt number (backend fallback):", receiptNumber);
                 }
-                console.log("Generated new receipt number:", receiptNumber);
+            } else {
+                // For other statuses, keep existing receipt number if it exists
+                if (existingOrder && existingOrder.receiptNumber && existingOrder.receiptNumber.trim() !== '') {
+                    receiptNumber = existingOrder.receiptNumber;
+                    console.log("Keeping existing receipt number:", receiptNumber);
+                } else {
+                    receiptNumber = null; // No receipt number for non-paid status
+                    console.log("No receipt number for status:", req.body.newStatus);
+                }
             }
 
             const updateData = { 
                 status: req.body.newStatus,
-                fundraisingKey: receiptNumber // Use the receipt number as fundraising key
+                receiptNumber: receiptNumber // Use the receipt number as fundraising key
             };
+            
+            console.log("Attempting to update order with data:", updateData);
+            console.log("Order ID to update:", req.body._id);
+            
             const result = await fundraisingController.updateFundraisingOrder(
                 req.body._id, 
                 updateData
             );
             
+            console.log("Update result from controller:", result);
+            
             // If update was successful and payment status is "Paid", generate PDF and insert receipt record
             if (result.success) {
+                console.log("Update was successful, processing next steps...");
                 // Only generate PDF if payment status is "Paid"
                 if (req.body.newStatus === "Paid") {
                     try {
@@ -168,8 +197,8 @@ router.post('/', async function(req, res, next)
                         const customerName = result.data.personalInfo 
                             ? `${result.data.personalInfo.firstName || ''}_${result.data.personalInfo.lastName || ''}`.replace(/[^a-zA-Z0-9_]/g, '').trim()
                             : 'customer';
-                        const paymentMethod = (result.data.paymentMethod || 'payment').replace(/[^a-zA-Z0-9_]/g, '');
-                        const receiptNum = (result.data.fundraisingKey || 'receipt').replace(/[^a-zA-Z0-9_]/g, '');
+                        const paymentMethod = (result.data.paymentDetails.paymentMethod).replace(/[^a-zA-Z0-9_]/g, '');
+                        const receiptNum = (result.data.receiptNumber || 'receipt').replace(/[^a-zA-Z0-9_]/g, '');
                         const filename = `${customerName}_${paymentMethod}_${receiptNum}.pdf`;
                         
                         // Add PDF data to the result
