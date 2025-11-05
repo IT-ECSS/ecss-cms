@@ -5,6 +5,8 @@ import FilterSidebar from './FilterSidebar';
 import Header from './Header';
 import ProductDetailsModal from './ProductDetailsModal';
 import CheckoutPage from './CheckoutPage';
+import FundraisingTable from './sub/FundraisingTable';
+import OrderTabs from './OrderTabs';
 import '../../css/fundraisingPage.css';
 
 class FundraisingPage extends Component {
@@ -20,7 +22,8 @@ class FundraisingPage extends Component {
       cartItems: [],
       selectedProduct: null,
       isModalOpen: false,
-      showCheckoutPage: false
+      showCheckoutPage: false,
+      activeTab: 'products' // Track which tab is active: 'products' or 'orders'
     };
   }
 
@@ -222,6 +225,12 @@ class FundraisingPage extends Component {
     this.saveCartToLocalStorage([]);
   }
 
+  handleTabChange = (tabName) => {
+    this.setState({
+      activeTab: tabName
+    });
+  }
+
   filterItems = () => {
     const { fundraisingItems, searchTerm, priceRange, sortBy } = this.state;
     
@@ -261,7 +270,7 @@ class FundraisingPage extends Component {
   }
 
   render() {
-    const { filteredItems, searchTerm, isLoading, fundraisingItems, cartItems, selectedProduct, isModalOpen, sortBy, showCheckoutPage } = this.state;
+    const { filteredItems, searchTerm, isLoading, fundraisingItems, cartItems, selectedProduct, isModalOpen, sortBy, showCheckoutPage, activeTab } = this.state;
 
     // Show checkout page if user clicked "Proceed to Checkout"
     if (showCheckoutPage) {
@@ -295,8 +304,13 @@ class FundraisingPage extends Component {
           onRemoveFromCart={this.handleRemoveFromCart}
           onUpdateCartQuantity={this.handleUpdateCartQuantity}
           onProceedToCheckout={this.handleProceedToCheckout}
+          activeTab={activeTab}
+          onTabChange={this.handleTabChange}
         />
-        <div className="fundraising-page fade-in">
+
+        {/* Tab Content */}
+        {activeTab === 'products' ? (
+          <div className="fundraising-page fade-in">
           {/* Left Sidebar - Filters */}
           <div className="sidebar-container">
             <FilterSidebar 
@@ -336,6 +350,12 @@ class FundraisingPage extends Component {
             />
           </div>
         </div>
+        ) : (
+          // Orders Tab Content
+          <div className="orders-page fade-in">
+            <OrderTabs />
+          </div>
+        )}
         
         <ProductDetailsModal
           isOpen={isModalOpen}

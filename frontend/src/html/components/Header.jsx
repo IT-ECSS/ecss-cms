@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import CartPopup from './CartPopup';
 
-const Header = ({ cartItems = [], onRemoveFromCart, onUpdateCartQuantity, onProceedToCheckout }) => {
+const Header = ({ cartItems = [], onRemoveFromCart, onUpdateCartQuantity, onProceedToCheckout, activeTab, onTabChange }) => {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const cartRef = useRef(null);
 
@@ -39,6 +39,23 @@ const Header = ({ cartItems = [], onRemoveFromCart, onUpdateCartQuantity, onProc
       <div className="header-container">
         <div className="header-content">
           <div className="header-left">
+            {/* Tab Navigation */}
+            {activeTab && onTabChange && (
+              <div className="tab-navigation">
+                <button 
+                  className="tab-button1"
+                  onClick={() => onTabChange('products')}
+                >
+                  Product Catalogue
+                </button>
+                <button 
+                  className="tab-button1"
+                  onClick={() => onTabChange('orders')}
+                >
+                  Check Orders
+                </button>
+              </div>
+            )}
           </div>
           <div className="header-right">
             <div className="cart-container" ref={cartRef}>
