@@ -18,10 +18,10 @@ class PaymentMethodSection extends Component {
         <div className={`section-content ${expandedSections.paymentMethod ? 'expanded' : 'collapsed'}`}>
           <div className="payment-method-form">
             <div className="form-group">
-              <div className="payment-method-buttons">
+              <div className="payment-method-buttons1">
                 <button
                   type="button"
-                  className={`payment-method-button ${paymentMethod === 'Cash' ? 'selected' : ''}`}
+                  className={`payment-method-button1 ${paymentMethod === 'Cash' ? 'selected' : ''}`}
                   onClick={() => onPaymentMethodChange('Cash')}
                 >
                   Cash
@@ -29,7 +29,7 @@ class PaymentMethodSection extends Component {
                 
                 <button
                   type="button"
-                  className={`payment-method-button ${paymentMethod === 'PayNow' ? 'selected' : ''}`}
+                  className={`payment-method-button1 ${paymentMethod === 'PayNow' ? 'selected' : ''}`}
                   onClick={() => onPaymentMethodChange('PayNow')}
                 >
                   PayNow

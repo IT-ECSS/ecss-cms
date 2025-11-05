@@ -14,7 +14,7 @@ const CartPopup = ({ isOpen, cartItems, onClose, onRemoveItem, onUpdateQuantity,
   };
 
   return (
-    <div className="cart-dropdown">
+    <div className="cart-popup-container">
       <div className="cart-header">
         <h3>Shopping Cart ({getTotalItems()} items)</h3>
         <button className="close-cart" onClick={onClose}>×</button>
@@ -27,7 +27,7 @@ const CartPopup = ({ isOpen, cartItems, onClose, onRemoveItem, onUpdateQuantity,
             </div>
           ) : (
             cartItems.map((item, index) => (
-              <div key={index} className="cart-item">
+              <div key={index} className="cart-item1">
                 <div className="item-image">
                   <img 
                     src={item.image || '/placeholder-image.jpg'} 
@@ -35,16 +35,16 @@ const CartPopup = ({ isOpen, cartItems, onClose, onRemoveItem, onUpdateQuantity,
                     onError={(e) => { e.target.src = '/placeholder-image.jpg'; }}
                   />
                 </div>
-                <div className="item-details">
-                  <div className="item-name-container">
-                    <div className="item-name" dangerouslySetInnerHTML={{ __html: item.name }}></div>
+                <div className="item-details1">
+                  <div className="item-name-container1">
+                    <div className="item-name1" dangerouslySetInnerHTML={{ __html: item.name }}></div>
                     <i 
                       className="fa-solid fa-trash-can cart-trash-icon"
                       onClick={() => onRemoveItem(index)}
                       title="Remove item"
                     ></i>
                   </div>
-                  <div className="item-price">${item.price}</div>
+                  <div className="item-price1">${item.price}</div>
                 </div>
                 <div className="item-quantity">
                   <button 
@@ -120,7 +120,7 @@ const CartPopup = ({ isOpen, cartItems, onClose, onRemoveItem, onUpdateQuantity,
                     +
                   </button>
                 </div>
-                <div className="item-total">
+                <div className="item-total1">
                   ${(item.price * (item.quantity || 0)).toFixed(2)}
                 </div>
               </div>

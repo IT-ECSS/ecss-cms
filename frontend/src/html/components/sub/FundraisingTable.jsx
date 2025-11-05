@@ -64,14 +64,14 @@ class FundraisingTable extends Component {
       try 
       {
         const response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/fundraising`, { 
-          purpose: 'retrieve'
+          purpose: 'retrieveAll'
         });
 
-        console.log('Fundraising data fetched:', response);
+        console.log('Fundraising data fetched:', response.data.result);
         
         // Check if the response has the expected structure
-        if (response.data.result && response.data.result.success && response.data.result.data) {
-          return response.data.result.data;
+        if (response.data.result) {
+          return response.data.result;
         } else {
           console.error('Unexpected response structure:', response.data);
           return [];

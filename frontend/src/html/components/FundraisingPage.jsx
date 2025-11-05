@@ -5,7 +5,6 @@ import FilterSidebar from './FilterSidebar';
 import Header from './Header';
 import ProductDetailsModal from './ProductDetailsModal';
 import CheckoutPage from './CheckoutPage';
-import FundraisingTable from './sub/FundraisingTable';
 import OrderTabs from './OrderTabs';
 import '../../css/fundraisingPage.css';
 

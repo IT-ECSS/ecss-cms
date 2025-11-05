@@ -61,20 +61,20 @@ class OrderSummarySection extends Component {
                         onError={(e) => { e.target.src = '/placeholder-image.jpg'; }}
                       />
                     </div>
-                    <div className="item-details">
-                      <div className="item-name" dangerouslySetInnerHTML={{ __html: item.name }}></div>
-                      <div className="item-price">${item.price}</div>
+                    <div className="item-details1">
+                      <div className="item-name1" dangerouslySetInnerHTML={{ __html: item.name }}></div>
+                      <div className="item-price1">${item.price}</div>
                     </div>
-                    <div className="item-quantity-controls">
+                    <div className="item-quantity-controls1">
                       <button 
-                        className="quantity-btn decrease"
+                        className="quantity-btn1 decrease"
                         onClick={() => this.handleQuantityChange(index, item.quantity - 1)}
                       >
                         -
                       </button>
                       <input
                         type="text"
-                        className="quantity-input"
+                        className="quantity-input1"
                         value={item.quantity}
                         onChange={(e) => this.handleDirectQuantityChange(index, e)}
                         onBlur={(e) => {
@@ -86,13 +86,13 @@ class OrderSummarySection extends Component {
                         }}
                       />
                       <button 
-                        className="quantity-btn increase"
+                        className="quantity-btn1 increase"
                         onClick={() => this.handleQuantityChange(index, item.quantity + 1)}
                       >
                         +
                       </button>
                     </div>
-                    <div className="item-total">
+                    <div className="item-total1">
                       ${(item.price * (item.quantity || 0)).toFixed(2)}
                     </div>
                     <button 
@@ -100,7 +100,7 @@ class OrderSummarySection extends Component {
                       onClick={() => this.handleRemoveItem(index)}
                       title="Remove item"
                     >
-                      <i className="fa-solid fa-trash-can cart-trash-icon"></i>
+                      <i className="fas fa-trash cart-trash-icon1"></i>
                     </button>
                   </div>
                 ))
@@ -110,16 +110,16 @@ class OrderSummarySection extends Component {
             {cartItems.length > 0 && (
               <div className="order-total sticky">
                 <div className="total-row">
-                  <span className="total-label">Subtotal:</span>
-                  <span className="total-amount">${calculateTotal()}</span>
+                  <span className="total-label1">Subtotal:</span>
+                  <span className="total-amount1">${calculateTotal()}</span>
                 </div>
                 <div className="total-row">
-                  <span className="total-label">Shipping:</span>
-                  <span className="total-amount">Free</span>
+                  <span className="total-label1">Shipping:</span>
+                  <span className="total-amount1">Free</span>
                 </div>
                 <div className="total-row final-total">
-                  <span className="total-label">Total:</span>
-                  <span className="total-amount">${calculateTotal()}</span>
+                  <span className="total-label1">Total:</span>
+                  <span className="total-amount1">${calculateTotal()}</span>
                 </div>
               </div>
             )}

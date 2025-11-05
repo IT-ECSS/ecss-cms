@@ -1,5 +1,5 @@
 /* Cart Item Component Styles */
-.cart-item {
+.cart-item1 {
   display: grid;
   grid-template-columns: 80px 1fr;
   grid-template-areas: 
@@ -96,13 +96,13 @@
 }
 
 /* Controls row - Create a horizontal layout for quantity and total */
-.cart-item .item-quantity {
+.cart-item1 .item-quantity {
   grid-area: controls;
   justify-self: start;
   align-self: center;
 }
 
-.cart-item .item-total {
+.cart-item1 .item-total {
   grid-area: controls;
   justify-self: end;
   align-self: center;
@@ -335,7 +335,7 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .cart-item {
+  .cart-item1 {
     grid-template-columns: 60px 1fr;
     grid-template-areas: 
       "image header"
@@ -417,7 +417,7 @@
 }
 
 @media (max-width: 480px) {
-  .cart-item {
+  .cart-item1 {
     grid-template-columns: 50px 1fr;
     grid-template-areas: 
       "image header"

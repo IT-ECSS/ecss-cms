@@ -18,7 +18,7 @@ class PersonalInformationSection extends Component {
         <div className={`section-content ${expandedSections.personalInfo ? 'expanded' : 'collapsed'}`}>
           <div className="personal-info-form">
             <div className="form-row">
-              <div className="form-group">
+              <div className="form-group111">
                 <label htmlFor="firstName">First Name</label>
                 <input
                   type="text"
@@ -29,7 +29,7 @@ class PersonalInformationSection extends Component {
                 />
                 {fieldErrors.firstName && <div className="field-error-message">{fieldErrors.firstName}</div>}
               </div>
-              <div className="form-group">
+              <div className="form-group111">
                 <label htmlFor="lastName">Last Name</label>
                 <input
                   type="text"
@@ -43,8 +43,8 @@ class PersonalInformationSection extends Component {
             </div>
             
             <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="email">Email Address</label>
+              <div className="form-group111">
+                <label htmlFor="email">Email Address (Optional)</label>
                 <input
                   type="text"
                   id="email"
@@ -54,7 +54,7 @@ class PersonalInformationSection extends Component {
                 />
                 {fieldErrors.email && <div className="field-error-message">{fieldErrors.email}</div>}
               </div>
-              <div className="form-group">
+              <div className="form-group111">
                 <label htmlFor="phone">Phone Number</label>
                 <input
                   type="text"
@@ -67,7 +67,7 @@ class PersonalInformationSection extends Component {
               </div>
             </div>
             
-            <div className="form-group">
+            <div className="form-group111">
               <label htmlFor="address">Address</label>
               <input
                 type="text"
@@ -79,7 +79,7 @@ class PersonalInformationSection extends Component {
               {fieldErrors.address && <div className="field-error-message">{fieldErrors.address}</div>}
             </div>
             
-            <div className="form-group">
+            <div className="form-group111">
               <label htmlFor="postalCode">Postal Code</label>
               <input
                 type="text"
@@ -89,6 +89,37 @@ class PersonalInformationSection extends Component {
                 onChange={(e) => onPersonalInfoChange('postalCode', e.target.value)}
               />
               {fieldErrors.postalCode && <div className="field-error-message">{fieldErrors.postalCode}</div>}
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="location">Location</label>
+              <div className="location-buttons-container">
+                <div className="location-buttons">
+                  {['Tampines North Community Club', 'Pasir Ris West Wellness Centre', 'CT Hub'].map((location) => (
+                    <button
+                      key={location}
+                      type="button"
+                      className={`location-button ${personalInfo.location === location ? 'selected' : ''}`}
+                      onClick={() => onPersonalInfoChange('location', location)}
+                    >
+                      {location}
+                    </button>
+                  ))}
+                </div>
+                <div className="location-buttons">
+                  {['En Community Church', 'Others'].map((location) => (
+                    <button
+                      key={location}
+                      type="button"
+                      className={`location-button ${personalInfo.location === location ? 'selected' : ''}`}
+                      onClick={() => onPersonalInfoChange('location', location)}
+                    >
+                      {location}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {fieldErrors.location && <div className="field-error-message">{fieldErrors.location}</div>}
             </div>
           </div>
         </div>

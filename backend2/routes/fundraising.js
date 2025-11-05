@@ -64,11 +64,18 @@ router.post('/', async function(req, res, next)
 
             // Insert receipt record into Receipts collection
             try {
-                const receiptResult = await fundraisingController.insertReceiptRecord(
+                const receiptResult = await fundraisingController.insertInvoiceRecord(
                     orderId, 
                     invoiceNumber
                 );
-
+                
+                console.log("Receipt record insert result:", receiptResult);
+                
+                if (receiptResult.success) {
+                    console.log("Receipt record inserted successfully:", receiptResult.receiptNo);
+                } else {
+                    console.error("Failed to insert receipt record:", receiptResult.message);
+                }
             } catch (receiptInsertError) {
                 console.error("Error inserting receipt record:", receiptInsertError);
             }
@@ -113,8 +120,29 @@ router.post('/', async function(req, res, next)
             });
         }
         else if(req.body.purpose === "retrieve") {
-            const result = await fundraisingController.getFundraisingOrders();
+            let filterData = {};
+            console.log("Retrieving fundraising orders with request body:", req.body);
+            
+            // Handle invoice number filtering from frontend
+            if (req.body.invoiceNumber) {
+                filterData = { invoiceNumber: req.body.invoiceNumber };
+            }
+            
+            console.log("Filter data:", JSON.stringify(filterData, null, 2));
+            
+            const result = await fundraisingController.getFundraisingOrders(filterData);
             console.log("Retrieve result:", result);
+            
+            return res.json({ 
+                result: result
+            });
+        }
+        else if(req.body.purpose === "retrieveAll") {
+            console.log("Retrieving all fundraising orders");
+            
+            // Use dedicated method to get all orders
+            const result = await fundraisingController.getAllFundraisingOrders();
+            console.log("Retrieve all result count:", result.length);
             
             return res.json({ 
                 result: result

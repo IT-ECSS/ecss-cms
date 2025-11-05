@@ -22,6 +22,11 @@ class CollectionLocationSection extends Component {
       'CT Hub'
     ];
 
+    // Only show this section if a collection mode is selected
+    if (!collectionMode || (collectionMode !== 'Self-Collection' && collectionMode !== 'Delivery')) {
+      return null;
+    }
+
     return (
       <div className="checkout-section">
         <div 
@@ -74,7 +79,7 @@ class CollectionLocationSection extends Component {
                     <input
                       type="text"
                       id="deliveryAddress"
-                      className="form-input-field"
+                      className="form-input-field111"
                       placeholder={shipToBillingAddress ? "Billing address will be used" : "Enter delivery address"}
                       value={shipToBillingAddress && personalInfo?.address && personalInfo?.postalCode ? 
                         `${personalInfo.address}, Singapore ${personalInfo.postalCode}` : 

@@ -25,49 +25,51 @@ class OrderTabs extends Component {
     });
   }
 
-  fetchAllData = async () => {
-    try {
-      const response = await axios.post(
-        `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/fundraising`,
-        {
-          purpose: 'retrieve'
-        }
-      );
-      
-      console.log('Backend response:', response.data);
-      // The retrieve purpose returns data in response.data.result.data format
-      return response.data.result?.data || [];
-    } catch (error) {
-      console.error('Error fetching data from backend:', error);
-      return [];
-    }
-  }
-
-  handleBulkSearch = async () => {
+  handleSearch = async () => {
     const { searchInput } = this.state;
+    console.log('Initiating search for:', searchInput);
     if (searchInput.trim()) {
-      const searchTerms = searchInput.split(',').map(term => term.trim().toUpperCase()).filter(term => term);
+      const searchTerms = searchInput.split(',').map(term => term.trim()).filter(term => term);
+      console.log('Search terms:', searchTerms);
       
-      // Fetch all data from backend
-      const allData = await this.fetchAllData();
+      // Send search terms to backend for exact matching (only using invoiceNumber)
+      let foundOrders = [];
       
-      // Filter the data based on search terms
-      // Search specifically in invoiceNumber and receiptNumber fields from backend
-      const foundOrders = allData.filter(order => 
-        searchTerms.some(term => 
-          (order.invoiceNumber && order.invoiceNumber.toUpperCase().includes(term)) ||
-          (order.receiptNumber && order.receiptNumber.toUpperCase().includes(term))
-        )
+      for (const term of searchTerms) {
+        try {
+          const response = await axios.post(
+            `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/fundraising`,
+            {
+              purpose: 'retrieve',
+              invoiceNumber: term
+            }
+          );
+          
+          console.log('Backend response for term:', term, response.data);
+          const results = response.data.result || [];
+          foundOrders = [...foundOrders, ...results];
+        } catch (error) {
+          console.error('Error searching for term:', term, error);
+        }
+      }
+      
+      // Remove duplicates based on _id
+      foundOrders = foundOrders.filter((order, index, self) => 
+        index === self.findIndex(o => o._id === order._id)
       );
       
-      // Transform the data to match expected format if needed
-      const formattedOrders = foundOrders.map(order => ({
-        id: order.id || order.invoiceNumber || order.receiptNumber,
-        name: `${order.invoiceNumber ? 'Invoice' : 'Receipt'} #${order.id || order.invoiceNumber || order.receiptNumber}`,
-        status: order.status || 'Pending',
-        date: order.date || new Date().toISOString().split('T')[0],
-        customer: order.customer || order.customerName || 'Unknown Customer',
-        invoiceNumber: order.invoiceNumber || order.receiptNumber || order.id
+      console.log('All found orders after deduplication:', foundOrders);
+      
+      // Transform the data to match expected format based on actual backend structure
+      const formattedOrders = foundOrders.map((order, index) => ({
+        id: order._id,
+        name: order.invoiceNumber,
+        status: order.status,
+        date: order.orderDetails?.orderDate || new Date().toISOString().split('T')[0],
+        customer: order.personalInfo ? `${order.personalInfo.firstName} ${order.personalInfo.lastName}` : 'Unknown Customer',
+        invoiceNumber: order.invoiceNumber || order.receiptNumber,
+        // Store the full order object for detailed view
+        fullOrder: order
       }));
       
       this.setState({
@@ -87,6 +89,80 @@ class OrderTabs extends Component {
       activeOrderTab: null,
       isSearched: false
     });
+  }
+
+  getOrderStatusInfo = (status, collectionMode) => {
+    // Determine the final step icon and name based on collection mode
+    const finalStepIcon = collectionMode?.toLowerCase() === 'delivery' ? '🚚' : '✋';
+    const finalStepName = collectionMode?.toLowerCase() === 'delivery' ? 'Delivered' : 'Collected';
+    
+    switch (status?.toLowerCase()) {
+      case 'pending':
+        return {
+          stage: 'Payment Processing',
+          icon: '💳',
+          color: '#f39c12',
+          steps: [
+            { name: 'Payment Processing', icon: '💳', active: true, completed: false },
+            { name: 'Order Fulfillment', icon: '📦', active: false, completed: false },
+            { name: finalStepName, icon: finalStepIcon, active: false, completed: false }
+          ]
+        };
+      case 'paid':
+        return {
+          stage: 'Order Fulfillment',
+          icon: '📦',
+          color: '#3498db',
+          steps: [
+            { name: 'Payment Processing', icon: '💳', active: false, completed: true },
+            { name: 'Order Fulfillment', icon: '📦', active: true, completed: false },
+            { name: finalStepName, icon: finalStepIcon, active: false, completed: false }
+          ]
+        };
+      case 'delivered':
+      case 'collected':
+        return {
+          stage: finalStepName,
+          icon: finalStepIcon,
+          color: '#27ae60',
+          steps: [
+            { name: 'Payment Processing', icon: '💳', active: false, completed: true },
+            { name: 'Order Fulfillment', icon: '📦', active: false, completed: true },
+            { name: finalStepName, icon: finalStepIcon, active: true, completed: true }
+          ]
+        };
+      case 'refunded':
+        return {
+          stage: 'Order Refunded',
+          icon: '💰',
+          color: '#e67e22',
+          steps: [
+            { name: 'Payment Processing', icon: '💳', active: false, completed: true },
+            { name: 'Order Fulfillment', icon: '�', active: false, completed: true },
+            { name: finalStepName, icon: finalStepIcon, active: false, completed: true },
+            { name: 'Order Refunded', icon: '💰', active: true, completed: true }
+          ]
+        };
+      case 'cancelled':
+        return {
+          stage: 'Order Cancelled',
+          icon: '❌',
+          color: '#e74c3c',
+          steps: [
+            { name: 'Payment Processing', icon: '💳', active: false, completed: false },
+            { name: 'Order Fulfillment', icon: '📦', active: false, completed: false },
+            { name: finalStepName, icon: finalStepIcon, active: false, completed: false },
+            { name: 'Order Cancelled', icon: '❌', active: true, completed: true }
+          ]
+        };
+      default:
+        return {
+          stage: 'Unknown',
+          icon: '❓',
+          color: '#95a5a6',
+          steps: []
+        };
+    }
   }
 
   render() {
@@ -115,7 +191,7 @@ class OrderTabs extends Component {
             <div className="search-buttons">
               <button 
                 className="search-btn submit-search"
-                onClick={this.handleBulkSearch}
+                onClick={this.handleSearch}
                 disabled={!searchInput.trim()}
               >
                 Submit
@@ -153,9 +229,6 @@ class OrderTabs extends Component {
                   onClick={() => this.handleOrderTabChange(order.id)}
                 >
                   <span className="order-tab-name">{order.name}</span>
-                  <span className={`order-tab-status status-${order.status.toLowerCase()}`}>
-                    {order.status}
-                  </span>
                 </button>
               ))}
             </div>
@@ -166,20 +239,49 @@ class OrderTabs extends Component {
         <div className="order-content">
           {activeOrder && (
             <div className="order-details fade-in">
-              <div className="order-header">
-                <h3>{activeOrder.name} Details</h3>
-                <span className={`status-badge status-${activeOrder.status.toLowerCase()}`}>
-                  {activeOrder.status}
-                </span>
-              </div>
               
+              {/* Order Status Section */}
+              <div className="order-status-section">
+                {(() => {
+                  const collectionMode = activeOrder.fullOrder?.collectionDetails?.collectionMode;
+                  const statusInfo = this.getOrderStatusInfo(activeOrder.status, collectionMode);
+                  return (
+                    <div className="status-container">                      
+                      {!statusInfo.hideTimeline && (
+                        <div className="status-timeline">
+                          {statusInfo.steps.map((step, index) => (
+                            <div 
+                              key={index} 
+                              className={`timeline-step ${step.active ? 'active' : ''} ${step.completed ? 'completed' : ''}`}
+                            >
+                              <div className="step-icon">
+                                {step.icon}
+                              </div>
+                              <div className="step-name">{step.name}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {statusInfo.hideTimeline && (
+                        <div className="single-status">
+                          <div className="single-status-icon">
+                            {statusInfo.icon}
+                          </div>
+                          <div className="single-status-text">
+                            {statusInfo.stage}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+
               <div className="order-info">
                 <div className="order-section">
                   <h4>Order Information</h4>
                   <div className="info-grid">
-                    <div className="info-item">
-                      <strong>Order ID:</strong> {activeOrder.id}
-                    </div>
                     <div className="info-item">
                       <strong>Status:</strong> {activeOrder.status}
                     </div>
@@ -187,29 +289,40 @@ class OrderTabs extends Component {
                       <strong>Date:</strong> {activeOrder.date}
                     </div>
                     <div className="info-item">
+                      <strong>Time:</strong> {activeOrder.fullOrder?.orderDetails?.orderTime || 'N/A'}
+                    </div>
+                    <div className="info-item">
                       <strong>Customer:</strong> {activeOrder.customer}
                     </div>
                     <div className="info-item">
-                      <strong>Total:</strong> ${activeOrder.totalPrice || '0.00'}
+                      <strong>Total:</strong> ${activeOrder.fullOrder?.orderDetails?.totalPrice || '0.00'}
+                    </div>
+                    <div className="info-item">
+                      <strong>Payment Method:</strong> {activeOrder.fullOrder?.paymentDetails?.paymentMethod || 'N/A'}
+                    </div>
+                    <div className="info-item">
+                      <strong>Collection Mode:</strong> {activeOrder.fullOrder?.collectionDetails?.collectionMode || 'N/A'}
                     </div>
                   </div>
                 </div>
                 
                 <div className="order-section">
                   <h4>Order Items</h4>
-                  <div className="items-table">
+                  
+                  {/* Desktop Table View */}
+                  <div className="items-table desktop-only">
                     <div className="items-header">
                       <span>Item</span>
                       <span>Quantity</span>
                       <span>Price</span>
                       <span>Subtotal</span>
                     </div>
-                    {activeOrder.orderDetails?.items?.map((item, index) => (
+                    {activeOrder.fullOrder?.orderDetails?.items?.map((item, index) => (
                       <div key={index} className="items-row">
-                        <span>{item.productName || item.name}</span>
+                        <span>{item.productName}</span>
                         <span>{item.quantity}</span>
-                        <span>${item.unitPrice?.toFixed(2) || item.price?.toFixed(2) || '0.00'}</span>
-                        <span>${item.subtotal?.toFixed(2) || ((item.quantity || 0) * (item.unitPrice || item.price || 0)).toFixed(2)}</span>
+                        <span>${item.price?.toFixed(2) || '0.00'}</span>
+                        <span>${((item.quantity || 0) * (item.price || 0)).toFixed(2)}</span>
                       </div>
                     )) || (
                       <div className="items-row">
@@ -220,8 +333,45 @@ class OrderTabs extends Component {
                       <span></span>
                       <span></span>
                       <span><strong>Total:</strong></span>
-                      <span><strong>${activeOrder.totalPrice?.toFixed(2) || '0.00'}</strong></span>
+                      <span><strong>${activeOrder.fullOrder?.orderDetails?.totalPrice?.toFixed(2) || '0.00'}</strong></span>
                     </div>
+                  </div>
+
+                  {/* Mobile/Tablet Card View */}
+                  <div className="items-cards mobile-only">
+                    {activeOrder.fullOrder?.orderDetails?.items?.length > 0 ? (
+                      <>
+                        {activeOrder.fullOrder.orderDetails.items.map((item, index) => (
+                          <div key={index} className="item-card">
+                            <div className="item-card-header">
+                              <h5 className="item-name">{item.productName}</h5>
+                            </div>
+                            <div className="item-card-body">
+                              <div className="item-detail">
+                                <span className="detail-label">Quantity:</span>
+                                <span className="detail-value">{item.quantity}</span>
+                              </div>
+                              <div className="item-detail">
+                                <span className="detail-label">Price:</span>
+                                <span className="detail-value">${item.price?.toFixed(2) || '0.00'}</span>
+                              </div>
+                              <div className="item-detail subtotal">
+                                <span className="detail-label">Subtotal:</span>
+                                <span className="detail-value">${((item.quantity || 0) * (item.price || 0)).toFixed(2)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        <div className="items-total-card">
+                          <div className="total-label">Order Total:</div>
+                          <div className="total-value">${activeOrder.fullOrder?.orderDetails?.totalPrice?.toFixed(2) || '0.00'}</div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="no-items-card">
+                        <p>No items found</p>
+                      </div>
+                    )}
                   </div>
                 </div>
                 
@@ -230,26 +380,25 @@ class OrderTabs extends Component {
                   <div className="customer-info">
                     <div className="customer-details">
                       <div className="info-item">
-                        <strong>Name:</strong> {activeOrder.customerDetails?.name || activeOrder.customer || 'N/A'}
+                        <strong>Name:</strong> {activeOrder.fullOrder?.personalInfo ? `${activeOrder.fullOrder.personalInfo.firstName} ${activeOrder.fullOrder.personalInfo.lastName}` : 'N/A'}
                       </div>
                       <div className="info-item">
-                        <strong>Email:</strong> {activeOrder.customerDetails?.email || 'N/A'}
+                        <strong>Email:</strong> {activeOrder.fullOrder?.personalInfo?.email || 'N/A'}
                       </div>
                       <div className="info-item">
-                        <strong>Phone:</strong> {activeOrder.customerDetails?.phone || activeOrder.customerDetails?.contactNumber || 'N/A'}
+                        <strong>Phone:</strong> {activeOrder.fullOrder?.personalInfo?.phone || 'N/A'}
                       </div>
                       <div className="info-item">
-                        <strong>Address:</strong> {activeOrder.customerDetails?.address || 'N/A'}
+                        <strong>Address:</strong> {activeOrder.fullOrder?.personalInfo?.address || 'N/A'}
+                      </div>
+                      <div className="info-item">
+                        <strong>Postal Code:</strong> {activeOrder.fullOrder?.personalInfo?.postalCode || 'N/A'}
+                      </div>
+                      <div className="info-item">
+                        <strong>Collection/Delivery Location:</strong> {activeOrder.fullOrder?.collectionDetails?.CollectionDeliveryLocation || 'N/A'}
                       </div>
                     </div>
                   </div>
-                </div>
-
-                {/* Order Actions */}
-                <div className="order-actions">
-                  <button className="action-btn primary">Update Status</button>
-                  <button className="action-btn secondary">Print Invoice</button>
-                  <button className="action-btn secondary">Send Email</button>
                 </div>
               </div>
             </div>

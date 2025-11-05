@@ -85,14 +85,14 @@ const ProductCard = ({ product, cartQuantity = 0, onAddToCart, onMoreDetails, on
             <div className="product-quantity-section">
               <div className="quantity-controls">
                 <button 
-                  className="quantity-btn minus"
+                  className="quantity-btn1 minus"
                   onClick={() => handleQuantityChange(-1)}
                 >
                   -
                 </button>
                 <input 
                   type="text"
-                  className="quantity-input"
+                  className="quantity-input1"
                   value={inputValue !== undefined ? inputValue : cartQuantity}
                   onChange={(e) => {
                     const value = e.target.value;
@@ -116,7 +116,7 @@ const ProductCard = ({ product, cartQuantity = 0, onAddToCart, onMoreDetails, on
                   }}
                 />
                 <button 
-                  className="quantity-btn plus"
+                  className="quantity-btn1 plus"
                   onClick={() => handleQuantityChange(1)}
                 >
                   +

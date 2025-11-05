@@ -70,28 +70,67 @@ class FundraisingController {
                 const database = this.databaseConnectivity.client.db(databaseName);
                 const collection = database.collection(collectionName);
                 
+                console.log('MongoDB Query Filter:', JSON.stringify(filterData, null, 2));
+                
                 // Find fundraising orders based on filter (if any)
                 const orders = await collection.find(filterData).toArray();
+                
+                console.log(`MongoDB Query Result: Found ${orders.length} orders`);
+                
+                // Log the specific orders found for debugging
+                if (orders.length > 0) {
+                    orders.forEach((order, index) => {
+                        console.log(`Order ${index + 1}:`, {
+                            _id: order._id,
+                            invoiceNumber: order.invoiceNumber,
+                            receiptNumber: order.receiptNumber,
+                            status: order.status
+                        });
+                    });
+                } else {
+                    console.log('No orders found matching the filter criteria');
+                }
 
-                return {
-                    success: true,
-                    message: "Fundraising orders retrieved successfully",
-                    data: orders,
-                    count: orders.length
-                };
+                // Return only the matching orders (should be specific based on filter)
+                return orders;
             } else {
-                return {
-                    success: false,
-                    message: "Database connection failed"
-                };
+                console.error("Database connection failed");
+                return [];
             }
         } catch (error) {
             console.error("Get fundraising orders error:", error);
-            return {
-                success: false,
-                message: "Error retrieving fundraising orders",
-                error: error.message
-            };
+            return [];
+        } finally {
+            await this.databaseConnectivity.close();
+        }
+    }
+
+    async getAllFundraisingOrders() {
+        try {
+            const result = await this.databaseConnectivity.initialize();
+            
+            if (result === "Connected to MongoDB Atlas!") {
+                const databaseName = "Company-Management-System";
+                const collectionName = "Fundraising";
+
+                const database = this.databaseConnectivity.client.db(databaseName);
+                const collection = database.collection(collectionName);
+                
+                console.log('Retrieving all fundraising orders without filter');
+                
+                // Find all fundraising orders without any filter
+                const orders = await collection.find({}).toArray();
+                
+                console.log(`Retrieved ${orders.length} total orders`);
+                
+                return orders;
+            } else {
+                console.error("Database connection failed");
+                return [];
+            }
+        } catch (error) {
+            console.error("Get all fundraising orders error:", error);
+            return [];
         } finally {
             await this.databaseConnectivity.close();
         }
@@ -283,8 +322,8 @@ class FundraisingController {
         return await this.generateReceiptNumber();
     }
 
-    // Insert receipt record into Receipts collection
-    async insertReceiptRecord(fundraisingOrderId, receiptNo) {
+    // Insert invoice record into Receipts collection
+    async insertInvoiceRecord(fundraisingOrderId, invoiceNumber) {
         try {
             const result = await this.databaseConnectivity.initialize();
             
@@ -294,21 +333,6 @@ class FundraisingController {
 
                 const database = this.databaseConnectivity.client.db(databaseName);
                 const receiptsCollection = database.collection(receiptsCollectionName);
-
-                // Check if receipt already exists for this fundraising order
-                const existingReceipt = await receiptsCollection.findOne({
-                    registration_id: fundraisingOrderId
-                });
-
-                if (existingReceipt) {
-                    console.log("Receipt already exists for this order:", existingReceipt.receiptNo);
-                    return {
-                        success: true,
-                        receiptId: existingReceipt._id,
-                        receiptNo: existingReceipt.receiptNo,
-                        alreadyExists: true
-                    };
-                }
 
                 // Get current date and time
                 const now = new Date();
@@ -320,9 +344,9 @@ class FundraisingController {
                     second: '2-digit'
                 }); // hh:mm:ss 24-hour format
 
-                // Create receipt document
+                // Create receipt document using invoiceNumber
                 const receiptDocument = {
-                    receiptNo: receiptNo,
+                    receiptNo: invoiceNumber,
                     registration_id: fundraisingOrderId, // Use fundraising order _id
                     url: "", // Empty string as requested
                     staff: "", // Empty string as requested
@@ -335,23 +359,23 @@ class FundraisingController {
                 const insertResult = await receiptsCollection.insertOne(receiptDocument);
 
                 if (insertResult.acknowledged) {
-                    console.log("Receipt record inserted:", insertResult.insertedId);
+                    console.log("Invoice record inserted:", insertResult.insertedId);
                     return {
                         success: true,
                         receiptId: insertResult.insertedId,
-                        receiptNo: receiptNo,
+                        receiptNo: invoiceNumber,
                         alreadyExists: false
                     };
                 } else {
-                    console.error("Failed to insert receipt record");
-                    return { success: false, message: "Failed to insert receipt record" };
+                    console.error("Failed to insert invoice record");
+                    return { success: false, message: "Failed to insert invoice record" };
                 }
             } else {
-                console.error("Database connection failed for receipt insertion");
+                console.error("Database connection failed for invoice insertion");
                 return { success: false, message: "Database connection failed" };
             }
         } catch (error) {
-            console.error("Error inserting receipt record:", error);
+            console.error("Error inserting invoice record:", error);
             return { success: false, message: error.message };
         } finally {
             await this.databaseConnectivity.close();

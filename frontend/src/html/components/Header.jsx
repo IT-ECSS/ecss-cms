@@ -43,14 +43,20 @@ const Header = ({ cartItems = [], onRemoveFromCart, onUpdateCartQuantity, onProc
             {activeTab && onTabChange && (
               <div className="tab-navigation">
                 <button 
-                  className="tab-button1"
-                  onClick={() => onTabChange('products')}
+                  className={`tab-button1 ${activeTab === 'products' ? 'active' : ''}`}
+                  onClick={() => {
+                    console.log('Products tab clicked');
+                    onTabChange('products');
+                  }}
                 >
                   Product Catalogue
                 </button>
                 <button 
-                  className="tab-button1"
-                  onClick={() => onTabChange('orders')}
+                  className={`tab-button1 ${activeTab === 'orders' ? 'active' : ''}`}
+                  onClick={() => {
+                    console.log('Orders tab clicked');
+                    onTabChange('orders');
+                  }}
                 >
                   Check Orders
                 </button>

@@ -90,7 +90,7 @@ const ProductModalFooter = ({ product, cartQuantity = 0, onAddToCart, onUpdateCa
         <div className="modal-footer-row">
           <div className="quantity-selector-rounded">
             <button 
-              className="quantity-btn-rounded"
+              className="quantity-btn1"
               onClick={() => handleQuantityChange(-1)}
               disabled={displayQuantity <= 0}
               aria-label="Decrease quantity"
@@ -99,14 +99,14 @@ const ProductModalFooter = ({ product, cartQuantity = 0, onAddToCart, onUpdateCa
             </button>
             <input 
               type="text"
-              className="quantity-input"
+              className="quantity-input1"
               value={inputValue !== undefined ? inputValue : displayQuantity}
               onChange={handleInputChange}
               onBlur={handleInputBlur}
               onKeyDown={handleInputKeyDown}
             />
             <button 
-              className="quantity-btn-rounded"
+              className="quantity-btn1"
               onClick={() => handleQuantityChange(1)}
               aria-label="Increase quantity"
             >

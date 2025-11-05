@@ -22,7 +22,8 @@ class CheckoutPage extends Component {
         email: '',
         phone: '',
         address: '',
-        postalCode: ''
+        postalCode: '',
+        location: ''
       },
       paymentMethod: savedCheckoutState.paymentMethod || '', // Default to cash
       collectionMode: savedCheckoutState.collectionMode || '', // Default to Self-Collection
@@ -43,6 +44,7 @@ class CheckoutPage extends Component {
         phone: '',
         address: '',
         postalCode: '',
+        location: '',
         paymentMethod: '',
         collectionMode: '',
         collectionLocation: '',
@@ -174,6 +176,10 @@ class CheckoutPage extends Component {
       collectionLocation: '', // Reset collection location when mode changes
       deliveryToAddress: '', // Reset delivery address when mode changes
       shipToBillingAddress: false, // Reset checkbox when mode changes
+      expandedSections: {
+        ...this.state.expandedSections,
+        collectionLocation: true // Auto-expand Collection/Delivery Location section when mode is selected
+      },
       fieldErrors: {
         ...this.state.fieldErrors,
         collectionMode: '', // Clear error when user selects
@@ -326,7 +332,8 @@ class CheckoutPage extends Component {
         email: '',
         phone: '',
         address: '',
-        postalCode: ''
+        postalCode: '',
+        location: ''
       },
       paymentMethod: '',
       collectionMode: '',
@@ -340,6 +347,7 @@ class CheckoutPage extends Component {
         phone: '',
         address: '',
         postalCode: '',
+        location: '',
         paymentMethod: '',
         collectionMode: '',
         collectionLocation: '',
@@ -440,6 +448,7 @@ class CheckoutPage extends Component {
       phone: '',
       address: '',
       postalCode: '',
+      location: '',
       paymentMethod: '',
       collectionMode: '',
       collectionLocation: '',
@@ -448,7 +457,7 @@ class CheckoutPage extends Component {
     };
 
     // Validate all required fields are filled
-    const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'address', 'postalCode'];
+    const requiredFields = ['firstName', 'lastName', 'phone', 'address', 'postalCode', 'location'];
     let hasErrors = false;
 
     requiredFields.forEach(field => {
@@ -456,10 +465,10 @@ class CheckoutPage extends Component {
         const fieldDisplayNames = {
           firstName: 'First name',
           lastName: 'Last name',
-          email: 'Email',
           phone: 'Phone',
           address: 'Address',
-          postalCode: 'Postal code'
+          postalCode: 'Postal code',
+          location: 'Location/Club'
         };
         newFieldErrors[field] = `${fieldDisplayNames[field]} is required`;
         hasErrors = true;
@@ -534,7 +543,8 @@ class CheckoutPage extends Component {
         email: personalInfo.email,
         phone: personalInfo.phone,
         address: personalInfo.address,
-        postalCode: personalInfo.postalCode
+        postalCode: personalInfo.postalCode,
+        location: personalInfo.location
       },
       paymentDetails: {
         paymentMethod: paymentMethod,

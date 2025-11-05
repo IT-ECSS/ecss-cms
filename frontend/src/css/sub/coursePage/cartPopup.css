@@ -14,57 +14,164 @@
 
 .cart-popup {
   background-color: white;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 3rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
   width: 90%;
-  max-width: 600px; /* Increased max-width for better layout */
+  max-width: 750px; /* Increased max-width for better layout */
   overflow-y: auto; /* Allow scrolling if the content is too large */
-  max-height: 80vh; /* Max height of the popup */
+  max-height: 85vh; /* Max height of the popup */
   text-align: center;
 }
 
 .cart-popup h2 {
-  margin-bottom: 1rem;
+  margin-bottom: 2rem;
   color: #2c3e50;
+  font-size: 1.8rem;
+  font-weight: 600;
 }
 
 /* Cart Items List */
 .cart-items-list {
-  max-height: 400px; /* Adjust based on your design */
+  max-height: 500px; /* Adjust based on your design */
   overflow-y: auto; /* Enable scrolling for long lists */
+  padding: 1rem 0;
 }
 
 /* Grand Total */
 .cart-grand-total {
-  margin-top: 1rem;
-  padding: 1rem;
+  margin-top: 2rem;
+  padding: 1.5rem;
   background-color: #2c3e50;
   color: white;
-  border-radius: 6px;
+  border-radius: 8px;
   text-align: center;
-  font-size: 1.2rem;
+  font-size: 1.4rem;
+  font-weight: 700;
 }
 
 /* Button Container */
 .button-container {
   display: flex;
-  gap: 1rem;
+  gap: 1.5rem;
   justify-content: center;
-  margin-top: 1.5rem;
+  margin-top: 2.5rem;
 }
 
 .cart-popup button {
   background-color: #f39c12;
   color: white;
-  padding: 0.75rem 1.5rem;
+  padding: 1rem 2.5rem;
   border: none;
-  border-radius: 5px;
+  border-radius: 8px;
   cursor: pointer;
   transition: background-color 0.3s ease;
   font-weight: 600;
+  font-size: 1.1rem;
+  min-height: 50px;
 }
 
 .cart-popup button:hover {
   background-color: #e67e22;
+}
+
+/* Responsive Cart Popup Styles */
+@media (max-width: 1024px) {
+  .cart-popup {
+    padding: 2.5rem;
+    max-width: 700px;
+    width: 95%;
+  }
+  
+  .cart-popup h2 {
+    font-size: clamp(20px, 4vw, 24px);
+    margin-bottom: 1.5rem;
+  }
+  
+  .cart-items-list {
+    max-height: 450px;
+  }
+  
+  .cart-grand-total {
+    font-size: clamp(18px, 3.5vw, 22px);
+    padding: 1.25rem;
+  }
+  
+  .cart-popup button {
+    padding: 1rem 2rem;
+    font-size: clamp(16px, 3vw, 18px);
+  }
+}
+
+@media (max-width: 768px) {
+  .cart-popup {
+    padding: 2rem;
+    width: 95%;
+    max-height: 85vh;
+  }
+  
+  .cart-popup h2 {
+    font-size: clamp(18px, 5vw, 22px);
+    margin-bottom: 1.25rem;
+  }
+  
+  .cart-items-list {
+    max-height: 400px;
+  }
+  
+  .cart-grand-total {
+    font-size: clamp(16px, 4vw, 20px);
+    padding: 1rem;
+    margin-top: 1.25rem;
+  }
+  
+  .button-container {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .cart-popup button {
+    padding: 0.875rem 1.75rem;
+    font-size: clamp(15px, 4vw, 17px);
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .cart-popup-overlay {
+    padding: 10px;
+  }
+  
+  .cart-popup {
+    padding: 1.5rem;
+    width: calc(100% - 20px);
+    max-height: 90vh;
+    border-radius: 6px;
+  }
+  
+  .cart-popup h2 {
+    font-size: clamp(16px, 5.5vw, 20px);
+    margin-bottom: 1rem;
+  }
+  
+  .cart-items-list {
+    max-height: 350px;
+  }
+  
+  .cart-grand-total {
+    font-size: clamp(15px, 4.5vw, 18px);
+    padding: 0.875rem;
+    margin-top: 1rem;
+  }
+  
+  .button-container {
+    margin-top: 1.25rem;
+    gap: 0.5rem;
+  }
+  
+  .cart-popup button {
+    padding: 0.75rem 1.5rem;
+    font-size: clamp(14px, 4.5vw, 16px);
+    border-radius: 4px;
+  }
 }
