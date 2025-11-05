@@ -584,7 +584,29 @@ class FundraisingTable extends Component {
           items: item.orderDetails?.items, // This now contains enriched items with WooCommerce details
           collectionMode: item.collectionDetails?.collectionMode || '',
           collectionDetails: item.collectionDetails?.CollectionDeliveryLocation,
-          orderDateTime: `${item.orderDetails?.orderDate || ''} ${item.orderDetails?.orderTime || ''}`.trim() || 'Not specified',
+          orderDateTime: (() => {
+            // Helper function to format dates
+            const formatDate = (dateValue) => {
+              if (!dateValue) return '';
+              const date = new Date(dateValue);
+              return !isNaN(date.getTime()) ? date.toLocaleDateString() + ' ' + date.toLocaleTimeString() : '';
+            };
+
+            const orderDate = item.orderDetails?.orderDate || item.orderDate || '';
+            const orderTime = item.orderDetails?.orderTime || item.orderTime || '';
+            const createdAt = formatDate(item.createdAt || item._id?.getTimestamp?.());
+
+            // Combine order date and time with fallback to createdAt
+            if (orderDate && orderTime) {
+              return `${orderDate} at ${orderTime}`;
+            } else if (orderDate || orderTime) {
+              return orderDate || orderTime;
+            } else if (createdAt) {
+              return createdAt;
+            } else {
+              return 'Date not available';
+            }
+          })(),
           status: item.status || 'Pending',
           donationDate: item.orderDate,
           receiptNumber: (item.status !== 'Pending') ? this.generateReceiptNumber(fundraisingData, index) : '',
@@ -1891,25 +1913,33 @@ class FundraisingTable extends Component {
     // Export table data to Excel
     exportToExcel = async () => {
       try {
+        console.log('Starting Excel export...');
+        console.log('Original data length:', this.state.originalData?.length || 0);
+        console.log('Row data length:', this.state.rowData?.length || 0);
+        console.log('Sample original data:', this.state.originalData?.[0]);
+        console.log('Sample row data:', this.state.rowData?.[0]);
+        
         // Create a new workbook
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Fundraising Orders Archive');
 
-        // Define headers based on visible columns
+        // Define comprehensive headers to include all available data
         const headers = [
           'S/N',
           'First Name',
           'Last Name',
           'Contact Number',
           'Email',
+          'Address',
+          'Postal Code',
           'Total Price',
           'Payment Method',
           'Items Summary',
           'Collection Mode',
+          'Collection/Delivery Location',
           'Status',
           'Receipt Number',
-          'Order Date',
-          'Items Detail'
+          'Order Details'
         ];
 
         // Add headers to worksheet
@@ -1924,65 +1954,78 @@ class FundraisingTable extends Component {
           fgColor: { argb: 'FFE0E0E0' }
         };
 
-        // Process each row of data
-        this.state.rowData.forEach((row, index) => {
-          // Format items for summary
+        // Process each row of data - access original data for complete information
+        const dataToExport = this.state.originalData || this.state.rowData;
+        
+        dataToExport.forEach((item, index) => {
+          // Access both processed row data and original data
+          const row = this.state.rowData[index] || {};
+          
+          // Format items for summary and detail
           let itemsSummary = '';
           let itemsDetail = '';
           
-          if (row.items && row.items.length > 0) {
-            itemsSummary = row.items.map(item => {
-              const name = item.productName || item.name || item.itemName || 'Unknown Item';
-              const quantity = item.quantity || 1;
+          // Check for items in multiple possible locations
+          const items = item.orderDetails?.items || item.items || row.items || [];
+          
+          if (items && items.length > 0) {
+            itemsSummary = items.map(itemDetail => {
+              const name = itemDetail.productName || itemDetail.name || itemDetail.itemName || 'Unknown Item';
+              const quantity = itemDetail.quantity || 1;
               return `${name} (x${quantity})`;
             }).join(', ');
 
-            // Detailed items information
-            itemsDetail = row.items.map(item => {
-              const name = item.productName || item.name || item.itemName || 'Unknown Item';
-              const quantity = item.quantity || 1;
-              const price = item.price || item.unitPrice || 0;
+            // Detailed items information with pricing
+            itemsDetail = items.map(itemDetail => {
+              const name = itemDetail.productName || itemDetail.name || itemDetail.itemName || 'Unknown Item';
+              const quantity = itemDetail.quantity || 1;
+              const price = itemDetail.price || itemDetail.unitPrice || itemDetail.enrichedPrice || 0;
               const subtotal = (price * quantity).toFixed(2);
               return `${name}: Qty ${quantity} @ $${price} = $${subtotal}`;
             }).join('; ');
           }
 
-          // Format total price
-          let totalPrice = row.donationAmount;
-          if (row.enrichedTotalPrice > 0) {
-            totalPrice = `$${row.enrichedTotalPrice.toFixed(2)}`;
-          } else if (totalPrice && !isNaN(totalPrice)) {
-            totalPrice = `$${parseFloat(totalPrice).toFixed(2)}`;
+          // Format pricing information
+          const originalPrice = item.orderDetails?.totalPrice || item.totalPrice || item.donationAmount;
+          const enrichedPrice = item.enrichedTotalPrice || row.enrichedTotalPrice || 0;
+          
+          let displayPrice = '';
+          if (enrichedPrice > 0) {
+            displayPrice = `$${enrichedPrice.toFixed(2)}`;
+          } else if (originalPrice && !isNaN(originalPrice)) {
+            displayPrice = `$${parseFloat(originalPrice).toFixed(2)}`;
           } else {
-            totalPrice = '$0.00';
+            displayPrice = '$0.00';
           }
 
-          // Format order date if available
-          let orderDate = '';
-          if (row.createdAt || row.orderDate || row.timestamp) {
-            const date = new Date(row.createdAt || row.orderDate || row.timestamp);
-            if (!isNaN(date.getTime())) {
-              orderDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-            }
-          }
+          // Format dates - simplified to match generatePaymentReport
+          const orderDate = item.orderDetails?.orderDate || item.orderDate || '';
+          const orderTime = item.orderDetails?.orderTime || item.orderTime || '';
+          
+          // Combine order date and time into order details
+          let orderDetails = `${orderDate} ${orderTime}`;
+          console.log("orderDetails", orderDetails);
 
-          const rowData = [
+
+          const exportRowData = [
             row.sn || index + 1,
-            row.firstName || '',
-            row.lastName || '',
-            row.contactNumber || '',
-            row.email || '',
-            totalPrice,
-            row.paymentMethod || '',
+            item.personalInfo?.firstName || item.firstName || row.firstName || '',
+            item.personalInfo?.lastName || item.lastName || row.lastName || '',
+            item.personalInfo?.phone || item.contactNumber || row.contactNumber || '',
+            item.personalInfo?.email || item.email || row.email || '',
+            item.personalInfo?.address || item.address || row.address || '',
+            item.personalInfo?.postalCode || item.postalCode || row.postalCode || '',
+            displayPrice,
+            item.paymentDetails?.paymentMethod || item.paymentMethod || row.paymentMethod || '',
             itemsSummary,
-            row.collectionMode || '',
-            row.status || '',
-            row.receiptNumber || '',
-            orderDate,
-            itemsDetail
+            item.collectionDetails?.collectionMode || item.collectionMode || row.collectionMode || '',
+            item.collectionDetails?.CollectionDeliveryLocation || item.collectionDetails || row.collectionDetails || '',
+            item.status || row.status || 'Pending',
+            item.receiptNumber || row.receiptNumber || '',
+            orderDetails
           ];
 
-          worksheet.addRow(rowData);
+          worksheet.addRow(exportRowData);
         });
 
         // Auto-fit columns
@@ -2015,24 +2058,29 @@ class FundraisingTable extends Component {
 
     // Generate Payment Report with Total
     generatePaymentReport = async () => {
+      const dataToExport = this.state.originalData || this.state.rowData;
       try {
         // Create a new workbook
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Payment Report');
 
-        // Define headers for payment report
+        // Define comprehensive headers for payment report
         const headers = [
           'S/N',
           'First Name',
           'Last Name',
           'Contact Number',
           'Email',
+          'Address',
+          'Postal Code',
           'Total Price',
           'Payment Method',
+          'Items Summary',
           'Collection Mode',
+          'Collection/Delivery Location',
           'Status',
           'Receipt Number',
-          'Order Date'
+          'Order Details'
         ];
 
         // Add headers to worksheet
@@ -2049,25 +2097,24 @@ class FundraisingTable extends Component {
 
         let grandTotal = 0;
 
-        // Process each row of data and calculate total
-        this.state.rowData.forEach((row, index) => {
+        // Process each row of data and calculate total - use comprehensive data
+        const dataToExport = this.state.originalData || this.state.rowData;
+        
+        dataToExport.forEach((item, index) => {
+          const row = this.state.rowData[index] || {};
+          
           // Calculate numerical total price for summation
           let totalPriceValue = 0;
           let totalPriceDisplay = '';
+          const originalPrice = item.orderDetails?.totalPrice || item.totalPrice || item.donationAmount;
+          const enrichedPrice = item.enrichedTotalPrice || row.enrichedTotalPrice || 0;
 
-          if (row.enrichedTotalPrice > 0) {
-            totalPriceValue = row.enrichedTotalPrice;
-            totalPriceDisplay = `$${row.enrichedTotalPrice.toFixed(2)}`;
-          } else if (row.donationAmount) {
-            // Extract numerical value from donation amount
-            const cleanAmount = row.donationAmount.toString().replace(/[^0-9.-]/g, '');
-            if (!isNaN(cleanAmount) && cleanAmount !== '' && cleanAmount !== '-') {
-              totalPriceValue = parseFloat(cleanAmount);
-              totalPriceDisplay = `$${totalPriceValue.toFixed(2)}`;
-            } else {
-              totalPriceValue = 0;
-              totalPriceDisplay = '$0.00';
-            }
+          if (enrichedPrice > 0) {
+            totalPriceValue = enrichedPrice;
+            totalPriceDisplay = `$${enrichedPrice.toFixed(2)}`;
+          } else if (originalPrice && !isNaN(originalPrice)) {
+            totalPriceValue = parseFloat(originalPrice);
+            totalPriceDisplay = `$${totalPriceValue.toFixed(2)}`;
           } else {
             totalPriceValue = 0;
             totalPriceDisplay = '$0.00';
@@ -2078,40 +2125,53 @@ class FundraisingTable extends Component {
             grandTotal += totalPriceValue;
           }
 
-          // Format order date if available
-          let orderDate = '';
-          if (row.createdAt || row.orderDate || row.timestamp) {
-            const date = new Date(row.createdAt || row.orderDate || row.timestamp);
-            if (!isNaN(date.getTime())) {
-              orderDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-            }
-          }
+          // Format items summary
+          const items = item.orderDetails?.items || item.items || row.items || [];
+          const itemsSummary = items.length > 0 
+            ? items.map(itemDetail => {
+                const name = itemDetail.productName || itemDetail.name || itemDetail.itemName || 'Unknown Item';
+                const quantity = itemDetail.quantity || 1;
+                return `${name} (x${quantity})`;
+              }).join(', ')
+            : '';
+          const orderDate = item.orderDetails?.orderDate || item.orderDate || '';
+          const orderTime = item.orderDetails?.orderTime || item.orderTime || '';
+          
+          // Combine order date and time into order details
+          let orderDetails = `${orderDate} ${orderTime}`;
+          console.log("orderDetails", orderDetails);
 
-          const rowData = [
+
+
+          const paymentRowData = [
             row.sn || index + 1,
-            row.firstName || '',
-            row.lastName || '',
-            row.contactNumber || '',
-            row.email || '',
+            item.personalInfo?.firstName || item.firstName || row.firstName || '',
+            item.personalInfo?.lastName || item.lastName || row.lastName || '',
+            item.personalInfo?.phone || item.contactNumber || row.contactNumber || '',
+            item.personalInfo?.email || item.email || row.email || '',
+            item.personalInfo?.address || item.address || row.address || '',
+            item.personalInfo?.postalCode || item.postalCode || row.postalCode || '',
             totalPriceDisplay,
-            row.paymentMethod || '',
-            row.collectionMode || '',
-            row.status || '',
-            row.receiptNumber || '',
-            orderDate
+            item.paymentDetails?.paymentMethod || item.paymentMethod || row.paymentMethod || '',
+            itemsSummary,
+            item.collectionDetails?.collectionMode || item.collectionMode || row.collectionMode || '',
+            item.collectionDetails?.CollectionDeliveryLocation || item.collectionDetails || row.collectionDetails || '',
+            item.status || row.status || 'Pending',
+            item.receiptNumber || row.receiptNumber || '',
+            orderDetails
           ];
 
-          worksheet.addRow(rowData);
+          worksheet.addRow(paymentRowData);
         });
 
         // Add empty row after data
         worksheet.addRow([]);
 
-        // Add total row
+        // Add total row (updated for new column structure)
         const totalRowData = [
-          '', '', '', '', '', // Empty cells
-          `$${grandTotal.toFixed(2)}`, // Total price in the Total Price column
-          '', '', '', '', '' // Empty cells for remaining columns
+          '', '', '', '', '', '', '', // Empty cells for S/N through Postal Code
+          `$${grandTotal.toFixed(2)}`, // Total price in the Total Price column (column 8)
+          '', '', '', '', '', '', '' // Empty cells for remaining columns
         ];
         const totalRow = worksheet.addRow(totalRowData);
 
@@ -2123,8 +2183,8 @@ class FundraisingTable extends Component {
           fgColor: { argb: 'FFFFCC00' } // Light yellow background
         };
 
-        // Add "TOTAL:" label in the previous cell
-        const labelCell = worksheet.getCell(totalRow.number, 5); // Column E (Email column)
+        // Add "TOTAL:" label in the previous cell (Postal Code column)
+        const labelCell = worksheet.getCell(totalRow.number, 7); // Column G (Postal Code column)
         labelCell.value = 'TOTAL:';
         labelCell.font = { bold: true };
         labelCell.alignment = { horizontal: 'right' };
