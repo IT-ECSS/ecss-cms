@@ -196,30 +196,6 @@ router.post('/', async function(req, res, next)
                 // Get receiptNo from Receipts table
                 receiptNumber = await fundraisingController.getReceiptNumberByRegistrationId(req.body._id);
                 console.log("Receipt number for Paid status:", receiptNumber);
-                            if (result.success) {
-                try {
-                    // Generate PDF with order data and subtotal info
-                    const pdfData = { ...result.data, subtotalInfo };
-                    const fundraisingPdfGenerator = new fundRaisingGenerator();
-                    const pdfBuffer = await fundraisingPdfGenerator.generateFundraisingReceipt(pdfData);
-                    
-                    // Create filename and add PDF data to result
-                    const customerName = result.data.personalInfo 
-                        ? `${result.data.personalInfo.firstName || ''}_${result.data.personalInfo.lastName || ''}`.replace(/[^a-zA-Z0-9_]/g, '').trim()
-                        : 'customer';
-                    const paymentMethod = result.data.paymentDetails.paymentMethod.replace(/[^a-zA-Z0-9_]/g, '');
-                    const receiptNum = (result.data.receiptNumber || 'receipt').replace(/[^a-zA-Z0-9_]/g, '');
-                    
-                    result.pdfGenerated = true;
-                    result.pdfData = pdfBuffer.toString('base64');
-                    result.pdfFilename = `${customerName}_${paymentMethod}_${receiptNum}.pdf`;
-                    
-                } catch (pdfError) {
-                    console.error("Error generating PDF for Paid status:", pdfError);
-                    result.pdfGenerated = false;
-                    result.pdfError = pdfError.message;
-                }
-            }
             } else if (isPendingStatus) {
                 // Remove receipt number for Pending status
                 receiptNumber = null;
