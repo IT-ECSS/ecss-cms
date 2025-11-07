@@ -21,8 +21,8 @@ class CheckoutPage extends Component {
         lastName: '',
         email: '',
         phone: '',
-        address: '',
-        postalCode: '',
+        // address: '', // Commented out
+        // postalCode: '', // Commented out
         location: ''
       },
       paymentMethod: savedCheckoutState.paymentMethod || '', // Default to cash
@@ -42,8 +42,8 @@ class CheckoutPage extends Component {
         lastName: '',
         email: '',
         phone: '',
-        address: '',
-        postalCode: '',
+        // address: '', // Commented out
+        // postalCode: '', // Commented out
         location: '',
         paymentMethod: '',
         collectionMode: '',
@@ -143,15 +143,16 @@ class CheckoutPage extends Component {
       
       // If shipToBillingAddress is checked and address/postalCode is being updated, 
       // also update the deliveryToAddress
-      let newDeliveryToAddress = prevState.deliveryToAddress;
-      if (prevState.shipToBillingAddress && (field === 'address' || field === 'postalCode')) {
-        newDeliveryToAddress = newPersonalInfo.address && newPersonalInfo.postalCode ? 
-          `${newPersonalInfo.address}, Singapore ${newPersonalInfo.postalCode}` : '';
-      }
+      // Commented out since address and postalCode are no longer used
+      // let newDeliveryToAddress = prevState.deliveryToAddress;
+      // if (prevState.shipToBillingAddress && (field === 'address' || field === 'postalCode')) {
+      //   newDeliveryToAddress = newPersonalInfo.address && newPersonalInfo.postalCode ? 
+      //     `${newPersonalInfo.address}, Singapore ${newPersonalInfo.postalCode}` : '';
+      // }
       
       return {
         personalInfo: newPersonalInfo,
-        deliveryToAddress: newDeliveryToAddress,
+        // deliveryToAddress: newDeliveryToAddress,
         fieldErrors: {
           ...prevState.fieldErrors,
           [field]: '' // Clear error when user starts typing
@@ -176,10 +177,6 @@ class CheckoutPage extends Component {
       collectionLocation: '', // Reset collection location when mode changes
       deliveryToAddress: '', // Reset delivery address when mode changes
       shipToBillingAddress: false, // Reset checkbox when mode changes
-      expandedSections: {
-        ...this.state.expandedSections,
-        collectionLocation: true // Auto-expand Collection/Delivery Location section when mode is selected
-      },
       fieldErrors: {
         ...this.state.fieldErrors,
         collectionMode: '', // Clear error when user selects
@@ -211,12 +208,14 @@ class CheckoutPage extends Component {
   }
 
   handleShipToBillingAddressChange = (checked) => {
-    const { personalInfo } = this.state;
+    // const { personalInfo } = this.state; // Commented out since not used
     this.setState({
       shipToBillingAddress: checked,
-      deliveryToAddress: checked ? 
-        (personalInfo.address && personalInfo.postalCode ? `${personalInfo.address}, Singapore ${personalInfo.postalCode}` : '') : 
-        '', // Reset to empty when unchecked to allow manual input
+      // Commented out billing address logic since address and postalCode are no longer used
+      // deliveryToAddress: checked ? 
+      //   (personalInfo.address && personalInfo.postalCode ? `${personalInfo.address}, Singapore ${personalInfo.postalCode}` : '') : 
+      //   '', // Reset to empty when unchecked to allow manual input
+      deliveryToAddress: '', // Reset to empty to allow manual input
       fieldErrors: {
         ...this.state.fieldErrors,
         shipToBillingAddress: '',
@@ -331,8 +330,8 @@ class CheckoutPage extends Component {
         lastName: '',
         email: '',
         phone: '',
-        address: '',
-        postalCode: '',
+        // address: '', // Commented out
+        // postalCode: '', // Commented out
         location: ''
       },
       paymentMethod: '',
@@ -345,8 +344,8 @@ class CheckoutPage extends Component {
         lastName: '',
         email: '',
         phone: '',
-        address: '',
-        postalCode: '',
+        // address: '', // Commented out
+        // postalCode: '', // Commented out
         location: '',
         paymentMethod: '',
         collectionMode: '',
@@ -446,8 +445,8 @@ class CheckoutPage extends Component {
       lastName: '',
       email: '',
       phone: '',
-      address: '',
-      postalCode: '',
+      // address: '', // Commented out
+      // postalCode: '', // Commented out
       location: '',
       paymentMethod: '',
       collectionMode: '',
@@ -457,7 +456,7 @@ class CheckoutPage extends Component {
     };
 
     // Validate all required fields are filled
-    const requiredFields = ['firstName', 'lastName', 'phone', 'address', 'postalCode', 'location'];
+    const requiredFields = ['firstName', 'lastName', 'phone', 'location']; // Removed 'address', 'postalCode'
     let hasErrors = false;
 
     requiredFields.forEach(field => {
@@ -466,8 +465,8 @@ class CheckoutPage extends Component {
           firstName: 'First name',
           lastName: 'Last name',
           phone: 'Phone',
-          address: 'Address',
-          postalCode: 'Postal code',
+          // address: 'Address',
+          // postalCode: 'Postal code',
           location: 'Location/Club'
         };
         newFieldErrors[field] = `${fieldDisplayNames[field]} is required`;
@@ -492,17 +491,19 @@ class CheckoutPage extends Component {
     }
 
     // Validate delivery address only if Delivery is selected
-    if (collectionMode === 'Delivery') {
-      if (!shipToBillingAddress && !deliveryToAddress) {
-        newFieldErrors.deliveryToAddress = 'Delivery address is required';
-        hasErrors = true;
-      }
-      // If using billing address, check if billing address exists
-      if (shipToBillingAddress && (!personalInfo.address || !personalInfo.postalCode)) {
-        newFieldErrors.deliveryToAddress = 'Please ensure your billing address is complete';
-        hasErrors = true;
-      }
-    }
+    // Commented out since Delivery option is now disabled
+    // if (collectionMode === 'Delivery') {
+    //   if (!shipToBillingAddress && !deliveryToAddress) {
+    //     newFieldErrors.deliveryToAddress = 'Delivery address is required';
+    //     hasErrors = true;
+    //   }
+    //   // If using billing address, check if billing address exists
+    //   // Commented out since address and postalCode are no longer required
+    //   // if (shipToBillingAddress && (!personalInfo.address || !personalInfo.postalCode)) {
+    //   //   newFieldErrors.deliveryToAddress = 'Please ensure your billing address is complete';
+    //   //   hasErrors = true;
+    //   // }
+    // }
 
     if (cartItems.length === 0) {
       alert('Your cart is empty');
@@ -530,11 +531,15 @@ class CheckoutPage extends Component {
     let CollectionDeliveryLocation = null;
     if (collectionMode === 'Self-Collection') {
       CollectionDeliveryLocation = collectionLocation;
-    } else if (collectionMode === 'Delivery') {
-      CollectionDeliveryLocation = shipToBillingAddress ? 
-        `${personalInfo.address}, Singapore ${personalInfo.postalCode}` : 
-        deliveryToAddress;
     }
+    // Commented out since Delivery option is now disabled
+    // else if (collectionMode === 'Delivery') {
+    //   // Commented out billing address logic since address and postalCode are no longer used
+    //   // CollectionDeliveryLocation = shipToBillingAddress ? 
+    //   //   `${personalInfo.address}, Singapore ${personalInfo.postalCode}` : 
+    //   //   deliveryToAddress;
+    //   CollectionDeliveryLocation = deliveryToAddress;
+    // }
 
     const orderData = {
       personalInfo: {
@@ -542,8 +547,8 @@ class CheckoutPage extends Component {
         lastName: personalInfo.lastName,
         email: personalInfo.email,
         phone: personalInfo.phone,
-        address: personalInfo.address,
-        postalCode: personalInfo.postalCode,
+        // address: personalInfo.address, // Commented out
+        // postalCode: personalInfo.postalCode, // Commented out
         location: personalInfo.location
       },
       paymentDetails: {

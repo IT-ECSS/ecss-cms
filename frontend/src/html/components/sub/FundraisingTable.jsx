@@ -328,12 +328,12 @@ class FundraisingTable extends Component {
 
     // Method to apply filters based on current props
     applyFilters = () => {
-      const { paymentMethod, collectionMode, status, searchQuery } = this.props;
+      const { paymentMethod, collectionLocation, status, searchQuery } = this.props;
       const { originalData } = this.state;
 
       console.log("FundraisingTable - applyFilters called with props:", { 
         paymentMethod, 
-        collectionMode, 
+        collectionLocation, 
         status, 
         searchQuery,
         originalDataLength: originalData ? originalData.length : 0
@@ -349,14 +349,23 @@ class FundraisingTable extends Component {
       // Apply payment method filter
       if (paymentMethod && paymentMethod !== 'All Payment Methods' && paymentMethod !== '') {
         filteredData = filteredData.filter(record => 
-          record.paymentMethod && record.paymentMethod.toLowerCase().includes(paymentMethod.toLowerCase())
+          record.paymentDetails?.paymentMethod && record.paymentDetails.paymentMethod.toLowerCase().includes(paymentMethod.toLowerCase())
         );
       }
 
+      /*
       // Apply collection mode filter
       if (collectionMode && collectionMode !== 'All Collection Modes' && collectionMode !== '') {
         filteredData = filteredData.filter(record => 
-          record.collectionMode && record.collectionMode.toLowerCase().includes(collectionMode.toLowerCase())
+          record.collectionDetails?.collectionMode && record.collectionDetails.collectionMode.toLowerCase().includes(collectionMode.toLowerCase())
+        );
+      }
+      */
+
+      // Apply collection location filter
+      if (collectionLocation && collectionLocation !== 'All Collection Locations' && collectionLocation !== '') {
+        filteredData = filteredData.filter(record => 
+          record.collectionDetails?.CollectionDeliveryLocation && record.collectionDetails.CollectionDeliveryLocation.toLowerCase().includes(collectionLocation.toLowerCase())
         );
       }
 
@@ -424,7 +433,7 @@ class FundraisingTable extends Component {
         });
       }
 
-      console.log("Applied filters:", { paymentMethod, collectionMode, status, searchQuery });
+      console.log("Applied filters:", { paymentMethod, /*collectionMode,*/ status, searchQuery });
       console.log("Filtered data length:", filteredData.length);
 
       this.setState({
@@ -480,12 +489,14 @@ class FundraisingTable extends Component {
       const enrichedData = this.enrichFundraisingDataWithProductDetails(safeData);
 
       // Extract unique values for filters
-      const uniquePaymentMethods = ['All Payment Methods', ...new Set(enrichedData.map(record => record.paymentMethod).filter(Boolean))];
-      const uniqueCollectionModes = ['All Collection Modes', ...new Set(enrichedData.map(record => record.collectionMode).filter(Boolean))];
+      const uniquePaymentMethods = ['All Payment Methods', ...new Set(enrichedData.map(record => record.paymentDetails?.paymentMethod).filter(Boolean))];
+      // const uniqueCollectionModes = ['All Collection Modes', ...new Set(enrichedData.map(record => record.collectionDetails?.collectionMode).filter(Boolean))];
+      const uniqueCollectionLocations = ['All Collection Locations', ...new Set(enrichedData.map(record => record.collectionDetails?.CollectionDeliveryLocation).filter(Boolean))];
       const uniqueStatuses = ['All Statuses', ...new Set(enrichedData.map(record => record.status).filter(Boolean))];
 
       console.log("Unique payment methods:", uniquePaymentMethods);
-      console.log("Unique collection modes:", uniqueCollectionModes);
+      // console.log("Unique collection modes:", uniqueCollectionModes);
+      console.log("Unique collection locations:", uniqueCollectionLocations);
       console.log("Unique statuses:", uniqueStatuses);
 
       this.setState({
@@ -498,7 +509,8 @@ class FundraisingTable extends Component {
 
         // Pass filter options to parent component if callback is provided
         if (this.props.onFiltersLoaded) {
-          this.props.onFiltersLoaded(uniquePaymentMethods, uniqueCollectionModes, uniqueStatuses);
+          // this.props.onFiltersLoaded(uniquePaymentMethods, uniqueCollectionModes, uniqueStatuses);
+          this.props.onFiltersLoaded(uniquePaymentMethods, uniqueCollectionLocations, uniqueStatuses);
         }
 
         // Restore scroll position and page after data is set
@@ -583,7 +595,8 @@ class FundraisingTable extends Component {
           paymentMethod: item.paymentDetails?.paymentMethod || '',
           items: item.orderDetails?.items, // This now contains enriched items with WooCommerce details
           collectionMode: item.collectionDetails?.collectionMode || '',
-          collectionDetails: item.collectionDetails?.CollectionDeliveryLocation,
+          collectionDeliveryLocation: item.collectionDetails?.CollectionDeliveryLocation || '',
+          location: item.personalInfo?.location || item.collectionDetails?.CollectionDeliveryLocation || '',
           orderDateTime: (() => {
             // Helper function to format dates
             const formatDate = (dateValue) => {
@@ -647,29 +660,53 @@ class FundraisingTable extends Component {
           pinned: "left",
         },
         {
-          headerName: "Contact Number",
-          field: "contactNumber",
-          width: 150,
-          editable: true,
-        },
-        {
           headerName: "Email",
           field: "email",
           width: 250,
           editable: true,
         },
         {
-          headerName: "Address",
-          field: "address",
+          headerName: "Phone",
+          field: "contactNumber",
+          width: 150,
+          editable: true,
+        },
+        {
+          headerName: "Station Location",
+          field: "location",
           width: 250,
           editable: true,
         },
         {
-          headerName: "Postal Code",
-          field: "postalCode",
-          width: 120,
-          editable: true,
+          headerName: "Items",
+          field: "items",
+          width: 200,
+          cellRenderer: (params) => {
+            const items = params.value;
+            if (items && items.length > 0) {
+              return (
+                <button
+                  onClick={() => this.viewItems(items, params.data)}
+                  className="fundraising-view-items-btn"
+                >
+                  View items
+                </button>
+              );
+            }
+          }
         },
+        // {
+        //   headerName: "Address",
+        //   field: "address",
+        //   width: 250,
+        //   editable: true,
+        // },
+        // {
+        //   headerName: "Postal Code",
+        //   field: "postalCode",
+        //   width: 120,
+        //   editable: true,
+        // },
         {
           headerName: "Total Price",
           field: "donationAmount",
@@ -752,37 +789,15 @@ class FundraisingTable extends Component {
           editable: true,
         },
         {
-          headerName: "Items",
-          field: "items",
-          width: 200,
-          cellRenderer: (params) => {
-            const items = params.value;
-            if (items && items.length > 0) {
-              return (
-                <button
-                  onClick={() => this.viewItems(items, params.data)}
-                  className="fundraising-view-items-btn"
-                >
-                  View items
-                </button>
-              );
-            }
-            return (
-              <span className="fundraising-no-items">
-                No items
-              </span>
-            );
-          }
-        },
-        {
           headerName: "Collection Mode",
           field: "collectionMode",
           width: 150
         },
         {
-          headerName: "Collection/Delivery Details",
-          field: "collectionDetails",
-          width: 500
+          headerName: "Collection Location",
+          field: "collectionDeliveryLocation",
+          width: 250,
+          editable: true,
         },
         {
           headerName: "Order Details",
@@ -790,6 +805,12 @@ class FundraisingTable extends Component {
           width: 200,
           editable: false,
         },
+        // Commented out the duplicate Collection Location column since we already have Location
+        // {
+        //   headerName: "Collection Location",
+        //   field: "collectionDetails",
+        //   width: 300
+        // },
         {
           headerName: "Status",
           field: "status",
@@ -1910,7 +1931,242 @@ class FundraisingTable extends Component {
       console.log("Grid API initialized successfully");
     };
 
-    // Export table data to Excel
+    // Helper method: Get Excel export headers
+    getExcelHeaders = () => {
+      const headers = [
+        'S/N',
+        'First Name',
+        'Last Name',
+        'Contact Number',
+        'Email',
+        // 'Address',
+        // 'Postal Code',
+        'Station Location',
+        'Total Price',
+        'Payment Method',
+        'Items Summary',
+        'Collection Mode',
+        'Collection Location',
+        'Order Details',
+        'Status',
+        'Receipt Number',
+      ];
+
+      return headers.filter(header => typeof header === 'string' && header.trim() !== '');
+    };
+
+    // Helper method: Format items summary
+    formatItemsSummary = (items) => {
+      if (!items || items.length === 0) return '';
+      
+      return items.map(itemDetail => {
+        const name = itemDetail.productName || itemDetail.name || itemDetail.itemName || 'Unknown Item';
+        const quantity = itemDetail.quantity || 1;
+        return `${name} (x${quantity})`;
+      }).join(', ');
+    };
+
+    // Helper method: Format price display
+    formatPriceDisplay = (item, row) => {
+      const originalPrice = item.orderDetails?.totalPrice || item.totalPrice || item.donationAmount;
+      const enrichedPrice = item.enrichedTotalPrice || row.enrichedTotalPrice || 0;
+      
+      if (enrichedPrice > 0) {
+        return `$${enrichedPrice.toFixed(2)}`;
+      } else if (originalPrice && !isNaN(originalPrice)) {
+        return `$${parseFloat(originalPrice).toFixed(2)}`;
+      } else {
+        return '$0.00';
+      }
+    };
+
+    // Helper method: Get collection location
+    getCollectionLocation = (item, row) => {
+      return item.collectionDetails?.CollectionDeliveryLocation || 
+             item.collectionDetails || 
+             row.collectionDetails || 
+             'Unknown Location';
+    };
+
+    // Helper method: Get order details
+    getOrderDetails = (item) => {
+      const orderDate = item.orderDetails?.orderDate || item.orderDate || '';
+      const orderTime = item.orderDetails?.orderTime || item.orderTime || '';
+      return `${orderDate} ${orderTime}`.trim();
+    };
+
+    // Helper method: Build row data for export
+    buildExportRowData = (item, row, index, headers) => {
+      const items = item.orderDetails?.items || item.items || row.items || [];
+      const itemsSummary = this.formatItemsSummary(items);
+      const displayPrice = this.formatPriceDisplay(item, row);
+      const stationLocation = item.personalInfo?.location;
+      const collectionLocation = this.getCollectionLocation(item, row);
+      const orderDetails = this.getOrderDetails(item);
+
+      const completeRowData = [
+        row.sn || index + 1,
+        item.personalInfo?.firstName || item.firstName || row.firstName || '',
+        item.personalInfo?.lastName || item.lastName || row.lastName || '',
+        item.personalInfo?.phone || item.contactNumber || row.contactNumber || '',
+        item.personalInfo?.email || item.email || row.email || '',
+        // item.personalInfo?.address || item.address || row.address || '', // Commented out
+        // item.personalInfo?.postalCode || item.postalCode || row.postalCode || '', // Commented out
+        stationLocation,
+        displayPrice,
+        // originalPriceForExport ? `$${parseFloat(originalPriceForExport).toFixed(2)}` : '$0.00',
+        // enrichedPriceForExport ? `$${enrichedPriceForExport.toFixed(2)}` : '$0.00',
+        item.paymentDetails?.paymentMethod || item.paymentMethod || row.paymentMethod || '',
+        itemsSummary,
+        // itemsDetail, // Commented out
+        item.collectionDetails?.collectionMode || item.collectionMode || row.collectionMode || '',
+        collectionLocation,
+        orderDetails,
+        item.status || row.status || 'Pending',
+        item.receiptNumber || row.receiptNumber || '',
+      ];
+
+      // Filter data to match only active headers (non-commented)
+      return completeRowData.filter((_, index) => {
+        const header = headers[index];
+        return typeof header === 'string' && header.trim() !== '';
+      });
+    };
+
+    // Helper method: Get background color for location
+    getLocationBackgroundColor = (location, isStationLocation = false) => {
+      const locationKey = isStationLocation ? 
+        (location?.includes('CT Hub') ? 'CT Hub' :
+         location?.includes('Pasir Ris West Wellness Centre') ? 'Pasir Ris West Wellness Centre' :
+         location?.includes('Tampines North Community Club') ? 'Tampines North Community Club' : null) :
+        location;
+
+      switch (locationKey) {
+        case 'CT Hub':
+          return 'FFE8F5E8'; // Soft pastel green
+        case 'Pasir Ris West Wellness Centre':
+          return 'FFE6F3FF'; // Soft pastel blue
+        case 'Tampines North Community Club':
+          return 'FFFFFACD'; // Soft pastel yellow
+        default:
+          return null;
+      }
+    };
+
+    // Helper method: Get tab color for location
+    getLocationTabColor = (location) => {
+      switch (location) {
+        case 'CT Hub':
+          return 'FFE8F5E8'; // Soft pastel green (with FF prefix for tab color)
+        case 'Pasir Ris West Wellness Centre':
+          return 'FFE6F3FF'; // Soft pastel blue (with FF prefix for tab color)
+        case 'Tampines North Community Club':
+          return 'FFFFFF99'; // Soft pastel yellow (with FF prefix for tab color)
+        default:
+          return null;
+      }
+    };
+
+    // Helper method: Apply header styling
+    applyHeaderStyling = (headerRow) => {
+      headerRow.font = { bold: true };
+      
+      headerRow.eachCell((cell, colNumber) => {
+        const hasHeader = cell.value && cell.value.toString().trim() !== '';
+        
+        if (hasHeader) {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFE0E0E0' }
+          };
+        }
+      });
+    };
+
+    // Helper method: Apply row styling with background color
+    applyRowStyling = (excelRow, headerRow, backgroundColor) => {
+      if (!backgroundColor) return;
+
+      excelRow.eachCell((cell, colNumber) => {
+        // Only apply background color to cells under valid headers (regardless of content)
+        const headerCell = headerRow.getCell(colNumber);
+        const hasHeader = headerCell.value && headerCell.value.toString().trim() !== '';
+        
+        if (hasHeader) {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: backgroundColor }
+          };
+        }
+      });
+    };
+
+    // Helper method: Auto-fit worksheet columns
+    autoFitColumns = (worksheet) => {
+      worksheet.columns.forEach(column => {
+        let maxLength = 10;
+        column.eachCell({ includeEmpty: true }, (cell) => {
+          const cellValue = cell.value ? cell.value.toString() : '';
+          maxLength = Math.max(maxLength, cellValue.length);
+        });
+        column.width = Math.min(maxLength + 2, 50); // Cap at 50 characters
+      });
+    };
+
+    // Helper method: Group data by collection location
+    groupDataByLocation = (dataToExport) => {
+      const locationGroups = {};
+      
+      dataToExport.forEach((item, index) => {
+        const row = this.state.rowData[index] || {};
+        const collectionLocation = this.getCollectionLocation(item, row);
+        
+        if (!locationGroups[collectionLocation]) {
+          locationGroups[collectionLocation] = [];
+        }
+        
+        locationGroups[collectionLocation].push({ item, row, originalIndex: index });
+      });
+
+      return locationGroups;
+    };
+
+    // Helper method: Create and populate worksheet
+    createWorksheet = (workbook, sheetName, activeHeaders, originalLocationName = null, isAllDataSheet = false) => {
+      const worksheet = workbook.addWorksheet(sheetName);
+      
+      // Set tab color for location-specific sheets
+      if (!isAllDataSheet && originalLocationName) {
+        const tabColor = this.getLocationTabColor(originalLocationName);
+        if (tabColor) {
+          worksheet.properties.tabColor = { argb: tabColor };
+        }
+      }
+
+      // Add headers
+      worksheet.addRow(activeHeaders);
+      const headerRow = worksheet.getRow(1);
+      this.applyHeaderStyling(headerRow);
+
+      return { worksheet, headerRow };
+    };
+
+    // Helper method: Add data to worksheet
+    addDataToWorksheet = (worksheet, headerRow, dataToProcess, activeHeaders, allHeaders) => {
+      dataToProcess.forEach(({ item, row, originalIndex }) => {
+        const exportRowData = this.buildExportRowData(item, row, originalIndex || row.sn - 1 || 0, allHeaders);
+        const excelRow = worksheet.addRow(exportRowData);
+        
+        // Apply color coding based on collection location
+        const collectionLocation = this.getCollectionLocation(item, row);
+        const backgroundColor = this.getLocationBackgroundColor(collectionLocation, false);
+        this.applyRowStyling(excelRow, headerRow, backgroundColor);
+      });
+    };
+
+    // Main Export method: Export table data to Excel
     exportToExcel = async () => {
       try {
         console.log('Starting Excel export...');
@@ -1921,121 +2177,45 @@ class FundraisingTable extends Component {
         
         // Create a new workbook
         const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('Fundraising Orders Archive');
-
-        // Define comprehensive headers to include all available data
-        const headers = [
-          'S/N',
-          'First Name',
-          'Last Name',
-          'Contact Number',
-          'Email',
-          'Address',
-          'Postal Code',
-          'Total Price',
-          'Payment Method',
-          'Items Summary',
-          'Collection Mode',
-          'Collection/Delivery Location',
-          'Status',
-          'Receipt Number',
-          'Order Details'
+        
+        // Get headers and data
+        const allHeaders = [
+          'S/N', 'First Name', 'Last Name', 'Contact Number', 'Email',
+          // 'Address', // 'Postal Code',
+          'Station Location', 'Total Price',
+          // 'Original Price', // 'Enriched Price',
+          'Payment Method', 'Items Summary', 'Collection Mode',
+          'Collection Location', 'Order Details', 'Status', 'Receipt Number'
         ];
-
-        // Add headers to worksheet
-        worksheet.addRow(headers);
-
-        // Style the header row
-        const headerRow = worksheet.getRow(1);
-        headerRow.font = { bold: true };
-        headerRow.fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: 'FFE0E0E0' }
-        };
-
-        // Process each row of data - access original data for complete information
+        const activeHeaders = this.getExcelHeaders();
         const dataToExport = this.state.originalData || this.state.rowData;
         
-        dataToExport.forEach((item, index) => {
-          // Access both processed row data and original data
-          const row = this.state.rowData[index] || {};
+        // Group data by collection location
+        const locationGroups = this.groupDataByLocation(dataToExport);
+        console.log('Location groups:', Object.keys(locationGroups));
+
+        // Create "All Locations" worksheet
+        const { worksheet: allDataWorksheet, headerRow: allDataHeaderRow } = 
+          this.createWorksheet(workbook, 'All Locations', activeHeaders, null, true);
+
+        // Add all data to the first worksheet
+        const allDataFormatted = dataToExport.map((item, index) => ({
+          item,
+          row: this.state.rowData[index] || {},
+          originalIndex: index
+        }));
+        
+        this.addDataToWorksheet(allDataWorksheet, allDataHeaderRow, allDataFormatted, activeHeaders, allHeaders);
+        this.autoFitColumns(allDataWorksheet);
+
+        // Create worksheets for each location
+        Object.entries(locationGroups).forEach(([location, locationData]) => {
+          // Clean up location name for sheet name (Excel sheet names have restrictions)
+          const sheetName = location.replace(/[\\\/\?\*\[\]]/g, '_').substring(0, 31);
           
-          // Format items for summary and detail
-          let itemsSummary = '';
-          let itemsDetail = '';
-          
-          // Check for items in multiple possible locations
-          const items = item.orderDetails?.items || item.items || row.items || [];
-          
-          if (items && items.length > 0) {
-            itemsSummary = items.map(itemDetail => {
-              const name = itemDetail.productName || itemDetail.name || itemDetail.itemName || 'Unknown Item';
-              const quantity = itemDetail.quantity || 1;
-              return `${name} (x${quantity})`;
-            }).join(', ');
-
-            // Detailed items information with pricing
-            itemsDetail = items.map(itemDetail => {
-              const name = itemDetail.productName || itemDetail.name || itemDetail.itemName || 'Unknown Item';
-              const quantity = itemDetail.quantity || 1;
-              const price = itemDetail.price || itemDetail.unitPrice || itemDetail.enrichedPrice || 0;
-              const subtotal = (price * quantity).toFixed(2);
-              return `${name}: Qty ${quantity} @ $${price} = $${subtotal}`;
-            }).join('; ');
-          }
-
-          // Format pricing information
-          const originalPrice = item.orderDetails?.totalPrice || item.totalPrice || item.donationAmount;
-          const enrichedPrice = item.enrichedTotalPrice || row.enrichedTotalPrice || 0;
-          
-          let displayPrice = '';
-          if (enrichedPrice > 0) {
-            displayPrice = `$${enrichedPrice.toFixed(2)}`;
-          } else if (originalPrice && !isNaN(originalPrice)) {
-            displayPrice = `$${parseFloat(originalPrice).toFixed(2)}`;
-          } else {
-            displayPrice = '$0.00';
-          }
-
-          // Format dates - simplified to match generatePaymentReport
-          const orderDate = item.orderDetails?.orderDate || item.orderDate || '';
-          const orderTime = item.orderDetails?.orderTime || item.orderTime || '';
-          
-          // Combine order date and time into order details
-          let orderDetails = `${orderDate} ${orderTime}`;
-          console.log("orderDetails", orderDetails);
-
-
-          const exportRowData = [
-            row.sn || index + 1,
-            item.personalInfo?.firstName || item.firstName || row.firstName || '',
-            item.personalInfo?.lastName || item.lastName || row.lastName || '',
-            item.personalInfo?.phone || item.contactNumber || row.contactNumber || '',
-            item.personalInfo?.email || item.email || row.email || '',
-            item.personalInfo?.address || item.address || row.address || '',
-            item.personalInfo?.postalCode || item.postalCode || row.postalCode || '',
-            displayPrice,
-            item.paymentDetails?.paymentMethod || item.paymentMethod || row.paymentMethod || '',
-            itemsSummary,
-            item.collectionDetails?.collectionMode || item.collectionMode || row.collectionMode || '',
-            item.collectionDetails?.CollectionDeliveryLocation || item.collectionDetails || row.collectionDetails || '',
-            item.status || row.status || 'Pending',
-            item.receiptNumber || row.receiptNumber || '',
-            orderDetails
-          ];
-
-          worksheet.addRow(exportRowData);
-        });
-
-        // Auto-fit columns
-        worksheet.columns.forEach(column => {
-          let maxLength = 10;
-          column.eachCell({ includeEmpty: true }, (cell) => {
-            const cellValue = cell.value ? cell.value.toString() : '';
-            maxLength = Math.max(maxLength, cellValue.length);
-          });
-          column.width = Math.min(maxLength + 2, 50); // Cap at 50 characters
+          const { worksheet, headerRow } = this.createWorksheet(workbook, sheetName, activeHeaders, location);
+          this.addDataToWorksheet(worksheet, headerRow, locationData, activeHeaders, allHeaders);
+          this.autoFitColumns(worksheet);
         });
 
         // Generate filename with timestamp
@@ -2058,145 +2238,57 @@ class FundraisingTable extends Component {
 
     // Generate Payment Report with Total
     generatePaymentReport = async () => {
-      const dataToExport = this.state.originalData || this.state.rowData;
       try {
+        console.log('Starting Payment Report generation...');
+        
         // Create a new workbook
         const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('Payment Report');
-
+        
         // Define comprehensive headers for payment report
         const headers = [
-          'S/N',
-          'First Name',
-          'Last Name',
-          'Contact Number',
-          'Email',
-          'Address',
-          'Postal Code',
-          'Total Price',
-          'Payment Method',
-          'Items Summary',
-          'Collection Mode',
-          'Collection/Delivery Location',
-          'Status',
-          'Receipt Number',
-          'Order Details'
+          'S/N', 'First Name', 'Last Name', 'Contact Number', 'Email',
+          'Address', 'Postal Code', 'Total Price', 'Payment Method',
+          'Items Summary', 'Collection Mode', 'Collection/Delivery Location',
+          'Status', 'Receipt Number', 'Order Details'
         ];
+        
+        const activeHeaders = headers.filter(header => typeof header === 'string' && header.trim() !== '');
+        const dataToExport = this.state.originalData || this.state.rowData;
+        
+        // Group data by collection location for payment report
+        const locationGroups = this.groupDataByLocation(dataToExport);
+        console.log('Payment Report Location groups:', Object.keys(locationGroups));
 
-        // Add headers to worksheet
-        worksheet.addRow(headers);
-
-        // Style the header row
-        const headerRow = worksheet.getRow(1);
-        headerRow.font = { bold: true };
-        headerRow.fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: 'FFE0E0E0' }
-        };
+        // Create "All Locations" payment report worksheet
+        const { worksheet: allPaymentWorksheet, headerRow: allPaymentHeaderRow } = 
+          this.createWorksheet(workbook, 'All Locations Payment Report', activeHeaders, null, true);
 
         let grandTotal = 0;
 
-        // Process each row of data and calculate total - use comprehensive data
-        const dataToExport = this.state.originalData || this.state.rowData;
+        // Add all data to the payment report worksheet
+        const allPaymentDataFormatted = dataToExport.map((item, index) => ({
+          item,
+          row: this.state.rowData[index] || {},
+          originalIndex: index
+        }));
         
-        dataToExport.forEach((item, index) => {
-          const row = this.state.rowData[index] || {};
+        grandTotal = this.addPaymentDataToWorksheet(allPaymentWorksheet, allPaymentHeaderRow, allPaymentDataFormatted, activeHeaders, headers);
+
+        // Add total row to all locations worksheet
+        this.addPaymentTotalRow(allPaymentWorksheet, grandTotal, headers.length);
+        this.autoFitColumns(allPaymentWorksheet);
+
+        // Create payment report worksheets for each location
+        Object.entries(locationGroups).forEach(([location, locationData]) => {
+          // Clean up location name for sheet name
+          const sheetName = `${location.replace(/[\\\/\?\*\[\]]/g, '_').substring(0, 25)}_Payment`;
           
-          // Calculate numerical total price for summation
-          let totalPriceValue = 0;
-          let totalPriceDisplay = '';
-          const originalPrice = item.orderDetails?.totalPrice || item.totalPrice || item.donationAmount;
-          const enrichedPrice = item.enrichedTotalPrice || row.enrichedTotalPrice || 0;
-
-          if (enrichedPrice > 0) {
-            totalPriceValue = enrichedPrice;
-            totalPriceDisplay = `$${enrichedPrice.toFixed(2)}`;
-          } else if (originalPrice && !isNaN(originalPrice)) {
-            totalPriceValue = parseFloat(originalPrice);
-            totalPriceDisplay = `$${totalPriceValue.toFixed(2)}`;
-          } else {
-            totalPriceValue = 0;
-            totalPriceDisplay = '$0.00';
-          }
-
-          // Only add to grand total if the value is positive
-          if (totalPriceValue > 0) {
-            grandTotal += totalPriceValue;
-          }
-
-          // Format items summary
-          const items = item.orderDetails?.items || item.items || row.items || [];
-          const itemsSummary = items.length > 0 
-            ? items.map(itemDetail => {
-                const name = itemDetail.productName || itemDetail.name || itemDetail.itemName || 'Unknown Item';
-                const quantity = itemDetail.quantity || 1;
-                return `${name} (x${quantity})`;
-              }).join(', ')
-            : '';
-          const orderDate = item.orderDetails?.orderDate || item.orderDate || '';
-          const orderTime = item.orderDetails?.orderTime || item.orderTime || '';
+          const { worksheet, headerRow } = this.createWorksheet(workbook, sheetName, activeHeaders, location);
+          const locationTotal = this.addPaymentDataToWorksheet(worksheet, headerRow, locationData, activeHeaders, headers);
           
-          // Combine order date and time into order details
-          let orderDetails = `${orderDate} ${orderTime}`;
-          console.log("orderDetails", orderDetails);
-
-
-
-          const paymentRowData = [
-            row.sn || index + 1,
-            item.personalInfo?.firstName || item.firstName || row.firstName || '',
-            item.personalInfo?.lastName || item.lastName || row.lastName || '',
-            item.personalInfo?.phone || item.contactNumber || row.contactNumber || '',
-            item.personalInfo?.email || item.email || row.email || '',
-            item.personalInfo?.address || item.address || row.address || '',
-            item.personalInfo?.postalCode || item.postalCode || row.postalCode || '',
-            totalPriceDisplay,
-            item.paymentDetails?.paymentMethod || item.paymentMethod || row.paymentMethod || '',
-            itemsSummary,
-            item.collectionDetails?.collectionMode || item.collectionMode || row.collectionMode || '',
-            item.collectionDetails?.CollectionDeliveryLocation || item.collectionDetails || row.collectionDetails || '',
-            item.status || row.status || 'Pending',
-            item.receiptNumber || row.receiptNumber || '',
-            orderDetails
-          ];
-
-          worksheet.addRow(paymentRowData);
-        });
-
-        // Add empty row after data
-        worksheet.addRow([]);
-
-        // Add total row (updated for new column structure)
-        const totalRowData = [
-          '', '', '', '', '', '', '', // Empty cells for S/N through Postal Code
-          `$${grandTotal.toFixed(2)}`, // Total price in the Total Price column (column 8)
-          '', '', '', '', '', '', '' // Empty cells for remaining columns
-        ];
-        const totalRow = worksheet.addRow(totalRowData);
-
-        // Style the total row
-        totalRow.font = { bold: true };
-        totalRow.fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: 'FFFFCC00' } // Light yellow background
-        };
-
-        // Add "TOTAL:" label in the previous cell (Postal Code column)
-        const labelCell = worksheet.getCell(totalRow.number, 7); // Column G (Postal Code column)
-        labelCell.value = 'TOTAL:';
-        labelCell.font = { bold: true };
-        labelCell.alignment = { horizontal: 'right' };
-
-        // Auto-fit columns
-        worksheet.columns.forEach(column => {
-          let maxLength = 10;
-          column.eachCell({ includeEmpty: true }, (cell) => {
-            const cellValue = cell.value ? cell.value.toString() : '';
-            maxLength = Math.max(maxLength, cellValue.length);
-          });
-          column.width = Math.min(maxLength + 2, 50); // Cap at 50 characters
+          // Add total row to location-specific worksheet
+          this.addPaymentTotalRow(worksheet, locationTotal, headers.length);
+          this.autoFitColumns(worksheet);
         });
 
         // Generate filename with timestamp
@@ -2218,8 +2310,122 @@ class FundraisingTable extends Component {
       }
     };
 
+    // Helper method: Add payment data to worksheet and return total
+    addPaymentDataToWorksheet = (worksheet, headerRow, dataToProcess, activeHeaders, allHeaders) => {
+      let total = 0;
+      
+      dataToProcess.forEach(({ item, row, originalIndex }) => {
+        // Calculate pricing
+        const originalPrice = item.orderDetails?.totalPrice || item.totalPrice || item.donationAmount;
+        const enrichedPrice = item.enrichedTotalPrice || row.enrichedTotalPrice || 0;
+        
+        let totalPriceValue = 0;
+        let totalPriceDisplay = '';
+        
+        if (enrichedPrice > 0) {
+          totalPriceValue = enrichedPrice;
+          totalPriceDisplay = `$${enrichedPrice.toFixed(2)}`;
+        } else if (originalPrice && !isNaN(originalPrice)) {
+          totalPriceValue = parseFloat(originalPrice);
+          totalPriceDisplay = `$${totalPriceValue.toFixed(2)}`;
+        } else {
+          totalPriceValue = 0;
+          totalPriceDisplay = '$0.00';
+        }
+
+        // Add to total if positive
+        if (totalPriceValue > 0) {
+          total += totalPriceValue;
+        }
+
+        // Format items summary
+        const items = item.orderDetails?.items || item.items || row.items || [];
+        const itemsSummary = this.formatItemsSummary(items);
+        
+        // Get order details
+        const orderDetails = this.getOrderDetails(item);
+        
+        // Get collection location
+        const collectionLocation = this.getCollectionLocation(item, row);
+
+        // Build payment report row data
+        const completeRowData = [
+          row.sn || originalIndex + 1,
+          item.personalInfo?.firstName || item.firstName || row.firstName || '',
+          item.personalInfo?.lastName || item.lastName || row.lastName || '',
+          item.personalInfo?.phone || item.contactNumber || row.contactNumber || '',
+          item.personalInfo?.email || item.email || row.email || '',
+          item.personalInfo?.address || item.address || row.address || '',
+          item.personalInfo?.postalCode || item.postalCode || row.postalCode || '',
+          totalPriceDisplay,
+          item.paymentDetails?.paymentMethod || item.paymentMethod || row.paymentMethod || '',
+          itemsSummary,
+          item.collectionDetails?.collectionMode || item.collectionMode || row.collectionMode || '',
+          collectionLocation,
+          item.status || row.status || 'Pending',
+          item.receiptNumber || row.receiptNumber || '',
+          orderDetails
+        ];
+
+        // Filter data to match only active headers
+        const paymentRowData = completeRowData.filter((_, index) => {
+          const header = allHeaders[index];
+          return typeof header === 'string' && header.trim() !== '';
+        });
+
+        const excelRow = worksheet.addRow(paymentRowData);
+        
+        // Apply color coding based on collection location
+        const backgroundColor = this.getLocationBackgroundColor(collectionLocation, false);
+        this.applyRowStyling(excelRow, headerRow, backgroundColor);
+      });
+      
+      return total;
+    };
+
+    // Helper method: Add total row to payment report
+    addPaymentTotalRow = (worksheet, total, headerCount) => {
+      // Add empty row after data
+      worksheet.addRow([]);
+
+      // Create total row data array
+      const totalRowData = new Array(headerCount).fill('');
+      totalRowData[6] = 'TOTAL:'; // Postal Code column
+      totalRowData[7] = `$${total.toFixed(2)}`; // Total Price column
+
+      // Filter to match active headers
+      const filteredTotalRowData = totalRowData.filter((_, index) => {
+        // This should match the same filtering logic as the data rows
+        return index < headerCount;
+      });
+
+      const totalRow = worksheet.addRow(filteredTotalRowData);
+      const headerRow = worksheet.getRow(1);
+
+      // Apply soft pastel pink background color only to cells with valid headers
+      totalRow.eachCell((cell, colNumber) => {
+        const headerCell = headerRow.getCell(colNumber);
+        const hasHeader = headerCell.value && headerCell.value.toString().trim() !== '';
+        
+        if (hasHeader) {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFFFE0F0' } // Soft pastel pink background
+          };
+          cell.font = { bold: true };
+        }
+      });
+
+      // Style the total label cell with right alignment
+      const labelCell = worksheet.getCell(totalRow.number, 7); // Postal Code column
+      labelCell.alignment = { horizontal: 'right' };
+    };
+
     render() 
     {
+      const { isLoading, rowData, fundraisingData } = this.state;
+
       return (
         <div className="fundraising-container">
           <div className="fundraising-heading">

@@ -27,13 +27,13 @@ class CollectionModeSection extends Component {
                   Self-Collection
                 </button>
                 
-                <button
+                {/* <button
                   type="button"
                   className={`collection-mode-button ${collectionMode === 'Delivery' ? 'selected' : ''}`}
                   onClick={() => onCollectionModeChange('Delivery')}
                 >
                   Delivery
-                </button>
+                </button> */}
               </div>
               {fieldErrors.collectionMode && <div className="field-error-message">{fieldErrors.collectionMode}</div>}
             </div>

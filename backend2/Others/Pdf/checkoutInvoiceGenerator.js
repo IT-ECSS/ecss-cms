@@ -151,18 +151,18 @@ class CheckoutInvoiceGenerator {
         doc.moveDown(1);
 
         // Add address
-        const address = `Address     : ${orderData.personalInfo.address}`;
-        doc.font(fontPathTimesRegular).fontSize(12).text(address, leftMargin, doc.y, {
-            align: 'left'
-        });
+        // const address = `Address     : ${orderData.personalInfo.address}`;
+        // doc.font(fontPathTimesRegular).fontSize(12).text(address, leftMargin, doc.y, {
+        //     align: 'left'
+        // });
 
-        doc.moveDown(1);
+        // doc.moveDown(1);
 
         // Add postal code
-        const postalCode = `Postal Code : ${orderData.personalInfo.postalCode}`;
-        doc.font(fontPathTimesRegular).fontSize(12).text(postalCode, leftMargin, doc.y, {
-            align: 'left'
-        });
+        // const postalCode = `Postal Code : ${orderData.personalInfo.postalCode}`;
+        // doc.font(fontPathTimesRegular).fontSize(12).text(postalCode, leftMargin, doc.y, {
+        //     align: 'left'
+        // });
 
         doc.moveDown(1);
 

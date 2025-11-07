@@ -196,6 +196,7 @@
   margin-left: 8rem; /* Align with table-wrapper */
   width: 80vw; /* Match table wrapper width */
   max-width: 120rem; /* Match table wrapper max-width */
+  margin-top: -1rem;
 }
 
 .fundraising-export-btn

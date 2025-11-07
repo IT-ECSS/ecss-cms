@@ -67,7 +67,7 @@ class PersonalInformationSection extends Component {
               </div>
             </div>
             
-            <div className="form-group111">
+            {/* <div className="form-group111">
               <label htmlFor="address">Address</label>
               <input
                 type="text"
@@ -89,7 +89,7 @@ class PersonalInformationSection extends Component {
                 onChange={(e) => onPersonalInfoChange('postalCode', e.target.value)}
               />
               {fieldErrors.postalCode && <div className="field-error-message">{fieldErrors.postalCode}</div>}
-            </div>
+            </div> */}
             
             <div className="form-group">
               <label htmlFor="location">Location</label>
