@@ -399,10 +399,10 @@ class FundraisingController {
                 // Get current year in 2-digit format
                 const currentYear = new Date().getFullYear().toString().slice(-2);
 
-                // Check if any item contains "Panettone" substring
+                // Check if ALL items contain "Panettone" substring
                 let containsPanettone = false;
-                if (items && Array.isArray(items)) {
-                    containsPanettone = items.some(item => {
+                if (items && Array.isArray(items) && items.length > 0) {
+                    containsPanettone = items.every(item => {
                         const itemName = item.productName || item.name || item.itemName || '';
                         return itemName.toLowerCase().includes('panettone');
                     });

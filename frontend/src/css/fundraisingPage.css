@@ -13,6 +13,18 @@ html {
   scroll-behavior: smooth;
 }
 
+  
+.item-total11{
+    font-size: 20px;
+    min-width: 90px;
+}
+   
+.item-price1{
+    font-size: 20px;
+    min-width: 90px;
+}
+  
+
 /* Responsive font scaling */
 @media (max-width: 1200px) {
   html { font-size: 15px; }
@@ -466,7 +478,7 @@ html {
     font-size: 19px;
   }
   
-  .item-total1 {
+  .item-total11 {
     font-size: 21px;
     min-width: 95px;
   }
@@ -518,8 +530,8 @@ html {
     font-size: 17px;
   }
   
-  .item-total1 {
-    font-size: 19px;
+  .item-total11 {
+    font-size: 38px;
     min-width: 85px;
   }
   
@@ -580,8 +592,8 @@ html {
     font-size: 16px;
   }
   
-  .item-total1 {
-    font-size: 18px;
+  .item-total11 {
+    font-size: 36px;
     min-width: 80px;
   }
   
@@ -858,8 +870,8 @@ html {
     font-size: 20px;
   }
   
-  .item-total1 {
-    font-size: 22px;
+  .item-total11 {
+    font-size: 44px;
     min-width: 100px;
   }
   
@@ -898,8 +910,8 @@ html {
     font-size: 18px;
   }
   
-  .item-total1 {
-    font-size: 20px;
+  .item-total11 {
+    font-size: 40px;
     min-width: 95px;
   }
   
@@ -941,8 +953,8 @@ html {
     font-size: 17px;
   }
   
-  .item-total1{
-    font-size: 19px;
+  .item-total11{
+    font-size: 38px;
     min-width: 90px;
   }
   
@@ -1344,7 +1356,6 @@ html {
   color: #4a4a4a;
   cursor: pointer;
   font-size: clamp(16px, 2.5vw, 18px);
-  border-bottom: 1px solid #f0f0f0;
   transition: color 0.3s ease;
   font-weight: 500;
   font-family: 'Open Sans', sans-serif;

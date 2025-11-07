@@ -16,6 +16,7 @@ class FundraisingPage extends Component {
       filteredItems: [],
       searchTerm: '',
       priceRange: [0, 100],
+      selectedCategories: ['All Categories'],
       sortBy: 'default',
       isLoading: true,
       cartItems: [],
@@ -107,6 +108,10 @@ class FundraisingPage extends Component {
 
   handlePriceFilter = (priceRange) => {
     this.setState({ priceRange: [priceRange.min, priceRange.max] }, this.filterItems);
+  }
+
+  handleCategoryFilter = (selectedCategories) => {
+    this.setState({ selectedCategories }, this.filterItems);
   }
 
   handleSortChange = (e) => {
@@ -231,14 +236,25 @@ class FundraisingPage extends Component {
   }
 
   filterItems = () => {
-    const { fundraisingItems, searchTerm, priceRange, sortBy } = this.state;
+    const { fundraisingItems, searchTerm, priceRange, selectedCategories, sortBy } = this.state;
     
     let filtered = fundraisingItems.filter(item => {
       const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
       const price = parseFloat(item.price);
       const matchesPrice = price >= priceRange[0] && price <= priceRange[1];
       
-      return matchesSearch && matchesPrice;
+      // Category filtering
+      let matchesCategory = false;
+      if (selectedCategories.includes('All Categories')) {
+        matchesCategory = true;
+      } else {
+        // Check if item has any of the selected categories
+        matchesCategory = item.categories && item.categories.some(category => 
+          selectedCategories.includes(category.name)
+        );
+      }
+      
+      return matchesSearch && matchesPrice && matchesCategory;
     });
 
     // Apply sorting
@@ -314,6 +330,7 @@ class FundraisingPage extends Component {
           <div className="sidebar-container">
             <FilterSidebar 
               onPriceFilter={this.handlePriceFilter}
+              onCategoryFilter={this.handleCategoryFilter}
               searchTerm={searchTerm}
               onSearchChange={this.handleSearch}
               products={fundraisingItems}

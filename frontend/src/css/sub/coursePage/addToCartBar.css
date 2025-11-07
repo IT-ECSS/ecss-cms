@@ -88,10 +88,6 @@
     padding: 1.5rem 2.5rem; /* Adjust padding for larger screens */
   }
 
-  .cart-icon {
-    font-size: 3rem; /* Increase icon size */
-  }
-
   .cart-button {
     font-size: 2rem;
   }
@@ -111,10 +107,6 @@
 
   .cart-button {
     font-size: 1.8rem;
-  }
-
-  .cart-icon {
-    font-size: 2rem; /* Decrease icon size for smaller screens */
   }
 
   .cart-badge {
@@ -141,10 +133,6 @@
     font-size: 1.6rem;
   }
 
-  .cart-icon {
-    font-size: 2rem; /* Further reduced icon size for mobile */
-  }
-
   .cart-badge {
     font-size: 0.9rem;
     width: 18px;
@@ -163,11 +151,7 @@
   .cart-button {
     font-size: 1.5rem;
   }
-
-  .cart-icon {
-    font-size: 1.8rem; /* Smaller icon */
-  }
-
+  
   .cart-badge {
     font-size: 0.8rem;
     width: 16px; /* Adjust badge size */

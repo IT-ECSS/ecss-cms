@@ -44,7 +44,7 @@ const CartPopup = ({ isOpen, cartItems, onClose, onRemoveItem, onUpdateQuantity,
                       title="Remove item"
                     ></i>
                   </div>
-                  <div className="item-price1">${item.price}</div>
+                  <div className="item-price1">${parseFloat(item.price).toFixed(2)}</div>
                 </div>
                 <div className="item-quantity">
                   <button 
@@ -120,7 +120,7 @@ const CartPopup = ({ isOpen, cartItems, onClose, onRemoveItem, onUpdateQuantity,
                     +
                   </button>
                 </div>
-                <div className="item-total1">
+                <div className="item-total11">
                   ${(item.price * (item.quantity || 0)).toFixed(2)}
                 </div>
               </div>
