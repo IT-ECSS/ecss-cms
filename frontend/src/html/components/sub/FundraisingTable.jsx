@@ -2105,13 +2105,25 @@ class FundraisingTable extends Component {
 
     // Helper method: Auto-fit worksheet columns
     autoFitColumns = (worksheet) => {
-      worksheet.columns.forEach(column => {
+      worksheet.columns.forEach((column, columnIndex) => {
         let maxLength = 10;
         column.eachCell({ includeEmpty: true }, (cell) => {
           const cellValue = cell.value ? cell.value.toString() : '';
           maxLength = Math.max(maxLength, cellValue.length);
         });
-        column.width = Math.min(maxLength + 2, 50); // Cap at 50 characters
+        
+        // Get the header value for this column
+        const headerCell = worksheet.getRow(1).getCell(columnIndex + 1);
+        const headerValue = headerCell.value ? headerCell.value.toString() : '';
+        
+        // Apply different width limits based on column type
+        if (headerValue === 'Items Summary') {
+          // Allow Items Summary to be much wider to show full content
+          column.width = Math.min(maxLength + 2, 120); // Cap at 120 characters for Items Summary
+        } else {
+          // Standard cap for other columns
+          column.width = Math.min(maxLength + 2, 50); // Cap at 50 characters
+        }
       });
     };
 
@@ -2247,7 +2259,8 @@ class FundraisingTable extends Component {
         // Define comprehensive headers for payment report
         const headers = [
           'S/N', 'First Name', 'Last Name', 'Contact Number', 'Email',
-          'Address', 'Postal Code', 'Total Price', 'Payment Method',
+          // 'Address', 'Postal Code', // Commented out for payment report
+          'Total Price', 'Payment Method',
           'Items Summary', 'Collection Mode', 'Collection/Delivery Location',
           'Status', 'Receipt Number', 'Order Details'
         ];
@@ -2355,8 +2368,8 @@ class FundraisingTable extends Component {
           item.personalInfo?.lastName || item.lastName || row.lastName || '',
           item.personalInfo?.phone || item.contactNumber || row.contactNumber || '',
           item.personalInfo?.email || item.email || row.email || '',
-          item.personalInfo?.address || item.address || row.address || '',
-          item.personalInfo?.postalCode || item.postalCode || row.postalCode || '',
+          // item.personalInfo?.address || item.address || row.address || '', // Commented out for payment report
+          // item.personalInfo?.postalCode || item.postalCode || row.postalCode || '', // Commented out for payment report
           totalPriceDisplay,
           item.paymentDetails?.paymentMethod || item.paymentMethod || row.paymentMethod || '',
           itemsSummary,
@@ -2390,8 +2403,8 @@ class FundraisingTable extends Component {
 
       // Create total row data array
       const totalRowData = new Array(headerCount).fill('');
-      totalRowData[6] = 'TOTAL:'; // Postal Code column
-      totalRowData[7] = `$${total.toFixed(2)}`; // Total Price column
+      totalRowData[4] = 'TOTAL:'; // Email column (since Address and Postal Code are commented out)
+      totalRowData[5] = `$${total.toFixed(2)}`; // Total Price column
 
       // Filter to match active headers
       const filteredTotalRowData = totalRowData.filter((_, index) => {
@@ -2418,7 +2431,7 @@ class FundraisingTable extends Component {
       });
 
       // Style the total label cell with right alignment
-      const labelCell = worksheet.getCell(totalRow.number, 7); // Postal Code column
+      const labelCell = worksheet.getCell(totalRow.number, 5); // Email column (since Address and Postal Code are commented out)
       labelCell.alignment = { horizontal: 'right' };
     };
 
