@@ -21,9 +21,11 @@
 .cart-info {
   display: flex;
   align-items: center;
+  justify-content: flex-end; /* Align cart to the right */
   flex-grow: 1;
   max-width: 100%; /* Prevents content overflow */
-  overflow: hidden; /* Prevents text or icons from overflowing */
+  overflow: visible; /* Allow badge to be visible */
+  pointer-events: auto; /* Ensure clicks work */
 }
 
 /* Cart Actions Section (Align Cart Button to the Right) */
@@ -49,33 +51,35 @@
   padding: 1rem;
   max-width: 100%; /* Prevent overflow */
   margin-left: auto; /* Aligns the button to the right */
+  min-height: 48px; /* Ensure adequate click area */
+  min-width: 48px; /* Ensure adequate click area */
+  z-index: 10; /* Ensure it's above other elements */
+  pointer-events: auto; /* Explicitly enable pointer events */
 }
 
-
-/* Cart Icon */
-.cart-icon {
-  font-size: 2.5rem; /* Adjusted size to prevent overflow */
-  margin-right: 10px;
-  max-width: 100%; /* Prevent overflow */
-  display: block; /* Ensures the icon takes the full space */
+.cart-button:hover {
+  color: #e67e22; /* Slightly darker on hover for feedback */
+  transform: scale(1.05); /* Slight scale effect on hover */
 }
 
 /* Cart Badge (Number Circle) */
 .cart-badge {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 5px;
+  right: 5px;
   background-color: red;
   color: white;
-  font-size: 1rem; /* Adjust font size */
+  font-size: 0.8rem; /* Slightly smaller font */
   font-weight: bold;
   border-radius: 50%;
-  width: 30px; /* Size of the badge */
-  height: 30px; /* Size of the badge */
+  width: 24px; /* Slightly smaller size */
+  height: 24px; /* Slightly smaller size */
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+  pointer-events: none; /* Let clicks pass through to parent */
+  z-index: 1; /* Ensure it's above the icon but below clickable area */
 }
 
 /* Ensure responsiveness for larger screens */

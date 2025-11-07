@@ -1914,6 +1914,42 @@ html {
   margin-bottom: 6px;
 }
 
+/* Stock information styles for product cards */
+.product-body .stock-info1 {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+}
+
+.product-body .stock-status1 {
+  font-size: clamp(11px, 2vw, 13px);
+  font-weight: bolder;
+  font-size: 1.15rem;
+  border-radius: 50px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  text-align: center;
+  white-space: nowrap;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none;
+  margin-left: 0;
+}
+
+.product-body .stock-status1.in-stock {
+  color: #28a745;
+  background: white;
+}
+
+.product-body .stock-status1.out-of-stock {
+  color: #dc3545;
+  background: white;
+}
+
 /* Footer: Buttons - Responsive and touch-friendly */
 .product-footer {
   display: flex;
@@ -2037,6 +2073,20 @@ html {
 .product-footer .add-to-cart-btn-small:hover {
   background-color: #0056b3;
   transform: translateY(-1px);
+}
+
+/* Disabled state for add to cart button */
+.add-to-cart-btn-small:disabled,
+.product-footer .add-to-cart-btn-small:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.add-to-cart-btn-small:disabled:hover,
+.product-footer .add-to-cart-btn-small:disabled:hover {
+  background-color: #6c757d;
+  transform: none;
 }
 
 .product-footer .more-details-btn:hover {
@@ -2409,6 +2459,48 @@ html {
 
 .categories-list {
   color: #374151;
+}
+
+/* Modal Stock Section */
+.modal-stock-section {
+  padding: 16px 24px;
+  background: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-stock-info {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.modal-stock-status {
+  font-size: 28px;
+  font-weight: 700;
+  padding: 10px 24px;
+  border-radius: 50px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  min-width: 100px;
+  text-align: center;
+  white-space: nowrap;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none;
+}
+
+.modal-stock-status.in-stock {
+  color: #28a745;
+  background: white;
+}
+
+.modal-stock-status.out-of-stock {
+  color: #dc3545;
+  background: white;
 }
 
 /* Modal Footer */

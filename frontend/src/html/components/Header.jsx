@@ -66,7 +66,7 @@ const Header = ({ cartItems = [], onRemoveFromCart, onUpdateCartQuantity, onProc
           <div className="header-right">
             <div className="cart-container" ref={cartRef}>
               <div className="cart-icon" onClick={toggleCart}>
-                <i className="fa-solid fa-cart-shopping"></i>
+               <i className="fa-solid fa-cart-shopping"></i>
                 {getTotalItems() > 0 && (
                   <span className="cart-count">{getTotalItems()}</span>
                 )}

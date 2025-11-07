@@ -46,7 +46,19 @@ const ProductDetailsModal = ({ isOpen, product, cartItems = [], onClose, onAddTo
           <ProductInfoSection product={product} />
         </div>
         
+        {/* Stock Status Section */}
+        <div className="modal-stock-section">
+          <div className="modal-stock-info">
+            {
+              <span className={`modal-stock-status ${product.stock_quantity > 0 ? 'in-stock' : 'out-of-stock'}`}>
+                {product.stock_quantity === 0 ? 'Out of Stock' : 'In Stock'}
+              </span>
+            }
+          </div>
+        </div>
+        
         {/* Footer - Add to Cart and Quantity */}
+        {product.stock_quantity !== 0 && (
           <ProductModalFooter 
             product={product} 
             cartQuantity={cartQuantity}
@@ -54,6 +66,7 @@ const ProductDetailsModal = ({ isOpen, product, cartItems = [], onClose, onAddTo
             onUpdateCartQuantity={onUpdateCartQuantity}
             onClose={onClose}
           />
+        )}
       </div>
     </div>
   );

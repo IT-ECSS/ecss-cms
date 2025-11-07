@@ -124,6 +124,13 @@ const ProductCard = ({ product, cartQuantity = 0, onAddToCart, onMoreDetails, on
               </div>
             </div>
           )}
+
+          {/* Stock Information */}
+          <div className="stock-info1">
+              <span className={`stock-status1 ${product.stock_quantity > 0 ? 'in-stock' : 'out-of-stock'}`}>
+                {product.stock_quantity === 0 ? 'Out of Stock' : 'In Stock'}
+              </span>
+          </div>
         </div>
         
         {/* Footer: Buttons */}
@@ -135,12 +142,14 @@ const ProductCard = ({ product, cartQuantity = 0, onAddToCart, onMoreDetails, on
             More Details
           </button>
           
-          <button 
-            className="add-to-cart-btn-small"
-            onClick={handleAddToCart}
-          >
-            {cartQuantity > 0 ? `Update Cart` : 'Add To Cart'}
-          </button>
+          {product.stock_quantity !== 0 && (
+            <button 
+              className="add-to-cart-btn-small"
+              onClick={handleAddToCart}
+            >
+              {cartQuantity > 0 ? 'Update Cart' : 'Add To Cart'}
+            </button>
+          )}
         </div>
       </div>
     </div>
