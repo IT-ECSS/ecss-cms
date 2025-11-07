@@ -5,9 +5,42 @@ const OrderDetailsModal = ({
   showModal, 
   selectedItems, 
   onClose,
-  wooCommerceProductDetails = [] 
+  wooCommerceProductDetails = [],
+  selectedLanguage = 'english'
 }) => {
   if (!showModal || !selectedItems) return null;
+
+  const getTranslation = (key) => {
+    const translations = {
+      orderList: {
+        english: 'Order List',
+        chinese: '订单列表',
+        malay: 'Senarai Pesanan'
+      },
+      item: {
+        english: 'ITEM',
+        chinese: '物品',
+        malay: 'ITEM'
+      },
+      qty: {
+        english: 'QTY',
+        chinese: '数量',
+        malay: 'KUANTITI'
+      },
+      subtotal: {
+        english: 'SUBTOTAL',
+        chinese: '小计',
+        malay: 'SUBJUMLAH'
+      },
+      totalAmount: {
+        english: 'Total Amount:',
+        chinese: '总金额：',
+        malay: 'Jumlah Keseluruhan:'
+      }
+    };
+
+    return translations[key][selectedLanguage] || translations[key]['english'];
+  };
 
   // Create a map for quick product lookup
   const productDetailsMap = {};
@@ -27,7 +60,7 @@ const OrderDetailsModal = ({
   return (
     <div className="professional-modal" onClick={(e) => e.stopPropagation()}>
       <div className="professional-header">
-        <h3>Order List</h3>
+        <h3>{getTranslation('orderList')}</h3>
         <button className="modal-close-btn" onClick={onClose}>
           ×
         </button>
@@ -35,9 +68,9 @@ const OrderDetailsModal = ({
         
       <div className="professional-body">
         <div className="list-header enhanced">
-          <div className="header-item">ITEM</div>
-          <div className="header-qty">QTY</div>
-          <div className="header-subtotal">SUBTOTAL</div>
+          <div className="header-item">{getTranslation('item')}</div>
+          <div className="header-qty">{getTranslation('qty')}</div>
+          <div className="header-subtotal">{getTranslation('subtotal')}</div>
         </div>
         <div className="items-list-professional">
           {selectedItems.map((item, index) => {
@@ -61,7 +94,7 @@ const OrderDetailsModal = ({
         {totalAmount > 0 && (
           <div className="order-total-section">
             <div className="total-line">
-              <span className="total-label">Total Amount:</span>
+              <span className="total-label">{getTranslation('totalAmount')}</span>
               <span className="total-amount">${totalAmount.toFixed(2)}</span>
             </div>
           </div>

@@ -1,6 +1,53 @@
 import React, { Component } from 'react';
 
 class OrderSummarySection extends Component {
+  getTranslation = (key, count = 0) => {
+    const { selectedLanguage = 'english' } = this.props;
+    const translations = {
+      orderSummary: {
+        english: 'Order Summary',
+        chinese: '订单摘要',
+        malay: 'Ringkasan Pesanan'
+      },
+      items: {
+        english: (count) => count === 1 ? 'item' : 'items',
+        chinese: (count) => '个商品',
+        malay: (count) => count === 1 ? 'item' : 'items'
+      },
+      noItems: {
+        english: 'No items in cart',
+        chinese: '购物车中没有商品',
+        malay: 'Tiada item dalam troli'
+      },
+      subtotal: {
+        english: 'Subtotal:',
+        chinese: '小计:',
+        malay: 'Jumlah Kecil:'
+      },
+      shipping: {
+        english: 'Shipping:',
+        chinese: '运费:',
+        malay: 'Penghantaran:'
+      },
+      free: {
+        english: 'Free',
+        chinese: '免费',
+        malay: 'Percuma'
+      },
+      total: {
+        english: 'Total:',
+        chinese: '总计:',
+        malay: 'Jumlah:'
+      }
+    };
+    
+    if (key === 'items') {
+      return translations[key][selectedLanguage] ? translations[key][selectedLanguage](count) : translations[key]['english'](count);
+    }
+    
+    return translations[key][selectedLanguage] || translations[key]['english'];
+  };
+
   handleQuantityChange = (index, newQuantity) => {
     const { onUpdateQuantity, onRemoveItem } = this.props;
     
@@ -39,7 +86,7 @@ class OrderSummarySection extends Component {
           className={`section-header ${expandedSections.orderSummary ? 'expanded' : 'collapsed'}`}
           onClick={() => onToggleSection('orderSummary')}
         >
-          <h2 className="section-title">Order Summary ({getTotalItems()} items)</h2>
+          <h2 className="section-title">{this.getTranslation('orderSummary')} ({getTotalItems()} {this.getTranslation('items', getTotalItems())})</h2>
           <span className="section-toggle-icon">
             {expandedSections.orderSummary ? '▼' : '▶'}
           </span>
@@ -49,7 +96,7 @@ class OrderSummarySection extends Component {
             <div className="cart-items-list scrollable">
               {cartItems.length === 0 ? (
                 <div className="empty-cart-message">
-                  <p>No items in cart</p>
+                  <p>{this.getTranslation('noItems')}</p>
                 </div>
               ) : (
                 cartItems.map((item, index) => (
@@ -110,15 +157,15 @@ class OrderSummarySection extends Component {
             {cartItems.length > 0 && (
               <div className="order-total sticky">
                 <div className="total-row">
-                  <span className="total-label1">Subtotal:</span>
+                  <span className="total-label1">{this.getTranslation('subtotal')}</span>
                   <span className="total-amount1">${calculateTotal()}</span>
                 </div>
-                <div className="total-row">
-                  <span className="total-label1">Shipping:</span>
-                  <span className="total-amount1">Free</span>
-                </div>
+                {/* <div className="total-row">
+                  <span className="total-label1">{this.getTranslation('shipping')}</span>
+                  <span className="total-amount1">{this.getTranslation('free')}</span>
+                </div> */}
                 <div className="total-row final-total">
-                  <span className="total-label1">Total:</span>
+                  <span className="total-label1">{this.getTranslation('total')}</span>
                   <span className="total-amount1">${calculateTotal()}</span>
                 </div>
               </div>

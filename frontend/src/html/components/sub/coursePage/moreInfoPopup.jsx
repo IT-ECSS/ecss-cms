@@ -12,6 +12,34 @@ class MoreInfoPopup extends Component
         };
     }
 
+    getTranslation = (key) => {
+        const selectedLanguage = this.props.selectedLanguage || 'english';
+        const translations = {
+            close: {
+                english: 'Close',
+                chinese: '关闭',
+                malay: 'Tutup'
+            },
+            updateCart: {
+                english: 'Update Cart',
+                chinese: '更新购物车',
+                malay: 'Kemas Kini Troli'
+            },
+            addToCart: {
+                english: 'Add to Cart',
+                chinese: '添加到购物车',
+                malay: 'Tambah ke Troli'
+            },
+            selectQuantity: {
+                english: 'Select Quantity',
+                chinese: '选择数量',
+                malay: 'Pilih Kuantiti'
+            }
+        };
+
+        return translations[key][selectedLanguage] || translations[key]['english'];
+    };
+
     componentDidMount() {
         // Initialize display quantity based on existing cart item or default to 1
         const { selectedCourse, cartItems } = this.props;
@@ -166,9 +194,9 @@ class MoreInfoPopup extends Component
                 
                 <div className="course-reviews">
                     <div className="button-container">
-                    <button onClick={handleClose}>Close</button>
+                    <button onClick={handleClose}>{this.getTranslation('close')}</button>
                     <button className="btn-add-to-cart-rounded" onClick={this.handleAddToCartWithQuantity}>
-                        {isInCart ? 'Update Cart' : (quantityToUse === 0 ? 'Select Quantity' : 'Add to Cart')}
+                        {isInCart ? this.getTranslation('updateCart') : (quantityToUse === 0 ? this.getTranslation('selectQuantity') : this.getTranslation('addToCart'))}
                     </button>
                     </div>
                 </div>

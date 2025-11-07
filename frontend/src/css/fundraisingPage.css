@@ -257,22 +257,25 @@ html {
   }
 }
 
-.header-right {
+.header-right1 {
   display: flex;
   align-items: center;
-  position: absolute;
-  right: 2rem; /* Align with the right padding of results-header */
+  gap: 15px; /* Add gap between cart and language containers */
+  min-width: 200px; /* Minimum width to accommodate both cart and language */
+  justify-content: flex-end; /* Align items to the right */
 }
 
 @media (max-width: 768px) {
-  .header-right {
-    right: 1.5rem; /* Match results-header padding */
+  .header-right1 {
+    min-width: 180px; /* Slightly smaller on tablets */
+    gap: 12px;
   }
 }
 
 @media (max-width: 480px) {
-  .header-right {
-    right: 1rem; /* Match results-header padding */
+  .header-right1 {
+    min-width: 150px; /* Smaller on mobile */
+    gap: 10px;
   }
 }
 
@@ -651,7 +654,7 @@ html {
   color: #333;
 }
 
-.cart-items {
+.cart-items{
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
@@ -2218,7 +2221,6 @@ html {
 
 .modal-close
 {
-  background: transparent !important;
   background: transparent;
   border: none;
   width: 44px;
@@ -3170,4 +3172,94 @@ select:focus,
 textarea:focus {
   outline: 2px solid #007bff;
   outline-offset: 2px;
+}
+
+/* Language Popup Styles */
+.language-item {
+  margin-bottom: 8px;
+}
+
+.language-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  font-weight: 500;
+  color: #000000;
+  text-align: left;
+}
+
+.language-button.active {
+  border-color: #007bff;
+  font-weight: 600;
+}
+
+.check-mark {
+  color: white;
+  font-weight: bold;
+  margin-left: 8px;
+}
+
+/* Language Container Styles */
+.language-container {
+  position: relative;
+}
+
+.language-selector {
+  cursor: pointer;
+  padding: clamp(8px, 2vw, 12px);
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+}
+
+.language-text {
+  font-size: clamp(12px, 2.5vw, 14px);
+  font-weight: 500;
+  color: #333;
+}
+
+.language-arrow {
+  font-size: clamp(10px, 2vw, 12px);
+  color: #666;
+  transition: transform 0.2s;
+}
+
+.language-selector.open .language-arrow {
+  transform: rotate(180deg);
+}
+
+/* Responsive adjustments for language popup */
+@media (max-width: 768px) {
+  .language-options-row {
+    gap: 6px;
+    padding: 12px;
+  }
+  
+  .language-button {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .language-options-row {
+    gap: 5px;
+    padding: 10px;
+  }
+  
+  .language-button {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
 }

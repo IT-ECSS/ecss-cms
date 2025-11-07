@@ -1,9 +1,45 @@
 import React, { useState } from 'react';
 
-const CartPopup = ({ isOpen, cartItems, onClose, onRemoveItem, onUpdateQuantity, onProceedToCheckout }) => {
+const CartPopup = ({ isOpen, cartItems, onClose, onRemoveItem, onUpdateQuantity, onProceedToCheckout, selectedLanguage = 'english' }) => {
   const [inputValues, setInputValues] = useState({});
 
   if (!isOpen) return null;
+
+  const getTranslation = (key, count = 0) => {
+    const translations = {
+      shoppingCart: {
+        english: 'Shopping Cart',
+        chinese: '购物车',
+        malay: 'Troli Beli-belah'
+      },
+      items: {
+        english: (count) => count === 1 ? 'item' : 'items',
+        chinese: (count) => '个商品',
+        malay: (count) => count === 1 ? 'item' : 'items'
+      },
+      emptyCart: {
+        english: 'Your cart is empty',
+        chinese: '您的购物车是空的',
+        malay: 'Troli anda kosong'
+      },
+      total: {
+        english: 'Total',
+        chinese: '总计',
+        malay: 'Jumlah'
+      },
+      proceedToCheckout: {
+        english: 'Proceed to Checkout',
+        chinese: '前往结账',
+        malay: 'Teruskan ke Pembayaran'
+      }
+    };
+    
+    if (key === 'items') {
+      return translations[key][selectedLanguage] ? translations[key][selectedLanguage](count) : translations[key]['english'](count);
+    }
+    
+    return translations[key][selectedLanguage] || translations[key]['english'];
+  };
 
   const calculateTotal = () => {
     return cartItems.reduce((total, item) => total + (item.price * (item.quantity || 0)), 0).toFixed(2);
@@ -16,14 +52,14 @@ const CartPopup = ({ isOpen, cartItems, onClose, onRemoveItem, onUpdateQuantity,
   return (
     <div className="cart-popup-container">
       <div className="cart-header">
-        <h3>Shopping Cart ({getTotalItems()} items)</h3>
+        <h3>{getTranslation('shoppingCart')} ({getTotalItems()} {getTranslation('items', getTotalItems())})</h3>
         <button className="close-cart" onClick={onClose}>×</button>
       </div>
         
         <div className="cart-items">
           {cartItems.length === 0 ? (
             <div className="empty-cart">
-              <p>Your cart is empty</p>
+              <p>{getTranslation('emptyCart')}</p>
             </div>
           ) : (
             cartItems.map((item, index) => (
@@ -131,13 +167,13 @@ const CartPopup = ({ isOpen, cartItems, onClose, onRemoveItem, onUpdateQuantity,
         {cartItems.length > 0 && (
           <div className="cart-footer">
             <div className="cart-total">
-              <strong>Total: ${calculateTotal()}</strong>
+              <strong>{getTranslation('total')}: ${calculateTotal()}</strong>
             </div>
             <button 
               className="checkout-btn"
               onClick={onProceedToCheckout}
             >
-              Proceed to Checkout
+              {getTranslation('proceedToCheckout')}
             </button>
           </div>
         )}

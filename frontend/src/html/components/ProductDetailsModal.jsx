@@ -3,12 +3,30 @@ import ProductImageSection from './ProductImageSection';
 import ProductInfoSection from './ProductInfoSection';
 import ProductModalFooter from './ProductModalFooter';
 
-const ProductDetailsModal = ({ isOpen, product, cartItems = [], onClose, onAddToCart, onUpdateCartQuantity }) => {
+const ProductDetailsModal = ({ isOpen, product, cartItems = [], onClose, onAddToCart, onUpdateCartQuantity, selectedLanguage = 'english' }) => {
   if (!isOpen || !product) return null;
 
   // Find cart item for this product
   const cartItem = cartItems ? cartItems.find(item => item.id === product.id) : null;
   const cartQuantity = cartItem ? cartItem.quantity : 0;
+
+  const getStockTranslation = () => {
+    const translations = {
+      outOfStock: {
+        english: 'Out of Stock',
+        chinese: '缺货',
+        malay: 'Kehabisan Stok'
+      },
+      inStock: {
+        english: 'In Stock',
+        chinese: '有库存',
+        malay: 'Ada Stok'
+      }
+    };
+    
+    const key = product.stock_quantity === 0 ? 'outOfStock' : 'inStock';
+    return translations[key][selectedLanguage] || translations[key]['english'];
+  };
 
   const handleOverlayClick = (e) => {
     if (e.target === e.currentTarget) {
@@ -51,7 +69,7 @@ const ProductDetailsModal = ({ isOpen, product, cartItems = [], onClose, onAddTo
           <div className="modal-stock-info">
             {
               <span className={`modal-stock-status ${product.stock_quantity > 0 ? 'in-stock' : 'out-of-stock'}`}>
-                {product.stock_quantity === 0 ? 'Out of Stock' : 'In Stock'}
+                {getStockTranslation()}
               </span>
             }
           </div>
@@ -65,6 +83,7 @@ const ProductDetailsModal = ({ isOpen, product, cartItems = [], onClose, onAddTo
             onAddToCart={onAddToCart}
             onUpdateCartQuantity={onUpdateCartQuantity}
             onClose={onClose}
+            selectedLanguage={selectedLanguage}
           />
         )}
       </div>

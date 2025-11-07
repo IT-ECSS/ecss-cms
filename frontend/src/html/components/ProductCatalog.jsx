@@ -1,7 +1,7 @@
 import React from 'react';
 import ProductCard from './ProductCard';
 
-const ProductCatalog = ({ products, cartItems = [], onAddToCart, onMoreDetails, onUpdateCartQuantity }) => {
+const ProductCatalog = ({ products, cartItems = [], onAddToCart, onMoreDetails, onUpdateCartQuantity, selectedLanguage = 'english' }) => {
   return (
     <div className="product-catalog">
       <div className="products-grid">
@@ -18,6 +18,7 @@ const ProductCatalog = ({ products, cartItems = [], onAddToCart, onMoreDetails, 
               onAddToCart={onAddToCart}
               onMoreDetails={onMoreDetails}
               onUpdateCartQuantity={onUpdateCartQuantity}
+              selectedLanguage={selectedLanguage}
             />
           );
         })}

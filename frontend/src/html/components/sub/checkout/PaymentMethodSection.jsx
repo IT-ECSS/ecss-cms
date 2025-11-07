@@ -1,6 +1,18 @@
 import React, { Component } from 'react';
 
 class PaymentMethodSection extends Component {
+  getTranslation = (key) => {
+    const { selectedLanguage = 'english' } = this.props;
+    const translations = {
+      paymentMethod: {
+        english: 'Payment Method',
+        chinese: '付款方式',
+        malay: 'Cara Bayaran'
+      }
+    };
+    return translations[key][selectedLanguage] || translations[key]['english'];
+  };
+
   render() {
     const { paymentMethod, expandedSections, fieldErrors = {}, onPaymentMethodChange, onToggleSection } = this.props;
 
@@ -10,7 +22,7 @@ class PaymentMethodSection extends Component {
           className={`section-header ${expandedSections.paymentMethod ? 'expanded' : 'collapsed'}`}
           onClick={() => onToggleSection('paymentMethod')}
         >
-          <h2 className="section-title">Payment Method</h2>
+          <h2 className="section-title">{this.getTranslation('paymentMethod')}</h2>
           <span className="section-toggle-icon">
             {expandedSections.paymentMethod ? '▼' : '▶'}
           </span>

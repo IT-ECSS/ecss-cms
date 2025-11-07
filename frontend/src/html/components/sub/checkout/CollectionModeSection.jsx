@@ -1,6 +1,23 @@
 import React, { Component } from 'react';
 
 class CollectionModeSection extends Component {
+  getTranslation = (key) => {
+    const { selectedLanguage = 'english' } = this.props;
+    const translations = {
+      collectionMode: {
+        english: 'Collection Mode',
+        chinese: '取货方式',
+        malay: 'Mod Pengambilan'
+      },
+      selfCollection: {
+        english: 'Self-Collection',
+        chinese: '自取',
+        malay: 'Ambil Sendiri'
+      }
+    };
+    return translations[key][selectedLanguage] || translations[key]['english'];
+  };
+
   render() {
     const { collectionMode, expandedSections, fieldErrors = {}, onCollectionModeChange, onToggleSection } = this.props;
 
@@ -10,7 +27,7 @@ class CollectionModeSection extends Component {
           className={`section-header ${expandedSections.collectionMode ? 'expanded' : 'collapsed'}`}
           onClick={() => onToggleSection('collectionMode')}
         >
-          <h2 className="section-title">Collection Mode</h2>
+          <h2 className="section-title">{this.getTranslation('collectionMode')}</h2>
           <span className="section-toggle-icon">
             {expandedSections.collectionMode ? '▼' : '▶'}
           </span>

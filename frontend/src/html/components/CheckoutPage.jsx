@@ -7,6 +7,7 @@ import CollectionModeSection from './sub/checkout/CollectionModeSection';
 import CollectionLocationSection from './sub/checkout/CollectionLocationSection';
 import OrderSummarySection from './sub/checkout/OrderSummarySection';
 import CheckoutActions from './sub/checkout/CheckoutActions';
+import LanguageModal from './LanguageModal';
 
 class CheckoutPage extends Component {
   constructor(props) {
@@ -56,6 +57,9 @@ class CheckoutPage extends Component {
         type: '', // 'success' or 'error'
         title: '',
         message: ''
+      },
+      languageModal: {
+        isVisible: false
       }
     };
   }
@@ -311,6 +315,42 @@ class CheckoutPage extends Component {
         this.handleGoBack();
       }
     });
+  }
+
+  // Language selection methods
+  handleOpenLanguageModal = () => {
+    this.setState({
+      languageModal: {
+        isVisible: true
+      }
+    });
+  }
+
+  handleCloseLanguageModal = () => {
+    this.setState({
+      languageModal: {
+        isVisible: false
+      }
+    });
+  }
+
+  handleLanguageSelect = (languageCode) => {
+    const { onLanguageChange } = this.props;
+    if (onLanguageChange) {
+      onLanguageChange(languageCode);
+    }
+    this.handleCloseLanguageModal();
+  }
+
+  // Function to get current language display info
+  getCurrentLanguageInfo = () => {
+    const { selectedLanguage = 'english' } = this.props;
+    const languageMap = {
+      english: { flag: '🇺🇸', name: 'English' },
+      chinese: { flag: '🇨🇳', name: '中文' },
+      malay: { flag: '🇲🇾', name: 'Bahasa Melayu' }
+    };
+    return languageMap[selectedLanguage] || languageMap.english;
   }
 
   calculateTotal = () => {
@@ -619,17 +659,29 @@ class CheckoutPage extends Component {
   }
 
   render() {
-    const { personalInfo, paymentMethod, collectionMode, collectionLocation, deliveryToAddress, shipToBillingAddress, expandedSections, fieldErrors, modal } = this.state;
-    const { cartItems = [] } = this.props;
+    const { personalInfo, paymentMethod, collectionMode, collectionLocation, deliveryToAddress, shipToBillingAddress, expandedSections, fieldErrors, modal, languageModal } = this.state;
+    const { cartItems = [], selectedLanguage = 'english' } = this.props;
+    const currentLanguage = this.getCurrentLanguageInfo();
 
     return (
       <div className="checkout-page">
         <div className="checkout-container">
-          {/* Back button at the top */}
-          <CheckoutActions
-            onGoBack={this.handleGoBack}
-            showTopOnly={true}
-          />
+          {/* Header Row with Language Selection and Back Button */}
+          <div className="checkout-header-row">
+            {/* Back button */}
+            <CheckoutActions
+              onGoBack={this.handleGoBack}
+              showTopOnly={true}
+            />
+
+            {/* Language Selection Button */}
+            <button 
+              className="checkout-language-btn"
+              onClick={this.handleOpenLanguageModal}
+            >
+              <span className="language-btn-text">{currentLanguage.name}</span>
+            </button>
+          </div>
 
           {/* Personal Information Section */}
           <PersonalInformationSection
@@ -638,6 +690,7 @@ class CheckoutPage extends Component {
             fieldErrors={fieldErrors}
             onPersonalInfoChange={this.handlePersonalInfoChange}
             onToggleSection={this.toggleSection}
+            selectedLanguage={selectedLanguage}
           />
 
           {/* Payment Method Section */}
@@ -647,6 +700,7 @@ class CheckoutPage extends Component {
             fieldErrors={fieldErrors}
             onPaymentMethodChange={this.handlePaymentMethodChange}
             onToggleSection={this.toggleSection}
+            selectedLanguage={selectedLanguage}
           />
 
           {/* Collection Mode Section */}
@@ -656,6 +710,7 @@ class CheckoutPage extends Component {
             fieldErrors={fieldErrors}
             onCollectionModeChange={this.handleCollectionModeChange}
             onToggleSection={this.toggleSection}
+            selectedLanguage={selectedLanguage}
           />
 
           {/* Collection/Delivery Location Section */}
@@ -682,6 +737,7 @@ class CheckoutPage extends Component {
             getTotalItems={this.getTotalItems}
             onUpdateQuantity={this.handleUpdateQuantity}
             onRemoveItem={this.handleRemoveItem}
+            selectedLanguage={selectedLanguage}
           />
 
           {/* Action buttons at the bottom */}
@@ -712,6 +768,14 @@ class CheckoutPage extends Component {
             </div>
           </div>
         )}
+
+        {/* Language Selection Modal */}
+        <LanguageModal
+          isOpen={languageModal.isVisible}
+          selectedLanguage={selectedLanguage}
+          onLanguageSelect={this.handleLanguageSelect}
+          onClose={this.handleCloseLanguageModal}
+        />
       </div>
     );
   }

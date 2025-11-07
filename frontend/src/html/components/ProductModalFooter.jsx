@@ -1,8 +1,39 @@
 import React, { useState, useEffect } from 'react';
 
-const ProductModalFooter = ({ product, cartQuantity = 0, onAddToCart, onUpdateCartQuantity, onClose }) => {
+const ProductModalFooter = ({ product, cartQuantity = 0, onAddToCart, onUpdateCartQuantity, onClose, selectedLanguage = 'english' }) => {
   const [displayQuantity, setDisplayQuantity] = useState(1); // Display quantity (separate from cart quantity)
   const [inputValue, setInputValue] = useState();
+
+  const getButtonTranslation = (cartQuantity, quantityToUse) => {
+    const translations = {
+      updateCart: {
+        english: 'UPDATE CART',
+        chinese: '更新购物车',
+        malay: 'KEMAS KINI TROLI'
+      },
+      addToCart: {
+        english: 'ADD TO CART',
+        chinese: '添加到购物车',
+        malay: 'TAMBAH KE TROLI'
+      },
+      selectQuantity: {
+        english: 'SELECT QUANTITY',
+        chinese: '选择数量',
+        malay: 'PILIH KUANTITI'
+      }
+    };
+
+    let key;
+    if (cartQuantity > 0) {
+      key = 'updateCart';
+    } else if (quantityToUse === 0) {
+      key = 'selectQuantity';
+    } else {
+      key = 'addToCart';
+    }
+
+    return translations[key][selectedLanguage] || translations[key]['english'];
+  };
 
   // Set initial display quantity based on cart quantity or default to 1
   useEffect(() => {
@@ -114,7 +145,7 @@ const ProductModalFooter = ({ product, cartQuantity = 0, onAddToCart, onUpdateCa
             </button>
           </div>
           <button className="btn-add-to-cart-rounded" onClick={handleAddToCart}>
-            {cartQuantity > 0 ? 'UPDATE CART' : (quantityToUse === 0 ? 'SELECT QUANTITY' : 'ADD TO CART')}
+            {getButtonTranslation(cartQuantity, quantityToUse)}
           </button>
         </div>
       </div>

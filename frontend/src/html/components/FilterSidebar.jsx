@@ -158,19 +158,55 @@ class FilterSidebar extends Component {
   };
 
   render() {
-    const { searchTerm, onSearchChange } = this.props;
+    const { searchTerm, onSearchChange, selectedLanguage = 'english' } = this.props;
     const { priceRange, displayValues, selectedCategories, dynamicMaxPrice } = this.state;
     const availableCategories = this.getUniqueCategories();
+
+    const getTranslation = (key) => {
+      const translations = {
+        search: {
+          english: 'SEARCH',
+          chinese: '搜索',
+          malay: 'CARI'
+        },
+        searchPlaceholder: {
+          english: 'Search products...',
+          chinese: '搜索产品...',
+          malay: 'Cari produk...'
+        },
+        category: {
+          english: 'CATEGORY',
+          chinese: '类别',
+          malay: 'KATEGORI'
+        },
+        price: {
+          english: 'PRICE',
+          chinese: '价格',
+          malay: 'HARGA'
+        },
+        allCategories: {
+          english: 'All Categories',
+          chinese: '所有类别',
+          malay: 'Semua Kategori'
+        }
+      };
+      return translations[key][selectedLanguage] || translations[key]['english'];
+    };
+
+    // Update All Categories text in available categories
+    const translatedCategories = availableCategories.map(category => 
+      category === 'All Categories' ? getTranslation('allCategories') : category
+    );
 
     return (
     <div className="sidebar1">
       {/* Search Filter */}
       <div className="filter-section">
-        <h3 className="search-filter-title">SEARCH</h3>
+        <h3 className="search-filter-title">{getTranslation('search')}</h3>
         <div className="search-input-container">
           <input 
             type="text" 
-            placeholder="Search products..." 
+            placeholder={getTranslation('searchPlaceholder')} 
             value={searchTerm}
             onChange={onSearchChange}
             className="sidebar-search-input"
@@ -187,25 +223,28 @@ class FilterSidebar extends Component {
       {/* Categories Filter */}
       {availableCategories.length > 1 && (
         <div className="filter-section">
-          <h3 className="search-filter-title">CATEGORY</h3>
+          <h3 className="search-filter-title">{getTranslation('category')}</h3>
           <div className="filter-options">
-            {availableCategories.map((category, index) => (
-              <div 
-                key={index}
-                className={`filter-option ${selectedCategories.includes(category) ? 'active' : ''}`}
-                onClick={() => this.handleCategoryToggle(category)}
-                style={{ fontWeight: 'bold' }}
-              >
-                {category}
-              </div>
-            ))}
+            {translatedCategories.map((category, index) => {
+              const originalCategory = availableCategories[index];
+              return (
+                <div 
+                  key={index}
+                  className={`filter-option ${selectedCategories.includes(originalCategory) ? 'active' : ''}`}
+                  onClick={() => this.handleCategoryToggle(originalCategory)}
+                  style={{ fontWeight: 'bold' }}
+                >
+                  {category}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
 
       {/* Price Filter */}
       <div className="filter-section">
-        <h3 className="price-filter-title">PRICE</h3>
+        <h3 className="price-filter-title">{getTranslation('price')}</h3>
         <div className="price-range">
           <div className="price-slider-container">
             <div className="slider-track"></div>

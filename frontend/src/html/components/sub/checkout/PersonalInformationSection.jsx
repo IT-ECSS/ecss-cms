@@ -1,6 +1,43 @@
 import React, { Component } from 'react';
 
 class PersonalInformationSection extends Component {
+  getTranslation = (key) => {
+    const { selectedLanguage = 'english' } = this.props;
+    const translations = {
+      personalInformation: {
+        english: 'Personal Information',
+        chinese: '个人信息',
+        malay: 'Maklumat Peribadi'
+      },
+      firstName: {
+        english: 'First Name',
+        chinese: '名字',
+        malay: 'Nama Pertama'
+      },
+      lastName: {
+        english: 'Last Name',
+        chinese: '姓氏',
+        malay: 'Nama Keluarga'
+      },
+      emailAddress: {
+        english: 'Email Address (Optional)',
+        chinese: '电子邮件地址（可选）',
+        malay: 'Alamat E-mel (Pilihan)'
+      },
+      phoneNumber: {
+        english: 'Phone Number',
+        chinese: '电话号码',
+        malay: 'Nombor Telefon'
+      },
+      location: {
+        english: 'Location',
+        chinese: '位置',
+        malay: 'Lokasi'
+      }
+    };
+    return translations[key][selectedLanguage] || translations[key]['english'];
+  };
+
   render() {
     const { personalInfo, expandedSections, fieldErrors = {}, onPersonalInfoChange, onToggleSection } = this.props;
 
@@ -10,7 +47,7 @@ class PersonalInformationSection extends Component {
           className={`section-header ${expandedSections.personalInfo ? 'expanded' : 'collapsed'}`}
           onClick={() => onToggleSection('personalInfo')}
         >
-          <h2 className="section-title">Personal Information</h2>
+          <h2 className="section-title">{this.getTranslation('personalInformation')}</h2>
           <span className="section-toggle-icon">
             {expandedSections.personalInfo ? '▼' : '▶'}
           </span>
@@ -19,7 +56,7 @@ class PersonalInformationSection extends Component {
           <div className="personal-info-form">
             <div className="form-row">
               <div className="form-group111">
-                <label htmlFor="firstName">First Name</label>
+                <label htmlFor="firstName">{this.getTranslation('firstName')}</label>
                 <input
                   type="text"
                   id="firstName"
@@ -30,7 +67,7 @@ class PersonalInformationSection extends Component {
                 {fieldErrors.firstName && <div className="field-error-message">{fieldErrors.firstName}</div>}
               </div>
               <div className="form-group111">
-                <label htmlFor="lastName">Last Name</label>
+                <label htmlFor="lastName">{this.getTranslation('lastName')}</label>
                 <input
                   type="text"
                   id="lastName"
@@ -44,7 +81,7 @@ class PersonalInformationSection extends Component {
             
             <div className="form-row">
               <div className="form-group111">
-                <label htmlFor="email">Email Address (Optional)</label>
+                <label htmlFor="email">{this.getTranslation('emailAddress')}</label>
                 <input
                   type="text"
                   id="email"
@@ -55,7 +92,7 @@ class PersonalInformationSection extends Component {
                 {fieldErrors.email && <div className="field-error-message">{fieldErrors.email}</div>}
               </div>
               <div className="form-group111">
-                <label htmlFor="phone">Phone Number</label>
+                <label htmlFor="phone">{this.getTranslation('phoneNumber')}</label>
                 <input
                   type="text"
                   id="phone"
@@ -92,7 +129,7 @@ class PersonalInformationSection extends Component {
             </div> */}
             
             <div className="form-group">
-              <label htmlFor="location">Location</label>
+              <label htmlFor="location">{this.getTranslation('location')}</label>
               <div className="location-buttons-container">
                 <div className="location-buttons">
                   {['Tampines North Community Club', 'Pasir Ris West Wellness Centre', 'CT Hub'].map((location) => (

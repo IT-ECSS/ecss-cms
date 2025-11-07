@@ -1,8 +1,39 @@
 import React, { useState } from 'react';
 import { useHistory } from 'react-router-dom';
 
-const ProductCard = ({ product, cartQuantity = 0, onAddToCart, onMoreDetails, onUpdateCartQuantity }) => {
+const ProductCard = ({ product, cartQuantity = 0, onAddToCart, onMoreDetails, onUpdateCartQuantity, selectedLanguage = 'english' }) => {
   const [inputValue, setInputValue] = useState();
+
+  const getTranslation = (key) => {
+    const translations = {
+      outOfStock: {
+        english: 'Out of Stock',
+        chinese: '缺货',
+        malay: 'Kehabisan Stok'
+      },
+      inStock: {
+        english: 'In Stock',
+        chinese: '有库存',
+        malay: 'Ada Stok'
+      },
+      moreDetails: {
+        english: 'More Details',
+        chinese: '更多详情',
+        malay: 'Butiran Lanjut'
+      },
+      addToCart: {
+        english: 'Add To Cart',
+        chinese: '添加到购物车',
+        malay: 'Tambah ke Troli'
+      },
+      updateCart: {
+        english: 'Update Cart',
+        chinese: '更新购物车',
+        malay: 'Kemas Kini Troli'
+      }
+    };
+    return translations[key][selectedLanguage] || translations[key]['english'];
+  };
 
   const handleAddToCart = () => {
     if (typeof onAddToCart !== 'function') {
@@ -128,7 +159,7 @@ const ProductCard = ({ product, cartQuantity = 0, onAddToCart, onMoreDetails, on
           {/* Stock Information */}
           <div className="stock-info1">
               <span className={`stock-status1 ${product.stock_quantity > 0 ? 'in-stock' : 'out-of-stock'}`}>
-                {product.stock_quantity === 0 ? 'Out of Stock' : 'In Stock'}
+                {product.stock_quantity === 0 ? getTranslation('outOfStock') : getTranslation('inStock')}
               </span>
           </div>
         </div>
@@ -139,7 +170,7 @@ const ProductCard = ({ product, cartQuantity = 0, onAddToCart, onMoreDetails, on
             className="more-details-btn"
             onClick={handleMoreDetails}
           >
-            More Details
+            {getTranslation('moreDetails')}
           </button>
           
           {product.stock_quantity !== 0 && (
@@ -147,7 +178,7 @@ const ProductCard = ({ product, cartQuantity = 0, onAddToCart, onMoreDetails, on
               className="add-to-cart-btn-small"
               onClick={handleAddToCart}
             >
-              {cartQuantity > 0 ? 'Update Cart' : 'Add To Cart'}
+              {cartQuantity > 0 ? getTranslation('updateCart') : getTranslation('addToCart')}
             </button>
           )}
         </div>

@@ -11,6 +11,49 @@ class CartPopup extends Component
     };
   }
 
+  getTranslation = (key, count = 0) => {
+    const selectedLanguage = this.props.selectedLanguage || 'english';
+    const translations = {
+      shoppingCart: {
+        english: 'Shopping Cart',
+        chinese: '购物车',
+        malay: 'Troli Beli-belah'
+      },
+      item: {
+        english: 'item',
+        chinese: '项',
+        malay: 'item'
+      },
+      items: {
+        english: 'items',
+        chinese: '项',
+        malay: 'items'
+      },
+      emptyCart: {
+        english: 'Your cart is empty.',
+        chinese: '您的购物车是空的。',
+        malay: 'Troli anda kosong.'
+      },
+      grandTotal: {
+        english: 'Grand Total',
+        chinese: '总计',
+        malay: 'Jumlah Keseluruhan'
+      },
+      close: {
+        english: 'Close',
+        chinese: '关闭',
+        malay: 'Tutup'
+      },
+      checkout: {
+        english: 'Checkout',
+        chinese: '结账',
+        malay: 'Bayar'
+      }
+    };
+
+    return translations[key][selectedLanguage] || translations[key]['english'];
+  };
+
   // Initialize cart items with quantity if not present
   initializeCartItems = (items) => {
     return items.map(item => ({
@@ -95,10 +138,10 @@ class CartPopup extends Component
     return (
       <div className="cart-popup-overlay">
         <div className="cart-popup">
-          <h2>Shopping Cart ({cartItems.length} {cartItems.length === 1 ? 'item' : 'items'})</h2>
+          <h2>{this.getTranslation('shoppingCart')} ({cartItems.length} {cartItems.length === 1 ? this.getTranslation('item') : this.getTranslation('items')})</h2>
 
           {cartItems.length === 0 ? (
-            <p>Your cart is empty.</p>
+            <p>{this.getTranslation('emptyCart')}</p>
           ) : (
             <div className="cart-items-list">
               {cartItems.map((item, index) => (
@@ -116,14 +159,14 @@ class CartPopup extends Component
               
               {/* Grand Total */}
               <div className="cart-grand-total">
-                <strong>Grand Total: ${this.calculateGrandTotal()}</strong>
+                <strong>{this.getTranslation('grandTotal')}: ${this.calculateGrandTotal()}</strong>
               </div>
             </div>
           )}
           
           <div className="button-container">
-            <button onClick={onClose}>Close</button>
-            <button onClick={() => handleCheckout(cartItems)}>Checkout</button>
+            <button onClick={onClose}>{this.getTranslation('close')}</button>
+            <button onClick={() => handleCheckout(cartItems)}>{this.getTranslation('checkout')}</button>
           </div>      
         </div>
       </div>

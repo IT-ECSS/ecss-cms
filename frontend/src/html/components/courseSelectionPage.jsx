@@ -468,6 +468,7 @@ class CourseSelectionPage extends Component {
             onCartUpdate={this.updateCartItems}
             renderCourseName1={this.renderCourseName1}
             handleCheckout={this.handleCheckout}
+            selectedLanguage={'english'}
           />
         )}
 
@@ -481,6 +482,7 @@ class CourseSelectionPage extends Component {
             handleAddToCart={this.addToCart}
             handleAddToCartWithQuantity={this.addToCartWithQuantity}
             cartItems={cartItems}
+            selectedLanguage={'english'}
           />
         )}
       </div>

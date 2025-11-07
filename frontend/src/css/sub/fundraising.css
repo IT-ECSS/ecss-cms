@@ -614,11 +614,6 @@
   transition: background-color 0.2s;
 }
 
-.modal-close-btn:hover {
-  background-color: #e9ecef;
-  color: #333;
-}
-
 .modal-body {
   padding: 20px;
 }

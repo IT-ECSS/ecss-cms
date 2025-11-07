@@ -1,6 +1,50 @@
 import React, { Component } from 'react';
 
 class CollectionLocationSection extends Component {
+  getTranslation(key) {
+    const { selectedLanguage } = this.props;
+    
+    const translations = {
+      'Collection/Delivery': {
+        'english': 'Collection/Delivery',
+        'chinese': '取货/送货',
+        'malay': 'Pengumpulan/Penghantaran'
+      },
+      'Collection Location': {
+        'english': 'Collection Location',
+        'chinese': '取货地点',
+        'malay': 'Lokasi Pengumpulan'
+      },
+      'Select Collection Location': {
+        'english': 'Select Collection Location',
+        'chinese': '选择取货地点',
+        'malay': 'Pilih Lokasi Pengumpulan'
+      },
+      'Ship to billing address': {
+        'english': 'Ship to billing address',
+        'chinese': '运送到账单地址',
+        'malay': 'Hantar ke alamat bil'
+      },
+      'Delivery Address': {
+        'english': 'Delivery Address',
+        'chinese': '送货地址',
+        'malay': 'Alamat Penghantaran'
+      },
+      'Billing address will be used': {
+        'english': 'Billing address will be used',
+        'chinese': '将使用账单地址',
+        'malay': 'Alamat bil akan digunakan'
+      },
+      'Enter delivery address': {
+        'english': 'Enter delivery address',
+        'chinese': '输入送货地址',
+        'malay': 'Masukkan alamat penghantaran'
+      }
+    };
+
+    return translations[key] ? translations[key][selectedLanguage] || translations[key]['english'] : key;
+  }
+
   render() {
     const { 
       collectionLocation, 
@@ -13,7 +57,8 @@ class CollectionLocationSection extends Component {
       onShipToBillingAddressChange,
       onToggleSection,
       collectionMode,
-      personalInfo 
+      personalInfo,
+      selectedLanguage
     } = this.props;
 
     const locations = [
@@ -33,7 +78,7 @@ class CollectionLocationSection extends Component {
           className={`section-header ${expandedSections.collectionLocation ? 'expanded' : 'collapsed'}`}
           onClick={() => onToggleSection('collectionLocation')}
         >
-          <h2 className="section-title">Collection/Delivery Location</h2>
+          <h2 className="section-title">{this.getTranslation('Collection/Delivery')}</h2>
           <span className="section-toggle-icon">
             {expandedSections.collectionLocation ? '▼' : '▶'}
           </span>
@@ -43,7 +88,7 @@ class CollectionLocationSection extends Component {
             <div className="form-group">
               {collectionMode === 'Self-Collection' && (
                 <div className="collection-location-options">
-                  <label>Select Collection Location</label>
+                  <label>{this.getTranslation('Select Collection Location')}</label>
                   <div className="location-buttons">
                     {locations.map((location) => (
                       <button
@@ -62,7 +107,7 @@ class CollectionLocationSection extends Component {
                 </div>
               )}
               
-              {collectionMode === 'Delivery' && (
+              {/* {collectionMode === 'Delivery' && (
                 <div className="delivery-options">
                   <div className="checkbox-option">
                     <input
@@ -71,16 +116,16 @@ class CollectionLocationSection extends Component {
                       checked={shipToBillingAddress}
                       onChange={(e) => onShipToBillingAddressChange(e.target.checked)}
                     />
-                    <label htmlFor="shipToBilling" className="checkbox-label">Ship to billing address</label>
+                    <label htmlFor="shipToBilling" className="checkbox-label">{this.getTranslation('Ship to billing address')}</label>
                   </div>
                   
                   <div className="delivery-address-input">
-                    <label htmlFor="deliveryAddress">Delivery Address</label>
+                    <label htmlFor="deliveryAddress">{this.getTranslation('Delivery Address')}</label>
                     <input
                       type="text"
                       id="deliveryAddress"
                       className="form-input-field111"
-                      placeholder={shipToBillingAddress ? "Billing address will be used" : "Enter delivery address"}
+                      placeholder={shipToBillingAddress ? this.getTranslation("Billing address will be used") : this.getTranslation("Enter delivery address")}
                       value={shipToBillingAddress && personalInfo?.address && personalInfo?.postalCode ? 
                         `${personalInfo.address}, Singapore ${personalInfo.postalCode}` : 
                         deliveryToAddress}
@@ -92,7 +137,7 @@ class CollectionLocationSection extends Component {
                     )}
                   </div>
                 </div>
-              )}
+              )} */}
             </div>
           </div>
         </div>

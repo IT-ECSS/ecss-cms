@@ -1,6 +1,9 @@
 import React, { Component } from 'react';
 import axios from 'axios';
 import '../../css/orderTabs.css';
+import CustomerInformation from './CustomerInformation';
+import OrderInformation from './OrderInformation';
+import OrderItems from './OrderItems';
 
 class OrderTabs extends Component {
   constructor(props) {
@@ -66,7 +69,7 @@ class OrderTabs extends Component {
         name: order.invoiceNumber,
         status: order.status,
         date: order.orderDetails?.orderDate || new Date().toISOString().split('T')[0],
-        customer: order.personalInfo ? `${order.personalInfo.firstName} ${order.personalInfo.lastName}` : 'Unknown Customer',
+        customer: order.personalInfo ? `${order.personalInfo.lastName} ${order.personalInfo.firstName}` : 'Unknown Customer',
         invoiceNumber: order.invoiceNumber || order.receiptNumber,
         // Store the full order object for detailed view
         fullOrder: order
@@ -91,31 +94,223 @@ class OrderTabs extends Component {
     });
   }
 
+  getTranslation = (key) => {
+    const { selectedLanguage = 'english' } = this.props;
+    const translations = {
+      searchTitle: {
+        english: 'Search Invoice/Receipt Numbers',
+        chinese: '搜索发票/收据编号',
+        malay: 'Cari Nombor Invois/Resit'
+      },
+      invoiceReceiptNumbers: {
+        english: 'Invoice/Receipt Number(s):',
+        chinese: '发票/收据编号：',
+        malay: 'Nombor Invois/Resit:'
+      },
+      placeholder: {
+        english: 'Enter invoice/receipt number (single) or numbers separated by commas (bulk)',
+        chinese: '输入发票/收据编号（单个）或用逗号分隔的编号（批量）',
+        malay: 'Masukkan nombor invois/resit (tunggal) atau nombor yang dipisahkan dengan koma (pukal)'
+      },
+      submit: {
+        english: 'Submit',
+        chinese: '提交',
+        malay: 'Hantar'
+      },
+      clear: {
+        english: 'Clear',
+        chinese: '清除',
+        malay: 'Padam'
+      },
+      found: {
+        english: 'Found',
+        chinese: '找到',
+        malay: 'Dijumpai'
+      },
+      results: {
+        english: 'result(s)',
+        chinese: '个结果',
+        malay: 'hasil'
+      },
+      noResults: {
+        english: 'No invoices/receipts found for the search terms',
+        chinese: '未找到符合搜索条件的发票/收据',
+        malay: 'Tiada invois/resit dijumpai untuk istilah carian'
+      },
+      orderInformation: {
+        english: 'Order Information',
+        chinese: '订单信息',
+        malay: 'Maklumat Pesanan'
+      },
+      status: {
+        english: 'Status',
+        chinese: '状态',
+        malay: 'Status'
+      },
+      date: {
+        english: 'Date',
+        chinese: '日期',
+        malay: 'Tarikh'
+      },
+      time: {
+        english: 'Time',
+        chinese: '时间',
+        malay: 'Masa'
+      },
+      customer: {
+        english: 'Customer',
+        chinese: '客户',
+        malay: 'Pelanggan'
+      },
+      orderDetails: {
+        english: 'Order Details',
+        chinese: '订单详情',
+        malay: 'Butiran Pesanan'
+      },
+      paymentMethod: {
+        english: 'Payment Method',
+        chinese: '付款方式',
+        malay: 'Kaedah Bayaran'
+      },
+      collectionMode: {
+        english: 'Collection Mode',
+        chinese: '收取方式',
+        malay: 'Mod Pengumpulan'
+      },
+      orderItems: {
+        english: 'Order Items',
+        chinese: '订单项目',
+        malay: 'Item Pesanan'
+      },
+      item: {
+        english: 'Item',
+        chinese: '项目',
+        malay: 'Item'
+      },
+      quantity: {
+        english: 'Quantity',
+        chinese: '数量',
+        malay: 'Kuantiti'
+      },
+      price: {
+        english: 'Price',
+        chinese: '价格',
+        malay: 'Harga'
+      },
+      subtotal: {
+        english: 'Subtotal',
+        chinese: '小计',
+        malay: 'Subjumlah'
+      },
+      noItems: {
+        english: 'No items found',
+        chinese: '未找到项目',
+        malay: 'Tiada item dijumpai'
+      },
+      orderTotal: {
+        english: 'Order Total',
+        chinese: '订单总额',
+        malay: 'Jumlah Pesanan'
+      },
+      customerInformation: {
+        english: 'Customer Information',
+        chinese: '客户信息',
+        malay: 'Maklumat Pelanggan'
+      },
+      name: {
+        english: 'Name',
+        chinese: '姓名',
+        malay: 'Nama'
+      },
+      email: {
+        english: 'Email',
+        chinese: '电子邮件',
+        malay: 'E-mel'
+      },
+      phone: {
+        english: 'Phone',
+        chinese: '电话',
+        malay: 'Telefon'
+      },
+      address: {
+        english: 'Address',
+        chinese: '地址',
+        malay: 'Alamat'
+      },
+      postalCode: {
+        english: 'Postal Code',
+        chinese: '邮政编码',
+        malay: 'Poskod'
+      },
+      collectionLocation: {
+        english: 'Station Location',
+        chinese: '站点位置',
+        malay: 'Lokasi Stesen'
+      },
+      // Status translations
+      pending: {
+        english: 'Payment Processing',
+        chinese: '付款处理中',
+        malay: 'Pemprosesan Bayaran'
+      },
+      paid: {
+        english: 'Order Fulfillment',
+        chinese: '订单履行',
+        malay: 'Pemenuhan Pesanan'
+      },
+      delivered: {
+        english: 'Delivered',
+        chinese: '已送达',
+        malay: 'Dihantar'
+      },
+      collected: {
+        english: 'Collected',
+        chinese: '已收取',
+        malay: 'Dikumpul'
+      },
+      refunded: {
+        english: 'Order Refunded',
+        chinese: '订单已退款',
+        malay: 'Pesanan Dipulangkan'
+      },
+      cancelled: {
+        english: 'Order Cancelled',
+        chinese: '订单已取消',
+        malay: 'Pesanan Dibatalkan'
+      }
+    };
+    return translations[key] && translations[key][selectedLanguage] 
+      ? translations[key][selectedLanguage] 
+      : translations[key] && translations[key]['english'] 
+        ? translations[key]['english'] 
+        : key;
+  }
+
   getOrderStatusInfo = (status, collectionMode) => {
     // Determine the final step icon and name based on collection mode
     const finalStepIcon = collectionMode?.toLowerCase() === 'delivery' ? '🚚' : '✋';
-    const finalStepName = collectionMode?.toLowerCase() === 'delivery' ? 'Delivered' : 'Collected';
+    const finalStepName = collectionMode?.toLowerCase() === 'delivery' ? this.getTranslation('delivered') : this.getTranslation('collected');
     
     switch (status?.toLowerCase()) {
       case 'pending':
         return {
-          stage: 'Payment Processing',
+          stage: this.getTranslation('pending'),
           icon: '💳',
           color: '#f39c12',
           steps: [
-            { name: 'Payment Processing', icon: '💳', active: true, completed: false },
-            { name: 'Order Fulfillment', icon: '📦', active: false, completed: false },
+            { name: this.getTranslation('pending'), icon: '💳', active: true, completed: false },
+            { name: this.getTranslation('paid'), icon: '📦', active: false, completed: false },
             { name: finalStepName, icon: finalStepIcon, active: false, completed: false }
           ]
         };
       case 'paid':
         return {
-          stage: 'Order Fulfillment',
+          stage: this.getTranslation('paid'),
           icon: '📦',
           color: '#3498db',
           steps: [
-            { name: 'Payment Processing', icon: '💳', active: false, completed: true },
-            { name: 'Order Fulfillment', icon: '📦', active: true, completed: false },
+            { name: this.getTranslation('pending'), icon: '💳', active: false, completed: true },
+            { name: this.getTranslation('paid'), icon: '📦', active: true, completed: false },
             { name: finalStepName, icon: finalStepIcon, active: false, completed: false }
           ]
         };
@@ -126,33 +321,33 @@ class OrderTabs extends Component {
           icon: finalStepIcon,
           color: '#27ae60',
           steps: [
-            { name: 'Payment Processing', icon: '💳', active: false, completed: true },
-            { name: 'Order Fulfillment', icon: '📦', active: false, completed: true },
+            { name: this.getTranslation('pending'), icon: '💳', active: false, completed: true },
+            { name: this.getTranslation('paid'), icon: '📦', active: false, completed: true },
             { name: finalStepName, icon: finalStepIcon, active: true, completed: true }
           ]
         };
       case 'refunded':
         return {
-          stage: 'Order Refunded',
+          stage: this.getTranslation('refunded'),
           icon: '💰',
           color: '#e67e22',
           steps: [
-            { name: 'Payment Processing', icon: '💳', active: false, completed: true },
-            { name: 'Order Fulfillment', icon: '�', active: false, completed: true },
+            { name: this.getTranslation('pending'), icon: '💳', active: false, completed: true },
+            { name: this.getTranslation('paid'), icon: '📦', active: false, completed: true },
             { name: finalStepName, icon: finalStepIcon, active: false, completed: true },
-            { name: 'Order Refunded', icon: '💰', active: true, completed: true }
+            { name: this.getTranslation('refunded'), icon: '💰', active: true, completed: true }
           ]
         };
       case 'cancelled':
         return {
-          stage: 'Order Cancelled',
+          stage: this.getTranslation('cancelled'),
           icon: '❌',
           color: '#e74c3c',
           steps: [
-            { name: 'Payment Processing', icon: '💳', active: false, completed: false },
-            { name: 'Order Fulfillment', icon: '📦', active: false, completed: false },
+            { name: this.getTranslation('pending'), icon: '💳', active: false, completed: false },
+            { name: this.getTranslation('paid'), icon: '📦', active: false, completed: false },
             { name: finalStepName, icon: finalStepIcon, active: false, completed: false },
-            { name: 'Order Cancelled', icon: '❌', active: true, completed: true }
+            { name: this.getTranslation('cancelled'), icon: '❌', active: true, completed: true }
           ]
         };
       default:
@@ -173,11 +368,11 @@ class OrderTabs extends Component {
       <div className="order-tabs-container">
         {/* Search Section */}
         <div className="search-section1">
-          <h3>Search Invoice/Receipt Numbers</h3>
+          <h3>{this.getTranslation('searchTitle')}</h3>
           <div className="search-form">
             <div className="search-input-group">
               <label htmlFor="invoiceSearch" className="search-label">
-                Invoice/Receipt Number(s):
+                {this.getTranslation('invoiceReceiptNumbers')}
               </label>
               <input
                 id="invoiceSearch"
@@ -185,7 +380,7 @@ class OrderTabs extends Component {
                 className="search-input"
                 value={searchInput}
                 onChange={this.handleSearchInputChange}
-                placeholder="Enter invoice/receipt number (single) or numbers separated by commas (bulk)"
+                placeholder={this.getTranslation('placeholder')}
               />
             </div>
             <div className="search-buttons">
@@ -194,14 +389,14 @@ class OrderTabs extends Component {
                 onClick={this.handleSearch}
                 disabled={!searchInput.trim()}
               >
-                Submit
+                {this.getTranslation('submit')}
               </button>
               <button 
                 className="search-btn clear-search"
                 onClick={this.clearSearch}
                 disabled={!isSearched}
               >
-                Clear
+                {this.getTranslation('clear')}
               </button>
             </div>
           </div>
@@ -211,9 +406,9 @@ class OrderTabs extends Component {
         {isSearched && (
           <div className="search-results-message">
             {orders.length > 0 ? (
-              <p className="results-found">Found {orders.length} result(s)</p>
+              <p className="results-found">{this.getTranslation('found')} {orders.length} {this.getTranslation('results')}</p>
             ) : (
-              <p className="results-not-found">No invoices/receipts found for the search terms</p>
+              <p className="results-not-found">{this.getTranslation('noResults')}</p>
             )}
           </div>
         )}
@@ -279,127 +474,20 @@ class OrderTabs extends Component {
               </div>
 
               <div className="order-info">
-                <div className="order-section">
-                  <h4>Order Information</h4>
-                  <div className="info-grid">
-                    <div className="info-item">
-                      <strong>Status:</strong> {activeOrder.status}
-                    </div>
-                    <div className="info-item">
-                      <strong>Date:</strong> {activeOrder.date}
-                    </div>
-                    <div className="info-item">
-                      <strong>Time:</strong> {activeOrder.fullOrder?.orderDetails?.orderTime || 'N/A'}
-                    </div>
-                    <div className="info-item">
-                      <strong>Customer:</strong> {activeOrder.customer}
-                    </div>
-                    <div className="info-item">
-                      <strong>Total:</strong> ${activeOrder.fullOrder?.orderDetails?.totalPrice || '0.00'}
-                    </div>
-                    <div className="info-item">
-                      <strong>Payment Method:</strong> {activeOrder.fullOrder?.paymentDetails?.paymentMethod || 'N/A'}
-                    </div>
-                    <div className="info-item">
-                      <strong>Collection Mode:</strong> {activeOrder.fullOrder?.collectionDetails?.collectionMode || 'N/A'}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="order-section">
-                  <h4>Order Items</h4>
-                  
-                  {/* Desktop Table View */}
-                  <div className="items-table desktop-only">
-                    <div className="items-header">
-                      <span>Item</span>
-                      <span>Quantity</span>
-                      <span>Price</span>
-                      <span>Subtotal</span>
-                    </div>
-                    {activeOrder.fullOrder?.orderDetails?.items?.map((item, index) => (
-                      <div key={index} className="items-row">
-                        <span>{item.productName}</span>
-                        <span>{item.quantity}</span>
-                        <span>${item.price?.toFixed(2) || '0.00'}</span>
-                        <span>${((item.quantity || 0) * (item.price || 0)).toFixed(2)}</span>
-                      </div>
-                    )) || (
-                      <div className="items-row">
-                        <span colSpan="4">No items found</span>
-                      </div>
-                    )}
-                    <div className="items-total">
-                      <span></span>
-                      <span></span>
-                      <span><strong>Total:</strong></span>
-                      <span><strong>${activeOrder.fullOrder?.orderDetails?.totalPrice?.toFixed(2) || '0.00'}</strong></span>
-                    </div>
-                  </div>
+                <CustomerInformation 
+                  activeOrder={activeOrder} 
+                  selectedLanguage={this.props.selectedLanguage} 
+                />
 
-                  {/* Mobile/Tablet Card View */}
-                  <div className="items-cards mobile-only">
-                    {activeOrder.fullOrder?.orderDetails?.items?.length > 0 ? (
-                      <>
-                        {activeOrder.fullOrder.orderDetails.items.map((item, index) => (
-                          <div key={index} className="item-card">
-                            <div className="item-card-header">
-                              <h5 className="item-name">{item.productName}</h5>
-                            </div>
-                            <div className="item-card-body">
-                              <div className="item-detail">
-                                <span className="detail-label">Quantity:</span>
-                                <span className="detail-value">{item.quantity}</span>
-                              </div>
-                              <div className="item-detail">
-                                <span className="detail-label">Price:</span>
-                                <span className="detail-value">${item.price?.toFixed(2) || '0.00'}</span>
-                              </div>
-                              <div className="item-detail subtotal">
-                                <span className="detail-label">Subtotal:</span>
-                                <span className="detail-value">${((item.quantity || 0) * (item.price || 0)).toFixed(2)}</span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                        <div className="items-total-card">
-                          <div className="total-label">Order Total:</div>
-                          <div className="total-value">${activeOrder.fullOrder?.orderDetails?.totalPrice?.toFixed(2) || '0.00'}</div>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="no-items-card">
-                        <p>No items found</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <OrderInformation 
+                  activeOrder={activeOrder} 
+                  selectedLanguage={this.props.selectedLanguage} 
+                />
                 
-                <div className="order-section">
-                  <h4>Customer Information</h4>
-                  <div className="customer-info">
-                    <div className="customer-details">
-                      <div className="info-item">
-                        <strong>Name:</strong> {activeOrder.fullOrder?.personalInfo ? `${activeOrder.fullOrder.personalInfo.firstName} ${activeOrder.fullOrder.personalInfo.lastName}` : 'N/A'}
-                      </div>
-                      <div className="info-item">
-                        <strong>Email:</strong> {activeOrder.fullOrder?.personalInfo?.email || 'N/A'}
-                      </div>
-                      <div className="info-item">
-                        <strong>Phone:</strong> {activeOrder.fullOrder?.personalInfo?.phone || 'N/A'}
-                      </div>
-                      <div className="info-item">
-                        <strong>Address:</strong> {activeOrder.fullOrder?.personalInfo?.address || 'N/A'}
-                      </div>
-                      <div className="info-item">
-                        <strong>Postal Code:</strong> {activeOrder.fullOrder?.personalInfo?.postalCode || 'N/A'}
-                      </div>
-                      <div className="info-item">
-                        <strong>Collection/Delivery Location:</strong> {activeOrder.fullOrder?.collectionDetails?.CollectionDeliveryLocation || 'N/A'}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <OrderItems 
+                  activeOrder={activeOrder} 
+                  selectedLanguage={this.props.selectedLanguage} 
+                />
               </div>
             </div>
           )}

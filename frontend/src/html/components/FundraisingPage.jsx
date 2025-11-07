@@ -23,7 +23,9 @@ class FundraisingPage extends Component {
       selectedProduct: null,
       isModalOpen: false,
       showCheckoutPage: false,
-      activeTab: 'products' // Track which tab is active: 'products' or 'orders'
+      activeTab: 'products', // Track which tab is active: 'products' or 'orders'
+      selectedLanguage: null, // Track selected language: 'english', 'chinese', 'malay'
+      languageSelected: false // Track if language has been selected
     };
   }
 
@@ -238,6 +240,13 @@ class FundraisingPage extends Component {
     });
   }
 
+  handleLanguageChange = (language) => {
+    this.setState({
+      selectedLanguage: language,
+      languageSelected: true
+    });
+  }
+
   filterItems = () => {
     const { fundraisingItems, searchTerm, priceRange, selectedCategories, sortBy } = this.state;
     
@@ -288,7 +297,7 @@ class FundraisingPage extends Component {
   }
 
   render() {
-    const { filteredItems, searchTerm, isLoading, fundraisingItems, cartItems, selectedProduct, isModalOpen, sortBy, showCheckoutPage, activeTab } = this.state;
+    const { filteredItems, searchTerm, isLoading, fundraisingItems, cartItems, selectedProduct, isModalOpen, sortBy, showCheckoutPage, activeTab, selectedLanguage, languageSelected } = this.state;
 
     // Show checkout page if user clicked "Proceed to Checkout"
     if (showCheckoutPage) {
@@ -299,17 +308,244 @@ class FundraisingPage extends Component {
           onUpdateCartItemQuantity={this.handleUpdateCartQuantity}
           onRemoveCartItem={this.handleRemoveFromCart}
           onClearCart={this.handleClearCart}
+          selectedLanguage={selectedLanguage}
+          onLanguageChange={this.handleLanguageChange}
         />
       );
     }
 
-    // Show loading state
-    if (isLoading) {
+    const getLoadingText = () => {
+      switch (selectedLanguage) {
+        case 'chinese':
+          return '正在加载产品...';
+        case 'malay':
+          return 'Memuatkan produk...';
+        default:
+          return 'Loading products...';
+      }
+    };
+
+    // Show language selection first if no language selected
+    if (!languageSelected) {
       return (
-        <div className="loading-container">
-          <div style={{ textAlign: 'center' }}>
-            <div className="loading-spinner"></div>
-            <div className="loading-text">Loading products...</div>
+        <div className="loading-container" style={{ 
+          minHeight: '100vh', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          background: '#f8f9fa'
+        }}>
+          <div style={{ 
+            textAlign: 'center', 
+            background: '#ffffff', 
+            padding: '40px', 
+            borderRadius: '12px', 
+            boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+            maxWidth: '500px',
+            width: '90%'
+          }}>
+            {/* Language Selection Header */}
+            <div style={{ marginBottom: '30px' }}>
+              <h2 style={{ 
+                fontSize: '24px', 
+                fontWeight: '600', 
+                color: '#2c3e50', 
+                marginBottom: '15px',
+                fontFamily: 'system-ui, -apple-system, sans-serif'
+              }}>
+                Please select your language
+              </h2>
+              <p style={{ 
+                fontSize: '16px', 
+                color: '#7f8c8d', 
+                marginBottom: '5px',
+                fontFamily: 'system-ui, -apple-system, sans-serif'
+              }}>
+                请选择您的语言
+              </p>
+              <p style={{ 
+                fontSize: '16px', 
+                color: '#7f8c8d', 
+                marginBottom: '0',
+                fontFamily: 'system-ui, -apple-system, sans-serif'
+              }}>
+                Sila pilih bahasa anda
+              </p>
+            </div>
+
+            {/* Language Selection Buttons */}
+            <div className="language-selector" style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '12px'
+            }}>
+              <button 
+                onClick={() => this.handleLanguageChange('english')}
+                style={{ 
+                  width: '100%',
+                  padding: '15px 24px', 
+                  border: '2px solid #e9ecef',
+                  background: '#ffffff',
+                  color: '#2c3e50',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  fontWeight: '500',
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                  transition: 'all 0.3s ease',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.background = '#f8f9fa';
+                  e.target.style.borderColor = '#3498db';
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.background = '#ffffff';
+                  e.target.style.borderColor = '#e9ecef';
+                }}
+              >
+                English
+              </button>
+              <button 
+                onClick={() => this.handleLanguageChange('chinese')}
+                style={{ 
+                  width: '100%',
+                  padding: '15px 24px', 
+                  border: '2px solid #e9ecef',
+                  background: '#ffffff',
+                  color: '#2c3e50',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  fontWeight: '500',
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                  transition: 'all 0.3s ease',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.background = '#f8f9fa';
+                  e.target.style.borderColor = '#3498db';
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.background = '#ffffff';
+                  e.target.style.borderColor = '#e9ecef';
+                }}
+              >
+                中文
+              </button>
+              <button 
+                onClick={() => this.handleLanguageChange('malay')}
+                style={{ 
+                  width: '100%',
+                  padding: '15px 24px', 
+                  border: '2px solid #e9ecef',
+                  background: '#ffffff',
+                  color: '#2c3e50',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  fontWeight: '500',
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                  transition: 'all 0.3s ease',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.background = '#f8f9fa';
+                  e.target.style.borderColor = '#3498db';
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.background = '#ffffff';
+                  e.target.style.borderColor = '#e9ecef';
+                }}
+              >
+                Bahasa Melayu
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const getResultsText = () => {
+      const showing = filteredItems.length > 0 ? '1-' + Math.min(9, filteredItems.length) : '0';
+      const total = filteredItems.length;
+      
+      switch (selectedLanguage) {
+        case 'chinese':
+          return `显示第 ${showing} 个，共 ${total} 个结果`;
+        case 'malay':
+          return `MENUNJUKKAN ${showing} DARIPADA ${total} HASIL`;
+        default:
+          return `SHOWING ${showing} OF ${total} RESULTS`;
+      }
+    };
+
+    const getSortOptions = () => {
+      const options = {
+        english: {
+          default: 'Default sorting',
+          popularity: 'Sort by popularity',
+          latest: 'Sort by latest',
+          priceLow: 'Sort by price: low to high',
+          priceHigh: 'Sort by price: high to low'
+        },
+        chinese: {
+          default: '默认排序',
+          popularity: '按热度排序',
+          latest: '按最新排序',
+          priceLow: '按价格排序：从低到高',
+          priceHigh: '按价格排序：从高到低'
+        },
+        malay: {
+          default: 'Susunan lalai',
+          popularity: 'Susun mengikut populariti',
+          latest: 'Susun mengikut terkini',
+          priceLow: 'Susun mengikut harga: rendah ke tinggi',
+          priceHigh: 'Susun mengikut harga: tinggi ke rendah'
+        }
+      };
+      return options[selectedLanguage] || options.english;
+    };
+
+    // Show loading state after language is selected
+    if (isLoading && languageSelected) {
+      return (
+        <div className="loading-container" style={{ 
+          minHeight: '100vh', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          background: '#f8f9fa'
+        }}>
+          <div style={{ 
+            textAlign: 'center', 
+            background: '#ffffff', 
+            padding: '40px', 
+            borderRadius: '12px', 
+            boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+            maxWidth: '400px',
+            width: '90%'
+          }}>
+            {/* Loading Spinner and Text */}
+            <div>
+              <div className="loading-spinner" style={{
+                width: '50px',
+                height: '50px',
+                border: '4px solid #e9ecef',
+                borderTop: '4px solid #3498db',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+                margin: '0 auto 20px'
+              }}></div>
+              <div className="loading-text" style={{
+                fontSize: '18px',
+                color: '#2c3e50',
+                fontWeight: '500',
+                fontFamily: 'system-ui, -apple-system, sans-serif'
+              }}>
+                {getLoadingText()}
+              </div>
+            </div>
           </div>
         </div>
       );
@@ -324,6 +560,8 @@ class FundraisingPage extends Component {
           onProceedToCheckout={this.handleProceedToCheckout}
           activeTab={activeTab}
           onTabChange={this.handleTabChange}
+          selectedLanguage={selectedLanguage}
+          onLanguageChange={this.handleLanguageChange}
         />
 
         {/* Tab Content */}
@@ -337,6 +575,7 @@ class FundraisingPage extends Component {
               searchTerm={searchTerm}
               onSearchChange={this.handleSearch}
               products={fundraisingItems}
+              selectedLanguage={selectedLanguage}
             />
           </div>
 
@@ -345,18 +584,18 @@ class FundraisingPage extends Component {
             {/* Results Header */}
             <div className="results-header">
               <div className="results-count">
-                SHOWING {filteredItems.length > 0 ? '1-' + Math.min(9, filteredItems.length) : '0'} OF {filteredItems.length} RESULTS
+                {getResultsText()}
               </div>
               <select 
                 className="sort-dropdown" 
                 value={sortBy} 
                 onChange={this.handleSortChange}
               >
-                <option value="default">Default sorting</option>
-                <option value="popularity">Sort by popularity</option>
-                <option value="latest">Sort by latest</option>
-                <option value="price-low">Sort by price: low to high</option>
-                <option value="price-high">Sort by price: high to low</option>
+                <option value="default">{getSortOptions().default}</option>
+                <option value="popularity">{getSortOptions().popularity}</option>
+                <option value="latest">{getSortOptions().latest}</option>
+                <option value="price-low">{getSortOptions().priceLow}</option>
+                <option value="price-high">{getSortOptions().priceHigh}</option>
               </select>
             </div>
             
@@ -366,13 +605,14 @@ class FundraisingPage extends Component {
               onAddToCart={this.handleAddToCart}
               onMoreDetails={this.handleMoreDetails}
               onUpdateCartQuantity={this.handleUpdateCartQuantityById}
+              selectedLanguage={selectedLanguage}
             />
           </div>
         </div>
         ) : (
           // Orders Tab Content
           <div className="orders-page fade-in">
-            <OrderTabs />
+            <OrderTabs selectedLanguage={selectedLanguage} />
           </div>
         )}
         
@@ -383,6 +623,7 @@ class FundraisingPage extends Component {
           onClose={this.handleCloseModal}
           onAddToCart={this.handleAddToCart}
           onUpdateCartQuantity={this.handleUpdateCartQuantityById}
+          selectedLanguage={selectedLanguage}
         />
       </>
     );
