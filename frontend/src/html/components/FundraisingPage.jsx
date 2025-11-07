@@ -28,6 +28,9 @@ class FundraisingPage extends Component {
   }
 
   componentDidMount = async () => {
+    // Set the page title
+    document.title = 'ECSS Fundraising Page';
+    
     // Set CSS custom property for accurate viewport height
     const setVH = () => {
       const vh = window.innerHeight * 0.01;
