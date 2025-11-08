@@ -5,10 +5,10 @@ class CollectionLocationSection extends Component {
     const { selectedLanguage } = this.props;
     
     const translations = {
-      'Collection/Delivery': {
-        'english': 'Collection/Delivery',
-        'chinese': '取货/送货',
-        'malay': 'Pengumpulan/Penghantaran'
+      'Collection Location Header': {
+        'english': 'Collection Location',
+        'chinese': '取货地点',
+        'malay': 'Lokasi Pengumpulan'
       },
       'Collection Location': {
         'english': 'Collection Location',
@@ -78,7 +78,7 @@ class CollectionLocationSection extends Component {
           className={`section-header ${expandedSections.collectionLocation ? 'expanded' : 'collapsed'}`}
           onClick={() => onToggleSection('collectionLocation')}
         >
-          <h2 className="section-title">{this.getTranslation('Collection/Delivery')}</h2>
+          <h2 className="section-title">{this.getTranslation('Collection Location Header')}</h2>
           <span className="section-toggle-icon">
             {expandedSections.collectionLocation ? '▼' : '▶'}
           </span>

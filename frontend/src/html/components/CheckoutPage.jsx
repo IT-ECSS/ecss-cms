@@ -5,6 +5,7 @@ import PersonalInformationSection from './sub/checkout/PersonalInformationSectio
 import PaymentMethodSection from './sub/checkout/PaymentMethodSection';
 import CollectionModeSection from './sub/checkout/CollectionModeSection';
 import CollectionLocationSection from './sub/checkout/CollectionLocationSection';
+import CollectionDateTimeSection from './sub/checkout/CollectionDateTimeSection';
 import OrderSummarySection from './sub/checkout/OrderSummarySection';
 import CheckoutActions from './sub/checkout/CheckoutActions';
 import LanguageModal from './LanguageModal';
@@ -29,14 +30,18 @@ class CheckoutPage extends Component {
       paymentMethod: savedCheckoutState.paymentMethod || '', // Default to cash
       collectionMode: savedCheckoutState.collectionMode || '', // Default to Self-Collection
       collectionLocation: savedCheckoutState.collectionLocation || '',
+      collectionDate: savedCheckoutState.collectionDate || '',
+      collectionTime: savedCheckoutState.collectionTime || '',
       deliveryToAddress: savedCheckoutState.deliveryToAddress || '',
       shipToBillingAddress: savedCheckoutState.shipToBillingAddress || false,
-      expandedSections: savedCheckoutState.expandedSections || {
+      expandedSections: {
         personalInfo: true,  // Section 1 expanded by default
         paymentMethod: false,
         collectionMode: false,
         collectionLocation: true, // Collection/Delivery Location expanded by default
-        orderSummary: false
+        collectionDateTime: true, // Collection Date & Time expanded by default
+        orderSummary: false,
+        ...(savedCheckoutState.expandedSections || {})
       },
       fieldErrors: {
         firstName: '',
@@ -49,6 +54,8 @@ class CheckoutPage extends Component {
         paymentMethod: '',
         collectionMode: '',
         collectionLocation: '',
+        collectionDate: '',
+        collectionTime: '',
         deliveryToAddress: '',
         shipToBillingAddress: ''
       },
@@ -83,6 +90,8 @@ class CheckoutPage extends Component {
       prevState.paymentMethod !== this.state.paymentMethod ||
       prevState.collectionMode !== this.state.collectionMode ||
       prevState.collectionLocation !== this.state.collectionLocation ||
+      prevState.collectionDate !== this.state.collectionDate ||
+      prevState.collectionTime !== this.state.collectionTime ||
       prevState.deliveryToAddress !== this.state.deliveryToAddress ||
       prevState.shipToBillingAddress !== this.state.shipToBillingAddress ||
       prevState.expandedSections !== this.state.expandedSections
@@ -123,6 +132,8 @@ class CheckoutPage extends Component {
         paymentMethod: this.state.paymentMethod,
         collectionMode: this.state.collectionMode,
         collectionLocation: this.state.collectionLocation,
+        collectionDate: this.state.collectionDate,
+        collectionTime: this.state.collectionTime,
         deliveryToAddress: this.state.deliveryToAddress,
         shipToBillingAddress: this.state.shipToBillingAddress,
         expandedSections: this.state.expandedSections
@@ -179,12 +190,16 @@ class CheckoutPage extends Component {
     this.setState({
       collectionMode: mode,
       collectionLocation: '', // Reset collection location when mode changes
+      collectionDate: '', // Reset date when mode changes
+      collectionTime: '', // Reset time when mode changes
       deliveryToAddress: '', // Reset delivery address when mode changes
       shipToBillingAddress: false, // Reset checkbox when mode changes
       fieldErrors: {
         ...this.state.fieldErrors,
         collectionMode: '', // Clear error when user selects
         collectionLocation: '', // Clear location error when mode changes
+        collectionDate: '', // Clear date error when mode changes
+        collectionTime: '', // Clear time error when mode changes
         deliveryToAddress: '', // Clear delivery address error when mode changes
         shipToBillingAddress: '' // Clear checkbox error when mode changes
       }
@@ -194,9 +209,35 @@ class CheckoutPage extends Component {
   handleCollectionLocationChange = (location) => {
     this.setState({
       collectionLocation: location,
+      collectionDate: '', // Reset date when location changes
+      collectionTime: '', // Reset time when location changes
       fieldErrors: {
         ...this.state.fieldErrors,
-        collectionLocation: '' // Clear error when user selects
+        collectionLocation: '', // Clear error when user selects
+        collectionDate: '', // Clear date error when location changes
+        collectionTime: '' // Clear time error when location changes
+      }
+    });
+  }
+
+  handleCollectionDateChange = (date) => {
+    this.setState({
+      collectionDate: date,
+      collectionTime: '', // Reset time when date changes
+      fieldErrors: {
+        ...this.state.fieldErrors,
+        collectionDate: '', // Clear error when user selects
+        collectionTime: '' // Clear time error when date changes
+      }
+    });
+  }
+
+  handleCollectionTimeChange = (time) => {
+    this.setState({
+      collectionTime: time,
+      fieldErrors: {
+        ...this.state.fieldErrors,
+        collectionTime: '' // Clear error when user selects
       }
     });
   }
@@ -249,8 +290,12 @@ class CheckoutPage extends Component {
   }
 
   toggleSection = (sectionName) => {
+    console.log('toggleSection called with:', sectionName);
+    console.log('Current expandedSections:', this.state.expandedSections);
+    
     this.setState(prevState => {
       const isCurrentlyExpanded = prevState.expandedSections[sectionName];
+      console.log(`Section ${sectionName} is currently expanded:`, isCurrentlyExpanded);
       
       // If the section is currently expanded, collapse it
       if (isCurrentlyExpanded) {
@@ -268,6 +313,7 @@ class CheckoutPage extends Component {
             paymentMethod: sectionName === 'paymentMethod',
             collectionMode: sectionName === 'collectionMode',
             collectionLocation: sectionName === 'collectionLocation',
+            collectionDateTime: sectionName === 'collectionDateTime',
             orderSummary: sectionName === 'orderSummary'
           }
         };
@@ -353,6 +399,106 @@ class CheckoutPage extends Component {
     return languageMap[selectedLanguage] || languageMap.english;
   }
 
+  // Function to get translated validation messages
+  getValidationTranslations = () => {
+    const { selectedLanguage = 'english' } = this.props;
+    
+    const translations = {
+      required: {
+        english: 'is required',
+        chinese: '是必填项',
+        malay: 'diperlukan'
+      },
+      paymentMethod: {
+        english: 'Payment method is required',
+        chinese: '付款方式是必填项',
+        malay: 'Kaedah pembayaran diperlukan'
+      },
+      collectionMode: {
+        english: 'Collection mode is required',
+        chinese: '取货方式是必填项',
+        malay: 'Mod pengumpulan diperlukan'
+      },
+      collectionLocation: {
+        english: 'Collection location is required',
+        chinese: '取货地点是必填项',
+        malay: 'Lokasi pengumpulan diperlukan'
+      },
+      collectionDate: {
+        english: 'Collection date is required',
+        chinese: '取货日期是必填项',
+        malay: 'Tarikh pengumpulan diperlukan'
+      },
+      collectionTime: {
+        english: 'Collection time is required',
+        chinese: '取货时间是必填项',
+        malay: 'Masa pengumpulan diperlukan'
+      },
+      deliveryAddress: {
+        english: 'Delivery address is required',
+        chinese: '送货地址是必填项',
+        malay: 'Alamat penghantaran diperlukan'
+      },
+      cartEmpty: {
+        english: 'Your cart is empty',
+        chinese: '您的购物车是空的',
+        malay: 'Troli anda kosong'
+      },
+      fieldDisplayNames: {
+        firstName: {
+          english: 'First name',
+          chinese: '名字',
+          malay: 'Nama pertama'
+        },
+        lastName: {
+          english: 'Last name',
+          chinese: '姓氏',
+          malay: 'Nama keluarga'
+        },
+        phone: {
+          english: 'Phone',
+          chinese: '电话',
+          malay: 'Telefon'
+        },
+        location: {
+          english: 'Location/Club',
+          chinese: '位置/俱乐部',
+          malay: 'Lokasi/Kelab'
+        }
+      }
+    };
+
+    return translations;
+  }
+
+  // Function to get translated modal messages
+  getModalTranslations = (type) => {
+    const { selectedLanguage = 'english' } = this.props;
+    
+    const translations = {
+      success: {
+        english: 'Order Successfully Placed!',
+        chinese: '订单下单成功！',
+        malay: 'Pesanan Berjaya Dibuat!'
+      },
+      error: {
+        english: 'Order Failed!',
+        chinese: '订单失败！',
+        malay: 'Pesanan Gagal!'
+      },
+      ok: {
+        english: 'OK',
+        chinese: '好的',
+        malay: 'Baik'
+      }
+    };
+
+    return {
+      message: translations[type][selectedLanguage] || translations[type]['english'],
+      okButton: translations.ok[selectedLanguage] || translations.ok['english']
+    };
+  }
+
   calculateTotal = () => {
     const { cartItems = [] } = this.props;
     return cartItems.reduce((total, item) => total + (item.price * (item.quantity || 0)), 0).toFixed(2);
@@ -377,6 +523,8 @@ class CheckoutPage extends Component {
       paymentMethod: '',
       collectionMode: '',
       collectionLocation: '',
+      collectionDate: '',
+      collectionTime: '',
       deliveryToAddress: '',
       shipToBillingAddress: false,
       fieldErrors: {
@@ -390,6 +538,8 @@ class CheckoutPage extends Component {
         paymentMethod: '',
         collectionMode: '',
         collectionLocation: '',
+        collectionDate: '',
+        collectionTime: '',
         deliveryToAddress: '',
         shipToBillingAddress: ''
       }
@@ -476,7 +626,7 @@ class CheckoutPage extends Component {
   }
 
   handlePlaceOrder = async () => {
-    const { personalInfo, paymentMethod, collectionMode, collectionLocation, deliveryToAddress, shipToBillingAddress } = this.state;
+    const { personalInfo, paymentMethod, collectionMode, collectionLocation, collectionDate, collectionTime, deliveryToAddress, shipToBillingAddress } = this.state;
     const { cartItems = [] } = this.props;
 
     // Clear all errors first
@@ -491,9 +641,15 @@ class CheckoutPage extends Component {
       paymentMethod: '',
       collectionMode: '',
       collectionLocation: '',
+      collectionDate: '',
+      collectionTime: '',
       deliveryToAddress: '',
       shipToBillingAddress: ''
     };
+
+    // Get translations for validation messages
+    const validationTranslations = this.getValidationTranslations();
+    const { selectedLanguage = 'english' } = this.props;
 
     // Validate all required fields are filled
     const requiredFields = ['firstName', 'lastName', 'phone', 'location']; // Removed 'address', 'postalCode'
@@ -501,40 +657,54 @@ class CheckoutPage extends Component {
 
     requiredFields.forEach(field => {
       if (!personalInfo[field] || personalInfo[field].trim() === '') {
-        const fieldDisplayNames = {
-          firstName: 'First name',
-          lastName: 'Last name',
-          phone: 'Phone',
-          // address: 'Address',
-          // postalCode: 'Postal code',
-          location: 'Location/Club'
-        };
-        newFieldErrors[field] = `${fieldDisplayNames[field]} is required`;
+        const fieldDisplayName = validationTranslations.fieldDisplayNames[field][selectedLanguage] || 
+                               validationTranslations.fieldDisplayNames[field]['english'];
+        const requiredText = validationTranslations.required[selectedLanguage] || 
+                           validationTranslations.required['english'];
+        newFieldErrors[field] = `${fieldDisplayName} ${requiredText}`;
         hasErrors = true;
       }
     });
 
     if (!paymentMethod) {
-      newFieldErrors.paymentMethod = 'Payment method is required';
+      newFieldErrors.paymentMethod = validationTranslations.paymentMethod[selectedLanguage] || 
+                                   validationTranslations.paymentMethod['english'];
       hasErrors = true;
     }
 
     if (!collectionMode) {
-      newFieldErrors.collectionMode = 'Collection mode is required';
+      newFieldErrors.collectionMode = validationTranslations.collectionMode[selectedLanguage] || 
+                                     validationTranslations.collectionMode['english'];
       hasErrors = true;
     }
 
     // Validate collection location only if Self-Collection is selected
     if (collectionMode === 'Self-Collection' && !collectionLocation) {
-      newFieldErrors.collectionLocation = 'Collection location is required';
+      newFieldErrors.collectionLocation = validationTranslations.collectionLocation[selectedLanguage] || 
+                                         validationTranslations.collectionLocation['english'];
       hasErrors = true;
+    }
+
+    // Validate collection date and time only if Self-Collection is selected and location is chosen
+    if (collectionMode === 'Self-Collection' && collectionLocation) {
+      if (!collectionDate) {
+        newFieldErrors.collectionDate = validationTranslations.collectionDate[selectedLanguage] || 
+                                       validationTranslations.collectionDate['english'];
+        hasErrors = true;
+      }
+      if (!collectionTime) {
+        newFieldErrors.collectionTime = validationTranslations.collectionTime[selectedLanguage] || 
+                                       validationTranslations.collectionTime['english'];
+        hasErrors = true;
+      }
     }
 
     // Validate delivery address only if Delivery is selected
     // Commented out since Delivery option is now disabled
     // if (collectionMode === 'Delivery') {
     //   if (!shipToBillingAddress && !deliveryToAddress) {
-    //     newFieldErrors.deliveryToAddress = 'Delivery address is required';
+    //     newFieldErrors.deliveryToAddress = validationTranslations.deliveryAddress[selectedLanguage] || 
+    //                                       validationTranslations.deliveryAddress['english'];
     //     hasErrors = true;
     //   }
     //   // If using billing address, check if billing address exists
@@ -546,7 +716,9 @@ class CheckoutPage extends Component {
     // }
 
     if (cartItems.length === 0) {
-      alert('Your cart is empty');
+      const cartEmptyMessage = validationTranslations.cartEmpty[selectedLanguage] || 
+                              validationTranslations.cartEmpty['english'];
+      alert(cartEmptyMessage);
       return;
     }
 
@@ -596,7 +768,9 @@ class CheckoutPage extends Component {
       },
       collectionDetails: {
         collectionMode: collectionMode,
-        CollectionDeliveryLocation: CollectionDeliveryLocation
+        CollectionDeliveryLocation: CollectionDeliveryLocation,
+        collectionDate: collectionDate,
+        collectionTime: collectionTime
       },
       orderDetails: {
       orderDate: orderDate,
@@ -632,17 +806,11 @@ class CheckoutPage extends Component {
         this.downloadInvoice(response.data.invoice);
         
         // Show success modal with invoice info
+        const successTranslation = this.getModalTranslations('success');
         this.showModal(
           'success',
           '✓',
-          'Order Successfully Placed!'
-        );
-      } else {
-        // Show success modal without invoice info
-        this.showModal(
-          'success',
-          '✓',
-          'Order Successfully Placed!'
+          successTranslation.message
         );
       }
       
@@ -650,16 +818,17 @@ class CheckoutPage extends Component {
       console.error('Error placing order:', error);
       
       // Show error modal
+      const errorTranslation = this.getModalTranslations('error');
       this.showModal(
         'error',
         '✗',
-        'Order Failed!'
+        errorTranslation.message
       );
  }
   }
 
   render() {
-    const { personalInfo, paymentMethod, collectionMode, collectionLocation, deliveryToAddress, shipToBillingAddress, expandedSections, fieldErrors, modal, languageModal } = this.state;
+    const { personalInfo, paymentMethod, collectionMode, collectionLocation, collectionDate, collectionTime, deliveryToAddress, shipToBillingAddress, expandedSections, fieldErrors, modal, languageModal } = this.state;
     const { cartItems = [], selectedLanguage = 'english' } = this.props;
     const currentLanguage = this.getCurrentLanguageInfo();
 
@@ -672,6 +841,7 @@ class CheckoutPage extends Component {
             <CheckoutActions
               onGoBack={this.handleGoBack}
               showTopOnly={true}
+              selectedLanguage={selectedLanguage}
             />
 
             {/* Language Selection Button */}
@@ -726,6 +896,22 @@ class CheckoutPage extends Component {
             onDeliveryToAddressChange={this.handleDeliveryToAddressChange}
             onShipToBillingAddressChange={this.handleShipToBillingAddressChange}
             onToggleSection={this.toggleSection}
+            selectedLanguage={selectedLanguage}
+          />
+
+          {/* Collection Date & Time Section */}
+          <CollectionDateTimeSection
+            collectionDate={collectionDate}
+            collectionTime={collectionTime}
+            expandedSections={expandedSections}
+            fieldErrors={fieldErrors}
+            collectionMode={collectionMode}
+            collectionLocation={collectionLocation}
+            personalInfoLocation={personalInfo.location}
+            onCollectionDateChange={this.handleCollectionDateChange}
+            onCollectionTimeChange={this.handleCollectionTimeChange}
+            onToggleSection={this.toggleSection}
+            selectedLanguage={selectedLanguage}
           />
 
           {/* Order Summary Section */}
@@ -746,6 +932,7 @@ class CheckoutPage extends Component {
             onClearForm={this.handleClearForm}
             onGoBack={this.handleGoBack}
             onPlaceOrder={this.handlePlaceOrder}
+            selectedLanguage={selectedLanguage}
           />
         </div>
 
@@ -762,7 +949,7 @@ class CheckoutPage extends Component {
               </div>
               <div className="modal-footer3">
                 <button className="modal-button" onClick={this.hideModal}>
-                  OK
+                  {this.getModalTranslations('ok').okButton}
                 </button>
               </div>
             </div>

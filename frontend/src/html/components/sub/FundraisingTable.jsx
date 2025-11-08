@@ -40,7 +40,9 @@ class FundraisingTable extends Component {
         selectedItems: [],
         selectedRowData: null,
         wooCommerceProductDetails: [], // Store WooCommerce product details
-        isLoadingProductDetails: false  // Loading state for product details
+        isLoadingProductDetails: false,  // Loading state for product details
+        showCalendarModal: false, // Show collection date calendar modal
+        selectedOrderForCalendar: null
       };
       this.tableRef = React.createRef();
       this.gridRef = React.createRef();
@@ -315,13 +317,30 @@ class FundraisingTable extends Component {
     }
 
     componentDidUpdate(prevProps) {
+      console.log("FundraisingTable - componentDidUpdate called with props:", {
+        prev: {
+          paymentMethod: prevProps.paymentMethod,
+          collectionLocation: prevProps.collectionLocation,
+          status: prevProps.status,
+          searchQuery: prevProps.searchQuery
+        },
+        current: {
+          paymentMethod: this.props.paymentMethod,
+          collectionLocation: this.props.collectionLocation,
+          status: this.props.status,
+          searchQuery: this.props.searchQuery
+        }
+      });
+      
       // Check if filter props have changed and apply filtering
       if (
         prevProps.paymentMethod !== this.props.paymentMethod ||
         prevProps.collectionMode !== this.props.collectionMode ||
+        prevProps.collectionLocation !== this.props.collectionLocation ||
         prevProps.status !== this.props.status ||
         prevProps.searchQuery !== this.props.searchQuery
       ) {
+        console.log("FundraisingTable - Filter props changed, calling applyFilters");
         this.applyFilters();
       }
     }
@@ -338,6 +357,8 @@ class FundraisingTable extends Component {
         searchQuery,
         originalDataLength: originalData ? originalData.length : 0
       });
+      
+      console.log("FundraisingTable - Collection location from props:", collectionLocation);
 
       if (!originalData || originalData.length === 0) {
         console.log("FundraisingTable - No original data available for filtering");
@@ -364,9 +385,17 @@ class FundraisingTable extends Component {
 
       // Apply collection location filter
       if (collectionLocation && collectionLocation !== 'All Collection Locations' && collectionLocation !== '') {
-        filteredData = filteredData.filter(record => 
-          record.collectionDetails?.CollectionDeliveryLocation && record.collectionDetails.CollectionDeliveryLocation.toLowerCase().includes(collectionLocation.toLowerCase())
-        );
+        console.log("FundraisingTable - Applying collection location filter:", collectionLocation);
+        const beforeFilterLength = filteredData.length;
+        filteredData = filteredData.filter(record => {
+          const recordLocation = record.collectionDetails?.CollectionDeliveryLocation;
+          const match = recordLocation && recordLocation.toLowerCase().includes(collectionLocation.toLowerCase());
+          if (!match) {
+            console.log("FundraisingTable - Filtering out record with location:", recordLocation);
+          }
+          return match;
+        });
+        console.log("FundraisingTable - Collection location filter applied. Before:", beforeFilterLength, "After:", filteredData.length);
       }
 
       // Apply status filter
@@ -592,28 +621,54 @@ class FundraisingTable extends Component {
           address: item.personalInfo?.address || item.address || '',
           postalCode: item.personalInfo?.postalCode || item.postalCode || '',
           donationAmount: displayAmount,
+          invoiceNumber: item.invoiceNumber || item.paymentDetails?.invoiceNumber || '',
           paymentMethod: item.paymentDetails?.paymentMethod || '',
           items: item.orderDetails?.items, // This now contains enriched items with WooCommerce details
           collectionMode: item.collectionDetails?.collectionMode || '',
           collectionDeliveryLocation: item.collectionDetails?.CollectionDeliveryLocation || '',
           location: item.personalInfo?.location || item.collectionDetails?.CollectionDeliveryLocation || '',
           orderDateTime: (() => {
-            // Helper function to format dates
+            // Helper function to format dates to dd/mm/yyyy hh:mm
             const formatDate = (dateValue) => {
               if (!dateValue) return '';
               const date = new Date(dateValue);
-              return !isNaN(date.getTime()) ? date.toLocaleDateString() + ' ' + date.toLocaleTimeString() : '';
+              if (!isNaN(date.getTime())) {
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = date.getFullYear();
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                return `${day}/${month}/${year} ${hours}:${minutes}`;
+              }
+              return '';
             };
 
             const orderDate = item.orderDetails?.orderDate || item.orderDate || '';
             const orderTime = item.orderDetails?.orderTime || item.orderTime || '';
             const createdAt = formatDate(item.createdAt || item._id?.getTimestamp?.());
 
-            // Combine order date and time with fallback to createdAt
+            // Combine order date and time with proper formatting
             if (orderDate && orderTime) {
-              return `${orderDate} at ${orderTime}`;
-            } else if (orderDate || orderTime) {
-              return orderDate || orderTime;
+              // If both date and time are available, try to parse and format them
+              const combinedDateTime = new Date(`${orderDate} ${orderTime}`);
+              if (!isNaN(combinedDateTime.getTime())) {
+                return formatDate(combinedDateTime);
+              } else {
+                return `${orderDate} at ${orderTime}`;
+              }
+            } else if (orderDate) {
+              // Try to parse just the date
+              const dateOnly = new Date(orderDate);
+              if (!isNaN(dateOnly.getTime())) {
+                const day = String(dateOnly.getDate()).padStart(2, '0');
+                const month = String(dateOnly.getMonth() + 1).padStart(2, '0');
+                const year = dateOnly.getFullYear();
+                return `${day}/${month}/${year}`;
+              } else {
+                return orderDate;
+              }
+            } else if (orderTime) {
+              return orderTime;
             } else if (createdAt) {
               return createdAt;
             } else {
@@ -623,6 +678,11 @@ class FundraisingTable extends Component {
           status: item.status || 'Pending',
           donationDate: item.orderDate,
           receiptNumber: (item.status !== 'Pending') ? this.generateReceiptNumber(fundraisingData, index) : '',
+          collectionDetails: item.collectionDetails || {},
+          collectionDate: item.collectionDetails?.collectionDate || '',
+          collectionTime: item.collectionDetails?.collectionTime || '',
+          orderDate: item.orderDetails?.orderDate || item.orderDate || '',
+          orderTime: item.orderDetails?.orderTime || item.orderTime || '',
           // Add enriched data for easy access
           enrichedTotalPrice: item.enrichedTotalPrice || 0,
           originalTotalPrice: item.originalTotalPrice || 0
@@ -775,7 +835,7 @@ class FundraisingTable extends Component {
             } else if (amount && !isNaN(amount)) {
               return `$${parseFloat(amount).toFixed(2)}`;
             }
-            return amount || '$0.00';
+            return amount;
           }
         },
         {
@@ -789,30 +849,45 @@ class FundraisingTable extends Component {
           editable: true,
         },
         {
-          headerName: "Collection Mode",
-          field: "collectionMode",
-          width: 150
-        },
-        {
-          headerName: "Collection Location",
-          field: "collectionDeliveryLocation",
-          width: 250,
-          editable: true,
+          headerName: "Invoice Number",
+          field: "invoiceNumber",
+          width: 200,
+          cellRenderer: (params) => {
+            const invoiceNumber = params.value;
+            // Make invoice number clickable if it exists
+            if (invoiceNumber) {
+              return (
+                <button
+                  className="fundraising-invoice-link"
+                  onClick={() => this.generateInvoiceFromNumber(params.data)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#000000',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {invoiceNumber}
+                </button>
+              );
+            }
+            return invoiceNumber || '';
+          }
         },
         {
           headerName: "Order Details",
           field: "orderDateTime",
-          width: 200,
+          width: 300,
+          cellRenderer: (params) => {
+            const orderDateTime = params.value;
+            if (orderDateTime && orderDateTime !== 'Date not available') {
+              return orderDateTime;
+            }
+          },
           editable: false,
         },
-        // Commented out the duplicate Collection Location column since we already have Location
-        // {
-        //   headerName: "Collection Location",
-        //   field: "collectionDetails",
-        //   width: 300
-        // },
         {
-          headerName: "Status",
+          headerName: "Order Status",
           field: "status",
            width: 220,
           cellEditor: "agSelectCellEditor",
@@ -837,32 +912,107 @@ class FundraisingTable extends Component {
               </div>
             );
           },
+          editable: true
+        },
+        {
+          headerName: "Collection Mode",
+          field: "collectionMode",
+          width: 150
+        },
+        {
+          headerName: "Collection Location",
+          field: "collectionDeliveryLocation",
+          width: 250,
+          cellEditor: "agSelectCellEditor",
+          cellEditorParams: {
+            values: ["CT Hub", "Pasir Ris West Wellness Centre", "Tampines North Community Club"]
+          },
           editable: true,
         },
+        {
+          headerName: "Collection Details",
+          field: "collectionDetails",
+          width: 300,
+          cellRenderer: (params) => {
+            const collectionDetails = params.value;
+            
+            // Create display text for collection details
+            let displayText = "Click to set collection date";
+            
+            if (collectionDetails && (collectionDetails.collectionDate || collectionDetails.collectionTime)) {
+              // Format date to dd/mm/yyyy
+              let formattedDate = "TBD";
+              if (collectionDetails.collectionDate) {
+                const date = new Date(collectionDetails.collectionDate);
+                if (!isNaN(date.getTime())) {
+                  const day = String(date.getDate()).padStart(2, '0');
+                  const month = String(date.getMonth() + 1).padStart(2, '0');
+                  const year = date.getFullYear();
+                  formattedDate = `${day}/${month}/${year}`;
+                } else {
+                  formattedDate = collectionDetails.collectionDate;
+                }
+              }
+              
+              // Keep the original time format (preserve time ranges like "10:00-16:00")
+              let formattedTime = "TBD";
+              if (collectionDetails.collectionTime) {
+                // Use the original time format as-is to preserve ranges
+                formattedTime = collectionDetails.collectionTime;
+              }
+              
+              displayText = `${formattedDate} ${formattedTime}`;
+            }
+            
+            // Make the collection details clickable
+            return (
+              <button
+                onClick={() => this.openCalendarModal(params.data)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#000000',
+                  cursor: 'pointer'
+                }}
+              >
+                {displayText}
+              </button>
+            );
+          },
+        },
+        // Commented out the duplicate Collection Location column since we already have Location
+        // {
+        //   headerName: "Collection Location",
+        //   field: "collectionDetails",
+        //   width: 300
+        // },
         {
           headerName: "Receipt Number",
           field: "receiptNumber",
           width: 200,
           cellRenderer: (params) => {
             const receiptNumber = params.value;
-            const status = params.data.statu
-              // Only make receipt number clickable for "Paid" status 
-                return (
-                  <button
-                    className="fundraising-receipt-link"
-                    onClick={() => this.generateReceiptFromNumber(params.data)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#000000',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {receiptNumber}
-                  </button>
-                )
+            const status = params.data.status;
+            // Only make receipt number clickable for "Paid" status 
+            if (receiptNumber && status === "Paid") {
+              return (
+                <button
+                  className="fundraising-receipt-link"
+                  onClick={() => this.generateReceiptFromNumber(params.data)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#000000',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {receiptNumber}
+                </button>
+              );
             }
+            return receiptNumber || '';
           }
+        }
       ];
 
       return columnDefs;
@@ -947,6 +1097,107 @@ class FundraisingTable extends Component {
         selectedItems: [],
         selectedRowData: null
       });
+    };
+
+    // Open calendar modal for collection details
+    openCalendarModal = (orderData) => {
+      console.log('Opening calendar modal for order:', orderData);
+      
+      // Use parent's calendar modal if available
+      if (this.props.openCalendarModal) {
+        this.props.openCalendarModal(orderData, this.state.collectionSchedule);
+      } else {
+        // Fallback to local state if parent method not available
+        this.setState({
+          showCalendarModal: true,
+          selectedOrderForCalendar: orderData
+        });
+      }
+    };
+
+    // Close calendar modal
+    closeCalendarModal = () => {
+      this.setState({
+        showCalendarModal: false,
+        selectedOrderForCalendar: null
+      });
+    };
+
+    // Update collection details for an order
+    updateCollectionDetails = async (orderId, collectionDate, collectionTime, location) => {
+      try {
+        console.log('Updating collection date:', { orderId, collectionDate });
+        
+        // Find the current order from fundraising data to preserve existing collection details
+        const currentOrder = this.state.fundraisingData.find(order => order._id === orderId);
+        const existingCollectionDetails = currentOrder?.collectionDetails || {};
+        
+        const response = await axios.post(
+          `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/fundraising`,
+          {
+            purpose: "updateCollectionDetails",
+            _id: orderId,
+            collectionDetails: {
+              ...existingCollectionDetails, // Preserve all existing keys
+              collectionDate: collectionDate // Only update the collection date
+            }
+          }
+        );
+        
+        if (response.data.result && response.data.result.success) {
+          console.log('Collection date updated successfully');
+          
+          // Refresh table data to show updated collection details
+          await this.fetchAndSetFundraisingData();
+          
+          return { success: true };
+        } else {
+          console.error('Failed to update collection details:', response.data);
+          return { success: false };
+        }
+        
+      } catch (error) {
+        console.error('Error updating collection details:', error);
+        return { success: false, error: error.message };
+      }
+    };
+
+    // Update collection location for an order
+    updateCollectionLocation = async (orderId, newCollectionLocation) => {
+      try {
+        console.log(`Updating order ${orderId} collection location to: ${newCollectionLocation}`);
+        
+        const response = await axios.post(
+          `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/fundraising`,
+          {
+            purpose: "updateCollectionLocation",
+            _id: orderId,
+            newCollectionLocation: newCollectionLocation
+          }
+        );
+        
+        if (response.data.result && response.data.result.success) {
+          console.log('Collection location update response from backend:', response.data.result);
+          
+          // Emit Socket.IO event for real-time updates if available
+          if (this.socket) {
+            this.socket.emit('fundraising', {
+              action: 'updateCollectionLocation',
+              orderId: orderId,
+              newCollectionLocation: newCollectionLocation
+            });
+          }
+          
+          return { success: true };
+        } else {
+          console.error('Failed to update collection location:', response.data);
+          return { success: false };
+        }
+        
+      } catch (error) {
+        console.error('Error updating collection location:', error);
+        return { success: false, error: error.message };
+      }
     };
 
     // Render the items modal
@@ -1132,6 +1383,8 @@ class FundraisingTable extends Component {
       );
     };
 
+
+
     getRowStyle = (params) => {
       const { expandedRowIndex, rowData } = this.state;
       const rowIndex = params.rowIndex;
@@ -1277,6 +1530,42 @@ class FundraisingTable extends Component {
         }
       }
       
+      // Handle payment method changes
+      if (params.colDef.field === 'paymentMethod') {
+        console.log(`Payment method changing from "${params.oldValue}" to "${params.newValue}" for order ID: ${params.data.id}`);
+        
+        const result = await this.updatePaymentMethod(params.data.id, params.newValue);
+        
+        console.log('updatePaymentMethod result:', result);
+        
+        if (result && result.success) {
+          console.log('Payment method update completed successfully');
+          
+          // Refresh table data to show updated payment method
+          await this.fetchAndSetFundraisingData();
+        } else {
+          console.log('Payment method update failed');
+        }
+      }
+
+      // Handle collection delivery location changes
+      if (params.colDef.field === 'collectionDeliveryLocation') {
+        console.log(`Collection delivery location changing from "${params.oldValue}" to "${params.newValue}" for order ID: ${params.data.id}`);
+        
+        const result = await this.updateCollectionLocation(params.data.id, params.newValue);
+        
+        console.log('updateCollectionLocation result:', result);
+        
+        if (result && result.success) {
+          console.log('Collection delivery location update completed successfully');
+          
+          // Refresh table data to show updated collection location
+          await this.fetchAndSetFundraisingData();
+        } else {
+          console.log('Collection delivery location update failed');
+        }
+      }
+      
     };
 
     // Generate receipt when clicking on receipt number
@@ -1398,6 +1687,10 @@ class FundraisingTable extends Component {
           donationAmount: totalAmount,
           paymentMethod: rowData.paymentMethod,
           collectionMode: rowData.collectionMode,
+          collectionDeliveryLocation: rowData.collectionDeliveryLocation,
+          collectionDate: rowData.collectionDate,
+          collectionTime: rowData.collectionTime,
+          collectionDetails: rowData.collectionDetails || {},
           status: rowData.status,
           receiptNumber: rowData.receiptNumber,
           subtotalInfo: subtotalInfo
@@ -1425,6 +1718,160 @@ class FundraisingTable extends Component {
         }
       } catch (error) {
         console.error('Error generating receipt:', error);
+      }
+    };
+
+    // Generate invoice when clicking on invoice number
+    generateInvoiceFromNumber = async (rowData) => {
+      try {
+        console.log('Generating invoice for order:', rowData);
+        
+        // Check if invoice number exists
+        if (!rowData.invoiceNumber || rowData.invoiceNumber.trim() === '') {
+          console.warn('No invoice number found for this order');
+          return;
+        }
+        
+        // Extract numeric value from donation amount (remove $ and convert to number)
+        let totalAmount = 0;
+        if (rowData.donationAmount) {
+          // Handle both string formats like "$25.00" and numeric values
+          const amountStr = rowData.donationAmount.toString().replace(/[\$,]/g, '');
+          totalAmount = parseFloat(amountStr) || 0;
+        }
+        
+        console.log('Extracted total amount:', totalAmount, 'from:', rowData.donationAmount);
+        console.log('Collection details from rowData:', {
+          collectionDetails: rowData.collectionDetails,
+          collectionDate: rowData.collectionDate,
+          collectionTime: rowData.collectionTime,
+          collectionMode: rowData.collectionMode,
+          collectionDeliveryLocation: rowData.collectionDeliveryLocation
+        });
+        
+        // Process items to include pricing information for invoice generation
+        const processedItems = (rowData.items || []).map((item, index) => {
+          const itemName = item.productName || item.name || item.itemName;
+          const quantity = item.quantity || 1;
+          
+          // Extract price information from enriched data or fallback
+          let unitPrice = 0;
+          let subtotal = 0;
+          
+          if (item.enrichedData && item.enrichedData.subtotal > 0) {
+            // Use enriched data if available
+            unitPrice = item.enrichedData.finalPrice || 0;
+            subtotal = item.enrichedData.subtotal;
+
+          } else if (item.wooCommerceDetails) {
+            // Use WooCommerce details as fallback
+            unitPrice = parseFloat(item.wooCommerceDetails.price) || 0;
+            subtotal = unitPrice * quantity;
+
+          } else {
+            // Try to get pricing from WooCommerce product details state
+            const { wooCommerceProductDetails } = this.state;
+            let foundProduct = null;
+            
+            if (wooCommerceProductDetails && wooCommerceProductDetails.length > 0) {
+              // Look for exact match first
+              foundProduct = wooCommerceProductDetails.find(product => product.name === itemName);
+              
+              // If no exact match, try partial matching
+              if (!foundProduct) {
+                foundProduct = wooCommerceProductDetails.find(product => 
+                  product.name.toLowerCase().includes(itemName.toLowerCase()) ||
+                  itemName.toLowerCase().includes(product.name.toLowerCase())
+                );
+              }
+            }
+            
+            if (foundProduct) {
+              unitPrice = parseFloat(foundProduct.price) || 0;
+              subtotal = unitPrice * quantity;
+
+            } else {
+              // Final fallback to item's own price
+              unitPrice = item.price || item.unitPrice || 0;
+              subtotal = unitPrice * quantity;
+            }
+          }
+          
+          console.log(`Processing item "${itemName}": price=${unitPrice}, qty=${quantity}, subtotal=${subtotal}`);
+          
+          return {
+            ...item,
+            productName: itemName,
+            quantity: quantity,
+            price: unitPrice,
+            unitPrice: unitPrice,
+            subtotal: subtotal
+          };
+        });
+        
+        // Calculate total from processed items if totalAmount is 0
+        if (totalAmount === 0 && processedItems.length > 0) {
+          totalAmount = processedItems.reduce((total, item) => total + (item.subtotal || 0), 0);
+          console.log('Calculated total from items:', totalAmount);
+        }
+        
+        // Create order data structure for invoice generation
+        const orderData = {
+          _id: rowData.id,
+          personalInfo: {
+            firstName: rowData.firstName,
+            lastName: rowData.lastName,
+            phone: rowData.contactNumber,
+            email: rowData.email,
+            address: rowData.address,
+            postalCode: rowData.postalCode
+          },
+          orderDetails: {
+            items: processedItems,
+            totalPrice: totalAmount,
+            orderDate: rowData.donationDate || rowData.orderDate || new Date().toLocaleDateString(),
+            orderTime: rowData.orderTime || new Date().toLocaleTimeString()
+          },
+          paymentDetails: {
+            paymentMethod: rowData.paymentMethod
+          },
+          collectionDetails: {
+            collectionMode: rowData.collectionMode,
+            CollectionDeliveryLocation: rowData.collectionDeliveryLocation,
+            collectionDate: rowData.collectionDetails?.collectionDate,
+            collectionTime: rowData.collectionDetails?.collectionTime
+          },
+          totalPrice: totalAmount,
+          donationAmount: totalAmount,
+          status: rowData.status,
+          invoiceNumber: rowData.invoiceNumber
+        };
+
+        console.log('Invoice number being sent to backend:', rowData.invoiceNumber);
+        console.log('Full order data being sent for invoice:', orderData);
+        console.log('Collection details being sent to backend:', orderData.collectionDetails);
+        console.log('Order details being sent to backend:', orderData.orderDetails);
+        
+        // Call backend to generate checkout invoice
+        const response = await axios.post(
+          `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/fundraising`,
+          {
+            purpose: "generateCheckoutInvoice",
+            orderData: orderData,
+            invoiceNumber: rowData.invoiceNumber
+          }
+        );
+
+        console.log('Invoice generation response:', response.data);
+        
+        // Handle the PDF response
+        if (response.data.result && response.data.result.success && response.data.result.pdfGenerated) {
+          this.handlePdfResponse(response.data.result);
+        } else {
+          console.error('Failed to generate invoice:', response.data);
+        }
+      } catch (error) {
+        console.error('Error generating invoice:', error);
       }
     };
 
@@ -1650,6 +2097,44 @@ class FundraisingTable extends Component {
       }
     };
 
+    // Update payment method using _id
+    updatePaymentMethod = async (orderId, newPaymentMethod) => {
+      try {
+        console.log(`Updating order ${orderId} payment method to: ${newPaymentMethod}`);
+        
+        const response = await axios.post(
+          `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/fundraising`,
+          {
+            purpose: "updatePaymentMethod",
+            _id: orderId,
+            newPaymentMethod: newPaymentMethod
+          }
+        );
+        
+        if (response.data.result && response.data.result.success) {
+          console.log('Payment method update response from backend:', response.data.result);
+          
+          // Emit Socket.IO event for real-time updates if available
+          if (this.socket) {
+            this.socket.emit('fundraising', {
+              action: 'updatePaymentMethod',
+              orderId: orderId,
+              newPaymentMethod: newPaymentMethod
+            });
+          }
+          
+          return { success: true };
+        } else {
+          console.error('Failed to update payment method:', response.data);
+          return { success: false };
+        }
+        
+      } catch (error) {
+        console.error('Error updating payment method:', error);
+        return { success: false, error: error.message };
+      }
+    };
+
     // Generate receipt manually when backend doesn't generate it
     generateReceiptFromOrderData = async (orderData, subtotalInfo, processedItems) => {
       try {
@@ -1678,6 +2163,10 @@ class FundraisingTable extends Component {
           donationAmount: totalAmount,
           paymentMethod: orderData.paymentDetails?.paymentMethod || orderData.paymentMethod,
           collectionMode: orderData.collectionDetails?.collectionMode || orderData.collectionMode,
+          collectionDeliveryLocation: orderData.collectionDetails?.CollectionDeliveryLocation || orderData.collectionDeliveryLocation,
+          collectionDate: orderData.collectionDetails?.collectionDate || orderData.collectionDate,
+          collectionTime: orderData.collectionDetails?.collectionTime || orderData.collectionTime,
+          collectionDetails: orderData.collectionDetails || {},
           status: "Paid",
           receiptNumber: orderData.fundraisingKey || orderData.receiptNumber,
           subtotalInfo: subtotalInfo
@@ -1937,18 +2426,18 @@ class FundraisingTable extends Component {
         'S/N',
         'First Name',
         'Last Name',
-        'Contact Number',
         'Email',
-        // 'Address',
-        // 'Postal Code',
+        'Phone',
         'Station Location',
+        'Items Summary',
         'Total Price',
         'Payment Method',
-        'Items Summary',
-        'Collection Mode',
-        'Collection Location',
+        'Invoice Number',
         'Order Details',
         'Status',
+        'Collection Mode',
+        'Collection Location',
+        'Collection Details',
         'Receipt Number',
       ];
 
@@ -1992,7 +2481,81 @@ class FundraisingTable extends Component {
     getOrderDetails = (item) => {
       const orderDate = item.orderDetails?.orderDate || item.orderDate || '';
       const orderTime = item.orderDetails?.orderTime || item.orderTime || '';
-      return `${orderDate} ${orderTime}`.trim();
+      
+      // Format date to dd/mm/yyyy hh:mm
+      const formatDate = (dateValue) => {
+        if (!dateValue) return '';
+        const date = new Date(dateValue);
+        if (!isNaN(date.getTime())) {
+          const day = String(date.getDate()).padStart(2, '0');
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const year = date.getFullYear();
+          const hours = String(date.getHours()).padStart(2, '0');
+          const minutes = String(date.getMinutes()).padStart(2, '0');
+          return `${day}/${month}/${year} ${hours}:${minutes}`;
+        }
+        return '';
+      };
+
+      const createdAt = formatDate(item.createdAt || item._id?.getTimestamp?.());
+
+      // Combine order date and time with proper formatting
+      if (orderDate && orderTime) {
+        // If both date and time are available, try to parse and format them
+        const combinedDateTime = new Date(`${orderDate} ${orderTime}`);
+        if (!isNaN(combinedDateTime.getTime())) {
+          return formatDate(combinedDateTime);
+        } else {
+          return `${orderDate} at ${orderTime}`;
+        }
+      } else if (orderDate) {
+        // Try to parse just the date
+        const dateOnly = new Date(orderDate);
+        if (!isNaN(dateOnly.getTime())) {
+          const day = String(dateOnly.getDate()).padStart(2, '0');
+          const month = String(dateOnly.getMonth() + 1).padStart(2, '0');
+          const year = dateOnly.getFullYear();
+          return `${day}/${month}/${year}`;
+        } else {
+          return orderDate;
+        }
+      } else if (orderTime) {
+        return orderTime;
+      } else if (createdAt) {
+        return createdAt;
+      } else {
+        return 'Date not available';
+      }
+    };
+
+    // Helper method: Get collection details
+    getCollectionDetails = (item) => {
+      const collectionDetails = item.collectionDetails;
+      if (collectionDetails && (collectionDetails.collectionDate || collectionDetails.collectionTime)) {
+        // Format date to dd/mm/yyyy
+        let formattedDate = "TBD";
+        if (collectionDetails.collectionDate) {
+          const date = new Date(collectionDetails.collectionDate);
+          if (!isNaN(date.getTime())) {
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            formattedDate = `${day}/${month}/${year}`;
+          } else {
+            formattedDate = collectionDetails.collectionDate;
+          }
+        }
+        
+        // Keep the original time format (preserve time ranges like "10:00-16:00")
+        let formattedTime = "TBD";
+        if (collectionDetails.collectionTime) {
+          // Use the original time format as-is to preserve ranges
+          formattedTime = collectionDetails.collectionTime;
+        }
+        
+        return `${formattedDate} ${formattedTime}`;
+      }
+      return "Not set";
     };
 
     // Helper method: Build row data for export
@@ -2003,27 +2566,25 @@ class FundraisingTable extends Component {
       const stationLocation = item.personalInfo?.location;
       const collectionLocation = this.getCollectionLocation(item, row);
       const orderDetails = this.getOrderDetails(item);
+      const collectionDetails = this.getCollectionDetails(item);
 
       const completeRowData = [
-        row.sn || index + 1,
-        item.personalInfo?.firstName || item.firstName || row.firstName || '',
-        item.personalInfo?.lastName || item.lastName || row.lastName || '',
-        item.personalInfo?.phone || item.contactNumber || row.contactNumber || '',
-        item.personalInfo?.email || item.email || row.email || '',
-        // item.personalInfo?.address || item.address || row.address || '', // Commented out
-        // item.personalInfo?.postalCode || item.postalCode || row.postalCode || '', // Commented out
-        stationLocation,
-        displayPrice,
-        // originalPriceForExport ? `$${parseFloat(originalPriceForExport).toFixed(2)}` : '$0.00',
-        // enrichedPriceForExport ? `$${enrichedPriceForExport.toFixed(2)}` : '$0.00',
-        item.paymentDetails?.paymentMethod || item.paymentMethod || row.paymentMethod || '',
-        itemsSummary,
-        // itemsDetail, // Commented out
-        item.collectionDetails?.collectionMode || item.collectionMode || row.collectionMode || '',
-        collectionLocation,
-        orderDetails,
-        item.status || row.status || 'Pending',
-        item.receiptNumber || row.receiptNumber || '',
+        row.sn || index + 1, // S/N
+        item.personalInfo?.firstName || item.firstName || row.firstName || '', // First Name
+        item.personalInfo?.lastName || item.lastName || row.lastName || '', // Last Name
+        item.personalInfo?.email || item.email || row.email || '', // Email
+        item.personalInfo?.phone || item.contactNumber || row.contactNumber || '', // Phone
+        stationLocation, // Station Location
+        itemsSummary, // Items Summary
+        displayPrice, // Total Price
+        item.paymentDetails?.paymentMethod || item.paymentMethod || row.paymentMethod || '', // Payment Method
+        item.invoiceNumber || item.paymentDetails?.invoiceNumber || row.invoiceNumber || '', // Invoice Number
+        orderDetails, // Order Details
+        item.status || row.status || 'Pending', // Status
+        item.collectionDetails?.collectionMode || item.collectionMode || row.collectionMode || '', // Collection Mode
+        collectionLocation, // Collection Location
+        collectionDetails, // Collection Details
+        item.receiptNumber || row.receiptNumber || '', // Receipt Number
       ];
 
       // Filter data to match only active headers (non-commented)
@@ -2192,12 +2753,10 @@ class FundraisingTable extends Component {
         
         // Get headers and data
         const allHeaders = [
-          'S/N', 'First Name', 'Last Name', 'Contact Number', 'Email',
-          // 'Address', // 'Postal Code',
-          'Station Location', 'Total Price',
-          // 'Original Price', // 'Enriched Price',
-          'Payment Method', 'Items Summary', 'Collection Mode',
-          'Collection Location', 'Order Details', 'Status', 'Receipt Number'
+          'S/N', 'First Name', 'Last Name', 'Email', 'Phone',
+          'Station Location', 'Items Summary', 'Total Price',
+          'Payment Method', 'Invoice Number', 'Order Details', 'Status',
+          'Collection Mode', 'Collection Location', 'Collection Details', 'Receipt Number'
         ];
         const activeHeaders = this.getExcelHeaders();
         const dataToExport = this.state.originalData || this.state.rowData;
@@ -2258,11 +2817,10 @@ class FundraisingTable extends Component {
         
         // Define comprehensive headers for payment report
         const headers = [
-          'S/N', 'First Name', 'Last Name', 'Contact Number', 'Email',
-          // 'Address', 'Postal Code', // Commented out for payment report
-          'Total Price', 'Payment Method',
-          'Items Summary', 'Collection Mode', 'Collection/Delivery Location',
-          'Status', 'Receipt Number', 'Order Details'
+          'S/N', 'First Name', 'Last Name', 'Email', 'Phone',
+          'Station Location', 'Items Summary', 'Total Price',
+          'Payment Method', 'Invoice Number', 'Order Details', 'Status',
+          'Collection Mode', 'Collection Location', 'Collection Details', 'Receipt Number'
         ];
         
         const activeHeaders = headers.filter(header => typeof header === 'string' && header.trim() !== '');
@@ -2358,26 +2916,30 @@ class FundraisingTable extends Component {
         // Get order details
         const orderDetails = this.getOrderDetails(item);
         
+        // Get collection details
+        const collectionDetails = this.getCollectionDetails(item);
+        
         // Get collection location
         const collectionLocation = this.getCollectionLocation(item, row);
 
         // Build payment report row data
         const completeRowData = [
-          row.sn || originalIndex + 1,
-          item.personalInfo?.firstName || item.firstName || row.firstName || '',
-          item.personalInfo?.lastName || item.lastName || row.lastName || '',
-          item.personalInfo?.phone || item.contactNumber || row.contactNumber || '',
-          item.personalInfo?.email || item.email || row.email || '',
-          // item.personalInfo?.address || item.address || row.address || '', // Commented out for payment report
-          // item.personalInfo?.postalCode || item.postalCode || row.postalCode || '', // Commented out for payment report
-          totalPriceDisplay,
-          item.paymentDetails?.paymentMethod || item.paymentMethod || row.paymentMethod || '',
-          itemsSummary,
-          item.collectionDetails?.collectionMode || item.collectionMode || row.collectionMode || '',
-          collectionLocation,
-          item.status || row.status || 'Pending',
-          item.receiptNumber || row.receiptNumber || '',
-          orderDetails
+          row.sn || originalIndex + 1, // S/N
+          item.personalInfo?.firstName || item.firstName || row.firstName || '', // First Name
+          item.personalInfo?.lastName || item.lastName || row.lastName || '', // Last Name
+          item.personalInfo?.email || item.email || row.email || '', // Email
+          item.personalInfo?.phone || item.contactNumber || row.contactNumber || '', // Phone
+          item.personalInfo?.location, // Station Location
+          itemsSummary, // Items Summary
+          totalPriceDisplay, // Total Price
+          item.paymentDetails?.paymentMethod || item.paymentMethod || row.paymentMethod || '', // Payment Method
+          item.invoiceNumber || item.paymentDetails?.invoiceNumber || row.invoiceNumber || '', // Invoice Number
+          orderDetails, // Order Details
+          item.status || row.status || 'Pending', // Status
+          item.collectionDetails?.collectionMode || item.collectionMode || row.collectionMode || '', // Collection Mode
+          collectionLocation, // Collection Location
+          collectionDetails, // Collection Details
+          item.receiptNumber || row.receiptNumber || '', // Receipt Number
         ];
 
         // Filter data to match only active headers
@@ -2403,8 +2965,8 @@ class FundraisingTable extends Component {
 
       // Create total row data array
       const totalRowData = new Array(headerCount).fill('');
-      totalRowData[4] = 'TOTAL:'; // Email column (since Address and Postal Code are commented out)
-      totalRowData[5] = `$${total.toFixed(2)}`; // Total Price column
+      totalRowData[6] = 'TOTAL:'; // Items Summary column (column before Total Price)
+      totalRowData[7] = `$${total.toFixed(2)}`; // Total Price column (correct index)
 
       // Filter to match active headers
       const filteredTotalRowData = totalRowData.filter((_, index) => {

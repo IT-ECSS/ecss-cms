@@ -296,6 +296,175 @@ router.post('/', async function(req, res, next)
                 result: result
             });
         }
+        else if(req.body.purpose === "generateCheckoutInvoice") {
+            // Generate checkout invoice PDF using existing invoice number
+            try {
+                console.log("Generating checkout invoice with existing invoice number:", req.body.invoiceNumber);
+                console.log("Order data for invoice generation:", JSON.stringify(req.body.orderData, null, 2));
+                
+                // Generate checkout invoice PDF with the provided order data and existing invoice number
+                const checkoutInvoiceGenerator = new CheckoutInvoiceGenerator();
+                const invoiceResult = await checkoutInvoiceGenerator.generateCheckoutInvoice(
+                    req.body.orderData, 
+                    req.body.invoiceNumber // Use existing invoice number
+                );
+                
+                // Convert buffer to base64 for sending to frontend
+                const pdfBase64 = invoiceResult.buffer.toString('base64');
+                
+                console.log("Checkout invoice PDF regenerated successfully with invoice number:", req.body.invoiceNumber);
+                
+                // Return success result with PDF data
+                return res.json({ 
+                    result: {
+                        success: true,
+                        message: "Checkout invoice generated successfully",
+                        pdfGenerated: true,
+                        pdfData: pdfBase64,
+                        pdfFilename: invoiceResult.filename,
+                        invoiceNumber: req.body.invoiceNumber
+                    }
+                });
+                
+            } catch (invoiceError) {
+                console.error("Error generating checkout invoice:", invoiceError);
+                console.error("Invoice error stack:", invoiceError.stack);
+                return res.status(500).json({ 
+                    result: {
+                        success: false,
+                        message: "Failed to generate checkout invoice",
+                        error: invoiceError.message,
+                        pdfGenerated: false
+                    }
+                });
+            }
+        }
+        else if(req.body.purpose === "updatePaymentMethod") {
+            // Update payment method using _id
+            if (!req.body._id || !req.body.newPaymentMethod) {
+                return res.status(400).json({ 
+                    result: {
+                        success: false,
+                        message: "_id and newPaymentMethod are required for payment method update"
+                    }
+                });
+            }
+
+            console.log("Updating payment method for order:", req.body._id);
+            console.log("New payment method:", req.body.newPaymentMethod);
+
+            const updateData = { 
+                'paymentDetails.paymentMethod': req.body.newPaymentMethod
+            };
+
+            console.log("Attempting to update order payment method with data:", updateData);
+            
+            const result = await fundraisingController.updateFundraisingOrder(
+                req.body._id, 
+                updateData
+            );
+            
+            console.log("Payment method update result:", result);
+            
+            // Emit Socket.IO event to update frontend
+            if (io && result.success) {
+                console.log("Emitting fundraising payment method update event to all connected clients");
+                io.emit('fundraising', {
+                    action: 'updatePaymentMethod',
+                    data: result.data,
+                    orderId: req.body._id,
+                    newPaymentMethod: req.body.newPaymentMethod
+                });
+            }
+            
+            return res.json({ 
+                result: result
+            });
+        }
+        else if(req.body.purpose === "updateCollectionDetails") {
+            // Update collection details using _id
+            if (!req.body._id || !req.body.collectionDetails) {
+                return res.status(400).json({ 
+                    result: {
+                        success: false,
+                        message: "_id and collectionDetails are required for collection details update"
+                    }
+                });
+            }
+
+            console.log("Updating collection details for order:", req.body._id);
+            console.log("New collection details:", req.body.collectionDetails);
+
+            const updateData = { 
+                collectionDetails: req.body.collectionDetails
+            };
+
+            console.log("Attempting to update order collection details with data:", updateData);
+            
+            const result = await fundraisingController.updateFundraisingOrder(
+                req.body._id, 
+                updateData
+            );
+            
+            console.log("Collection details update result:", result);
+            
+            // Emit Socket.IO event to update frontend
+            if (io && result.success) {
+                console.log("Emitting fundraising collection details update event to all connected clients");
+                io.emit('fundraising', {
+                    action: 'updateCollectionDetails',
+                    data: result.data,
+                    orderId: req.body._id,
+                    collectionDetails: req.body.collectionDetails
+                });
+            }
+            
+            return res.json({ 
+                result: result
+            });
+        }
+        else if(req.body.purpose === "updateCollectionLocation") {
+            // Update collection location using _id
+            if (!req.body._id || !req.body.newCollectionLocation) {
+                return res.status(400).json({ 
+                    result: {
+                        success: false,
+                        message: "_id and newCollectionLocation are required for collection location update"
+                    }
+                });
+            }
+
+            console.log("Updating collection location for order:", req.body._id);
+            console.log("New collection location:", req.body.newCollectionLocation);
+
+            const updateData = { 
+                'collectionDetails.CollectionDeliveryLocation': req.body.newCollectionLocation
+            };
+
+            console.log("Attempting to update order collection location with data:", updateData);
+            
+            const result = await fundraisingController.updateFundraisingOrder(
+                req.body._id, 
+                updateData
+            );
+            
+            console.log("Collection location update result:", result);
+            
+            // Emit Socket.IO event to update frontend
+            if (io && result.success) {
+                console.log("Emitting fundraising collection location update event to all connected clients");
+                io.emit('fundraising', {
+                    action: 'updateCollectionLocation',
+                    data: result.data,
+                    orderId: req.body._id,
+                    newCollectionLocation: req.body.newCollectionLocation
+                });
+            }
+            
+            return res.json({ 
+                result: result
+            });
+        }
     } catch (error) {
         console.error("Fundraising route error:", error);
         return res.status(500).json({ 

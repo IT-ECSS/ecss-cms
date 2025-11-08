@@ -1092,6 +1092,25 @@ class fundRaisingGenerator {
     }
 
     // New method for fundraising receipts
+    // Expected orderData structure:
+    // {
+    //   receiptNumber: string,
+    //   personalInfo: { firstName: string, lastName: string },
+    //   paymentMethod: string,
+    //   collectionMode: string (optional),
+    //   collectionDeliveryLocation: string (optional), // Can also be CollectionDeliveryLocation
+    //   collectionDate: string (optional),
+    //   collectionTime: string (optional),
+    //   collectionDetails: { // Optional nested object containing collection info
+    //     collectionMode: string,
+    //     CollectionDeliveryLocation: string,
+    //     collectionDate: string,
+    //     collectionTime: string
+    //   },
+    //   items: array,
+    //   totalPrice: number,
+    //   subtotalInfo: object (optional)
+    // }
     async generateFundraisingReceipt(orderData) {
         try {
 
@@ -1194,7 +1213,99 @@ class fundRaisingGenerator {
         const paymentMethod = `Payment Method  : ${paymentMethodValue}`;
         console.log('PDF Generator - Payment method value:', paymentMethodValue);
         doc.font(fontPathTimesRegular).fontSize(12).text(paymentMethod, leftMargin);
-        doc.moveDown(1.5);
+        doc.moveDown(0.3);
+
+        // Add collection information if available - check both direct properties and nested collectionDetails
+        const collectionMode = orderData.collectionMode || orderData.collectionDetails?.collectionMode;
+        const collectionLocation = orderData.collectionDeliveryLocation || 
+                                 orderData.CollectionDeliveryLocation || 
+                                 orderData.collectionDetails?.CollectionDeliveryLocation ||
+                                 orderData.collectionDetails?.collectionDeliveryLocation;
+        const collectionDate = orderData.collectionDate || orderData.collectionDetails?.collectionDate;
+        const collectionTime = orderData.collectionTime || orderData.collectionDetails?.collectionTime;
+
+        console.log('PDF Generator - Collection data:', {
+            collectionMode,
+            collectionLocation,
+            collectionDate,
+            collectionTime,
+            orderDataCollectionDetails: orderData.collectionDetails
+        });
+
+        if (collectionMode) {
+            const collectionModeText = `Collection Mode : ${collectionMode}`;
+            doc.font(fontPathTimesRegular).fontSize(12).text(collectionModeText, leftMargin);
+            doc.moveDown(0.3);
+        }
+
+        if (collectionLocation) {
+            const collectionLocationText = `Collection Location : ${collectionLocation}`;
+            doc.font(fontPathTimesRegular).fontSize(12).text(collectionLocationText, leftMargin);
+            doc.moveDown(0.3);
+        }
+
+        // Combine Collection Date and Time into Collection Details with formatting
+        if (collectionDate || collectionTime) {
+            let collectionDetails = 'Collection Details : ';
+            
+            // Format date from yyyy-mm-dd to dd/mm/yyyy
+            if (collectionDate) {
+                try {
+                    const dateObj = new Date(collectionDate);
+                    if (!isNaN(dateObj.getTime())) {
+                        const day = String(dateObj.getDate()).padStart(2, '0');
+                        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                        const year = dateObj.getFullYear();
+                        collectionDetails += `${day}/${month}/${year}`;
+                    } else {
+                        // Fallback if date parsing fails
+                        collectionDetails += collectionDate;
+                    }
+                } catch (error) {
+                    console.error('Error formatting collection date:', error);
+                    collectionDetails += collectionDate;
+                }
+            }
+            
+            // Format time to 12-hour format
+            if (collectionTime) {
+                if (collectionDate) collectionDetails += ' ';
+                
+                try {
+                    // Handle different time formats
+                    if (collectionTime.includes('-')) {
+                        // Handle range format like "10:00-16:00"
+                        const [startTime, endTime] = collectionTime.split('-');
+                        const formatTime = (time) => {
+                            const [hours, minutes] = time.trim().split(':');
+                            const hour24 = parseInt(hours);
+                            const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+                            const ampm = hour24 >= 12 ? 'PM' : 'AM';
+                            return `${hour12}:${minutes} ${ampm}`;
+                        };
+                        collectionDetails += `${formatTime(startTime)} - ${formatTime(endTime)}`;
+                    } else if (collectionTime.includes(':')) {
+                        // Handle single time format like "10:00"
+                        const [hours, minutes] = collectionTime.split(':');
+                        const hour24 = parseInt(hours);
+                        const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+                        const ampm = hour24 >= 12 ? 'PM' : 'AM';
+                        collectionDetails += `${hour12}:${minutes} ${ampm}`;
+                    } else {
+                        // Fallback for other formats
+                        collectionDetails += collectionTime;
+                    }
+                } catch (error) {
+                    console.error('Error formatting collection time:', error);
+                    collectionDetails += collectionTime;
+                }
+            }
+            
+            doc.font(fontPathTimesRegular).fontSize(12).text(collectionDetails, leftMargin);
+            doc.moveDown(0.3);
+        }
+
+        doc.moveDown(1.2);
 
         // Create fundraising items table with subtotal information
         const itemsToUse = orderData.items || orderData.orderDetails?.items || [];
@@ -1210,6 +1321,10 @@ class fundRaisingGenerator {
 
         // Add signature line - match the image format
         doc.font(fontPathTimesRegular).fontSize(12).text("This is a computer generated receipt and requires no signature.", leftMargin);
+        doc.moveDown(0.5);
+        
+        // Add additional instruction for self collection
+        doc.font(fontPathTimesRegular).fontSize(12).text("Please provide this receipt upon self collection.", leftMargin);
     }
 
     // Create table for fundraising items

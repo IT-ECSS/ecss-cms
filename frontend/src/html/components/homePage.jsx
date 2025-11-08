@@ -16,6 +16,7 @@ import React, { Component } from 'react';
   import FitnessSection from './sub/FitnessSection';
   import FundraisingTable from './sub/FundraisingTable';
   import FundraisingInventory from './sub/FundraisingInventory';
+  import CollectionDateCalendar from './sub/CollectionDateCalendar';
   import ReportSection from './sub/reportSection';
   import WelcomeSection from './sub/welcomeSection';
   import { withAuth } from '../../AuthContext';
@@ -101,6 +102,9 @@ import React, { Component } from 'react';
         // fundraisingCollectionModes: [],
         fundraisingCollectionLocations: [],
         fundraisingStatuses: [],
+        showCalendarModal: false,
+        selectedOrderForCalendar: null,
+        collectionSchedule: {},
         accessRights: {} // Access rights from sidebar
       };
   
@@ -112,6 +116,9 @@ import React, { Component } from 'react';
 
       // Set the initial state
       this.state = initialState;
+
+      // Create ref for FundraisingTable
+      this.fundraisingTableRef = React.createRef();
 
       this.handleDataFromChild = this.handleDataFromChild.bind(this);
       this.searchResultFromChild = this.searchResultFromChild.bind(this);
@@ -146,6 +153,63 @@ import React, { Component } from 'react';
     });
   });
 };
+
+  // Calendar modal methods
+  openCalendarModal = (order, schedule) => {
+    console.log('openCalendarModal called with order:', order);
+    console.log('openCalendarModal called with schedule:', schedule);
+    console.log('Current state before opening modal:', {
+      showCalendarModal: this.state.showCalendarModal,
+      selectedOrderForCalendar: this.state.selectedOrderForCalendar
+    });
+    
+    this.setState({
+      showCalendarModal: true,
+      selectedOrderForCalendar: order,
+      collectionSchedule: schedule
+    }, () => {
+      console.log('State after opening modal:', {
+        showCalendarModal: this.state.showCalendarModal,
+        selectedOrderForCalendar: this.state.selectedOrderForCalendar,
+        collectionSchedule: this.state.collectionSchedule
+      });
+    });
+  };
+
+  closeCalendarModal = () => {
+    this.setState({
+      showCalendarModal: false,
+      selectedOrderForCalendar: null,
+      collectionSchedule: {}
+    });
+  };
+
+  handleDateSelect = async (orderId, selectedDate) => {
+    console.log('Date selected for order:', orderId, selectedDate);
+    
+    try {
+      // Call the updateCollectionDetails method from FundraisingTable
+      if (this.fundraisingTableRef.current) {
+        const result = await this.fundraisingTableRef.current.updateCollectionDetails(
+          orderId, 
+          selectedDate, 
+          null, // collectionTime - keeping existing
+          null  // location - keeping existing
+        );
+        
+        if (result.success) {
+          console.log('Collection date updated successfully');
+        } else {
+          console.error('Failed to update collection date');
+        }
+      }
+    } catch (error) {
+      console.error('Error updating collection date:', error);
+    }
+    
+    // Close the calendar modal
+    this.closeCalendarModal();
+  };
 
     // Function to handle data passed from the child
     handleDataFromChild = async (filter1, filter2, filter3, filter4) => {
@@ -1338,7 +1402,7 @@ import React, { Component } from 'react';
       });
     };
 
-    // Handle fundraising filter selection (payment method, collection mode, status)
+    // Handle fundraising filter selection (payment method, collection location, status)
     handleFundraisingSelectFromChild = (updateState, dropdown) => {
       console.log("Selected Fundraising Filter:", updateState, dropdown);
       
@@ -1346,9 +1410,8 @@ import React, { Component } from 'react';
         this.setState({
           fundraisingPaymentMethod: updateState.paymentMethod || updateState.fundraisingPaymentMethod
         });
-      } else if (dropdown === 'showCollectionModeDropdown') {
+      } else if (dropdown === 'showCollectionLocationDropdown') {
         this.setState({
-          // fundraisingCollectionMode: updateState.collectionMode || updateState.fundraisingCollectionMode
           fundraisingCollectionLocation: updateState.collectionLocation || updateState.fundraisingCollectionLocation
         });
       } else if (dropdown === 'showStatusDropdown') {
@@ -1482,7 +1545,7 @@ import React, { Component } from 'react';
       const userName = this.props.location.state?.name || 'User';
       const role = this.props.location.state?.role;
       const siteIC = this.props.location.state?.siteIC;
-      const {membershipType, membershipTypes, membershipSearchQuery, isMembershipVisible, isFitnessVisible, fitnessSearchQuery, isFundraisingTableVisible, isFundraisingInventoryVisible, fundraisingSearchQuery, fundraisingPaymentMethod, fundraisingCollectionLocation, fundraisingStatus, fundraisingPaymentMethods, fundraisingCollectionLocations, fundraisingStatuses, attendanceVisibility, reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo, selectedQuarter, quarters, attendanceFilterType, attendanceFilterCode, attendanceFilterLocation, attendanceSearchQuery, attendanceTypes, activityCodes, attendanceLocations} = this.state;
+      const {membershipType, membershipTypes, membershipSearchQuery, isMembershipVisible, isFitnessVisible, fitnessSearchQuery, isFundraisingTableVisible, isFundraisingInventoryVisible, fundraisingSearchQuery, fundraisingPaymentMethod, fundraisingCollectionLocation, fundraisingStatus, fundraisingPaymentMethods, fundraisingCollectionLocations, fundraisingStatuses, showCalendarModal, selectedOrderForCalendar, collectionSchedule, attendanceVisibility, reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo, selectedQuarter, quarters, attendanceFilterType, attendanceFilterCode, attendanceFilterLocation, attendanceSearchQuery, attendanceTypes, activityCodes, attendanceLocations} = this.state;
 
       return (
         <>
@@ -1729,6 +1792,7 @@ import React, { Component } from 'react';
                         </div>
                         <div className="fundraising-section">
                           <FundraisingTable 
+                            ref={this.fundraisingTableRef}
                             section={section}
                             userName={userName}
                             role={role}
@@ -1744,8 +1808,19 @@ import React, { Component } from 'react';
                             status={fundraisingStatus}
                             searchQuery={fundraisingSearchQuery}
                             onFiltersLoaded={this.handleFundraisingFiltersLoaded}
+                            openCalendarModal={this.openCalendarModal}
                           />
                         </div>
+                        
+                        {/* Calendar Modal for Fundraising */}
+                        {console.log('Calendar render check - showCalendarModal:', showCalendarModal, 'selectedOrderForCalendar:', selectedOrderForCalendar)}
+                        <CollectionDateCalendar
+                          showCalendarModal={showCalendarModal}
+                          selectedOrderForCalendar={selectedOrderForCalendar}
+                          collectionSchedule={collectionSchedule}
+                          onDateSelect={this.handleDateSelect}
+                          onClose={this.closeCalendarModal}
+                        />
                     </>
                 }             
                 {isFundraisingInventoryVisible && 

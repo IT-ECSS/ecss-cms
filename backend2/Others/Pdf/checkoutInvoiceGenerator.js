@@ -94,32 +94,36 @@ class CheckoutInvoiceGenerator {
         // Move down for spacing after the title
         doc.moveDown(2);
 
+        // Add the invoice number
         var invoiceText = `Invoice No  : ${invoiceNumber}`;
-
-        // Store the current y position
-        let currentY = doc.y;
-
-        // Add the invoice number on the left side and keep the cursor position
-        doc.font(fontPathTimesRegular).fontSize(12).text(invoiceText, leftMargin, currentY, {
-            continued: true
+        doc.font(fontPathTimesRegular).fontSize(12).text(invoiceText, leftMargin, doc.y, {
+            align: 'left'
         });
 
-        // Now add the page parts on the same line on the right
-        const rightX = doc.page.width - rightMargin - 300; // Adjust this value to align the page number properly
+        // Move down for spacing after the invoice number
+        doc.moveDown(0.5);
 
-        // Finish the line without continued option
-        doc.text('', rightX, currentY, {
-            continued: false
-        });
+        // Add PayNow instruction only if payment method is PayNow
+        if (orderData.paymentDetails.paymentMethod && orderData.paymentDetails.paymentMethod.toLowerCase() === 'paynow') {
+            const payNowInstruction = `Please key in this invoice number as your payment reference number.`;
+            doc.font(fontPathTimesRegular).fontSize(10).text(payNowInstruction, leftMargin, doc.y, {
+                align: 'left',
+                width: doc.page.width - leftMargin - rightMargin - 50
+            });
+            doc.moveDown(0.5);
+        }
 
-        // Move down for spacing after the invoice number and current page
-        doc.moveDown(1); // Adjust this to ensure the spacing before the date
+        // Move down for spacing before the date
+        doc.moveDown(1);
 
-        // Add a new line before adding the date text
-        var getCurrentDateTime = this.getCurrentDateTime();
-        const dateText = `Date        : ${getCurrentDateTime.date}`;
-
-        // Add the date on a new line
+        // Add date with proper dd/mm/yyyy format
+        const now = new Date();
+        const day = String(now.getDate()).padStart(2, '0');
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const year = now.getFullYear();
+        const formattedDate = `${day}/${month}/${year}`;
+        
+        const dateText = `Date        : ${formattedDate}`;
         doc.font(fontPathTimesRegular).fontSize(12).text(dateText, leftMargin, doc.y, {
             align: 'left'
         });
@@ -187,18 +191,101 @@ class CheckoutInvoiceGenerator {
             const locationText = orderData.collectionDetails.collectionMode === 'Self-Collection' 
                 ? `Collection Location : ${orderData.collectionDetails.CollectionDeliveryLocation}`
                 : `Delivery Address   : ${orderData.collectionDetails.CollectionDeliveryLocation}`;
+                
             doc.font(fontPathTimesRegular).fontSize(12).text(locationText, leftMargin, doc.y, {
                 align: 'left'
             });
+            
             doc.moveDown(1);
         }
 
-        // Add order date and time
+        // Add collection date and time for Self-Collection with translations
+        if (orderData.collectionDetails.collectionMode === 'Self-Collection' && 
+            orderData.collectionDetails.collectionDate && 
+            orderData.collectionDetails.collectionTime) {
+            
+            // Format the collection date consistently to dd/mm/yyyy
+            const collectionDateObj = new Date(orderData.collectionDetails.collectionDate);
+            const day = String(collectionDateObj.getDate()).padStart(2, '0');
+            const month = String(collectionDateObj.getMonth() + 1).padStart(2, '0');
+            const year = collectionDateObj.getFullYear();
+            const formattedCollectionDate = `${day}/${month}/${year}`; // dd/mm/yyyy format
+            
+            // Format collection time (handle both single time and time ranges) to 12-hour format
+            let formattedCollectionTime = orderData.collectionDetails.collectionTime;
+            
+            // Function to format a single time from 24-hour to 12-hour format
+            const formatSingleTime = (timeStr) => {
+                const timeParts = timeStr.split(':');
+                if (timeParts.length >= 2) {
+                    let hours = parseInt(timeParts[0]);
+                    const minutes = timeParts[1];
+                    const ampm = hours >= 12 ? 'PM' : 'AM';
+                    hours = hours % 12;
+                    hours = hours ? hours : 12; // 0 should be 12
+                    return `${hours}:${minutes} ${ampm}`;
+                }
+                return timeStr;
+            };
+            
+            // If time doesn't include AM/PM, assume it's in 24-hour format and convert to 12-hour
+            if (!formattedCollectionTime.includes('AM') && !formattedCollectionTime.includes('PM')) {
+                // Check if it's a time range (contains dash or hyphen)
+                if (formattedCollectionTime.includes('-')) {
+                    const timeRange = formattedCollectionTime.split('-');
+                    if (timeRange.length === 2) {
+                        const startTime = formatSingleTime(timeRange[0].trim());
+                        const endTime = formatSingleTime(timeRange[1].trim());
+                        formattedCollectionTime = `${startTime} - ${endTime}`;
+                    }
+                } else {
+                    // Single time
+                    formattedCollectionTime = formatSingleTime(formattedCollectionTime);
+                }
+            }
+            
+            const collectionDateTime = `Collection Date  : ${formattedCollectionDate} (${formattedCollectionTime})`;
+            doc.font(fontPathTimesRegular).fontSize(12).text(collectionDateTime, leftMargin, doc.y, {
+                align: 'left'
+            });
+            
+            doc.moveDown(1);
+        }
+
+        // Add order date and time with translations
         if (orderData.orderDetails.orderDate && orderData.orderDetails.orderTime) {
-            const orderDateTime = `Order Date  : ${orderData.orderDetails.orderDate} at ${orderData.orderDetails.orderTime}`;
+            // Format order date to dd/mm/yyyy if needed
+            let formattedOrderDate = orderData.orderDetails.orderDate;
+            if (formattedOrderDate.includes('/') && formattedOrderDate.split('/').length === 3) {
+                // Already in correct format
+            } else {
+                // Convert if in different format
+                const orderDateObj = new Date(orderData.orderDetails.orderDate);
+                const day = String(orderDateObj.getDate()).padStart(2, '0');
+                const month = String(orderDateObj.getMonth() + 1).padStart(2, '0');
+                const year = orderDateObj.getFullYear();
+                formattedOrderDate = `${day}/${month}/${year}`;
+            }
+            
+            // Format order time to 12-hour format if needed
+            let formattedOrderTime = orderData.orderDetails.orderTime;
+            if (!formattedOrderTime.includes('AM') && !formattedOrderTime.includes('PM')) {
+                const timeParts = formattedOrderTime.split(':');
+                if (timeParts.length >= 2) {
+                    let hours = parseInt(timeParts[0]);
+                    const minutes = timeParts[1];
+                    const ampm = hours >= 12 ? 'PM' : 'AM';
+                    hours = hours % 12;
+                    hours = hours ? hours : 12; // 0 should be 12
+                    formattedOrderTime = `${hours}:${minutes} ${ampm}`;
+                }
+            }
+            
+            const orderDateTime = `Order Date  : ${formattedOrderDate} at ${formattedOrderTime}`;
             doc.font(fontPathTimesRegular).fontSize(12).text(orderDateTime, leftMargin, doc.y, {
                 align: 'left'
             });
+            
             doc.moveDown(1);
         }
 
@@ -236,7 +323,7 @@ class CheckoutInvoiceGenerator {
             amount: leftMargin + columnWidths.serial + columnWidths.description  // Third column next to second
         };
 
-        const rowHeight = 40; // Height for the table header
+        const rowHeight = 40; // Standard header height
         const borderExternalThickness = 2; // Set the thickness of the external border
         const borderInternalThickness = 1; // Set the thickness of the internal borders
         const headerHeight = rowHeight; // Adjusted header height
@@ -250,7 +337,7 @@ class CheckoutInvoiceGenerator {
         // Set font and text size for the header
         doc.fontSize(12).fillColor('black').font(fontPathBold);
 
-        // Add header column titles centered
+        // Add header column titles
         doc.text('S/NO', columnPositions.serial + columnWidths.serial / 8, tableTop + 12);
         doc.text('DESCRIPTION', columnPositions.description + columnWidths.description / 3 + 15, tableTop + 12);
         doc.text('AMOUNT', columnPositions.amount + columnWidths.amount / 5 + 5, tableTop + 5);

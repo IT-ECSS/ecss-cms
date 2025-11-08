@@ -33,14 +33,16 @@ class OrderTabs extends Component {
     console.log('Initiating search for:', searchInput);
     if (searchInput.trim()) {
       const searchTerms = searchInput.split(',').map(term => term.trim()).filter(term => term);
-      console.log('Search terms:', searchTerms);
+      console.log('Search terms after processing:', searchTerms);
       
       // Send search terms to backend for exact matching (only using invoiceNumber)
       let foundOrders = [];
       
       for (const term of searchTerms) {
+        console.log('Searching for term:', term);
         try {
-          const response = await axios.post(
+          // Try exact match first
+          let response = await axios.post(
             `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/fundraising`,
             {
               purpose: 'retrieve',
@@ -48,25 +50,51 @@ class OrderTabs extends Component {
             }
           );
           
-          console.log('Backend response for term:', term, response.data);
-          const results = response.data.result || [];
+          console.log('Backend response for exact term:', term, response.data);
+          let results = response.data.result || [];
+          
+          // If no exact match found, try case-insensitive search by getting all and filtering
+          if (results.length === 0) {
+            console.log('No exact match found for:', term, 'trying case-insensitive search');
+            const allOrdersResponse = await axios.post(
+              `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/fundraising`,
+              {
+                purpose: 'retrieveAll'
+              }
+            );
+            
+            const allOrders = allOrdersResponse.data.result || [];
+            console.log('Retrieved all orders for filtering:', allOrders.length);
+            
+            // Filter case-insensitive
+            results = allOrders.filter(order => {
+              const invoiceNumber = order.invoiceNumber || order.receiptNumber || '';
+              return invoiceNumber.toLowerCase() === term.toLowerCase();
+            });
+            
+            console.log('Case-insensitive search results for', term, ':', results.length);
+          }
+          
+          console.log('Results found for term:', term, 'Count:', results.length);
           foundOrders = [...foundOrders, ...results];
         } catch (error) {
           console.error('Error searching for term:', term, error);
         }
       }
       
+      console.log('Total orders found before deduplication:', foundOrders.length);
+      
       // Remove duplicates based on _id
       foundOrders = foundOrders.filter((order, index, self) => 
         index === self.findIndex(o => o._id === order._id)
       );
       
-      console.log('All found orders after deduplication:', foundOrders);
+      console.log('All found orders after deduplication:', foundOrders.length, foundOrders);
       
       // Transform the data to match expected format based on actual backend structure
       const formattedOrders = foundOrders.map((order, index) => ({
         id: order._id,
-        name: order.invoiceNumber,
+        name: order.invoiceNumber || order.receiptNumber,
         status: order.status,
         date: order.orderDetails?.orderDate || new Date().toISOString().split('T')[0],
         customer: order.personalInfo ? `${order.personalInfo.lastName} ${order.personalInfo.firstName}` : 'Unknown Customer',
@@ -74,6 +102,8 @@ class OrderTabs extends Component {
         // Store the full order object for detailed view
         fullOrder: order
       }));
+      
+      console.log('Formatted orders:', formattedOrders);
       
       this.setState({
         orders: formattedOrders,
@@ -417,9 +447,9 @@ class OrderTabs extends Component {
         {orders.length > 0 && (
           <div className="order-tabs-header">
             <div className="order-tabs-nav">
-              {orders.map(order => (
+              {orders.map((order, index) => (
                 <button
-                  key={order.id}
+                  key={`${order.id}-${index}`}
                   className={`order-tab ${activeOrderTab === order.id ? 'active' : ''}`}
                   onClick={() => this.handleOrderTabChange(order.id)}
                 >

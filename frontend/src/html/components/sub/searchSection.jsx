@@ -209,6 +209,8 @@ handleChange = (event) => {
     }
     */
     else if (name === 'collectionLocation') {
+      console.log("Collection Location input changed:", value);
+      console.log("Current fundraisingCollectionLocations:", this.state.fundraisingCollectionLocations);
       this.setState({
         filteredCollectionLocations: this.state.fundraisingCollectionLocations.filter(location =>
           location.toLowerCase().includes(value.toLowerCase())
@@ -288,6 +290,8 @@ handleDropdownToggle = (dropdown) =>
     else if(dropdown === 'showCollectionLocationDropdown')
     {
       console.log("Toggling collection location dropdown");
+      console.log("Current filteredCollectionLocations:", this.state.filteredCollectionLocations);
+      console.log("Current fundraisingCollectionLocations:", this.state.fundraisingCollectionLocations);
       this.setState({ showCollectionLocationDropdown: true });
     }
     else if(dropdown === 'showStatusDropdown')
@@ -804,11 +808,13 @@ handleClickOutside = (event) => {
 
     // Check if fundraising collection locations from props have changed
     if (this.props.fundraisingCollectionLocations !== prevProps.fundraisingCollectionLocations) {
+      console.log("Collection locations updated from props:", this.props.fundraisingCollectionLocations);
       const collectionLocations = this.props.fundraisingCollectionLocations || ['All Collection Locations'];
       if (!collectionLocations.includes('All Collection Locations')) {
         collectionLocations.unshift('All Collection Locations');
       }
       
+      console.log("Setting collection locations in state:", collectionLocations);
       this.setState({
         fundraisingCollectionLocations: collectionLocations,
         filteredCollectionLocations: collectionLocations
