@@ -89,7 +89,7 @@ class CheckoutInvoiceGenerator {
         const fontPathTimesRegular = path.join(__dirname, '../../fonts/timesNewRoman.ttf');
 
         // Set the font to Arial Bold and add the title "INVOICE"
-        doc.font(fontPathBold).fontSize(16).text('INVOICE', { align: 'center' });
+        doc.font(fontPathBold).fontSize(16).text('PROFORMA INVOICE', { align: 'center' });
 
         // Move down for spacing after the title
         doc.moveDown(2);

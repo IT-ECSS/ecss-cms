@@ -16,6 +16,11 @@ const ProductCard = ({ product, cartQuantity = 0, onAddToCart, onMoreDetails, on
         chinese: '有库存',
         malay: 'Ada Stok'
       },
+      nonHalalNotice: {
+        english: 'Please note that the product is non-halal.',
+        chinese: '请注意此产品不是halal。',
+        malay: 'Sila ambil perhatian bahawa produk ini bukan halal.'
+      },
       moreDetails: {
         english: 'More Details',
         chinese: '更多详情',
@@ -83,6 +88,9 @@ const ProductCard = ({ product, cartQuantity = 0, onAddToCart, onMoreDetails, on
       console.log('More details for:', product.name);
     }
   };
+
+  // Check if product name contains "Panettone"
+  const isPanettoneProduct = product.name && product.name.toLowerCase().includes('panettone');
 
   return (
     <div className="product-card">
@@ -162,6 +170,15 @@ const ProductCard = ({ product, cartQuantity = 0, onAddToCart, onMoreDetails, on
                 {product.stock_quantity === 0 ? getTranslation('outOfStock') : getTranslation('inStock')}
               </span>
           </div>
+          
+          {/* Halal Notice for Panettone products */}
+          {isPanettoneProduct && (
+            <div className="halal-notice">
+              <span className="halal-notice-text">
+                {getTranslation('nonHalalNotice')}
+              </span>
+            </div>
+          )}
         </div>
         
         {/* Footer: Buttons */}

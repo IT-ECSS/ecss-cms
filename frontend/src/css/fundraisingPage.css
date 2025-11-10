@@ -1964,6 +1964,25 @@ html {
   background: white;
 }
 
+/* Halal Notice styles for product cards */
+.halal-notice {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background-color: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.halal-notice-text {
+  font-size: 0.85rem;
+  color: #856404;
+  font-weight: 500;
+  line-height: 1.4;
+  display: block;
+  text-align: left;
+}
+
 /* Footer: Buttons - Responsive and touch-friendly */
 .product-footer {
   display: flex;
@@ -2514,6 +2533,26 @@ html {
 .modal-stock-status.out-of-stock {
   color: #dc3545;
   background: white;
+}
+
+/* Modal Halal Notice styles */
+.modal-halal-notice {
+  margin-top: 16px;
+  padding: 12px 24px;
+  background-color: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.modal-halal-notice-text {
+  font-size: 16px;
+  color: #856404;
+  font-weight: 500;
+  line-height: 1.5;
+  display: block;
+  text-align: center;
+  font-family: 'Open Sans', sans-serif;
 }
 
 /* Modal Footer */

@@ -164,9 +164,30 @@ class CheckoutPage extends Component {
       //   newDeliveryToAddress = newPersonalInfo.address && newPersonalInfo.postalCode ? 
       //     `${newPersonalInfo.address}, Singapore ${newPersonalInfo.postalCode}` : '';
       // }
+
+      // Auto-set collection location for En Community Church members
+      let newCollectionLocation = prevState.collectionLocation;
+      let newCollectionDate = prevState.collectionDate;
+      let newCollectionTime = prevState.collectionTime;
+
+      if (field === 'location' && value === 'En Community Church') {
+        // Automatically set to CT Hub for En Community Church members
+        newCollectionLocation = 'CT Hub';
+        // Reset date and time when location is auto-changed
+        newCollectionDate = '';
+        newCollectionTime = '';
+      } else if (field === 'location' && prevState.personalInfo.location === 'En Community Church' && value !== 'En Community Church') {
+        // If user was En Community Church and changes to something else, reset collection location
+        newCollectionLocation = '';
+        newCollectionDate = '';
+        newCollectionTime = '';
+      }
       
       return {
         personalInfo: newPersonalInfo,
+        collectionLocation: newCollectionLocation,
+        collectionDate: newCollectionDate,
+        collectionTime: newCollectionTime,
         // deliveryToAddress: newDeliveryToAddress,
         fieldErrors: {
           ...prevState.fieldErrors,

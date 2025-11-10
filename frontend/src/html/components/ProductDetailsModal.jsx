@@ -21,11 +21,27 @@ const ProductDetailsModal = ({ isOpen, product, cartItems = [], onClose, onAddTo
         english: 'In Stock',
         chinese: '有库存',
         malay: 'Ada Stok'
+      },
+      nonHalalNotice: {
+        english: 'Please note that the product is non-halal.',
+        chinese: '请注意此产品不是halal。',
+        malay: 'Sila ambil perhatian bahawa produk ini bukan halal.'
       }
     };
     
     const key = product.stock_quantity === 0 ? 'outOfStock' : 'inStock';
     return translations[key][selectedLanguage] || translations[key]['english'];
+  };
+
+  const getHalalNoticeTranslation = () => {
+    const translations = {
+      nonHalalNotice: {
+        english: 'Please note that the product is non-halal.',
+        chinese: '请注意此产品不是halal。',
+        malay: 'Sila ambil perhatian bahawa produk ini bukan halal.'
+      }
+    };
+    return translations['nonHalalNotice'][selectedLanguage] || translations['nonHalalNotice']['english'];
   };
 
   const handleOverlayClick = (e) => {
@@ -39,6 +55,9 @@ const ProductDetailsModal = ({ isOpen, product, cartItems = [], onClose, onAddTo
       onClose();
     }
   };
+
+  // Check if product name contains "Panettone"
+  const isPanettoneProduct = product && product.name && product.name.toLowerCase().includes('panettone');
 
   return (
     <div 
@@ -73,6 +92,15 @@ const ProductDetailsModal = ({ isOpen, product, cartItems = [], onClose, onAddTo
               </span>
             }
           </div>
+          
+          {/* Halal Notice for Panettone products */}
+          {isPanettoneProduct && (
+            <div className="modal-halal-notice">
+              <span className="modal-halal-notice-text">
+                {getHalalNoticeTranslation()}
+              </span>
+            </div>
+          )}
         </div>
         
         {/* Footer - Add to Cart and Quantity */}

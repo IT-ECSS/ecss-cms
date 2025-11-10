@@ -1,136 +1,32 @@
 import React, { Component } from 'react';
-import DatePicker from 'react-datepicker';
-import "react-datepicker/dist/react-datepicker.css";
-
-// Custom Calendar Modal Component
-class CalendarModal extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      currentMonth: new Date().getMonth(),
-      currentYear: new Date().getFullYear()
-    };
-  }
-
-  getDaysInMonth = (month, year) => {
-    return new Date(year, month + 1, 0).getDate();
-  }
-
-  getFirstDayOfMonth = (month, year) => {
-    return new Date(year, month, 1).getDay();
-  }
-
-  isDateAvailable = (date) => {
-    const { availableDates } = this.props;
-    const dateString = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
-    return availableDates.includes(dateString);
-  }
-
-  handleDateClick = (day) => {
-    const { onDateSelect, onClose } = this.props;
-    const selectedDate = new Date(this.state.currentYear, this.state.currentMonth, day);
-    
-    if (this.isDateAvailable(selectedDate)) {
-      onDateSelect(selectedDate);
-      onClose();
-    }
-  }
-
-  navigateMonth = (direction) => {
-    this.setState(prevState => {
-      let newMonth = prevState.currentMonth + direction;
-      let newYear = prevState.currentYear;
-      
-      if (newMonth < 0) {
-        newMonth = 11;
-        newYear--;
-      } else if (newMonth > 11) {
-        newMonth = 0;
-        newYear++;
-      }
-      
-      return { currentMonth: newMonth, currentYear: newYear };
-    });
-  }
-
-  render() {
-    const { isOpen, onClose, getTranslation } = this.props;
-    const { currentMonth, currentYear } = this.state;
-    
-    if (!isOpen) return null;
-
-    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-                       'July', 'August', 'September', 'October', 'November', 'December'];
-    
-    const daysInMonth = this.getDaysInMonth(currentMonth, currentYear);
-    const firstDayOfMonth = this.getFirstDayOfMonth(currentMonth, currentYear);
-    
-    const days = [];
-    
-    // Add empty cells for days before the first day of the month
-    for (let i = 0; i < firstDayOfMonth; i++) {
-      days.push(<div key={`empty-${i}`} className="calendar-day2 empty"></div>);
-    }
-    
-    // Add days of the month
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(currentYear, currentMonth, day);
-      const isAvailable = this.isDateAvailable(date);
-      const isToday = new Date().toDateString() === date.toDateString();
-      
-      days.push(
-        <div
-          key={day}
-          className={`calendar-day2 ${isAvailable ? 'available' : 'disabled'} ${isToday ? 'today' : ''}`}
-          onClick={() => this.handleDateClick(day)}
-        >
-          {day}
-        </div>
-      );
-    }
-
-    return (
-      <div className="calendar-modal-overlay" onClick={onClose}>
-        <div className="calendar-modal" onClick={(e) => e.stopPropagation()}>
-          <div className="calendar-header">
-            <div className="calendar-year-display">
-              {currentYear}
-            </div>
-            <div className="calendar-month-navigation">
-              <button className="calendar-nav-btn" onClick={() => this.navigateMonth(-1)}>
-                ‹
-              </button>
-              <h3 className="calendar-month-year">
-                {getTranslation(monthNames[currentMonth])}
-              </h3>
-              <button className="calendar-nav-btn" onClick={() => this.navigateMonth(1)}>
-                ›
-              </button>
-            </div>
-          </div>
-          
-          <div className="calendar-weekdays">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-              <div key={day} className="calendar-weekday">{day}</div>
-            ))}
-          </div>
-          
-          <div className="calendar-days-grid">
-            {days}
-          </div>
-        </div>
-      </div>
-    );
-  }
-}
 
 class CollectionDateTimeSection extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      selectedDate: null,
-      isCalendarModalOpen: false
+      selectedDate: null
     };
+  }
+
+  componentDidMount() {
+    // Set default collection time if none is selected
+    this.setDefaultTimeIfNeeded();
+  }
+
+  componentDidUpdate(prevProps) {
+    // Set default time when collection location is selected for the first time
+    const { collectionLocation } = this.props;
+    if (collectionLocation && !prevProps.collectionLocation) {
+      this.setDefaultTimeIfNeeded();
+    }
+  }
+
+  setDefaultTimeIfNeeded = () => {
+    const { collectionTime, onCollectionTimeChange, collectionLocation } = this.props;
+    if (collectionLocation && !collectionTime) {
+      const defaultTime = '10:00-16:00'; // Default to the main time slot
+      onCollectionTimeChange(defaultTime);
+    }
   }
   getTranslation(key) {
     const { selectedLanguage } = this.props;
@@ -284,6 +180,22 @@ class CollectionDateTimeSection extends Component {
     return translations[key] ? translations[key][selectedLanguage] || translations[key]['english'] : key;
   }
 
+  // Format date for button display
+  formatDateForButton = (dateString) => {
+    const date = new Date(dateString);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    
+    // Get day name using our translation system
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayOfWeek = date.getDay();
+    const dayName = this.getTranslation(dayNames[dayOfWeek]);
+    
+    // Return formatted string: "Sunday, 17/11/2025"
+    return `${dayName}, ${day}/${month}/${year}`;
+  }
+
   // Format date for display (dd/mm/yyyy format)
   formatDateForDisplay = (dateString) => {
     if (!dateString) {
@@ -310,52 +222,6 @@ class CollectionDateTimeSection extends Component {
   }
 
   // Custom date input component for translated display
-  CustomDateInput = React.forwardRef(({ value, onClick, placeholder }, ref) => {
-    const { collectionDate } = this.props;
-    
-    // Use translated format for display
-    const displayValue = collectionDate ? 
-      this.formatDateForDisplay(collectionDate) : 
-      placeholder;
-    
-    return (
-      <input
-        ref={ref}
-        value={displayValue}
-        onClick={onClick}
-        placeholder={placeholder}
-        readOnly
-        className="datepicker-input"
-      />
-    );
-  });
-
-  // Handle date change from Modal Calendar
-  handleDateSelect = (date) => {
-    const { onCollectionDateChange } = this.props;
-    
-    if (date) {
-      // Convert to YYYY-MM-DD format using local timezone
-      const year = date.getFullYear();
-      const month = (date.getMonth() + 1).toString().padStart(2, '0');
-      const day = date.getDate().toString().padStart(2, '0');
-      const dateValue = `${year}-${month}-${day}`;
-      
-      this.setState({ selectedDate: date });
-      onCollectionDateChange(dateValue);
-    }
-  }
-
-  // Open calendar modal
-  openCalendarModal = () => {
-    this.setState({ isCalendarModalOpen: true });
-  }
-
-  // Close calendar modal
-  closeCalendarModal = () => {
-    this.setState({ isCalendarModalOpen: false });
-  }
-
   // Get available dates for selected location
   getAvailableDatesForLocation = () => {
     const { collectionLocation, personalInfoLocation } = this.props;
@@ -368,20 +234,18 @@ class CollectionDateTimeSection extends Component {
     // Base dates for all locations
     const baseDates = {
       'CT Hub': [
-        '2025-11-10', '2025-11-13', '2025-11-16', '2025-11-17', 
+        '2025-11-16', '2025-11-17', 
         '2025-11-20', '2025-11-23', '2025-11-24', '2025-11-27',
         '2025-11-30', '2025-12-01', '2025-12-04', '2025-12-07',
         '2025-12-08', '2025-12-11', '2025-12-14', '2025-12-15', 
-        '2025-12-18', '2025-12-22'
+        '2025-12-18', '2025-12-22', '2025-12-29'
       ],
       'Pasir Ris West Wellness Centre': [
-        '2025-11-18',
         '2025-12-02',
         '2025-12-09',
         '2025-12-16'
       ],
       'Tampines North Community Club': [
-        '2025-11-19',
         '2025-11-26',
         '2025-12-03',
         '2025-12-10',
@@ -389,9 +253,19 @@ class CollectionDateTimeSection extends Component {
       ]
     };
 
-    // If personal info location is En Community Church, allow ALL days including Sundays
+    // If personal info location is En Community Church, ONLY allow Sundays
     if (personalInfoLocation === 'En Community Church') {
-      return baseDates;
+      const result = { ...baseDates };
+      
+      if (result['CT Hub']) {
+        result['CT Hub'] = result['CT Hub'].filter(dateString => {
+          const date = new Date(dateString);
+          const dayOfWeek = date.getDay();
+          return dayOfWeek === 0; // Keep only Sunday dates
+        });
+      }
+      
+      return result;
     } else {
       // Other locations at CT Hub: Exclude Sundays
       const result = { ...baseDates };
@@ -464,11 +338,17 @@ class CollectionDateTimeSection extends Component {
       selectedLanguage
     } = this.props;
 
-    const { isCalendarModalOpen } = this.state;
-
     // Only show this section if Self-Collection is selected and a location is chosen
     if (collectionMode !== 'Self-Collection' || !collectionLocation) {
       return null;
+    }
+
+    // Ensure default time is set immediately when location is available
+    if (collectionLocation && !collectionTime) {
+      setTimeout(() => {
+        const defaultTime = '10:00-16:00';
+        onCollectionTimeChange(defaultTime);
+      }, 0);
     }
 
     const availableTimeSlots = this.generateAvailableTimeSlots();
@@ -489,7 +369,7 @@ class CollectionDateTimeSection extends Component {
         <div className={`section-content ${expandedSections.collectionDateTime ? 'expanded' : 'collapsed'}`}>
           <div className="collection-datetime-form">
             <div className="form-group">
-              {/* Collection Date Selection with Custom Modal Calendar */}
+              {/* Collection Date Selection with Date Buttons */}
               <div className="collection-date-options">
                 <label>{this.getTranslation('Select Collection Date')}</label>
                 
@@ -499,25 +379,28 @@ class CollectionDateTimeSection extends Component {
                   </div>
                 )}
                 
-                <div className="datepicker-container">
-                  <input
-                    type="text"
-                    value={collectionDate ? this.formatDateForDisplay(collectionDate) : ''}
-                    placeholder={this.getTranslation('Select a date')}
-                    onClick={this.openCalendarModal}
-                    readOnly
-                    className="datepicker-input"
-                    style={{ cursor: 'pointer' }}
-                  />
-                </div>
+                {collectionLocation && (
+                  <div className="date-buttons">
+                    {availableDates.map((dateString) => (
+                      <button
+                        key={dateString}
+                        type="button"
+                        className={`date-button ${collectionDate === dateString ? 'selected' : ''}`}
+                        onClick={() => onCollectionDateChange(dateString)}
+                      >
+                        {this.formatDateForButton(dateString)}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 
                 {fieldErrors.collectionDate && (
                   <div className="field-error-message">{fieldErrors.collectionDate}</div>
                 )}
               </div>
 
-              {/* Collection Time Selection - Only show if date is selected */}
-              {collectionDate && (
+              {/* Collection Time Selection - Always show when location is selected */}
+              {collectionLocation && (
                 <div className="collection-time-options">
                   <label>{this.getTranslation('Select Collection Time')}</label>
                   <div className="time-buttons">
@@ -540,15 +423,6 @@ class CollectionDateTimeSection extends Component {
             </div>
           </div>
         </div>
-
-        {/* Custom Calendar Modal */}
-        <CalendarModal
-          isOpen={isCalendarModalOpen}
-          onClose={this.closeCalendarModal}
-          onDateSelect={this.handleDateSelect}
-          availableDates={availableDates}
-          getTranslation={this.getTranslation.bind(this)}
-        />
       </div>
     );
   }

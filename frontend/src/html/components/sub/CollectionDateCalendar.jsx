@@ -231,23 +231,25 @@ class CalendarModal extends Component {
 class CollectionDateCalendar extends Component {
   static collectionSchedule = {
     'CT Hub': [
-      { date: '2025-11-10', timeSlots: ['10:00-16:00'] }, // Monday
-      { date: '2025-11-16', timeSlots: ['10:00-16:00'] }, // Monday
-      { date: '2025-11-23', timeSlots: ['10:00-16:00'] }, // Monday
-      { date: '2025-11-30', timeSlots: ['10:00-16:00'] }, // Monday
-      { date: '2025-11-13', timeSlots: ['10:00-16:00'] }, // Thursday
-      { date: '2025-11-17', timeSlots: ['10:00-16:00'] }, // Monday
+      { date: '2025-11-03', timeSlots: ['10:00-16:00'] }, // Sunday
+      { date: '2025-11-10', timeSlots: ['10:00-16:00'] }, // Sunday
+      { date: '2025-11-16', timeSlots: ['10:00-16:00'] }, // Saturday
+      { date: '2025-11-17', timeSlots: ['10:00-16:00'] }, // Sunday
       { date: '2025-11-20', timeSlots: ['10:00-16:00'] }, // Thursday
-      { date: '2025-11-24', timeSlots: ['10:00-16:00'] }, // Monday
+      { date: '2025-11-23', timeSlots: ['10:00-16:00'] }, // Saturday
+      { date: '2025-11-24', timeSlots: ['10:00-16:00'] }, // Sunday
       { date: '2025-11-27', timeSlots: ['10:00-16:00'] }, // Thursday
-      { date: '2025-12-01', timeSlots: ['10:00-16:00'] }, // Monday
+      { date: '2025-11-30', timeSlots: ['10:00-16:00'] }, // Saturday
+      { date: '2025-12-01', timeSlots: ['10:00-16:00'] }, // Sunday
       { date: '2025-12-04', timeSlots: ['10:00-16:00'] }, // Thursday
-      { date: '2025-12-08', timeSlots: ['10:00-16:00'] }, // Monday
+      { date: '2025-12-07', timeSlots: ['10:00-16:00'] }, // Saturday
+      { date: '2025-12-08', timeSlots: ['10:00-16:00'] }, // Sunday
       { date: '2025-12-11', timeSlots: ['10:00-16:00'] }, // Thursday
-      { date: '2025-12-15', timeSlots: ['10:00-16:00'] }, // Monday
+      { date: '2025-12-14', timeSlots: ['10:00-16:00'] }, // Saturday
+      { date: '2025-12-15', timeSlots: ['10:00-16:00'] }, // Sunday
       { date: '2025-12-18', timeSlots: ['10:00-16:00'] }, // Thursday
-      { date: '2025-12-07', timeSlots: ['10:00-16:00'] }, // Thursday
-      { date: '2025-12-14', timeSlots: ['10:00-16:00'] } // Thursday
+      { date: '2025-12-22', timeSlots: ['10:00-16:00'] }, // Sunday
+      { date: '2025-12-29', timeSlots: ['10:00-16:00'] }  // Sunday
     ],
     'Pasir Ris West Wellness Centre': [
       { date: '2025-11-18', timeSlots: ['10:00-16:00'] },

@@ -71,6 +71,18 @@ class FundraisingTable extends Component {
 
         console.log('Fundraising data fetched:', response.data.result);
         
+        // Check if access was denied
+        if (response.data.result && response.data.result.success === false) {
+          console.error('Access denied:', response.data.result.message);
+          // Set error state or show no access message
+          this.setState({
+            isLoading: false,
+            accessDenied: true,
+            accessDeniedMessage: response.data.result.message || 'Access denied to Fundraising Table'
+          });
+          return [];
+        }
+        
         // Check if the response has the expected structure
         if (response.data.result) {
           return response.data.result;

@@ -335,7 +335,7 @@ class AccountsSection extends Component {
           accType: item.accType,  // Mapping role to accType
           dateCreated: item.dateCreated,  // Mapping date_created to dateCreated
           timeCreated: item.timeCreated,  // Mapping time_created to timeCreated
-          siteIC: item.site,  // Mapping site to siteIC
+          siteIC: item.siteIC,  // Use siteIC consistently
           firstTimeLogIn: item.firstTimeLogIn,
           dateLogIn: item.dateLogIn,
           timeLogIn: item.timeLogIn,
@@ -346,7 +346,7 @@ class AccountsSection extends Component {
   
         // Update state with all accounts (no filters)
         this.setState({ accountsRowData });
-        this.updateRowData(accountsRowData);
+        this.updateAccountsRowData(accounts);
         return;
       }
   
@@ -439,19 +439,26 @@ class AccountsSection extends Component {
       // If no filters are applied, set filteredAccessRights to all accounts
       if ((selectedAccountType === "All Roles" || !selectedAccountType) && !searchQuery) {
         const accessRightsRowData = accessRights.map((item, index) => ({
+          id: item.id,
           sn: index + 1,  // Serial number (S/N)
           name: item.name,
-          accType: item.accType,  // Mapping role to accType
-          // You can add more fields as necessary
+          accType: item.accType,
+          accounts: item.accounts,
+          courses: item.courses,
+          regPay: item.regPay,
+          qRCode: item.qRCode,
+          attendance: item.attendance,
+          membership: item.membership,
+          reports: item.reports,
+          fitness: item.fitness || {},
+          fundraising: item.fundraising || {}
         }));
-  
+
         // Update state with all accounts (no filters)
         this.setState({ accessRightsRowData });
-        this.updateAccessRightsRowData(accessRightsRowData);
+        this.updateAccessRightsRowData(accessRights);
         return;
-      }
-  
-      // Normalize the search query for filtering
+      }      // Normalize the search query for filtering
       const normalizedSearchQuery = searchQuery ? searchQuery.toLowerCase().trim() : '';
   
       // Define filter conditions
@@ -491,10 +498,19 @@ class AccountsSection extends Component {
   
       // Map filtered details to include necessary fields
       const accessRightsRowData = filteredDetails.map((item, index) => ({
+        id: item.id,
         sn: index + 1,  // Serial number (S/N)
         name: item.name,
-        accType: item.accType   // Mapping role to accType
-        // You can add more fields as necessary
+        accType: item.accType,
+        accounts: item.accounts,
+        courses: item.courses,
+        regPay: item.regPay,
+        qRCode: item.qRCode,
+        attendance: item.attendance,
+        membership: item.membership,
+        reports: item.reports,
+        fitness: item.fitness || {},
+        fundraising: item.fundraising || {}
       }));
   
       // Update the state with the filtered access rights
@@ -514,6 +530,9 @@ class AccountsSection extends Component {
   accessRightInfo = async(accessRight) =>
   {
     console.log("Access Rights  :", accessRight);
+    console.log("Access Rights keys:", Object.keys(accessRight));
+    console.log("Accounts data:", accessRight.accounts);
+    console.log("Courses data:", accessRight.courses);
     this.props.updateAccessRights(accessRight);
   }
 
@@ -635,7 +654,7 @@ class AccountsSection extends Component {
         <div className="accounts-heading">
           <h1>{this.props.accountType === 'Accounts' ? 'Accounts Table' : 'Access Rights Table'}</h1>
           <div 
-            style={{ width: this.props.accountType === 'Accounts' ? '78vw' : '29.2vw' }} 
+            style={{ width: this.props.accountType === 'Accounts' ? '78vw' : '42vw' }} 
             className="grid-container1"
           >
           <AgGridReact
@@ -674,7 +693,7 @@ class AccountsSection extends Component {
                   backgroundColor: '#F9E29B',
                   marginLeft: 'auto',
                   marginRight: 'auto',
-                  width: this.props.accountType === 'Accounts' ? '77vw' : '28.2vw',
+                  width: this.props.accountType === 'Accounts' ? '77vw' : '44vw',
                   height: 'fit-content',
                   borderRadius: '15px', // Make the border more rounded
                   boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)', // Optional: Add a subtle shadow for a floating effect
@@ -685,23 +704,24 @@ class AccountsSection extends Component {
 
                 {this.props.accountType === 'Accounts' ? (
                   <>
-                    <p><strong>First Time Log In: </strong>{this.state.accountsRowData[this.state.expandedRowIndex].firstTimeLogIn}</p>
+                    <p><strong>First Time Log In: </strong>{this.state.accountsRowData[this.state.expandedRowIndex]?.firstTimeLogIn}</p>
                     <p><strong>Last Log In: </strong>
-                      <br/><strong>Date: </strong>{this.state.accountsRowData[this.state.expandedRowIndex].dateLogIn} 
-                      <br/><strong>Time: </strong>{this.state.accountsRowData[this.state.expandedRowIndex].timeLogIn}
+                      <br/><strong>Date: </strong>{this.state.accountsRowData[this.state.expandedRowIndex]?.dateLogIn} 
+                      <br/><strong>Time: </strong>{this.state.accountsRowData[this.state.expandedRowIndex]?.timeLogIn}
                     </p>
                     <p><strong>Last Log Out: </strong>
-                      <br/><strong>Date: </strong>{this.state.accountsRowData[this.state.expandedRowIndex].dateLogOut} 
-                      <br/><strong>Time: </strong>{this.state.accountsRowData[this.state.expandedRowIndex].timeLogOut}
+                      <br/><strong>Date: </strong>{this.state.accountsRowData[this.state.expandedRowIndex]?.dateLogOut} 
+                      <br/><strong>Time: </strong>{this.state.accountsRowData[this.state.expandedRowIndex]?.timeLogOut}
                     </p>
                   </>
                 ) : (
+                  this.state.accessRightsRowData[this.state.expandedRowIndex] ? (
                   <>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                     <strong>Account Modules | </strong>
                     <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
                         <strong>Access Rights Table: </strong>
-                        {this.state.accessRightsRowData[this.state.expandedRowIndex].accounts["Access Rights Table"] ? (
+                        {this.state.accessRightsRowData[this.state.expandedRowIndex]?.accounts?.["Access Rights Table"] ? (
                           <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
                         ) : (
                           <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
@@ -709,7 +729,7 @@ class AccountsSection extends Component {
                     </p>
                     <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
                       <strong>Account Table: </strong>
-                      {this.state.accessRightsRowData[this.state.expandedRowIndex].accounts["Account Table"] ? (
+                      {this.state.accessRightsRowData[this.state.expandedRowIndex]?.accounts?.["Account Table"] ? (
                         <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
                       ) : (
                         <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
@@ -921,6 +941,9 @@ class AccountsSection extends Component {
                       </p>
                     </div>
                   </>
+                  ) : (
+                    <p>No access rights data available</p>
+                  )
                 )}
               </div>
             )

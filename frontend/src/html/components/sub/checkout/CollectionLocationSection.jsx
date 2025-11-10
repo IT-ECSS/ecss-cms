@@ -61,11 +61,16 @@ class CollectionLocationSection extends Component {
       selectedLanguage
     } = this.props;
 
-    const locations = [
+    const allLocations = [
       'Tampines North Community Club',
       'Pasir Ris West Wellness Centre',
       'CT Hub'
     ];
+
+    // Filter locations based on personal info location
+    const locations = personalInfo?.location === 'En Community Church' 
+      ? ['CT Hub'] 
+      : allLocations;
 
     // Only show this section if a collection mode is selected
     if (!collectionMode || (collectionMode !== 'Self-Collection' && collectionMode !== 'Delivery')) {
@@ -89,6 +94,7 @@ class CollectionLocationSection extends Component {
               {collectionMode === 'Self-Collection' && (
                 <div className="collection-location-options">
                   <label>{this.getTranslation('Select Collection Location')}</label>
+                  
                   <div className="location-buttons">
                     {locations.map((location) => (
                       <button

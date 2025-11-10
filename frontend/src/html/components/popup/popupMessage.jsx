@@ -744,7 +744,17 @@ class Popup extends Component {
 
     if (!isOpen) return null;
 
-    const popupTypeClass = `popup-content ${type}`; // Apply different class based on the type
+    // Use specific classes for different popup types with black backgrounds
+    let popupTypeClass;
+    if (type === "loading") {
+      popupTypeClass = "popup-content-loading";
+    } else if (type === "success") {
+      popupTypeClass = "popup-content-success";
+    } else if (type === "error") {
+      popupTypeClass = "popup-content-error";
+    } else {
+      popupTypeClass = `popup-content ${type}`;
+    }
 
     return (
       <div className="popup-overlay" onClick={onClose}>
@@ -891,6 +901,9 @@ class Popup extends Component {
           type === "update-access-right" && message4 && Object.keys(message4).length > 0 ? (
             <div className="access-right-message">
               <h2 className="access-right-title">Update Access Rights</h2>
+              {console.log("message4 in popup:", message4)}
+              {console.log("message4 keys:", Object.keys(message4))}
+              {console.log("filtered keys:", Object.keys(message4).filter(mainKey => mainKey !== "id" && mainKey !== 'accType' && mainKey !== 'name' && mainKey !== 'sn'))}
               {Object.keys(message4)
               .filter(mainKey => mainKey !== "id" && mainKey !== 'accType' && mainKey !== 'name' && mainKey !== 'sn') // Exclude unnecessary keys
               .sort((a, b) => {
