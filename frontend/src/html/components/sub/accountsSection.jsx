@@ -280,7 +280,7 @@ class AccountsSection extends Component {
 
   componentDidUpdate(prevProps)
   {
-   var { accountType, selectedAccountType, language, searchQuery } = this.props;
+   var { accountType, selectedAccountType, language, searchQuery, refreshKey } = this.props;
     //console.log("Component Did Update:", accountType, prevProps.accountType, accountType !== prevProps.accountType);
    // Check if any of the relevant props have changed
    if (
@@ -312,8 +312,13 @@ class AccountsSection extends Component {
             //this.props.closePopup();
           }
     }
-    else if (prevProps.key !== this.props.key) {
-      this.filterAccounts();
+    else if (prevProps.refreshKey !== refreshKey) {
+      // RefreshKey changed - refresh data based on account type
+      if(accountType === "Accounts") {
+        this.fetchAccounts();
+      } else if(accountType === "Access Rights") {
+        this.fetchAccessRights();
+      }
     }
   }
 

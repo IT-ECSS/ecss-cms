@@ -620,8 +620,29 @@ class Popup extends Component {
   {
     var accessRight = this.state.message4;
     console.log("Access Rights:", accessRight);
-    var accessRightId = accessRight.id;
-    var response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/accessRights`, { purpose: "updateAccessRight", accessRight, accessRightId });
+    
+    // Clean the access rights data to remove duplicate lowercase keys
+    const cleanedAccessRight = { ...accessRight };
+    
+    // Remove lowercase duplicates that conflict with proper case versions
+    // Only remove lowercase keys if the proper case version exists
+    if (cleanedAccessRight['attendance'] && cleanedAccessRight['Attendances']) {
+      delete cleanedAccessRight['attendance'];
+    }
+    if (cleanedAccessRight['fitness'] && cleanedAccessRight['Fitness']) {
+      delete cleanedAccessRight['fitness'];
+    }
+    if (cleanedAccessRight['fundraising'] && cleanedAccessRight['Fundraising']) {
+      delete cleanedAccessRight['fundraising'];
+    }
+    if (cleanedAccessRight['membership'] && cleanedAccessRight['Membership']) {
+      delete cleanedAccessRight['membership'];
+    }
+    
+    console.log("Cleaned Access Rights:", cleanedAccessRight);
+    var accessRightId = cleanedAccessRight.id;
+    
+    var response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/accessRights`, { purpose: "updateAccessRight", accessRight: cleanedAccessRight, accessRightId });
     if(response.data.success === true)
       {
           //console.log("Change Password Successfully");

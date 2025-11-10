@@ -262,26 +262,26 @@ class LoginPage extends Component {
     );
 
     return (
-      <div class="container">
-        <div class="header">
-          <div class="language-toggle">
+      <div className="container">
+        <div className="header">
+          <div className="language-toggle">
             <button onClick={this.toggleLanguage}>
               {language === 'en' ? '中文' : 'English'}
             </button>
           </div>
         </div>
-        <div class="login-main-content">
-          <div class="left-section">
-            <div class="title-and-image">
+        <div className="login-main-content">
+          <div className="left-section">
+            <div className="title-and-image">
               <img
                 src="https://ecss.org.sg/wp-content/uploads/2023/07/En_logo_Final_Large_RGB.png"
                 alt="Logo"
-                class="title-image"
+                className="title-image"
               />
-              <h1 class="title">{title}</h1>
+              <h1 className="title">{title}</h1>
             </div>
             <h2>{loginText}</h2>
-            <form class="login-form" onSubmit={this.handleSubmit}>
+            <form className="login-form" onSubmit={this.handleSubmit}>
               <label htmlFor="email">
                 {language === 'en' ? 'Email:' : '电子邮件：'}
               </label>
@@ -296,7 +296,7 @@ class LoginPage extends Component {
                   language === 'en' ? 'Enter your email' : '请输入电子邮件...'
                 }
               />
-              {emailError && <small class="error-message1">{emailError}</small>}
+              {emailError && <small className="error-message1">{emailError}</small>}
 
               <label htmlFor="password">
               {language === 'en' ? 'Password:' : '密码：'}
@@ -315,7 +315,7 @@ class LoginPage extends Component {
                 onClick={this.togglePasswordVisibility}
               ></i>
             </div>
-            {passwordError && <small class="error-message1">{passwordError}</small>}
+            {passwordError && <small className="error-message1">{passwordError}</small>}
             <a 
             style={{
               fontWeight: 'bold',
@@ -332,14 +332,14 @@ class LoginPage extends Component {
                 {language === 'en' ? 'Login' : '登录'}
               </button>
             </form>
-            <p class="copyright">{copyrightText}</p>
+            <p className="copyright">{copyrightText}</p>
           </div>
-          <div class="right-section">
-            <div class="right-section-content">
+          <div className="right-section">
+            <div className="right-section-content">
               <img
                 src="https://ecss.org.sg/wp-content/uploads/2024/09/Untitled_design-removebg-preview.png"
                 alt="Description"
-                class="description-image"
+                className="description-image"
               />
             </div>
           </div>

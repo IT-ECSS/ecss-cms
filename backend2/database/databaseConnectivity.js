@@ -1862,25 +1862,34 @@ class DatabaseConnectivity {
             const filter = { _id: new ObjectId(id1) };
             console.log("Filter:", filter);
 
-            console.log(updateAccessRight);
+            //console.log("Update Access Right:", updateAccessRight);
 
-            const keyMapping = {
+        const keyMapping = {
                 accounts: "Account",
                 regPay: "Registration And Payment",
                 qRCode: "QR Code",
                 courses: "Courses",
-                reports: "Reports"
+                reports: "Reports",
+                attendance: "Attendances",
+                fitness: "Fitness", 
+                fundraising: "Fundraising",
+                membership: "Membership"
               };
     
            // Exclude _id from the updateAccessRight if it exists
             const { id, accType, name, sn, ...filteredUpdateAccessRight } = updateAccessRight;
-            var updateAccessRight = Object.fromEntries(
-                Object.entries(filteredUpdateAccessRight).map(([key, value]) => [
-                  keyMapping[key] || key, // Replace key if found in keyMapping, otherwise keep the original
-                  value
-                ])
-              );
-            console.log(updateAccessRight);
+            
+            // Remove duplicate lowercase keys that conflict with proper case versions
+            const cleanedData = {};
+            for (const [key, value] of Object.entries(filteredUpdateAccessRight)) {
+                const mappedKey = keyMapping[key] || key;
+                // Only add if we don't already have this key (prevents duplicates)
+                if (!cleanedData[mappedKey]) {
+                    cleanedData[mappedKey] = value;
+                }
+            }
+            
+            console.log("Cleaned update data:", cleanedData);
     
             // Prepare the update object
             const update = {
@@ -1888,15 +1897,16 @@ class DatabaseConnectivity {
             };
 
     
-            // Add any other fields from updateData
-            for (const key in updateAccessRight) {
-                update.$set[key] = updateAccessRight[key];
+            // Add any other fields from cleanedData
+            for (const key in cleanedData) {
+                update.$set[key] = cleanedData[key];
             }
     
             console.log("Update object:", update);
     
             // Perform the update operation
             const result = await table.updateOne(filter, update);
+            console.log("Update Result:", result);
     
             if (result.modifiedCount === 1) {
                 console.log("Successfully updated the access right.");

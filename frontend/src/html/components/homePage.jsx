@@ -1241,12 +1241,27 @@ import React, { Component } from 'react';
       });
     }
 
-   closePopupMessage = async () => {
-        // Close the popup
+   closePopupMessage = async (success, message) => {
+        // Close the current popup
         this.setState({
             isPopupOpen: false
         }, () => {
-            // Call refreshChild after the state has updated
+            // Show feedback message if provided
+            if (message) {
+                const messageType = success ? "success-message" : "error-message";
+                this.setState({
+                    isPopupOpen: true,
+                    popupMessage: message,
+                    popupType: messageType
+                });
+                
+                // Auto-close the feedback message after 3 seconds
+                setTimeout(() => {
+                    this.setState({ isPopupOpen: false });
+                }, 3000);
+            }
+            
+            // Refresh child components to show updated data
             this.refreshChild();
         });
     };
@@ -1680,7 +1695,7 @@ import React, { Component } from 'react';
                         section={section}
                         edit = {this.editAccountPopupMessage}
                         updateAccessRights = {this.updateAccessRights}
-                        key={this.state.refreshKey}
+                        refreshKey={this.state.refreshKey}
                       />
                     </div>
                   </>
