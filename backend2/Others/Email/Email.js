@@ -2,14 +2,12 @@ const nodemailer = require('nodemailer');
 
 class Email {
     constructor() {
-        // Create a transporter using Gmail
+        // TEMPORARY TEST: Create a transporter using personal Gmail
         this.transporter = nodemailer.createTransport({
-            host: 'smtp-relay.sendinblue.com', // Brevo's SMTP server
-            port: 587, // You can also use 465 for SSL or 587 for TLS
-            secure: false, // Use false for TLS or true for SSL
+            service: 'gmail',
             auth: {
-                user: "94f7f0001@smtp-brevo.com", // Your email address
-                pass: "9r0DHqn3xbt475da" // Your app password or normal password
+                user: 'it@ecss.org.sg',  // Use your personal Gmail for testing
+                pass: 'wvlpeatgusnldwis'  // Generate new app password from personal Gmail
             }
         });
     }

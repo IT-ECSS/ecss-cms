@@ -20,7 +20,9 @@ class CalendarModal extends Component {
 
   isDateAvailable = (date) => {
     const { availableDates } = this.props;
-    const dateString = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+    // Format date in Singapore timezone to avoid timezone conversion issues
+    const sgDate = new Date(date.toLocaleString("en-US", {timeZone: "Asia/Singapore"}));
+    const dateString = `${sgDate.getFullYear()}-${(sgDate.getMonth() + 1).toString().padStart(2, '0')}-${sgDate.getDate().toString().padStart(2, '0')}`;
     return availableDates.includes(dateString);
   }
 
@@ -231,38 +233,36 @@ class CalendarModal extends Component {
 class CollectionDateCalendar extends Component {
   static collectionSchedule = {
     'CT Hub': [
-      { date: '2025-11-03', timeSlots: ['10:00-16:00'] }, // Sunday
-      { date: '2025-11-10', timeSlots: ['10:00-16:00'] }, // Sunday
-      { date: '2025-11-16', timeSlots: ['10:00-16:00'] }, // Saturday
-      { date: '2025-11-17', timeSlots: ['10:00-16:00'] }, // Sunday
-      { date: '2025-11-20', timeSlots: ['10:00-16:00'] }, // Thursday
-      { date: '2025-11-23', timeSlots: ['10:00-16:00'] }, // Saturday
-      { date: '2025-11-24', timeSlots: ['10:00-16:00'] }, // Sunday
-      { date: '2025-11-27', timeSlots: ['10:00-16:00'] }, // Thursday
-      { date: '2025-11-30', timeSlots: ['10:00-16:00'] }, // Saturday
-      { date: '2025-12-01', timeSlots: ['10:00-16:00'] }, // Sunday
+      // Week 2: Nov 20 & 27 (from table)
+      { date: '2025-11-24', timeSlots: ['10:00-16:00'] }, // Monday
+      
+      // Week 3: Dec 1 & 4 (from table)  
+      { date: '2025-12-01', timeSlots: ['10:00-16:00'] }, // Monday
       { date: '2025-12-04', timeSlots: ['10:00-16:00'] }, // Thursday
-      { date: '2025-12-07', timeSlots: ['10:00-16:00'] }, // Saturday
-      { date: '2025-12-08', timeSlots: ['10:00-16:00'] }, // Sunday
+      
+      // Week 4: Dec 8 & 11 (from table)
+      { date: '2025-12-08', timeSlots: ['10:00-16:00'] }, // Monday
       { date: '2025-12-11', timeSlots: ['10:00-16:00'] }, // Thursday
-      { date: '2025-12-14', timeSlots: ['10:00-16:00'] }, // Saturday
-      { date: '2025-12-15', timeSlots: ['10:00-16:00'] }, // Sunday
+      
+      // Week 5: Dec 15 & 18 (from table)
+      { date: '2025-12-15', timeSlots: ['10:00-16:00'] }, // Monday 
       { date: '2025-12-18', timeSlots: ['10:00-16:00'] }, // Thursday
-      { date: '2025-12-22', timeSlots: ['10:00-16:00'] }, // Sunday
-      { date: '2025-12-29', timeSlots: ['10:00-16:00'] }  // Sunday
+      
+      // Sundays for CT Hub (Singapore timezone)
+      { date: '2025-11-23', timeSlots: ['10:00-16:00'] }, // Sunday
+      { date: '2025-11-30', timeSlots: ['10:00-16:00'] }, // Sunday
+      { date: '2025-12-07', timeSlots: ['10:00-16:00'] }, // Sunday
+      { date: '2025-12-14', timeSlots: ['10:00-16:00'] } // Sunday
     ],
     'Pasir Ris West Wellness Centre': [
-      { date: '2025-11-18', timeSlots: ['10:00-16:00'] },
-      { date: '2025-12-02', timeSlots: ['10:00-16:00'] },
-      { date: '2025-12-09', timeSlots: ['10:00-16:00'] },
-      { date: '2025-12-16', timeSlots: ['10:00-16:00'] }
+      { date: '2025-12-02', timeSlots: ['10:00-16:00'] }, // Week 2: Dec 2
+      { date: '2025-12-09', timeSlots: ['10:00-16:00'] }, // Week 3: Dec 9
+      { date: '2025-12-16', timeSlots: ['10:00-16:00'] }  // Week 4: Dec 16
     ],
     'Tampines North Community Club': [
-      { date: '2025-11-19', timeSlots: ['10:00-16:00'] },
-      { date: '2025-11-26', timeSlots: ['10:00-16:00'] },
-      { date: '2025-12-03', timeSlots: ['10:00-16:00'] },
-      { date: '2025-12-10', timeSlots: ['10:00-16:00'] },
-      { date: '2025-12-17', timeSlots: ['10:00-16:00'] }
+      { date: '2025-12-03', timeSlots: ['10:00-16:00'] }, // Week 3: Dec 3
+      { date: '2025-12-10', timeSlots: ['10:00-16:00'] }, // Week 4: Dec 10
+      { date: '2025-12-17', timeSlots: ['10:00-16:00'] }  // Week 5: Dec 17
     ]
   };
 
@@ -293,10 +293,11 @@ class CollectionDateCalendar extends Component {
     const handleDateSelect = (date) => {
       if (!date) return;
       
-      // Format date safely without timezone conversion
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
+      // Format date in Singapore timezone to avoid timezone conversion issues
+      const sgDate = new Date(date.toLocaleString("en-US", {timeZone: "Asia/Singapore"}));
+      const year = sgDate.getFullYear();
+      const month = String(sgDate.getMonth() + 1).padStart(2, '0');
+      const day = String(sgDate.getDate()).padStart(2, '0');
       const dateString = `${year}-${month}-${day}`;
 
       onDateSelect(selectedOrderForCalendar.id, dateString);

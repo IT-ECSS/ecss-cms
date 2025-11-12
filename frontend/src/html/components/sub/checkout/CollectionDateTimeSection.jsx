@@ -182,14 +182,17 @@ class CollectionDateTimeSection extends Component {
 
   // Format date for button display
   formatDateForButton = (dateString) => {
-    const date = new Date(dateString);
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const year = date.getFullYear();
+    // Create date with Singapore timezone context
+    const date = new Date(dateString + 'T12:00:00+08:00');
+    const sgDate = new Date(date.toLocaleString("en-US", {timeZone: "Asia/Singapore"}));
     
-    // Get day name using our translation system
+    const day = sgDate.getDate().toString().padStart(2, '0');
+    const month = (sgDate.getMonth() + 1).toString().padStart(2, '0');
+    const year = sgDate.getFullYear();
+    
+    // Get day name using Singapore timezone
+    const dayOfWeek = sgDate.getDay();
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const dayOfWeek = date.getDay();
     const dayName = this.getTranslation(dayNames[dayOfWeek]);
     
     // Return formatted string: "Sunday, 17/11/2025"
@@ -202,10 +205,13 @@ class CollectionDateTimeSection extends Component {
       return this.getTranslation('Select a date');
     }
     
-    const date = new Date(dateString);
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const year = date.getFullYear();
+    // Create date with Singapore timezone context
+    const date = new Date(dateString + 'T12:00:00+08:00');
+    const sgDate = new Date(date.toLocaleString("en-US", {timeZone: "Asia/Singapore"}));
+    
+    const day = sgDate.getDate().toString().padStart(2, '0');
+    const month = (sgDate.getMonth() + 1).toString().padStart(2, '0');
+    const year = sgDate.getFullYear();
     
     // Always use dd/mm/yyyy format regardless of language
     return `${day}/${month}/${year}`;
@@ -234,22 +240,36 @@ class CollectionDateTimeSection extends Component {
     // Base dates for all locations
     const baseDates = {
       'CT Hub': [
-        '2025-11-16', '2025-11-17', 
-        '2025-11-20', '2025-11-23', '2025-11-24', '2025-11-27',
-        '2025-11-30', '2025-12-01', '2025-12-04', '2025-12-07',
-        '2025-12-08', '2025-12-11', '2025-12-14', '2025-12-15', 
-        '2025-12-18', '2025-12-22', '2025-12-29'
+        // Week 2: Nov 20 & 27 (from table)
+        '2025-11-24', // Monday
+        
+        // Week 3: Dec 1 & 4 (from table)  
+        '2025-12-01', // Monday
+        '2025-12-04', // Thursday
+        
+        // Week 4: Dec 8 & 11 (from table)
+        '2025-12-08', // Monday
+        '2025-12-11', // Thursday
+        
+        // Week 5: Dec 15 & 18 (from table)
+        '2025-12-15', // Monday 
+        '2025-12-18', // Thursday
+        
+        // Sundays for CT Hub (Singapore timezone)
+        '2025-11-23', // Sunday
+        '2025-11-30', // Sunday
+        '2025-12-07', // Sunday
+        '2025-12-14' // Sunday
       ],
       'Pasir Ris West Wellness Centre': [
-        '2025-12-02',
-        '2025-12-09',
-        '2025-12-16'
+        '2025-12-02', // Week 2: Dec 2
+        '2025-12-09', // Week 3: Dec 9
+        '2025-12-16'  // Week 4: Dec 16
       ],
       'Tampines North Community Club': [
-        '2025-11-26',
-        '2025-12-03',
-        '2025-12-10',
-        '2025-12-17'
+        '2025-12-03', // Week 3: Dec 3
+        '2025-12-10', // Week 4: Dec 10
+        '2025-12-17'  // Week 5: Dec 17
       ]
     };
 
@@ -259,8 +279,10 @@ class CollectionDateTimeSection extends Component {
       
       if (result['CT Hub']) {
         result['CT Hub'] = result['CT Hub'].filter(dateString => {
-          const date = new Date(dateString);
-          const dayOfWeek = date.getDay();
+          // Parse date with Singapore timezone context
+          const date = new Date(dateString + 'T12:00:00+08:00');
+          const sgDate = new Date(date.toLocaleString("en-US", {timeZone: "Asia/Singapore"}));
+          const dayOfWeek = sgDate.getDay();
           return dayOfWeek === 0; // Keep only Sunday dates
         });
       }
@@ -272,8 +294,10 @@ class CollectionDateTimeSection extends Component {
       
       if (result['CT Hub']) {
         result['CT Hub'] = result['CT Hub'].filter(dateString => {
-          const date = new Date(dateString);
-          const dayOfWeek = date.getDay();
+          // Parse date with Singapore timezone context
+          const date = new Date(dateString + 'T12:00:00+08:00');
+          const sgDate = new Date(date.toLocaleString("en-US", {timeZone: "Asia/Singapore"}));
+          const dayOfWeek = sgDate.getDay();
           return dayOfWeek !== 0; // Keep non-Sunday dates
         });
       }
@@ -299,10 +323,11 @@ class CollectionDateTimeSection extends Component {
       return true;
     }
     
-    // Convert date to YYYY-MM-DD format for comparison, using local timezone
-    const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
+    // Convert date to YYYY-MM-DD format for comparison using Singapore timezone
+    const sgDate = new Date(date.toLocaleString("en-US", {timeZone: "Asia/Singapore"}));
+    const year = sgDate.getFullYear();
+    const month = (sgDate.getMonth() + 1).toString().padStart(2, '0');
+    const day = sgDate.getDate().toString().padStart(2, '0');
     const dateString = `${year}-${month}-${day}`;
     
     // Enable date only if it's in the available dates for this location
@@ -313,7 +338,9 @@ class CollectionDateTimeSection extends Component {
   getSelectedDate = () => {
     const { collectionDate } = this.props;
     if (collectionDate) {
-      return new Date(collectionDate);
+      // Parse date with Singapore timezone context
+      const date = new Date(collectionDate + 'T12:00:00+08:00');
+      return new Date(date.toLocaleString("en-US", {timeZone: "Asia/Singapore"}));
     }
     return this.state.selectedDate;
   }
