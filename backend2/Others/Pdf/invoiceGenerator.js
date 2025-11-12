@@ -307,6 +307,7 @@ class invoiceGenerator {
             "Community Ukulele – Mandarin": "TGS-2021008564",
             "Community Singing – Mandarin": "TGS-2021008563",
             "Self-Care TCM Wellness – Mandarin": "TGS-2021008561",
+            "Fall Prevention and Functional Improvement Training": "TGS-2021008562",
             "Hanyu Pinyin for Beginners": "TGS-2021008571",
             "The Rest Note of Life – Mandarin": "TGS-2022015736",
             "TCM Diet & Therapy": "TGS-2021008570",
@@ -325,7 +326,7 @@ class invoiceGenerator {
             "Community Ukulele – Mandarin L2": "TGS-2025054492",
             "Community Ukulele – Mandarin L2A": "TGS-2025054492",
             "Community Ukulele – Mandarin L2B": "TGS-2025054492",
-            "Community Cajon Foundation 1": "TGS-2025054489"
+            "Community Cajon Foundation 1": "TGS-2025054489",
             "Hanyu Pinyin For Intermediate – Mandarin": "TGS-2023019016"
             //Healthy Minds, Healthy Lives – Mandarin
         };
