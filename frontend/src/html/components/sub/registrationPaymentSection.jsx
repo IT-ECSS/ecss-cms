@@ -1438,7 +1438,7 @@ class RegistrationPaymentSection extends Component {
                 return "ECSS-CBO-M-001C";
             case "Hanyu Pinyin for Beginners":
                 return "ECSS-CBO-M-011C";
-            case "Hanyu Pinyin Intermediate":
+            case "Hanyu Pinyin For Intermediate – Mandarin":
                 return "ECSS-CBO-M-025C";
             case "Hanyu Pinyin – 300 Tang Poems":
                 return "ECSS-CBO-M-036C";
