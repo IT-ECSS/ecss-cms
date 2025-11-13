@@ -720,28 +720,28 @@ class FundraisingTable extends Component {
         {
           headerName: "First Name",
           field: "firstName",
-          width: 150,
-          editable: true,
+          width: 150, 
           pinned: "left",
         },
         {
           headerName: "Last Name",
           field: "lastName",
           width: 150,
-          editable: true,
           pinned: "left",
         },
         {
           headerName: "Email",
           field: "email",
           width: 250,
-          editable: true,
         },
         {
-          headerName: "Phone",
+          headerName: "Contact Number",
           field: "contactNumber",
           width: 150,
-          editable: true,
+          pinned: "left",
+          cellRenderer: (params) => {
+            return params.value;
+          },
         },
         {
           headerName: "Station Location",
@@ -2421,7 +2421,143 @@ class FundraisingTable extends Component {
     // Handle cell clicks
     handleValueClick = (params) => {
       console.log('Cell clicked:', params);
-      // Add any specific cell click handling logic here if needed
+      
+      // Check if the clicked cell is the contact number field
+      if (params.colDef.field === 'contactNumber' && params.value) {
+        this.handleContactNumberClick(params);
+      }
+    };
+
+    // Handle contact number cell clicks for WhatsApp integration
+    handleContactNumberClick = (params) => {
+      console.log('Data Row clicked:', params.data);
+      
+      const phoneNumber = this.formatPhoneNumber(params.value);
+      const customerName = this.getCustomerName(params.data);
+      const paymentMethod = params.data.paymentMethod || '';
+      
+      if (paymentMethod.toLowerCase() === 'paynow') {
+        this.openWhatsAppPayNowMessage(phoneNumber, customerName, params.data);
+      }
+      // Add other payment methods here if needed
+    };
+
+    // Format phone number for Singapore (+65)
+    formatPhoneNumber = (phoneValue) => {
+      let phoneNumber = phoneValue.toString().replace(/\s+/g, '').replace(/[-()]/g, '');
+      
+      // Ensure phone number starts with country code (assuming Singapore +65 if no country code)
+      if (!phoneNumber.startsWith('+') && !phoneNumber.startsWith('65') && phoneNumber.length === 8) {
+        phoneNumber = '65' + phoneNumber;
+      }
+      
+      return phoneNumber;
+    };
+
+    // Get customer name from data
+    getCustomerName = (data) => {
+      const firstName = data.firstName || '';
+      const lastName = data.lastName || '';
+      return firstName && lastName ? `${firstName} ${lastName}` : (firstName || lastName || 'Customer');
+    };
+
+    // Calculate order amount from multiple sources
+    calculateOrderAmount = (data) => {
+      console.log('Available data fields:', {
+        donationAmount: data.donationAmount,
+        enrichedTotalPrice: data.enrichedTotalPrice,
+        originalTotalPrice: data.originalTotalPrice,
+        items: data.items
+      });
+      
+      // Try multiple sources for order amount
+      let orderAmount = data.donationAmount || data.enrichedTotalPrice || data.originalTotalPrice;
+      
+      // If still no amount, calculate from items
+      if (!orderAmount || orderAmount === '' || orderAmount === 0) {
+        orderAmount = this.calculateAmountFromItems(data.items || []);
+      }
+      
+      return orderAmount;
+    };
+
+    // Calculate total amount from items array
+    calculateAmountFromItems = (items) => {
+      console.log('No direct amount found, calculating from items...');
+      let calculatedTotal = 0;
+      
+      items.forEach((item, index) => {
+        const itemPrice = item.price || item.unitPrice || 0;
+        const quantity = item.quantity || 1;
+        const itemSubtotal = itemPrice * quantity;
+        calculatedTotal += itemSubtotal;
+        console.log(`Item ${index + 1}: ${item.productName || 'Unknown'} - $${itemPrice} x ${quantity} = $${itemSubtotal}`);
+      });
+      
+      console.log('Calculated total from items:', calculatedTotal);
+      return calculatedTotal;
+    };
+
+    // Format amount as currency string
+    formatOrderAmount = (orderAmount) => {
+      console.log('Final order amount before formatting:', orderAmount);
+      
+      if (!orderAmount || orderAmount === '' || orderAmount === null || orderAmount === undefined || orderAmount === 0) {
+        console.log('Order amount was still empty, using default: $0.00');
+        return '$0.00';
+      }
+      
+      const numericAmount = parseFloat(orderAmount.toString().replace(/[\$,]/g, ''));
+      if (isNaN(numericAmount)) {
+        console.log('Could not parse order amount, using default: $0.00');
+        return '$0.00';
+      }
+      
+      const formattedAmount = `$${numericAmount.toFixed(2)}`;
+      console.log('Successfully formatted order amount:', formattedAmount);
+      return formattedAmount;
+    };
+
+    // Create PayNow WhatsApp message
+    createPayNowMessage = (customerName, orderReference, orderAmount) => {
+      return `Hello ${customerName}, thank you for your support!
+Please complete your payment using PayNow.
+UEN: T03SS0051L
+Payment Reference: ${orderReference} (please key in this reference in your PayNow transaction)
+Amount: ${orderAmount}
+After you have made the payment, please screenshot your successful transaction and send it to this number.
+
+---
+
+Hai ${customerName}, terima kasih atas sokongan anda!
+Sila lengkapkan pembayaran menggunakan PayNow.
+UEN: T03SS0051L
+Rujukan Pembayaran: ${orderReference} (sila masukkan rujukan ini semasa transaksi PayNow anda)
+Jumlah: ${orderAmount}
+Selepas membuat pembayaran, sila tangkap skrin transaksi yang berjaya dan hantar ke nombor ini.
+
+---
+
+您好 ${customerName}，感谢您的支持！
+请通过 PayNow 完成付款。
+UEN: T03SS0051L
+付款参考: ${orderReference}（请在您的 PayNow 交易中填写此参考号码）
+金额: ${orderAmount}
+付款完成后，请截屏成功交易并发送至此号码。`;
+    };
+
+    // Open WhatsApp with PayNow payment message
+    openWhatsAppPayNowMessage = (phoneNumber, customerName, data) => {
+      console.log('Processing PayNow payment for:', customerName);
+      
+      const orderAmount = this.calculateOrderAmount(data);
+      const formattedAmount = this.formatOrderAmount(orderAmount);
+      const orderReference = data.invoiceNumber || data.receiptNumber || data.id || 'Order Reference';
+      
+      const message = this.createPayNowMessage(customerName, orderReference, formattedAmount);
+      const whatsappWebURL = `https://web.whatsapp.com/send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
+      
+      window.open(whatsappWebURL, "_blank");
     };
 
     // Grid API initialization
@@ -2439,7 +2575,7 @@ class FundraisingTable extends Component {
         'First Name',
         'Last Name',
         'Email',
-        'Phone',
+        'Contact Number',
         'Station Location',
         'Items Summary',
         'Total Price',
@@ -2585,7 +2721,7 @@ class FundraisingTable extends Component {
         item.personalInfo?.firstName || item.firstName || row.firstName || '', // First Name
         item.personalInfo?.lastName || item.lastName || row.lastName || '', // Last Name
         item.personalInfo?.email || item.email || row.email || '', // Email
-        item.personalInfo?.phone || item.contactNumber || row.contactNumber || '', // Phone
+        item.personalInfo?.phone || item.contactNumber || row.contactNumber || '', // Contact Number
         stationLocation, // Station Location
         itemsSummary, // Items Summary
         displayPrice, // Total Price
@@ -2765,7 +2901,7 @@ class FundraisingTable extends Component {
         
         // Get headers and data
         const allHeaders = [
-          'S/N', 'First Name', 'Last Name', 'Email', 'Phone',
+          'S/N', 'First Name', 'Last Name', 'Email', 'Contact Number',
           'Station Location', 'Items Summary', 'Total Price',
           'Payment Method', 'Invoice Number', 'Order Details', 'Status',
           'Collection Mode', 'Collection Location', 'Collection Details', 'Receipt Number'
@@ -2829,7 +2965,7 @@ class FundraisingTable extends Component {
         
         // Define comprehensive headers for payment report
         const headers = [
-          'S/N', 'First Name', 'Last Name', 'Email', 'Phone',
+          'S/N', 'First Name', 'Last Name', 'Email', 'Contact Number',
           'Station Location', 'Items Summary', 'Total Price',
           'Payment Method', 'Invoice Number', 'Order Details', 'Status',
           'Collection Mode', 'Collection Location', 'Collection Details', 'Receipt Number'
@@ -2940,7 +3076,7 @@ class FundraisingTable extends Component {
           item.personalInfo?.firstName || item.firstName || row.firstName || '', // First Name
           item.personalInfo?.lastName || item.lastName || row.lastName || '', // Last Name
           item.personalInfo?.email || item.email || row.email || '', // Email
-          item.personalInfo?.phone || item.contactNumber || row.contactNumber || '', // Phone
+          item.personalInfo?.phone || item.contactNumber || row.contactNumber || '', // Contact Number
           item.personalInfo?.location, // Station Location
           itemsSummary, // Items Summary
           totalPriceDisplay, // Total Price

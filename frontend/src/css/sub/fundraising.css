@@ -2741,3 +2741,16 @@
   color: white !important;
   transform: scale(1.1) !important;
 }
+
+/* Clickable contact number styling */
+.clickable-contact {
+  color: #007bff !important;
+  cursor: pointer !important;
+  text-decoration: underline !important;
+  transition: color 0.2s ease !important;
+}
+
+.clickable-contact:hover {
+  color: #0056b3 !important;
+  text-decoration: underline !important;
+}

@@ -7,9 +7,9 @@ class SubmissionProgressPopup extends Component {
     
     const translations = {
       submittingInProgress: {
-        english: 'Submitting in progress',
-        chinese: '正在提交中',
-        malay: 'Sedang menghantar'
+        english: 'Submitting in progress... Generating invoice',
+        chinese: '正在提交中... 正在生成发票',
+        malay: 'Sedang menghantar... Menjana invois'
       }
     };
 
