@@ -9,6 +9,8 @@ import CollectionDateTimeSection from './sub/checkout/CollectionDateTimeSection'
 import OrderSummarySection from './sub/checkout/OrderSummarySection';
 import CheckoutActions from './sub/checkout/CheckoutActions';
 import LanguageModal from './LanguageModal';
+import SubmissionProgressPopup from './SubmissionProgressPopup';
+import SubmissionSuccessPopup from './SubmissionSuccessPopup';
 
 class CheckoutPage extends Component {
   constructor(props) {
@@ -67,6 +69,14 @@ class CheckoutPage extends Component {
       },
       languageModal: {
         isVisible: false
+      },
+      submissionProgress: {
+        isVisible: false
+      },
+      submissionSuccess: {
+        isVisible: false,
+        orderDetails: null,
+        isSuccess: true
       }
     };
   }
@@ -381,6 +391,74 @@ class CheckoutPage extends Component {
         // Then redirect back
         this.handleGoBack();
       }
+    });
+  }
+
+  // Submission Progress popup methods
+  showSubmissionProgress = () => {
+    this.setState({
+      submissionProgress: {
+        isVisible: true
+      }
+    });
+  }
+
+  hideSubmissionProgress = () => {
+    this.setState({
+      submissionProgress: {
+        isVisible: false
+      }
+    });
+  }
+
+  // Submission Success/Failure popup methods
+  showSubmissionSuccess = (orderDetails = null) => {
+    this.setState({
+      submissionSuccess: {
+        isVisible: true,
+        orderDetails: orderDetails,
+        isSuccess: true
+      }
+    });
+  }
+
+  showSubmissionFailure = () => {
+    this.setState({
+      submissionSuccess: {
+        isVisible: true,
+        orderDetails: null,
+        isSuccess: false
+      }
+    });
+  }
+
+  hideSubmissionSuccess = () => {
+    const wasSuccess = this.state.submissionSuccess.isSuccess;
+    
+    this.setState({
+      submissionSuccess: {
+        isVisible: false,
+        orderDetails: null,
+        isSuccess: true
+      }
+    }, () => {
+      // Only clear cart and redirect if it was a successful order
+      if (wasSuccess) {
+        // Clear the cart after user acknowledges successful order
+        const { onClearCart } = this.props;
+        if (onClearCart) {
+          onClearCart();
+        }
+        // Also clear from localStorage as backup
+        localStorage.removeItem('cartItems');
+        
+        // Clear checkout form state after successful order
+        this.clearCheckoutStateFromLocalStorage();
+        
+        // Then redirect back
+        this.handleGoBack();
+      }
+      // If it was a failure, just close the popup and stay on the page
     });
   }
 
@@ -805,6 +883,9 @@ class CheckoutPage extends Component {
       }
     };
 
+    // Show submission progress popup
+    this.showSubmissionProgress();
+
     try {
       // Send the orderData to your server
       const baseUrl = window.location.hostname === "localhost" 
@@ -814,6 +895,9 @@ class CheckoutPage extends Component {
       const response = await axios.post(`${baseUrl}/fundraising`, {purpose: "insert", orderData});
 
       console.log('Order response:', response.data);
+      
+      // Hide progress popup
+      this.hideSubmissionProgress();
       
       // Handle invoice download if available
       if (response.data.invoice && response.data.invoice.pdfData) {
@@ -825,26 +909,26 @@ class CheckoutPage extends Component {
         });
         console.log('Invoice generated, preparing preview and download...');
         this.downloadInvoice(response.data.invoice);
-        
-        // Show success modal with invoice info
-        const successTranslation = this.getModalTranslations('success');
-        this.showModal(
-          'success',
-          '✓',
-          successTranslation.message
-        );
       }
+      
+      // Prepare order details for success popup
+      const orderDetails = {
+        orderId: response.data.orderId || `${orderDate}-${orderTime}`,
+        total: this.calculateTotal(),
+        email: personalInfo.email
+      };
+      
+      // Show success popup
+      this.showSubmissionSuccess(orderDetails);
       
     } catch (error) {
       console.error('Error placing order:', error);
       
-      // Show error modal
-      const errorTranslation = this.getModalTranslations('error');
-      this.showModal(
-        'error',
-        '✗',
-        errorTranslation.message
-      );
+      // Hide progress popup
+      this.hideSubmissionProgress();
+      
+      // Show failure popup
+      this.showSubmissionFailure();
  }
   }
 
@@ -957,32 +1041,28 @@ class CheckoutPage extends Component {
           />
         </div>
 
-        {/* Modal for success/error messages */}
-        {modal.isVisible && (
-          <div className="modal-overlay" onClick={this.hideModal}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <button className="modal-close" onClick={this.hideModal}>×</button>
-              <div className={`modal-icon ${modal.type}`}>
-                {modal.title}
-              </div>
-              <div className="modal-message">
-                <p className={modal.type}>{modal.message}</p>
-              </div>
-              <div className="modal-footer3">
-                <button className="modal-button" onClick={this.hideModal}>
-                  {this.getModalTranslations('ok').okButton}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Language Selection Modal */}
         <LanguageModal
           isOpen={languageModal.isVisible}
           selectedLanguage={selectedLanguage}
           onLanguageSelect={this.handleLanguageSelect}
           onClose={this.handleCloseLanguageModal}
+        />
+
+        {/* Submission Progress Popup */}
+        <SubmissionProgressPopup
+          isOpen={this.state.submissionProgress.isVisible}
+          onClose={() => {}} // Don't allow closing during submission
+          selectedLanguage={selectedLanguage}
+        />
+
+        {/* Submission Success/Failure Popup */}
+        <SubmissionSuccessPopup
+          isOpen={this.state.submissionSuccess.isVisible}
+          onClose={this.hideSubmissionSuccess}
+          orderDetails={this.state.submissionSuccess.orderDetails}
+          selectedLanguage={selectedLanguage}
+          isSuccess={this.state.submissionSuccess.isSuccess}
         />
       </div>
     );

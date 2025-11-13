@@ -1,0 +1,323 @@
+/* Submission Success Popup Styles - Consistent Modal Design System */
+
+/* Base Modal Overlay */
+.result-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  backdrop-filter: blur(4px);
+  transition: opacity 0.3s ease;
+}
+
+/* Modal Content Container */
+.result-modal-content {
+  background: white;
+  border-radius: 16px;
+  padding: 40px 30px;
+  max-width: 420px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: modalSlideIn 0.3s ease-out;
+  text-align: center;
+  position: relative;
+}
+
+/* Modal Icon Container */
+.result-modal-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+  font-size: 40px;
+  font-weight: 700;
+  transition: all 0.3s ease;
+}
+
+.result-modal-icon.success {
+  background: transparent;
+  color: #10b981;
+  animation: successBounce 0.6s ease-out;
+}
+
+.result-modal-icon.error {
+  background: transparent;
+  color: #ef4444;
+  animation: errorShake 0.6s ease-out;
+}
+
+/* Modal Message Container */
+.result-modal-message {
+  margin-bottom: 32px;
+}
+
+.result-modal-message p {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.result-modal-message p.success {
+  color: #059669;
+}
+
+.result-modal-message p.error {
+  color: #dc2626;
+}
+
+/* Modal Footer */
+.result-modal-footer {
+  display: flex;
+  justify-content: center;
+}
+
+/* Modal Button */
+.result-modal-button {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 14px 32px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  min-width: 120px;
+}
+
+.result-modal-button:hover {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+  transform: translateY(-1px);
+}
+
+.result-modal-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.result-modal-button:focus {
+  outline: none;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3), 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Error State Button Styling */
+.result-modal-content .result-modal-icon.error + .result-modal-message + .result-modal-footer .result-modal-button {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.result-modal-content .result-modal-icon.error + .result-modal-message + .result-modal-footer .result-modal-button:hover {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+}
+
+.result-modal-content .result-modal-icon.error + .result-modal-message + .result-modal-footer .result-modal-button:focus {
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3), 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+/* Success Animation */
+@keyframes successBounce {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Error Animation */
+@keyframes errorShake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-5px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(5px);
+  }
+}
+
+/* Modal Slide In Animation */
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Tablet Responsive Design */
+@media (max-width: 768px) {
+  .result-modal-content {
+    padding: 32px 24px;
+    max-width: 380px;
+    margin: 20px;
+    width: calc(100% - 40px);
+  }
+  
+  .result-modal-icon {
+    width: 70px;
+    height: 70px;
+    font-size: 35px;
+    margin-bottom: 20px;
+  }
+  
+  .result-modal-message {
+    margin-bottom: 28px;
+  }
+  
+  .result-modal-message p {
+    font-size: 1rem;
+  }
+  
+  .result-modal-button {
+    padding: 12px 28px;
+    font-size: 0.9375rem;
+  }
+}
+
+/* Mobile Responsive Design */
+@media (max-width: 480px) {
+  .result-modal-overlay {
+    padding: 16px;
+  }
+  
+  .result-modal-content {
+    padding: 28px 20px;
+    max-width: 100%;
+    margin: 0;
+    width: 100%;
+    border-radius: 12px;
+  }
+  
+  .result-modal-icon {
+    width: 60px;
+    height: 60px;
+    font-size: 30px;
+    margin-bottom: 18px;
+  }
+  
+  .result-modal-message {
+    margin-bottom: 24px;
+  }
+  
+  .result-modal-message p {
+    font-size: 0.9375rem;
+  }
+  
+  .result-modal-button {
+    padding: 12px 24px;
+    font-size: 0.875rem;
+    min-width: 100px;
+  }
+}
+
+/* Extra Small Mobile Devices */
+@media (max-width: 360px) {
+  .result-modal-content {
+    padding: 24px 16px;
+  }
+  
+  .result-modal-icon {
+    width: 56px;
+    height: 56px;
+    font-size: 28px;
+    margin-bottom: 16px;
+  }
+  
+  .result-modal-message {
+    margin-bottom: 20px;
+  }
+  
+  .result-modal-message p {
+    font-size: 0.875rem;
+  }
+  
+  .result-modal-button {
+    padding: 10px 20px;
+    font-size: 0.8125rem;
+    min-width: 90px;
+  }
+}
+
+/* High DPI / Retina Display Support */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .result-modal-content {
+    box-shadow: 
+      0 25px 50px -12px rgba(0, 0, 0, 0.3),
+      0 20px 25px -5px rgba(0, 0, 0, 0.15);
+  }
+}
+
+/* Landscape Orientation for Mobile */
+@media (max-height: 600px) and (orientation: landscape) {
+  .result-modal-content {
+    max-height: 85vh;
+    padding: 24px 30px;
+  }
+  
+  .result-modal-icon {
+    width: 60px;
+    height: 60px;
+    font-size: 30px;
+    margin-bottom: 16px;
+  }
+  
+  .result-modal-message {
+    margin-bottom: 20px;
+  }
+  
+  .result-modal-button {
+    padding: 10px 24px;
+  }
+}
+
+/* Accessibility Improvements */
+@media (prefers-reduced-motion: reduce) {
+  .result-modal-content,
+  .result-modal-icon.success,
+  .result-modal-icon.error,
+  .result-modal-button {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* Dark Mode Support (if needed in future) */
+@media (prefers-color-scheme: dark) {
+  .result-modal-content {
+    background: #1f2937;
+    color: #f9fafb;
+  }
+  
+  .result-modal-message p.success {
+    color: #34d399;
+  }
+  
+  .result-modal-message p.error {
+    color: #f87171;
+  }
+}
