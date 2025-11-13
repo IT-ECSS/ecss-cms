@@ -316,7 +316,7 @@ class OrderTabs extends Component {
         : key;
   }
 
-  getOrderStatusInfo = (status, collectionMode) => {
+  getOrderStatusInfo = (status, collectionMode, orderData = null) => {
     // Determine the final step icon and name based on collection mode
     const finalStepIcon = collectionMode?.toLowerCase() === 'delivery' ? '🚚' : '✋';
     const finalStepName = collectionMode?.toLowerCase() === 'delivery' ? this.getTranslation('delivered') : this.getTranslation('collected');
@@ -363,23 +363,40 @@ class OrderTabs extends Component {
           color: '#e67e22',
           steps: [
             { name: this.getTranslation('pending'), icon: '💳', active: false, completed: true },
-            { name: this.getTranslation('paid'), icon: '📦', active: false, completed: true },
-            { name: finalStepName, icon: finalStepIcon, active: false, completed: true },
+            { name: this.getTranslation('cancelled'), icon: '❌', active: false, completed: true },
             { name: this.getTranslation('refunded'), icon: '💰', active: true, completed: true }
           ]
         };
       case 'cancelled':
-        return {
-          stage: this.getTranslation('cancelled'),
-          icon: '❌',
-          color: '#e74c3c',
-          steps: [
-            { name: this.getTranslation('pending'), icon: '💳', active: false, completed: false },
-            { name: this.getTranslation('paid'), icon: '📦', active: false, completed: false },
-            { name: finalStepName, icon: finalStepIcon, active: false, completed: false },
-            { name: this.getTranslation('cancelled'), icon: '❌', active: true, completed: true }
-          ]
-        };
+        // Check if order was previously paid (has receipt number or was in paid state)
+        const wasPreviouslyPaid = orderData?.receiptNumber || 
+                                  orderData?.fullOrder?.receiptNumber || 
+                                  orderData?.receiptId;
+        
+        if (wasPreviouslyPaid) {
+          // If order was paid before being cancelled, show 3-step progression: Payment Processing → Order Fulfillment → Order Cancelled
+          return {
+            stage: this.getTranslation('cancelled'),
+            icon: '❌',
+            color: '#e74c3c',
+            steps: [
+              { name: this.getTranslation('pending'), icon: '💳', active: false, completed: true },
+              { name: this.getTranslation('paid'), icon: '📦', active: false, completed: true },
+              { name: this.getTranslation('cancelled'), icon: '❌', active: true, completed: true }
+            ]
+          };
+        } else {
+          // If order was cancelled from pending, show 2-step progression: Payment Processing → Order Cancelled
+          return {
+            stage: this.getTranslation('cancelled'),
+            icon: '❌',
+            color: '#e74c3c',
+            steps: [
+              { name: this.getTranslation('pending'), icon: '💳', active: false, completed: true },
+              { name: this.getTranslation('cancelled'), icon: '❌', active: true, completed: true }
+            ]
+          };
+        }
       default:
         return {
           stage: 'Unknown',
@@ -469,7 +486,7 @@ class OrderTabs extends Component {
               <div className="order-status-section">
                 {(() => {
                   const collectionMode = activeOrder.fullOrder?.collectionDetails?.collectionMode;
-                  const statusInfo = this.getOrderStatusInfo(activeOrder.status, collectionMode);
+                  const statusInfo = this.getOrderStatusInfo(activeOrder.status, collectionMode, activeOrder);
                   return (
                     <div className="status-container">                      
                       {!statusInfo.hideTimeline && (

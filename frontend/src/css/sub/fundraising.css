@@ -1111,6 +1111,8 @@
   box-shadow: 0 1px 4px rgba(0,0,0,0.08);
   letter-spacing: 0.02em;
   line-height: 1.6;
+  width: fit-content;
+  height: fit-content;
 }
 
 /* Status color variations */
@@ -1135,6 +1137,10 @@
 }
 
 .fundraising-status-badge.refunded {
+  background-color: #fd7e14;
+}
+
+.fundraising-status-badge.cancelled {
   background-color: #dc3545;
 }
 

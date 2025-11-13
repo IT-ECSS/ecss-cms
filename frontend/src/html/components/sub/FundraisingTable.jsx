@@ -689,7 +689,7 @@ class FundraisingTable extends Component {
           })(),
           status: item.status || 'Pending',
           donationDate: item.orderDate,
-          receiptNumber: (item.status !== 'Pending') ? this.generateReceiptNumber(fundraisingData, index) : '',
+          receiptNumber: (item.status !== 'Pending' && item.status !== 'Cancelled') ? this.generateReceiptNumber(fundraisingData, index) : '',
           collectionDetails: item.collectionDetails || {},
           collectionDate: item.collectionDetails?.collectionDate || '',
           collectionTime: item.collectionDetails?.collectionTime || '',
@@ -907,9 +907,9 @@ class FundraisingTable extends Component {
             // Dynamic status values based on collection mode
             const collectionMode = params.data.collectionMode;
             if (collectionMode === "Delivery") {
-              return { values: ["Pending", "Paid", "Delivered", "Refunded"] };
+              return { values: ["Pending", "Paid", "Delivered", "Refunded", "Cancelled"] };
             } else if (collectionMode === "Self-Collection") {
-              return { values: ["Pending", "Paid", "Collected", "Refunded"] };
+              return { values: ["Pending", "Paid", "Collected", "Refunded", "Cancelled"] };
             }
           },
           cellRenderer: (params) => {
@@ -1472,7 +1472,7 @@ class FundraisingTable extends Component {
                   <span className="detail-label">Status:</span>
                   <span className="detail-value">{rowData.status}</span>
                 </div>
-                {rowData.status !== 'Pending' && (
+                {rowData.status !== 'Pending' && rowData.status !== 'Cancelled' && (
                   <div className="detail-field">
                     <span className="detail-label">Receipt Number:</span>
                     <span className="detail-value">{rowData.receiptNumber || 'N/A'}</span>
@@ -1539,6 +1539,12 @@ class FundraisingTable extends Component {
         if (params.newValue === 'Refunded' && params.oldValue !== 'Refunded') {
           console.log('Processing status change to Refunded - handling stock increase...');
           await this.handleStatusChangeToRefunded(params.data);
+        }
+        
+        // Check if the status field was changed to "Cancelled"
+        if (params.newValue === 'Cancelled' && params.oldValue !== 'Cancelled') {
+          console.log('Processing status change to Cancelled - handling stock update if needed...');
+          await this.handleStatusChangeToCancelled(params.data, params.oldValue);
         }
       }
       
@@ -2285,6 +2291,35 @@ class FundraisingTable extends Component {
         console.log('Stock increase completed for order:', rowData.id);
       } catch (error) {
         console.error('Error increasing stock:', error);
+      }
+    };
+
+    // Handle stock increase when status changes to Cancelled (only if previous status was Paid)
+    handleStatusChangeToCancelled = async (rowData, previousStatus) => {
+      console.log('Status changed to Cancelled for order:', rowData);
+      console.log('Previous status was:', previousStatus);
+      
+      // Only increase stock if the previous status was "Paid"
+      // If it was "Pending", no stock reduction occurred, so no need to increase stock
+      if (previousStatus !== 'Paid') {
+        console.log('Previous status was not Paid, no stock adjustment needed');
+        return;
+      }
+      
+      if (!rowData.items || rowData.items.length === 0) {
+        console.log('No items found for this order');
+        return;
+      }
+      
+      try {
+        // Increase stock for each item in WooCommerce (same as refunded)
+        for (const item of rowData.items) {
+          await this.increaseWooCommerceStock(item, rowData);
+        }
+        
+        console.log('Stock increase completed for cancelled order:', rowData.id);
+      } catch (error) {
+        console.error('Error increasing stock for cancelled order:', error);
       }
     };
 
