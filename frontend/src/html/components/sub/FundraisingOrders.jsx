@@ -310,6 +310,14 @@ class FundraisingOrders extends Component {
       // Preload product details for all fundraising orders
       await this.preloadAllProductDetails();
       
+      // Close any loading popup from parent component
+      if (this.props.closePopup1) {
+        this.props.closePopup1();
+      }
+      if (this.props.onDataLoaded) {
+        this.props.onDataLoaded();
+      }
+      
       // --- Live update via Socket.IO ---
       this.socket = io(
         window.location.hostname === "localhost"
@@ -689,7 +697,18 @@ class FundraisingOrders extends Component {
           })(),
           status: item.status || 'Pending',
           donationDate: item.orderDate,
-          receiptNumber: (item.status !== 'Pending' && item.status !== 'Cancelled') ? this.generateReceiptNumber(fundraisingData, index) : '',
+          receiptNumber: (() => {
+            // Preserve existing receipt number if it exists
+            if (item.receiptNumber && item.receiptNumber.trim() !== '') {
+              return item.receiptNumber;
+            }
+            // Only generate new receipt number for Paid status if none exists
+            if (item.status === 'Paid') {
+              return this.generateReceiptNumber(fundraisingData, index);
+            }
+            // Return empty string for Pending and Cancelled statuses without existing receipt numbers
+            return '';
+          })(),
           collectionDetails: item.collectionDetails || {},
           collectionDate: item.collectionDetails?.collectionDate || '',
           collectionTime: item.collectionDetails?.collectionTime || '',
@@ -1472,10 +1491,10 @@ class FundraisingOrders extends Component {
                   <span className="detail-label">Status:</span>
                   <span className="detail-value">{rowData.status}</span>
                 </div>
-                {rowData.status !== 'Pending' && rowData.status !== 'Cancelled' && (
+                {rowData.receiptNumber && rowData.receiptNumber.trim() !== '' && (
                   <div className="detail-field">
                     <span className="detail-label">Receipt Number:</span>
-                    <span className="detail-value">{rowData.receiptNumber || 'N/A'}</span>
+                    <span className="detail-value">{rowData.receiptNumber}</span>
                   </div>
                 )}
               </div>
@@ -2099,8 +2118,8 @@ class FundraisingOrders extends Component {
             }
           }
           
-          // Refresh table data to show updated receipt number and status
-          await this.fetchAndSetFundraisingData();
+          // Table refresh removed - status and receipt number changes will be reflected locally
+          // await this.fetchAndSetFundraisingData();
           
           // Return subtotal information for further use if needed
           return { success: true, subtotalInfo };

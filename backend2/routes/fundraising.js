@@ -221,13 +221,28 @@ router.post('/', async function(req, res, next)
             
             // Handle receipt number based on status
             if (isPaidStatus) {
-                // Get receiptNo from Receipts table
-                receiptNumber = await fundraisingController.getReceiptNumberByRegistrationId(req.body._id);
-                console.log("Receipt number for Paid status:", receiptNumber);
+                // Check if the order already has a receipt number
+                if (existingOrder && existingOrder.receiptNumber && existingOrder.receiptNumber.trim() !== '') {
+                    // Preserve existing receipt number
+                    receiptNumber = existingOrder.receiptNumber;
+                    console.log("Preserving existing receipt number:", receiptNumber);
+                } else {
+                    // Generate new receipt number only if none exists
+                    receiptNumber = await fundraisingController.getReceiptNumberByRegistrationId(req.body._id);
+                    console.log("Generated new receipt number for Paid status:", receiptNumber);
+                }
             } else if (isPendingStatus) {
                 // Remove receipt number for Pending status
                 receiptNumber = null;
                 console.log("Status is Pending - receiptNumber will be removed");
+            } else {
+                // For other statuses (like Cancelled, Refunded), preserve existing receipt number if it exists
+                if (existingOrder && existingOrder.receiptNumber && existingOrder.receiptNumber.trim() !== '') {
+                    receiptNumber = existingOrder.receiptNumber;
+                    console.log("Preserving existing receipt number for status", newStatus + ":", receiptNumber);
+                } else {
+                    receiptNumber = null;
+                }
             }
 
             const updateData = { 
@@ -239,10 +254,12 @@ router.post('/', async function(req, res, next)
                 // Remove receiptNumber field for Pending status using $unset
                 updateData.$unset = { receiptNumber: "" };
                 console.log("Will remove receiptNumber field for Pending status");
-            } else if (receiptNumber !== null) {
+            } else if (receiptNumber !== null && receiptNumber !== undefined) {
                 // Set receiptNumber for other statuses if it exists
                 updateData.receiptNumber = receiptNumber;
+                console.log("Will set receiptNumber to:", receiptNumber);
             }
+            // If receiptNumber is null/undefined and not Pending status, don't modify receiptNumber field
             
             console.log("Attempting to update order with data:", updateData);
             console.log("Order ID to update:", req.body._id);
