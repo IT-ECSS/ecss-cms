@@ -42,7 +42,8 @@ class FundraisingOrders extends Component {
         wooCommerceProductDetails: [], // Store WooCommerce product details
         isLoadingProductDetails: false,  // Loading state for product details
         showCalendarModal: false, // Show collection date calendar modal
-        selectedOrderForCalendar: null
+        selectedOrderForCalendar: null,
+        isApplyingFilters: false // Flag to prevent infinite loops in filter application
       };
       this.tableRef = React.createRef();
       this.gridRef = React.createRef();
@@ -352,6 +353,15 @@ class FundraisingOrders extends Component {
         }
       });
       
+      // Prevent applying filters if we're already in the process or if original data is not ready
+      if (this.state.isApplyingFilters || !this.state.originalData || this.state.originalData.length === 0) {
+        console.log("FundraisingTable - Skipping filter application:", {
+          isApplyingFilters: this.state.isApplyingFilters,
+          hasOriginalData: !!(this.state.originalData && this.state.originalData.length > 0)
+        });
+        return;
+      }
+      
       // Check if filter props have changed and apply filtering
       if (
         prevProps.paymentMethod !== this.props.paymentMethod ||
@@ -368,7 +378,13 @@ class FundraisingOrders extends Component {
     // Method to apply filters based on current props
     applyFilters = () => {
       const { paymentMethod, collectionLocation, status, searchQuery } = this.props;
-      const { originalData } = this.state;
+      const { originalData, isApplyingFilters } = this.state;
+
+      // Prevent recursive calls
+      if (isApplyingFilters) {
+        console.log("FundraisingTable - applyFilters already in progress, skipping");
+        return;
+      }
 
       console.log("FundraisingTable - applyFilters called with props:", { 
         paymentMethod, 
@@ -385,7 +401,9 @@ class FundraisingOrders extends Component {
         return;
       }
 
-      let filteredData = [...originalData];
+      // Set flag to prevent recursive calls
+      this.setState({ isApplyingFilters: true }, () => {
+        let filteredData = [...originalData];
 
       // Apply payment method filter
       if (paymentMethod && paymentMethod !== 'All Payment Methods' && paymentMethod !== '') {
@@ -485,10 +503,15 @@ class FundraisingOrders extends Component {
       console.log("Applied filters:", { paymentMethod, /*collectionMode,*/ status, searchQuery });
       console.log("Filtered data length:", filteredData.length);
 
+      // Process row data before setting state to avoid multiple setState calls
+      const processedRowData = this.processRowData(filteredData);
+      
       this.setState({
-        fundraisingData: filteredData
-      }, () => {
-        this.getRowData(filteredData);
+        fundraisingData: filteredData,
+        rowData: processedRowData.rowData,
+        columnDefs: processedRowData.columnDefs,
+        isApplyingFilters: false // Reset the flag
+      });
       });
     };
 
@@ -548,13 +571,17 @@ class FundraisingOrders extends Component {
       console.log("Unique collection locations:", uniqueCollectionLocations);
       console.log("Unique statuses:", uniqueStatuses);
 
+      // Process row data before setting state to avoid multiple setState calls
+      const processedRowData = this.processRowData(enrichedData);
+      
       this.setState({
         originalData: enrichedData,
         fundraisingData: enrichedData,
-        isLoading: false
+        isLoading: false,
+        rowData: processedRowData.rowData,
+        columnDefs: processedRowData.columnDefs
       }, () => {
         console.log("Enhanced data loaded with product details, originalData length:", enrichedData || 0);
-        this.getRowData(enrichedData);
 
         // Pass filter options to parent component if callback is provided
         if (this.props.onFiltersLoaded) {
@@ -615,9 +642,9 @@ class FundraisingOrders extends Component {
       }
     };
 
-    getRowData = (fundraisingData) => 
+    processRowData = (fundraisingData) => 
     {
-      console.log('Processing enriched fundraising data in getRowData:', fundraisingData);
+      console.log('Processing enriched fundraising data in processRowData:', fundraisingData);
       
       // Ensure fundraisingData is an array
       if (!Array.isArray(fundraisingData)) {
@@ -722,10 +749,209 @@ class FundraisingOrders extends Component {
       
       console.log('Processed enriched row data:', rowData);
       
-      this.setState({ 
+      return {
         rowData,
         columnDefs: this.getColumnDefs()
-      });
+      };
+    };
+
+    // Cell renderer methods to maintain stable function references
+    contactNumberRenderer = (params) => {
+      return params.value;
+    };
+
+    itemsRenderer = (params) => {
+      const items = params.value;
+      if (items && items.length > 0) {
+        return (
+          <button
+            onClick={() => this.viewItems(items, params.data)}
+            className="fundraising-view-items-btn"
+          >
+            View items
+          </button>
+        );
+      }
+    };
+
+    totalPriceRenderer = (params) => {
+      let amount = params.value;
+      
+      // Use enriched total price if available and greater than 0
+      if (params.data.enrichedTotalPrice > 0) {
+        amount = `$${params.data.enrichedTotalPrice.toFixed(2)}`;
+        
+        // Show comparison tooltip if enriched price differs from original
+        if (params.data.originalTotalPrice > 0 && 
+            Math.abs(params.data.enrichedTotalPrice - params.data.originalTotalPrice) > 0.01) {
+          const difference = params.data.enrichedTotalPrice - params.data.originalTotalPrice;
+          const diffText = difference > 0 ? `+$${difference.toFixed(2)}` : `-$${Math.abs(difference).toFixed(2)}`;
+          
+          return (
+            <div title={`WooCommerce calculated: ${amount}\nOriginal: $${params.data.originalTotalPrice.toFixed(2)}\nDifference: ${diffText}`}>
+              <span style={{ color: 'black' }}>{amount}</span>
+              <span style={{ fontSize: '0.8em', color: 'black', marginLeft: '4px' }}>*</span>
+            </div>
+          );
+        }
+        
+        return (
+          <span style={{ color: 'black' }} title="Calculated from WooCommerce prices">
+            {amount}
+          </span>
+        );
+      }
+      
+      // Fallback: Calculate from items using enriched WooCommerce data if amount is 0 or empty
+      if ((!amount || amount === 0) && params.data.items && params.data.items.length > 0) {
+        const calculatedTotal = params.data.items.reduce((total, item) => {
+          if (item.enrichedData && item.enrichedData.subtotal) {
+            return total + item.enrichedData.subtotal;
+          }
+          
+          // Fallback to original calculation if no enriched data
+          const { wooCommerceProductDetails } = this.state;
+          const productDetailsMap = {};
+          if (wooCommerceProductDetails) {
+            wooCommerceProductDetails.forEach(product => {
+              productDetailsMap[product.name] = product;
+            });
+          }
+          
+          const itemName = item.productName || item.name || item.itemName;
+          const quantity = item.quantity || 1;
+          const wooProduct = productDetailsMap[itemName];
+          const itemPrice = wooProduct ? parseFloat(wooProduct.price) : (item.price || item.unitPrice || 0);
+          
+          return total + (itemPrice * quantity);
+        }, 0);
+        
+        if (calculatedTotal > 0) {
+          amount = `$${calculatedTotal.toFixed(2)}`;
+        }
+      }
+      
+      // Format amount if it's a string with $ or a number
+      if (amount && typeof amount === 'string' && amount.includes('$')) {
+        return amount;
+      } else if (amount && !isNaN(amount)) {
+        return `$${parseFloat(amount).toFixed(2)}`;
+      }
+      return amount;
+    };
+
+    invoiceNumberRenderer = (params) => {
+      const invoiceNumber = params.value;
+      // Make invoice number clickable if it exists
+      if (invoiceNumber) {
+        return (
+          <button
+            className="fundraising-invoice-link"
+            onClick={() => this.generateInvoiceFromNumber(params.data)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#000000',
+              cursor: 'pointer',
+            }}
+          >
+            {invoiceNumber}
+          </button>
+        );
+      }
+      return invoiceNumber || '';
+    };
+
+    orderDateTimeRenderer = (params) => {
+      const orderDateTime = params.value;
+      if (orderDateTime && orderDateTime !== 'Date not available') {
+        return orderDateTime;
+      }
+    };
+
+    statusRenderer = (params) => {
+      const statusText = params.value;
+      const statusClass = statusText ? statusText.toLowerCase() : 'default';
+
+      return (
+        <div className="fundraising-status-container">
+          <span className={`fundraising-status-badge ${statusClass}`}>
+            {statusText}
+          </span>
+        </div>
+      );
+    };
+
+    collectionDetailsRenderer = (params) => {
+      const collectionDetails = params.value;
+      
+      // Create display text for collection details
+      let displayText = "Click to set collection date";
+      
+      if (collectionDetails && (collectionDetails.collectionDate || collectionDetails.collectionTime)) {
+        // Format date to dd/mm/yyyy
+        let formattedDate = "TBD";
+        if (collectionDetails.collectionDate) {
+          const date = new Date(collectionDetails.collectionDate);
+          if (!isNaN(date.getTime())) {
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            formattedDate = `${day}/${month}/${year}`;
+          } else {
+            formattedDate = collectionDetails.collectionDate;
+          }
+        }
+        
+        // Keep the original time format (preserve time ranges like "10:00-16:00")
+        let formattedTime = "TBD";
+        if (collectionDetails.collectionTime) {
+          // Use the original time format as-is to preserve ranges
+          formattedTime = collectionDetails.collectionTime;
+        }
+        
+        displayText = `${formattedDate} ${formattedTime}`;
+      }
+      
+      // Make the collection details clickable
+      return (
+        <button
+          onClick={() => this.openCalendarModal(params.data)}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#000000',
+            cursor: 'pointer'
+          }}
+        >
+          {displayText}
+        </button>
+      );
+    };
+
+    receiptNumberRenderer = (params) => {
+      const receiptNumber = params.value;
+      const status = params.data.status;
+      // Make receipt number clickable for "Paid", "Cancelled", and "Refunded" statuses 
+      if (receiptNumber && (status === "Paid" || status === "Cancelled" || status === "Refunded" || status === "Collected")) {
+        return (
+          <button
+            className="fundraising-receipt-link"
+            onClick={() => this.generateReceiptFromNumber(params.data)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#000000',
+              cursor: 'pointer',
+              width: '100%',
+              height: '100%'
+            }}
+          >
+            {receiptNumber}
+          </button>
+        );
+      }
+      return receiptNumber || '';
     };
 
     getColumnDefs = () => {
@@ -758,9 +984,7 @@ class FundraisingOrders extends Component {
           field: "contactNumber",
           width: 150,
           pinned: "left",
-          cellRenderer: (params) => {
-            return params.value;
-          },
+          cellRenderer: this.contactNumberRenderer,
         },
         {
           headerName: "Station Location",
@@ -772,19 +996,7 @@ class FundraisingOrders extends Component {
           headerName: "Items",
           field: "items",
           width: 200,
-          cellRenderer: (params) => {
-            const items = params.value;
-            if (items && items.length > 0) {
-              return (
-                <button
-                  onClick={() => this.viewItems(items, params.data)}
-                  className="fundraising-view-items-btn"
-                >
-                  View items
-                </button>
-              );
-            }
-          }
+          cellRenderer: this.itemsRenderer
         },
         // {
         //   headerName: "Address",
@@ -803,71 +1015,7 @@ class FundraisingOrders extends Component {
           field: "donationAmount",
           width: 150,
           editable: true,
-          cellRenderer: (params) => {
-            let amount = params.value;
-            
-            // Use enriched total price if available and greater than 0
-            if (params.data.enrichedTotalPrice > 0) {
-              amount = `$${params.data.enrichedTotalPrice.toFixed(2)}`;
-              
-              // Show comparison tooltip if enriched price differs from original
-              if (params.data.originalTotalPrice > 0 && 
-                  Math.abs(params.data.enrichedTotalPrice - params.data.originalTotalPrice) > 0.01) {
-                const difference = params.data.enrichedTotalPrice - params.data.originalTotalPrice;
-                const diffText = difference > 0 ? `+$${difference.toFixed(2)}` : `-$${Math.abs(difference).toFixed(2)}`;
-                
-                return (
-                  <div title={`WooCommerce calculated: ${amount}\nOriginal: $${params.data.originalTotalPrice.toFixed(2)}\nDifference: ${diffText}`}>
-                    <span style={{ color: 'black' }}>{amount}</span>
-                    <span style={{ fontSize: '0.8em', color: 'black', marginLeft: '4px' }}>*</span>
-                  </div>
-                );
-              }
-              
-              return (
-                <span style={{ color: 'black' }} title="Calculated from WooCommerce prices">
-                  {amount}
-                </span>
-              );
-            }
-            
-            // Fallback: Calculate from items using enriched WooCommerce data if amount is 0 or empty
-            if ((!amount || amount === 0) && params.data.items && params.data.items.length > 0) {
-              const calculatedTotal = params.data.items.reduce((total, item) => {
-                if (item.enrichedData && item.enrichedData.subtotal) {
-                  return total + item.enrichedData.subtotal;
-                }
-                
-                // Fallback to original calculation if no enriched data
-                const { wooCommerceProductDetails } = this.state;
-                const productDetailsMap = {};
-                if (wooCommerceProductDetails) {
-                  wooCommerceProductDetails.forEach(product => {
-                    productDetailsMap[product.name] = product;
-                  });
-                }
-                
-                const itemName = item.productName || item.name || item.itemName;
-                const quantity = item.quantity || 1;
-                const wooProduct = productDetailsMap[itemName];
-                const itemPrice = wooProduct ? parseFloat(wooProduct.price) : (item.price || item.unitPrice || 0);
-                
-                return total + (itemPrice * quantity);
-              }, 0);
-              
-              if (calculatedTotal > 0) {
-                amount = `$${calculatedTotal.toFixed(2)}`;
-              }
-            }
-            
-            // Format amount if it's a string with $ or a number
-            if (amount && typeof amount === 'string' && amount.includes('$')) {
-              return amount;
-            } else if (amount && !isNaN(amount)) {
-              return `$${parseFloat(amount).toFixed(2)}`;
-            }
-            return amount;
-          }
+          cellRenderer: this.totalPriceRenderer
         },
         {
           headerName: "Payment Method",
@@ -883,38 +1031,13 @@ class FundraisingOrders extends Component {
           headerName: "Invoice Number",
           field: "invoiceNumber",
           width: 200,
-          cellRenderer: (params) => {
-            const invoiceNumber = params.value;
-            // Make invoice number clickable if it exists
-            if (invoiceNumber) {
-              return (
-                <button
-                  className="fundraising-invoice-link"
-                  onClick={() => this.generateInvoiceFromNumber(params.data)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#000000',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {invoiceNumber}
-                </button>
-              );
-            }
-            return invoiceNumber || '';
-          }
+          cellRenderer: this.invoiceNumberRenderer
         },
         {
           headerName: "Order Details",
           field: "orderDateTime",
           width: 300,
-          cellRenderer: (params) => {
-            const orderDateTime = params.value;
-            if (orderDateTime && orderDateTime !== 'Date not available') {
-              return orderDateTime;
-            }
-          },
+          cellRenderer: this.orderDateTimeRenderer,
           editable: false,
         },
         {
@@ -931,18 +1054,7 @@ class FundraisingOrders extends Component {
               return { values: ["Pending", "Paid", "Collected", "Refunded", "Cancelled"] };
             }
           },
-          cellRenderer: (params) => {
-            const statusText = params.value;
-            const statusClass = statusText ? statusText.toLowerCase() : 'default';
-
-            return (
-              <div className="fundraising-status-container">
-                <span className={`fundraising-status-badge ${statusClass}`}>
-                  {statusText}
-                </span>
-              </div>
-            );
-          },
+          cellRenderer: this.statusRenderer,
           editable: true
         },
         {
@@ -964,52 +1076,7 @@ class FundraisingOrders extends Component {
           headerName: "Collection Details",
           field: "collectionDetails",
           width: 300,
-          cellRenderer: (params) => {
-            const collectionDetails = params.value;
-            
-            // Create display text for collection details
-            let displayText = "Click to set collection date";
-            
-            if (collectionDetails && (collectionDetails.collectionDate || collectionDetails.collectionTime)) {
-              // Format date to dd/mm/yyyy
-              let formattedDate = "TBD";
-              if (collectionDetails.collectionDate) {
-                const date = new Date(collectionDetails.collectionDate);
-                if (!isNaN(date.getTime())) {
-                  const day = String(date.getDate()).padStart(2, '0');
-                  const month = String(date.getMonth() + 1).padStart(2, '0');
-                  const year = date.getFullYear();
-                  formattedDate = `${day}/${month}/${year}`;
-                } else {
-                  formattedDate = collectionDetails.collectionDate;
-                }
-              }
-              
-              // Keep the original time format (preserve time ranges like "10:00-16:00")
-              let formattedTime = "TBD";
-              if (collectionDetails.collectionTime) {
-                // Use the original time format as-is to preserve ranges
-                formattedTime = collectionDetails.collectionTime;
-              }
-              
-              displayText = `${formattedDate} ${formattedTime}`;
-            }
-            
-            // Make the collection details clickable
-            return (
-              <button
-                onClick={() => this.openCalendarModal(params.data)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#000000',
-                  cursor: 'pointer'
-                }}
-              >
-                {displayText}
-              </button>
-            );
-          },
+          cellRenderer: this.collectionDetailsRenderer,
         },
         // Commented out the duplicate Collection Location column since we already have Location
         // {
@@ -1021,28 +1088,7 @@ class FundraisingOrders extends Component {
           headerName: "Receipt Number",
           field: "receiptNumber",
           width: 200,
-          cellRenderer: (params) => {
-            const receiptNumber = params.value;
-            const status = params.data.status;
-            // Make receipt number clickable for "Paid", "Cancelled", and "Refunded" statuses 
-            if (receiptNumber && (status === "Paid" || status === "Cancelled" || status === "Refunded")) {
-              return (
-                <button
-                  className="fundraising-receipt-link"
-                  onClick={() => this.generateReceiptFromNumber(params.data)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#000000',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {receiptNumber}
-                </button>
-              );
-            }
-            return receiptNumber || '';
-          }
+          cellRenderer: this.receiptNumberRenderer
         }
       ];
 
@@ -3106,9 +3152,9 @@ UEN: T03SS0051L
           totalPriceDisplay = '$0.00';
         }
 
-        // Add to total only if status is "Paid" and amount is positive
+        // Add to total only if status is "Paid" or "Collected" and amount is positive
         const status = item.status || row.status || 'Pending';
-        if (status === 'Paid' && totalPriceValue > 0) {
+        if ((status === 'Paid' || status === 'Collected') && totalPriceValue > 0) {
           total += totalPriceValue;
         }
 
