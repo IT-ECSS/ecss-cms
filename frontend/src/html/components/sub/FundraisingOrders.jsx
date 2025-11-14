@@ -1024,8 +1024,8 @@ class FundraisingOrders extends Component {
           cellRenderer: (params) => {
             const receiptNumber = params.value;
             const status = params.data.status;
-            // Only make receipt number clickable for "Paid" status 
-            if (receiptNumber && status === "Paid") {
+            // Make receipt number clickable for "Paid", "Cancelled", and "Refunded" statuses 
+            if (receiptNumber && (status === "Paid" || status === "Cancelled" || status === "Refunded")) {
               return (
                 <button
                   className="fundraising-receipt-link"
@@ -3106,8 +3106,9 @@ UEN: T03SS0051L
           totalPriceDisplay = '$0.00';
         }
 
-        // Add to total if positive
-        if (totalPriceValue > 0) {
+        // Add to total only if status is "Paid" and amount is positive
+        const status = item.status || row.status || 'Pending';
+        if (status === 'Paid' && totalPriceValue > 0) {
           total += totalPriceValue;
         }
 
