@@ -13,7 +13,7 @@ import io from 'socket.io-client';
 // Register the community modules
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-class FundraisingTable extends Component {
+class FundraisingOrders extends Component {
     constructor(props) {
       super(props);
       this.state = {
@@ -78,7 +78,7 @@ class FundraisingTable extends Component {
           this.setState({
             isLoading: false,
             accessDenied: true,
-            accessDeniedMessage: response.data.result.message || 'Access denied to Fundraising Table'
+            accessDeniedMessage: response.data.result.message || 'Access denied to Fundraising Orders'
           });
           return [];
         }
@@ -3187,7 +3187,7 @@ UEN: T03SS0051L
       return (
         <div className="fundraising-container">
           <div className="fundraising-heading">
-            <h2>Fundraising Table</h2>
+            <h2>Fundraising Orders</h2>
              <div className="button-row"> 
               <button 
                 className="fundraising-export-btn"
@@ -3231,4 +3231,4 @@ UEN: T03SS0051L
     }
 }
 
-export default FundraisingTable;
+export default FundraisingOrders;

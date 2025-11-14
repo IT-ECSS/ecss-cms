@@ -220,12 +220,12 @@ class WelcomeSection extends Component {
                 parentKey: 'Fundraising'
             },
             { 
-                key: 'Fundraising Table', 
-                title: 'Fundraising Table', 
+                key: 'Fundraising Orders', 
+                title: 'Fundraising Orders', 
                 icon: 'fa-solid fa-hand-holding-dollar', 
                 description: 'Manage fundraising orders and products', 
-                action: () => this.props.onNavigate('fundraising-table'),
-                accessKey: 'Fundraising Table',
+                action: () => this.props.onNavigate('fundraising-orders'),
+                accessKey: 'Fundraising Orders',
                 parentKey: 'Fundraising'
             }
         ];
@@ -287,7 +287,7 @@ class WelcomeSection extends Component {
                 'Invoice Table': 3,
                 'Upload Courses': 2,
                 'Update Courses': 2,
-                'Fundraising Table': 4,
+                'Fundraising Orders': 4,
                 'Fundraising Inventory': 4,
                 'FFT Results': 2,
                 'Create QR Code': 1,
@@ -412,7 +412,7 @@ class WelcomeSection extends Component {
             "View Attendance": "Monitor and record student attendance",
             "View Membership": "Manage member information and records",
             "FFT Results": "View fitness assessment results and tracking",
-            "Fundraising Table": "Manage fundraising orders and products",
+            "Fundraising Orders": "Manage fundraising orders",
             "Fundraising Inventory": "Manage fundraising inventory and stock"
         };
 
@@ -543,8 +543,8 @@ class WelcomeSection extends Component {
             case "View Membership":
                 navigationKey = "membership";
                 break;
-            case "Fundraising Table":
-                navigationKey = "fundraising-table";
+            case "Fundraising Orders":
+                navigationKey = "fundraising-orders";
                 break;
             case "Fundraising Inventory":
                 navigationKey = "fundraising-inventory";

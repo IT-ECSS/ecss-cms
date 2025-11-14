@@ -61,7 +61,7 @@ class SearchSection extends Component {
     paymentMethod: '',
     // collectionMode: '',
     collectionLocation: '',
-    status: '',
+    fundraisingStatus: '',
     fundraisingPaymentMethods: ['All Payment Methods'],
     // fundraisingCollectionModes: ['All Collection Modes'],
     fundraisingCollectionLocations: ['All Collection Locations'],
@@ -218,12 +218,12 @@ handleChange = (event) => {
         collectionLocation: value
       });
     }
-    else if (name === 'status') {
+    else if (name === 'fundraisingStatus') {
       this.setState({
         filteredFundraisingStatuses: this.state.fundraisingStatuses.filter(status =>
           status.toLowerCase().includes(value.toLowerCase())
         ),
-        status: value
+        fundraisingStatus: value
       });
     }
   });
@@ -458,7 +458,7 @@ handleOptionSelect = (value, dropdown) => {
     }
     else if (dropdown === 'showStatusDropdown') {
       updatedState = {
-        status: value,
+        fundraisingStatus: value,
         showPaymentMethodDropdown: false,
         // showCollectionModeDropdown: false,
         showCollectionLocationDropdown: false,
@@ -651,7 +651,7 @@ handleClickOutside = (event) => {
         paymentMethod: '',
         // collectionMode: '',
         collectionLocation: '',
-        status: '',
+        fundraisingStatus: '',
         showLocationDropdown: false,
         showLanguageDropdown: false,
         showTypeDropdown: false,
@@ -931,7 +931,7 @@ componentWillUnmount() {
   
 render() 
 {
-  const { membershipType, showNameDropdown, typename, filteredName, staffName, searchQuery, centreLocation, language, quarter, courseQuarters, filteredQuarters, filteredLocations, filteredLanguages, filteredTypes, showLocationDropdown, showLanguageDropdown, showTypeDropdown, courseType, showAccountTypeDropdown, role, roles, filteredRoles, coursesName, showCourseDropdown, filteredCoursesName, courseName, showQuarterDropdown, paymentMethod, collectionLocation, status, filteredPaymentMethods, filteredCollectionLocations, filteredFundraisingStatuses, showPaymentMethodDropdown, showCollectionLocationDropdown, showStatusDropdown } = this.state;
+  const { membershipType, showNameDropdown, typename, filteredName, staffName, searchQuery, centreLocation, language, quarter, courseQuarters, filteredQuarters, filteredLocations, filteredLanguages, filteredTypes, showLocationDropdown, showLanguageDropdown, showTypeDropdown, courseType, showAccountTypeDropdown, role, roles, filteredRoles, coursesName, showCourseDropdown, filteredCoursesName, courseName, showQuarterDropdown, paymentMethod, collectionLocation, fundraisingStatus, filteredPaymentMethods, filteredCollectionLocations, filteredFundraisingStatuses, showPaymentMethodDropdown, showCollectionLocationDropdown, showStatusDropdown } = this.state;
   const { section } = this.props; // Destructure section from props
 
   console.log("Course Name List:", this.state);
@@ -1473,16 +1473,16 @@ render()
           </div>
 
           <div className="form-group">
-            <label htmlFor="status">{this.props.language === 'zh' ? '状态' : 'Status'}</label>
+            <label htmlFor="fundraisingStatus">{this.props.language === 'zh' ? '状态' : 'Status'}</label>
             <div
               className={`dropdown-container ${showStatusDropdown ? 'open' : ''}`}
               ref={this.statusDropdownRef}
             >
               <input
                 type="text"
-                id="status"
-                name="status"
-                value={status}
+                id="fundraisingStatus"
+                name="fundraisingStatus"
+                value={fundraisingStatus}
                 onChange={this.handleChange}
                 onClick={() => this.handleDropdownToggle('showStatusDropdown')}
                 placeholder={this.props.language === 'zh' ? '按状态筛选' : 'Filter by status'}

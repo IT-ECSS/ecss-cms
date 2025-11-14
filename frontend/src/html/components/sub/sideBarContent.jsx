@@ -135,14 +135,14 @@ class SideBarContent extends Component {
                 console.error("toggleFitnessComponent function not found in props");
             }
         }
-        else if(subKey === "Fundraising Table") {
-            console.log("Fundraising Table clicked in sidebar");
-            console.log("toggleFundraisingTableComponent function exists:", !!this.props.toggleFundraisingTableComponent);
-            if (this.props.toggleFundraisingTableComponent) {
-                console.log("Calling toggleFundraisingTableComponent...");
-                this.props.toggleFundraisingTableComponent();
+        else if(subKey === "Fundraising Orders") {
+            console.log("Fundraising Orders clicked in sidebar");
+            console.log("toggleFundraisingOrdersComponent function exists:", !!this.props.toggleFundraisingOrdersComponent);
+            if (this.props.toggleFundraisingOrdersComponent) {
+                console.log("Calling toggleFundraisingOrdersComponent...");
+                this.props.toggleFundraisingOrdersComponent();
             } else {
-                console.error("toggleFundraisingTableComponent function not found in props");
+                console.error("toggleFundraisingOrdersComponent function not found in props");
             }
         }
         else if(subKey === "Fundraising Inventory") {

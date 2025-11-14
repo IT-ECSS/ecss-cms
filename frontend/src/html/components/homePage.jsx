@@ -14,7 +14,7 @@ import React, { Component } from 'react';
   import AttendanceSection from './sub/AttendanceSection';
   import MembershipSection from './sub/MembershipSection';
   import FitnessSection from './sub/FitnessSection';
-  import FundraisingTable from './sub/FundraisingTable';
+  import FundraisingOrders from './sub/FundraisingOrders';
   import FundraisingInventory from './sub/FundraisingInventory';
   import CollectionDateCalendar from './sub/CollectionDateCalendar';
   import ReportSection from './sub/reportSection';
@@ -117,8 +117,8 @@ import React, { Component } from 'react';
       // Set the initial state
       this.state = initialState;
 
-      // Create ref for FundraisingTable
-      this.fundraisingTableRef = React.createRef();
+      // Create ref for FundraisingOrders
+      this.fundraisingOrdersRef = React.createRef();
 
       this.handleDataFromChild = this.handleDataFromChild.bind(this);
       this.searchResultFromChild = this.searchResultFromChild.bind(this);
@@ -188,9 +188,9 @@ import React, { Component } from 'react';
     console.log('Date selected for order:', orderId, selectedDate);
     
     try {
-      // Call the updateCollectionDetails method from FundraisingTable
-      if (this.fundraisingTableRef.current) {
-        const result = await this.fundraisingTableRef.current.updateCollectionDetails(
+      // Call the updateCollectionDetails method from FundraisingOrders
+      if (this.fundraisingOrdersRef.current) {
+        const result = await this.fundraisingOrdersRef.current.updateCollectionDetails(
           orderId, 
           selectedDate, 
           null, // collectionTime - keeping existing
@@ -529,8 +529,8 @@ import React, { Component } from 'react';
       }
     }
 
-    toggleFundraisingTableComponent = async() => {
-      console.log("toggleFundraisingTableComponent called - showing fundraising table only");
+    toggleFundraisingOrdersComponent = async() => {
+      console.log("toggleFundraisingOrdersComponent called - showing fundraising orders only");
       try {
         // Reset search and filters
         this.setState({ resetSearch: true, }, () => {
@@ -556,7 +556,7 @@ import React, { Component } from 'react';
           
           // Popup settings
           isPopupOpen: true,
-          popupMessage: "Loading Fundraising Table",
+          popupMessage: "Loading Fundraising Orders",
           popupType: "loading",
           
           // Reset other states
@@ -570,11 +570,11 @@ import React, { Component } from 'react';
         });
       } 
       catch (error) {
-        console.log("Error in toggleFundraisingTableComponent:", error);
+        console.log("Error in toggleFundraisingOrdersComponent:", error);
         // Show error message
         this.setState({
           isPopupOpen: true,
-          popupMessage: "Error loading fundraising table",
+          popupMessage: "Error loading fundraising Orders",
           popupType: "error-message"
         });
       }
@@ -1521,8 +1521,8 @@ import React, { Component } from 'react';
         case 'fft-results':
           this.toggleFitnessComponent();
           break;
-        case 'fundraising-table':
-          this.toggleFundraisingTableComponent();
+        case 'fundraising-orders':
+          this.toggleFundraisingOrdersComponent();
           break;
         case 'fundraising-inventory':
           this.toggleFundraisingInventoryComponent();
@@ -1607,7 +1607,7 @@ import React, { Component } from 'react';
                   toggleAttendanceComponent = {this.toggleAttendanceComponent}
                   toggleMembershipComponent = {this.toggleMembershipComponent}
                   toggleFitnessComponent = {this.toggleFitnessComponent}
-                  toggleFundraisingTableComponent = {this.toggleFundraisingTableComponent}
+                  toggleFundraisingOrdersComponent = {this.toggleFundraisingOrdersComponent}
                   toggleFundraisingInventoryComponent = {this.toggleFundraisingInventoryComponent}
                   onAccessRightsUpdate = {this.handleAccessRightsData}
                   key={this.state.refreshKey}
@@ -1806,7 +1806,7 @@ import React, { Component } from 'react';
                             />
                         </div>
                         <div className="fundraising-section">
-                          <FundraisingTable 
+                          <FundraisingOrders
                             ref={this.fundraisingTableRef}
                             section={section}
                             userName={userName}
