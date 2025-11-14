@@ -3214,7 +3214,7 @@ UEN: T03SS0051L
               onCellClicked={this.handleValueClick}
               suppressRowClickSelection={true}
               pagination={true}
-              paginationPageSize={10}
+              paginationPageSize={this.state.rowData.length}
               domLayout="normal"
               getRowStyle={this.getRowStyle}
               defaultColDef={{
