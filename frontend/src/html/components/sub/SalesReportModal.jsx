@@ -692,13 +692,13 @@ class SalesReportModal extends Component {
             <th rowSpan="2">Location</th>
             <th rowSpan="2">Total Paid Amount</th>
             <th rowSpan="2" className="border-right-emphasis">Total Orders Made</th>
-            <th colSpan="4" className="panettone-parent-header">Told Items Sold - Panettone For Good 2025</th>
+            <th colSpan="4" className="panettone-parent-header">Told Items Sold</th>
           </tr>
           <tr>
-            <th>100gm</th>
-            <th>500gm</th>
-            <th>1000gm</th>
-            <th>Total</th>
+            <th>Panettone For Good 2025 - 100gm</th>
+            <th>Panettone For Good 2025 - 500gm</th>
+            <th>Panettone For Good 2025 - 1000gm</th>
+            <th>Panettone For Good 2025 - Total</th>
           </tr>
         </thead>
         <tbody>
