@@ -1,4 +1,4 @@
-name: ECSS Frontend React + Vite
+name: Deploying Frontend Code (React + Vite) - ECSS Musical Concert 2025
 
 on:
   push:
@@ -9,81 +9,38 @@ on:
     branches:
       - main
 
-jobs:          
+jobs:
   build_and_deploy_job:
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
     runs-on: ubuntu-latest
     name: Build and Deploy Job
-    permissions:
-      id-token: write
-      contents: read
     steps:
       - uses: actions/checkout@v3
         with:
           submodules: true
           lfs: false
-      
-      # Setup Node.js with increased memory
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: './frontend/package-lock.json'
-      
-      # Pre-build the application locally to avoid Oryx memory issues
-      - name: Install dependencies
-        run: |
-          cd frontend
-          npm ci
-      
-      - name: Verify vite installation
-        run: |
-          cd frontend
-          echo "Checking if vite is available..."
-          npx vite --version || echo "vite not found in PATH"
-          ls node_modules/.bin/vite || echo "vite binary not found"
-          echo "devDependencies check:"
-          npm ls vite || echo "vite not in dependencies"
-      
-      - name: Build application
-        run: |
-          cd frontend
-          NODE_OPTIONS="--max-old-space-size=4096" npx vite build --mode production
-        env:
-          NODE_ENV: production
-          GENERATE_SOURCEMAP: false
-      
-      # List build output for debugging
-      - name: List build output
-        run: |
-          cd frontend
-          ls
-          echo "Build output size:"
-          du -sh dist/
-          echo "Number of files:"
-          find dist/ -type f | wc -l
-          echo "Largest files:"
-          find dist/ -type f -exec ls -lh {} \; | sort -k5 -hr | head -10
-      
-      - name: Install OIDC Client from Core Package
-        run: npm install @actions/core@1.6.0 @actions/http-client
-      
-      - name: Get Id Token
-        uses: actions/github-script@v6
-        id: idtoken
-        with:
-          script: |
-            const coredemo = require('@actions/core')
-            return await coredemo.getIDToken()
-          result-encoding: string
-      
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_DEPLOYMENT_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }} # Used for Github integrations (i.e. PR comments)
           action: "upload"
-          app_location: "./frontend/dist" # Point directly to pre-built optimized files
-          api_location: "" # No API backend
-          skip_app_build: true # Skip Azure's build entirely - we handle optimization ourselves
-          github_id_token: ${{ steps.idtoken.outputs.result }}
+          ###### Repository/Build Configurations - These values can be configured to match your app requirements. ######
+          # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
+          app_location: "./frontend" # App source code path
+          api_location: "" # Api source code path - optional
+          output_location: "dist" # Vite's default output directory
+          ###### End of Repository/Build Configurations ######
+
+  close_pull_request_job:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    name: Close Pull Request Job
+    steps:
+      - name: Close Pull Request
+        id: closepullrequest
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_DEPLOYMENT_TOKEN }}
+          action: "close"
