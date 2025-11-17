@@ -255,28 +255,6 @@
   transform: translateY(1px);
 }
 
-.fundraising-sales-report-btn {
-  padding: 0.9rem 1.05rem;
-  font-size: 0.8rem;
-  border: 1px solid #FF6B35;
-  border-radius: 0.3rem;
-  background-color: transparent;
-  cursor: pointer;
-  transition: background-color 0.3s, transform 0.2s;
-  white-space: nowrap;
-  color: #FF6B35;
-  width: fit-content;
-}
-
-.fundraising-sales-report-btn:hover {
-  background-color: #FFE5DB;
-  transform: translateY(-2px);
-}
-
-.fundraising-sales-report-btn:active {
-  transform: translateY(1px);
-}
-
 /* View Items Button */
 .view-items-btn {
   background-color: #007bff !important;
@@ -1108,28 +1086,6 @@
   background-color: #0056b3;
 }
 
-.fundraising-items-sales-btn12 {
-  padding: 0.9rem 1.05rem;
-  font-size: 0.8rem;
-  border: 1px solid #4169E1;
-  border-radius: 0.3rem;
-  background-color: transparent;
-  cursor: pointer;
-  transition: background-color 0.3s, transform 0.2s;
-  white-space: nowrap;
-  color: #4169E1;
-  width: fit-content;
-}
-
-.fundraising-items-sales-btn12:hover {
-  background-color: #E6F0FF;
-  transform: translateY(-2px);
-}
-
-.fundraising-items-sales-btn12:active {
-  transform: translateY(1px);
-}
-
 .fundraising-no-items {
   color: #666;
   font-style: italic;
@@ -1155,8 +1111,6 @@
   box-shadow: 0 1px 4px rgba(0,0,0,0.08);
   letter-spacing: 0.02em;
   line-height: 1.6;
-  width: fit-content;
-  height: fit-content;
 }
 
 /* Status color variations */
@@ -1181,10 +1135,6 @@
 }
 
 .fundraising-status-badge.refunded {
-  background-color: #fd7e14;
-}
-
-.fundraising-status-badge.cancelled {
   background-color: #dc3545;
 }
 
@@ -2790,17 +2740,4 @@
   background: #dc3545 !important;
   color: white !important;
   transform: scale(1.1) !important;
-}
-
-/* Clickable contact number styling */
-.clickable-contact {
-  color: #007bff !important;
-  cursor: pointer !important;
-  text-decoration: underline !important;
-  transition: color 0.2s ease !important;
-}
-
-.clickable-contact:hover {
-  color: #0056b3 !important;
-  text-decoration: underline !important;
 }

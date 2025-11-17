@@ -1,9 +1,9 @@
 import React, { Component } from 'react';
-import '../../../css/sub/paymentReportModal.css';
+import '../../../css/sub/salesReportModal.css';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
-class PaymentReportModal extends Component {
+class SalesReportModal extends Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -585,10 +585,10 @@ class PaymentReportModal extends Component {
     );
   };
 
-  // Generate Payment Report Excel
-  generatePaymentReport = async () => {
+  // Generate Sales Report Excel
+  generateSalesReport = async () => {
     try {
-      console.log('Starting Payment Report generation...');
+      console.log('Starting Sales Report generation...');
       
       // Create a new workbook
       const workbook = new ExcelJS.Workbook();
@@ -604,13 +604,13 @@ class PaymentReportModal extends Component {
       const activeHeaders = headers.filter(header => typeof header === 'string' && header.trim() !== '');
       const dataToExport = this.state.originalData || this.state.rowData;
       
-      // Group data by collection location for payment report
+      // Group data by collection location for sales report
       const locationGroups = this.groupDataByLocation(dataToExport);
-      console.log('Payment Report Location groups:', Object.keys(locationGroups));
+      console.log('Sales Report Location groups:', Object.keys(locationGroups));
 
-      // Create "All Locations" payment report worksheet
+      // Create "All Locations" sales report worksheet
       const { worksheet: allPaymentWorksheet, headerRow: allPaymentHeaderRow } = 
-        this.createWorksheet(workbook, 'All Locations Payment Report', activeHeaders, null, true);
+        this.createWorksheet(workbook, 'All Locations Sales Report', activeHeaders, null, true);
 
       let grandTotal = 0;
 
@@ -627,10 +627,10 @@ class PaymentReportModal extends Component {
       this.addPaymentTotalRow(allPaymentWorksheet, grandTotal, headers.length);
       this.autoFitColumns(allPaymentWorksheet);
 
-      // Create payment report worksheets for each location
+      // Create sales report worksheets for each location
       Object.entries(locationGroups).forEach(([location, locationData]) => {
         // Clean up location name for sheet name
-        const sheetName = `${location.replace(/[\\\/\?\*\[\]]/g, '_').substring(0, 25)}_Payment`;
+        const sheetName = `${location.replace(/[\\\/?\*\[\]]/g, '_').substring(0, 25)}_Sales`;
         
         const { worksheet, headerRow } = this.createWorksheet(workbook, sheetName, activeHeaders, location);
         const locationTotal = this.addPaymentDataToWorksheet(worksheet, headerRow, locationData, activeHeaders, headers);
@@ -642,7 +642,7 @@ class PaymentReportModal extends Component {
 
       // Generate filename with timestamp
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
-      const filename = `Payment_Report_${timestamp}.xlsx`;
+      const filename = `Sales_Report_${timestamp}.xlsx`;
 
       // Save the file
       const buffer = await workbook.xlsx.writeBuffer();
@@ -651,11 +651,11 @@ class PaymentReportModal extends Component {
       });
       saveAs(blob, filename);
 
-      console.log('Payment report export completed successfully');
+      console.log('Sales report export completed successfully');
       console.log('Grand Total:', grandTotal.toFixed(2));
 
     } catch (error) {
-      console.error('Error generating payment report:', error);
+      console.error('Error generating sales report:', error);
     }
   };
 
@@ -699,32 +699,32 @@ class PaymentReportModal extends Component {
     if (!isOpen) return null;
 
     return (
-      <div className="payment-report-modal-overlay" onClick={onClose}>
-        <div className="payment-report-modal-content" onClick={(e) => e.stopPropagation()}>
-          <div className="payment-report-modal-header">
-            <h2>Payment Report</h2>
-            <button className="payment-report-modal-close" onClick={onClose}>
+      <div className="sales-report-modal-overlay" onClick={onClose}>
+        <div className="sales-report-modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="sales-report-modal-header">
+            <h2>Sales Report</h2>
+            <button className="sales-report-modal-close" onClick={onClose}>
               ×
             </button>
           </div>
 
-          <div className="payment-report-modal-body">
-            <div className="payment-report-table-section">
+          <div className="sales-report-modal-body">
+            <div className="sales-report-table-section">
               {this.renderPaymentSummary()}
             </div>
           </div>
 
-          <div className="payment-report-modal-footer">
+          <div className="sales-report-modal-footer">
             <button 
-              className="payment-report-btn-cancel"
+              className="sales-report-btn-cancel"
               onClick={onClose}
               disabled={isLoading}
             >
               Close
             </button>
             <button 
-              className="payment-report-btn-export"
-              onClick={this.generatePaymentReport}
+              className="sales-report-btn-export"
+              onClick={this.generateSalesReport}
               disabled={isLoading || locationTabs.length === 0}
             >
               Generate Report
@@ -736,4 +736,4 @@ class PaymentReportModal extends Component {
   }
 }
 
-export default PaymentReportModal;
+export default SalesReportModal;

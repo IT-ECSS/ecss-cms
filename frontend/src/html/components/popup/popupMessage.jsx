@@ -769,12 +769,8 @@ class Popup extends Component {
     let popupTypeClass;
     if (type === "loading") {
       popupTypeClass = "popup-content-loading";
-    } else if (type === "success") {
-      popupTypeClass = "popup-content-success";
-    } else if (type === "error") {
-      popupTypeClass = "popup-content-error";
     } else {
-      popupTypeClass = `popup-content ${type}`;
+      popupTypeClass = type;
     }
 
     return (
@@ -793,14 +789,14 @@ class Popup extends Component {
             </div>
           ) : type === "success-message" ? (
             // Layout for success type
-            <div className="success-message">
+            <div className="success-popup-notification">
               <img src="https://ecss.org.sg/wp-content/uploads/2024/10/iqbf2fomkl6f65us70kdcann90.png"></img>
-              <h2 className="success-title">Success!</h2>
+              <h2>Success!</h2>
               <p>{message}</p>
             </div>
           ) : type === "error-message" ? (
             // Layout for error type
-            <div className="error-message">
+            <div className="login-error-notification">
             <img src="https://ecss.org.sg/wp-content/uploads/2024/10/error-10376-2.png"></img>
             <h2 className="error-title">Error!</h2>
             <p>{message}</p>
@@ -882,7 +878,7 @@ class Popup extends Component {
                   </div>
                   {newPasswordError1 && <p className="error-message2">{newPasswordError1}</p>}
               </div>
-              {message1 && <div className="success-message">{message1}</div>}
+              {message1 && <div className="login-success-notification">{message1}</div>}
               <br/>
               <button type="submit" className="submit-button">Submit</button>
             </form>

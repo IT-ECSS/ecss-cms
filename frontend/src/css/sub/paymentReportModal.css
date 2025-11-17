@@ -458,10 +458,25 @@
 
 .combined-summary-table td:first-child {
   text-align: left;
+  padding-left: 1.5rem;
+  font-weight: 600;
+  color: #34495e;
+  white-space: nowrap;
 }
 
-.combined-summary-table td:last-child {
-  border-right: none;
+.combined-summary-table th:first-child {
+  text-align: left;
+  padding-left: 1.5rem;
+  white-space: nowrap;
+}
+
+/* Border emphasis between Total Orders and Total Order Quantity */
+.border-right-emphasis {
+  border-right: 3px solid rgba(255, 255, 255, 0.5) !important;
+}
+
+.combined-summary-table td.border-right-emphasis {
+  border-right: 3px solid #2c3e50 !important;
 }
 
 .summary-value.paid {

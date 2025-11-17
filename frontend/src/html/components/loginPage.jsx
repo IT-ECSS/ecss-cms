@@ -60,8 +60,8 @@ class LoginPage extends Component {
   validatePassword = (password) => {
     if (!password) {
       return this.state.language === 'en'
-        ? 'Password cannot be empty.'
-        : '密码不能为空。';
+        ? 'Password is required.'
+        : '密码为必填项。';
     }
     return '';
   };

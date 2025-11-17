@@ -11,16 +11,15 @@
   z-index: 1000;
 }
 
-.popup-content {
-  padding: 1.25rem; /* 20px */
-  border-radius: 0.625rem; /* 10px */
-  position: relative;
-  width: auto; /* Auto width to accommodate content */
-  max-width: 90vw; /* Maximum width relative to viewport */
-  min-width: 300px; /* Minimum width for proper display */
-  height: auto; /* Dynamic height */
-  background-color: #ffffff !important;
+/* Remove pink background from success-message and error-message type popups */
+.success-message,
+.error-message {
+  background-color: transparent !important;
   border: none !important;
+  padding: 0 !important;
+  min-width: auto !important;
+  width: auto !important;
+  max-width: 90vw !important;
 }
 
 .popup-content-loading {
@@ -35,29 +34,7 @@
   border: none !important;
 }
 
-.popup-content-success {
-  padding: 1.25rem; /* 20px */
-  border-radius: 0.625rem; /* 10px */
-  position: relative;
-  width: auto; /* Auto width to accommodate content */
-  max-width: 90vw; /* Maximum width relative to viewport */
-  min-width: 300px; /* Minimum width for proper display */
-  height: auto; /* Dynamic height */
-  background-color: #000000 !important; /* Black background for success */
-  border: none !important;
-}
 
-.popup-content-error {
-  padding: 1.25rem; /* 20px */
-  border-radius: 0.625rem; /* 10px */
-  position: relative;
-  width: auto; /* Auto width to accommodate content */
-  max-width: 90vw; /* Maximum width relative to viewport */
-  min-width: 300px; /* Minimum width for proper display */
-  height: auto; /* Dynamic height */
-  background-color: #000000 !important; /* Black background for error */
-  border: none !important;
-}
 
 .loading-popup {
   display: flex;
@@ -118,8 +95,46 @@
   animation-delay: 0.75s;
 }
 
-/* Success message container */
-.success-message {
+/* New success notification class - same styling as error notification */
+.success-popup-notification {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #000000 !important;
+  border: none !important;
+  padding: 1.5rem;
+  border-radius: 0.625rem;
+  height: 15rem;
+  width: 30rem;
+  text-align: center;
+}
+
+/* Styling for the image */
+.success-popup-notification img {
+  width: 4rem; /* Set a fixed width for the image */
+  height: auto; /* Maintain aspect ratio */
+  margin-bottom: 1rem; /* Space below the image */
+}
+
+/* Success message title */
+.success-popup-notification h2 {
+  color: #4caf50; /* Green color for success */
+  font-size: 1.5rem; /* Title size */
+  font-weight: bold;
+  margin: 1rem 0; /* Space around the title */
+}
+
+/* Message text styling */
+.success-popup-notification p {
+  font-size: 0.78rem; /* 16px for the text */
+  color: #4caf50; /* Dark text */
+  text-align: left;
+  margin: -0.5rem 0;
+}
+
+/* Legacy success notification class - kept for backwards compatibility */
+.login-success-notification {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -131,7 +146,7 @@
 }
 
 /* Styling for the image */
-.success-message img {
+.login-success-notification img {
   width: 4rem; /* Set a fixed width for the image */
   height: auto; /* Maintain aspect ratio */
   margin-bottom: 1rem; /* Space below the image */
@@ -146,7 +161,7 @@
 }
 
 /* Message text styling */
-.success-message p {
+.login-success-notification p {
   font-size: 0.78rem; /* 16px for the text */
   color: #4caf50; /* Dark text */
   text-align: left;
@@ -154,21 +169,22 @@
 }
 
 /*Error message container */
-.error-message {
+.login-error-notification {
   display: flex;
   flex-direction: column;
   align-items: center;
-  background-color: #000000 !important; /* Solid black background */
+  justify-content: center;
+  background-color: #000000 !important;
   border: none !important;
-  padding: 1.5rem; /* Padding around the content */
-  border-radius: 0.625rem; /* Rounded corners */
-  height: 12.5rem; /* Set the width of the popup */
+  padding: 1.5rem;
+  border-radius: 0.625rem;
+  height: 15rem;
+  width: 30rem;
   text-align: center;
-  height: auto;
 }
 
 /* Styling for the image */
-.error-message img {
+.login-error-notification img {
   width: 3.5rem; /* Set a fixed width for the image */
   height: auto; /* Maintain aspect ratio */
   margin-bottom: 1rem; /* Space below the image */
@@ -183,7 +199,7 @@
 }
 
 /* Message text styling */
-.error-message p {
+.login-error-notification p {
   font-size: 0.78rem; /* 16px for the text */
   color: #FF0000; /* Dark text */
   text-align: left;

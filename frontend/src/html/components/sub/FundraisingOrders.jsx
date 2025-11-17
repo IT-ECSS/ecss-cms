@@ -3098,13 +3098,13 @@ UEN: T03SS0051L
       }
     };
 
-    // Generate Payment Report with Total
-    generatePaymentReport = () => {
-      // Call parent component's openPaymentReportModal method
-      if (this.props.openPaymentReportModal) {
-        this.props.openPaymentReportModal();
+    // Generate Sales Report with Total
+    generateSalesReport = () => {
+      // Call parent component's openSalesReportModal method
+      if (this.props.openSalesReportModal) {
+        this.props.openSalesReportModal();
       } else {
-        console.warn('openPaymentReportModal method not available from parent component');
+        console.warn('openSalesReportModal method not available from parent component');
       }
     };
 
@@ -3150,7 +3150,7 @@ UEN: T03SS0051L
         // Get collection location
         const collectionLocation = this.getCollectionLocation(item, row);
 
-        // Build payment report row data
+        // Build sales report row data
         const completeRowData = [
           row.sn || originalIndex + 1, // S/N
           item.personalInfo?.firstName || item.firstName || row.firstName || '', // First Name
@@ -3186,7 +3186,7 @@ UEN: T03SS0051L
       return total;
     };
 
-    // Helper method: Add total row to payment report
+    // Helper method: Add total row to sales report
     addPaymentTotalRow = (worksheet, total, headerCount) => {
       // Add empty row after data
       worksheet.addRow([]);
@@ -3226,160 +3226,6 @@ UEN: T03SS0051L
     };
 
     // Export confirmed (Paid status) items sales to Excel by location
-    exportConfirmedItemsSales = async () => {
-      try {
-        const { fundraisingData } = this.state;
-        // Filter only Paid (confirmed) status orders
-        const confirmedOrders = fundraisingData.filter(order => order.status === 'Paid');
-  
-        // Group confirmed orders by collection location
-        const locationGroups = {};
-        confirmedOrders.forEach((order, index) => {
-          const row = this.state.rowData[index] || {};
-          const collectionLocation = this.getCollectionLocation(order, row);
-          
-          if (!locationGroups[collectionLocation]) {
-            locationGroups[collectionLocation] = [];
-          }
-          locationGroups[collectionLocation].push(order);
-        });
-
-        // Create Excel workbook using ExcelJS
-        const workbook = new ExcelJS.Workbook();
-
-        // Get all unique items across all locations
-        const allItemsSet = new Set();
-        Object.entries(locationGroups).forEach(([location, orders]) => {
-          orders.forEach(order => {
-            const items = order.items || order.orderDetails?.items || [];
-            items.forEach(item => {
-              const itemName = item.productName || item.name || item.itemName || 'Unknown';
-              allItemsSet.add(itemName);
-            });
-          });
-        });
-
-        const sortedItems = Array.from(allItemsSet).sort();
-        
-        // Get location names sorted
-        const sortedLocations = Object.keys(locationGroups).sort();
-
-        // Create single sheet with locations as columns
-        const ws = workbook.addWorksheet('Sales Report');
-
-        // Build header row: [Item Name, All Locations, CT Hub, Pasir Ris, Tampines]
-        const headerRow = ['Item Name', 'All Locations', ...sortedLocations];
-        ws.addRow(headerRow);
-
-        const excelHeaderRow = ws.getRow(1);
-        this.applyHeaderStyling(excelHeaderRow);
-
-        // Build data rows
-        sortedItems.forEach(itemName => {
-          const rowData = [itemName];
-          
-          // Calculate total for all locations
-          let allLocationsTotal = 0;
-          sortedLocations.forEach(location => {
-            const orders = locationGroups[location];
-            let locationTotal = 0;
-
-            orders.forEach(order => {
-              const items = order.items || order.orderDetails?.items || [];
-              items.forEach(item => {
-                const name = item.productName || item.name || item.itemName || 'Unknown';
-                if (name === itemName) {
-                  locationTotal += item.quantity || 1;
-                }
-              });
-            });
-
-            allLocationsTotal += locationTotal;
-          });
-
-          rowData.push(allLocationsTotal);
-
-          // Add quantities for each location
-          sortedLocations.forEach(location => {
-            const orders = locationGroups[location];
-            let totalQuantity = 0;
-
-            orders.forEach(order => {
-              const items = order.items || order.orderDetails?.items || [];
-              items.forEach(item => {
-                const name = item.productName || item.name || item.itemName || 'Unknown';
-                if (name === itemName) {
-                  totalQuantity += item.quantity || 1;
-                }
-              });
-            });
-
-            rowData.push(totalQuantity);
-          });
-
-          const excelRow = ws.addRow(rowData);
-          
-          // Apply color to each location column
-          excelRow.eachCell((cell, colNumber) => {
-            const headerCell = excelHeaderRow.getCell(colNumber);
-            const hasHeader = headerCell.value && headerCell.value.toString().trim() !== '';
-            
-            if (hasHeader) {
-              if (colNumber === 1) {
-                // Item Name column - light gray
-                cell.fill = {
-                  type: 'pattern',
-                  pattern: 'solid',
-                  fgColor: { argb: 'FFF5F5F5' }
-                };
-              } else if (colNumber === 2) {
-                // All Locations column - neutral light background
-                cell.fill = {
-                  type: 'pattern',
-                  pattern: 'solid',
-                  fgColor: { argb: 'FFEEEEEE' }
-                };
-              } else if (colNumber >= 3) {
-                // Location-specific columns with their colors
-                const locationIndex = colNumber - 3;
-                if (sortedLocations[locationIndex]) {
-                  const backgroundColor = this.getLocationBackgroundColor(sortedLocations[locationIndex], false);
-                  if (backgroundColor) {
-                    cell.fill = {
-                      type: 'pattern',
-                      pattern: 'solid',
-                      fgColor: { argb: backgroundColor }
-                    };
-                  }
-                }
-              }
-            }
-          });
-        });
-
-        // Auto-fit columns
-        this.autoFitColumns(ws);
-
-        // Generate filename with current date in ddmmyyyy format
-        const now = new Date();
-        const day = String(now.getDate()).padStart(2, '0');
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const year = now.getFullYear();
-        const filename = `Sales-Report-${day}${month}${year}.xlsx`;
-        
-        // Save the file
-        const buffer = await workbook.xlsx.writeBuffer();
-        const blob = new Blob([buffer], { 
-          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
-        });
-        saveAs(blob, filename);
-        
-        console.log('Confirmed items sales report exported successfully');
-      } catch (error) {
-        console.error('Error exporting confirmed items sales report:', error);
-      }
-    };
-
     render() 
     {
       const { isLoading, rowData, fundraisingData } = this.state;
@@ -3396,23 +3242,12 @@ UEN: T03SS0051L
               Archive Data
               </button>
               <button 
-                className="fundraising-payment-report-btn"
-                onClick={this.generatePaymentReport}
-              >
-              Payment Report
-              </button>
-              <button 
-                className="fundraising-items-sales-btn12"
-                onClick={() => {
-                  if (this.props.openSalesReportModal) {
-                    this.props.openSalesReportModal();
-                  } else {
-                    this.exportConfirmedItemsSales();
-                  }
-                }}
+                className="fundraising-sales-report-btn"
+                onClick={this.generateSalesReport}
               >
               Sales Report
               </button>
+
             </div>
           </div>
 

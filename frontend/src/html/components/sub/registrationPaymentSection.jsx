@@ -2843,10 +2843,10 @@ debugMarriagePrepData = () => {
             ) {
               const phoneNumber = participantInfo.contactNumber.replace(/\D/g, ""); // Remove non-numeric characters
               let message = `Hi ${participantInfo.name},
-                            Thank you for your your support.
-                           We wish to confirm your place for  ${courseInfo.courseEngName} on ${courseInfo.courseDuration.split("-")[0]} ${courseInfo.courseTime.split("–")[0]} at ${courseInfo.courseLocation}.
+                            Thank you for your support.
+                           We wish to confirm your place for ${courseInfo.courseEngName} on ${courseInfo.courseDuration.split("-")[0]} ${courseInfo.courseTime.split("–")[0]} at ${courseInfo.courseLocation}.
                            Please contact this number if your require more information.
-                           Thank you `;
+                           Thank you.`;
               const whatsappWebURL = `https://web.whatsapp.com/send?phone=+65${phoneNumber}&text=${encodeURIComponent(message)}`;
               console.log("Whatsapp Link:", whatsappWebURL)
               window.open(whatsappWebURL, "_blank"); // Opens in a new browser tab
@@ -2860,9 +2860,9 @@ debugMarriagePrepData = () => {
               const phoneNumber = participantInfo.contactNumber.replace(/\D/g, ""); // Remove non-numeric characters
               let message = `Hi ${participantInfo.name},
                             Thank you for your your support.
-                           We wish to confirm your place for  ${courseInfo.courseEngName} on ${courseInfo.courseDuration.split("-")[0]} ${courseInfo.courseTime.split("–")[0]} at ${courseInfo.courseLocation}.
+                           We wish to confirm your place for ${courseInfo.courseEngName} on ${courseInfo.courseDuration.split("-")[0]} ${courseInfo.courseTime.split("–")[0]} at ${courseInfo.courseLocation}.
                            Please contact this number if your require more information.
-                           Thank you `;
+                           Thank you.`;
               const whatsappWebURL = `https://web.whatsapp.com/send?phone=+65${phoneNumber}&text=${encodeURIComponent(message)}`;
               console.log("Whatsapp Link:", whatsappWebURL)
               window.open(whatsappWebURL, "_blank"); // Opens in a new browser tab
@@ -2919,7 +2919,7 @@ debugMarriagePrepData = () => {
     if (row && row.courseInfo && row.courseInfo.courseType === "Talks And Seminar") 
     {
       return {
-        background: '#D8D8D8' // soft pastel yellow
+        background: '#E8D5C4' // soft pastel brown
       };
     }
   
