@@ -1,4 +1,4 @@
-name: ECSS Company Management System - React + Vite
+name: ECSS Company Management System - React + Vite ok
 
 on:
   push:
