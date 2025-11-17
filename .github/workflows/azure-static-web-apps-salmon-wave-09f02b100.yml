@@ -9,37 +9,7 @@ on:
     branches:
       - main
 
-jobs:
-  check_for_changes:
-    runs-on: ubuntu-latest
-    name: Check for Changes in frontend directory
-    outputs:
-      changes_detected: ${{ steps.check-changes.outputs.changes_detected }}
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: true
-          lfs: false
-
-      # Fetch the previous commit to compare against
-      # - name: Fetch previous commit
-      #  run: |
-      #    git fetch origin main --depth=2
-
-      # Check if there are any changes in the frontend directory between the previous and current commit
-      #- name: Check for changes in frontend directory
-      #  id: check-changes
-      #  run: |
-      #    CHANGES=$(git diff --name-only HEAD~1 HEAD -- frontend)
-      #    if [ -z "$CHANGES" ]; then
-      #      echo "No changes detected in frontend folder."
-      #      echo "::set-output name=changes_detected::false"
-      #    else
-      #      echo "Changes detected in frontend folder."
-      #      echo "::set-output name=changes_detected::true"
-      #    fi
-      #    exit 0  # Ensure script exits with 0 regardless of changes detected
-          
+jobs:          
   build_and_deploy_job:
     runs-on: ubuntu-latest
     name: Build and Deploy Job
@@ -110,7 +80,7 @@ jobs:
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
         with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_SALMON_WAVE_09F02B100 }}
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_DEPLOYMENT_TOKEN }}
           action: "upload"
           app_location: "./frontend/dist" # Point directly to pre-built optimized files
           skip_app_build: true # Skip Azure's build entirely - we handle optimization ourselves
