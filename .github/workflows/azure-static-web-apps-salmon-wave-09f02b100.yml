@@ -57,6 +57,7 @@ jobs:
       - name: List build output
         run: |
           cd frontend
+          ls
           echo "Build output size:"
           du -sh dist/
           echo "Number of files:"
