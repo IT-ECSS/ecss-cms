@@ -25,6 +25,7 @@ jobs:
 
       - name: npm install, build, and test
         run: |
+          cd backend2
           npm install
           npm run build --if-present
           npm run test --if-present
@@ -33,7 +34,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: .
+          path: ./backend2
 
   deploy:
     runs-on: ubuntu-latest
@@ -51,9 +52,9 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_B0E8AF784ABF4DCF992B09FFCAEA512F }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_B2085EFE8DA44F119BFBF3EA6D0B2A11 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_505A40B89CBB475BAA89C07ED06A1605 }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_9354222319A942BDA9FE9494601BA944 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_F83427D0CCD440ED94D3BA289CAE8205 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_C991A7FDE42842EC803631B6FA33783D }}
 
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
@@ -61,5 +62,5 @@ jobs:
         with:
           app-name: 'ecss-backend-node'
           slot-name: 'Production'
-          package: .
+          package: ./backend2
           
