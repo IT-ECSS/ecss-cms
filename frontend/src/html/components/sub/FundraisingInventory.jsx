@@ -698,14 +698,14 @@ class FundraisingInventory extends Component {
                     <>
                         <div className="card-view-actions">
                             <button 
-                                className="action-btn add-item-btn"
+                                className="action-btn btn-add-item"
                                 onClick={this.handleAddNewItem}
                                 title="Add a new item to inventory"
                             >
                                 <i className="fas fa-plus"/> Add New Item
                             </button>
                             <button 
-                                className="action-btn remove-item-btn"
+                                className="action-btn btn-remove-item"
                                 onClick={this.handleRemoveItem}
                                 title="Remove selected item from inventory"
                             >

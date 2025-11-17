@@ -3099,76 +3099,12 @@ UEN: T03SS0051L
     };
 
     // Generate Payment Report with Total
-    generatePaymentReport = async () => {
-      try {
-        console.log('Starting Payment Report generation...');
-        
-        // Create a new workbook
-        const workbook = new ExcelJS.Workbook();
-        
-        // Define comprehensive headers for payment report
-        const headers = [
-          'S/N', 'First Name', 'Last Name', 'Email', 'Contact Number',
-          'Station Location', 'Items Summary', 'Total Price',
-          'Payment Method', 'Invoice Number', 'Order Details', 'Status',
-          'Collection Mode', 'Collection Location', 'Collection Details', 'Receipt Number'
-        ];
-        
-        const activeHeaders = headers.filter(header => typeof header === 'string' && header.trim() !== '');
-        const dataToExport = this.state.originalData || this.state.rowData;
-        
-        // Group data by collection location for payment report
-        const locationGroups = this.groupDataByLocation(dataToExport);
-        console.log('Payment Report Location groups:', Object.keys(locationGroups));
-
-        // Create "All Locations" payment report worksheet
-        const { worksheet: allPaymentWorksheet, headerRow: allPaymentHeaderRow } = 
-          this.createWorksheet(workbook, 'All Locations Payment Report', activeHeaders, null, true);
-
-        let grandTotal = 0;
-
-        // Add all data to the payment report worksheet
-        const allPaymentDataFormatted = dataToExport.map((item, index) => ({
-          item,
-          row: this.state.rowData[index] || {},
-          originalIndex: index
-        }));
-        
-        grandTotal = this.addPaymentDataToWorksheet(allPaymentWorksheet, allPaymentHeaderRow, allPaymentDataFormatted, activeHeaders, headers);
-
-        // Add total row to all locations worksheet
-        this.addPaymentTotalRow(allPaymentWorksheet, grandTotal, headers.length);
-        this.autoFitColumns(allPaymentWorksheet);
-
-        // Create payment report worksheets for each location
-        Object.entries(locationGroups).forEach(([location, locationData]) => {
-          // Clean up location name for sheet name
-          const sheetName = `${location.replace(/[\\\/\?\*\[\]]/g, '_').substring(0, 25)}_Payment`;
-          
-          const { worksheet, headerRow } = this.createWorksheet(workbook, sheetName, activeHeaders, location);
-          const locationTotal = this.addPaymentDataToWorksheet(worksheet, headerRow, locationData, activeHeaders, headers);
-          
-          // Add total row to location-specific worksheet
-          this.addPaymentTotalRow(worksheet, locationTotal, headers.length);
-          this.autoFitColumns(worksheet);
-        });
-
-        // Generate filename with timestamp
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
-        const filename = `Payment_Report_${timestamp}.xlsx`;
-
-        // Save the file
-        const buffer = await workbook.xlsx.writeBuffer();
-        const blob = new Blob([buffer], { 
-          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
-        });
-        saveAs(blob, filename);
-
-        console.log('Payment report export completed successfully');
-        console.log('Grand Total:', grandTotal.toFixed(2));
-
-      } catch (error) {
-        console.error('Error generating payment report:', error);
+    generatePaymentReport = () => {
+      // Call parent component's openPaymentReportModal method
+      if (this.props.openPaymentReportModal) {
+        this.props.openPaymentReportModal();
+      } else {
+        console.warn('openPaymentReportModal method not available from parent component');
       }
     };
 
@@ -3463,7 +3399,7 @@ UEN: T03SS0051L
                 className="fundraising-payment-report-btn"
                 onClick={this.generatePaymentReport}
               >
-              Generate Payment Report
+              Payment Report
               </button>
               <button 
                 className="fundraising-items-sales-btn12"

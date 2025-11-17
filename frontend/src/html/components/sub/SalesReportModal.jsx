@@ -15,7 +15,7 @@ class SalesReportModal extends Component {
       },
       allLocationsChecked: true,
       displayData: [],
-      activeTab: 'Items' // 'Orders' or 'Items'
+      activeTab: 'Orders' // 'Orders' or 'Items'
     };
   }
 
@@ -174,15 +174,143 @@ class SalesReportModal extends Component {
         }
       });
 
-      const sortedItems = Array.from(allItemsSet).sort();
+      // Sort items with custom ordering: 1000gm, 500gm, 100gm
+      const sortedItems = Array.from(allItemsSet).sort((a, b) => {
+        const sizeOrder = { '1000gm': 1, '500gm': 2, '100gm': 3 };
+        
+        // Extract sizes from item names
+        const sizeA = a.match(/(1000gm|500gm|100gm)/i)?.[0].toLowerCase();
+        const sizeB = b.match(/(1000gm|500gm|100gm)/i)?.[0].toLowerCase();
+        
+        const orderA = sizeA ? sizeOrder[sizeA] : 999;
+        const orderB = sizeB ? sizeOrder[sizeB] : 999;
+        
+        // If both have sizes, compare by size order
+        if (orderA !== 999 && orderB !== 999) {
+          return orderA - orderB;
+        }
+        
+        // Otherwise, sort alphabetically
+        return a.localeCompare(b);
+      });
       
       // Get selected location names sorted
       const sortedLocations = Object.keys(locationGroups)
         .filter(location => Object.keys(locationGroups).includes(location))
         .sort();
 
-      // Create single sheet with locations as columns
-      const ws = workbook.addWorksheet('Sales Report');
+      // ===== ORDERS SHEET =====
+      const ordersWs = workbook.addWorksheet('Orders');
+      
+      // Build Orders header row
+      const ordersHeaderRow = ['Location', 'All Locations', ...sortedLocations];
+      ordersWs.addRow(ordersHeaderRow);
+      
+      const ordersExcelHeaderRow = ordersWs.getRow(1);
+      this.applyHeaderStyling(ordersExcelHeaderRow);
+      
+      // Build Orders data rows
+      const locationNames = ['CT Hub', 'Pasir Ris West Wellness Centre', 'Tampines North Community Club'];
+      let totalOrders = 0;
+      const ordersByLocation = {};
+      
+      locationNames.forEach(location => {
+        const count = locationGroups[location]?.length || 0;
+        ordersByLocation[location] = count;
+        totalOrders += count;
+      });
+      
+      locationNames.forEach((location, index) => {
+        const ordersRowData = [
+          location,
+          totalOrders,
+          ordersByLocation['CT Hub'],
+          ordersByLocation['Pasir Ris West Wellness Centre'],
+          ordersByLocation['Tampines North Community Club']
+        ];
+        
+        const ordersRow = ordersWs.addRow(ordersRowData);
+        ordersRow.eachCell((cell, colNumber) => {
+          if (colNumber === 1) {
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFF5F5F5' }
+            };
+          } else if (colNumber === 2) {
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFEEEEEE' }
+            };
+          } else if (colNumber >= 3) {
+            const locationIndex = colNumber - 3;
+            if (sortedLocations[locationIndex]) {
+              const backgroundColor = this.getLocationBackgroundColor(sortedLocations[locationIndex]);
+              if (backgroundColor) {
+                cell.fill = {
+                  type: 'pattern',
+                  pattern: 'solid',
+                  fgColor: { argb: backgroundColor }
+                };
+              }
+            }
+          }
+        });
+      });
+      
+      // Add Orders total row
+      const ordersTotalData = [
+        'Total',
+        totalOrders,
+        ordersByLocation['CT Hub'],
+        ordersByLocation['Pasir Ris West Wellness Centre'],
+        ordersByLocation['Tampines North Community Club']
+      ];
+      
+      const ordersTotalRow = ordersWs.addRow(ordersTotalData);
+      ordersTotalRow.eachCell((cell, colNumber) => {
+        cell.font = { bold: true };
+        
+        if (colNumber === 1) {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFD3D3D3' }
+          };
+        } else if (colNumber === 2) {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFC0C0C0' }
+          };
+        } else if (colNumber >= 3) {
+          const locationIndex = colNumber - 3;
+          if (sortedLocations[locationIndex]) {
+            const location = sortedLocations[locationIndex];
+            let bgColor;
+            if (location === 'CT Hub') {
+              bgColor = 'FFC6E0C6';
+            } else if (location === 'Pasir Ris West Wellness Centre') {
+              bgColor = 'FFCCE5FF';
+            } else if (location === 'Tampines North Community Club') {
+              bgColor = 'FFFFE4B5';
+            }
+            if (bgColor) {
+              cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: bgColor }
+              };
+            }
+          }
+        }
+      });
+      
+      this.autoFitColumns(ordersWs);
+
+      // ===== ITEMS SHEET =====
+      const ws = workbook.addWorksheet('Items');
 
       // Build header row: [Item Name, All Locations, CT Hub, Pasir Ris, Tampines]
       const headerRow = ['Item Name', 'All Locations', ...sortedLocations];
@@ -389,17 +517,47 @@ class SalesReportModal extends Component {
     // Filter only Paid (confirmed) orders
     const confirmedOrders = fundraisingData.filter(order => order.status === 'Paid');
 
-    // Get all unique items
-    const allItemsSet = new Set();
+    // Get all unique items with their sizes
+    const allItemsMap = new Map(); // { itemName -> Set of sizes }
     confirmedOrders.forEach((order) => {
       const items = order.items || order.orderDetails?.items || [];
       items.forEach(item => {
-        const itemName = item.productName || item.name || item.itemName || 'Unknown';
-        allItemsSet.add(itemName);
+        const fullName = item.productName || item.name || item.itemName || 'Unknown';
+        
+        // Extract size (1000gm, 500gm, 100gm) from the product name
+        const sizeMatch = fullName.match(/(1000gm|500gm|100gm)/i);
+        const size = sizeMatch ? sizeMatch[0].toLowerCase() : 'Unknown';
+        
+        // Get base name (everything before the size)
+        const baseNameMatch = fullName.match(/^(.*?)\s*-?\s*(?:1000gm|500gm|100gm)?$/i);
+        const baseName = baseNameMatch ? baseNameMatch[1].trim() : fullName;
+        
+        // Create a unique key: "Panettone For Good 2025 - 1000gm"
+        const uniqueKey = `${baseName} - ${size}`;
+        
+        if (!allItemsMap.has(baseName)) {
+          allItemsMap.set(baseName, new Set());
+        }
+        allItemsMap.get(baseName).add(uniqueKey);
       });
     });
 
-    const sortedItems = Array.from(allItemsSet).sort();
+    // Create sorted list of all unique item variations with custom ordering
+    const sortedItems = [];
+    const sizeOrder = { '1000gm': 1, '500gm': 2, '100gm': 3 };
+    
+    allItemsMap.forEach((sizes) => {
+      const sizedItems = Array.from(sizes).sort((a, b) => {
+        const sizeA = a.match(/(1000gm|500gm|100gm)/i)?.[0].toLowerCase();
+        const sizeB = b.match(/(1000gm|500gm|100gm)/i)?.[0].toLowerCase();
+        
+        const orderA = sizeA ? sizeOrder[sizeA] : 999;
+        const orderB = sizeB ? sizeOrder[sizeB] : 999;
+        
+        return orderA - orderB;
+      });
+      sortedItems.push(...sizedItems);
+    });
 
     // Get selected locations
     const selectedLocationsList = Object.keys(selectedLocations).filter(loc => selectedLocations[loc]).sort();
@@ -510,17 +668,17 @@ class SalesReportModal extends Component {
     confirmedOrders.forEach(order => {
       const location = order.collectionDetails?.CollectionDeliveryLocation || 'Unknown';
       if (!locationGroups[location]) {
-        locationGroups[location] = [];
+        locationGroups[location] = 0;
       }
-      locationGroups[location].push(order);
+      locationGroups[location] += 1;
     });
 
     // Calculate totals
     const allLocationsTotal = confirmedOrders.length;
     const grandTotalsByLocation = {
-      'CT Hub': locationGroups['CT Hub']?.length || 0,
-      'Pasir Ris West Wellness Centre': locationGroups['Pasir Ris West Wellness Centre']?.length || 0,
-      'Tampines North Community Club': locationGroups['Tampines North Community Club']?.length || 0
+      'CT Hub': locationGroups['CT Hub'] || 0,
+      'Pasir Ris West Wellness Centre': locationGroups['Pasir Ris West Wellness Centre'] || 0,
+      'Tampines North Community Club': locationGroups['Tampines North Community Club'] || 0
     };
 
     // Build rows for each location
@@ -528,15 +686,15 @@ class SalesReportModal extends Component {
     const rows = locationNames.map((location, index) => (
       <tr key={location} className={index % 2 === 0 ? 'row-even' : 'row-odd'}>
         <td className="item-name-cell">{location}</td>
-        <td className="all-locations-cell">{allLocationsTotal}</td>
+        <td className="all-locations-cell">{grandTotalsByLocation[location]}</td>
         <td className="location-cell location-ct-hub" style={{ backgroundColor: '#E8F5E8' }}>
-          {grandTotalsByLocation['CT Hub']}
+          {location === 'CT Hub' ? grandTotalsByLocation['CT Hub'] : 0}
         </td>
         <td className="location-cell location-pasir-ris" style={{ backgroundColor: '#E6F3FF' }}>
-          {grandTotalsByLocation['Pasir Ris West Wellness Centre']}
+          {location === 'Pasir Ris West Wellness Centre' ? grandTotalsByLocation['Pasir Ris West Wellness Centre'] : 0}
         </td>
         <td className="location-cell location-tampines" style={{ backgroundColor: '#FFFACD' }}>
-          {grandTotalsByLocation['Tampines North Community Club']}
+          {location === 'Tampines North Community Club' ? grandTotalsByLocation['Tampines North Community Club'] : 0}
         </td>
       </tr>
     ));
@@ -620,7 +778,7 @@ class SalesReportModal extends Component {
             {/* Items Tab Content */}
             {activeTab === 'Items' && (
               <div className="sales-report-table-section">
-                <h4>Item Sales Summary</h4>
+                <h4>Item Sales</h4>
                 <div className="sales-report-table-wrapper">
                   <table className="sales-report-table">
                     <thead>
