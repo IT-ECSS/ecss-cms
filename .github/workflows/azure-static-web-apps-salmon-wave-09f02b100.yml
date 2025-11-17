@@ -115,30 +115,3 @@ jobs:
           app_location: "./frontend/dist" # Point directly to pre-built optimized files
           skip_app_build: true # Skip Azure's build entirely - we handle optimization ourselves
           github_id_token: ${{ steps.idtoken.outputs.result }}
-
-  # Close pull request job (commented out)
-  #close_pull_request_job:
-  #  if: github.event_name == 'pull_request' && github.event.action == 'closed'
-  #  runs-on: ubuntu-latest
-  #  name: Close Pull Request Job
-  #  steps:
-  #    - name: Close Pull Request
-  #      id: closepullrequest
-  #      uses: actions/github-script@v6
-  #      with:
-  #        script: |
-  #          const { context, core } = require('@actions/github');
-  #          const prNumber = context.payload.pull_request.number;
-  #          
-  #          // Using GitHub API to close the pull request
-  #          await github.rest.pulls.update({
-  #            owner: context.repo.owner,
-  #            repo: context.repo.repo,
-  #            pull_number: prNumber,
-  #            state: 'closed'
-  #          });
-            
-  #    - name: Ensure job completes
-  #      run: |
-  #        echo "Pull request closed. The job is complete."
-  #        exit 0  # Exit with 0 to ensure the job finishes successfully
