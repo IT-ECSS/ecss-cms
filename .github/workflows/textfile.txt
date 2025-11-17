@@ -1,56 +1,45 @@
-name: ECSS Company Management System - React + Vite ok
-
+name: ECSS Backend Django -  As of Jun 19 2025, 2000 hrs
 on:
   push:
     branches:
       - main
-  pull_request:
-    types: [opened, synchronize, reopened, closed]
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
-  build_and_deploy_job:
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
+  build_and_deploy:
     runs-on: ubuntu-latest
-    name: Build and Deploy Job
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: true
-          lfs: false
-      - name: Verify deployment token exists
-        id: verifydeploymenttoken
-        run: |
-          # Try the two common secret names that might be used by Azure provisioning.
-          if [ -z "${{ secrets.AZURE_STATIC_WEB_APPS_DEPLOYMENT_TOKEN }}" ] && [ -z "${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}" ]; then
-            echo "ERROR: No Static Web App deployment secret is present."
-            echo "Set the deployment token in GitHub Secrets using the name AZURE_STATIC_WEB_APPS_DEPLOYMENT_TOKEN or AZURE_STATIC_WEB_APPS_API_TOKEN."
-            echo "You can reset or copy the token from the Azure portal: https://learn.microsoft.com/azure/static-web-apps/deployment-token-management"
-            exit 1
-          else
-            echo "INFO: A Static Web App deployment secret appears to exist; continuing."
-          fi
-      - name: Build And Deploy
-        id: builddeploy
-        uses: Azure/static-web-apps-deploy@v1
-        with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_DEPLOYMENT_TOKEN || secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          action: "upload"
-          app_location: "./frontend"
-          api_location: "" 
-          output_location: "dist" # Vite's default output directory
-          ###### End of Repository/Build Configurations ######
+    permissions:
+      contents: read  # Required for actions/checkout
+      id-token: write  # Required for Azure OIDC login
 
-  close_pull_request_job:
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
-    runs-on: ubuntu-latest
-    name: Close Pull Request Job
+    environment:
+      name: 'Production'
+
     steps:
-      - name: Close Pull Request
-        id: closepullrequest
-        uses: Azure/static-web-apps-deploy@v1
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python version
+        uses: actions/setup-python@v5
         with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_DEPLOYMENT_TOKEN || secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-          action: "close"
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          cd djangoPython
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Login to Azure using OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_38E8FE3E777C49248149EC6F5DFB03B7 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_8B779764C58E492CA30F9427C7F5E046 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_B3AD277132D54AFE83E323AED9C1A781 }}
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'ecss-backend-django'
+          slot-name: 'Production'
+          package: './djangoPython'

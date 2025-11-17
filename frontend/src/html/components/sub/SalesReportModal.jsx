@@ -80,8 +80,13 @@ class SalesReportModal extends Component {
       });
     });
 
-    // Sort locations
-    const locationTabs = ['All Locations'];
+    // Force location order
+    const fixedLocations = [
+      'Tampines North Community Club',
+      'CT Hub',
+      'Pasir Ris West Wellness Centre',
+    ];
+    const locationTabs = ['All Locations', ...fixedLocations.filter(loc => locationGroupedData[loc])];
     
     // Create combined all locations data
     const allLocationsData = allOrders.map((order, index) => ({
@@ -372,10 +377,10 @@ class SalesReportModal extends Component {
     switch (locationKey) {
       case 'CT Hub':
         return 'FFE8F5E8'; // Soft pastel green
-      case 'Pasir Ris West Wellness Centre':
-        return 'FFE6F3FF'; // Soft pastel blue
       case 'Tampines North Community Club':
         return 'FFFFFACD'; // Soft pastel yellow
+      case 'Pasir Ris West Wellness Centre':
+        return 'FFE6F3FF'; // Soft pastel blue
       default:
         return null;
     }
@@ -386,10 +391,10 @@ class SalesReportModal extends Component {
     switch (location) {
       case 'CT Hub':
         return 'FFE8F5E8'; // Soft pastel green
-      case 'Pasir Ris West Wellness Centre':
-        return 'FFE6F3FF'; // Soft pastel blue
       case 'Tampines North Community Club':
         return 'FFFFFF99'; // Soft pastel yellow
+      case 'Pasir Ris West Wellness Centre':
+        return 'FFE6F3FF'; // Soft pastel blue
       default:
         return null;
     }
@@ -400,10 +405,10 @@ class SalesReportModal extends Component {
     switch (location) {
       case 'CT Hub':
         return 'location-cthub'; // Soft pastel green
-      case 'Pasir Ris West Wellness Centre':
-        return 'location-pasirris'; // Soft pastel blue
       case 'Tampines North Community Club':
         return 'location-tampines'; // Soft pastel yellow
+      case 'Pasir Ris West Wellness Centre':
+        return 'location-pasirris'; // Soft pastel blue
       default:
         return 'location-default';
     }
@@ -635,7 +640,8 @@ class SalesReportModal extends Component {
     const tabData = locationGroupedData[activeTab] || [];
     const filteredData = tabData.filter(row => selectedPaymentMethods[row.paymentMethod] && row.status === 'Paid');
 
-    // Group filtered data by location and count items
+    // Dynamically determine all unique product names from the data
+    const productSet = new Set();
     const locationBreakdown = {};
     filteredData.forEach(row => {
       const location = row.location || 'Unknown Location';
@@ -645,9 +651,7 @@ class SalesReportModal extends Component {
           totalAmount: 0,
           paidCount: 0,
           paidAmount: 0,
-          panettone1000gm: 0,
-          panettone500gm: 0,
-          panettone100gm: 0
+          productCounts: {}
         };
       }
 
@@ -656,76 +660,75 @@ class SalesReportModal extends Component {
       locationBreakdown[location].paidCount++;
       locationBreakdown[location].paidAmount += row.totalAmount || 0;
 
-      // Count items from the original order
-      const items = row.originalOrder?.orderDetails?.items || row.originalOrder?.items || [];
-      items.forEach(item => {
-        const itemName = item.productName || item.name || item.itemName || '';
-        const quantity = item.quantity || 1;
-        
-        if (itemName.includes('1000') || itemName.includes('1000gm')) {
-          locationBreakdown[location].panettone1000gm += quantity;
-        } else if (itemName.includes('500') || itemName.includes('500gm')) {
-          locationBreakdown[location].panettone500gm += quantity;
-        } else if (itemName.includes('100') || itemName.includes('100gm')) {
-          locationBreakdown[location].panettone100gm += quantity;
-        }
-      });
+      // Count items from the original order only if status is 'Paid'
+      if (row.status === 'Paid') {
+        const items = row.originalOrder?.orderDetails?.items || row.originalOrder?.items || [];
+        items.forEach(item => {
+          const productName = item.productName || item.name || item.itemName || '';
+          const quantity = item.quantity || 1;
+          if (productName) {
+            productSet.add(productName);
+            if (!locationBreakdown[location].productCounts[productName]) {
+              locationBreakdown[location].productCounts[productName] = 0;
+            }
+            locationBreakdown[location].productCounts[productName] += quantity;
+          }
+        });
+      }
     });
+
+    // Sort product names alphabetically
+    const products = Array.from(productSet).sort();
 
     const locations = Object.keys(locationBreakdown).sort();
 
-    // Calculate totals for all items
-    let totalPanettone1000gm = 0;
-    let totalPanettone500gm = 0;
-    let totalPanettone100gm = 0;
+    // Calculate totals for all items by product
+    const totalByProduct = {};
+    products.forEach(product => { totalByProduct[product] = 0; });
     locations.forEach(location => {
       const data = locationBreakdown[location];
-      totalPanettone1000gm += data.panettone1000gm;
-      totalPanettone500gm += data.panettone500gm;
-      totalPanettone100gm += data.panettone100gm;
+      products.forEach(product => {
+        totalByProduct[product] += data.productCounts[product] || 0;
+      });
     });
 
     return (
-      <table className="summary-table-content">
+      <table className="summary-table-content business-summary-table">
         <thead>
           <tr>
             <th rowSpan="2">Location</th>
             <th rowSpan="2">Total Paid Amount</th>
             <th rowSpan="2" className="border-right-emphasis">Total Orders Made</th>
-            <th colSpan="4" className="panettone-parent-header">Told Items Sold</th>
+            <th colSpan={products.length} className="panettone-parent-header">Items Sold</th>
           </tr>
           <tr>
-            <th>Panettone For Good 2025 - 100gm</th>
-            <th>Panettone For Good 2025 - 500gm</th>
-            <th>Panettone For Good 2025 - 1000gm</th>
-            <th>Panettone For Good 2025 - Total</th>
+            {products.map(product => (
+              <th key={product}>{product}</th>
+            ))}
           </tr>
         </thead>
         <tbody>
-          <tr className="summary-total-row">
-            <td className="location-name">ALL Locations</td>
-            <td className="location-value paid">${summary.totalPaid.toFixed(2)}</td>
-            <td className="location-value paid">{summary.paidCount}</td>
-            <td className="location-value">{totalPanettone100gm}</td>
-            <td className="location-value">{totalPanettone500gm}</td>
-            <td className="location-value">{totalPanettone1000gm}</td>
-            <td className="location-value">{totalPanettone1000gm + totalPanettone500gm + totalPanettone100gm}</td>
-          </tr>
           {locations.map((location, index) => {
             const data = locationBreakdown[location];
-            const totalItems = data.panettone1000gm + data.panettone500gm + data.panettone100gm;
             return (
-              <tr key={location} className={`${index % 2 === 0 ? 'row-even' : 'row-odd'} ${this.getLocationClass(location)}`}>
+              <tr key={location} className={`business-row ${index % 2 === 0 ? 'business-row-even' : 'business-row-odd'} ${this.getLocationClass(location)}`}>
                 <td className="location-name">{location}</td>
                 <td className="location-value paid">${data.paidAmount.toFixed(2)}</td>
-                <td className="location-value paid">{data.paidCount}</td>
-                <td className="location-value">{totalItems}</td>
-                <td className="location-value">{data.panettone1000gm}</td>
-                <td className="location-value">{data.panettone500gm}</td>
-                <td className="location-value">{data.panettone100gm}</td>
+                <td className="location-value paid border-right-emphasis">{data.paidCount}</td>
+                {products.map(product => (
+                  <td className="location-value" key={product}>{data.productCounts[product] || 0}</td>
+                ))}
               </tr>
             );
           })}
+          <tr className="summary-total-row business-total-row">
+            <td className="location-name">ALL Locations</td>
+            <td className="location-value paid">${summary.totalPaid.toFixed(2)}</td>
+            <td className="location-value paid border-right-emphasis">{summary.paidCount}</td>
+            {products.map(product => (
+              <td className="location-value" key={product}>{totalByProduct[product]}</td>
+            ))}
+          </tr>
         </tbody>
       </table>
     );
@@ -779,14 +782,14 @@ class SalesReportModal extends Component {
 
       let grandTotal = 0;
 
-      // Add all data to the sales report worksheet
-      const allPaymentDataFormatted = dataToExport.map((item, index) => ({
-        item,
-        row: {},
-        originalIndex: index
-      }));
-      
-      grandTotal = this.addPaymentDataToWorksheet(allPaymentWorksheet, allPaymentHeaderRow, allPaymentDataFormatted, activeHeaders, headers);
+      // Add all data to the sales report worksheet using addPaymentDataToWorksheet (applies background color and price logic)
+      grandTotal = this.addPaymentDataToWorksheet(
+        allPaymentWorksheet,
+        allPaymentHeaderRow,
+        dataToExport,
+        activeHeaders,
+        headers
+      );
 
       // Add total row to all locations worksheet
       this.addPaymentTotalRow(allPaymentWorksheet, grandTotal, headers.length);
@@ -796,10 +799,15 @@ class SalesReportModal extends Component {
       Object.entries(locationGroups).forEach(([location, locationData]) => {
         // Clean up location name for sheet name
         const sheetName = `${location.replace(/[\\\/?\*\[\]]/g, '_').substring(0, 25)}_Sales`;
-        
         const { worksheet, headerRow } = this.createWorksheet(workbook, sheetName, activeHeaders, location);
-        const locationTotal = this.addPaymentDataToWorksheet(worksheet, headerRow, locationData, activeHeaders, headers);
-        
+        // locationData is an array of {item, row, originalIndex}, so map to just the item for export
+        const locationTotal = this.addPaymentDataToWorksheet(
+          worksheet,
+          headerRow,
+          locationData.map(d => d.item),
+          activeHeaders,
+          headers
+        );
         // Add total row to location-specific worksheet
         this.addPaymentTotalRow(worksheet, locationTotal, headers.length);
         this.autoFitColumns(worksheet);
