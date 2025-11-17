@@ -160,7 +160,7 @@ export default defineConfig({
             return 'socket';
           }
           
-          // Other specific libraries
+          // Other specific libraries ok
           if (id.includes('react-bootstrap')) {
             return 'bootstrap';
           }
