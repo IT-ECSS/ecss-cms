@@ -1,4 +1,4 @@
-name: Deploying Frontend Code (React + Vite) - ECSS Musical Concert 2025
+name: ECSS Company Management System - React + Vite
 
 on:
   push:
