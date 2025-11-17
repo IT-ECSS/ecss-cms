@@ -45,6 +45,15 @@ jobs:
         with:
           name: node-app
       
+      - name: Debug - List artifact contents
+        run: |
+          echo "Current directory:"
+          pwd
+          echo "Directory contents:"
+          ls -la
+          echo "Checking for node_modules and package.json:"
+          find . -maxdepth 2 -name "package.json" -o -name "node_modules" | head -20
+      
       - name: Login to Azure
         uses: azure/login@v2
         with:
