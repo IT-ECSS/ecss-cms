@@ -33,5 +33,5 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
           app_location: "frontend"
-          api_location: ""        # set if you have an API folder, e.g. "api"
+          api_location: ""
           output_location: "dist"
