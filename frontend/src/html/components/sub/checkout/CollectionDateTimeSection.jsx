@@ -182,20 +182,18 @@ class CollectionDateTimeSection extends Component {
 
   // Format date for button display
   formatDateForButton = (dateString) => {
-    // Create date with Singapore timezone context
-    const date = new Date(dateString + 'T12:00:00+08:00');
-    const sgDate = new Date(date.toLocaleString("en-US", {timeZone: "Asia/Singapore"}));
+    // Parse the date string directly as Singapore time (UTC+8)
+    const [year, month, day] = dateString.split('-');
+    const date = new Date(`${year}-${month}-${day}T12:00:00+08:00`);
     
-    const day = sgDate.getDate().toString().padStart(2, '0');
-    const month = (sgDate.getMonth() + 1).toString().padStart(2, '0');
-    const year = sgDate.getFullYear();
+    // Get day of week in Singapore timezone
+    const formatter = new Intl.DateTimeFormat('en-US', { 
+      weekday: 'long',
+      timeZone: 'Asia/Singapore' 
+    });
+    const dayName = this.getTranslation(formatter.format(date));
     
-    // Get day name using Singapore timezone
-    const dayOfWeek = sgDate.getDay();
-    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const dayName = this.getTranslation(dayNames[dayOfWeek]);
-    
-    // Return formatted string: "Sunday, 17/11/2025"
+    // Format: "Sunday, 24/11/2025"
     return `${dayName}, ${day}/${month}/${year}`;
   }
 
@@ -231,8 +229,51 @@ class CollectionDateTimeSection extends Component {
   // Get available dates for selected location
   getAvailableDatesForLocation = () => {
     const { collectionLocation, personalInfoLocation } = this.props;
-    const locationDates = this.getCollectionLocationDates(personalInfoLocation);
-    return locationDates[collectionLocation] || [];
+    const baseDates = {
+      'CT Hub': [
+        '2025-11-24', // Monday
+        '2025-12-01', // Monday
+        '2025-12-04', // Thursday
+        '2025-12-08', // Monday
+        '2025-12-11', // Thursday
+        '2025-12-15', // Monday 
+        '2025-12-18', // Thursday
+        '2025-11-30', // Sunday
+        '2025-12-07', // Sunday
+        '2025-12-14' // Sunday
+      ],
+      'Pasir Ris West Wellness Centre': [
+        '2025-12-02', // Week 2: Dec 2
+        '2025-12-09', // Week 3: Dec 9
+        '2025-12-16'  // Week 4: Dec 16
+      ],
+      'Tampines North Community Club': [
+        '2025-12-03', // Week 3: Dec 3
+        '2025-12-10', // Week 4: Dec 10
+        '2025-12-17'  // Week 5: Dec 17
+      ]
+    };
+    
+    const dates = baseDates[collectionLocation] || [];
+    return dates.sort((dateA, dateB) => {
+      const dA = new Date(dateA + "T12:00:00+08:00");
+      const dB = new Date(dateB + "T12:00:00+08:00");
+      return dA - dB;
+    });
+  }
+
+  sortBaseDates(baseDates) {
+      // Sort the date arrays within each location, not the location keys
+      const sortedDates = {};
+      Object.entries(baseDates).forEach(([location, dates]) => {
+        sortedDates[location] = dates.sort((dateA, dateB) => {
+          // Parse dates with UTC+8 to avoid timezone drift
+          const dA = new Date(dateA + "T12:00:00+08:00");
+          const dB = new Date(dateB + "T12:00:00+08:00");
+          return dA - dB;
+        });
+      });
+      return sortedDates;
   }
 
   // Collection location date mapping
@@ -256,7 +297,6 @@ class CollectionDateTimeSection extends Component {
         '2025-12-18', // Thursday
         
         // Sundays for CT Hub (Singapore timezone)
-        '2025-11-23', // Sunday
         '2025-11-30', // Sunday
         '2025-12-07', // Sunday
         '2025-12-14' // Sunday
@@ -273,8 +313,18 @@ class CollectionDateTimeSection extends Component {
       ]
     };
 
+
+    if(personalInfoLocation === "En Community Church")
+    {
+      personalInfoLocation = "CT Hub";
+    }
+
+    const sorted = this.sortBaseDates(baseDates);
+    console.log("Sorted Date:", sorted[personalInfoLocation])
+  
+    return sorted[personalInfoLocation];
     // If personal info location is En Community Church, ONLY allow Sundays
-    if (personalInfoLocation === 'En Community Church') {
+   /* if (personalInfoLocation === 'En Community Church') {
       const result = { ...baseDates };
       
       if (result['CT Hub']) {
@@ -303,7 +353,7 @@ class CollectionDateTimeSection extends Component {
       }
       
       return result;
-    }
+    }*/
   }
 
   // Check if date should be excluded based on collection location

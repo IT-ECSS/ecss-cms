@@ -17,6 +17,7 @@ import React, { Component } from 'react';
   import FundraisingOrders from './sub/FundraisingOrders';
   import FundraisingInventory from './sub/FundraisingInventory';
   import CollectionDateCalendar from './sub/CollectionDateCalendar';
+  import SalesReportModal from './sub/SalesReportModal';
   import ReportSection from './sub/reportSection';
   import WelcomeSection from './sub/welcomeSection';
   import { withAuth } from '../../AuthContext';
@@ -105,7 +106,8 @@ import React, { Component } from 'react';
         showCalendarModal: false,
         selectedOrderForCalendar: null,
         collectionSchedule: {},
-        accessRights: {} // Access rights from sidebar
+        accessRights: {}, // Access rights from sidebar
+        isSalesReportModalOpen: false
       };
   
       // Always reset attendance filter/search state to defaults on page load
@@ -119,6 +121,7 @@ import React, { Component } from 'react';
 
       // Create ref for FundraisingOrders
       this.fundraisingOrdersRef = React.createRef();
+      this.fundraisingTableRef = React.createRef();
 
       this.handleDataFromChild = this.handleDataFromChild.bind(this);
       this.searchResultFromChild = this.searchResultFromChild.bind(this);
@@ -961,6 +964,16 @@ import React, { Component } from 'react';
       }, 5000);  // 15 mins
     };
 
+    // Open Sales Report Modal
+    openSalesReportModal = () => {
+      this.setState({ isSalesReportModalOpen: true });
+    };
+
+    // Close Sales Report Modal
+    closeSalesReportModal = () => {
+      this.setState({ isSalesReportModalOpen: false });
+    };
+
     generateDeleteConfirmationPopup = (id) => {
       console.log("ID deleted:", id);
       this.setState({
@@ -1560,7 +1573,7 @@ import React, { Component } from 'react';
       const userName = this.props.location.state?.name || 'User';
       const role = this.props.location.state?.role;
       const siteIC = this.props.location.state?.siteIC;
-      const {membershipType, membershipTypes, membershipSearchQuery, isMembershipVisible, isFitnessVisible, fitnessSearchQuery, isFundraisingTableVisible, isFundraisingInventoryVisible, fundraisingSearchQuery, fundraisingPaymentMethod, fundraisingCollectionLocation, fundraisingStatus, fundraisingPaymentMethods, fundraisingCollectionLocations, fundraisingStatuses, showCalendarModal, selectedOrderForCalendar, collectionSchedule, attendanceVisibility, reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo, selectedQuarter, quarters, attendanceFilterType, attendanceFilterCode, attendanceFilterLocation, attendanceSearchQuery, attendanceTypes, activityCodes, attendanceLocations} = this.state;
+      const {membershipType, membershipTypes, membershipSearchQuery, isMembershipVisible, isFitnessVisible, fitnessSearchQuery, isFundraisingTableVisible, isFundraisingInventoryVisible, fundraisingSearchQuery, fundraisingPaymentMethod, fundraisingCollectionLocation, fundraisingStatus, fundraisingPaymentMethods, fundraisingCollectionLocations, fundraisingStatuses, showCalendarModal, selectedOrderForCalendar, collectionSchedule, attendanceVisibility, reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo, selectedQuarter, quarters, attendanceFilterType, attendanceFilterCode, attendanceFilterLocation, attendanceSearchQuery, attendanceTypes, activityCodes, attendanceLocations, isSalesReportModalOpen} = this.state;
 
       return (
         <>
@@ -1824,6 +1837,7 @@ import React, { Component } from 'react';
                             searchQuery={fundraisingSearchQuery}
                             onFiltersLoaded={this.handleFundraisingFiltersLoaded}
                             openCalendarModal={this.openCalendarModal}
+                            openSalesReportModal={this.openSalesReportModal}
                           />
                         </div>
                         
@@ -1994,6 +2008,11 @@ import React, { Component } from 'react';
             </div>
           </div>
           <Popup isOpen={isPopupOpen} message={popupMessage} userName={userName} type={popupType} participantInfo={participantInfo} status={status} courseInfo={courseInfo} closePopup={this.closePopup} closePopup2={this.closePopup2} goBackLoginPage={this.goBackHome} closePopupMessage={this.closePopupMessage} id = {this.state.deleteId}/>
+          <SalesReportModal 
+            isOpen={isSalesReportModalOpen}
+            onClose={this.closeSalesReportModal}
+            fundraisingData={this.fundraisingTableRef?.current?.state?.fundraisingData || []}
+          />
         </>
       );
     }

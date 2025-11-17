@@ -68,9 +68,7 @@ class CollectionLocationSection extends Component {
     ];
 
     // Filter locations based on personal info location
-    const locations = personalInfo?.location === 'En Community Church' 
-      ? ['CT Hub'] 
-      : allLocations;
+    const locations = allLocations;
 
     // Only show this section if a collection mode is selected
     if (!collectionMode || (collectionMode !== 'Self-Collection' && collectionMode !== 'Delivery')) {

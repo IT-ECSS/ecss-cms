@@ -1086,6 +1086,28 @@
   background-color: #0056b3;
 }
 
+.fundraising-items-sales-btn12 {
+  padding: 0.9rem 1.05rem;
+  font-size: 0.8rem;
+  border: 1px solid #4169E1;
+  border-radius: 0.3rem;
+  background-color: transparent;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+  white-space: nowrap;
+  color: #4169E1;
+  width: fit-content;
+}
+
+.fundraising-items-sales-btn12:hover {
+  background-color: #E6F0FF;
+  transform: translateY(-2px);
+}
+
+.fundraising-items-sales-btn12:active {
+  transform: translateY(1px);
+}
+
 .fundraising-no-items {
   color: #666;
   font-style: italic;
