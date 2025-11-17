@@ -1,0 +1,10 @@
+# Production environment variables
+NODE_ENV=production
+GENERATE_SOURCEMAP=false
+DISABLE_ESLINT_PLUGIN=true
+
+# Reduce bundle analysis
+ANALYZE=false
+
+# React optimization
+REACT_APP_NODE_ENV=production

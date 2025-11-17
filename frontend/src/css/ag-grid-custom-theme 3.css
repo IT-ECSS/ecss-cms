@@ -1,0 +1,185 @@
+/* Custom AgGrid Theme - Override default styles */
+
+/* Container styling for table */
+.ag-theme-alpine {
+  --ag-header-background-color: #E7B8B0;
+  --ag-header-foreground-color: white;
+  --ag-row-background-color: transparent; /* Allow getRowStyle to control this */
+  --ag-odd-row-background-color: transparent;
+  --ag-border-color: transparent;
+  --ag-cell-horizontal-border: none;
+  --ag-row-border-color: transparent;
+  --ag-row-border-width: 0px;
+  --ag-borders: none;
+  --ag-borders-row: none;
+  --ag-borders-side-button: none;
+}
+
+/* Remove all borders from rows and cells */
+.ag-theme-alpine .ag-row {
+  border: none !important;
+  border-bottom: none !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  background-color: transparent !important; /* Ensure transparent background for getRowStyle */
+}
+
+.ag-cell {
+  border: none !important;
+  border-right: none !important;
+  border-left: none !important;
+  border-top: none !important;
+  border-bottom: none !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* Remove borders from all cell types */
+.ag-cell-wrapper {
+  border: none !important;
+}
+
+/* Remove horizontal lines between rows */
+.ag-theme-alpine .ag-row:not(.ag-row-last) {
+  border-bottom: none !important;
+}
+
+/* Remove any remaining grid lines */
+.ag-theme-alpine .ag-cell-range-selected:not(.ag-cell-range-single-cell) {
+  border: none !important;
+}
+
+.ag-theme-alpine .ag-cell-range-selected {
+  border: none !important;
+}
+
+.ag-header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 1 !important;
+  background-color: #E7B8B0 !important;
+  color: white !important;
+  text-align: center;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.ag-header-cell-resize {
+  display: none !important; /* Hide the column resize handle */
+}
+
+.ag-pinned-left .ag-cell {
+  border: none !important; /* Remove any borders for pinned columns */
+}
+
+/* Specific styling for status column to eliminate gaps */
+.ag-cell[col-id="status"] {
+  padding: 0 !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.ag-cell input[type="text"],
+.ag-cell select {
+  background-color: transparent !important;
+  border: 1px solid #ccc;
+}
+
+.ag-cell input[type="text"]:focus,
+.ag-cell select:focus {
+  outline: none;
+}
+
+.ag-wrapper .ag-picker-field-wrapper .ag-picker-collapsed input[type="text"],
+.ag-wrapper .ag-picker-field-wrapper .ag-picker-collapsed {
+  background-color: transparent !important;
+  border: 1px solid #ccc;
+}
+
+.ag-wrapper .ag-picker-field-wrapper .ag-picker-collapsed input[type="text"]:focus,
+.ag-wrapper .ag-picker-field-wrapper .ag-picker-collapsed select:focus {
+  outline: none;
+}
+
+.ag-cell-edit-wrapper, 
+.ag-cell-editor, 
+.ag-cell-wrapper, 
+:where(.ag-cell-editor) .ag-input-field-input, 
+:where(.ag-cell-editor) .ag-wrapper {
+  background-color: transparent !important;
+  border: 1px solid #ccc;
+}
+
+/* Custom styles for the select box */
+.ag-cell-editor-select {
+  background-color: #f8f9fa;
+  border: 1px solid #ccc;
+  padding: 5px;
+  font-size: 14px;
+}
+
+/* Custom styles for the options inside the select */
+.ag-select-option {
+  padding: 5px;
+  font-size: 14px;
+}
+
+/* AG-Grid Custom Header Styles */
+.ag-header-cell-label {
+  font-weight: bold;
+  color: #FFFFFF !important;
+}
+
+/* Grid container */
+.grid-container {
+  width: 89vw;
+  height: 50vh;
+  display: block;
+  overflow: auto;
+  box-sizing: border-box;
+  margin-left: 5%;
+}
+
+/* Remove any default row background that might conflict with row styling */
+.ag-row-even,
+.ag-row-odd {
+  background-color: #E3C2A7;
+}
+
+/* Row styling based on data attributes - replaces getRowStyle functionality */
+
+/* Expanded row highlighting */
+.ag-row[data-expanded="true"] {
+  background: #f1f1f1 !important;
+  border-bottom: 1px solid #ddd !important;
+}
+
+/* Course type specific styling */
+.ag-row[data-course-type="ILP"] {
+  background: #d0f5e8 !important; /* soft pastel green */
+}
+
+.ag-row[data-course-type="Marriage Preparation Programme"] {
+  background: #fff9c4 !important; /* soft pastel yellow */
+}
+
+.ag-row[data-course-type="Talks And Seminar"] {
+  background: #D8D8D8 !important; /* soft gray */
+}
+
+/* Anomaly detection styling */
+.ag-row[data-anomaly="true"] {
+  background-color: #FFDDC1 !important; /* light orange */
+}
+
+/* Priority order for multiple conditions - expanded takes precedence */
+.ag-row[data-expanded="true"][data-course-type] {
+  background: #f1f1f1 !important;
+}
+
+.ag-row[data-expanded="true"][data-anomaly="true"] {
+  background: #f1f1f1 !important;
+}
