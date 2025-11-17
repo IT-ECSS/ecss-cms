@@ -56,5 +56,5 @@ jobs:
         with:
           app-name: 'ecss-backend-node'
           slot-name: 'Production'
-          package: ./backend2
+          package: ./node-app
           
