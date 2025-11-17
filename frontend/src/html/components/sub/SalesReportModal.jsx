@@ -695,10 +695,10 @@ class SalesReportModal extends Component {
             <th colSpan="4" className="panettone-parent-header">Items Breakdown - Panettone For Good 2025</th>
           </tr>
           <tr>
-            <th>Total</th>
-            <th>1000gm</th>
-            <th>500gm</th>
             <th>100gm</th>
+            <th>500gm</th>
+            <th>1000gm</th>
+            <th>Total</th>
           </tr>
         </thead>
         <tbody>
@@ -706,10 +706,10 @@ class SalesReportModal extends Component {
             <td className="location-name">ALL Locations</td>
             <td className="location-value paid">${summary.totalPaid.toFixed(2)}</td>
             <td className="location-value paid">{summary.paidCount}</td>
-            <td className="location-value">{totalPanettone1000gm + totalPanettone500gm + totalPanettone100gm}</td>
-            <td className="location-value">{totalPanettone1000gm}</td>
-            <td className="location-value">{totalPanettone500gm}</td>
             <td className="location-value">{totalPanettone100gm}</td>
+            <td className="location-value">{totalPanettone500gm}</td>
+            <td className="location-value">{totalPanettone1000gm}</td>
+            <td className="location-value">{totalPanettone1000gm + totalPanettone500gm + totalPanettone100gm}</td>
           </tr>
           {locations.map((location, index) => {
             const data = locationBreakdown[location];
