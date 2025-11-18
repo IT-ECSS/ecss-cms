@@ -677,8 +677,27 @@ class SalesReportModal extends Component {
       }
     });
 
-    // Sort product names alphabetically
-    const products = Array.from(productSet).sort();
+    // Sort product names alphabetically, but if they contain numbers, sort by those numbers in ascending order
+    const products = Array.from(productSet).sort((a, b) => {
+      // Extract ALL numbers from the product names and get the last one (grams value)
+      const aMatches = a.match(/\d+/g);
+      const bMatches = b.match(/\d+/g);
+      
+      const aNum = aMatches ? parseInt(aMatches[aMatches.length - 1]) : null;
+      const bNum = bMatches ? parseInt(bMatches[bMatches.length - 1]) : null;
+      
+      // If both have numbers, sort numerically
+      if (aNum !== null && bNum !== null) {
+        return aNum - bNum;
+      }
+      
+      // If only one has a number, prioritize the one with number
+      if (aNum !== null) return -1;
+      if (bNum !== null) return 1;
+      
+      // Otherwise sort alphabetically
+      return a.localeCompare(b);
+    });
 
     const locations = Object.keys(locationBreakdown).sort();
 
@@ -722,11 +741,11 @@ class SalesReportModal extends Component {
             );
           })}
           <tr className="summary-total-row business-total-row">
-            <td className="location-name">ALL Locations</td>
-            <td className="location-value paid">${summary.totalPaid.toFixed(2)}</td>
-            <td className="location-value paid border-right-emphasis">{summary.paidCount}</td>
+            <td className="location-name" style={{ fontWeight: 'bold' }}>ALL Locations</td>
+            <td className="location-value paid" style={{ fontWeight: 'bold' }}>${summary.totalPaid.toFixed(2)}</td>
+            <td className="location-value paid border-right-emphasis" style={{ fontWeight: 'bold' }}>{summary.paidCount}</td>
             {products.map(product => (
-              <td className="location-value" key={product}>{totalByProduct[product]}</td>
+              <td className="location-value" key={product} style={{ fontWeight: 'bold' }}>{totalByProduct[product]}</td>
             ))}
           </tr>
         </tbody>

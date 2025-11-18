@@ -982,6 +982,9 @@ class Popup extends Component {
                               </div>
                             );
                           })}
+                        {Object.keys(message4[mainKey] || {}).filter(subKey => subKey !== "Account ID").length === 0 && (
+                          <p className="no-data-message">No access rights available</p>
+                        )}
                       </div>
                     </div>
                   </div>
