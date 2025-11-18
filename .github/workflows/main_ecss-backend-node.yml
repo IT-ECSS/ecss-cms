@@ -21,6 +21,22 @@ jobs:
         with:
           node-version: '22.x'
 
+      - name: Validate OneSignal Secrets
+        run: |
+          if [ -z "${{ secrets.ONESIGNAL_APP_ID }}" ]; then
+            echo "ERROR: ONESIGNAL_APP_ID secret is not set!"
+            echo "Please add it to https://github.com/IT-ECSS/ecss-cms/settings/secrets/actions"
+            echo "Value: 01b56852-4a5c-4ccc-9733-11aa47d27400"
+            exit 1
+          fi
+          if [ -z "${{ secrets.ONESIGNAL_API_KEY }}" ]; then
+            echo "ERROR: ONESIGNAL_API_KEY secret is not set!"
+            echo "Please add it to https://github.com/IT-ECSS/ecss-cms/settings/secrets/actions"
+            echo "Value: Basic os_v2_app_ag2wqusklrgmzfztcgveputuadpth4tlurke2o5bsecx52t5xfhhli63z73qiq7m2tfcu5q7ou3erkrlvvymxgzo6z2wkyczl6exw3y"
+            exit 1
+          fi
+          echo "✓ OneSignal secrets are configured"
+
       - name: Install and build (backend)
         working-directory: backend2
         run: |
@@ -49,4 +65,5 @@ jobs:
               ONESIGNAL_APP_ID="${{ secrets.ONESIGNAL_APP_ID }}" \
               ONESIGNAL_API_KEY="${{ secrets.ONESIGNAL_API_KEY }}" \
               NODE_ENV="production"
+          echo "✓ OneSignal credentials configured in Azure App Settings"
           

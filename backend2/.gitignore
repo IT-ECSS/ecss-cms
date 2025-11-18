@@ -1,7 +1,29 @@
-# Environment variables
+# Environment variables - NEVER commit these
 .env
 .env.local
 .env.*.local
+.env.production
+.env.development
+.env.staging
+.env.*
+
+# Sensitive credentials and API keys - CRITICAL
+*.key
+*.secret
+*credentials*
+*token*
+*apikey*
+*api_key*
+*API_KEY*
+*ONESIGNAL*
+*onesignal*
+config.secret.*
+.aws/
+.gcp/
+*.pem
+*.p12
+*.pfx
+*.jks
 
 # Node modules
 node_modules/
