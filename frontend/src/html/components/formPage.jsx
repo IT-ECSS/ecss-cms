@@ -189,41 +189,40 @@ class FormPage extends Component {
     
     if (!status) return '';
     
-    // Handle if status is already formatted
-    if (typeof status === 'string' && (status.includes('新加坡公民') || status.includes('永久居民') || status.includes('Warganegara') || status.includes('Pemastautin'))) {
-      return status;
+    // Handle if status is already a string code
+    if (typeof status === 'string' && (status === 'SC' || status === 'C' || status === 'PR' || status === 'P')) {
+      // Standardize: C->SC, P->PR, then return bilingual format
+      const code = status === 'C' ? 'SC' : status === 'P' ? 'PR' : status;
+      return code === 'SC' ? 'SC 新加坡公民' : code === 'PR' ? 'PR 永久居民' : '';
     }
     
     // Extract the correct status code from SingPass structured object
     let statusCode = status;
-    if (typeof status === 'object' ) {
-      // Use classification if available, otherwise use code
-      statusCode = status.classification || status.code || status.value;
+    if (typeof status === 'object') {
+      // Try to extract code in order of preference: code > classification > value
+      if (status.code) {
+        statusCode = status.code;
+      } else if (status.classification) {
+        statusCode = status.classification;
+      } else if (status.value) {
+        statusCode = status.value;
+      }
     }
     
-    console.log("Status Code:", statusCode);
+    console.log("Status Code extracted:", statusCode);
     
-    // Check if this is for Talks And Seminar course type to determine format
-    const courseType = this.state?.formData?.type;
-    const isTalksAndSeminar = courseType === 'Talks And Seminar';
-    
-    // Format according to course type
-    let statusMap;
-    if (isTalksAndSeminar) {
-      // English + Malay format for Talks And Seminar
-      statusMap = {
-        'SC': 'SC Warganegara Singapura',
-        'PR': 'PR Pemastautin Tetap'
-      };
-    } else {
-      // English + Chinese format for other courses
-      statusMap = {
-        'SC': 'SC 新加坡公民',
-        'PR': 'PR 永久居民'
-      };
+    // Standardize the codes and return bilingual format: C->SC, P->PR
+    if (statusCode === 'C') {
+      return 'SC 新加坡公民';
+    } else if (statusCode === 'P') {
+      return 'PR 永久居民';
+    } else if (statusCode === 'SC') {
+      return 'SC 新加坡公民';
+    } else if (statusCode === 'PR') {
+      return 'PR 永久居民';
     }
     
-    return statusMap[statusCode] || statusCode;
+    return '';
   };
 
   // Add helper function to extract mobile number properly

@@ -118,6 +118,11 @@ function extractSingPassValue(data) {
     return null;
   }
   
+  // Handle SingPass structured data with 'code' property (common for residential status)
+  if (typeof data === 'object' && data.code !== undefined) {
+    return data.code;
+  }
+  
   // Handle SingPass structured data format: {lastupdated, source, classification, value}
   if (typeof data === 'object' && data.value !== undefined) {
     return data.value;

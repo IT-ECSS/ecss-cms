@@ -444,9 +444,7 @@ class MyInfoRedirectPage extends Component {
   formatResidentialStatus = (code, description) => {
     const statusMap = {
       'SC': 'SC 新加坡公民',
-      'C': 'SC 新加坡公民',
-      'PR': 'PR 永久居民',
-      'P': 'PR 永久居民'   // Alternative code for PR
+      'PR': 'PR 永久居民'
     };
     
     // Return mapped value if available, otherwise fallback to code + description
