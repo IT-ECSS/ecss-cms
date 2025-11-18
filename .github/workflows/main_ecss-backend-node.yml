@@ -39,4 +39,3 @@ jobs:
           app-name: 'ecss-backend-node'
           slot-name: 'Production'
           package: ./backend2
-          
