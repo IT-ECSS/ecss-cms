@@ -57,7 +57,7 @@ jobs:
       - name: Configure Azure App Settings for OneSignal
         run: |
           az webapp config appsettings set \
-            --resource-group IT-ECSS \
+            --resource-group ECSS-Course-Management-System \
             --name ecss-backend-node \
             --settings \
               ONESIGNAL_APP_ID="${{ secrets.ONESIGNAL_APP_ID }}" \
