@@ -2244,7 +2244,7 @@ class FormPage extends Component {
                 minWidth: '100px'
               }}
             >
-              {getButtonLabel('OK', 'OK', 'Baik')}
+              {getButtonLabel('OK', '可以', 'Baik')}
             </button>
           </div>
         )}
