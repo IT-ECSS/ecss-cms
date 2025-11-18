@@ -1,9 +1,13 @@
 const axios = require('axios');
 
-// Updated OneSignal App ID and REST API Key
-//01b56852-4a5c-4ccc-9733-11aa47d27400
-const ONESIGNAL_APP_ID = '01b56852-4a5c-4ccc-9733-11aa47d27400';
-const ONESIGNAL_API_KEY = 'Basic os_v2_app_ag2wqusklrgmzfztcgveputuac3rpxopzsiu5v5dxyebacrz2whnxthj5hlifb6fnagkqapiedfvupmdjindr6y4mqtkdpxldjs3osi';
+// OneSignal App ID and REST API Key from environment variables
+const ONESIGNAL_APP_ID = process.env.ONESIGNAL_APP_ID;
+const ONESIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY;
+
+// Validate that required environment variables are set
+if (!ONESIGNAL_APP_ID || !ONESIGNAL_API_KEY) {
+  console.warn('Warning: OneSignal credentials are not configured. Please set ONESIGNAL_APP_ID and ONESIGNAL_API_KEY environment variables.');
+}
 
 /**
  * Send a OneSignal push notification to all users except those on the form page.
