@@ -133,8 +133,8 @@ class FormPage extends Component {
       return race;
     }
 
-    // Default to OT unless we find a valid code
-    let raceCode = 'OT';
+    // Default to XX unless we find a valid code
+    let raceCode = 'XX';
 
     // Try to extract race code from structured object
     if (typeof race === 'object') {
@@ -151,10 +151,10 @@ class FormPage extends Component {
       'CN': 'Chinese 华',
       'IN': 'Indian 印',
       'MY': 'Malay 马',
-      'OT': 'Others 其他'
+      'XX': 'Others 其他'
     };
 
-    return raceMap[raceCode] || raceMap['OT'];
+    return raceMap[raceCode] || 'Others 其他';
   };
 
 
@@ -168,10 +168,14 @@ class FormPage extends Component {
       return gender;
     }
     
-    // Extract value if it's a SingPass structured object
-    let genderCode = gender.code;
-    if (typeof gender === 'object' && gender.value !== undefined) {
-      genderCode = gender.code;
+    // Extract code if it's a SingPass structured object
+    let genderCode = gender;
+    if (typeof gender === 'object') {
+      if (gender.code) {
+        genderCode = gender.code;
+      } else if (gender.value) {
+        genderCode = gender.value;
+      }
     }
     
     // Format according to your requirements
@@ -180,7 +184,7 @@ class FormPage extends Component {
       'F': 'F 女'
     };
     
-    return genderMap[genderCode] || genderCode;
+    return genderMap[genderCode] || '';
   };
 
   // Updated formatResidentialStatus method to handle the classification property correctly

@@ -112,6 +112,32 @@ function mapResidentialStatus(code) {
   return statusMap[code] || code; // Return mapped value or original if not found
 }
 
+// Helper function to map sex codes to full values
+function mapSex(code) {
+  if (!code) return null;
+  
+  const sexMap = {
+    'M': 'M',
+    'F': 'F'
+  };
+  
+  return sexMap[code] || code; // Return mapped value or original if not found
+}
+
+// Helper function to map race codes to standard values
+function mapRace(code) {
+  if (!code) return null;
+  
+  const raceMap = {
+    'CN': 'CN',
+    'IN': 'IN',
+    'MY': 'MY',
+    'XX': 'XX'
+  };
+  
+  return raceMap[code] || code; // Return mapped value or original if not found
+}
+
 // Helper function to extract value from SingPass structured data
 function extractSingPassValue(data) {
   if (data === null || data === undefined) {
@@ -1008,8 +1034,8 @@ router.post('/token', async (req, res) => {
         name: extractSingPassValue(userProfile?.name) || null,
         uinfin: extractSingPassValue(userProfile?.uinfin) || null,
         residentialstatus: mapResidentialStatus(extractSingPassValue(userProfile?.residentialstatus)) || null,
-        race: extractSingPassValue(userProfile?.race) || null,
-        sex: extractSingPassValue(userProfile?.sex) || null,
+        race: mapRace(extractSingPassValue(userProfile?.race)) || null,
+        sex: mapSex(extractSingPassValue(userProfile?.sex)) || null,
         dob: extractSingPassValue(userProfile?.dob) || null,
         mobileno: extractSingPassValue(userProfile?.mobileno) || null,
         email: extractSingPassValue(userProfile?.email) || null,
