@@ -100,6 +100,18 @@ const formatDateOfBirth = (dateInput) => {
   }
 };
 
+// Helper function to map residential status codes to full values
+function mapResidentialStatus(code) {
+  if (!code) return null;
+  
+  const statusMap = {
+    'C': 'SC',
+    'P': 'PR'
+  };
+  
+  return statusMap[code] || code; // Return mapped value or original if not found
+}
+
 // Helper function to extract value from SingPass structured data
 function extractSingPassValue(data) {
   if (data === null || data === undefined) {
@@ -120,7 +132,13 @@ function processExtractedData(rawData) {
   const processedData = {};
   
   Object.keys(rawData).forEach(key => {
-    const extractedValue = extractSingPassValue(rawData[key]);
+    let extractedValue = extractSingPassValue(rawData[key]);
+    
+    // Apply special mapping for residential status codes
+    if (key === 'residentialstatus' && extractedValue) {
+      extractedValue = mapResidentialStatus(extractedValue);
+    }
+    
     // Keep the field even if empty for debugging purposes, but log nulls
     if (extractedValue === null || extractedValue === undefined) {
       console.log(`Warning: Field '${key}' is ${extractedValue}`);
@@ -984,7 +1002,7 @@ router.post('/token', async (req, res) => {
       const extractedFields = {
         name: extractSingPassValue(userProfile?.name) || null,
         uinfin: extractSingPassValue(userProfile?.uinfin) || null,
-        residentialstatus: extractSingPassValue(userProfile?.residentialstatus) || null,
+        residentialstatus: mapResidentialStatus(extractSingPassValue(userProfile?.residentialstatus)) || null,
         race: extractSingPassValue(userProfile?.race) || null,
         sex: extractSingPassValue(userProfile?.sex) || null,
         dob: extractSingPassValue(userProfile?.dob) || null,
