@@ -887,7 +887,7 @@ class CheckoutPage extends Component {
     this.showSubmissionProgress();
 
     try {
-      // Send the orderData to your server
+     /* // Send the orderData to your server
       const baseUrl = window.location.hostname === "localhost" 
         ? "http://localhost:3001" 
         : "https://ecss-backend-node.azurewebsites.net";
@@ -896,10 +896,10 @@ class CheckoutPage extends Component {
 
       console.log('Order response:', response.data);
       
-      // Hide progress popup
+      // Hide progress popup*/
       this.hideSubmissionProgress();
       
-      // Handle invoice download if available
+      /*// Handle invoice download if available
       if (response.data.invoice && response.data.invoice.pdfData) {
         console.log('Invoice data received:', {
           hasInvoice: !!response.data.invoice,
@@ -909,9 +909,28 @@ class CheckoutPage extends Component {
         });
         console.log('Invoice generated, preparing preview and download...');
         this.downloadInvoice(response.data.invoice);
+      }*/
+
+      // Send WhatsApp notification
+      try {
+        const whatsappBaseUrl = window.location.hostname === "localhost" 
+          ? "http://localhost:3001" 
+          : "https://ecss-backend-node.azurewebsites.net";
+        
+       // const orderId = response.data.orderId || `${orderDate}-${orderTime}`;
+        const totalPrice = this.calculateTotal();
+        
+        const whatsappResponse = await axios.post(`${whatsappBaseUrl}/whatsapp`, {
+          phoneNumber: personalInfo.phone,
+          name: personalInfo.firstName,
+          totalPrice: totalPrice
+        });
+        console.log('WhatsApp notification sent:', whatsappResponse.data);
+      } catch (error) {
+        console.error('Failed to send WhatsApp notification:', error);
       }
       
-      // Prepare order details for success popup
+     /* // Prepare order details for success popup
       const orderDetails = {
         orderId: response.data.orderId || `${orderDate}-${orderTime}`,
         total: this.calculateTotal(),
@@ -919,7 +938,7 @@ class CheckoutPage extends Component {
       };
       
       // Show success popup
-      this.showSubmissionSuccess(orderDetails);
+      this.showSubmissionSuccess(orderDetails);*/
       
     } catch (error) {
       console.error('Error placing order:', error);

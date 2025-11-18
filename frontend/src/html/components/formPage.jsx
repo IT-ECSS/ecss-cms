@@ -874,6 +874,25 @@ class FormPage extends Component {
   handleSingPassSuccess = () => {
     console.log('SingPass authentication successful');
     
+    // Log SingPass values
+    const singPassData = this.getSingPassUserData();
+    if (singPassData) {
+      console.log('📋 SingPass User Data:',singPassData, {
+        name: singPassData.name,
+        uinfin: singPassData.uinfin,
+        residentialstatus: singPassData.residentialstatus,
+        race: singPassData.race,
+        sex: singPassData.sex,
+        dob: singPassData.dob,
+        mobileno: singPassData.mobileno,
+        email: singPassData.email,
+        regadd: singPassData.regadd,
+        source: singPassData.source,
+        endpointUsed: singPassData.endpointUsed,
+        timestamp: singPassData.timestamp ? new Date(singPassData.timestamp).toLocaleString() : 'N/A'
+      });
+    }
+    
     // TESTING: Force MyInfo error if FORCE_MYINFO_ERROR is true
     if (FORCE_MYINFO_ERROR) {
       console.log('🧪 Forcing MyInfo error for testing');
