@@ -327,7 +327,8 @@ class invoiceGenerator {
             "Community Ukulele – Mandarin L2A": "TGS-2025054492",
             "Community Ukulele – Mandarin L2B": "TGS-2025054492",
             "Community Cajon Foundation 1": "TGS-2025054489",
-            "Hanyu Pinyin For Intermediate – Mandarin": "TGS-2023019016"
+            "Hanyu Pinyin For Intermediate – Mandarin": "TGS-2023019016",
+            "Hanyu Pinyin For Intermediate - Mandarin": "TGS-2023019016",
             //Healthy Minds, Healthy Lives – Mandarin
         };
     
