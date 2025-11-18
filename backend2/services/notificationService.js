@@ -4,8 +4,8 @@ const axios = require('axios');
 // Local Development: Set in .env file
 // Production (GitHub Actions): Set in repository secrets at https://github.com/IT-ECSS/ecss-cms/settings/secrets/actions
 //   - ONESIGNAL_APP_ID: 01b56852-4a5c-4ccc-9733-11aa47d27400
-//   - ONESIGNAL_API_KEY: os_v2_app_ag2wqusklrgmzfztcgveputuad3rucilqbjuxs4zrandzqugjidppef343cldz66gr76pra6ccd2c5eewquqbha6l3mlfblscdob5hi
-// NOTE: Store raw API key value in secrets (no "Basic" prefix) - the code adds it automatically
+//   - ONESIGNAL_API_KEY: Basic os_v2_app_ag2wqusklrgmzfztcgveputuadpth4tlurke2o5bsecx52t5xfhhli63z73qiq7m2tfcu5q7ou3erkrlvvymxgzo6z2wkyczl6exw3y
+// NOTE: Store the full "Basic ..." value in GitHub secrets - the code uses it directly
 
 const ONESIGNAL_APP_ID = process.env.ONESIGNAL_APP_ID;
 const ONESIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY;
@@ -56,7 +56,7 @@ async function sendOneSignalNotification({ title, message }) {
       {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Basic ${ONESIGNAL_API_KEY}`
+          'Authorization': ONESIGNAL_API_KEY
         }
       }
     );
