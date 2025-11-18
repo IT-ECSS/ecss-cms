@@ -6,7 +6,7 @@ Create a file named `.env` in the `backend2` directory:
 
 ```bash
 ONESIGNAL_APP_ID=01b56852-4a5c-4ccc-9733-11aa47d27400
-ONESIGNAL_API_KEY=Basic os_v2_app_ag2wqusklrgmzfztcgveputuac3rpxopzsiu5v5dxyebacrz2whnxthj5hlifb6fnagkqapiedfvupmdjindr6y4mqtkdpxldjs3osi
+ONESIGNAL_API_KEY=Basic os_v2_app_ag2wqusklrgmzfztcgveputuad3rucilqbjuxs4zrandzqugjidppef343cldz66gr76pra6ccd2c5eewquqbha6l3mlfblscdob5hi
 ```
 
 The `.gitignore` file already excludes `.env` from being committed.
@@ -23,7 +23,7 @@ The `.gitignore` file already excludes `.env` from being committed.
 
 ### Secret 2: ONESIGNAL_API_KEY
 - **Name:** `ONESIGNAL_API_KEY`
-- **Value:** `Basic os_v2_app_ag2wqusklrgmzfztcgveputuacwlt4dbknlesx5kamokp5lqu3mzgglrmomg7mtrs33sixrz7o7qz4dv7vx5mbc5bmfrsvohdfjrxoi`
+- **Value:** `Basic os_v2_app_ag2wqusklrgmzfztcgveputuad3rucilqbjuxs4zrandzqugjidppef343cldz66gr76pra6ccd2c5eewquqbha6l3mlfblscdob5hi`
 
 ## Step 3: Update Azure App Service Configuration
 
@@ -33,7 +33,7 @@ If your app is running on Azure, add these application settings:
 2. Click **Configuration** → **Application settings**
 3. Add:
    - `ONESIGNAL_APP_ID`: `01b56852-4a5c-4ccc-9733-11aa47d27400`
-   - `ONESIGNAL_API_KEY`: `Basic os_v2_app_ag2wqusklrgmzfztcgveputuac3rpxopzsiu5v5dxyebacrz2whnxthj5hlifb6fnagkqapiedfvupmdjindr6y4mqtkdpxldjs3osi`
+   - `ONESIGNAL_API_KEY`: `Basic os_v2_app_ag2wqusklrgmzfztcgveputuad3rucilqbjuxs4zrandzqugjidppef343cldz66gr76pra6ccd2c5eewquqbha6l3mlfblscdob5hi`
 
 ## Step 4: Load environment variables in Node.js
 

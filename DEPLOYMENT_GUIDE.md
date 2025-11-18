@@ -8,7 +8,7 @@ Go to: https://github.com/IT-ECSS/ecss-cms/settings/secrets/actions
 
 Add these secrets:
 - `ONESIGNAL_APP_ID`: `01b56852-4a5c-4ccc-9733-11aa47d27400`
-- `ONESIGNAL_API_KEY`: `Basic os_v2_app_ag2wqusklrgmzfztcgveputuacwlt4dbknlesx5kamokp5lqu3mzgglrmomg7mtrs33sixrz7o7qz4dv7vx5mbc5bmfrsvohdfjrxoi`
+- `ONESIGNAL_API_KEY`: `BBasic os_v2_app_ag2wqusklrgmzfztcgveputuad3rucilqbjuxs4zrandzqugjidppef343cldz66gr76pra6ccd2c5eewquqbha6l3mlfblscdob5hi`
 
 ### Step 2: Configure Azure App Service
 
@@ -18,7 +18,7 @@ Add these secrets:
    - Key: `ONESIGNAL_APP_ID`
      Value: `01b56852-4a5c-4ccc-9733-11aa47d27400`
    - Key: `ONESIGNAL_API_KEY`
-     Value: `Basic os_v2_app_ag2wqusklrgmzfztcgveputuacwlt4dbknlesx5kamokp5lqu3mzgglrmomg7mtrs33sixrz7o7qz4dv7vx5mbc5bmfrsvohdfjrxoi`
+     Value: `Basic os_v2_app_ag2wqusklrgmzfztcgveputuad3rucilqbjuxs4zrandzqugjidppef343cldz66gr76pra6ccd2c5eewquqbha6l3mlfblscdob5hi`
 4. Click **Save** and let it restart
 
 ### Step 3: Deploy Using Azure CLI

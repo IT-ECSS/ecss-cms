@@ -1,12 +1,20 @@
 const axios = require('axios');
 
 // OneSignal App ID and REST API Key from environment variables
+// Local Development: Set in .env file
+// Production (GitHub Actions): Set in repository secrets at https://github.com/IT-ECSS/ecss-cms/settings/secrets/actions
+//   - ONESIGNAL_APP_ID: 01b56852-4a5c-4ccc-9733-11aa47d27400
+//   - ONESIGNAL_API_KEY: os_v2_app_ag2wqusklrgmzfztcgveputuad3rucilqbjuxs4zrandzqugjidppef343cldz66gr76pra6ccd2c5eewquqbha6l3mlfblscdob5hi
+// NOTE: Store raw API key value in secrets (no "Basic" prefix) - the code adds it automatically
+
 const ONESIGNAL_APP_ID = process.env.ONESIGNAL_APP_ID;
 const ONESIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY;
 
 // Validate that required environment variables are set
 if (!ONESIGNAL_APP_ID || !ONESIGNAL_API_KEY) {
   console.warn('Warning: OneSignal credentials are not configured. Please set ONESIGNAL_APP_ID and ONESIGNAL_API_KEY environment variables.');
+  console.warn('Local Setup: Create .env file in backend2/ directory');
+  console.warn('Production: Add secrets to GitHub repository at https://github.com/IT-ECSS/ecss-cms/settings/secrets/actions');
 }
 
 /**
@@ -48,7 +56,7 @@ async function sendOneSignalNotification({ title, message }) {
       {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': ONESIGNAL_API_KEY
+          'Authorization': `Basic ${ONESIGNAL_API_KEY}`
         }
       }
     );
