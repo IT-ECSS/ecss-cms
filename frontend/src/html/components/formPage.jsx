@@ -823,6 +823,7 @@ class FormPage extends Component {
   getSingPassUserData = () => {
     try {
       const userDataJson = sessionStorage.getItem('singpass_user_data_json');
+      console.log('Retrieved SingPass user data JSON:', userDataJson);
       return userDataJson ? JSON.parse(userDataJson) : null;
     } catch (error) {
       console.error('Error retrieving SingPass user data:', error);

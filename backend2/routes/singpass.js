@@ -121,7 +121,11 @@ function processExtractedData(rawData) {
   
   Object.keys(rawData).forEach(key => {
     const extractedValue = extractSingPassValue(rawData[key]);
-    if (extractedValue !== null && extractedValue !== undefined) {
+    // Keep the field even if empty for debugging purposes, but log nulls
+    if (extractedValue === null || extractedValue === undefined) {
+      console.log(`Warning: Field '${key}' is ${extractedValue}`);
+      processedData[key] = extractedValue;
+    } else {
       processedData[key] = extractedValue;
     }
   });
@@ -978,15 +982,15 @@ router.post('/token', async (req, res) => {
       
       // Ensure we have individual fields extracted properly - handle null userProfile
       const extractedFields = {
-        name: userProfile?.name || null,
-        uinfin: userProfile?.uinfin || null,
-        residentialstatus: userProfile?.residentialstatus || null,
-        race: userProfile?.race || null,
-        sex: userProfile?.sex || null,
-        dob: userProfile?.dob || null,
-        mobileno: userProfile?.mobileno || null,
-        email: userProfile?.email || null,
-        regadd: userProfile?.regadd || null
+        name: extractSingPassValue(userProfile?.name) || null,
+        uinfin: extractSingPassValue(userProfile?.uinfin) || null,
+        residentialstatus: extractSingPassValue(userProfile?.residentialstatus) || null,
+        race: extractSingPassValue(userProfile?.race) || null,
+        sex: extractSingPassValue(userProfile?.sex) || null,
+        dob: extractSingPassValue(userProfile?.dob) || null,
+        mobileno: extractSingPassValue(userProfile?.mobileno) || null,
+        email: extractSingPassValue(userProfile?.email) || null,
+        regadd: extractSingPassValue(userProfile?.regadd) || null
       };
       
       console.log("Extracted individual fields:", extractedFields);
