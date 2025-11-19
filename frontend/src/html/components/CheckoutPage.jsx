@@ -162,8 +162,8 @@ class CheckoutPage extends Component {
   // Map collection locations to their phone numbers
   getLocationPhoneNumber = (location) => {
     const locationPhoneMap = {
-      'Tampines North Community Club': '84991915',
-      'Pasir Ris West Wellness Centre': ['92976362', '96445725'],
+      'Tampines North Community Club': ' 82000755',
+      'Pasir Ris West Wellness Centre': '91520433',
       'CT Hub': '90123174',
       'En Community Church': '98261661',
       'Others': '98261661'
