@@ -12,6 +12,7 @@ import SingPassButton from './sub/SingPassButton';
 import Popup from './popup/popupMessage';
 import RealTimeMyInfoErrorHandler from '../../services/RealTimeMyInfoErrorHandler';
 import MyInfoStatusIndicator from './MyInfoStatusIndicator';
+import SubmissionInProgressPopup from './SubmissionInProgressPopup';
 
 // Constant to enable/disable MyInfo error testing
 const FORCE_MYINFO_ERROR = false; // Set to true to force MyInfo errors for testing
@@ -34,6 +35,7 @@ class FormPage extends Component {
       networkOnline: navigator.onLine,
       showStatusIndicator: true,
       serviceRecommendations: [],
+      showSubmissionInProgress: false,
       formData: {
         englishName: '',
         chineseName: '',
@@ -1439,6 +1441,9 @@ class FormPage extends Component {
 
     // Set submitting flag
     this.isSubmitting = true;
+    
+    // Show submission in progress popup
+    this.setState({ showSubmissionInProgress: true });
 
     // Participants Details
     var name = formData.pName;
@@ -1542,6 +1547,9 @@ class FormPage extends Component {
     )
       .then((response) => {
         console.log('Form submitted successfully', response.data);
+        // Hide submission popup on success
+        this.setState({ showSubmissionInProgress: false });
+        
         if (response.data) {
           // Navigate to SubmitDetailsSection after successful submission
           const { formData } = this.state;
@@ -1600,6 +1608,8 @@ class FormPage extends Component {
       })
       .catch((error) => {
         console.error('Error submitting form:', error);
+        // Hide submission popup on error
+        this.setState({ showSubmissionInProgress: false });
         alert("Error during submission");
         // Reset submitting flag on error
         this.isSubmitting = false;
@@ -2282,6 +2292,11 @@ class FormPage extends Component {
           message={this.state.myInfoErrorMessage}
           type="myinfo-error"
           icon="⚠️"
+        />
+
+        {/* Submission In Progress Popup */}
+        <SubmissionInProgressPopup 
+          isOpen={this.state.showSubmissionInProgress}
         />
       </div>
     );
