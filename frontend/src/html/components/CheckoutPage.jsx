@@ -910,27 +910,33 @@ class CheckoutPage extends Component {
         console.log('Invoice generated, preparing preview and download...');
         this.downloadInvoice(response.data.invoice);
       }
-
-      // Send WhatsApp notification
+     /* // Send WhatsApp notification
       try {
         const whatsappBaseUrl = window.location.hostname === "localhost" 
           ? "http://localhost:3001" 
           : "https://ecss-backend-node.azurewebsites.net";
         
-       // const orderId = response.data.orderId || `${orderDate}-${orderTime}`;
+        // Get invoice number from response
+        const invoiceNumber = response.data.invoiceNumber || response.data.result?.invoiceNumber || 'Order Reference';
         const totalPrice = this.calculateTotal();
+        const language = this.props.selectedLanguage || 'english';
         
-       /* const whatsappResponse = await axios.post(`${whatsappBaseUrl}/whatsapp`, {
+        console.log('Sending WhatsApp with invoice number:', invoiceNumber);
+        console.log('Using language:', language);
+        
+        const whatsappResponse = await axios.post(`${whatsappBaseUrl}/whatsapp`, {
           phoneNumber: personalInfo.phone,
-          name: personalInfo.firstName,
-          totalPrice: totalPrice
+          name: personalInfo.lastName+' '+personalInfo.firstName,
+          totalPrice: totalPrice,
+          invoiceNumber: invoiceNumber,
+          language: language
         });
-        console.log('WhatsApp notification sent:', whatsappResponse.data);*/
+        console.log('WhatsApp notification sent:', whatsappResponse.data);
       } catch (error) {
         console.error('Failed to send WhatsApp notification:', error);
-      }
+      }*/
       
-     /* // Prepare order details for success popup
+      // Prepare order details for success popup
       const orderDetails = {
         orderId: response.data.orderId || `${orderDate}-${orderTime}`,
         total: this.calculateTotal(),
@@ -938,7 +944,7 @@ class CheckoutPage extends Component {
       };
       
       // Show success popup
-      this.showSubmissionSuccess(orderDetails);*/
+      this.showSubmissionSuccess(orderDetails);
       
     } catch (error) {
       console.error('Error placing order:', error);
