@@ -19,6 +19,7 @@ const FORCE_MYINFO_ERROR = false; // Set to true to force MyInfo errors for test
 class FormPage extends Component {
   constructor(props) {
     super(props);
+    this.isSubmitting = false; // Prevent duplicate submissions
     this.state = {
       currentSection: 0,
       loading: false,
@@ -1430,6 +1431,15 @@ class FormPage extends Component {
   handleSubmit = () => {
     const { formData } = this.state;
 
+    // Prevent double submission
+    if (this.isSubmitting) {
+      console.warn('⚠️ Form submission already in progress. Ignoring duplicate submission.');
+      return;
+    }
+
+    // Set submitting flag
+    this.isSubmitting = true;
+
     // Participants Details
     var name = formData.pName;
     var nric = formData.nRIC;
@@ -1591,6 +1601,14 @@ class FormPage extends Component {
       .catch((error) => {
         console.error('Error submitting form:', error);
         alert("Error during submission");
+        // Reset submitting flag on error
+        this.isSubmitting = false;
+      })
+      .finally(() => {
+        // Reset submitting flag after request completes
+        if (this.isSubmitting) {
+          this.isSubmitting = false;
+        }
       });
     
   };
