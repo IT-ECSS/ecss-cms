@@ -32,24 +32,17 @@ class SubmissionInProgressPopup extends Component {
             {/* Status Messages - All Three Languages */}
             <div className="submission-status-messages">
               <div className="submission-message-group">
-                <p className="submission-message-primary">Generating invoice...</p>
+                <p className="submission-message-primary">Processing registration...</p>
                 <p className="submission-message-secondary">Please wait</p>
               </div>
               <div className="submission-message-group">
-                <p className="submission-message-primary">正在生成发票...</p>
+                <p className="submission-message-primary">正在处理注册...</p>
                 <p className="submission-message-secondary">请稍候</p>
               </div>
               <div className="submission-message-group">
-                <p className="submission-message-primary">Menjana invois...</p>
+                <p className="submission-message-primary">Memproses pendaftaran...</p>
                 <p className="submission-message-secondary">Sila tunggu</p>
               </div>
-            </div>
-          </div>
-
-          {/* Footer Section with Progress Indicator */}
-          <div className="submission-progress-footer">
-            <div className="submission-progress-bar">
-              <div className="submission-progress-fill"></div>
             </div>
           </div>
         </div>
