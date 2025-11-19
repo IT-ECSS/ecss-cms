@@ -7,9 +7,9 @@ class SubmissionSuccessPopup extends Component {
     
     const translations = {
       orderSuccessfullyPlaced: {
-        english: 'Order Successfully Placed!',
-        chinese: '订单下单成功！',
-        malay: 'Pesanan Berjaya Dibuat!'
+        english: 'Order Successfully Placed!\nInvoice saved to your device.\nPayment details sent via WhatsApp.',
+        chinese: '订单下单成功！\n发票已保存到您的设备。\n付款详情已通过WhatsApp发送。',
+        malay: 'Pesanan Berjaya Dibuat!\nInvois telah disimpan ke peranti anda.\nButiran pembayaran telah dihantar melalui WhatsApp.'
       },
       orderFailed: {
         english: 'Order Failed!',
@@ -50,6 +50,14 @@ class SubmissionSuccessPopup extends Component {
       ? (translations.ok[selectedLanguage] || translations.ok['english'])
       : (translations.tryAgain[selectedLanguage] || translations.tryAgain['english']);
 
+    // Split message by newlines and render as separate lines with <br> tags
+    const messageLines = modal.message.split('\n').map((line, index) => (
+      <React.Fragment key={index}>
+        {line}
+        {index < modal.message.split('\n').length - 1 && <br />}
+      </React.Fragment>
+    ));
+
     return (
       <div className="result-modal-overlay" onClick={onClose}>
         <div className="result-modal-content" onClick={(e) => e.stopPropagation()}>
@@ -57,7 +65,7 @@ class SubmissionSuccessPopup extends Component {
             {modal.title}
           </div>
           <div className="result-modal-message">
-            <p className={modal.type}>{modal.message}</p>
+            <p className={modal.type}>{messageLines}</p>
           </div>
           <div className="result-modal-footer">
             <button className="result-modal-button" onClick={onClose}>

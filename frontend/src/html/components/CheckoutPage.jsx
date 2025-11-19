@@ -159,6 +159,21 @@ class CheckoutPage extends Component {
     localStorage.removeItem('isInCheckoutMode');
   }
 
+  // Map collection locations to their phone numbers
+  getLocationPhoneNumber = (location) => {
+    const locationPhoneMap = {
+      'Tampines North Community Club': '84991915',
+      'Pasir Ris West Wellness Centre': ['92976362', '96445725'],
+      'CT Hub': '90123174',
+      'En Community Church': '98261661',
+      'Others': '98261661'
+    };
+
+    const phoneNumber = locationPhoneMap[location];
+    // If there are multiple phone numbers, return the first one
+    return Array.isArray(phoneNumber) ? phoneNumber[0] : phoneNumber;
+  }
+
   handlePersonalInfoChange = (field, value) => {
     this.setState(prevState => {
       const newPersonalInfo = {
@@ -719,6 +734,7 @@ class CheckoutPage extends Component {
       }, 1000);
       
       console.log('Invoice preview and download initiated:', invoiceData.filename);
+      
     } catch (error) {
       console.error('Error processing invoice:', error);
     }
@@ -884,7 +900,7 @@ class CheckoutPage extends Component {
     };
 
     // Show submission progress popup
-    this.showSubmissionProgress();
+    //this.showSubmissionProgress();
 
     try {
       // Send the orderData to your server
@@ -894,7 +910,7 @@ class CheckoutPage extends Component {
 
       const response = await axios.post(`${baseUrl}/fundraising`, {purpose: "insert", orderData});
 
-      console.log('Order response:', response.data);
+     console.log('Order response:', response.data);
       
       // Hide progress popup
       this.hideSubmissionProgress();
@@ -910,42 +926,58 @@ class CheckoutPage extends Component {
         console.log('Invoice generated, preparing preview and download...');
         this.downloadInvoice(response.data.invoice);
       }
-     /* // Send WhatsApp notification
-      try {
-        const whatsappBaseUrl = window.location.hostname === "localhost" 
-          ? "http://localhost:3001" 
-          : "https://ecss-backend-node.azurewebsites.net";
-        
-        // Get invoice number from response
-        const invoiceNumber = response.data.invoiceNumber || response.data.result?.invoiceNumber || 'Order Reference';
-        const totalPrice = this.calculateTotal();
-        const language = this.props.selectedLanguage || 'english';
-        
-        console.log('Sending WhatsApp with invoice number:', invoiceNumber);
-        console.log('Using language:', language);
-        
-        const whatsappResponse = await axios.post(`${whatsappBaseUrl}/whatsapp`, {
-          phoneNumber: personalInfo.phone,
-          name: personalInfo.lastName+' '+personalInfo.firstName,
-          totalPrice: totalPrice,
-          invoiceNumber: invoiceNumber,
-          language: language
-        });
-        console.log('WhatsApp notification sent:', whatsappResponse.data);
-      } catch (error) {
-        console.error('Failed to send WhatsApp notification:', error);
-      }*/
-      
-      // Prepare order details for success popup
-      const orderDetails = {
-        orderId: response.data.orderId || `${orderDate}-${orderTime}`,
-        total: this.calculateTotal(),
-        email: personalInfo.email
-      };
-      
-      // Show success popup
-      this.showSubmissionSuccess(orderDetails);
-      
+
+      // Send WhatsApp notification only if payment method is PayNow
+      if (paymentMethod === 'PayNow') {
+        try {
+          const whatsappBaseUrl = window.location.hostname === "localhost" 
+            ? "http://localhost:3001" 
+            : "https://ecss-backend-node.azurewebsites.net";
+          
+          // Get invoice number from response
+          const invoiceNumber = response.data.invoice && response.data.invoice.invoiceNumber;
+          const totalPrice = this.calculateTotal();
+          const language = this.props.selectedLanguage || 'english';
+          const locationPhone = this.getLocationPhoneNumber(personalInfo.location) || 'this number';
+          const customerName = personalInfo.lastName + ' ' + personalInfo.firstName;
+          
+          // Map language to template name
+          const templateNameMap = {
+            'english': 'fundraising_eng_s9',
+            'malay': 'fundraising_malay_2t',
+            'chinese': 'fundraising_chinese_bm'
+          };
+          
+          const templateName = templateNameMap[language];
+          
+          console.log('Sending WhatsApp with invoice number:', invoiceNumber);
+          console.log('Using language:', language);
+          console.log('Template name:', templateName);
+          console.log('Location phone:', locationPhone);
+          // Send WhatsApp notification with order details
+          console.log('Sending WhatsApp notification with order details');
+          
+          const whatsappResponse = await axios.post(`${whatsappBaseUrl}/whatsapp`, {
+            phoneNumber: personalInfo.phone,
+            templateName: templateName,
+            templateParams: [customerName, invoiceNumber, totalPrice, locationPhone],
+            language: language
+          });
+          console.log('WhatsApp notification sent successfully:', whatsappResponse.data);
+
+          // Show success popup after WhatsApp is successfully sent
+          const orderDetails = {
+            orderId: response.data.orderId || `${orderDate}-${orderTime}`,
+            total: this.calculateTotal(),
+            email: personalInfo.email
+          };
+          this.showSubmissionSuccess(orderDetails);
+        } catch (whatsappError) {
+          console.error('Error sending WhatsApp notification:', whatsappError);
+          // Don't show success popup if WhatsApp fails
+        }
+      }
+
     } catch (error) {
       console.error('Error placing order:', error);
       
@@ -954,7 +986,7 @@ class CheckoutPage extends Component {
       
       // Show failure popup
       this.showSubmissionFailure();
- }
+    }
   }
 
   render() {

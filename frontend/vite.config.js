@@ -27,6 +27,15 @@ export default defineConfig({
     hmr: {
       overlay: false // Disable error overlay for better performance
     },
+    proxy: {
+      // Proxy /whatsapp requests directly to backend (bypass Vite's size limits)
+      '/whatsapp': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        proxyTimeout: 30000, // 30 second timeout for large uploads
+        timeout: 30000
+      }
+    },
     watch: {
       // Reduce file watching for better performance
       ignored: ['**/node_modules/**', '**/.git/**']
