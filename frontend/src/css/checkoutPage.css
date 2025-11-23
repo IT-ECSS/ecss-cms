@@ -2836,8 +2836,8 @@
 /* Date and Time Button Styles */
 .date-buttons,
 .time-buttons {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
+  display: flex;
+  flex-direction: column;
   gap: clamp(0.5rem, 1.5vw, 0.75rem);
   margin-top: 0.75rem;
 }
