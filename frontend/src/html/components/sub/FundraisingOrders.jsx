@@ -2581,6 +2581,8 @@ class FundraisingOrders extends Component {
       
       if (paymentMethod.toLowerCase() === 'paynow') {
         this.openWhatsAppPayNowMessage(phoneNumber, customerName, params.data);
+      } else if (paymentMethod.toLowerCase() === 'cash') {
+        this.openWhatsAppCashPaymentMessage(phoneNumber, customerName, params.data);
       }
       // Add other payment methods here if needed
     };
@@ -2689,6 +2691,28 @@ UEN: T03SS0051L
 付款完成后，请截屏成功交易并发送至此号码。`;
     };
 
+    // Create Cash payment WhatsApp message
+    createCashPaymentMessage = (customerName, orderAmount) => {
+      return `Hello ${customerName}, thank you for your support!
+Please complete your payment via cash.
+Amount: ${orderAmount}
+Please arrange to pay at the collection point.
+
+---
+
+Hai ${customerName}, terima kasih atas sokongan anda!
+Sila lengkapkan pembayaran melalui tunai.
+Jumlah: ${orderAmount}
+Sila hantar mesej ke nombor ini untuk pembayaran.
+
+---
+
+您好 ${customerName}，感谢您的支持！
+请通过现金完成付款。
+金额: ${orderAmount}
+请在收款点进行付款或发送消息至此号码以获取付款说明。`;
+    };
+
     // Open WhatsApp with PayNow payment message
     openWhatsAppPayNowMessage = (phoneNumber, customerName, data) => {
       console.log('Processing PayNow payment for:', customerName);
@@ -2698,6 +2722,21 @@ UEN: T03SS0051L
       const orderReference = data.invoiceNumber || data.receiptNumber || data.id || 'Order Reference';
       
       const message = this.createPayNowMessage(customerName, orderReference, formattedAmount);
+      const whatsappWebURL = `https://web.whatsapp.com/send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
+      
+      window.open(whatsappWebURL, "_blank");
+    };
+
+    // Open WhatsApp with Cash payment message
+    openWhatsAppCashPaymentMessage = (phoneNumber, customerName, data) => {
+      console.log('Processing Cash payment for:', customerName);
+      
+      const orderAmount = this.calculateOrderAmount(data);
+      const formattedAmount = this.formatOrderAmount(orderAmount);
+      const orderReference = data.invoiceNumber || data.receiptNumber || data.id || 'Order Reference';
+      const collectionLocation = data.collectionDeliveryLocation || 'our collection point';
+      
+      const message = this.createCashPaymentMessage(customerName, orderReference, formattedAmount, collectionLocation);
       const whatsappWebURL = `https://web.whatsapp.com/send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
       
       window.open(whatsappWebURL, "_blank");
