@@ -927,8 +927,8 @@ class CheckoutPage extends Component {
         this.downloadInvoice(response.data.invoice);
       }
 
-      // Send WhatsApp notification only if payment method is PayNow
-      if (paymentMethod === 'PayNow') {
+      // Send WhatsApp notification for PayNow or Cash payment methods
+      if (paymentMethod === 'PayNow' || paymentMethod === 'Cash') {
         try {
           const whatsappBaseUrl = window.location.hostname === "localhost" 
             ? "http://localhost:3001" 
@@ -937,30 +937,47 @@ class CheckoutPage extends Component {
           // Get invoice number from response
           const invoiceNumber = response.data.invoice && response.data.invoice.invoiceNumber;
           const totalPrice = this.calculateTotal();
+          // Format total price as $xx.xx
+          const formattedPrice = `$${parseFloat(totalPrice).toFixed(2)}`;
           const language = this.props.selectedLanguage || 'english';
           const locationPhone = this.getLocationPhoneNumber(personalInfo.location) || 'this number';
           const customerName = personalInfo.lastName + ' ' + personalInfo.firstName;
           
-          // Map language to template name
-          const templateNameMap = {
-            'english': 'fundraising_eng_s9',
-            'malay': 'fundraising_malay_2t',
-            'chinese': 'fundraising_chinese_bm'
-          };
+          // Map language to template name and parameters based on payment method
+          let templateNameMap;
+          let templateParams;
+          
+          if (paymentMethod === 'PayNow') {
+            // PayNow templates - requires 4 parameters
+            templateNameMap = {
+              'english': 'fundraising_eng_s9',
+              'malay': 'fundraising_malay_2t',
+              'chinese': 'fundraising_chinese_bm'
+            };
+            templateParams = [customerName, invoiceNumber, formattedPrice, locationPhone];
+          } else if (paymentMethod === 'Cash') {
+            // Cash templates - requires 3 parameters (customerName, totalPrice, collectionLocation)
+            templateNameMap = {
+              'english': 'fundraising_eng_cash',
+              'malay': 'fundraising_malay_cash',
+              'chinese': 'fundraising_chinese_cash'
+            };
+            templateParams = [customerName, formattedPrice, collectionLocation];
+          }
           
           const templateName = templateNameMap[language];
           
           console.log('Sending WhatsApp with invoice number:', invoiceNumber);
           console.log('Using language:', language);
+          console.log('Payment method:', paymentMethod);
           console.log('Template name:', templateName);
-          console.log('Location phone:', locationPhone);
-          // Send WhatsApp notification with order details
+          console.log('Template parameters:', templateParams);
           console.log('Sending WhatsApp notification with order details');
           
           const whatsappResponse = await axios.post(`${whatsappBaseUrl}/whatsapp`, {
             phoneNumber: personalInfo.phone,
             templateName: templateName,
-            templateParams: [customerName, invoiceNumber, totalPrice, locationPhone],
+            templateParams: templateParams,
             language: language
           });
           console.log('WhatsApp notification sent successfully:', whatsappResponse.data);
