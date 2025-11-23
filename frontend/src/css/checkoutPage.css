@@ -316,7 +316,7 @@
   justify-content: center;
 }
 
-.collection-mode-button:hover {
+.collection-mode-button:hover:not(.selected) {
   border-color: #9ca3af;
   background-color: #f9fafb;
   transform: translateY(-1px);
@@ -326,6 +326,13 @@
   border-color: #3b82f6;
   color: #3b82f6;
   background-color: #eff6ff;
+}
+
+.collection-mode-button.selected:hover {
+  border-color: #3b82f6;
+  color: #3b82f6;
+  background-color: #eff6ff;
+  transform: translateY(-1px);
 }
 
 .collection-mode-button:focus {
@@ -360,9 +367,22 @@
   justify-content: center;
 }
 
-.payment-method-button1:hover {
+.payment-method-button1:hover:not(.selected) {
   border-color: #9ca3af;
   background-color: #f9fafb;
+  transform: translateY(-1px);
+}
+
+.payment-method-button1.selected {
+  border-color: #3b82f6;
+  color: #3b82f6;
+  background-color: #eff6ff;
+}
+
+.payment-method-button1.selected:hover {
+  border-color: #3b82f6;
+  color: #3b82f6;
+  background-color: #eff6ff;
   transform: translateY(-1px);
 }
 

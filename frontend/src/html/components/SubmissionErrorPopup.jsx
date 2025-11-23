@@ -32,7 +32,7 @@ class SubmissionErrorPopup extends Component {
     const lang = translations[selectedLanguage] || translations['english'];
 
     return (
-      <div className="submission-error-modal-overlay" onClick={onClose}>
+      <div className="submission-error-modal-overlay">
         <div className="submission-error-modal-content" onClick={(e) => e.stopPropagation()}>
           {/* Error Icon */}
           <div className="submission-error-modal-icon">

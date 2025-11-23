@@ -30,8 +30,8 @@ class CheckoutPage extends Component {
         // postalCode: '', // Commented out
         location: ''
       },
-      paymentMethod: savedCheckoutState.paymentMethod || '', // Default to cash
-      collectionMode: savedCheckoutState.collectionMode || '', // Default to Self-Collection
+      paymentMethod: savedCheckoutState.paymentMethod || 'Cash', // Auto-select Cash (only option)
+      collectionMode: savedCheckoutState.collectionMode || 'Self-Collection', // Auto-select Self-Collection (only option)
       collectionLocation: savedCheckoutState.collectionLocation || '',
       collectionDate: savedCheckoutState.collectionDate || '',
       collectionTime: savedCheckoutState.collectionTime || '',
@@ -234,6 +234,22 @@ class CheckoutPage extends Component {
         paymentMethod: '' // Clear error when user selects
       }
     });
+  }
+
+  // Auto-select Payment Method if only one option available
+  componentDidMount = () => {
+    // Original componentDidMount code preserved and enhanced
+    localStorage.setItem('isInCheckoutMode', 'true');
+    
+    // Check if cart is empty and redirect back if so
+    const { cartItems = [] } = this.props;
+    if (cartItems.length === 0) {
+      console.log('No items in cart, redirecting back...');
+      this.handleGoBack();
+    }
+
+    // Auto-select payment method (Cash is the only available option currently)
+    // This will be selected by default in state initialization
   }
 
   handleCollectionModeChange = (mode) => {
@@ -852,6 +868,35 @@ class CheckoutPage extends Component {
 
     // If there are errors, don't proceed
     if (hasErrors) {
+      // Expand sections that have errors
+      const sectionsToExpand = {};
+      
+      if (newFieldErrors.firstName || newFieldErrors.lastName || newFieldErrors.phone || newFieldErrors.location || newFieldErrors.email) {
+        sectionsToExpand.personalInfo = true;
+      }
+      if (newFieldErrors.paymentMethod) {
+        sectionsToExpand.paymentMethod = true;
+      }
+      if (newFieldErrors.collectionMode) {
+        sectionsToExpand.collectionMode = true;
+      }
+      if (newFieldErrors.collectionLocation || newFieldErrors.deliveryToAddress || newFieldErrors.shipToBillingAddress) {
+        sectionsToExpand.collectionLocation = true;
+      }
+      if (newFieldErrors.collectionDate || newFieldErrors.collectionTime) {
+        sectionsToExpand.collectionDateTime = true;
+      }
+      
+      // Update state with expanded sections if there are any errors
+      if (Object.keys(sectionsToExpand).length > 0) {
+        this.setState(prevState => ({
+          expandedSections: {
+            ...prevState.expandedSections,
+            ...sectionsToExpand
+          }
+        }));
+      }
+      
       return;
     }
 
@@ -922,9 +967,6 @@ class CheckoutPage extends Component {
 
      console.log('Order response:', response.data);
       
-      // Hide order submission modal
-      this.hideOrderSubmissionModal();
-      
       // Handle invoice download if available
       if (response.data.invoice && response.data.invoice.pdfData) {
         console.log('Invoice data received:', {
@@ -992,6 +1034,9 @@ class CheckoutPage extends Component {
           });
           console.log('WhatsApp notification sent successfully:', whatsappResponse.data);
 
+          // Hide order submission modal after successful WhatsApp notification
+          this.hideOrderSubmissionModal();
+
           // Show success popup after WhatsApp is successfully sent
           const orderDetails = {
             orderId: response.data.orderId || `${orderDate}-${orderTime}`,
@@ -1001,6 +1046,10 @@ class CheckoutPage extends Component {
           this.showSubmissionSuccess(orderDetails);
         } catch (whatsappError) {
           console.error('Error sending WhatsApp notification:', whatsappError);
+          
+          // Hide order submission modal before showing error
+          this.hideOrderSubmissionModal();
+          
           // Show error popup if WhatsApp fails
           this.showSubmissionError();
         }
