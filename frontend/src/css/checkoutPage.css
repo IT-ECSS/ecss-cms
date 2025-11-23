@@ -2833,4 +2833,117 @@
   }
 }
 
+/* Date and Time Button Styles */
+.date-buttons,
+.time-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
+  gap: clamp(0.5rem, 1.5vw, 0.75rem);
+  margin-top: 0.75rem;
+}
+
+.date-button,
+.time-button {
+  border: 2px solid;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+  box-sizing: border-box;
+  font-size: clamp(0.875rem, 2vw, 1rem);
+  padding: clamp(0.75rem, 2vw, 1rem);
+  outline: none;
+  user-select: none;
+  border-color: #d1d5db;
+  background-color: #ffffff;
+  color: #374151;
+  min-height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.date-button:hover:not(.selected),
+.time-button:hover:not(.selected) {
+  border-color: #9ca3af;
+  background-color: #f9fafb;
+  transform: translateY(-1px);
+}
+
+.date-button.selected,
+.time-button.selected {
+  border-color: #3b82f6;
+  color: #3b82f6;
+  background-color: #eff6ff;
+}
+
+.date-button.selected:hover,
+.time-button.selected:hover {
+  border-color: #3b82f6;
+  color: #3b82f6;
+  background-color: #eff6ff;
+  transform: translateY(-1px);
+}
+
+.date-button:focus,
+.time-button:focus {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Collection Date Time Form Styles */
+.collection-datetime-form {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1rem, 2.5vw, 1.5rem);
+}
+
+.collection-date-options,
+.collection-time-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.collection-date-options label,
+.collection-time-options label {
+  display: block;
+  font-weight: 600;
+  color: #374151;
+  font-size: clamp(1rem, 2vw, 1.125rem);
+}
+
+.collection-date-options .info-message {
+  padding: 0.75rem 1rem;
+  background-color: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 6px;
+  color: #92400e;
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Field Error Message Styling */
+.field-error-message {
+  display: block;
+  color: #dc2626;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  font-weight: 500;
+  padding: 0.5rem 0.75rem;
+  background-color: #fee2e2;
+  border-left: 3px solid #dc2626;
+  border-radius: 4px;
+}
+
+/* Highlight error section */
+.checkout-section:has(.field-error-message) {
+  border-color: #fca5a5;
+  background-color: #fef2f2;
+}
+
+.checkout-section:has(.field-error-message) .section-header {
+  background-color: #fef2f2;
+}
+
 /* Remove old popup calendar styles since we're using react-datepicker */
