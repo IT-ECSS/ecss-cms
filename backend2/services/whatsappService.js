@@ -99,10 +99,9 @@ async function sendTemplateMessage(phoneNumber, templateName, params = [], langu
 
     // Build parameter array
     const paramsArray = Array.isArray(params) ? params.map((p, index) => {
-      // Add "$" to the 2nd parameter (totalPrice) only if it doesn't already have it
-      if (index === 1) {
-        const paramStr = String(p).trim();
-        return paramStr.startsWith('$') ? paramStr : `$${paramStr}`;
+      // Add "$" to the 3rd parameter (totalPrice)
+      if (index === 2) {
+        return `$${String(p).trim()}`;
       }
       return String(p).trim();
     }) : []

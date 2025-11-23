@@ -3,73 +3,67 @@ import '../../css/submissionSuccessPopup.css';
 
 class SubmissionSuccessPopup extends Component {
   getTranslations = () => {
-    const { selectedLanguage = 'english' } = this.props;
-    
     const translations = {
-      orderSuccessfullyPlaced: {
-        english: 'Order Successfully Placed!\nInvoice saved to your device.\nPayment details sent via WhatsApp.',
-        chinese: '订单下单成功！\n发票已保存到您的设备。\n付款详情已通过WhatsApp发送。',
-        malay: 'Pesanan Berjaya Dibuat!\nInvois telah disimpan ke peranti anda.\nButiran pembayaran telah dihantar melalui WhatsApp.'
+      english: {
+        title: 'Order Successfully Placed!',
+        message: 'Invoice saved to your device. Payment details sent via WhatsApp.',
+        button: 'Done'
       },
-      orderFailed: {
-        english: 'Order Failed!',
-        chinese: '订单失败！',
-        malay: 'Pesanan Gagal!'
+      chinese: {
+        title: '订单下单成功！',
+        message: '发票已保存到您的设备。付款详情已通过WhatsApp发送。',
+        button: '完成'
       },
-      ok: {
-        english: 'OK',
-        chinese: '好的',
-        malay: 'Baik'
-      },
-      tryAgain: {
-        english: 'Try Again',
-        chinese: '重试',
-        malay: 'Cuba Lagi'
+      malay: {
+        title: 'Pesanan Berjaya Dibuat!',
+        message: 'Invois telah disimpan ke peranti anda. Butiran pembayaran telah dihantar melalui WhatsApp.',
+        button: 'Selesai'
       }
     };
-
     return translations;
   }
 
   render() {
-    const { isOpen, onClose, orderDetails, selectedLanguage = 'english', isSuccess = true } = this.props;
+    const { isOpen, onClose, selectedLanguage = 'english' } = this.props;
     
     if (!isOpen) return null;
 
     const translations = this.getTranslations();
-    
-    const modal = {
-      type: isSuccess ? 'success' : 'error',
-      title: isSuccess ? '✓' : '✗',
-      message: isSuccess 
-        ? (translations.orderSuccessfullyPlaced[selectedLanguage] || translations.orderSuccessfullyPlaced['english'])
-        : (translations.orderFailed[selectedLanguage] || translations.orderFailed['english'])
-    };
-
-    const buttonText = isSuccess 
-      ? (translations.ok[selectedLanguage] || translations.ok['english'])
-      : (translations.tryAgain[selectedLanguage] || translations.tryAgain['english']);
-
-    // Split message by newlines and render as separate lines with <br> tags
-    const messageLines = modal.message.split('\n').map((line, index) => (
-      <React.Fragment key={index}>
-        {line}
-        {index < modal.message.split('\n').length - 1 && <br />}
-      </React.Fragment>
-    ));
+    const lang = translations[selectedLanguage] || translations['english'];
 
     return (
-      <div className="result-modal-overlay" onClick={onClose}>
-        <div className="result-modal-content" onClick={(e) => e.stopPropagation()}>
-          <div className={`result-modal-icon ${modal.type}`}>
-            {modal.title}
+      <div className="submission-success-modal-overlay" onClick={onClose}>
+        <div className="submission-success-modal-content" onClick={(e) => e.stopPropagation()}>
+          {/* Success Icon */}
+          <div className="submission-success-modal-icon">
+            <div className="success-icon">
+              <svg
+                viewBox="0 0 52 52"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle cx="26" cy="26" r="25" fill="none" stroke="#22c55e" strokeWidth="2" />
+                <polyline points="16,26 23,33 36,20" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
           </div>
-          <div className="result-modal-message">
-            <p className={modal.type}>{messageLines}</p>
-          </div>
-          <div className="result-modal-footer">
-            <button className="result-modal-button" onClick={onClose}>
-              {buttonText}
+
+          {/* Header */}
+          <h1 className="submission-success-modal-title">
+            {lang.title}
+          </h1>
+
+          {/* Success Message */}
+          <p className="submission-success-modal-message">
+            {lang.message}
+          </p>
+
+          {/* Action Button */}
+          <div className="submission-success-modal-actions">
+            <button
+              className="submission-success-modal-button"
+              onClick={onClose}
+            >
+              {lang.button}
             </button>
           </div>
         </div>

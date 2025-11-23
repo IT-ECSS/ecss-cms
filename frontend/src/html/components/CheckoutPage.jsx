@@ -9,8 +9,9 @@ import CollectionDateTimeSection from './sub/checkout/CollectionDateTimeSection'
 import OrderSummarySection from './sub/checkout/OrderSummarySection';
 import CheckoutActions from './sub/checkout/CheckoutActions';
 import LanguageModal from './LanguageModal';
-import SubmissionProgressPopup from './SubmissionProgressPopup';
 import SubmissionSuccessPopup from './SubmissionSuccessPopup';
+import SubmissionErrorPopup from './SubmissionErrorPopup';
+import OrderSubmissionModal from './OrderSubmissionModal';
 
 class CheckoutPage extends Component {
   constructor(props) {
@@ -70,13 +71,16 @@ class CheckoutPage extends Component {
       languageModal: {
         isVisible: false
       },
-      submissionProgress: {
-        isVisible: false
-      },
       submissionSuccess: {
         isVisible: false,
         orderDetails: null,
         isSuccess: true
+      },
+      submissionError: {
+        isVisible: false
+      },
+      orderSubmission: {
+        isVisible: false
       }
     };
   }
@@ -409,18 +413,18 @@ class CheckoutPage extends Component {
     });
   }
 
-  // Submission Progress popup methods
-  showSubmissionProgress = () => {
+  // Order Submission Modal methods
+  showOrderSubmissionModal = () => {
     this.setState({
-      submissionProgress: {
+      orderSubmission: {
         isVisible: true
       }
     });
   }
 
-  hideSubmissionProgress = () => {
+  hideOrderSubmissionModal = () => {
     this.setState({
-      submissionProgress: {
+      orderSubmission: {
         isVisible: false
       }
     });
@@ -437,12 +441,18 @@ class CheckoutPage extends Component {
     });
   }
 
-  showSubmissionFailure = () => {
+  showSubmissionError = () => {
     this.setState({
-      submissionSuccess: {
-        isVisible: true,
-        orderDetails: null,
-        isSuccess: false
+      submissionError: {
+        isVisible: true
+      }
+    });
+  }
+
+  hideSubmissionError = () => {
+    this.setState({
+      submissionError: {
+        isVisible: false
       }
     });
   }
@@ -899,8 +909,8 @@ class CheckoutPage extends Component {
       }
     };
 
-    // Show submission progress popup
-    //this.showSubmissionProgress();
+    // Show order submission modal
+    this.showOrderSubmissionModal();
 
     try {
       // Send the orderData to your server
@@ -912,8 +922,8 @@ class CheckoutPage extends Component {
 
      console.log('Order response:', response.data);
       
-      // Hide progress popup
-      this.hideSubmissionProgress();
+      // Hide order submission modal
+      this.hideOrderSubmissionModal();
       
       // Handle invoice download if available
       if (response.data.invoice && response.data.invoice.pdfData) {
@@ -991,18 +1001,19 @@ class CheckoutPage extends Component {
           this.showSubmissionSuccess(orderDetails);
         } catch (whatsappError) {
           console.error('Error sending WhatsApp notification:', whatsappError);
-          // Don't show success popup if WhatsApp fails
+          // Show error popup if WhatsApp fails
+          this.showSubmissionError();
         }
       }
 
     } catch (error) {
       console.error('Error placing order:', error);
       
-      // Hide progress popup
-      this.hideSubmissionProgress();
+      // Hide order submission modal
+      this.hideOrderSubmissionModal();
       
-      // Show failure popup
-      this.showSubmissionFailure();
+      // Show error popup
+      this.showSubmissionError();
     }
   }
 
@@ -1123,20 +1134,26 @@ class CheckoutPage extends Component {
           onClose={this.handleCloseLanguageModal}
         />
 
-        {/* Submission Progress Popup */}
-        <SubmissionProgressPopup
-          isOpen={this.state.submissionProgress.isVisible}
-          onClose={() => {}} // Don't allow closing during submission
+        {/* Order Submission Modal */}
+        <OrderSubmissionModal
+          isOpen={this.state.orderSubmission.isVisible}
           selectedLanguage={selectedLanguage}
         />
 
-        {/* Submission Success/Failure Popup */}
+        {/* Submission Success Popup */}
         <SubmissionSuccessPopup
           isOpen={this.state.submissionSuccess.isVisible}
           onClose={this.hideSubmissionSuccess}
           orderDetails={this.state.submissionSuccess.orderDetails}
           selectedLanguage={selectedLanguage}
           isSuccess={this.state.submissionSuccess.isSuccess}
+        />
+
+        {/* Submission Error Popup */}
+        <SubmissionErrorPopup
+          isOpen={this.state.submissionError.isVisible}
+          onClose={this.hideSubmissionError}
+          selectedLanguage={selectedLanguage}
         />
       </div>
     );
