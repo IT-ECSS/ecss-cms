@@ -1616,18 +1616,27 @@ class FundraisingOrders extends Component {
       );
     }
 
-    // Handle cell value changes
+    // Handle cell value changes - preserves scroll position and filters
     onCellValueChanged = async (params) => {
       console.log('Cell value changed:', params);
       console.log('Field changed:', params.colDef.field);
       console.log('Old value:', params.oldValue);
       console.log('New value:', params.newValue);
       
+      // Store current scroll and focus position BEFORE any updates
+      const gridContainer = document.querySelector('.ag-body-viewport');
+      const currentScrollTop = gridContainer ? gridContainer.scrollTop : 0;
+      const currentScrollLeft = gridContainer ? gridContainer.scrollLeft : 0;
+      const focusedRowIndex = params.rowIndex;
+      const focusedColField = params.colDef.field;
+      
+      console.log('Storing position:', { currentScrollTop, currentScrollLeft, focusedRowIndex, focusedColField });
+      
       // Update the status in the backend first
       if (params.colDef.field === 'status') {
         console.log(`Status changing from "${params.oldValue}" to "${params.newValue}" for order ID: ${params.data.id}`);
         
-       const result = await this.updateOrderStatus(params.data.id, params.newValue);
+        const result = await this.updateOrderStatus(params.data.id, params.newValue);
         
         console.log('updateOrderStatus result:', result);
         
@@ -1660,6 +1669,9 @@ class FundraisingOrders extends Component {
           console.log('Processing status change to Cancelled - handling stock update if needed...');
           await this.handleStatusChangeToCancelled(params.data, params.oldValue);
         }
+
+        // Refresh only the changed row locally without resetting view
+        this.refreshRowLocally(params.data, currentScrollTop, currentScrollLeft, focusedRowIndex, focusedColField);
       }
       
       // Handle payment method changes
@@ -1673,8 +1685,8 @@ class FundraisingOrders extends Component {
         if (result && result.success) {
           console.log('Payment method update completed successfully');
           
-          // Refresh table data to show updated payment method
-          await this.fetchAndSetFundraisingData();
+          // Refresh locally instead of fetching all data
+          this.updateRowLocally(params.data, currentScrollTop, currentScrollLeft, focusedRowIndex, focusedColField);
         } else {
           console.log('Payment method update failed');
         }
@@ -1691,13 +1703,159 @@ class FundraisingOrders extends Component {
         if (result && result.success) {
           console.log('Collection delivery location update completed successfully');
           
-          // Refresh table data to show updated collection location
-          await this.fetchAndSetFundraisingData();
+          // Refresh locally instead of fetching all data
+          this.updateRowLocally(params.data, currentScrollTop, currentScrollLeft, focusedRowIndex, focusedColField);
         } else {
           console.log('Collection delivery location update failed');
         }
       }
       
+    };
+
+    // New helper method: Refresh a single row locally and preserve scroll position
+    refreshRowLocally = (updatedRowData, scrollTop, scrollLeft, rowIndex, focusedColField) => {
+      const { originalData, fundraisingData, rowData } = this.state;
+      
+      console.log('Refreshing row locally while preserving position:', { scrollTop, scrollLeft, rowIndex, focusedColField });
+      
+      // Update the row in originalData
+      const originalIndex = originalData.findIndex(item => item._id === updatedRowData.id);
+      if (originalIndex !== -1) {
+        originalData[originalIndex] = {
+          ...originalData[originalIndex],
+          status: updatedRowData.status,
+          fundraisingKey: updatedRowData.receiptNumber
+        };
+      }
+      
+      // Update the row in fundraisingData (filtered data)
+      const fundraisingIndex = fundraisingData.findIndex(item => item._id === updatedRowData.id);
+      if (fundraisingIndex !== -1) {
+        fundraisingData[fundraisingIndex] = {
+          ...fundraisingData[fundraisingIndex],
+          status: updatedRowData.status,
+          fundraisingKey: updatedRowData.receiptNumber
+        };
+      }
+      
+      // Update the row in rowData (display data)
+      const rowIndexDisplay = rowData.findIndex(item => item.id === updatedRowData.id);
+      if (rowIndexDisplay !== -1) {
+        rowData[rowIndexDisplay] = {
+          ...rowData[rowIndexDisplay],
+          status: updatedRowData.status,
+          receiptNumber: updatedRowData.receiptNumber
+        };
+      }
+      
+      // Update state without resetting filters
+      this.setState({
+        originalData: [...originalData],
+        fundraisingData: [...fundraisingData],
+        rowData: [...rowData]
+      }, () => {
+        // Restore scroll position after state update
+        const gridContainer = document.querySelector('.ag-body-viewport');
+        if (gridContainer) {
+          gridContainer.scrollTop = scrollTop;
+          gridContainer.scrollLeft = scrollLeft;
+          console.log('Scroll position restored:', { scrollTop, scrollLeft });
+        }
+        
+        // Refresh the specific grid cell
+        if (this.gridApi) {
+          const node = this.gridApi.getRowNode(updatedRowData.id);
+          if (node) {
+            this.gridApi.refreshCells({ rowNodes: [node], force: true });
+            console.log('Grid cell refreshed for row:', updatedRowData.id);
+            
+            // Focus back on the updated row
+            setTimeout(() => {
+              this.gridApi.ensureIndexVisible(rowIndex, 'middle');
+              console.log('Row focused and visible at index:', rowIndex);
+            }, 100);
+          }
+        }
+      });
+    };
+
+    // New helper method: Update single row locally and preserve scroll position
+    updateRowLocally = (updatedRowData, scrollTop, scrollLeft, rowIndex, focusedColField) => {
+      const { originalData, fundraisingData, rowData } = this.state;
+      
+      console.log('Updating row locally while preserving position:', { scrollTop, scrollLeft, rowIndex, focusedColField });
+      
+      // Update the row in originalData
+      const originalIndex = originalData.findIndex(item => item._id === updatedRowData.id);
+      if (originalIndex !== -1) {
+        originalData[originalIndex] = {
+          ...originalData[originalIndex],
+          paymentDetails: {
+            ...originalData[originalIndex].paymentDetails,
+            paymentMethod: updatedRowData.paymentMethod
+          },
+          collectionDetails: {
+            ...originalData[originalIndex].collectionDetails,
+            CollectionDeliveryLocation: updatedRowData.collectionDeliveryLocation
+          }
+        };
+      }
+      
+      // Update the row in fundraisingData (filtered data)
+      const fundraisingIndex = fundraisingData.findIndex(item => item._id === updatedRowData.id);
+      if (fundraisingIndex !== -1) {
+        fundraisingData[fundraisingIndex] = {
+          ...fundraisingData[fundraisingIndex],
+          paymentDetails: {
+            ...fundraisingData[fundraisingIndex].paymentDetails,
+            paymentMethod: updatedRowData.paymentMethod
+          },
+          collectionDetails: {
+            ...fundraisingData[fundraisingIndex].collectionDetails,
+            CollectionDeliveryLocation: updatedRowData.collectionDeliveryLocation
+          }
+        };
+      }
+      
+      // Update the row in rowData (display data)
+      const rowIndexDisplay = rowData.findIndex(item => item.id === updatedRowData.id);
+      if (rowIndexDisplay !== -1) {
+        rowData[rowIndexDisplay] = {
+          ...rowData[rowIndexDisplay],
+          paymentMethod: updatedRowData.paymentMethod,
+          collectionDeliveryLocation: updatedRowData.collectionDeliveryLocation
+        };
+      }
+      
+      // Update state without resetting filters
+      this.setState({
+        originalData: [...originalData],
+        fundraisingData: [...fundraisingData],
+        rowData: [...rowData]
+      }, () => {
+        // Restore scroll position after state update
+        const gridContainer = document.querySelector('.ag-body-viewport');
+        if (gridContainer) {
+          gridContainer.scrollTop = scrollTop;
+          gridContainer.scrollLeft = scrollLeft;
+          console.log('Scroll position restored:', { scrollTop, scrollLeft });
+        }
+        
+        // Refresh the specific grid cell
+        if (this.gridApi) {
+          const node = this.gridApi.getRowNode(updatedRowData.id);
+          if (node) {
+            this.gridApi.refreshCells({ rowNodes: [node], force: true });
+            console.log('Grid cell refreshed for row:', updatedRowData.id);
+            
+            // Focus back on the updated row
+            setTimeout(() => {
+              this.gridApi.ensureIndexVisible(rowIndex, 'middle');
+              console.log('Row focused and visible at index:', rowIndex);
+            }, 100);
+          }
+        }
+      });
     };
 
     // Generate receipt when clicking on receipt number
