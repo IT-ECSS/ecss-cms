@@ -992,7 +992,8 @@ class CheckoutPage extends Component {
           // Format total price as $xx.xx
           const formattedPrice = `$${parseFloat(totalPrice).toFixed(2)}`;
           const language = this.props.selectedLanguage || 'english';
-          const locationPhone = this.getLocationPhoneNumber(personalInfo.location) || 'this number';
+          const stationLocation = personalInfo.location;
+          const locationPhone = this.getLocationPhoneNumber(stationLocation) || 'this number';
           const customerName = personalInfo.lastName + ' ' + personalInfo.firstName;
           
           // Map language to template name and parameters based on payment method
@@ -1008,13 +1009,13 @@ class CheckoutPage extends Component {
             };
             templateParams = [customerName, invoiceNumber, formattedPrice, locationPhone];
           } else if (paymentMethod === 'Cash') {
-            // Cash templates - requires 3 parameters (customerName, totalPrice, collectionLocation)
+            // Cash templates - requires 3 parameters (customerName, totalPrice, stationLocation)
             templateNameMap = {
               'english': 'fundraising_eng_cash',
               'malay': 'fundraising_malay_cash',
               'chinese': 'fundraising_chinese_cash'
             };
-            templateParams = [customerName, formattedPrice, collectionLocation];
+            templateParams = [customerName, formattedPrice, stationLocation];
           }
           
           const templateName = templateNameMap[language];

@@ -2900,9 +2900,14 @@ Sila hantar mesej ke nombor ini untuk pembayaran.
       
       const orderAmount = this.calculateOrderAmount(data);
       const formattedAmount = this.formatOrderAmount(orderAmount);
-      const collectionLocation = data.collectionDeliveryLocation || 'collection point';
       
-      const message = this.createCashPaymentMessage(customerName, formattedAmount, collectionLocation);
+      // Get station location and normalize it
+      let stationLocation = data.stationLocation;
+      if (stationLocation === 'Others' || stationLocation === 'En Community Church') {
+        stationLocation = 'CT Hub';
+      }
+      
+      const message = this.createCashPaymentMessage(customerName, formattedAmount, stationLocation);
       const whatsappWebURL = `https://web.whatsapp.com/send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
       
       window.open(whatsappWebURL, "_blank");
