@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import '../../../css/sub/salesReportModal.css';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
+import io from 'socket.io-client';
 
 class SalesReportModal extends Component {
   constructor(props) {
@@ -17,12 +18,157 @@ class SalesReportModal extends Component {
       locationTabs: [], // All unique locations
       activeTab: 'All Locations', // Currently active tab
       locationGroupedData: {}, // Data grouped by location
-      summaryTab: 'payment' // Tab for summary view (default: payment)
+      summaryTab: 'payment', // Tab for summary view (default: payment)
+      lastUpdated: null // Track last update timestamp
     };
+    this.socket = null;
   }
 
   componentDidMount() {
     this.prepareDisplayData();
+    this.initializeSocket();
+  }
+
+  // Initialize Socket.IO connection for live updates
+  initializeSocket = () => {
+    const socketURL = window.location.hostname === "localhost" 
+      ? "http://localhost:3001" 
+      : "https://ecss-backend-node.azurewebsites.net";
+    
+    this.socket = io(socketURL, {
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: 5,
+      transports: ['websocket', 'polling']
+    });
+
+    // Listen for fundraising events
+    this.socket.on('fundraising', (eventData) => {
+      console.log('Received fundraising event:', eventData);
+      
+      if (eventData.action === 'insert' || eventData.action === 'update') {
+        console.log('Updating summary data and timestamp due to live update');
+        
+        const newOrder = eventData.data;
+        if (!newOrder) return;
+        
+        // Update locationGroupedData with new/updated order
+        this.setState((prevState) => {
+          const updatedLocationGroupedData = { ...prevState.locationGroupedData };
+          
+          // Get location from the new order
+          const location = newOrder.collectionDetails?.CollectionDeliveryLocation || 
+                          newOrder.collectionDeliveryLocation || 
+                          'Unknown Location';
+          
+          // Initialize location if it doesn't exist
+          if (!updatedLocationGroupedData[location]) {
+            updatedLocationGroupedData[location] = [];
+          }
+          
+          // Check if order already exists (update) or is new (insert)
+          const existingIndex = updatedLocationGroupedData[location].findIndex(
+            order => order.id === (newOrder._id || newOrder.id)
+          );
+          
+          if (existingIndex >= 0) {
+            // Update existing order
+            updatedLocationGroupedData[location][existingIndex] = {
+              id: newOrder._id || newOrder.id,
+              sn: updatedLocationGroupedData[location][existingIndex].sn,
+              firstName: newOrder.personalInfo?.firstName || newOrder.firstName || '',
+              lastName: newOrder.personalInfo?.lastName || newOrder.lastName || '',
+              email: newOrder.personalInfo?.email || newOrder.email || '',
+              phone: newOrder.personalInfo?.phone || newOrder.contactNumber || '',
+              paymentMethod: newOrder.paymentDetails?.paymentMethod || newOrder.paymentMethod || '',
+              totalAmount: this.calculateTotalAmount(newOrder),
+              invoiceNumber: newOrder.invoiceNumber || newOrder.paymentDetails?.invoiceNumber || '',
+              status: newOrder.status || 'Pending',
+              itemsSummary: this.formatItemsSummary(newOrder.orderDetails?.items || newOrder.items || []),
+              orderDate: this.getOrderDetails(newOrder),
+              collectionDate: this.getCollectionDetails(newOrder),
+              collectionMode: newOrder.collectionDetails?.collectionMode || newOrder.collectionMode || '',
+              originalOrder: newOrder
+            };
+          } else {
+            // Add new order
+            const newLocationOrder = {
+              id: newOrder._id || newOrder.id,
+              sn: updatedLocationGroupedData[location].length + 1,
+              firstName: newOrder.personalInfo?.firstName || newOrder.firstName || '',
+              lastName: newOrder.personalInfo?.lastName || newOrder.lastName || '',
+              email: newOrder.personalInfo?.email || newOrder.email || '',
+              phone: newOrder.personalInfo?.phone || newOrder.contactNumber || '',
+              paymentMethod: newOrder.paymentDetails?.paymentMethod || newOrder.paymentMethod || '',
+              totalAmount: this.calculateTotalAmount(newOrder),
+              invoiceNumber: newOrder.invoiceNumber || newOrder.paymentDetails?.invoiceNumber || '',
+              status: newOrder.status || 'Pending',
+              itemsSummary: this.formatItemsSummary(newOrder.orderDetails?.items || newOrder.items || []),
+              orderDate: this.getOrderDetails(newOrder),
+              collectionDate: this.getCollectionDetails(newOrder),
+              collectionMode: newOrder.collectionDetails?.collectionMode || newOrder.collectionMode || '',
+              location: location,
+              originalOrder: newOrder
+            };
+            updatedLocationGroupedData[location].push(newLocationOrder);
+          }
+          
+          // Update All Locations data
+          const allLocationsData = [];
+          let sn = 1;
+          Object.values(updatedLocationGroupedData).forEach(locationOrders => {
+            if (Array.isArray(locationOrders)) {
+              locationOrders.forEach(order => {
+                allLocationsData.push({ ...order, sn: sn++ });
+              });
+            }
+          });
+          updatedLocationGroupedData['All Locations'] = allLocationsData;
+          
+          return {
+            locationGroupedData: updatedLocationGroupedData,
+            lastUpdated: new Date(),
+            displayData: allLocationsData
+          };
+        });
+      }
+    });
+
+    this.socket.on('connect', () => {
+      console.log('SalesReportModal Socket.IO connected');
+    });
+
+    this.socket.on('disconnect', () => {
+      console.log('SalesReportModal Socket.IO disconnected');
+    });
+
+    this.socket.on('error', (error) => {
+      console.error('SalesReportModal Socket.IO error:', error);
+    });
+  }
+
+  componentWillUnmount() {
+    // Disconnect socket when component unmounts
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
+    }
+  }
+
+  // Helper method: Format timestamp as dd/mm/yyyy, hh:mm:ss (24 hour format)
+  formatTimestamp = (date) => {
+    if (!date) return '';
+    
+    const d = new Date(date);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    const seconds = String(d.getSeconds()).padStart(2, '0');
+    
+    return `${day}/${month}/${year}, ${hours}:${minutes}:${seconds}`;
   }
 
   componentDidUpdate(prevProps) {
@@ -39,7 +185,8 @@ class SalesReportModal extends Component {
         displayData: [],
         locationTabs: [],
         locationGroupedData: {},
-        activeTab: 'All Locations'
+        activeTab: 'All Locations',
+        lastUpdated: new Date()
       });
       return;
     }
@@ -114,7 +261,8 @@ class SalesReportModal extends Component {
       displayData: allLocationsData,
       locationTabs,
       locationGroupedData,
-      activeTab: 'All Locations'
+      activeTab: 'All Locations',
+      lastUpdated: new Date()
     });
   };
 
@@ -853,7 +1001,7 @@ class SalesReportModal extends Component {
 
   render() {
     const { isOpen, onClose } = this.props;
-    const { isLoading, selectedPaymentMethods, allPaymentMethodsChecked, locationTabs, activeTab } = this.state;
+    const { isLoading, selectedPaymentMethods, allPaymentMethodsChecked, locationTabs, activeTab, lastUpdated } = this.state;
 
     if (!isOpen) return null;
 
@@ -861,7 +1009,12 @@ class SalesReportModal extends Component {
       <div className="sales-report-modal-overlay" onClick={onClose}>
         <div className="sales-report-modal-content" onClick={(e) => e.stopPropagation()}>
           <div className="sales-report-modal-header">
-            <h2>Sales Report</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+              <h2>Sales Report</h2>
+              <div style={{ fontSize: '12px', color: '#666', textAlign: 'right' }}>
+                {lastUpdated && <div>Last updated: {this.formatTimestamp(lastUpdated)}</div>}
+              </div>
+            </div>
             <button className="sales-report-modal-close" onClick={onClose}>
               ×
             </button>

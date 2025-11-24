@@ -2856,28 +2856,25 @@ UEN: T03SS0051L
     };
 
     // Create Cash payment WhatsApp message
-    createCashPaymentMessage = (customerName, orderAmount, collectionLocation = 'collection point') => {
+    createCashPaymentMessage = (customerName, orderAmount, paymentLocation) => {
       return `Hello ${customerName}, thank you for your support!
-Please complete your payment via cash.
 Amount: ${orderAmount}
-Collection Location: ${collectionLocation}
-Please arrange to pay at the collection point.
+Payment Location: ${paymentLocation}
+Please make your payment at the aforementioned location to confirm your order.
 
 ---
 
 Hai ${customerName}, terima kasih atas sokongan anda!
-Sila lengkapkan pembayaran melalui tunai.
 Jumlah: ${orderAmount}
-Lokasi Pengumpulan: ${collectionLocation}
-Sila hantar mesej ke nombor ini untuk pembayaran.
+Lokasi Pembayaran: ${paymentLocation}
+Sila buat pembayaran anda di lokasi tersebut untuk mengesahkan pesanan anda.
 
 ---
 
 您好 ${customerName}，感谢您的支持！
-请通过现金完成付款。
 金额: ${orderAmount}
-收款地点: ${collectionLocation}
-请在收款点进行付款或发送消息至此号码以获取付款说明。`;
+付款地点: ${paymentLocation}
+请在上述地点进行付款以确认您的订单。`;
     };
 
     // Open WhatsApp with PayNow payment message
