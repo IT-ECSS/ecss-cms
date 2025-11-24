@@ -600,7 +600,9 @@ class WooCommerceAPI:
             print(f"Error updating fundraising product stock: {e}")
             return False
 
-    def update_fundraising_product_details(self, product_id, price, stock_quantity):
+    def update_fundraising_product_details(self, product_id, price, stock_quantity, 
+                                            stock_operation=None, original_stock=None, 
+                                            operation_value=None):
         """
         Updates a fundraising product's price and stock quantity.
         
@@ -608,35 +610,81 @@ class WooCommerceAPI:
             product_id: The ID of the product to update.
             price: The new price for the product.
             stock_quantity: The new stock quantity for the product.
+            stock_operation: Optional - Type of operation ('add', 'reduce', 'restock').
+            original_stock: Optional - Original stock before operation.
+            operation_value: Optional - Value used in the operation.
         
         Returns:
             dict: Success status and updated product data or error message.
         """
         try:
-            # Prepare the update data
+            # Validate inputs
+            if product_id is None:
+                raise ValueError("product_id is required")
+            
+            # Ensure stock_quantity is an integer
+            if stock_quantity is None:
+                stock_quantity = 0
+            stock_quantity = int(stock_quantity)
+            
+            if stock_quantity < 0:
+                stock_quantity = 0  # Ensure non-negative stock
+            
+            # Log the operation for debugging
+            print(f"\n{'='*60}")
+            print(f"Updating Product {product_id}:")
+            print(f"  Price: {price}")
+            print(f"  Stock Quantity: {stock_quantity}")
+            if stock_operation:
+                print(f"  Operation: {stock_operation}")
+                print(f"  Original Stock: {original_stock}")
+                print(f"  Operation Value: {operation_value}")
+            print(f"{'='*60}\n")
+            
+            # Prepare the update data for WooCommerce
+            # Note: WooCommerce requires manage_stock=true to update stock_quantity
             update_data = {
-                "regular_price": str(price),
-                "price": str(price),
+                "regular_price": str(price) if price else "0",
+                "price": str(price) if price else "0",
+                "manage_stock": True,  # Enable stock management
                 "stock_quantity": int(stock_quantity)
             }
+            
+            print(f"  Update Payload: {update_data}")
             
             # Make the API request to update the product
             url = f"{settings.WOOCOMMERCE_API_URL}products/{product_id}"
             auth = (settings.WOOCOMMERCE_CONSUMER_KEY, settings.WOOCOMMERCE_CONSUMER_SECRET)
             
+            print(f"  Sending PUT request to: {url}")
             response = requests.put(url, json=update_data, auth=auth)
             response.raise_for_status()
             
             updated_product = response.json()
             
+            # Log successful update with details
+            print(f"✓ Product {product_id} updated successfully")
+            print(f"  WooCommerce Response Stock: {updated_product.get('stock_quantity')}")
+            print(f"  WooCommerce Response manage_stock: {updated_product.get('manage_stock')}\n")
+            
             return {
                 "success": True,
                 "product": updated_product,
-                "message": f"Product {product_id} updated successfully"
+                "message": f"Product {product_id} updated successfully",
+                "stock_quantity": updated_product.get('stock_quantity')
             }
             
+        except ValueError as e:
+            error_msg = f"Validation error updating product {product_id}: {str(e)}"
+            print(f"✗ {error_msg}\n")
+            return {
+                "success": False,
+                "error": error_msg,
+                "message": f"Validation failed for product {product_id}"
+            }
         except requests.exceptions.RequestException as e:
-            print(f"Error updating fundraising product details: {e}")
+            error_msg = f"Error updating fundraising product details: {e}"
+            print(f"✗ {error_msg}\n")
             return {
                 "success": False,
                 "error": str(e),

@@ -48,12 +48,13 @@ class SalesReportModal extends Component {
       console.log('Received fundraising event:', eventData);
       
       if (eventData.action === 'insert' || eventData.action === 'update') {
-        console.log('Updating summary data and timestamp due to live update');
+        console.log('Updating all orders data and timestamp due to live update');
         
         const newOrder = eventData.data;
         if (!newOrder) return;
         
-        // Update locationGroupedData with new/updated order
+        // Update locationGroupedData with new/updated order (all statuses)
+        // Summary will only count Paid orders in renderPaymentSummary
         this.setState((prevState) => {
           const updatedLocationGroupedData = { ...prevState.locationGroupedData };
           
