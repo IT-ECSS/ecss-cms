@@ -63,10 +63,22 @@ class FundraisingInventory extends Component {
             if (response.data.success) {
                 const products = response.data.fundraising_products || [];
                 
+                // Initialize activeStockTab based on stock quantity
+                const activeStockTabInit = {};
+                products.forEach(product => {
+                    // If stock is 0, default to 'restock' tab; otherwise 'add'
+                    if ((parseInt(product.stock_quantity) || 0) === 0) {
+                        activeStockTabInit[product.id] = 'restock';
+                    } else {
+                        activeStockTabInit[product.id] = 'add';
+                    }
+                });
+                
                 this.setState({
                     inventoryData: products,
                     filteredData: products,
-                    totalProducts: products.length
+                    totalProducts: products.length,
+                    activeStockTab: activeStockTabInit
                 }, () => {
                     this.updateRowData();
                     // Close loading popup
@@ -385,26 +397,22 @@ class FundraisingInventory extends Component {
 
             console.log('Product updated successfully!');
         
-            // Refresh data and switch to table view
+            // Refresh data - this will reinitialize activeStockTab based on actual backend stock
             await this.fetchInventoryData();
             
-            // Clear stock operations after successful update, but keep the price value
-            // Reset active stock tab to 'add' for this product
+            // Clear stock operations after successful update
+            // Do NOT change the UI here - let fetchInventoryData handle it
             this.setState(prevState => ({
                 tempEditValues: {
                     ...prevState.tempEditValues,
-                    [`${productId}_stock_quantity`]: undefined
-                    // Keep price value - DO NOT clear it
+                    [`${productId}_stock_quantity`]: undefined,
+                    [`${productId}_price`]: undefined
                 },
                 stockOperations: {
                     ...prevState.stockOperations,
                     [productId]: null
                 },
                 viewMode: 'table',
-                activeStockTab: {
-                    ...prevState.activeStockTab,
-                    [productId]: 'add'
-                },
                 isUpdating: {
                     ...prevState.isUpdating,
                     [productId]: false
@@ -434,6 +442,11 @@ class FundraisingInventory extends Component {
                 [productId]: tab
             }
         }));
+    };
+
+    // Check if any product is currently updating
+    isAnyProductUpdating = () => {
+        return Object.values(this.state.isUpdating).some(value => value === true);
     };
 
     // Handle adding stock (increment by 1) - updates tempEditValues and auto-saves
@@ -864,7 +877,7 @@ class FundraisingInventory extends Component {
                                             console.log(`Saving price for product ${product.id}:`, { editedPrice: this.state.tempEditValues[`${product.id}_price`], finalPrice: priceValue });
                                             this.updateIndividualProduct(product.id);
                                         }}
-                                        disabled={this.state.isUpdating[product.id]}
+                                        disabled={this.isAnyProductUpdating()}
                                         title="Save price changes"
                                     >
                                         <i className="fas fa-save"></i> Save Price
@@ -875,7 +888,7 @@ class FundraisingInventory extends Component {
                                     <label>Edit Stock:</label>
                                     <div className="stock-tabs-wrapper">
                                         <div className="stock-tabs">
-                                            {(parseInt(product.stock_quantity) || 0) > 0 && (
+                                            {(this.state.activeStockTab[product.id] || 'add') !== 'restock' && (
                                                 <>
                                                     <button 
                                                         className={`stock-tab ${(this.state.activeStockTab[product.id] || 'add') === 'add' ? 'active' : ''}`}
@@ -893,7 +906,7 @@ class FundraisingInventory extends Component {
                                                     </button>
                                                 </>
                                             )}
-                                            {(parseInt(product.stock_quantity) || 0) === 0 && (
+                                            {(this.state.activeStockTab[product.id] || 'add') === 'restock' && (
                                                 <button 
                                                     className={`stock-tab ${(this.state.activeStockTab[product.id] || 'restock') === 'restock' ? 'active' : ''}`}
                                                     onClick={() => this.handleStockTabSwitch(product.id, 'restock')}
@@ -904,8 +917,8 @@ class FundraisingInventory extends Component {
                                             )}
                                         </div>
                                         
-                                        {/* Add Tab Content - Only show when stock > 0 */}
-                                        {(parseInt(product.stock_quantity) || 0) > 0 && (this.state.activeStockTab[product.id] || 'add') === 'add' && (
+                                        {/* Add Tab Content - Only show when activeStockTab is 'add' */}
+                                        {(this.state.activeStockTab[product.id] || 'add') === 'add' && (
                                             <div className="stock-tab-content">
                                                 <input
                                                     type="text"
@@ -917,7 +930,7 @@ class FundraisingInventory extends Component {
                                                 <button 
                                                     className="stock-action-btn stock-action-add"
                                                     onClick={() => this.handleAddStock(product.id)}
-                                                    disabled={this.state.isUpdating[product.id]}
+                                                    disabled={this.isAnyProductUpdating()}
                                                     title="Add to stock"
                                                 >
                                                     <i className="fas fa-plus"></i> Add {this.state.tempEditValues[`${product.id}_stock_quantity`] !== undefined ? this.state.tempEditValues[`${product.id}_stock_quantity`] : '0'} Unit(s)
@@ -925,8 +938,8 @@ class FundraisingInventory extends Component {
                                             </div>
                                         )}
 
-                                        {/* Reduce Tab Content - Only show when stock > 0 */}
-                                        {(parseInt(product.stock_quantity) || 0) > 0 && (this.state.activeStockTab[product.id] || 'add') === 'reduce' && (
+                                        {/* Reduce Tab Content - Only show when activeStockTab is 'reduce' */}
+                                        {(this.state.activeStockTab[product.id] || 'add') === 'reduce' && (
                                             <div className="stock-tab-content">
                                                 <input
                                                     type="text"
@@ -938,7 +951,7 @@ class FundraisingInventory extends Component {
                                                 <button 
                                                     className="stock-action-btn stock-action-reduce"
                                                     onClick={() => this.handleReduceStock(product.id)}
-                                                    disabled={this.state.isUpdating[product.id]}
+                                                    disabled={this.isAnyProductUpdating()}
                                                     title="Reduce stock"
                                                 >
                                                     <i className="fas fa-minus"></i> Reduce {this.state.tempEditValues[`${product.id}_stock_quantity`] !== undefined ? this.state.tempEditValues[`${product.id}_stock_quantity`] : '0'} Unit(s)
@@ -946,12 +959,12 @@ class FundraisingInventory extends Component {
                                             </div>
                                         )}
 
-                                        {/* Restock Tab Content - Only show when stock is 0 */}
-                                        {(parseInt(product.stock_quantity) || 0) === 0 && (this.state.activeStockTab[product.id] || 'restock') === 'restock' && (
+                                        {/* Restock Tab Content - Only show when activeStockTab is 'restock' */}
+                                        {(this.state.activeStockTab[product.id] || 'add') === 'restock' && (
                                             <div className="stock-tab-content">
                                                 <input
                                                     type="number"
-                                                    className="stock-input"
+                                                    className="card-stock-input"
                                                     placeholder="Enter restock quantity"
                                                     value={this.state.tempEditValues[`${product.id}_stock_quantity`] !== undefined ? this.state.tempEditValues[`${product.id}_stock_quantity`] : ''}
                                                     onChange={(e) => this.updateProductValue(product.id, 'stock_quantity', e.target.value)}
@@ -960,7 +973,7 @@ class FundraisingInventory extends Component {
                                                 <button 
                                                     className="stock-action-btn stock-action-restock"
                                                     onClick={() => this.handleRestockProduct(product.id)}
-                                                    disabled={this.state.isUpdating[product.id]}
+                                                    disabled={this.isAnyProductUpdating()}
                                                     title="Restock with entered quantity"
                                                 >
                                                     <i className="fas fa-redo"></i> Restock Unit(s)
