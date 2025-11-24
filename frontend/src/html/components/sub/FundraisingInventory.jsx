@@ -47,6 +47,46 @@ class FundraisingInventory extends Component {
         }
     }
 
+    // Generate dynamic color based on category name
+    getCategoryColor = (categoryName) => {
+        if (!categoryName) return '#6c757d';
+        
+        // Create a hash from the category name
+        let hash = 0;
+        for (let i = 0; i < categoryName.length; i++) {
+            const char = categoryName.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32bit integer
+        }
+        
+        // Generate hue from hash (0-360)
+        const hue = Math.abs(hash) % 360;
+        // Use saturated, vivid colors
+        return `hsl(${hue}, 70%, 45%)`;
+    };
+
+    // Get row background color based on category
+    getRowStyle = (params) => {
+        const categories = params.data.categories;
+        if (!categories || categories.length === 0) {
+            return { backgroundColor: '#ffffff' };
+        }
+        
+        const filteredCategories = categories.filter(cat => cat.name !== 'Support Us');
+        if (filteredCategories.length === 0) {
+            return { backgroundColor: '#ffffff' };
+        }
+        
+        const categoryName = filteredCategories[0].name;
+        
+        // Fixed color for Panettone - soft pastel Christmas green
+        if (categoryName === 'Panettone') {
+            return { backgroundColor: '#d4edda' }; // Soft pastel Christmas green
+        }
+        
+        return { backgroundColor: '#ffffff' };
+    };
+
     // Fetch inventory data from Django backend
     fetchInventoryData = async () => {
         try {
@@ -113,7 +153,8 @@ class FundraisingInventory extends Component {
             price: parseFloat(product.price),
             stock_quantity: product.stock_quantity,
             description: product.description,
-            images: product.images
+            images: product.images,
+            categories: product.categories || []
         }));
 
         this.setState({ 
@@ -138,6 +179,32 @@ class FundraisingInventory extends Component {
                 width: 200,
                 resizable: true,
                 suppressSizeToFit: true
+            },
+            {
+                headerName: "Category",
+                field: "categories",
+                width: 150,
+                resizable: true,
+                suppressSizeToFit: true,
+                cellRenderer: (params) => {
+                    const categories = params.value;
+                    if (!categories || categories.length === 0) {
+                        return <span style={{ color: '#6c757d' }}>-</span>;
+                    }
+                    // Filter out "Support Us" category and get the first remaining category
+                    const filteredCategories = categories.filter(cat => cat.name !== 'Support Us');
+                    if (filteredCategories.length === 0) {
+                        return <span style={{ color: '#6c757d' }}>-</span>;
+                    }
+                    const categoryName = filteredCategories[0].name;
+                    return (
+                        <span style={{ 
+                            letterSpacing: '0.3px'
+                        }}>
+                            {categoryName}
+                        </span>
+                    );
+                }
             },
             {
                 headerName: "Product Image",
@@ -1078,6 +1145,7 @@ class FundraisingInventory extends Component {
                             animateRows={true}
                             suppressHorizontalScroll={false}
                             maintainColumnOrder={true}
+                            getRowStyle={this.getRowStyle}
                         />
                     </div>
                 ) : (
