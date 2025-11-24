@@ -1058,13 +1058,19 @@ class FundraisingOrders extends Component {
             } else if (currentStatus === "Paid") {
               // From Paid: can go to Cancelled or Delivered/Collected (based on collection mode)
               if (collectionMode === "Delivery") {
-                statusOptions = ["Paid","Delivered", "Cancelled"];
+                statusOptions = ["Pending", "Paid", "Delivered", "Cancelled"];
               } else if (collectionMode === "Self-Collection") {
-                statusOptions = ["Paid","Collected", "Cancelled"];
+                statusOptions = ["Pending", "Paid", "Collected", "Cancelled"];
               } 
-              else if (collectionMode === "Cancelled") {
-                statusOptions = ["Cancelled", "Refunded"];
-              }
+            }
+            else if (currentStatus === "Collected") {
+                statusOptions = ["Pending", "Paid", "Delivered", "Cancelled"];
+            }
+            else if (currentStatus === "Delivered") {
+               statusOptions = ["Pending", "Paid", "Collected", "Cancelled"];
+            }
+            else if (currentStatus === "Cancelled") {
+               statusOptions = ["Pending", "Paid", "Cancelled", "Refunded"];
             }
             // Store valid options for validation
             params.column.statusOptions = statusOptions;
