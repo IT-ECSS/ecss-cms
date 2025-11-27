@@ -931,20 +931,60 @@ class SalesReportModal extends Component {
     const locationColumnHeader = locationTabType === 'collection' ? 'Collection Location' : 'Station Location';
     const allLocationsLabel = locationTabType === 'collection' ? 'ALL Locations' : 'ALL Stations';
 
+    // Helper function to get pack size and calculate rounded up quantity
+    const getPackSizeAndRounded = (productName, confirmedCount) => {
+      const packSizes = {
+        'Panettone For Good 2025 - 100gm': 24,
+        'Panettone For Good 2025 - 500gm': 12,
+        'Panettone For Good 2025 - 1000gm': 12
+      };
+      
+      const cartonSizes = {
+        'Panettone For Good 2025 - 100gm': 48,
+        'Panettone For Good 2025 - 500gm': 12,
+        'Panettone For Good 2025 - 1000gm': 12
+      };
+      
+      const packSize = packSizes[productName];
+      const cartonSize = cartonSizes[productName];
+      if (!packSize) {
+        return { packSize: 1, rounded: confirmedCount, extra: 0, cartons: 1 };
+      }
+      
+      const rounded = Math.ceil(confirmedCount / packSize) * packSize;
+      const extra = rounded - confirmedCount;
+      const cartons = cartonSize ? Math.ceil(rounded / cartonSize) : rounded / packSize;
+      return { packSize, rounded, extra, cartons };
+    };
+
     return (
       <table className="summary-table-content business-summary-table">
         <thead>
           <tr>
-            <th rowSpan="2">{locationColumnHeader}</th>
-            <th rowSpan="2">Total Paid Amount</th>
-            <th rowSpan="2" className="border-right-emphasis">Total Orders Made</th>
-            <th colSpan={products.length} className="panettone-parent-header">Items Sold</th>
+            <th rowSpan={this.state.locationTabType === 'collection' ? 2 : 3}>{locationColumnHeader}</th>
+            <th rowSpan={this.state.locationTabType === 'collection' ? 2 : 3}>Total Paid Amount</th>
+            <th rowSpan={this.state.locationTabType === 'collection' ? 2 : 3} className="border-right-emphasis">Total Orders Made</th>
+            <th colSpan={this.state.locationTabType === 'collection' ? products.length : products.length * 3} className="panettone-parent-header">Items Sold</th>
           </tr>
           <tr>
-            {products.map(product => (
-              <th key={product}>{product}</th>
-            ))}
+            {this.state.locationTabType === 'collection'
+              ? products.map(product => [
+                  <th key={`${product}-header`}>{product}</th>
+                ])
+              : products.flatMap(product => [
+                  <th key={`${product}-header`} colSpan="3" style={{ textAlign: 'center' }}>{product}</th>
+                ])
+            }
           </tr>
+          {this.state.locationTabType === 'station' && (
+          <tr>
+            {products.flatMap(product => [
+              <th key={`${product}-confirmed`} style={{ fontWeight: 'normal' }}>Confirmed</th>,
+              <th key={`${product}-extra`} style={{ fontWeight: 'normal' }}>Extra</th>,
+              <th key={`${product}-total`} style={{ fontWeight: 'normal' }}>Total</th>
+            ])}
+          </tr>
+          )}
         </thead>
         <tbody>
           {locations.map((location, index) => {
@@ -954,9 +994,20 @@ class SalesReportModal extends Component {
                 <td className="location-name">{location}</td>
                 <td className="location-value paid">${data.paidAmount.toFixed(2)}</td>
                 <td className="location-value paid border-right-emphasis">{data.paidCount}</td>
-                {products.map(product => (
-                  <td className="location-value" key={product}>{data.productCounts[product] || 0}</td>
-                ))}
+                {this.state.locationTabType === 'collection'
+                  ? products.map(product => (
+                      <td className="location-value" key={`${product}-count`}>{data.productCounts[product] || 0}</td>
+                    ))
+                  : products.flatMap(product => {
+                      const confirmed = data.productCounts[product] || 0;
+                      const { rounded, extra, cartons } = getPackSizeAndRounded(product, confirmed);
+                      return [
+                        <td className="location-value" key={`${product}-confirmed`}>{confirmed}</td>,
+                        <td className="location-value" key={`${product}-extra`} style={{ fontSize: '1rem', color: '#666' }}>{extra}</td>,
+                        <td className="location-value" key={`${product}-total`} style={{ fontSize: '1rem', fontWeight: 'bold' }}>{rounded} ({cartons} cartons)</td>
+                      ];
+                    })
+                }
               </tr>
             );
           })}
@@ -964,9 +1015,20 @@ class SalesReportModal extends Component {
             <td className="location-name" style={{ fontWeight: 'bold' }}>{allLocationsLabel}</td>
             <td className="location-value paid" style={{ fontWeight: 'bold' }}>${summary.totalPaid.toFixed(2)}</td>
             <td className="location-value paid border-right-emphasis" style={{ fontWeight: 'bold' }}>{summary.paidCount}</td>
-            {products.map(product => (
-              <td className="location-value" key={product} style={{ fontWeight: 'bold' }}>{totalByProduct[product]}</td>
-            ))}
+            {this.state.locationTabType === 'collection'
+              ? products.map(product => (
+                  <td className="location-value" style={{ fontWeight: 'bold' }} key={`${product}-total-count`}>{totalByProduct[product]}</td>
+                ))
+              : products.flatMap(product => {
+                  const confirmed = totalByProduct[product];
+                  const { rounded, extra, cartons } = getPackSizeAndRounded(product, confirmed);
+
+              return [
+                <td className="location-value" key={`${product}-confirmed`} style={{ fontWeight: 'bold' }}>{confirmed}</td>,
+                <td className="location-value" key={`${product}-extra`} style={{ fontSize: '1rem', color: '#666', fontWeight: 'bold' }}>{extra}</td>,
+                <td className="location-value" key={`${product}-total`} style={{ fontSize: '1rem', fontWeight: 'bold' }}>{rounded} ({cartons} cartons)</td>
+              ];
+            })}
           </tr>
         </tbody>
       </table>
@@ -1147,6 +1209,32 @@ class SalesReportModal extends Component {
     const locationBreakdown = {};
     const groupByField = locationTabType === 'collection' ? 'location' : 'stationLocation';
     
+    // Helper function to get pack size and calculate rounded up quantity
+    const getPackSizeAndRounded = (productName, confirmedCount) => {
+      const packSizes = {
+        'Panettone For Good 2025 - 100gm': 24,
+        'Panettone For Good 2025 - 500gm': 12,
+        'Panettone For Good 2025 - 1000gm': 12
+      };
+      
+      const cartonSizes = {
+        'Panettone For Good 2025 - 100gm': 48,
+        'Panettone For Good 2025 - 500gm': 12,
+        'Panettone For Good 2025 - 1000gm': 12
+      };
+      
+      const packSize = packSizes[productName];
+      const cartonSize = cartonSizes[productName];
+      if (!packSize) {
+        return { packSize: 1, rounded: confirmedCount, extra: 0, cartons: 1 };
+      }
+      
+      const rounded = Math.ceil(confirmedCount / packSize) * packSize;
+      const extra = rounded - confirmedCount;
+      const cartons = cartonSize ? Math.ceil(rounded / cartonSize) : rounded / packSize;
+      return { packSize, rounded, extra, cartons };
+    };
+    
     filteredData.forEach(row => {
       const location = row[groupByField] || (locationTabType === 'collection' ? 'Unknown Location' : 'Unknown Station');
       if (!locationBreakdown[location]) {
@@ -1213,38 +1301,85 @@ class SalesReportModal extends Component {
     const locationColumnHeader = locationTabType === 'collection' ? 'Collection Location' : 'Station Location';
     const allLocationsLabel = locationTabType === 'collection' ? 'ALL Locations' : 'ALL Stations';
 
+    // Determine if we should show sub-columns (only for Station Location)
+    const showSubColumns = locationTabType === 'station';
+    const colspanMultiplier = showSubColumns ? 3 : 1;
+
     let tableHTML = `
       <table style="width: 100%; border-collapse: collapse; font-size: 8.5px; line-height: 1.4; table-layout: auto;">
         <thead>
           <tr style="height: auto; min-height: 75px;">
-            <th rowSpan="2" style="padding: 10px 5px; border: 1px solid #333; background-color: #333; color: white; font-weight: bold; font-size: 15px;">${locationColumnHeader}</th>
-            <th rowSpan="2" style="padding: 10px 5px; border: 1px solid #333; background-color: #333; color: white; font-weight: bold; font-size: 15px;">Total Paid Amount</th>
-            <th rowSpan="2" style="padding: 10px 5px; border: 1px solid #333; background-color: #333; color: white; font-weight: bold; font-size: 15px;">Total Orders Made</th>
-            <th colSpan="${products.length}" style="padding: 10px 5px; border: 1px solid #333; background-color: #8B7355; color: white; font-weight: bold; font-size: 15px;">Items Sold</th>
+            <th rowSpan="${showSubColumns ? 3 : 2}" style="padding: 10px 5px; border: 1px solid #333; background-color: #333; color: white; font-weight: bold; font-size: 15px;">${locationColumnHeader}</th>
+            <th rowSpan="${showSubColumns ? 3 : 2}" style="padding: 10px 5px; border: 1px solid #333; background-color: #333; color: white; font-weight: bold; font-size: 15px;">Total Paid Amount</th>
+            <th rowSpan="${showSubColumns ? 3 : 2}" style="padding: 10px 5px; border: 1px solid #333; background-color: #333; color: white; font-weight: bold; font-size: 15px;">Total Orders Made</th>
+            <th colSpan="${products.length * colspanMultiplier}" style="padding: 10px 5px; border: 1px solid #333; background-color: #8B7355; color: white; font-weight: bold; font-size: 15px;">Items Sold</th>
           </tr>
           <tr style="height: auto; min-height: 75px;">
-            ${products.map(product => `<th style="padding: 10px 5px; border: 1px solid #333; background-color: #333; color: white; font-weight: bold; font-size: 15px;">${product}</th>`).join('')}
+            ${showSubColumns 
+              ? products.map(product => `<th style="padding: 10px 5px; border: 1px solid #333; background-color: #333; color: white; font-weight: bold; font-size: 15px;" colSpan="3">${product}</th>`).join('')
+              : products.map(product => `<th style="padding: 10px 5px; border: 1px solid #333; background-color: #333; color: white; font-weight: bold; font-size: 15px;">${product}</th>`).join('')
+            }
           </tr>
+          ${showSubColumns ? `
+          <tr style="height: auto; min-height: 75px;">
+            ${products.flatMap(product => [
+              `<th style="padding: 10px 5px; border: 1px solid #333; background-color: #555; color: white; font-weight: normal; font-size: 1rem;">Confirmed</th>`,
+              `<th style="padding: 10px 5px; border: 1px solid #333; background-color: #555; color: white; font-weight: normal; font-size: 1rem;">Extra</th>`,
+              `<th style="padding: 10px 5px; border: 1px solid #333; background-color: #555; color: white; font-weight: normal; font-size: 1rem;">Total</th>`
+            ]).join('')}
+          </tr>
+          ` : ''}
         </thead>
         <tbody>
           ${locations.map((location, index) => {
             const data = locationBreakdown[location];
             const bgColor = this.getLocationBackgroundColor(location);
             const bgStyle = bgColor ? `background-color: #${bgColor.substring(2)};` : '';
-            return `
-              <tr style="height: auto; min-height: 110px; ${bgStyle}">
-                <td style="padding: 10px 5px; border: 1px solid #ddd; font-size: 15px;">${location}</td>
-                <td style="padding: 10px 5px; border: 1px solid #ddd; text-align: right; font-size: 15px;">$${data.paidAmount.toFixed(2)}</td>
-                <td style="padding: 10px 5px; border: 1px solid #ddd; text-align: right; font-size: 15px;">${data.paidCount}</td>
-                ${products.map(product => `<td style="padding: 10px 5px; border: 1px solid #ddd; text-align: right; font-size: 15px;">${data.productCounts[product] || 0}</td>`).join('')}
-              </tr>
-            `;
+            
+            if (showSubColumns) {
+              return `
+                <tr style="height: auto; min-height: 110px; ${bgStyle}">
+                  <td style="padding: 10px 5px; border: 1px solid #ddd; font-size: 15px;">${location}</td>
+                  <td style="padding: 10px 5px; border: 1px solid #ddd; text-align: right; font-size: 15px;">$${data.paidAmount.toFixed(2)}</td>
+                  <td style="padding: 10px 5px; border: 1px solid #ddd; text-align: right; font-size: 15px;">${data.paidCount}</td>
+                  ${products.flatMap(product => {
+                    const confirmed = data.productCounts[product] || 0;
+                    const { rounded, extra, cartons } = getPackSizeAndRounded(product, confirmed);
+                    return [
+                      `<td style="padding: 10px 5px; border: 1px solid #ddd; text-align: right; font-size: 15px;">${confirmed}</td>`,
+                      `<td style="padding: 10px 5px; border: 1px solid #ddd; text-align: right; font-size: 1rem; color: #666;">${extra}</td>`,
+                      `<td style="padding: 10px 5px; border: 1px solid #ddd; text-align: right; font-size: 1rem; font-weight: bold;">${rounded} (${cartons} cartons)</td>`
+                    ];
+                  }).join('')}
+                </tr>
+              `;
+            } else {
+              return `
+                <tr style="height: auto; min-height: 110px; ${bgStyle}">
+                  <td style="padding: 10px 5px; border: 1px solid #ddd; font-size: 15px;">${location}</td>
+                  <td style="padding: 10px 5px; border: 1px solid #ddd; text-align: right; font-size: 15px;">$${data.paidAmount.toFixed(2)}</td>
+                  <td style="padding: 10px 5px; border: 1px solid #ddd; text-align: right; font-size: 15px;">${data.paidCount}</td>
+                  ${products.map(product => `<td style="padding: 10px 5px; border: 1px solid #ddd; text-align: right; font-size: 15px;">${data.productCounts[product] || 0}</td>`).join('')}
+                </tr>
+              `;
+            }
           }).join('')}
           <tr style="height: auto; min-height: 60px; background-color: #f0f0f0;">
             <td style="padding: 10px 5px; border: 1px solid #ddd; font-weight: bold; font-size: 15px;">${allLocationsLabel}</td>
             <td style="padding: 10px 5px; border: 1px solid #ddd; text-align: right; font-weight: bold; font-size: 15px;">$${totalPaid.toFixed(2)}</td>
             <td style="padding: 10px 5px; border: 1px solid #ddd; text-align: right; font-weight: bold; font-size: 15px;">${paidCount}</td>
-            ${products.map(product => `<td style="padding: 10px 5px; border: 1px solid #ddd; text-align: right; font-weight: bold; font-size: 15px;">${totalByProduct[product]}</td>`).join('')}
+            ${showSubColumns
+              ? products.flatMap(product => {
+                  const confirmed = totalByProduct[product];
+                  const { rounded, extra, cartons } = getPackSizeAndRounded(product, confirmed);
+                  return [
+                    `<td style="padding: 10px 5px; border: 1px solid #ddd; text-align: right; font-weight: bold; font-size: 15px;">${confirmed}</td>`,
+                    `<td style="padding: 10px 5px; border: 1px solid #ddd; text-align: right; font-weight: bold; font-size: 1rem;">${extra}</td>`,
+                    `<td style="padding: 10px 5px; border: 1px solid #ddd; text-align: right; font-weight: bold; font-size: 1rem;">${rounded} (${cartons} cartons)</td>`
+                  ];
+                }).join('')
+              : products.map(product => `<td style="padding: 10px 5px; border: 1px solid #ddd; text-align: right; font-weight: bold; font-size: 15px;">${totalByProduct[product]}</td>`).join('')
+            }
           </tr>
         </tbody>
       </table>
