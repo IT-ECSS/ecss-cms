@@ -518,6 +518,10 @@
   background-color: #fff3cd;
 }
 
+.location-enchurch {
+  background-color: #f8e8f0;
+}
+
 /* Border emphasis between columns */
 .summary-table-content th:nth-child(3)::after {
   content: '';
@@ -723,6 +727,11 @@
   background-color: #fffde7 !important;
 }
 
+.location-header.location-enchurch,
+.location-value.location-enchurch {
+  background-color: #f8e8f0 !important;
+}
+
 .location-header.location-default,
 .location-value.location-default {
   background-color: #f5f5f5 !important;
@@ -746,6 +755,11 @@ tr.location-pasirris td {
 tr.location-tampines,
 tr.location-tampines td {
   background-color: #fffde7 !important;
+}
+
+tr.location-enchurch,
+tr.location-enchurch td {
+  background-color: #f8e8f0 !important;
 }
 
 /* Payment Report Summary */
