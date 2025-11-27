@@ -277,6 +277,29 @@
   transform: translateY(1px);
 }
 
+/* New Button */
+.fundraising-new-btn {
+  padding: 0.9rem 1.05rem;
+  font-size: 0.8rem;
+  border: 1px solid #ff69b4;
+  border-radius: 0.3rem;
+  background-color: transparent;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+  white-space: nowrap;
+  color: #ff69b4;
+  width: fit-content;
+}
+
+.fundraising-new-btn:hover {
+  background-color: #ffe4f0;
+  transform: translateY(-2px);
+}
+
+.fundraising-new-btn:active {
+  transform: translateY(1px);
+}
+
 /* View Items Button */
 .view-items-btn {
   background-color: #007bff !important;

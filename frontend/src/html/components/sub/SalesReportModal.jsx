@@ -933,28 +933,21 @@ class SalesReportModal extends Component {
 
     // Helper function to get pack size and calculate rounded up quantity
     const getPackSizeAndRounded = (productName, confirmedCount) => {
-      const packSizes = {
-        'Panettone For Good 2025 - 100gm': 24,
-        'Panettone For Good 2025 - 500gm': 12,
-        'Panettone For Good 2025 - 1000gm': 12
-      };
-      
       const cartonSizes = {
         'Panettone For Good 2025 - 100gm': 48,
         'Panettone For Good 2025 - 500gm': 12,
         'Panettone For Good 2025 - 1000gm': 12
       };
       
-      const packSize = packSizes[productName];
       const cartonSize = cartonSizes[productName];
-      if (!packSize) {
-        return { packSize: 1, rounded: confirmedCount, extra: 0, cartons: 1 };
+      if (!cartonSize) {
+        return { rounded: confirmedCount, extra: 0, cartons: 1 };
       }
       
-      const rounded = Math.ceil(confirmedCount / packSize) * packSize;
+      const rounded = Math.ceil(confirmedCount / cartonSize) * cartonSize;
       const extra = rounded - confirmedCount;
-      const cartons = cartonSize ? Math.ceil(rounded / cartonSize) : rounded / packSize;
-      return { packSize, rounded, extra, cartons };
+      const cartons = Math.ceil(rounded / cartonSize);
+      return { rounded, extra, cartons };
     };
 
     return (
@@ -1211,28 +1204,21 @@ class SalesReportModal extends Component {
     
     // Helper function to get pack size and calculate rounded up quantity
     const getPackSizeAndRounded = (productName, confirmedCount) => {
-      const packSizes = {
-        'Panettone For Good 2025 - 100gm': 24,
-        'Panettone For Good 2025 - 500gm': 12,
-        'Panettone For Good 2025 - 1000gm': 12
-      };
-      
       const cartonSizes = {
         'Panettone For Good 2025 - 100gm': 48,
         'Panettone For Good 2025 - 500gm': 12,
         'Panettone For Good 2025 - 1000gm': 12
       };
       
-      const packSize = packSizes[productName];
       const cartonSize = cartonSizes[productName];
-      if (!packSize) {
-        return { packSize: 1, rounded: confirmedCount, extra: 0, cartons: 1 };
+      if (!cartonSize) {
+        return { rounded: confirmedCount, extra: 0, cartons: 1 };
       }
       
-      const rounded = Math.ceil(confirmedCount / packSize) * packSize;
+      const rounded = Math.ceil(confirmedCount / cartonSize) * cartonSize;
       const extra = rounded - confirmedCount;
-      const cartons = cartonSize ? Math.ceil(rounded / cartonSize) : rounded / packSize;
-      return { packSize, rounded, extra, cartons };
+      const cartons = Math.ceil(rounded / cartonSize);
+      return { rounded, extra, cartons };
     };
     
     filteredData.forEach(row => {

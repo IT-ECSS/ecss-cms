@@ -308,6 +308,7 @@ class FundraisingOrders extends Component {
 
     async componentDidMount() 
     {
+      console.log("FundraisingTable - componentDidMount called");
       // Preload product details for all fundraising orders
       await this.preloadAllProductDetails();
       
@@ -533,6 +534,7 @@ class FundraisingOrders extends Component {
               wooCommerceProductDetails: response.data.fundraising_products
             },
             async () => {
+              console.log('WooCommerce products set in FundraisingOrders state:', this.state.wooCommerceProductDetails);
               await this.fetchAndSetFundraisingData();
             }
           );
@@ -3432,6 +3434,24 @@ Sila buat pembayaran anda di lokasi tersebut untuk mengesahkan pesanan anda.
       labelCell.alignment = { horizontal: 'right' };
     };
 
+    // Helper method: Check if user is authorized to see the new button
+    isUserAuthorized = () => {
+      const { role } = this.props;
+      const authorizedRoles = ['Ops in-charge', 'Admin', 'Sub Admin', 'Finance'];
+      return role && authorizedRoles.includes(role);
+    };
+
+    // Helper method: Handle new button action
+    handleNewButtonAction = () => {
+      console.log('Fiscal Balance Report button clicked by user role:', this.props.role);
+      this.props.openFiscalBalanceReportModal();
+    };
+
+    // Helper method: Close fiscal balance modal
+    closeFiscalBalanceModal = () => {
+      this.setState({ showFiscalBalanceModal: false });
+    };
+
     // Export confirmed (Paid status) items sales to Excel by location
     render() 
     {
@@ -3454,6 +3474,14 @@ Sila buat pembayaran anda di lokasi tersebut untuk mengesahkan pesanan anda.
               >
               Sales Report
               </button>
+              {this.isUserAuthorized() && (
+              <button 
+                className="fundraising-new-btn"
+                onClick={this.handleNewButtonAction}
+              >
+              Fiscal Balance Report
+              </button>
+              )}
 
             </div>
           </div>

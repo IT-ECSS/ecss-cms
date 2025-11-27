@@ -1,0 +1,267 @@
+/* Fiscal Balance Report Modal Styles */
+
+.fiscal-balance-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.fiscal-balance-modal-content {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  max-width: 1000px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.fiscal-balance-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 1.5rem;
+  border-bottom: 1px solid #dee2e6;
+  background-color: #f8f9fa;
+  border-radius: 8px 8px 0 0;
+}
+
+.header-title-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.fiscal-balance-modal-header h2 {
+  margin: 0;
+  color: #333;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.fiscal-balance-last-updated {
+  font-size: 0.85rem;
+  color: #666;
+  font-style: italic;
+}
+
+.fiscal-balance-modal-close {
+  background: none;
+  border: none;
+  font-size: 28px;
+  cursor: pointer;
+  color: #999;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.fiscal-balance-modal-close:hover {
+  background-color: #e9ecef;
+  color: #333;
+}
+
+.fiscal-balance-modal-body {
+  padding: 1.5rem;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.fiscal-balance-modal-footer {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  padding: 1.5rem;
+  border-top: 1px solid #dee2e6;
+  background-color: #f8f9fa;
+  border-radius: 0 0 8px 8px;
+}
+
+.fiscal-balance-preview-btn,
+.fiscal-balance-export-pdf-btn {
+  padding: 0.75rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fiscal-balance-preview-btn {
+  background-color: #667eea;
+  color: white;
+}
+
+.fiscal-balance-preview-btn:hover {
+  background-color: #5568d3;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.fiscal-balance-export-pdf-btn {
+  background-color: #764ba2;
+  color: white;
+}
+
+.fiscal-balance-export-pdf-btn:hover {
+  background-color: #653a8a;
+  box-shadow: 0 2px 8px rgba(118, 75, 162, 0.3);
+}
+
+/* Summary Section Styling */
+.fiscal-balance-summary-section {
+  margin-bottom: 2rem;
+}
+
+.fiscal-balance-summary-section h3 {
+  margin: 0 0 1rem 0;
+  color: #333;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.fiscal-balance-summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 2rem;
+}
+
+.fiscal-balance-summary-table tbody tr {
+  border-bottom: 1px solid #dee2e6;
+}
+
+.fiscal-balance-summary-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.fiscal-balance-summary-table td {
+  padding: 1rem;
+  font-size: 0.95rem;
+}
+
+.summary-label {
+  font-weight: 600;
+  color: #333;
+  width: 60%;
+}
+
+.summary-value-cell {
+  color: #667eea;
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-align: right;
+}
+
+/* Products Table Styling */
+.fiscal-balance-products-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.fiscal-balance-products-table thead {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-bottom: 3px solid #667eea;
+}
+
+.fiscal-balance-products-table th {
+  padding: 1.3rem 1.2rem;
+  text-align: left;
+  font-weight: 700;
+  color: white;
+  font-size: 0.95rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.fiscal-balance-products-table tbody tr {
+  border-bottom: 1px solid #e9ecef;
+  transition: all 0.3s ease;
+}
+
+.fiscal-balance-products-table tbody tr:hover {
+  background-color: #f8f9fa;
+  box-shadow: inset 0 0 0 1px rgba(102, 126, 234, 0.1);
+}
+
+.fiscal-balance-products-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.fiscal-balance-products-table tbody tr:nth-child(even) {
+  background-color: #fafbfc;
+}
+
+.fiscal-balance-products-table td {
+  padding: 1.1rem 1.2rem;
+  color: #555;
+  font-size: 0.95rem;
+  border-right: 1px solid #f0f0f0;
+}
+
+.fiscal-balance-products-table td:first-child {
+  font-weight: 600;
+  color: #333;
+}
+
+.fiscal-balance-products-table td:last-child {
+  border-right: none;
+  text-align: right;
+  padding-right: 1.5rem;
+}
+
+.no-data-message {
+  text-align: center;
+  color: #999;
+  font-style: italic;
+  padding: 2rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .fiscal-balance-modal-content {
+    width: 95%;
+    max-height: 90vh;
+  }
+
+  .fiscal-balance-modal-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .fiscal-balance-items-table {
+    font-size: 0.85rem;
+  }
+
+  .fiscal-balance-items-table th,
+  .fiscal-balance-items-table td {
+    padding: 0.5rem;
+  }
+
+  .fiscal-balance-modal-body {
+    padding: 1rem;
+  }
+}
