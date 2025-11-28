@@ -3231,23 +3231,13 @@ Sila buat pembayaran anda di lokasi tersebut untuk mengesahkan pesanan anda.
       dataToProcess.forEach(({ item, row, originalIndex }) => {
         const exportRowData = this.buildExportRowData(item, row, originalIndex || row.sn - 1 || 0, allHeaders);
         const excelRow = worksheet.addRow(exportRowData);
-        
-        // Apply color coding based on collection location
-        const collectionLocation = this.getCollectionLocation(item, row);
-        const backgroundColor = this.getLocationBackgroundColor(collectionLocation, false);
-        this.applyRowStyling(excelRow, headerRow, backgroundColor);
+        // No background color styling applied
       });
     };
 
     // Main Export method: Export table data to Excel
     exportToExcel = async () => {
       try {
-        console.log('Starting Excel export...');
-        console.log('Original data length:', this.state.originalData?.length || 0);
-        console.log('Row data length:', this.state.rowData?.length || 0);
-        console.log('Sample original data:', this.state.originalData?.[0]);
-        console.log('Sample row data:', this.state.rowData?.[0]);
-        
         // Create a new workbook
         const workbook = new ExcelJS.Workbook();
         
@@ -3261,33 +3251,19 @@ Sila buat pembayaran anda di lokasi tersebut untuk mengesahkan pesanan anda.
         const activeHeaders = this.getExcelHeaders();
         const dataToExport = this.state.originalData || this.state.rowData;
         
-        // Group data by collection location
-        const locationGroups = this.groupDataByLocation(dataToExport);
-        console.log('Location groups:', Object.keys(locationGroups));
+        // Create single worksheet for all data
+        const { worksheet, headerRow } = 
+          this.createWorksheet(workbook, 'Fundraising Orders', activeHeaders, null, true);
 
-        // Create "All Locations" worksheet
-        const { worksheet: allDataWorksheet, headerRow: allDataHeaderRow } = 
-          this.createWorksheet(workbook, 'All Locations', activeHeaders, null, true);
-
-        // Add all data to the first worksheet
+        // Add all data to the single worksheet
         const allDataFormatted = dataToExport.map((item, index) => ({
           item,
           row: this.state.rowData[index] || {},
           originalIndex: index
         }));
         
-        this.addDataToWorksheet(allDataWorksheet, allDataHeaderRow, allDataFormatted, activeHeaders, allHeaders);
-        this.autoFitColumns(allDataWorksheet);
-
-        // Create worksheets for each location
-        Object.entries(locationGroups).forEach(([location, locationData]) => {
-          // Clean up location name for sheet name (Excel sheet names have restrictions)
-          const sheetName = location.replace(/[\\\/\?\*\[\]]/g, '_').substring(0, 31);
-          
-          const { worksheet, headerRow } = this.createWorksheet(workbook, sheetName, activeHeaders, location);
-          this.addDataToWorksheet(worksheet, headerRow, locationData, activeHeaders, allHeaders);
-          this.autoFitColumns(worksheet);
-        });
+        this.addDataToWorksheet(worksheet, headerRow, allDataFormatted, activeHeaders, allHeaders);
+        this.autoFitColumns(worksheet);
 
         // Generate filename with timestamp
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
