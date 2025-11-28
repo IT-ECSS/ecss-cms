@@ -900,23 +900,25 @@ class SalesReportModal extends Component {
       }
     });
 
-    // Sort product names alphabetically, but if they contain numbers, sort by those numbers in ascending order
+    // Sort product names in the specified order: 1000gm, 500gm, 100gm
+    const productOrder = [
+      'Panettone For Good 2025 - 1000gm',
+      'Panettone For Good 2025 - 500gm',
+      'Panettone For Good 2025 - 100gm'
+    ];
+    
     const products = Array.from(productSet).sort((a, b) => {
-      // Extract ALL numbers from the product names and get the last one (grams value)
-      const aMatches = a.match(/\d+/g);
-      const bMatches = b.match(/\d+/g);
+      const aIndex = productOrder.indexOf(a);
+      const bIndex = productOrder.indexOf(b);
       
-      const aNum = aMatches ? parseInt(aMatches[aMatches.length - 1]) : null;
-      const bNum = bMatches ? parseInt(bMatches[bMatches.length - 1]) : null;
-      
-      // If both have numbers, sort numerically
-      if (aNum !== null && bNum !== null) {
-        return aNum - bNum;
+      // If both are in productOrder, sort by their order
+      if (aIndex !== -1 && bIndex !== -1) {
+        return aIndex - bIndex;
       }
       
-      // If only one has a number, prioritize the one with number
-      if (aNum !== null) return -1;
-      if (bNum !== null) return 1;
+      // If only one is in productOrder, prioritize it
+      if (aIndex !== -1) return -1;
+      if (bIndex !== -1) return 1;
       
       // Otherwise sort alphabetically
       return a.localeCompare(b);

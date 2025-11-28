@@ -129,9 +129,9 @@ class FiscalBalanceReportModal extends Component {
 
     // Manual quantities to add for specific products
     const manualQuantities = {
-      'Panettone For Good 2025 - 1000gm': 40,
-      'Panettone For Good 2025 - 500gm': 274,
-      'Panettone For Good 2025 - 100gm': 640
+      'Panettone For Good 2025 - 1000gm': 20,
+      'Panettone For Good 2025 - 500gm': 137,
+      'Panettone For Good 2025 - 100gm': 320
     };
 
     // Merge order counts into productTable and add manual quantities
