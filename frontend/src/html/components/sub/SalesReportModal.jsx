@@ -1263,13 +1263,25 @@ class SalesReportModal extends Component {
     });
 
     const products = Array.from(productSet).sort((a, b) => {
-      const aMatches = a.match(/\d+/g);
-      const bMatches = b.match(/\d+/g);
-      const aNum = aMatches ? parseInt(aMatches[aMatches.length - 1]) : null;
-      const bNum = bMatches ? parseInt(bMatches[bMatches.length - 1]) : null;
-      if (aNum !== null && bNum !== null) return aNum - bNum;
-      if (aNum !== null) return -1;
-      if (bNum !== null) return 1;
+      const productOrder = [
+        'Panettone For Good 2025 - 1000gm',
+        'Panettone For Good 2025 - 500gm',
+        'Panettone For Good 2025 - 100gm'
+      ];
+      
+      const aIndex = productOrder.indexOf(a);
+      const bIndex = productOrder.indexOf(b);
+      
+      // If both are in productOrder, sort by their order
+      if (aIndex !== -1 && bIndex !== -1) {
+        return aIndex - bIndex;
+      }
+      
+      // If only one is in productOrder, prioritize it
+      if (aIndex !== -1) return -1;
+      if (bIndex !== -1) return 1;
+      
+      // Otherwise sort alphabetically
       return a.localeCompare(b);
     });
 
