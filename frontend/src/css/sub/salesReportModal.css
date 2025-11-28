@@ -291,6 +291,7 @@
 .sales-report-btn-export {
   background-color: #28a745;
   color: white;
+  width: fit-content;
 }
 
 .sales-report-btn-export:hover:not(:disabled) {

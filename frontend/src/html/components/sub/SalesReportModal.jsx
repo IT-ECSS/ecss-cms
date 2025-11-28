@@ -25,6 +25,7 @@ class SalesReportModal extends Component {
       locationTabType: 'collection', // 'collection' or 'station' - which tab type is active
       summaryTab: 'payment', // Tab for summary view (default: payment)
       lastUpdated: null, // Track last update timestamp
+      lastOpened: new Date(), // Track last opened timestamp
       showPDFPreview: false, // Toggle PDF preview modal
       pdfPreviewContent: null // Store PDF preview content
     };
@@ -195,6 +196,11 @@ class SalesReportModal extends Component {
   componentDidUpdate(prevProps) {
     if (prevProps.fundraisingData !== this.props.fundraisingData) {
       this.prepareDisplayData();
+    }
+    // Update lastOpened timestamp when modal is opened
+    if (!prevProps.isOpen && this.props.isOpen) {
+      console.log('Sales Report modal opened - updating lastOpened timestamp');
+      this.setState({ lastOpened: new Date() });
     }
   }
 
@@ -1514,7 +1520,7 @@ class SalesReportModal extends Component {
 
   render() {
     const { isOpen, onClose } = this.props;
-    const { isLoading, selectedPaymentMethods, allPaymentMethodsChecked, locationTabs, stationLocationTabs, activeTab, activeStationTab, locationTabType, lastUpdated } = this.state;
+    const { isLoading, selectedPaymentMethods, allPaymentMethodsChecked, locationTabs, stationLocationTabs, activeTab, activeStationTab, locationTabType, lastUpdated, lastOpened } = this.state;
 
     if (!isOpen) return null;
 
@@ -1525,15 +1531,34 @@ class SalesReportModal extends Component {
       <div className="sales-report-modal-overlay" onClick={onClose}>
         <div className="sales-report-modal-content" onClick={(e) => e.stopPropagation()}>
           <div className="sales-report-modal-header">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
               <h2>Sales Report</h2>
-              <div style={{ fontSize: '12px', color: '#666', textAlign: 'right' }}>
-                {lastUpdated && <div>Last updated: {this.formatTimestamp(lastUpdated)}</div>}
+              <div style={{ display: 'flex', gap: '30px', alignItems: 'flex-start' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'right' }}>
+                <div style={{ fontSize: '12px', color: '#666' }}>
+                  {lastUpdated && <div style={{ textAlign: 'left' }}>Last Updated: {this.formatTimestamp(lastUpdated)}</div>}
+                </div>
+                <div style={{ fontSize: '12px', color: '#666' }}>
+                  {lastOpened && <div style={{ textAlign: 'left' }}>Last Opened: {this.formatTimestamp(lastOpened)}</div>}
+                </div>
+              </div>
+              <button 
+                className="sales-report-modal-close"
+                onClick={onClose}
+                disabled={isLoading}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: isLoading ? 'not-allowed' : 'pointer',
+                  color: '#666',
+                  padding: '0 4px'
+                }}
+              >
+                ×
+              </button>
               </div>
             </div>
-            <button className="sales-report-modal-close" onClick={onClose}>
-              ×
-            </button>
           </div>
 
           <div style={{ display: 'flex', gap: '10px', padding: '0 20px 10px 20px', borderBottom: '1px solid #e0e0e0' }}>
@@ -1614,18 +1639,11 @@ class SalesReportModal extends Component {
 
           <div className="sales-report-modal-footer">
             <button 
-              className="sales-report-btn-cancel"
-              onClick={onClose}
-              disabled={isLoading}
-            >
-              Close
-            </button>
-            <button 
               className="sales-report-btn-export"
               onClick={this.generateSalesReport}
               disabled={isLoading || locationTabs.length === 0}
             >
-              Generate Report
+              Generate Sales Report
             </button>
           </div>
         </div>
