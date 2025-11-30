@@ -3428,6 +3428,58 @@ Sila buat pembayaran anda di lokasi tersebut untuk mengesahkan pesanan anda.
       this.setState({ showFiscalBalanceModal: false });
     };
 
+    // Fetch bulk orders from Google Drive Excel file
+    handleDisplayBulkOrder = async () => {
+      // Call parent's openBulkOrderModal method to display modal in parent component
+      if (this.props.openBulkOrderModal) {
+        this.props.openBulkOrderModal();
+      } else {
+        console.error('openBulkOrderModal prop not available from parent component');
+      }
+    };
+
+    // Close bulk order modal
+    closeBulkOrderModal = () => {
+      this.setState({
+        showBulkOrderModal: false,
+        bulkOrderData: null,
+        bulkOrderError: ''
+      });
+    };
+
+    // Render bulk order modal
+
+
+    // Export bulk orders to Excel
+    exportBulkOrdersToExcel = (bulkOrderData) => {
+      try {
+        console.log('Exporting bulk orders to Excel:', bulkOrderData);
+        
+        // Create workbook and worksheet
+        const ws = XLSX.utils.json_to_sheet(
+          bulkOrderData.bulkOrders.map(order => order.data)
+        );
+        
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Delivery Details");
+        
+        // Add column widths
+        ws['!cols'] = bulkOrderData.headers.map(() => ({ wch: 20 }));
+        
+        // Generate filename
+        const timestamp = new Date().toISOString().split('T')[0];
+        const filename = `Delivery_Details_${timestamp}.xlsx`;
+        
+        // Save file
+        XLSX.writeFile(wb, filename);
+        
+        console.log('Bulk orders exported successfully:', filename);
+      } catch (error) {
+        console.error('Error exporting bulk orders:', error);
+        alert('Failed to export bulk orders to Excel');
+      }
+    };
+
     // Export confirmed (Paid status) items sales to Excel by location
     render() 
     {
@@ -3452,12 +3504,19 @@ Sila buat pembayaran anda di lokasi tersebut untuk mengesahkan pesanan anda.
               </button>
               {this.isUserAuthorized() && (
               <button 
-                className="fundraising-new-btn"
+                className="fundraising-fiscal-btn"
                 onClick={this.handleNewButtonAction}
               >
               Fiscal Balance Report
               </button>
               )}
+              <button 
+                className="fundraising-create-btn"
+                onClick={this.handleDisplayBulkOrder}
+                title="Fetch delivery details from Excel"
+              >
+                Bulk Orders Report
+              </button>
 
             </div>
           </div>

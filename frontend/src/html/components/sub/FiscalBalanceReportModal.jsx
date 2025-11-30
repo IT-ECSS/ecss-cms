@@ -187,9 +187,9 @@ class FiscalBalanceReportModal extends Component {
           
           // Create container with header
           const container = document.createElement('div');
-          container.style.padding = '20px';
+          container.style.padding = '0px';
           container.innerHTML = `
-            <h2 style="text-align: center; margin-bottom: 20px; font-size: 18px; font-weight: bold;">Fiscal Balance Report Summary</h2>
+            <h2 style="text-align: center; margin-bottom: 10px; font-size: 18px; font-weight: bold;">Fiscal Balance Report Summary</h2>
             ${element.innerHTML}
           `;
           
@@ -197,7 +197,7 @@ class FiscalBalanceReportModal extends Component {
             margin: 5,
             filename: `Fiscal-Balance-Report-Preview-${dateStr}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 3, useCORS: true },
+            html2canvas: { scale: 2, useCORS: true, allowTaint: true },
             jsPDF: { orientation: 'landscape', unit: 'mm', format: 'a4', compress: true }
           };
           

@@ -236,22 +236,6 @@ class CheckoutPage extends Component {
     });
   }
 
-  // Auto-select Payment Method if only one option available
-  componentDidMount = () => {
-    // Original componentDidMount code preserved and enhanced
-    localStorage.setItem('isInCheckoutMode', 'true');
-    
-    // Check if cart is empty and redirect back if so
-    const { cartItems = [] } = this.props;
-    if (cartItems.length === 0) {
-      console.log('No items in cart, redirecting back...');
-      this.handleGoBack();
-    }
-
-    // Auto-select payment method (Cash is the only available option currently)
-    // This will be selected by default in state initialization
-  }
-
   handleCollectionModeChange = (mode) => {
     this.setState({
       collectionMode: mode,

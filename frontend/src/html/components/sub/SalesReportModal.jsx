@@ -27,7 +27,9 @@ class SalesReportModal extends Component {
       lastUpdated: null, // Track last update timestamp
       lastOpened: new Date(), // Track last opened timestamp
       showPDFPreview: false, // Toggle PDF preview modal
-      pdfPreviewContent: null // Store PDF preview content
+      pdfPreviewContent: null, // Store PDF preview content
+      showBulkOrderModal: false, // Toggle bulk order modal
+      bulkOrderLoading: false // Track bulk order loading state
     };
     this.socket = null;
   }
@@ -1394,6 +1396,68 @@ class SalesReportModal extends Component {
     return tableHTML;
   };
 
+  // Handle Bulk Order submission
+  handleBulkOrder = async () => {
+    try {
+      this.setState({ bulkOrderLoading: true });
+      
+      const { activeTab, activeStationTab, locationTabType } = this.state;
+      const { fundraisingData } = this.props;
+      
+      // Get the current summary data
+      const summary = this.calculatePaymentSummary();
+      
+      // Prepare bulk order data
+      const bulkOrderData = {
+        tabType: locationTabType, // 'collection' or 'station'
+        activeTab: locationTabType === 'collection' ? activeTab : activeStationTab,
+        totalPaidAmount: summary.totalPaid,
+        totalOrders: summary.paidCount,
+        paymentMethods: this.state.selectedPaymentMethods,
+        timestamp: new Date().toISOString(),
+        orders: fundraisingData
+          .filter(order => order.status === 'Paid')
+          .map(order => ({
+            id: order._id || order.id,
+            firstName: order.personalInfo?.firstName || order.firstName,
+            lastName: order.personalInfo?.lastName || order.lastName,
+            email: order.personalInfo?.email || order.email,
+            phone: order.personalInfo?.phone || order.contactNumber,
+            totalAmount: this.calculateTotalAmount(order),
+            items: order.orderDetails?.items || order.items || [],
+            status: order.status,
+            location: order.collectionDetails?.CollectionDeliveryLocation || 'Unknown',
+            stationLocation: order.personalInfo?.location || 'Unknown'
+          }))
+      };
+      
+      console.log('Bulk Order Data:', bulkOrderData);
+      
+      // TODO: Connect to backend
+      // await axios.post('/api/bulk-order', bulkOrderData);
+      
+      // Show success message
+      alert('Bulk order prepared and ready for backend integration');
+      this.setState({ showBulkOrderModal: false });
+      
+    } catch (error) {
+      console.error('Error processing bulk order:', error);
+      alert('Error processing bulk order. Please try again.');
+    } finally {
+      this.setState({ bulkOrderLoading: false });
+    }
+  };
+
+  // Open bulk order confirmation modal
+  openBulkOrderModal = () => {
+    this.setState({ showBulkOrderModal: true });
+  };
+
+  // Close bulk order modal
+  closeBulkOrderModal = () => {
+    this.setState({ showBulkOrderModal: false });
+  };
+
   // Generate PDF Report with landscape orientation - 2 pages (Collection and Station Location)
   generatePDFReport = (preview = false) => {
     try {
@@ -1661,6 +1725,110 @@ class SalesReportModal extends Component {
             </button>
           </div>
         </div>
+
+        {/* Bulk Order Confirmation Modal */}
+        {this.state.showBulkOrderModal && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 10000
+          }} onClick={this.closeBulkOrderModal}>
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '8px',
+              width: '90%',
+              maxWidth: '500px',
+              padding: '24px',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px'
+            }} onClick={(e) => e.stopPropagation()}>
+              <div>
+                <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: 'bold' }}>📦 Create Bulk Order</h3>
+                <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>Confirm bulk order creation from paid orders</p>
+              </div>
+
+              <div style={{
+                backgroundColor: '#f8f9fa',
+                padding: '12px',
+                borderRadius: '4px',
+                fontSize: '14px'
+              }}>
+                {(() => {
+                  const summary = this.calculatePaymentSummary();
+                  return (
+                    <div>
+                      <p style={{ margin: '4px 0' }}><strong>Total Paid Amount:</strong> ${summary.totalPaid.toFixed(2)}</p>
+                      <p style={{ margin: '4px 0' }}><strong>Total Paid Orders:</strong> {summary.paidCount}</p>
+                      <p style={{ margin: '4px 0' }}><strong>Tab Type:</strong> {this.state.locationTabType === 'collection' ? 'Collection Location' : 'Station Location'}</p>
+                      <p style={{ margin: '4px 0' }}><strong>Selected Tab:</strong> {this.state.locationTabType === 'collection' ? this.state.activeTab : this.state.activeStationTab}</p>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              <div style={{
+                backgroundColor: '#fff3cd',
+                padding: '12px',
+                borderRadius: '4px',
+                fontSize: '13px',
+                color: '#856404',
+                border: '1px solid #ffc107'
+              }}>
+                <strong>Note:</strong> This action will create a bulk order request that will be sent to the backend for processing.
+              </div>
+
+              <div style={{
+                display: 'flex',
+                gap: '10px',
+                justifyContent: 'flex-end'
+              }}>
+                <button
+                  onClick={this.closeBulkOrderModal}
+                  disabled={this.state.bulkOrderLoading}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#6c757d',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: this.state.bulkOrderLoading ? 'not-allowed' : 'pointer',
+                    fontWeight: '600',
+                    opacity: this.state.bulkOrderLoading ? 0.6 : 1,
+                    fontSize: '14px'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={this.handleBulkOrder}
+                  disabled={this.state.bulkOrderLoading}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#ff6b6b',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: this.state.bulkOrderLoading ? 'not-allowed' : 'pointer',
+                    fontWeight: '600',
+                    opacity: this.state.bulkOrderLoading ? 0.6 : 1,
+                    fontSize: '14px'
+                  }}
+                >
+                  {this.state.bulkOrderLoading ? 'Processing...' : 'Create Bulk Order'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* PDF Preview Modal */}
         {this.state.showPDFPreview && (

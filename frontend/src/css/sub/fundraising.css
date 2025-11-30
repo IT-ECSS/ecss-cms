@@ -277,6 +277,61 @@
   transform: translateY(1px);
 }
 
+/* Fiscal Balance Report Button */
+.fundraising-fiscal-btn {
+  padding: 0.9rem 1.05rem;
+  font-size: 0.8rem;
+  border: 1px solid #9b59b6;
+  border-radius: 0.3rem;
+  background-color: transparent;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+  white-space: nowrap;
+  color: #9b59b6;
+  width: fit-content;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+.fundraising-fiscal-btn:hover {
+  background-color: #f3e5f5;
+  transform: translateY(-2px);
+  border-color: #8e44ad;
+}
+
+.fundraising-fiscal-btn:active {
+  transform: translateY(1px);
+}
+
+/* Create Bulk Order Button */
+.fundraising-create-btn {
+  padding: 0.9rem 1.05rem;
+  font-size: 0.8rem;
+  border: 1px solid #e74c3c;
+  border-radius: 0.3rem;
+  background-color: transparent;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+  white-space: nowrap;
+  color: #e74c3c;
+  width: fit-content;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.fundraising-create-btn:hover {
+  background-color: #fadbd8;
+  transform: translateY(-2px);
+  border-color: #c0392b;
+}
+
+.fundraising-create-btn:active {
+  transform: translateY(1px);
+}
+
 /* New Button */
 .fundraising-new-btn {
   padding: 0.9rem 1.05rem;

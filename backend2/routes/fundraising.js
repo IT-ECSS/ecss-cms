@@ -482,6 +482,30 @@ router.post('/', async function(req, res, next)
                 result: result
             });
         }
+        else if(req.body.purpose === "bulk") {
+            try {
+                // File ID of the Excel file in Google Drive
+                // Extract from: https://drive.google.com/file/d/{FILE_ID}/view
+                const fileId = '1HNFBNdD04IMx81QOd3Mk11Dfuec9dmVd';
+                const sheetName = 'Delivery Details';
+                
+                // Call controller method to fetch bulk orders from Google Drive
+                // This always retrieves the most updated data from the source
+                const result = await fundraisingController.fetchBulkOrdersFromGoogleDrive(fileId, sheetName);
+                
+                return res.json({  result: result });
+
+            } catch (bulkOrderError) {
+                console.error("Bulk order route error:", bulkOrderError);
+                return res.status(500).json({
+                    result: {
+                        success: false,
+                        message: "Failed to fetch delivery details from Excel file",
+                        error: bulkOrderError.message
+                    }
+                });
+            }
+        }
     } catch (error) {
         console.error("Fundraising route error:", error);
         return res.status(500).json({ 

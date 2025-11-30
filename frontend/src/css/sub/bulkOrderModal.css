@@ -1,0 +1,254 @@
+/* Bulk Order Modal - Uses Fiscal Balance Styling */
+
+.bulk-order-error-message {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 6px;
+  color: #721c24;
+  font-weight: 500;
+}
+
+.bulk-order-error-icon {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.bulk-order-success-message {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  background-color: #d4edda;
+  border: 1px solid #c3e6cb;
+  border-radius: 6px;
+  color: #155724;
+  font-weight: 500;
+}
+
+.bulk-order-success-icon {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+/* Bulk Order Modal - Custom Styles */
+.bulk-order-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.bulk-order-modal-content {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  max-width: 1000px;
+  width: 90%;
+  max-height: 85vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.bulk-order-modal-header-top {
+  padding: 1.5rem;
+  border-bottom: 1px solid #dee2e6;
+  background-color: #f8f9fa;
+  border-radius: 8px 8px 0 0;
+}
+
+.bulk-order-modal-header-top h2 {
+  margin: 0 0 5px 0;
+  color: #333;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.bulk-order-modal-body {
+  padding: 1.5rem;
+  flex: 1;
+  overflow-y: auto;
+  margin: 20px;
+}
+
+.bulk-order-products-section {
+  width: 100%;
+}
+
+/* Bulk Order Products Table Styling */
+.bulk-order-products-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: white;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  padding-left: 20px;
+  padding-right: 20px;
+  table-layout: auto;
+}
+
+.bulk-order-products-table thead {
+  background-color: #3f4a5e;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.bulk-order-products-table th {
+  padding: 1.2rem;
+  text-align: left;
+  font-weight: 700;
+  color: white;
+  background-color: #3f4a5e;
+  font-size: 0.9rem;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  width: auto;
+}
+
+.bulk-order-products-table tbody tr {
+  border-bottom: 1px solid #f0f0f0;
+  transition: all 0.3s ease;
+}
+
+.bulk-order-products-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.bulk-order-products-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.bulk-order-products-table tbody tr:nth-child(even) {
+  background-color: #fafbfc;
+}
+
+.bulk-order-products-table td {
+  padding: 1.1rem 1.2rem;
+  color: #555;
+  font-size: 0.95rem;
+  width: auto;
+  min-width: 60px;
+  empty-cells: show;
+}
+
+.bulk-order-products-table td:first-child {
+  font-weight: 600;
+  color: #333;
+}
+
+.bulk-order-products-table td:last-child {
+  text-align: right;
+}
+
+/* Bulk Order Products Table 1 - For PDF Preview/Export */
+.bulk-order-products-table1 {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: white;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  padding-left: 20px;
+  padding-right: 20px;
+  table-layout: auto;
+}
+
+.bulk-order-products-table1 thead {
+  background-color: #3f4a5e;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.bulk-order-products-table1 th {
+  padding: 1.2rem;
+  text-align: left;
+  font-weight: 700;
+  color: white;
+  font-size: 0.9rem;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  width: auto;
+}
+
+.bulk-order-products-table1 tbody tr {
+  border-bottom: 1px solid #f0f0f0;
+  transition: all 0.3s ease;
+}
+
+.bulk-order-products-table1 tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.bulk-order-products-table1 tbody tr:last-child {
+  border-bottom: none;
+}
+
+.bulk-order-products-table1 tbody tr:nth-child(even) {
+  background-color: #fafbfc;
+}
+
+.bulk-order-products-table1 td {
+  padding: 1.1rem 1.2rem;
+  color: #555;
+  font-size: 0.95rem;
+  width: auto;
+  min-width: 60px;
+  empty-cells: show;
+}
+
+.bulk-order-products-table1 td:first-child {
+  font-weight: 600;
+  color: #333;
+}
+
+.bulk-order-products-table1 td:last-child {
+  text-align: right;
+}
+
+/* Bulk Order Modal Footer */
+.bulk-order-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 1.5rem;
+  border-top: 1px solid #dee2e6;
+  background-color: #f8f9fa;
+  border-radius: 0 0 8px 8px;
+}
+
+.bulk-order-generate-btn {
+  padding: 0.75rem 1.5rem;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  width: fit-content;
+}
+
+.bulk-order-generate-btn:hover {
+  background-color: #218838;
+  transform: translateY(-2px);
+}
+
+.bulk-order-generate-btn:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}

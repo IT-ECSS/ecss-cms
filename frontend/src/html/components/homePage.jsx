@@ -20,6 +20,7 @@ import React, { Component } from 'react';
   import SalesReportModal from './sub/SalesReportModal';
   import PaymentReportModal from './sub/PaymentReportModal';
   import FiscalBalanceReportModal from './sub/FiscalBalanceReportModal';
+  import BulkOrderModal from './sub/BulkOrderModal';
   import ReportSection from './sub/reportSection';
   import WelcomeSection from './sub/welcomeSection';
   import { withAuth } from '../../AuthContext';
@@ -111,7 +112,11 @@ import React, { Component } from 'react';
         accessRights: {}, // Access rights from sidebar
         isSalesReportModalOpen: false,
         isPaymentReportModalOpen: false,
-        isFiscalBalanceReportModalOpen: false
+        isFiscalBalanceReportModalOpen: false,
+        isBulkOrderModalOpen: false,
+        bulkOrderLoading: false,
+        bulkOrderError: null,
+        bulkOrderData: null
       };
   
       // Always reset attendance filter/search state to defaults on page load
@@ -998,6 +1003,41 @@ import React, { Component } from 'react';
       this.setState({ isFiscalBalanceReportModalOpen: false });
     };
 
+    // Open bulk order modal and start loading
+    openBulkOrderModal = async () => {
+      this.setState({ isBulkOrderModalOpen: true, bulkOrderLoading: true, bulkOrderError: null });
+      
+      try {
+        const response = await axios.post(
+          `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/fundraising`,
+          { purpose: 'bulk' }
+        );
+
+        if (response.data.result && response.data.result.success) {
+          this.setState({
+            bulkOrderData: response.data.result,
+            bulkOrderLoading: false,
+            bulkOrderError: ''
+          });
+        } else {
+          this.setState({
+            bulkOrderError: response.data.result?.message || 'Failed to fetch bulk order data',
+            bulkOrderLoading: false
+          });
+        }
+      } catch (error) {
+        this.setState({
+          bulkOrderError: error.response?.data?.result?.message || 'Error fetching bulk order data: ' + error.message,
+          bulkOrderLoading: false
+        });
+      }
+    };
+
+    // Close bulk order modal
+    closeBulkOrderModal = () => {
+      this.setState({ isBulkOrderModalOpen: false, bulkOrderData: null, bulkOrderError: null });
+    };
+
     generateDeleteConfirmationPopup = (id) => {
       console.log("ID deleted:", id);
       this.setState({
@@ -1226,7 +1266,11 @@ import React, { Component } from 'react';
 
   // This method can be called to reset the inactivity state
   resetInactivity = () => {
-    this.setState({ isInactive: false });
+    // Throttle: Only update if inactive is true (avoid constant setState)
+    if (this.state.isInactive === true) {
+      this.setState({ isInactive: false });
+    }
+    
     //console.log('User is active again. Resetting inactivity timer.');
     clearTimeout(this.inactivityTimeout); // Clear the timeout if user becomes active
 
@@ -1864,6 +1908,7 @@ import React, { Component } from 'react';
                             openSalesReportModal={this.openSalesReportModal}
                             openPaymentReportModal={this.openPaymentReportModal}
                             openFiscalBalanceReportModal={this.openFiscalBalanceReportModal}
+                            openBulkOrderModal={this.openBulkOrderModal}
                           />
                         </div>
                         
@@ -2051,6 +2096,14 @@ import React, { Component } from 'react';
                 fundraisingData={this.fundraisingTableRef?.current?.state?.fundraisingData || []}
                 wooCommerceProductDetails={this.fundraisingTableRef?.current?.state?.wooCommerceProductDetails || []}
           />
+          {this.state.isBulkOrderModalOpen && (
+            <BulkOrderModal 
+                  onClose={this.closeBulkOrderModal}
+                  loading={this.state.bulkOrderLoading}
+                  error={this.state.bulkOrderError}
+                  backendData={this.state.bulkOrderData}
+            />
+          )}
         </>
       );
     }
