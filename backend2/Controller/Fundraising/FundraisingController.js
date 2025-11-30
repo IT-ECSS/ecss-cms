@@ -569,7 +569,7 @@ class FundraisingController {
             const XLSX = require('xlsx');
 
             // Load service account credentials
-            const keyFile = path.join(__dirname, '../../config/service-account-key.json');
+            const keyFile = path.join(__dirname, '../../config/ecss-company-management-system-22a29c296db3.json');
             
             if (!fs.existsSync(keyFile)) {
                 return {
@@ -579,6 +579,7 @@ class FundraisingController {
             }
 
             const credentials = JSON.parse(fs.readFileSync(keyFile, 'utf8'));
+            console.log("✓ Service account credentials loaded");
             console.log("Service account email:", credentials.client_email);
 
             // Create auth client with Drive API scope

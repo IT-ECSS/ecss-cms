@@ -2488,6 +2488,56 @@ class FundraisingOrders extends Component {
       }
     };
 
+    // Upload PDF to Google Drive
+    uploadPdfToGoogleDrive = async (blob, filename) => {
+      try {
+        const formData = new FormData();
+        formData.append('file', blob, filename);
+        formData.append('purpose', 'upload-to-google-drive');
+        
+        const baseUrl = window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net";
+      
+        
+        const response = await axios.post(
+          `${baseUrl}/fundraising`,
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            },
+            timeout: 30000 // 30 second timeout for upload
+          }
+        );
+        
+        console.log('📦 Google Drive upload response:', response.data);
+        
+        if (response.data.success) {
+          console.log(`✓ PDF successfully uploaded to Google Drive`);
+          console.log(`  File ID: ${response.data.fileId}`);
+          console.log(`  File Name: ${response.data.fileName}`);
+          console.log(`  File Link: ${response.data.fileLink}`);
+          console.log(`  Uploaded At: ${response.data.uploadedAt}`);
+          
+          // Show success message to user
+          if (this.props.showNotification) {
+            this.props.showNotification(`PDF uploaded to Google Drive: ${response.data.fileName}`, 'success');
+          }
+        } else {
+          console.warn('⚠️  Google Drive upload returned success:false', response.data);
+        }
+      } catch (error) {
+        console.error('❌ Google Drive upload error:', error.message);
+        console.error('Error details:', {
+          response: error.response?.data,
+          status: error.response?.status,
+          message: error.message
+        });
+        
+        // Log but don't throw - allow local download to proceed even if Google Drive upload fails
+        console.warn('Note: Google Drive upload failed, but local download was successful.');
+      }
+    };
+
     // Handle PDF response from backend
     handlePdfResponse = (result) => {
       try {
@@ -2519,6 +2569,9 @@ class FundraisingOrders extends Component {
         downloadLink.href = blobUrl;
         downloadLink.download = pdfFilename || 'fundraising_receipt.pdf';
         downloadLink.click();
+        
+        // Upload to Google Drive asynchronously (non-blocking)
+        this.uploadPdfToGoogleDrive(blob, pdfFilename || 'fundraising_receipt.pdf');
         
         window.URL.revokeObjectURL(blobUrl);
         
@@ -3429,57 +3482,6 @@ Sila buat pembayaran anda di lokasi tersebut untuk mengesahkan pesanan anda.
     };
 
     // Fetch bulk orders from Google Drive Excel file
-    handleDisplayBulkOrder = async () => {
-      // Call parent's openBulkOrderModal method to display modal in parent component
-      if (this.props.openBulkOrderModal) {
-        this.props.openBulkOrderModal();
-      } else {
-        console.error('openBulkOrderModal prop not available from parent component');
-      }
-    };
-
-    // Close bulk order modal
-    closeBulkOrderModal = () => {
-      this.setState({
-        showBulkOrderModal: false,
-        bulkOrderData: null,
-        bulkOrderError: ''
-      });
-    };
-
-    // Render bulk order modal
-
-
-    // Export bulk orders to Excel
-    exportBulkOrdersToExcel = (bulkOrderData) => {
-      try {
-        console.log('Exporting bulk orders to Excel:', bulkOrderData);
-        
-        // Create workbook and worksheet
-        const ws = XLSX.utils.json_to_sheet(
-          bulkOrderData.bulkOrders.map(order => order.data)
-        );
-        
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Delivery Details");
-        
-        // Add column widths
-        ws['!cols'] = bulkOrderData.headers.map(() => ({ wch: 20 }));
-        
-        // Generate filename
-        const timestamp = new Date().toISOString().split('T')[0];
-        const filename = `Delivery_Details_${timestamp}.xlsx`;
-        
-        // Save file
-        XLSX.writeFile(wb, filename);
-        
-        console.log('Bulk orders exported successfully:', filename);
-      } catch (error) {
-        console.error('Error exporting bulk orders:', error);
-        alert('Failed to export bulk orders to Excel');
-      }
-    };
-
     // Export confirmed (Paid status) items sales to Excel by location
     render() 
     {
@@ -3512,12 +3514,11 @@ Sila buat pembayaran anda di lokasi tersebut untuk mengesahkan pesanan anda.
               )}
               <button 
                 className="fundraising-create-btn"
-                onClick={this.handleDisplayBulkOrder}
+                onClick={this.props.openBulkOrderModal}
                 title="Fetch delivery details from Excel"
               >
                 Bulk Orders Report
               </button>
-
             </div>
           </div>
 
@@ -3540,9 +3541,6 @@ Sila buat pembayaran anda di lokasi tersebut untuk mengesahkan pesanan anda.
               }}
             />
           </div>
-          
-          {/* Items Modal */}
-          {this.renderItemsModal()}
         </div>
       );
     }

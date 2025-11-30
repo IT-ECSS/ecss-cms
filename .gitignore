@@ -28,6 +28,10 @@ backend2/.env
 *.p12
 *.pfx
 
+# Keep config folder but ignore credentials files
+backend2/config/*.json
+!backend2/config/.gitkeep
+
 # Logs
 npm-debug.log*
 yarn-debug.log*

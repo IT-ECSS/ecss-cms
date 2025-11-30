@@ -21,19 +21,31 @@ jobs:
         with:
           node-version: '22.x'
 
-      - name: Validate OneSignal Secrets
+      - name: Validate Required Secrets
         run: |
+          MISSING_SECRETS=()
+          
           if [ -z "${{ secrets.ONESIGNAL_APP_ID }}" ]; then
+            MISSING_SECRETS+=("ONESIGNAL_APP_ID")
             echo "ERROR: ONESIGNAL_APP_ID secret is not set!"
-            echo "Please add it to https://github.com/IT-ECSS/ecss-cms/settings/secrets/actions"
-            exit 1
           fi
           if [ -z "${{ secrets.ONESIGNAL_API_KEY }}" ]; then
+            MISSING_SECRETS+=("ONESIGNAL_API_KEY")
             echo "ERROR: ONESIGNAL_API_KEY secret is not set!"
-            echo "Please add it to https://github.com/IT-ECSS/ecss-cms/settings/secrets/actions"
+          fi
+          if [ -z "${{ secrets.GOOGLE_DRIVE_CREDENTIALS }}" ]; then
+            MISSING_SECRETS+=("GOOGLE_DRIVE_CREDENTIALS")
+            echo "ERROR: GOOGLE_DRIVE_CREDENTIALS secret is not set!"
+          fi
+          
+          if [ ${#MISSING_SECRETS[@]} -gt 0 ]; then
+            echo ""
+            echo "Please add missing secrets to:"
+            echo "https://github.com/IT-ECSS/ecss-cms/settings/secrets/actions"
             exit 1
           fi
-          echo "✓ OneSignal secrets are configured"
+          
+          echo "✓ All required secrets are configured"
 
       - name: Install and build (backend)
         working-directory: backend2
@@ -63,4 +75,9 @@ jobs:
               ONESIGNAL_APP_ID="${{ secrets.ONESIGNAL_APP_ID }}" \
               ONESIGNAL_API_KEY="${{ secrets.ONESIGNAL_API_KEY }}" \
               NODE_ENV="production"
-          echo "✓ OneSignal credentials configured in Azure App Settings"
+          echo "✓ OneSignal and Google Drive settings configured in Azure"
+
+      - name: Configure Google Drive Credentials
+        run: |
+          mkdir -p ./backend2/config
+          echo "${{ secrets.GOOGLE_DRIVE_CREDENTIALS }}"
