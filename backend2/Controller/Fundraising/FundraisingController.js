@@ -597,7 +597,6 @@ class FundraisingController {
                 console.log("🔍 GOOGLE_DRIVE_CREDENTIALS env var not found, checking for credentials file at:", keyFile);
                 
                 if (fs.existsSync(keyFile)) {
-                    console.log("✓ Loading credentials from file");
                     credentials = JSON.parse(fs.readFileSync(keyFile, 'utf8'));
                 } else {
                     console.error("❌ Credentials not found in environment variable or file");
@@ -607,10 +606,6 @@ class FundraisingController {
                     };
                 }
             }
-
-            console.log("✓ Service account credentials loaded successfully");
-            console.log("Service account email:", credentials.client_email);
-
             // Create auth client with Drive API scope
             const auth = new google.auth.GoogleAuth({
                 credentials: credentials,
@@ -623,29 +618,28 @@ class FundraisingController {
             console.log("📤 Uploading PDF to Google Drive:", fileName);
             
             try {
-                // Upload file to Google Drive
+                // Upload file to Google Drive Shared Drive folder
+                console.log("Attempting to upload to Shared Drive folder: 1DF81mvA5pv8_X-_uP8528Vb1xNfs1D8M");
+                
                 const response = await drive.files.create({
                     requestBody: {
                         name: fileName,
                         mimeType: mimeType || 'application/pdf',
-                        parents: ['1DF81mvA5pv8_X-_uP8528Vb1xNfs1D8M'] // Fundraising folder ID in Google Drive
+                        parents: ['1DF81mvA5pv8_X-_uP8528Vb1xNfs1D8M'] // Fundraising folder ID in Shared Drive
                     },
                     media: {
                         mimeType: mimeType || 'application/pdf',
                         body: require('stream').Readable.from([fileBuffer])
                     },
-                    fields: 'id, name, webViewLink, createdTime'
+                    fields: 'id, name, webViewLink, createdTime',
+                    supportsTeamDrives: true, // Enable support for Shared Drives
+                    corpora: 'teamDrive', // Specify this is a Team Drive (Shared Drive)
+                    teamDriveId: '1DF81mvA5pv8_X-_uP8528Vb1xNfs1D8M' // The Shared Drive ID
                 });
 
                 const fileId = response.data.id;
                 const fileLink = response.data.webViewLink;
                 const uploadedAt = response.data.createdTime;
-
-                console.log("✓ File uploaded successfully to Google Drive");
-                console.log("File ID:", fileId);
-                console.log("File Link:", fileLink);
-                console.log("Uploaded at:", uploadedAt);
-
                 return {
                     success: true,
                     fileId: fileId,
@@ -656,6 +650,29 @@ class FundraisingController {
 
             } catch (uploadError) {
                 console.error("❌ Error uploading file to Google Drive:", uploadError.message);
+                console.error("Error details:", {
+                    message: uploadError.message,
+                    code: uploadError.code,
+                    status: uploadError.status,
+                    errors: uploadError.errors
+                });
+                
+                // Check if it's a permission issue
+                if (uploadError.message.includes('File not found') || uploadError.status === 404) {
+                    console.error("📌 Possible causes:");
+                    console.error("  1. Service account (ecss-google-drive@ecss-company-management-system.iam.gserviceaccount.com) is not shared with the folder");
+                    console.error("  2. Folder ID is incorrect or folder has been deleted");
+                    console.error("  3. Permissions haven't propagated yet (wait 5-10 minutes and try again)");
+                    
+                    return {
+                        success: false,
+                        error: uploadError.message,
+                        troubleshooting: "Folder sharing issue. Ensure the service account has Editor access to the folder.",
+                        serviceAccount: "ecss-google-drive@ecss-company-management-system.iam.gserviceaccount.com",
+                        folderId: "1DF81mvA5pv8_X-_uP8528Vb1xNfs1D8M"
+                    };
+                }
+                
                 return {
                     success: false,
                     error: uploadError.message

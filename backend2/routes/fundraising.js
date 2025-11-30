@@ -5,7 +5,6 @@ var fundRaisingGenerator = require('../Others/Pdf/fundRaisingGenerator');
 var CheckoutInvoiceGenerator = require('../Others/Pdf/checkoutInvoiceGenerator');
 var multer = require('multer');
 
-
 // Configure multer for file uploads (memory storage)
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -14,9 +13,8 @@ const upload = multer({
 
 router.post('/', upload.single('file'), async function(req, res, next) 
 {
-    // Initialize controllers once at the top
-    const fundraisingController = new FundraisingController();
     const io = req.app.get('io');
+    const fundraisingController = new FundraisingController();
     try {
         // Handle Google Drive upload
         if(req.body.purpose === "upload-to-google-drive") {
@@ -36,7 +34,9 @@ router.post('/', upload.single('file'), async function(req, res, next)
                 req.file.mimetype
               );
 
-              if (driveResult.success) {
+              console.log('File uploaded to Google Drive:', driveResult);
+
+             /* if (driveResult.success) {
                 console.log('File uploaded to Google Drive:', driveResult);
                 return res.json({
                   success: true,
@@ -61,7 +61,7 @@ router.post('/', upload.single('file'), async function(req, res, next)
                   fileLink: null,
                   uploadedAt: null
                 });
-              }
+              }*/
             } catch (error) {
               console.error('Google Drive upload error:', error.message);
               console.warn('[WARN] Google Drive upload failed - returning partial success');
