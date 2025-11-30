@@ -36,7 +36,7 @@ router.post('/', upload.single('file'), async function(req, res, next)
 
               console.log('File uploaded to Google Drive:', driveResult);
 
-             /* if (driveResult.success) {
+              if (driveResult.success) {
                 console.log('File uploaded to Google Drive:', driveResult);
                 return res.json({
                   success: true,
@@ -61,7 +61,7 @@ router.post('/', upload.single('file'), async function(req, res, next)
                   fileLink: null,
                   uploadedAt: null
                 });
-              }*/
+              }
             } catch (error) {
               console.error('Google Drive upload error:', error.message);
               console.warn('[WARN] Google Drive upload failed - returning partial success');
