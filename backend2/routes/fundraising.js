@@ -4,7 +4,7 @@ var FundraisingController = require('../Controller/Fundraising/FundraisingContro
 var fundRaisingGenerator = require('../Others/Pdf/fundRaisingGenerator');
 var CheckoutInvoiceGenerator = require('../Others/Pdf/checkoutInvoiceGenerator');
 var multer = require('multer');
-    const io = req.app.get('io');
+
 
 // Configure multer for file uploads (memory storage)
 const upload = multer({ 
@@ -14,8 +14,7 @@ const upload = multer({
 
 router.post('/', upload.single('file'), async function(req, res, next) 
 {
-    // Initialize controllers once at the top
-    const fundraisingController = new FundraisingController();
+    const io = req.app.get('io');
     try {
         // Handle Google Drive upload
         if(req.body.purpose === "upload-to-google-drive") {
