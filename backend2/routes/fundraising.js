@@ -14,6 +14,8 @@ const upload = multer({
 
 router.post('/', upload.single('file'), async function(req, res, next) 
 {
+    // Initialize controllers once at the top
+    const fundraisingController = new FundraisingController();
     const io = req.app.get('io');
     try {
         // Handle Google Drive upload
