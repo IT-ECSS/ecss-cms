@@ -728,7 +728,7 @@ class FundraisingController {
             };
 
         } catch (error) {
-            console.error("❌ Error fetching bulk orders from Google Drive:", error);
+            console.error("[ERROR] Error fetching bulk orders from Google Drive:", error);
             console.error("Error stack:", error.stack);
             return {
                 success: false,
@@ -738,6 +738,118 @@ class FundraisingController {
                     errorType: error.constructor.name,
                     errorCode: error.code
                 }
+            };
+        }
+    }
+
+    async uploadPdfToGoogleDrive(fileBuffer, filename, mimetype) {
+        try {
+            const { google } = require('googleapis');
+            const { Readable } = require('stream');
+            const path = require('path');
+
+            let credentials = null;
+
+            // Try environment variable first (for Azure)
+            if (process.env.GOOGLE_DRIVE_CREDENTIALS) {
+                console.log("[INFO] Loading credentials from GOOGLE_DRIVE_CREDENTIALS environment variable");
+                try {
+                    // Try to parse as JSON directly first
+                    try {
+                        credentials = JSON.parse(process.env.GOOGLE_DRIVE_CREDENTIALS);
+                        console.log("[INFO] Parsed credentials as JSON");
+                    } catch (directParseError) {
+                        // If that fails, try base64 decode
+                        console.log("[INFO] Attempting base64 decode...");
+                        credentials = JSON.parse(Buffer.from(process.env.GOOGLE_DRIVE_CREDENTIALS, 'base64').toString('utf8'));
+                        console.log("[INFO] Decoded credentials from base64");
+                    }
+                } catch (parseError) {
+                    console.error("[ERROR] Failed to parse GOOGLE_DRIVE_CREDENTIALS:", parseError.message);
+                    return {
+                        success: false,
+                        error: "Failed to parse Google Drive credentials from environment",
+                        message: parseError.message
+                    };
+                }
+            } else {
+                // Fallback to file (for local development)
+                const keyFile = path.join(__dirname, '../../config/ecss-company-management-system-22a29c296db3.json');
+                console.log("[DEBUG] GOOGLE_DRIVE_CREDENTIALS env var not found, checking for credentials file at:", keyFile);
+                
+                if (require('fs').existsSync(keyFile)) {
+                    console.log("[INFO] Loading credentials from file");
+                    credentials = JSON.parse(require('fs').readFileSync(keyFile, 'utf8'));
+                } else {
+                    console.error("[ERROR] Credentials not found in environment variable or file");
+                    return {
+                        success: false,
+                        error: "Service account credentials not found",
+                        message: "Set GOOGLE_DRIVE_CREDENTIALS environment variable or add credentials file"
+                    };
+                }
+            }
+
+            const GOOGLE_DRIVE_FOLDER_ID = '1DF81mvA5pv8_X-_uP8528Vb1xNfs1D8M';
+
+            // Create auth client with Drive API scope
+            const auth = new google.auth.GoogleAuth({
+                credentials: credentials,
+                scopes: ['https://www.googleapis.com/auth/drive']
+            });
+
+            // Initialize Drive API
+            const drive = google.drive({ version: 'v3', auth });
+
+            const fileMetadata = {
+                name: filename,
+                parents: [GOOGLE_DRIVE_FOLDER_ID]
+            };
+
+            // Convert buffer to readable stream
+            const bufferStream = Readable.from(fileBuffer);
+
+            const media = {
+                mimeType: mimetype,
+                body: bufferStream
+            };
+
+            console.log(`[DEBUG] Uploading file to Google Drive: ${filename}`);
+            console.log(`[DEBUG] Target folder ID: ${GOOGLE_DRIVE_FOLDER_ID}`);
+
+            try {
+                const response = await drive.files.create({
+                    resource: fileMetadata,
+                    media: media,
+                    fields: 'id, webViewLink, name, createdTime',
+                    supportsAllDrives: true
+                });
+
+                console.log(`[INFO] PDF successfully uploaded to Google Drive: ${response.data.name} (ID: ${response.data.id})`);
+
+                return {
+                    success: true,
+                    fileId: response.data.id,
+                    fileName: response.data.name,
+                    fileLink: response.data.webViewLink,
+                    uploadedAt: response.data.createdTime
+                };
+            } catch (uploadError) {
+                console.error('[ERROR] Google Drive upload failed:', uploadError.message);
+                console.error('Error details:', {
+                    code: uploadError.code,
+                    status: uploadError.status,
+                    message: uploadError.message,
+                    errors: uploadError.errors
+                });
+                throw uploadError;
+            }
+        } catch (error) {
+            console.error("[ERROR] Exception in uploadPdfToGoogleDrive:", error.message);
+            return {
+                success: false,
+                error: error.message,
+                message: "Failed to upload PDF to Google Drive"
             };
         }
     }

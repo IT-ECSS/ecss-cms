@@ -4,8 +4,7 @@ var FundraisingController = require('../Controller/Fundraising/FundraisingContro
 var fundRaisingGenerator = require('../Others/Pdf/fundRaisingGenerator');
 var CheckoutInvoiceGenerator = require('../Others/Pdf/checkoutInvoiceGenerator');
 var multer = require('multer');
-var { google } = require('googleapis');
-var path = require('path');
+    const io = req.app.get('io');
 
 // Configure multer for file uploads (memory storage)
 const upload = multer({ 
@@ -13,85 +12,10 @@ const upload = multer({
   limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
 });
 
-// Initialize Google Drive API with service account
-let driveService = null;
-let driveInitError = null;
-try {
-  const auth = new google.auth.GoogleAuth({
-    keyFile: path.join(__dirname, '../config/ecss-company-management-system-22a29c296db3.json'),
-    scopes: ['https://www.googleapis.com/auth/drive']
-  });
-  driveService = google.drive({ version: 'v3', auth });
-  console.log('✓ Google Drive API initialized successfully');
-} catch (error) {
-  driveInitError = error;
-  console.warn('✗ Warning: Google Drive API not initialized. Check service account credentials.', error.message);
-  console.error('Error details:', error);
-}
-
-// Google Drive Shared Drive folder ID for uploading PDFs
-const GOOGLE_DRIVE_FOLDER_ID = '1DF81mvA5pv8_X-_uP8528Vb1xNfs1D8M';
-
-// Helper function: Upload file to Google Drive
-const uploadFileToGoogleDrive = async (fileBuffer, filename, mimetype) => {
-  if (!driveService) {
-    const errorMsg = driveInitError?.message || 'Service account credentials not loaded. Please regenerate credentials.';
-    throw new Error(`Google Drive service unavailable: ${errorMsg}`);
-  }
-
-  const { Readable } = require('stream');
-
-  const fileMetadata = {
-    name: filename,
-    parents: [GOOGLE_DRIVE_FOLDER_ID]
-  };
-
-  // Convert buffer to readable stream
-  const bufferStream = Readable.from(fileBuffer);
-
-  const media = {
-    mimeType: mimetype,
-    body: bufferStream
-  };
-
-  console.log(`📤 Uploading file to Google Drive: ${filename}`);
-  console.log(`📁 Target folder ID: ${GOOGLE_DRIVE_FOLDER_ID}`);
-
-  try {
-    const response = await driveService.files.create({
-      resource: fileMetadata,
-      media: media,
-      fields: 'id, webViewLink, name, createdTime',
-      supportsAllDrives: true
-    });
-
-    console.log(`✓ PDF successfully uploaded to Google Drive: ${response.data.name} (ID: ${response.data.id})`);
-
-    return {
-      fileId: response.data.id,
-      fileName: response.data.name,
-      fileLink: response.data.webViewLink,
-      uploadedAt: response.data.createdTime
-    };
-  } catch (uploadError) {
-    console.error('✗ Google Drive upload failed:', uploadError.message);
-    
-    console.error('Error details:', {
-      code: uploadError.code,
-      status: uploadError.status,
-      message: uploadError.message,
-      errors: uploadError.errors
-    });
-    throw uploadError;
-  }
-};
-
 router.post('/', upload.single('file'), async function(req, res, next) 
 {
     // Initialize controllers once at the top
     const fundraisingController = new FundraisingController();
-    const io = req.app.get('io');
-    
     try {
         // Handle Google Drive upload
         if(req.body.purpose === "upload-to-google-drive") {
@@ -105,27 +29,44 @@ router.post('/', upload.single('file'), async function(req, res, next)
             }
 
             try {
-              const driveResult = await uploadFileToGoogleDrive(
+              const driveResult = await fundraisingController.uploadPdfToGoogleDrive(
                 req.file.buffer,
                 req.file.originalname,
                 req.file.mimetype
               );
 
-              console.log('File uploaded to Google Drive:', driveResult);
-              return res.json({
-                success: true,
-                fileId: driveResult.fileId,
-                fileName: driveResult.fileName,
-                fileLink: driveResult.fileLink,
-                uploadedAt: driveResult.uploadedAt
-              });
+              if (driveResult.success) {
+                console.log('File uploaded to Google Drive:', driveResult);
+                return res.json({
+                  success: true,
+                  fileId: driveResult.fileId,
+                  fileName: driveResult.fileName,
+                  fileLink: driveResult.fileLink,
+                  uploadedAt: driveResult.uploadedAt
+                });
+              } else {
+                console.error('Google Drive upload error:', driveResult.error);
+                console.warn('[WARN] Google Drive upload failed - returning partial success');
+                console.warn('Note: PDF will still download locally, but Google Drive upload is pending');
+                
+                // Return success but indicate Google Drive upload failed
+                // This allows the application to continue without blocking
+                return res.json({
+                  success: true,
+                  warning: 'PDF downloaded locally, but Google Drive upload failed',
+                  googleDriveError: driveResult.error,
+                  fileId: null,
+                  fileName: null,
+                  fileLink: null,
+                  uploadedAt: null
+                });
+              }
             } catch (error) {
               console.error('Google Drive upload error:', error.message);
-              console.warn('⚠️  Google Drive upload failed - returning partial success');
+              console.warn('[WARN] Google Drive upload failed - returning partial success');
               console.warn('Note: PDF will still download locally, but Google Drive upload is pending');
               
               // Return success but indicate Google Drive upload failed
-              // This allows the application to continue without blocking
               return res.json({
                 success: true,
                 warning: 'PDF downloaded locally, but Google Drive upload failed',
