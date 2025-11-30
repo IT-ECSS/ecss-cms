@@ -66,7 +66,7 @@ jobs:
           slot-name: 'Production'
           package: ./backend2
 
-      - name: Configure Azure App Settings for OneSignal
+      - name: Configure Azure App Settings for OneSignal and Google Drive
         run: |
           az webapp config appsettings set \
             --resource-group ECSS-Course-Management-System \
@@ -75,8 +75,9 @@ jobs:
               ONESIGNAL_APP_ID="${{ secrets.ONESIGNAL_APP_ID }}" \
               ONESIGNAL_API_KEY="${{ secrets.ONESIGNAL_API_KEY }}" \
               GOOGLE_DRIVE_FOLDER_ID="1DF81mvA5pv8_X-_uP8528Vb1xNfs1D8M" \
+              GOOGLE_DRIVE_CREDENTIALS="${{ secrets.GOOGLE_DRIVE_CREDENTIALS }}" \
               NODE_ENV="production"
-          echo "✓ OneSignal and Google Drive settings configured in Azure"
+          echo "✓ All settings configured in Azure"
 
       - name: Configure Google Drive Credentials
         run: |
