@@ -568,13 +568,30 @@ class FundraisingController {
             const path = require('path');
             const XLSX = require('xlsx');
 
-            // Load service account credentials
+            // Load service account credentials from file
             const keyFile = path.join(__dirname, '../../config/ecss-company-management-system-22a29c296db3.json');
             
+            console.log("🔍 Checking for credentials file at:", keyFile);
+            console.log("📁 File exists:", fs.existsSync(keyFile));
+            
             if (!fs.existsSync(keyFile)) {
+                console.error("❌ Credentials file not found at:", keyFile);
+                console.error("Available files in config directory:");
+                const configDir = path.join(__dirname, '../../config');
+                if (fs.existsSync(configDir)) {
+                    console.error("  Files:", fs.readdirSync(configDir));
+                } else {
+                    console.error("  Config directory does not exist");
+                }
+                
                 return {
                     success: false,
-                    message: "Service account credentials file not found. Please configure Google Drive API access."
+                    message: "Service account credentials file not found. Please configure Google Drive API access.",
+                    debugging: {
+                        expectedPath: keyFile,
+                        configDirExists: fs.existsSync(path.join(__dirname, '../../config')),
+                        availableFiles: fs.existsSync(path.join(__dirname, '../../config')) ? fs.readdirSync(path.join(__dirname, '../../config')) : []
+                    }
                 };
             }
 
@@ -591,7 +608,7 @@ class FundraisingController {
             // Initialize Drive API
             const drive = google.drive({ version: 'v3', auth });
             
-            console.log("Fetching Excel file from Google Drive:", fileId);
+            console.log("📤 Fetching Excel file from Google Drive:", fileId);
             
             try {
                 // Get file metadata
@@ -600,12 +617,12 @@ class FundraisingController {
                     fields: 'name, mimeType, size'
                 });
                 
-                console.log("File found:", fileMetadata.data.name);
+                console.log("✓ File found:", fileMetadata.data.name);
                 console.log("MIME type:", fileMetadata.data.mimeType);
                 console.log("File size:", fileMetadata.data.size, "bytes");
                 
             } catch (metaError) {
-                console.error("Error fetching file metadata:", metaError.message);
+                console.error("❌ Error fetching file metadata:", metaError.message);
                 return {
                     success: false,
                     message: "Failed to access Excel file from Google Drive",
@@ -615,7 +632,7 @@ class FundraisingController {
             }
             
             // Download file content as buffer
-            console.log("Downloading Excel file content...");
+            console.log("📥 Downloading Excel file content...");
             const fileResponse = await drive.files.get({
                 fileId: fileId,
                 alt: 'media'
@@ -624,20 +641,20 @@ class FundraisingController {
             });
             
             const fileBuffer = Buffer.from(fileResponse.data);
-            console.log("File downloaded. Size:", fileBuffer.length, "bytes");
+            console.log("✓ File downloaded. Size:", fileBuffer.length, "bytes");
             
             // Parse Excel file
-            console.log("Parsing Excel file...");
+            console.log("📊 Parsing Excel file...");
             const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
             
             // Get all sheet names
             const sheetNames = workbook.SheetNames;
-            console.log("Available sheets:", JSON.stringify(sheetNames, null, 2));
+            console.log("📋 Available sheets:", JSON.stringify(sheetNames, null, 2));
             
             // Check if the sheet exists
             if (!sheetNames.includes(sheetName)) {
                 const availableSheets = sheetNames.join(', ');
-                console.error(`Sheet "${sheetName}" not found. Available sheets: ${availableSheets}`);
+                console.error(`❌ Sheet "${sheetName}" not found. Available sheets: ${availableSheets}`);
                 return {
                     success: false,
                     message: `Sheet "${sheetName}" not found in Excel file`,
@@ -646,12 +663,12 @@ class FundraisingController {
             }
             
             // Read specific sheet
-            console.log("Reading sheet:", sheetName);
+            console.log("📖 Reading sheet:", sheetName);
             const worksheet = workbook.Sheets[sheetName];
             const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
             
             if (!rows || rows.length === 0) {
-                console.error(`No data found in sheet "${sheetName}"`);
+                console.error(`❌ No data found in sheet "${sheetName}"`);
                 return {
                     success: false,
                     message: `No data found in ${sheetName} sheet`
@@ -670,9 +687,9 @@ class FundraisingController {
                 };
             }).filter(order => Object.values(order.data).some(val => val !== '')); // Filter out empty rows
 
-            console.log(`Successfully fetched ${bulkOrders.length} delivery details from Excel file`);
+            console.log(`✓ Successfully fetched ${bulkOrders.length} delivery details from Excel file`);
             console.log("Headers:", JSON.stringify(headers, null, 2));
-            console.log("All delivery data:", JSON.stringify(bulkOrders, null, 2));
+            console.log("Bulk orders count:", bulkOrders.length);
 
             return {
                 success: true,
@@ -683,12 +700,16 @@ class FundraisingController {
             };
 
         } catch (error) {
-            console.error("Error fetching bulk orders from Google Drive:", error);
+            console.error("❌ Error fetching bulk orders from Google Drive:", error);
             console.error("Error stack:", error.stack);
             return {
                 success: false,
                 message: "Failed to fetch delivery details from Excel file",
-                error: error.message
+                error: error.message,
+                debugging: {
+                    errorType: error.constructor.name,
+                    errorCode: error.code
+                }
             };
         }
     }

@@ -74,10 +74,13 @@ jobs:
             --settings \
               ONESIGNAL_APP_ID="${{ secrets.ONESIGNAL_APP_ID }}" \
               ONESIGNAL_API_KEY="${{ secrets.ONESIGNAL_API_KEY }}" \
+              GOOGLE_DRIVE_FOLDER_ID="1DF81mvA5pv8_X-_uP8528Vb1xNfs1D8M" \
               NODE_ENV="production"
           echo "✓ OneSignal and Google Drive settings configured in Azure"
 
       - name: Configure Google Drive Credentials
         run: |
           mkdir -p ./backend2/config
-          echo "${{ secrets.GOOGLE_DRIVE_CREDENTIALS }}"
+          echo "${{ secrets.GOOGLE_DRIVE_CREDENTIALS }}" | base64 -d > ./backend2/config/ecss-company-management-system-22a29c296db3.json
+          echo "✓ Google Drive credentials file created"
+          ls -la ./backend2/config/
