@@ -578,15 +578,29 @@ class FundraisingController {
             if (process.env.GOOGLE_DRIVE_CREDENTIALS) {
                 console.log("✓ Loading credentials from GOOGLE_DRIVE_CREDENTIALS environment variable");
                 try {
-                    // Credentials are stored as base64 in Azure
-                    credentials = JSON.parse(Buffer.from(process.env.GOOGLE_DRIVE_CREDENTIALS, 'base64').toString('utf8'));
-                    console.log("✓ Decoded credentials from base64");
+                    // Try to parse as JSON directly first (in case it's already JSON)
+                    try {
+                        credentials = JSON.parse(process.env.GOOGLE_DRIVE_CREDENTIALS);
+                        console.log("✓ Parsed credentials as JSON");
+                    } catch (directParseError) {
+                        // If that fails, try base64 decode
+                        console.log("Attempting base64 decode...");
+                        credentials = JSON.parse(Buffer.from(process.env.GOOGLE_DRIVE_CREDENTIALS, 'base64').toString('utf8'));
+                        console.log("✓ Decoded credentials from base64");
+                    }
                 } catch (parseError) {
                     console.error("❌ Failed to parse GOOGLE_DRIVE_CREDENTIALS:", parseError.message);
+                    console.error("Env var length:", process.env.GOOGLE_DRIVE_CREDENTIALS.length);
+                    console.error("First 100 chars:", process.env.GOOGLE_DRIVE_CREDENTIALS.substring(0, 100));
                     return {
                         success: false,
                         message: "Failed to parse Google Drive credentials from environment",
-                        error: parseError.message
+                        error: parseError.message,
+                        debugging: {
+                            envVarLength: process.env.GOOGLE_DRIVE_CREDENTIALS.length,
+                            isJson: process.env.GOOGLE_DRIVE_CREDENTIALS.startsWith('{'),
+                            isBase64: /^[A-Za-z0-9+/=]+$/.test(process.env.GOOGLE_DRIVE_CREDENTIALS)
+                        }
                     };
                 }
             }
