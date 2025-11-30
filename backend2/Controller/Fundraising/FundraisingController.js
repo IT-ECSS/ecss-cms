@@ -565,6 +565,112 @@ class FundraisingController {
         }
     }
 
+    async uploadPdfToGoogleDrive(fileBuffer, fileName, mimeType) {
+        try {
+            let credentials = null;
+
+            // Try environment variable first (for Azure)
+            if (process.env.GOOGLE_DRIVE_CREDENTIALS) {
+                console.log("✓ Loading credentials from GOOGLE_DRIVE_CREDENTIALS environment variable");
+                try {
+                    // Try to parse as JSON directly first (in case it's already JSON)
+                    try {
+                        credentials = JSON.parse(process.env.GOOGLE_DRIVE_CREDENTIALS);
+                        console.log("✓ Parsed credentials as JSON");
+                    } catch (directParseError) {
+                        // If that fails, try base64 decode
+                        console.log("Attempting base64 decode...");
+                        credentials = JSON.parse(Buffer.from(process.env.GOOGLE_DRIVE_CREDENTIALS, 'base64').toString('utf8'));
+                        console.log("✓ Decoded credentials from base64");
+                    }
+                } catch (parseError) {
+                    console.error("❌ Failed to parse GOOGLE_DRIVE_CREDENTIALS:", parseError.message);
+                    return {
+                        success: false,
+                        error: parseError.message
+                    };
+                }
+            }
+            // Fallback to file (for local development)
+            else {
+                const keyFile = path.join(__dirname, '../../config/ecss-company-management-system-22a29c296db3.json');
+                console.log("🔍 GOOGLE_DRIVE_CREDENTIALS env var not found, checking for credentials file at:", keyFile);
+                
+                if (fs.existsSync(keyFile)) {
+                    console.log("✓ Loading credentials from file");
+                    credentials = JSON.parse(fs.readFileSync(keyFile, 'utf8'));
+                } else {
+                    console.error("❌ Credentials not found in environment variable or file");
+                    return {
+                        success: false,
+                        error: "Service account credentials not found"
+                    };
+                }
+            }
+
+            console.log("✓ Service account credentials loaded successfully");
+            console.log("Service account email:", credentials.client_email);
+
+            // Create auth client with Drive API scope
+            const auth = new google.auth.GoogleAuth({
+                credentials: credentials,
+                scopes: ['https://www.googleapis.com/auth/drive']
+            });
+
+            // Initialize Drive API
+            const drive = google.drive({ version: 'v3', auth });
+            
+            console.log("📤 Uploading PDF to Google Drive:", fileName);
+            
+            try {
+                // Upload file to Google Drive
+                const response = await drive.files.create({
+                    requestBody: {
+                        name: fileName,
+                        mimeType: mimeType || 'application/pdf',
+                        parents: ['1DF81mvA5pv8_X-_uP8528Vb1xNfs1D8M'] // Fundraising folder ID in Google Drive
+                    },
+                    media: {
+                        mimeType: mimeType || 'application/pdf',
+                        body: require('stream').Readable.from([fileBuffer])
+                    },
+                    fields: 'id, name, webViewLink, createdTime'
+                });
+
+                const fileId = response.data.id;
+                const fileLink = response.data.webViewLink;
+                const uploadedAt = response.data.createdTime;
+
+                console.log("✓ File uploaded successfully to Google Drive");
+                console.log("File ID:", fileId);
+                console.log("File Link:", fileLink);
+                console.log("Uploaded at:", uploadedAt);
+
+                return {
+                    success: true,
+                    fileId: fileId,
+                    fileName: fileName,
+                    fileLink: fileLink,
+                    uploadedAt: uploadedAt
+                };
+
+            } catch (uploadError) {
+                console.error("❌ Error uploading file to Google Drive:", uploadError.message);
+                return {
+                    success: false,
+                    error: uploadError.message
+                };
+            }
+
+        } catch (error) {
+            console.error("❌ Error in uploadPdfToGoogleDrive:", error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
     async fetchBulkOrdersFromGoogleDrive(fileId, sheetName) {
         try {
             let credentials = null;
