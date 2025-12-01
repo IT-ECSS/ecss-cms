@@ -1,6 +1,6 @@
 import React, { Component, useMemo, useState } from "react";
 import axios from 'axios';
-import './FitnessSection.css';
+import '../../../css/sub/FitnessSection.css';
 import {
   getCoreRowModel,
   getSortedRowModel,

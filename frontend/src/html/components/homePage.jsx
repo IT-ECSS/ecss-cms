@@ -21,6 +21,7 @@ import React, { Component } from 'react';
   import PaymentReportModal from './sub/PaymentReportModal';
   import FiscalBalanceReportModal from './sub/FiscalBalanceReportModal';
   import BulkOrderModal from './sub/BulkOrderModal';
+  import FundraisingOrderItemsModal from './sub/FundraisingOrderItemsModal';
   import ReportSection from './sub/reportSection';
   import WelcomeSection from './sub/welcomeSection';
   import { withAuth } from '../../AuthContext';
@@ -116,7 +117,11 @@ import React, { Component } from 'react';
         isBulkOrderModalOpen: false,
         bulkOrderLoading: false,
         bulkOrderError: null,
-        bulkOrderData: null
+        bulkOrderData: null,
+        showItemsModal: false,
+        selectedItems: [],
+        selectedRowData: null,
+        wooCommerceProductDetails: []
       };
   
       // Always reset attendance filter/search state to defaults on page load
@@ -124,6 +129,12 @@ import React, { Component } from 'react';
       initialState.attendanceFilterCode = 'All Codes';
       initialState.attendanceFilterLocation = 'All Locations';
       initialState.attendanceSearchQuery = '';
+
+      // Always reset modal states on page load
+      initialState.isBulkOrderModalOpen = false;
+      initialState.bulkOrderLoading = false;
+      initialState.bulkOrderError = null;
+      initialState.bulkOrderData = null;
 
       // Set the initial state
       this.state = initialState;
@@ -1038,6 +1049,41 @@ import React, { Component } from 'react';
       this.setState({ isBulkOrderModalOpen: false, bulkOrderData: null, bulkOrderError: null });
     };
 
+    // Open Items Modal for Fundraising Orders
+    openItemsModal = (items, rowData, wooCommerceProductDetails) => {
+      console.log('========== openItemsModal CALLED IN HOMEPAGE ==========');
+      console.log('openItemsModal called in homePage with:', {
+        items: items,
+        rowData: rowData,
+        wooCommerceProductDetailsCount: wooCommerceProductDetails ? wooCommerceProductDetails.length : 0
+      });
+      console.log('Current state before setState:', this.state.showItemsModal);
+      
+      this.setState({
+        showItemsModal: true,
+        selectedItems: items,
+        selectedRowData: rowData,
+        wooCommerceProductDetails: wooCommerceProductDetails
+      }, () => {
+        console.log('setState callback - State updated:', {
+          showItemsModal: this.state.showItemsModal,
+          selectedItems: this.state.selectedItems,
+          selectedRowData: this.state.selectedRowData,
+          wooCommerceProductDetails: this.state.wooCommerceProductDetails
+        });
+        console.log('========== openItemsModal COMPLETE ==========');
+      });
+    };
+
+    // Close Items Modal
+    closeItemsModal = () => {
+      this.setState({
+        showItemsModal: false,
+        selectedItems: [],
+        selectedRowData: null
+      });
+    };
+
     generateDeleteConfirmationPopup = (id) => {
       console.log("ID deleted:", id);
       this.setState({
@@ -1641,7 +1687,7 @@ import React, { Component } from 'react';
       const userName = this.props.location.state?.name || 'User';
       const role = this.props.location.state?.role;
       const siteIC = this.props.location.state?.siteIC;
-      const {membershipType, membershipTypes, membershipSearchQuery, isMembershipVisible, isFitnessVisible, fitnessSearchQuery, isFundraisingTableVisible, isFundraisingInventoryVisible, fundraisingSearchQuery, fundraisingPaymentMethod, fundraisingCollectionLocation, fundraisingStatus, fundraisingPaymentMethods, fundraisingCollectionLocations, fundraisingStatuses, showCalendarModal, selectedOrderForCalendar, collectionSchedule, attendanceVisibility, reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo, selectedQuarter, quarters, attendanceFilterType, attendanceFilterCode, attendanceFilterLocation, attendanceSearchQuery, attendanceTypes, activityCodes, attendanceLocations, isSalesReportModalOpen, isPaymentReportModalOpen, isFiscalBalanceReportModalOpen} = this.state;
+      const {membershipType, membershipTypes, membershipSearchQuery, isMembershipVisible, isFitnessVisible, fitnessSearchQuery, isFundraisingTableVisible, isFundraisingInventoryVisible, fundraisingSearchQuery, fundraisingPaymentMethod, fundraisingCollectionLocation, fundraisingStatus, fundraisingPaymentMethods, fundraisingCollectionLocations, fundraisingStatuses, showCalendarModal, selectedOrderForCalendar, collectionSchedule, attendanceVisibility, reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo, selectedQuarter, quarters, attendanceFilterType, attendanceFilterCode, attendanceFilterLocation, attendanceSearchQuery, attendanceTypes, activityCodes, attendanceLocations, isSalesReportModalOpen, isPaymentReportModalOpen, isFiscalBalanceReportModalOpen, showItemsModal, selectedItems, selectedRowData, wooCommerceProductDetails} = this.state;
 
       return (
         <>
@@ -1909,6 +1955,7 @@ import React, { Component } from 'react';
                             openPaymentReportModal={this.openPaymentReportModal}
                             openFiscalBalanceReportModal={this.openFiscalBalanceReportModal}
                             openBulkOrderModal={this.openBulkOrderModal}
+                            openItemsModal={this.openItemsModal}
                           />
                         </div>
                         
@@ -2096,14 +2143,20 @@ import React, { Component } from 'react';
                 fundraisingData={this.fundraisingTableRef?.current?.state?.fundraisingData || []}
                 wooCommerceProductDetails={this.fundraisingTableRef?.current?.state?.wooCommerceProductDetails || []}
           />
-          {this.state.isBulkOrderModalOpen && (
             <BulkOrderModal 
+                 isOpen={this.state.isBulkOrderModalOpen}
                   onClose={this.closeBulkOrderModal}
                   loading={this.state.bulkOrderLoading}
                   error={this.state.bulkOrderError}
                   backendData={this.state.bulkOrderData}
             />
-          )}
+          <FundraisingOrderItemsModal
+            isOpen={showItemsModal}
+            onClose={this.closeItemsModal}
+            selectedItems={selectedItems}
+            selectedRowData={selectedRowData}
+            wooCommerceProductDetails={wooCommerceProductDetails}
+          />
         </>
       );
     }

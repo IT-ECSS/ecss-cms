@@ -561,7 +561,11 @@ class BulkOrderModal extends Component {
 
 
   render() {
-    const { onClose, loading, error } = this.props;
+    const { onClose, loading, error, isOpen } = this.props;
+    
+    // Don't render if modal is not open
+    if (!isOpen) return null;
+    
     const { 
       isLoading, 
       paidOrdersCount, 

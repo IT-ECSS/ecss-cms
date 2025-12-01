@@ -1148,9 +1148,6 @@ class FundraisingOrders extends Component {
 
     // Method to view items in a modal popup
     viewItems = async (items, rowData) => {
-      console.log('Viewing items for:', rowData);
-      console.log('Items from database (fetchFundraisingData):', items);
-      
       // Extract product names from items to filter preloaded data
       const itemProductNames = items.map(item => 
         item.productName || item.name || item.itemName
@@ -1169,14 +1166,23 @@ class FundraisingOrders extends Component {
         fundraisingData: this.state.fundraisingData
       });
 
-      this.setState({
-        showItemsModal: true,
-        selectedItems: items, // Backend database items from fetchFundraisingData
-        selectedRowData: rowData, // Full row data from originalData/fundraisingData
-        isLoadingProductDetails: false, // Always false since we preload
-        // Keep ALL WooCommerce details available for the modal
-        wooCommerceProductDetails: this.state.wooCommerceProductDetails
-      });
+      // Call parent component's openItemsModal if available
+      if (this.props.openItemsModal) {
+        console.log('Calling parent openItemsModal');
+        this.props.openItemsModal(items, rowData, this.state.wooCommerceProductDetails);
+        console.log('Parent openItemsModal called successfully');
+      } else {
+        console.log('ERROR: openItemsModal not available in props, using fallback');
+        // Fallback to local state if parent method not available
+        this.setState({
+          showItemsModal: true,
+          selectedItems: items,
+          selectedRowData: rowData,
+          isLoadingProductDetails: false,
+          wooCommerceProductDetails: this.state.wooCommerceProductDetails
+        });
+      }
+      console.log('========== viewItems METHOD COMPLETE ==========');
     };
 
     // Fetch WooCommerce product details for fundraising items
