@@ -278,13 +278,8 @@ class SalesReportModal extends Component {
       stationLocationGroupedData[stationLocation].push(orderData);
     });
 
-    // Force collection location order
-    const fixedLocations = [
-      'Tampines North Community Club',
-      'CT Hub',
-      'Pasir Ris West Wellness Centre',
-    ];
-    const locationTabs = ['All Locations', ...fixedLocations.filter(loc => locationGroupedData[loc])];
+    // Get unique and sorted collection locations dynamically from data
+    const locationTabs = ['All Locations', ...Array.from(locationSet).sort()];
     
     // Get unique and sorted station locations
     const stationLocationTabs = ['All Stations', ...Array.from(stationLocationSet).sort()];
@@ -594,6 +589,8 @@ class SalesReportModal extends Component {
         return 'FFD1ECF1'; // Soft pastel blue
       case 'En Community Church':
         return 'FFFDCCE6'; // Soft pastel pink
+      case 'Others':
+        return 'FFFFE4B5'; // Soft pastel orange
       default:
         return null;
     }
@@ -610,6 +607,8 @@ class SalesReportModal extends Component {
         return 'FFD1ECF1'; // Soft pastel blue
       case 'En Community Church':
         return 'FFFDCCE6'; // Soft pastel pink
+      case 'Others':
+        return 'FFFFE4B5'; // Soft pastel orange
       default:
         return null;
     }
@@ -626,6 +625,8 @@ class SalesReportModal extends Component {
         return 'location-pasirris'; // Soft pastel blue
       case 'En Community Church':
         return 'location-enchurch'; // Soft pastel light pink
+      case 'Others':
+        return 'location-others'; // Soft pastel orange
       default:
         return 'location-default';
     }
@@ -1099,7 +1100,8 @@ class SalesReportModal extends Component {
           allPaymentHeaderRow,
           dataToExport,
           activeHeaders,
-          headers
+          headers,
+          false // Use collection location for coloring
         );
 
         // Add total row to all locations worksheet
@@ -1117,7 +1119,8 @@ class SalesReportModal extends Component {
             headerRow,
             locationData.map(d => d.item),
             activeHeaders,
-            headers
+            headers,
+            false // Use collection location for coloring
           );
           // Add total row to location-specific worksheet
           this.addPaymentTotalRow(worksheet, locationTotal, headers.length);
