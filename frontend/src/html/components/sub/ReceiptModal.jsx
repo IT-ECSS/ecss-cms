@@ -29,7 +29,11 @@ class ReceiptModal extends Component {
   }
 
   componentDidMount() {
-    // Don't auto-execute on mount - only execute when user explicitly opens the modal
+    // Add event listener for escape key
+  }
+
+  componentWillUnmount() {
+    // Clean up event listener
   }
 
   componentDidUpdate(prevProps) {
@@ -61,16 +65,41 @@ class ReceiptModal extends Component {
         preview: false,
         downloaded: false,
         uploadedToGoogleDrive: false
+      },
+      errorMessages: {
+        preview: '',
+        downloaded: '',
+        uploadedToGoogleDrive: ''
       }
     });
     this.currentBlob = null;
     this.currentFilename = null;
+    this.currentBlobUrl = null;
     this.hasExecutedActions = false;
   }
 
   // Auto-execute all receipt actions
   autoExecuteActions = async () => {
     const { receiptNumber, orderDetails } = this.props;
+    
+    // Reset to show spinners for all items
+    this.setState({
+      checklist: {
+        preview: false,
+        downloaded: false,
+        uploadedToGoogleDrive: false
+      },
+      loading: {
+        preview: true,
+        downloaded: true,
+        uploadedToGoogleDrive: true
+      },
+      errors: {
+        preview: false,
+        downloaded: false,
+        uploadedToGoogleDrive: false
+      }
+    });
     
     try {
       const baseUrl = window.location.hostname === "localhost" 
@@ -149,7 +178,7 @@ class ReceiptModal extends Component {
             if (onClose) {
               onClose();
             }
-          }, 3000); // Wait 1 second to show the checkmarks before closing
+          }, 3000); // Wait 3 seconds to show the checkmarks before closing
         }
         
         return prevState;
@@ -306,17 +335,34 @@ class ReceiptModal extends Component {
           this.setState((prevState) => ({
             checklist: { ...prevState.checklist, uploadedToGoogleDrive: true },
             loading: { ...prevState.loading, uploadedToGoogleDrive: false },
-            errors: { ...prevState.errors, uploadedToGoogleDrive: false }
+            errors: { ...prevState.errors, uploadedToGoogleDrive: false },
+            errorMessages: { ...prevState.errorMessages, uploadedToGoogleDrive: '' }
           }));
         }
       } else {
-        throw new Error(data.error || 'Upload failed');
+        // Handle specific errors
+        let errorMessage = data.error || 'Upload failed';
+        
+        if (data.fileAlreadyExists) {
+          errorMessage = `File already exists in folder. Created: ${data.createdTime || 'N/A'}`;
+        }
+        
+        this.setState((prevState) => ({
+          loading: { ...prevState.loading, uploadedToGoogleDrive: false },
+          errors: { ...prevState.errors, uploadedToGoogleDrive: true },
+          errorMessages: { ...prevState.errorMessages, uploadedToGoogleDrive: errorMessage }
+        }));
+        
+        throw new Error(errorMessage);
       }
     } catch (error) {
       console.error('❌ Google Drive upload error:', error.message);
+      const errorMsg = error.message || 'Upload failed';
+      
       this.setState((prevState) => ({
         loading: { ...prevState.loading, uploadedToGoogleDrive: false },
-        errors: { ...prevState.errors, uploadedToGoogleDrive: true }
+        errors: { ...prevState.errors, uploadedToGoogleDrive: true },
+        errorMessages: { ...prevState.errorMessages, uploadedToGoogleDrive: errorMsg }
       }));
     }
   }
@@ -345,7 +391,7 @@ class ReceiptModal extends Component {
     const displayTotal = enrichedTotalPrice > 0 ? enrichedTotalPrice : originalTotalPrice;
 
     return (
-      <div className="receipt-modal-overlay" onClick={onClose}>
+      <div className="receipt-modal-overlay" onClick={this.handleOverlayClick}>
         <div className="receipt-modal-content" onClick={(e) => e.stopPropagation()}>
           {/* Modal Header */}
           <div className="receipt-modal-header">

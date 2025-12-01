@@ -71,6 +71,62 @@ class GoogleDriveController {
         }
     }
 
+    async listFilesInFolder(folderId) {
+        try {
+            const drive = await this.initializeAuth();
+            
+            console.log(`\n📂 Listing files in folder: ${folderId}`);
+            
+            const query = await drive.files.list({
+                q: `'${folderId}' in parents and trashed=false`,
+                spaces: 'drive',
+                fields: 'files(id, name, webViewLink, createdTime, size, mimeType)',
+                supportsAllDrives: true,
+                includeItemsFromAllDrives: true,
+                pageSize: 100,
+                orderBy: 'name',
+                corpora: 'allDrives' // Search all drives including Shared Drives
+            });
+            
+            console.log(`Query response files count: ${query.data.files ? query.data.files.length : 0}`);
+            console.log(`Query response:`, JSON.stringify(query.data, null, 2));
+            
+            if (query.data.files && query.data.files.length > 0) {
+                console.log(`✓ Found ${query.data.files.length} files in folder:`);
+                query.data.files.forEach((file, index) => {
+                    console.log(`  ${index + 1}. ${file.name} (ID: ${file.id}, Size: ${file.size || 'N/A'} bytes)`);
+                });
+                return {
+                    success: true,
+                    fileCount: query.data.files.length,
+                    files: query.data.files
+                };
+            }
+            
+            console.log('ℹ No files found in folder - trying alternative query...');
+            
+            // Try without 'in parents' to see if folder is accessible
+            const folderCheck = await drive.files.get({
+                fileId: folderId,
+                fields: 'id, name, mimeType, webViewLink',
+                supportsAllDrives: true
+            });
+            
+            console.log(`Folder info:`, folderCheck.data);
+            
+            return {
+                success: true,
+                fileCount: 0,
+                files: [],
+                folderInfo: folderCheck.data
+            };
+        } catch (error) {
+            console.error('Error listing files in folder:', error.message);
+            console.error('Error details:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
     async uploadPdfToGoogleDrive(fileBuffer, fileName, folderId, mimeType = 'application/pdf') {
         try {
             const drive = await this.initializeAuth();

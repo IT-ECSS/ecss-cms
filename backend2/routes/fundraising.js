@@ -20,6 +20,7 @@ router.post('/', upload.single('file'), async function(req, res, next)
     const googleDriveController = new GoogleDriveController();
     try {
         // Handle Google Drive upload
+        // Handle Google Drive upload
         if(req.body.purpose === "upload-to-google-drive") {
             if (!req.file) {
               return res.status(400).json({ 
@@ -29,25 +30,34 @@ router.post('/', upload.single('file'), async function(req, res, next)
             }
 
             try {
-              // Use explicit filename field if provided, otherwise fall back to originalname
               const filename = req.body.filename;
+              const folderId = '11dHfai2ZsHia2J-Ho7w2arW_-dFYMmVW';
+              
               console.log('Using filename for upload:', filename);
               
+              // List all files in folder to check for duplicates
+              const filesList = await googleDriveController.listFilesInFolder(folderId);
+              console.log('Files in folder:', filesList);
               
-              // Check if folder exists first
-              const folderId = '11dHfai2ZsHia2J-Ho7w2arW_-dFYMmVW';
-              const folderCheck = await googleDriveController.checkFolderExists(folderId);
-              
-              if (!folderCheck.exists) {
-                console.error("❌ Google Drive folder not found or not accessible");
-                console.error("Error details:", folderCheck.error);
-                return res.json({
-                  success: false,
-                  error: `Google Drive folder not accessible: ${folderCheck.error}`
-                });
+              if (filesList.success && filesList.files && filesList.files.length > 0) {
+                // Check if file with same name already exists
+                const duplicateFile = filesList.files.find(f => f.name === filename);
+                
+                if (duplicateFile) {
+                  console.log(`❌ File "${filename}" already exists in the folder - upload rejected`);
+                  return res.json({
+                    success: false,
+                    error: `File "${filename}" already exists in the folder. Upload not allowed.`,
+                    fileAlreadyExists: true,
+                    existingFileId: duplicateFile.id,
+                    existingFileLink: duplicateFile.webViewLink,
+                    existingFileName: duplicateFile.name,
+                    createdTime: duplicateFile.createdTime
+                  });
+                }
               }
               
-              console.log(`✓ Folder verified: ${folderCheck.folderName}`);
+              console.log(`✓ No duplicate found - proceeding with upload of file: "${filename}"`);
               
               // Proceed with upload to Google Drive
               const uploadResult = await googleDriveController.uploadPdfToGoogleDrive(
@@ -73,8 +83,6 @@ router.post('/', upload.single('file'), async function(req, res, next)
               }
             } catch (error) {
               console.error('Google Drive upload error:', error.message);
-              
-              // Return failure
               return res.json({
                 success: false,
                 error: error.message
