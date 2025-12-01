@@ -3,7 +3,9 @@ var router = express.Router();
 var FundraisingController = require('../Controller/Fundraising/FundraisingController');
 var fundRaisingGenerator = require('../Others/Pdf/fundRaisingGenerator');
 var CheckoutInvoiceGenerator = require('../Others/Pdf/checkoutInvoiceGenerator');
+var GoogleDriveController = require('../Controller/Google/GoogleDriveController');
 var multer = require('multer');
+const XLSX = require('xlsx');
 
 // Configure multer for file uploads (memory storage)
 const upload = multer({ 
@@ -15,11 +17,10 @@ router.post('/', upload.single('file'), async function(req, res, next)
 {
     const io = req.app.get('io');
     const fundraisingController = new FundraisingController();
+    const googleDriveController = new GoogleDriveController();
     try {
         // Handle Google Drive upload
         if(req.body.purpose === "upload-to-google-drive") {
-            console.log('Received upload-to-google-drive request');
-            
             if (!req.file) {
               return res.status(400).json({ 
                 success: false, 
@@ -28,54 +29,55 @@ router.post('/', upload.single('file'), async function(req, res, next)
             }
 
             try {
-              const driveResult = await fundraisingController.uploadPdfToGoogleDrive(
+              // Use explicit filename field if provided, otherwise fall back to originalname
+              const filename = req.body.filename;
+              console.log('Using filename for upload:', filename);
+              
+              
+              // Check if folder exists first
+              const folderId = '11dHfai2ZsHia2J-Ho7w2arW_-dFYMmVW';
+              const folderCheck = await googleDriveController.checkFolderExists(folderId);
+              
+              if (!folderCheck.exists) {
+                console.error("❌ Google Drive folder not found or not accessible");
+                console.error("Error details:", folderCheck.error);
+                return res.json({
+                  success: false,
+                  error: `Google Drive folder not accessible: ${folderCheck.error}`
+                });
+              }
+              
+              console.log(`✓ Folder verified: ${folderCheck.folderName}`);
+              
+              // Proceed with upload to Google Drive
+              const uploadResult = await googleDriveController.uploadPdfToGoogleDrive(
                 req.file.buffer,
-                req.file.originalname,
-                req.file.mimetype
+                filename,
+                folderId
               );
-
-              console.log('File uploaded to Google Drive:', driveResult);
-
-              if (driveResult.success) {
-                console.log('File uploaded to Google Drive:', driveResult);
+              
+              if (uploadResult.success) {
+                console.log("✓ File uploaded successfully to Google Drive");
                 return res.json({
                   success: true,
-                  fileId: driveResult.fileId,
-                  fileName: driveResult.fileName,
-                  fileLink: driveResult.fileLink,
-                  uploadedAt: driveResult.uploadedAt
+                  message: "File uploaded to Google Drive successfully",
+                  fileId: uploadResult.fileId,
+                  fileLink: uploadResult.fileLink
                 });
               } else {
-                console.error('Google Drive upload error:', driveResult.error);
-                console.warn('[WARN] Google Drive upload failed - returning partial success');
-                console.warn('Note: PDF will still download locally, but Google Drive upload is pending');
-                
-                // Return success but indicate Google Drive upload failed
-                // This allows the application to continue without blocking
+                console.error("❌ Failed to upload file to Google Drive:", uploadResult.error);
                 return res.json({
-                  success: true,
-                  warning: 'PDF downloaded locally, but Google Drive upload failed',
-                  googleDriveError: driveResult.error,
-                  fileId: null,
-                  fileName: null,
-                  fileLink: null,
-                  uploadedAt: null
+                  success: false,
+                  error: `Upload failed: ${uploadResult.error}`
                 });
               }
             } catch (error) {
               console.error('Google Drive upload error:', error.message);
-              console.warn('[WARN] Google Drive upload failed - returning partial success');
-              console.warn('Note: PDF will still download locally, but Google Drive upload is pending');
               
-              // Return success but indicate Google Drive upload failed
+              // Return failure
               return res.json({
-                success: true,
-                warning: 'PDF downloaded locally, but Google Drive upload failed',
-                googleDriveError: error.message,
-                fileId: null,
-                fileName: null,
-                fileLink: null,
-                uploadedAt: null
+                success: false,
+                error: error.message
               });
             }
         }
@@ -553,19 +555,61 @@ router.post('/', upload.single('file'), async function(req, res, next)
         }
         else if(req.body.purpose === "bulk") {
             try {
-                // File ID of the Excel file in Google Drive
-                // Extract from: https://drive.google.com/file/d/{FILE_ID}/view
                 const fileId = '1HNFBNdD04IMx81QOd3Mk11Dfuec9dmVd';
                 const sheetName = 'Delivery Details';
                 
-                // Call controller method to fetch bulk orders from Google Drive
-                // This always retrieves the most updated data from the source
-                const result = await fundraisingController.fetchBulkOrdersFromGoogleDrive(fileId, sheetName);
+                // Fetch the Excel file from Google Drive using GoogleDriveController
+                console.log('Fetching bulk orders from Google Drive file:', fileId);
                 
-                return res.json({  result: result });
+                // Get the file from Google Drive
+                const drive = await googleDriveController.initializeAuth();
+                const response = await drive.files.get({
+                    fileId: fileId,
+                    alt: 'media',
+                    supportsAllDrives: true
+                }, { responseType: 'stream' });
+
+                // Convert stream to buffer
+                const chunks = [];
+                await new Promise((resolve, reject) => {
+                    response.data.on('data', chunk => chunks.push(chunk));
+                    response.data.on('end', resolve);
+                    response.data.on('error', reject);
+                });
+                const buffer = Buffer.concat(chunks);
+
+                // Parse Excel file
+                const workbook = XLSX.read(buffer, { type: 'buffer' });
+                const worksheet = workbook.Sheets[sheetName];
+                
+                if (!worksheet) {
+                    console.error("❌ Sheet not found:", sheetName);
+                    console.log("Available sheets:", Object.keys(workbook.Sheets));
+                    return res.status(400).json({
+                        result: {
+                            success: false,
+                            message: `Sheet "${sheetName}" not found in workbook`,
+                            availableSheets: Object.keys(workbook.Sheets)
+                        }
+                    });
+                }
+                
+                const data = XLSX.utils.sheet_to_json(worksheet);
+
+                console.log(`✓ Successfully fetched ${data.length} rows from Google Drive`);
+
+                return res.json({
+                    result: {
+                        success: true,
+                        message: "Bulk orders fetched successfully from Google Drive",
+                        data: data,
+                        count: data.length
+                    }
+                });
 
             } catch (bulkOrderError) {
                 console.error("Bulk order route error:", bulkOrderError);
+                console.error("Error details:", bulkOrderError.message);
                 return res.status(500).json({
                     result: {
                         success: false,

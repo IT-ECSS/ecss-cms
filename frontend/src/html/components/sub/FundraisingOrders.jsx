@@ -52,7 +52,7 @@ class FundraisingOrders extends Component {
     toggleRow = (index) => {
       this.setState((prevState) => ({
         expandedRow: prevState.expandedRow === index ? null : index,
-      }));
+      }));  
     };  
 
     handleEntriesPerPageChange = (e) => {
@@ -938,16 +938,8 @@ class FundraisingOrders extends Component {
       if (receiptNumber && (status === "Paid" || status === "Cancelled" || status === "Refunded" || status === "Collected")) {
         return (
           <button
-            className="fundraising-receipt-link"
-            onClick={() => this.generateReceiptFromNumber(params.data)}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#000000',
-              cursor: 'pointer',
-              width: '100%',
-              height: '100%'
-            }}
+            className="receipt-number-btn"
+            onClick={() => this.props.openReceiptModal(receiptNumber, params.data)}
           >
             {receiptNumber}
           </button>
@@ -1033,7 +1025,8 @@ class FundraisingOrders extends Component {
           headerName: "Invoice Number",
           field: "invoiceNumber",
           width: 200,
-          cellRenderer: this.invoiceNumberRenderer
+          cellRenderer: this.invoiceNumberRenderer,
+         // pinned: "left"
         },
         {
           headerName: "Order Details",
@@ -3487,6 +3480,7 @@ Sila buat pembayaran anda di lokasi tersebut untuk mengesahkan pesanan anda.
       this.setState({ showFiscalBalanceModal: false });
     };
 
+    // Receipt Modal Methods
     // Fetch bulk orders from Google Drive Excel file
     // Export confirmed (Paid status) items sales to Excel by location
     render() 

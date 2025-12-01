@@ -33,9 +33,9 @@ jobs:
             MISSING_SECRETS+=("ONESIGNAL_API_KEY")
             echo "ERROR: ONESIGNAL_API_KEY secret is not set!"
           fi
-          if [ -z "${{ secrets.GOOGLE_DRIVE_CREDENTIALS }}" ]; then
-            MISSING_SECRETS+=("GOOGLE_DRIVE_CREDENTIALS")
-            echo "ERROR: GOOGLE_DRIVE_CREDENTIALS secret is not set!"
+          if [ -z "${{ secrets.GOOGLE_SERVICE_ACCOUNT_NORSE }}" ]; then
+            MISSING_SECRETS+=("GOOGLE_SERVICE_ACCOUNT_NORSE")
+            echo "ERROR: GOOGLE_SERVICE_ACCOUNT_NORSE secret is not set!"
           fi
           
           if [ ${#MISSING_SECRETS[@]} -gt 0 ]; then
@@ -75,13 +75,13 @@ jobs:
               ONESIGNAL_APP_ID="${{ secrets.ONESIGNAL_APP_ID }}" \
               ONESIGNAL_API_KEY="${{ secrets.ONESIGNAL_API_KEY }}" \
               GOOGLE_DRIVE_FOLDER_ID="1DF81mvA5pv8_X-_uP8528Vb1xNfs1D8M" \
-              GOOGLE_DRIVE_CREDENTIALS="${{ secrets.GOOGLE_DRIVE_CREDENTIALS }}" \
+              GOOGLE_SERVICE_ACCOUNT_NORSE='${{ secrets.GOOGLE_SERVICE_ACCOUNT_NORSE }}' \
               NODE_ENV="production"
           echo "✓ All settings configured in Azure"
 
       - name: Configure Google Drive Credentials
         run: |
           mkdir -p ./backend2/config
-          echo "${{ secrets.GOOGLE_DRIVE_CREDENTIALS }}" | base64 -d > ./backend2/config/ecss-company-management-system-22a29c296db3.json
+          echo "${{ secrets.GOOGLE_SERVICE_ACCOUNT_NORSE }}" > ./backend2/config/norse-study-479913-b7-00b6903f8f4f.json
           echo "✓ Google Drive credentials file created"
           ls -la ./backend2/config/

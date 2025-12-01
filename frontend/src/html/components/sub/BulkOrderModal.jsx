@@ -44,10 +44,19 @@ class BulkOrderModal extends Component {
           "purpose": "bulk"
         }
       );
-      
-      if (response.data?.result) {
-        const backendData = response.data.result;
-        console.log('Latest data retrieved from backend:', backendData);
+      console.log("Bulk order response:", response.data.result.data);
+      if (response.data?.result?.success) {
+        const bulkOrdersArray = response.data.result.data || [];
+        console.log('Latest data retrieved from backend:', bulkOrdersArray);
+        
+        // Extract headers from the first object
+        const headers = bulkOrdersArray.length > 0 ? Object.keys(bulkOrdersArray[0]) : [];
+        
+        // Format data as expected by processBackendData
+        const backendData = {
+          bulkOrders: bulkOrdersArray,
+          headers: headers
+        };
         
         const now = new Date();
         const day = String(now.getDate()).padStart(2, '0');
@@ -65,6 +74,12 @@ class BulkOrderModal extends Component {
           isLoading: false
         });
         this.processBackendData();
+      } else {
+        console.error('Backend returned error:', response.data?.result?.message);
+        this.setState({ 
+          errorMessage: response.data?.result?.message || 'Failed to fetch bulk orders',
+          isLoading: false 
+        });
       }
     } catch (error) {
       console.error('Error fetching latest bulk order data:', error);
