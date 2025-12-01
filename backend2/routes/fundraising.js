@@ -18,6 +18,9 @@ router.post('/', upload.single('file'), async function(req, res, next)
     const io = req.app.get('io');
     const fundraisingController = new FundraisingController();
     const googleDriveController = new GoogleDriveController();
+    const checkoutInvoiceGenerator = new CheckoutInvoiceGenerator();
+    const fundraisingPdfGenerator = new fundRaisingGenerator();
+
     try {
         // Handle Google Drive upload
         // Handle Google Drive upload
@@ -31,8 +34,17 @@ router.post('/', upload.single('file'), async function(req, res, next)
 
             try {
               const filename = req.body.filename;
-              const folderId = '11dHfai2ZsHia2J-Ho7w2arW_-dFYMmVW';
+              const fileType = req.body.fileType || 'receipt'; // Default to receipt for backward compatibility
               
+              // Use different folder IDs based on file type
+              let folderId;
+              if (fileType === 'invoice') {
+                folderId = '1eF1phBpOZnKlRy5ARSNkQeawefDpu8Ou'; // Invoice folder
+              } else {
+                folderId = '11dHfai2ZsHia2J-Ho7w2arW_-dFYMmVW'; // Receipt folder
+              }
+              
+              console.log(`Using fileType: ${fileType} - folderId: ${folderId}`);
               console.log('Using filename for upload:', filename);
               
               // List all files in folder to check for duplicates
@@ -72,7 +84,9 @@ router.post('/', upload.single('file'), async function(req, res, next)
                   success: true,
                   message: "File uploaded to Google Drive successfully",
                   fileId: uploadResult.fileId,
-                  fileLink: uploadResult.fileLink
+                  fileName: filename,
+                  fileLink: uploadResult.fileLink,
+                  uploadedAt: new Date().toISOString()
                 });
               } else {
                 console.error("❌ Failed to upload file to Google Drive:", uploadResult.error);
@@ -165,7 +179,6 @@ router.post('/', upload.single('file'), async function(req, res, next)
                 console.log("Starting invoice generation for checkout order using CheckoutInvoiceGenerator...");
                 
                 // Generate checkout invoice PDF with the order data
-                const checkoutInvoiceGenerator = new CheckoutInvoiceGenerator();
                 const invoiceResult = await checkoutInvoiceGenerator.generateCheckoutInvoice(req.body.orderData, invoiceNumber);
                 
                 // Convert buffer to base64 for sending to frontend
@@ -231,7 +244,7 @@ router.post('/', upload.single('file'), async function(req, res, next)
             // Generate receipt PDF using fundRaisingGenerator
             try {
                 // Generate fundraising PDF with the request data
-                const fundraisingPdfGenerator = new fundRaisingGenerator();
+
                 const pdfBuffer = await fundraisingPdfGenerator.generateFundraisingReceipt(req.body);
                 
                 // Convert buffer to base64 for sending to frontend
@@ -355,7 +368,6 @@ router.post('/', upload.single('file'), async function(req, res, next)
                 try {
                     // Generate PDF with order data and subtotal info
                     const pdfData = { ...result.data, subtotalInfo };
-                    const fundraisingPdfGenerator = new fundRaisingGenerator();
                     const pdfBuffer = await fundraisingPdfGenerator.generateFundraisingReceipt(pdfData);
                     
                     // Create filename and add PDF data to result
@@ -399,7 +411,6 @@ router.post('/', upload.single('file'), async function(req, res, next)
                 console.log("Order data for invoice generation:", JSON.stringify(req.body.orderData, null, 2));
                 
                 // Generate checkout invoice PDF with the provided order data and existing invoice number
-                const checkoutInvoiceGenerator = new CheckoutInvoiceGenerator();
                 const invoiceResult = await checkoutInvoiceGenerator.generateCheckoutInvoice(
                     req.body.orderData, 
                     req.body.invoiceNumber // Use existing invoice number

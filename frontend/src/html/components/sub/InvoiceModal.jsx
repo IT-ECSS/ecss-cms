@@ -1,8 +1,8 @@
 import React, { Component } from 'react';
 import axios from 'axios';
-import '../../../css/sub/receiptModal.css';
+import '../../../css/sub/invoiceModal.css';
 
-class ReceiptModal extends Component {
+class InvoiceModal extends Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -20,16 +20,20 @@ class ReceiptModal extends Component {
         preview: false,
         downloaded: false,
         uploadedToGoogleDrive: false
+      },
+      errorMessages: {
+        preview: '',
+        downloaded: '',
+        uploadedToGoogleDrive: ''
       }
     };
-    // Store blob and filename for reuse across actions
     this.currentBlob = null;
-    this.currentFilename = null;
-    this.hasExecutedActions = false; // Track if actions have already been executed
+    this.currentBlobUrl = null;
+    this.hasExecutedActions = false;
   }
 
   componentDidMount() {
-    // Add event listener for escape key
+    // Add event listener for escape key if needed
   }
 
   componentWillUnmount() {
@@ -73,14 +77,13 @@ class ReceiptModal extends Component {
       }
     });
     this.currentBlob = null;
-    this.currentFilename = null;
     this.currentBlobUrl = null;
     this.hasExecutedActions = false;
   }
 
-  // Auto-execute all receipt actions
+  // Auto-execute all invoice actions
   autoExecuteActions = async () => {
-    const { receiptNumber, orderDetails } = this.props;
+    const { invoiceNumber, orderData } = this.props;
     
     // Reset to show spinners for all items
     this.setState({
@@ -106,39 +109,15 @@ class ReceiptModal extends Component {
         ? "http://localhost:3001" 
         : "https://ecss-backend-node.azurewebsites.net";
       
-      // Prepare complete order data for PDF generation
-      const pdfData = {
-        purpose: 'generateReceipt',
-        receiptNumber: receiptNumber,
-        personalInfo: {
-          firstName: orderDetails?.firstName || '',
-          lastName: orderDetails?.lastName || '',
-          email: orderDetails?.email || '',
-          phone: orderDetails?.contactNumber || ''
-        },
-        paymentMethod: orderDetails?.paymentMethod || '',
-        paymentDetails: {
-          paymentMethod: orderDetails?.paymentMethod || '',
-          invoiceNumber: orderDetails?.invoiceNumber || ''
-        },
-        collectionMode: orderDetails?.collectionMode || '',
-        collectionDetails: {
-          collectionMode: orderDetails?.collectionMode || '',
-          CollectionDeliveryLocation: orderDetails?.collectionDeliveryLocation || '',
-          collectionDate: orderDetails?.collectionDate || '',
-          collectionTime: orderDetails?.collectionTime || ''
-        },
-        items: orderDetails?.items || [],
-        totalPrice: orderDetails?.enrichedTotalPrice > 0 
-          ? orderDetails?.enrichedTotalPrice 
-          : orderDetails?.originalTotalPrice || 0,
-        donationAmount: orderDetails?.donationAmount || ''
-      };
-      
-      const response = await axios.post(`${baseUrl}/fundraising`, pdfData);
+      // Generate invoice PDF using existing invoice number
+      const response = await axios.post(`${baseUrl}/fundraising`, {
+        purpose: 'generateCheckoutInvoice',
+        invoiceNumber: invoiceNumber,
+        orderData: orderData
+      });
 
       if (!response.data.result.success) {
-        throw new Error(response.data.result.message || 'Failed to generate receipt');
+        throw new Error(response.data.result.message || 'Failed to generate invoice');
       }
 
       // Convert base64 back to blob
@@ -150,9 +129,8 @@ class ReceiptModal extends Component {
       
       const blob = new Blob([bytes], { type: 'application/pdf' });
       this.currentBlob = blob;
-      this.currentFilename = response.data.result.pdfFilename;
       
-      // Execute preview (with immediate window.open)
+      // Execute preview (auto-open in new tab)
       await this.executePreview(blob);
       
       // Wait 1 second before download
@@ -188,6 +166,24 @@ class ReceiptModal extends Component {
       });
     } catch (error) {
       console.error('Error in auto-execute actions:', error);
+      // Mark all as errors if generation fails
+      this.setState((prevState) => ({
+        loading: {
+          preview: false,
+          downloaded: false,
+          uploadedToGoogleDrive: false
+        },
+        errors: {
+          preview: true,
+          downloaded: true,
+          uploadedToGoogleDrive: true
+        },
+        errorMessages: {
+          preview: error.message,
+          downloaded: '',
+          uploadedToGoogleDrive: ''
+        }
+      }));
     }
   };
 
@@ -202,6 +198,12 @@ class ReceiptModal extends Component {
       
       // Store blob URL for later preview action (user clicks to open)
       this.currentBlobUrl = blobUrl;
+      
+      // Automatically open preview in new tab
+      const pdfWindow = window.open(blobUrl, '_blank');
+      if (!pdfWindow) {
+        throw new Error('Popup was blocked. Please allow popups for this site.');
+      }
       
       // Mark as previewed (ready to open)
       this.setState((prevState) => ({
@@ -242,15 +244,10 @@ class ReceiptModal extends Component {
       }));
 
       const blobUrl = window.URL.createObjectURL(blob);
-      const { orderDetails } = this.props;
+      const { invoiceNumber } = this.props;
       
-      // Build filename: FirstName LastName PaymentMethod ReceiptNumber
-      const firstName = (orderDetails?.firstName || '').trim().replace(/\s+/g, '_');
-      const lastName = (orderDetails?.lastName || '').trim().replace(/\s+/g, '_');
-      const paymentMethod = (orderDetails?.paymentMethod || '').trim().replace(/\s+/g, '_');
-      const receiptNumber = (this.props.receiptNumber || '').trim().replace(/\s+/g, '_');
-      
-      const filename = `${firstName}_${lastName}_${paymentMethod}_${receiptNumber}.pdf`;
+      // Create filename with invoice number
+      const filename = `Invoice_${invoiceNumber}.pdf`;
       
       // Create and trigger download immediately
       const downloadLink = document.createElement('a');
@@ -289,21 +286,16 @@ class ReceiptModal extends Component {
         loading: { ...prevState.loading, uploadedToGoogleDrive: true }
       }));
 
-      const { orderDetails } = this.props;
+      const { invoiceNumber } = this.props;
       
-      // Build filename: FirstName_LastName_PaymentMethod_ReceiptNumber
-      const firstName = (orderDetails?.firstName || '').trim().replace(/\s+/g, '_');
-      const lastName = (orderDetails?.lastName || '').trim().replace(/\s+/g, '_');
-      const paymentMethod = (orderDetails?.paymentMethod || '').trim().replace(/\s+/g, '_');
-      const receiptNumber = (this.props.receiptNumber || '').trim().replace(/\s+/g, '_');
-      
-      const filename = `${firstName}_${lastName}_${paymentMethod}_${receiptNumber}.pdf`;
+      // Create filename: Invoice_InvoiceNumber
+      const filename = `Invoice_${invoiceNumber}.pdf`;
       
       const formData = new FormData();
       formData.append('file', blob, filename);
       formData.append('filename', filename);
       formData.append('purpose', 'upload-to-google-drive');
-      formData.append('fileType', 'receipt');
+      formData.append('fileType', 'invoice');
       
       const baseUrl = window.location.hostname === "localhost" 
         ? "http://localhost:3001" 
@@ -323,92 +315,56 @@ class ReceiptModal extends Component {
       console.log('📦 Google Drive upload response:', data);
       
       if (data.success) {
-        // Check if there's a warning (partial success - PDF downloaded but Google Drive upload failed)
-        if (data.warning) {
-          console.warn(`⚠️ ${data.warning}`);
-          console.warn(`Google Drive Error: ${data.googleDriveError}`);
-          console.log('✓ PDF downloaded locally, Google Drive upload pending');
-          
-          // Mark as completed since PDF was downloaded locally
-          this.setState((prevState) => ({
-            checklist: { ...prevState.checklist, uploadedToGoogleDrive: true },
-            loading: { ...prevState.loading, uploadedToGoogleDrive: false },
-            errors: { ...prevState.errors, uploadedToGoogleDrive: false }
-          }));
-        } else {
-          // Full success - Google Drive upload successful
-          console.log(`✓ PDF successfully uploaded to Google Drive`);
-          console.log(`  File ID: ${data.fileId}`);
-          console.log(`  File Name: ${data.fileName}`);
-          console.log(`  File Link: ${data.fileLink}`);
-          console.log(`  Uploaded At: ${data.uploadedAt}`);
-          
-          this.setState((prevState) => ({
-            checklist: { ...prevState.checklist, uploadedToGoogleDrive: true },
-            loading: { ...prevState.loading, uploadedToGoogleDrive: false },
-            errors: { ...prevState.errors, uploadedToGoogleDrive: false },
-            errorMessages: { ...prevState.errorMessages, uploadedToGoogleDrive: '' }
-          }));
-        }
-      } else {
-        // Handle specific errors
-        let errorMessage = data.error || 'Upload failed';
+        // Full success - Google Drive upload successful
+        console.log(`✓ PDF successfully uploaded to Google Drive`);
+        console.log(`  File ID: ${data.fileId}`);
+        console.log(`  File Name: ${data.fileName}`);
+        console.log(`  File Link: ${data.fileLink}`);
+        console.log(`  Uploaded At: ${data.uploadedAt}`);
         
-        if (data.fileAlreadyExists) {
-          errorMessage = `${data.existingFileName} already exists in the folder`;
-        }
+        this.setState((prevState) => ({
+          checklist: { ...prevState.checklist, uploadedToGoogleDrive: true },
+          loading: { ...prevState.loading, uploadedToGoogleDrive: false },
+          errors: { ...prevState.errors, uploadedToGoogleDrive: false },
+          errorMessages: { ...prevState.errorMessages, uploadedToGoogleDrive: '' }
+        }));
+      } else if (data.existingFileName) {
+        // Duplicate file detected
+        const errorMsg = `${data.existingFileName} already exists in the folder`;
+        console.error('Duplicate file error:', errorMsg);
         
         this.setState((prevState) => ({
           loading: { ...prevState.loading, uploadedToGoogleDrive: false },
           errors: { ...prevState.errors, uploadedToGoogleDrive: true },
-          errorMessages: { ...prevState.errorMessages, uploadedToGoogleDrive: errorMessage }
+          errorMessages: { ...prevState.errorMessages, uploadedToGoogleDrive: errorMsg }
         }));
-        
-        throw new Error(errorMessage);
+      } else {
+        throw new Error(data.error || data.message || 'Failed to upload to Google Drive');
       }
     } catch (error) {
-      console.error('❌ Google Drive upload error:', error.message);
-      const errorMsg = error.message || 'Upload failed';
-      
+      console.error('Error executing Google Drive upload:', error);
       this.setState((prevState) => ({
         loading: { ...prevState.loading, uploadedToGoogleDrive: false },
         errors: { ...prevState.errors, uploadedToGoogleDrive: true },
-        errorMessages: { ...prevState.errorMessages, uploadedToGoogleDrive: errorMsg }
+        errorMessages: { ...prevState.errorMessages, uploadedToGoogleDrive: error.message }
       }));
     }
-  }
+  };
 
   render() {
-    const { isOpen, onClose, receiptNumber, orderDetails } = this.props;
+    const { isOpen, onClose, invoiceNumber } = this.props;
     const { checklist, loading, errors, errorMessages } = this.state;
 
     if (!isOpen) return null;
 
-    // Extract and format data
-    const name = orderDetails ? `${orderDetails.firstName || ''} ${orderDetails.lastName || ''}`.trim() : '';
-    const email = orderDetails?.email || '';
-    const contactNumber = orderDetails?.contactNumber || '';
-    const paymentMethod = orderDetails?.paymentMethod || '';
-    const items = orderDetails?.items || [];
-    const collectionDetails = orderDetails?.collectionDetails || {};
-    const collectionDate = orderDetails?.collectionDate || '';
-    const collectionMode = orderDetails?.collectionMode || '';
-    const collectionLocation = orderDetails?.collectionDeliveryLocation || '';
-    const donationAmount = orderDetails?.donationAmount || '';
-    const enrichedTotalPrice = orderDetails?.enrichedTotalPrice || 0;
-    const originalTotalPrice = orderDetails?.originalTotalPrice || 0;
-
-    // Determine which total to display
-    const displayTotal = enrichedTotalPrice > 0 ? enrichedTotalPrice : originalTotalPrice;
-
     return (
-      <div className="receipt-modal-overlay" onClick={this.handleOverlayClick}>
-        <div className="receipt-modal-content" onClick={(e) => e.stopPropagation()}>
+      <div className="invoice-modal-overlay" onClick={onClose}>
+        <div className="invoice-modal-content" onClick={(e) => e.stopPropagation()}>
           {/* Modal Header */}
-          <div className="receipt-modal-header">
-            <h2 className="receipt-modal-title">Receipt Generator</h2>
+          <div className="invoice-modal-header">
+            <h2 className="invoice-modal-title">Invoice Generator</h2>
             <button 
-              className="receipt-modal-close"
+              className="invoice-modal-close"
               onClick={onClose}
               aria-label="Close modal"
             >
@@ -417,14 +373,14 @@ class ReceiptModal extends Component {
           </div>
 
           {/* Modal Body */}
-          <div className="receipt-modal-body">
+          <div className="invoice-modal-body">
             {/* Checklist Section */}
-            <div className="receipt-checklist">
+            <div className="invoice-checklist">
               {/* Preview */}
-              <div className="receipt-checklist-item">
-                <span className={`receipt-status-icon${errors.preview ? ' error' : ''}`}>
+              <div className="invoice-checklist-item">
+                <span className={`invoice-status-icon${errors.preview ? ' error' : ''}`}>
                   {loading.preview ? (
-                    <span className="receipt-loading-spinner"></span>
+                    <span className="invoice-loading-spinner"></span>
                   ) : errors.preview ? (
                     '✗'
                   ) : checklist.preview ? (
@@ -434,22 +390,22 @@ class ReceiptModal extends Component {
                   )}
                 </span>
                 <label 
-                  className="receipt-checkbox-label"
+                  className="invoice-checkbox-label"
                   onClick={checklist.preview && !errors.preview ? this.handlePreviewClick : null}
                   style={checklist.preview && !errors.preview ? { cursor: 'pointer' } : {}}
                 >
                   Preview on New Tab
                 </label>
                 {errors.preview && errorMessages.preview && (
-                  <div className="receipt-error-message">{errorMessages.preview}</div>
+                  <div className="invoice-error-message">{errorMessages.preview}</div>
                 )}
               </div>
 
               {/* Downloaded */}
-              <div className="receipt-checklist-item">
-                <span className={`receipt-status-icon${errors.downloaded ? ' error' : ''}`}>
+              <div className="invoice-checklist-item">
+                <span className={`invoice-status-icon${errors.downloaded ? ' error' : ''}`}>
                   {loading.downloaded ? (
-                    <span className="receipt-loading-spinner"></span>
+                    <span className="invoice-loading-spinner"></span>
                   ) : errors.downloaded ? (
                     '✗'
                   ) : checklist.downloaded ? (
@@ -458,19 +414,19 @@ class ReceiptModal extends Component {
                     ''
                   )}
                 </span>
-                <label className="receipt-checkbox-label">
+                <label className="invoice-checkbox-label">
                   Download
                 </label>
                 {errors.downloaded && errorMessages.downloaded && (
-                  <div className="receipt-error-message">{errorMessages.downloaded}</div>
+                  <div className="invoice-error-message">{errorMessages.downloaded}</div>
                 )}
               </div>
 
-              {/* Uploaded to Google Drive */}
-              <div className="receipt-checklist-item">
-                <span className={`receipt-status-icon${errors.uploadedToGoogleDrive ? ' error' : ''}`}>
+              {/* Upload to Google Drive */}
+              <div className="invoice-checklist-item">
+                <span className={`invoice-status-icon${errors.uploadedToGoogleDrive ? ' error' : ''}`}>
                   {loading.uploadedToGoogleDrive ? (
-                    <span className="receipt-loading-spinner"></span>
+                    <span className="invoice-loading-spinner"></span>
                   ) : errors.uploadedToGoogleDrive ? (
                     '✗'
                   ) : checklist.uploadedToGoogleDrive ? (
@@ -479,11 +435,11 @@ class ReceiptModal extends Component {
                     ''
                   )}
                 </span>
-                <label className="receipt-checkbox-label">
+                <label className="invoice-checkbox-label">
                   Upload to Google Drive
                 </label>
                 {errors.uploadedToGoogleDrive && errorMessages.uploadedToGoogleDrive && (
-                  <div className="receipt-error-message">{errorMessages.uploadedToGoogleDrive}</div>
+                  <div className="invoice-error-message">{errorMessages.uploadedToGoogleDrive}</div>
                 )}
               </div>
             </div>
@@ -494,4 +450,4 @@ class ReceiptModal extends Component {
   }
 }
 
-export default ReceiptModal;
+export default InvoiceModal;

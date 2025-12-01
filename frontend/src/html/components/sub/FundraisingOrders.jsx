@@ -43,7 +43,9 @@ class FundraisingOrders extends Component {
         isLoadingProductDetails: false,  // Loading state for product details
         showCalendarModal: false, // Show collection date calendar modal
         selectedOrderForCalendar: null,
-        isApplyingFilters: false // Flag to prevent infinite loops in filter application
+        isApplyingFilters: false, // Flag to prevent infinite loops in filter application
+        showInvoiceModal: false, // Show invoice modal
+        invoiceModalData: { invoiceNumber: '', orderData: null } // Invoice modal data
       };
       this.tableRef = React.createRef();
       this.gridRef = React.createRef();
@@ -2143,26 +2145,19 @@ class FundraisingOrders extends Component {
         console.log('Collection details being sent to backend:', orderData.collectionDetails);
         console.log('Order details being sent to backend:', orderData.orderDetails);
         
-        // Call backend to generate checkout invoice
-        const response = await axios.post(
-          `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/fundraising`,
-          {
-            purpose: "generateCheckoutInvoice",
-            orderData: orderData,
-            invoiceNumber: rowData.invoiceNumber
-          }
-        );
-
-        console.log('Invoice generation response:', response.data);
-        
-        // Handle the PDF response
-        if (response.data.result && response.data.result.success && response.data.result.pdfGenerated) {
-          this.handlePdfResponse(response.data.result);
-        } else {
-          console.error('Failed to generate invoice:', response.data);
+        // Notify parent (homePage) to open invoice modal
+        if (this.props.openInvoiceModal) {
+          this.props.openInvoiceModal(rowData.invoiceNumber, orderData);
         }
       } catch (error) {
         console.error('Error generating invoice:', error);
+      }
+    };
+
+    // Close invoice modal
+    closeInvoiceModal = () => {
+      if (this.props.closeInvoiceModal) {
+        this.props.closeInvoiceModal();
       }
     };
 

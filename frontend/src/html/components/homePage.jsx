@@ -19,6 +19,7 @@ import React, { Component } from 'react';
   import CollectionDateCalendar from './sub/CollectionDateCalendar';
   import SalesReportModal from './sub/SalesReportModal';
   import PaymentReportModal from './sub/PaymentReportModal';
+  import InvoiceModal from './sub/InvoiceModal';
   import FiscalBalanceReportModal from './sub/FiscalBalanceReportModal';
   import BulkOrderModal from './sub/BulkOrderModal';
   import FundraisingOrderItemsModal from './sub/FundraisingOrderItemsModal';
@@ -124,7 +125,9 @@ import React, { Component } from 'react';
         selectedRowData: null,
         wooCommerceProductDetails: [],
         showReceiptModal: false,
-        selectedReceipt: null
+        selectedReceipt: null,
+        showInvoiceModal: false,
+        invoiceModalData: { invoiceNumber: '', orderData: null }
       };
   
       // Always reset attendance filter/search state to defaults on page load
@@ -1035,6 +1038,22 @@ import React, { Component } from 'react';
       });
     };
 
+    // Open Invoice Modal
+    openInvoiceModal = (invoiceNumber, orderData) => {
+      this.setState({
+        showInvoiceModal: true,
+        invoiceModalData: { invoiceNumber, orderData }
+      });
+    };
+
+    // Close Invoice Modal
+    closeInvoiceModal = () => {
+      this.setState({
+        showInvoiceModal: false,
+        invoiceModalData: { invoiceNumber: '', orderData: null }
+      });
+    };
+
     // Open bulk order modal and start loading
     openBulkOrderModal = async () => {
       console.log("Opening bulk order modal and starting to load data...");
@@ -1702,7 +1721,7 @@ import React, { Component } from 'react';
       const userName = this.props.location.state?.name || 'User';
       const role = this.props.location.state?.role;
       const siteIC = this.props.location.state?.siteIC;
-      const {membershipType, membershipTypes, membershipSearchQuery, isMembershipVisible, isFitnessVisible, fitnessSearchQuery, isFundraisingTableVisible, isFundraisingInventoryVisible, fundraisingSearchQuery, fundraisingPaymentMethod, fundraisingCollectionLocation, fundraisingStatus, fundraisingPaymentMethods, fundraisingCollectionLocations, fundraisingStatuses, showCalendarModal, selectedOrderForCalendar, collectionSchedule, attendanceVisibility, reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo, selectedQuarter, quarters, attendanceFilterType, attendanceFilterCode, attendanceFilterLocation, attendanceSearchQuery, attendanceTypes, activityCodes, attendanceLocations, isSalesReportModalOpen, isPaymentReportModalOpen, isFiscalBalanceReportModalOpen, showItemsModal, selectedItems, selectedRowData, wooCommerceProductDetails, showReceiptModal, selectedReceipt} = this.state;
+      const {membershipType, membershipTypes, membershipSearchQuery, isMembershipVisible, isFitnessVisible, fitnessSearchQuery, isFundraisingTableVisible, isFundraisingInventoryVisible, fundraisingSearchQuery, fundraisingPaymentMethod, fundraisingCollectionLocation, fundraisingStatus, fundraisingPaymentMethods, fundraisingCollectionLocations, fundraisingStatuses, showCalendarModal, selectedOrderForCalendar, collectionSchedule, attendanceVisibility, reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo, selectedQuarter, quarters, attendanceFilterType, attendanceFilterCode, attendanceFilterLocation, attendanceSearchQuery, attendanceTypes, activityCodes, attendanceLocations, isSalesReportModalOpen, isPaymentReportModalOpen, isFiscalBalanceReportModalOpen, showItemsModal, selectedItems, selectedRowData, wooCommerceProductDetails, showReceiptModal, selectedReceipt, showInvoiceModal, invoiceModalData} = this.state;
 
       return (
         <>
@@ -1972,6 +1991,8 @@ import React, { Component } from 'react';
                             openBulkOrderModal={this.openBulkOrderModal}
                             openItemsModal={this.openItemsModal}
                             openReceiptModal={this.openReceiptModal}
+                            openInvoiceModal={this.openInvoiceModal}
+                            closeInvoiceModal={this.closeInvoiceModal}
                           />
                         </div>
                         
@@ -2179,6 +2200,12 @@ import React, { Component } from 'react';
             onClose={this.closeReceiptModal}
             receiptUrl={null}
             orderDetails={this.state.selectedOrderDetails}
+          />
+          <InvoiceModal
+            isOpen={showInvoiceModal}
+            onClose={this.closeInvoiceModal}
+            invoiceNumber={invoiceModalData.invoiceNumber}
+            orderData={invoiceModalData.orderData}
           />
         </>
       );

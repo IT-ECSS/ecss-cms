@@ -274,12 +274,14 @@
 /* Checklist Item */
 .receipt-checklist-item {
   display: flex;
-  align-items: center;
-  padding: 15px;
-  margin-bottom: 12px;
+  align-items: flex-start;
+  padding: 0;
+  margin-bottom: 8px;
   background-color: transparent;
   transition: background-color 0.2s ease;
   gap: 10px;
+  flex-wrap: wrap;
+  align-content: flex-start;
 }
 
 .receipt-checklist-item:hover {
@@ -292,10 +294,12 @@
   align-items: center;
   justify-content: center;
   min-width: 20px;
+  height: 20px;
   font-size: 18px;
   font-weight: 700;
   color: #4caf50;
   flex-shrink: 0;
+  padding-top: 12px;
 }
 
 .receipt-status-icon.error {
@@ -319,11 +323,27 @@
 
 .receipt-checkbox-label {
   margin: 0;
+  padding: 12px 0;
   font-size: 14px;
   color: #333;
   cursor: pointer;
   user-select: none;
   font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Error Message */
+.receipt-error-message {
+  margin-top: 8px;
+  padding: 10px 12px;
+  background-color: #ffebee;
+  color: #c62828;
+  border-left: 3px solid #f44336;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 500;
+  flex-basis: 100%;
 }
 
 /* Action Buttons */
