@@ -1612,65 +1612,41 @@ class SalesReportModal extends Component {
       <div className="sales-report-modal-overlay" onClick={onClose}>
         <div className="sales-report-modal-content" onClick={(e) => e.stopPropagation()}>
           <div className="sales-report-modal-header">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
-              <h2>Sales Report</h2>
-              <div style={{ display: 'flex', gap: '30px', alignItems: 'flex-start' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'right' }}>
-                <div style={{ fontSize: '12px', color: '#666' }}>
-                  {lastUpdated && <div style={{ textAlign: 'left' }}>Last Updated: {this.formatTimestamp(lastUpdated)}</div>}
+            <div className="sales-report-modal-header-content">
+              <h2 className="sales-report-modal-header-title">Sales Report</h2>
+              <div className="sales-report-modal-header-right">
+                <div className="sales-report-modal-header-timestamps">
+                  <div>
+                    {lastUpdated && <div>Last Updated: {this.formatTimestamp(lastUpdated)}</div>}
+                  </div>
+                  <div>
+                    {lastOpened && <div>Last Opened: {this.formatTimestamp(lastOpened)}</div>}
+                  </div>
                 </div>
-                <div style={{ fontSize: '12px', color: '#666' }}>
-                  {lastOpened && <div style={{ textAlign: 'left' }}>Last Opened: {this.formatTimestamp(lastOpened)}</div>}
-                </div>
-              </div>
-              <button 
-                className="sales-report-modal-close"
-                onClick={onClose}
-                disabled={isLoading}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '24px',
-                  cursor: isLoading ? 'not-allowed' : 'pointer',
-                  color: '#666',
-                  padding: '0 4px'
-                }}
-              >
-                ×
-              </button>
+                <button 
+                  className="sales-report-modal-close"
+                  onClick={onClose}
+                  disabled={isLoading}
+                >
+                  ×
+                </button>
               </div>
             </div>
-          </div>
 
-          <div style={{ display: 'flex', gap: '10px', padding: '0 20px 10px 20px', borderBottom: '1px solid #e0e0e0' }}>
-            <button
-              onClick={() => this.setState({ locationTabType: 'collection' })}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: locationTabType === 'collection' ? '#007bff' : '#e0e0e0',
-                color: locationTabType === 'collection' ? 'white' : 'black',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontWeight: locationTabType === 'collection' ? 'bold' : 'normal'
-              }}
-            >
-              Collection Location
-            </button>
-            <button
-              onClick={() => this.setState({ locationTabType: 'station' })}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: locationTabType === 'station' ? '#007bff' : '#e0e0e0',
-                color: locationTabType === 'station' ? 'white' : 'black',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontWeight: locationTabType === 'station' ? 'bold' : 'normal'
-              }}
-            >
-              Station Location
-            </button>
+            <div className="sales-report-location-type-toggle">
+              <button
+                className={`sales-report-location-type-btn ${locationTabType === 'collection' ? 'active' : ''}`}
+                onClick={() => this.setState({ locationTabType: 'collection' })}
+              >
+                Collection Location
+              </button>
+              <button
+                className={`sales-report-location-type-btn ${locationTabType === 'station' ? 'active' : ''}`}
+                onClick={() => this.setState({ locationTabType: 'station' })}
+              >
+                Station Location
+              </button>
+            </div>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '8px 20px', width: 'fit-content', marginLeft: 'auto', marginRight: '0px' }}>
