@@ -332,6 +332,35 @@
   transform: translateY(1px);
 }
 
+/* Google Drive Upload Button */
+.fundraising-google-drive-btn {
+  padding: 0.9rem 1.05rem;
+  font-size: 0.8rem;
+  border: 1px solid #3498db;
+  border-radius: 0.3rem;
+  background-color: transparent;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+  white-space: nowrap;
+  color: #3498db;
+  width: fit-content;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.fundraising-google-drive-btn:hover {
+  background-color: #d6eaf8;
+  transform: translateY(-2px);
+  border-color: #2980b9;
+}
+
+.fundraising-google-drive-btn:active {
+  transform: translateY(1px);
+}
+
 /* New Button */
 .fundraising-new-btn {
   padding: 0.9rem 1.05rem;

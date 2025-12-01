@@ -3514,6 +3514,13 @@ Sila buat pembayaran anda di lokasi tersebut untuk mengesahkan pesanan anda.
               >
                 Bulk Orders Report
               </button>
+              <button 
+                className="fundraising-google-drive-btn"
+                onClick={this.props.openGoogleDriveUploadModal}
+                title="Upload receipts and/or invoices to Google Drive"
+              >
+                Upload to Google Drive
+              </button>
             </div>
           </div>
 

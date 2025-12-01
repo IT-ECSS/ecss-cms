@@ -495,6 +495,8 @@ class CheckoutInvoiceGenerator {
             const invoiceNumber = receiptNumber || this.generateInvoiceNumber();
             console.log("Using invoice number:", invoiceNumber);
 
+            console.log("Order data for invoice generation:", JSON.stringify(orderData, null, 2));
+
             // Add all content to the PDF
             await this.addContent(doc, orderData, invoiceNumber);
 
@@ -506,10 +508,17 @@ class CheckoutInvoiceGenerator {
                 doc.on('end', () => {
                     const pdfBuffer = Buffer.concat(chunks);
                     console.log("Checkout invoice generated successfully");
+                    
+                    // Sanitize filename components
+                    const sanitize = (str) => (str || '').trim().replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+                    const firstName = sanitize(orderData.personalInfo.firstName);
+                    const lastName = sanitize(orderData.personalInfo.lastName);
+                    const filename = `Invoice_${firstName}_${lastName}_${invoiceNumber}.pdf`;
+                    
                     resolve({
                         buffer: pdfBuffer,
                         invoiceNumber: invoiceNumber,
-                        filename: `Invoice_${orderData.personalInfo.firstName}_${orderData.personalInfo.lastName}_${invoiceNumber}.pdf`
+                        filename: filename
                     });
                 });
                 

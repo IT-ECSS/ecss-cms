@@ -29,6 +29,7 @@ class InvoiceModal extends Component {
     };
     this.currentBlob = null;
     this.currentBlobUrl = null;
+    this.currentFilename = null;
     this.hasExecutedActions = false;
   }
 
@@ -78,6 +79,7 @@ class InvoiceModal extends Component {
     });
     this.currentBlob = null;
     this.currentBlobUrl = null;
+    this.currentFilename = null;
     this.hasExecutedActions = false;
   }
 
@@ -127,11 +129,12 @@ class InvoiceModal extends Component {
         bytes[i] = binaryString.charCodeAt(i);
       }
       
+      
       const blob = new Blob([bytes], { type: 'application/pdf' });
       this.currentBlob = blob;
+      this.currentFilename = response.data.result.pdfFilename;
       
       // Execute preview (auto-open in new tab)
-      await this.executePreview(blob);
       
       // Wait 1 second before download
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -244,10 +247,9 @@ class InvoiceModal extends Component {
       }));
 
       const blobUrl = window.URL.createObjectURL(blob);
-      const { invoiceNumber } = this.props;
       
-      // Create filename with invoice number
-      const filename = `Invoice_${invoiceNumber}.pdf`;
+      // Use filename from backend response
+      const filename = this.currentFilename;
       
       // Create and trigger download immediately
       const downloadLink = document.createElement('a');
@@ -286,10 +288,8 @@ class InvoiceModal extends Component {
         loading: { ...prevState.loading, uploadedToGoogleDrive: true }
       }));
 
-      const { invoiceNumber } = this.props;
-      
-      // Create filename: Invoice_InvoiceNumber
-      const filename = `Invoice_${invoiceNumber}.pdf`;
+      // Use filename from backend response
+      const filename = this.currentFilename;
       
       const formData = new FormData();
       formData.append('file', blob, filename);

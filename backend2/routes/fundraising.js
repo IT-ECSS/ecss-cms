@@ -103,8 +103,7 @@ router.post('/', upload.single('file'), async function(req, res, next)
               });
             }
         }
-
-        if(req.body.purpose === "insert") {
+        else if(req.body.purpose === "insert") {
            //console.log("Fundraising order received:", req.body);
             
             // Save the fundraising order
@@ -416,10 +415,11 @@ router.post('/', upload.single('file'), async function(req, res, next)
                     req.body.invoiceNumber // Use existing invoice number
                 );
                 
+                console.log("Invoice result:", invoiceResult);
                 // Convert buffer to base64 for sending to frontend
                 const pdfBase64 = invoiceResult.buffer.toString('base64');
                 
-                console.log("Checkout invoice PDF regenerated successfully with invoice number:", req.body.invoiceNumber);
+                console.log("Checkout invoice PDF regenerated successfully with invoice number:", invoiceResult.filename);
                 
                 // Return success result with PDF data
                 return res.json({ 
@@ -571,6 +571,97 @@ router.post('/', upload.single('file'), async function(req, res, next)
             return res.json({ 
                 result: result
             });
+        }
+        else if(req.body.purpose === "fetch-all-receipts-invoices") {
+            try {
+                const fundraisingController = new FundraisingController();
+                const type = req.body.type || 'both';
+                
+                console.log(`Fetching all ${type}s as PDFs for Google Drive upload`);
+                
+                const allRecords = await fundraisingController.getAllFundraisingOrders();
+                
+                if (!allRecords || allRecords.length === 0) {
+                    return res.json({
+                        success: true,
+                        message: "No records found",
+                        files: []
+                    });
+                }
+
+                console.log(`Total records fetched: ${allRecords.length}`);
+                
+                const filesToUpload = [];
+                let receiptCounter = 0;
+                let skippedCounter = 0;
+                
+                for (const record of allRecords) {
+                    const sanitize = (str) => (str || '').trim().replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+                    const firstName = sanitize(record.personalInfo?.firstName);
+                    const lastName = sanitize(record.personalInfo?.lastName);
+                    const paymentMethod = sanitize(record.paymentDetails?.paymentMethod);
+                    const paymentStatus = sanitize(record.status);
+                    const receiptNumber = sanitize(record.receiptNumber);
+                    
+                    // Generate receipt if receiptNumber key exists and has value
+                    if ((type === 'receipt' || type === 'both') && ((receiptNumber))) {
+                        try {
+                            receiptCounter++;
+                            const receiptPdf = await fundraisingPdfGenerator.generateFundraisingReceipt(record);
+                            const filename = `${firstName}_${lastName}_${paymentMethod}_${record.receiptNumber}.pdf`;
+                            
+                            filesToUpload.push({
+                                id: record.id,
+                                filename,
+                                pdfData: Buffer.from(receiptPdf).toString('base64'),
+                                type: 'receipt',
+                                recordId: record.id
+                            });
+                            console.log(`[${receiptCounter}] Receipt generated: ${record.receiptNumber}`);
+                        } catch (err) {
+                            console.error(`Error generating receipt for record ${record.id}:`, err.message);
+                        }
+                    } else if (type === 'receipt' || type === 'both') {
+                        skippedCounter++;
+                        console.log(`[SKIPPED] Record ${record.id} - receiptNumber missing`);
+                    }
+                    
+                    // Generate invoice for all records
+                    if (type === 'invoice' || type === 'both') {
+                        try {
+                            const invoiceResult = await checkoutInvoiceGenerator.generateCheckoutInvoice(record);
+                            const invoiceNumber = (record.invoiceNumber || '').toString().trim();
+                            const filename = `Invoice_${firstName}_${lastName}_${paymentMethod}_${invoiceNumber}.pdf`;
+                            
+                            filesToUpload.push({
+                                id: record.id,
+                                filename,
+                                pdfData: invoiceResult.buffer.toString('base64'),
+                                type: 'invoice',
+                                recordId: record.id
+                            });
+                        } catch (err) {
+                            console.error(`Error generating invoice for record ${record.id}:`, err.message);
+                        }
+                    }
+                }
+                
+                return res.json({
+                    success: true,
+                    message: `Generated ${filesToUpload.length} files for upload`,
+                    files: filesToUpload,
+                    type
+                });
+                
+            } catch (error) {
+                console.error("Fetch receipts/invoices error:", error.message);
+                return res.status(500).json({
+                    success: false,
+                    message: "Error fetching receipts and invoices",
+                    error: error.message,
+                    files: []
+                });
+            }
         }
         else if(req.body.purpose === "bulk") {
             try {

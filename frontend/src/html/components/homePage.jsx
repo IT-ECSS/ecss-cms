@@ -23,6 +23,7 @@ import React, { Component } from 'react';
   import FiscalBalanceReportModal from './sub/FiscalBalanceReportModal';
   import BulkOrderModal from './sub/BulkOrderModal';
   import FundraisingOrderItemsModal from './sub/FundraisingOrderItemsModal';
+  import GoogleDriveUploadModal from './sub/GoogleDriveUploadModal';
   import ReportSection from './sub/reportSection';
   import WelcomeSection from './sub/welcomeSection';
   import ReceiptModal from './sub/ReceiptModal';
@@ -127,7 +128,8 @@ import React, { Component } from 'react';
         showReceiptModal: false,
         selectedReceipt: null,
         showInvoiceModal: false,
-        invoiceModalData: { invoiceNumber: '', orderData: null }
+        invoiceModalData: { invoiceNumber: '', orderData: null },
+        showGoogleDriveUploadModal: false
       };
   
       // Always reset attendance filter/search state to defaults on page load
@@ -1052,6 +1054,16 @@ import React, { Component } from 'react';
         showInvoiceModal: false,
         invoiceModalData: { invoiceNumber: '', orderData: null }
       });
+    };
+
+    // Open Google Drive Upload Modal
+    openGoogleDriveUploadModal = () => {
+      this.setState({ showGoogleDriveUploadModal: true });
+    };
+
+    // Close Google Drive Upload Modal
+    closeGoogleDriveUploadModal = () => {
+      this.setState({ showGoogleDriveUploadModal: false });
     };
 
     // Open bulk order modal and start loading
@@ -1993,6 +2005,7 @@ import React, { Component } from 'react';
                             openReceiptModal={this.openReceiptModal}
                             openInvoiceModal={this.openInvoiceModal}
                             closeInvoiceModal={this.closeInvoiceModal}
+                            openGoogleDriveUploadModal={this.openGoogleDriveUploadModal}
                           />
                         </div>
                         
@@ -2206,6 +2219,10 @@ import React, { Component } from 'react';
             onClose={this.closeInvoiceModal}
             invoiceNumber={invoiceModalData.invoiceNumber}
             orderData={invoiceModalData.orderData}
+          />
+          <GoogleDriveUploadModal
+            isOpen={this.state.showGoogleDriveUploadModal}
+            onClose={this.closeGoogleDriveUploadModal}
           />
         </>
       );
