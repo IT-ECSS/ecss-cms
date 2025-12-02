@@ -802,6 +802,11 @@
   font-weight: 500;
 }
 
+.location-value.delivered {
+  color: #8b008b;
+  font-weight: 500;
+}
+
 /* Payment Summary Container and Tabs */
 .payment-summary-container {
   margin-bottom: 1.5rem;

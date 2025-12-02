@@ -531,7 +531,9 @@ class SalesReportModal extends Component {
           paidAmount: 0,
           pendingCount: 0,
           collectedCount: 0,
-          collectedAmount: 0
+          collectedAmount: 0,
+          deliveredCount: 0,
+          deliveredAmount: 0
         };
       }
 
@@ -546,6 +548,9 @@ class SalesReportModal extends Component {
       } else if (row.status === 'Collected') {
         locationBreakdown[location].collectedCount++;
         locationBreakdown[location].collectedAmount += row.totalAmount || 0;
+      } else if (row.status === 'Delivered') {
+        locationBreakdown[location].deliveredCount++;
+        locationBreakdown[location].deliveredAmount += row.totalAmount || 0;
       }
     });
 
@@ -560,6 +565,10 @@ class SalesReportModal extends Component {
                 <th>Location</th>
                 <th>Paid</th>
                 <th>Paid Orders</th>
+                <th>Collected</th>
+                <th>Collected Orders</th>
+                <th>Delivered</th>
+                <th>Delivered Orders</th>
               </tr>
             </thead>
             <tbody>
@@ -567,6 +576,10 @@ class SalesReportModal extends Component {
                 <td className="location-name">ALL Locations</td>
                 <td className="location-value paid">${summary.totalPaid.toFixed(2)}</td>
                 <td className="location-value paid">{summary.paidCount}</td>
+                <td className="location-value collected">${summary.totalCollected.toFixed(2)}</td>
+                <td className="location-value collected">{summary.collectedCount}</td>
+                <td className="location-value delivered">$0.00</td>
+                <td className="location-value delivered">0</td>
               </tr>
               {locations.map((location, index) => {
                 const data = locationBreakdown[location];
@@ -575,6 +588,10 @@ class SalesReportModal extends Component {
                     <td className="location-name">{location}</td>
                     <td className="location-value paid">${data.paidAmount.toFixed(2)}</td>
                     <td className="location-value paid">{data.paidCount}</td>
+                    <td className="location-value collected">${data.collectedAmount.toFixed(2)}</td>
+                    <td className="location-value collected">{data.collectedCount}</td>
+                    <td className="location-value delivered">${data.deliveredAmount.toFixed(2)}</td>
+                    <td className="location-value delivered">{data.deliveredCount}</td>
                   </tr>
                 );
               })}

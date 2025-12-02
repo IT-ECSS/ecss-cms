@@ -385,9 +385,9 @@
 /* Add or update these styles in your CSS file */
 
 .expanded-row-detail {
-  width: 90vw;
-  margin-left: 6%;
-  margin-top: 4%;
+  width: 80vw;
+  margin-left: 8rem;
+  margin-top: 1rem;
   display: flex;
   justify-content: center;
 }
@@ -402,8 +402,6 @@
   overflow-x: auto;
   overflow-y: auto;
   max-height: 400px; /* Make it scrollable if content is long */
-  margin-top: -4%;
-  margin-left: -1%;
 }
 
 .detail-view-content {

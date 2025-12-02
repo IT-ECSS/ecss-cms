@@ -146,7 +146,18 @@ class WelcomeSection extends Component {
                 action: () => {
                     this.props.onNavigate('view-course-flyers');
                 },
-                accessKey: 'View Course Flyers',
+                accessKey: 'Course Flyers',
+                parentKey: 'Courses'
+            },
+            { 
+                key: 'Course Link', 
+                title: 'Course Link', 
+                icon: 'fas fa-link', 
+                description: 'Access Course Links', 
+                action: () => {
+                    this.props.onNavigate('course-link');
+                },
+                accessKey: 'Course Link',
                 parentKey: 'Courses'
             },
             { 
@@ -409,7 +420,8 @@ class WelcomeSection extends Component {
             "Reports": 'fas fa-table',
             "Attendances": 'fas fa-calendar-days',
             "Fitness": 'fas fa-dumbbell',
-            "Fundraising": 'fa-solid fa-gift'
+            "Fundraising": 'fa-solid fa-gift',
+            "Course Link": 'fas fa-link'
         };
 
         // Define sub-key descriptions
@@ -432,6 +444,16 @@ class WelcomeSection extends Component {
         };
 
         const navigationCards = [];
+
+        // Always add Course Link as a standalone navigation card
+        navigationCards.push({
+            key: 'Course Link',
+            title: 'Course Link',
+            icon: iconMap['Course Link'] || 'fas fa-link',
+            description: 'Access Course Links',
+            subKeys: [],
+            hasSubKeys: false
+        });
 
         Object.keys(accessRights).forEach((mainKey) => {
             const value = accessRights[mainKey];
@@ -560,6 +582,9 @@ class WelcomeSection extends Component {
                 break;
             case "Course Flyers":
                 navigationKey = "view-course-flyers";
+                break;
+            case "Course Link":
+                navigationKey = "course-link";
                 break;
             case "Fundraising Orders":
                 navigationKey = "fundraising-orders";

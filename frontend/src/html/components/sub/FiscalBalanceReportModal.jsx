@@ -103,12 +103,12 @@ class FiscalBalanceReportModal extends Component {
 
     // Calculate grand total cost
 
-    // Process fundraisingData to count orders for each product (only Paid status)
+    // Process fundraisingData to count orders for each product (Paid, Collected, Delivered status)
     const orderCountMap = {};
     if (fundraisingData && Array.isArray(fundraisingData)) {
       fundraisingData.forEach((order) => {
-        // Only count orders with "Paid" status
-        if (order.status && order.status.toLowerCase() === 'paid') {
+        // Only count orders with "Paid", "Collected", or "Delivered" status
+        if (order.status && (order.status.toLowerCase() === 'paid' || order.status.toLowerCase() === 'collected' || order.status.toLowerCase() === 'delivered')) {
           // Extract items from order (try multiple locations)
           let itemsArray = [];
           if (order.items && Array.isArray(order.items)) {
@@ -125,7 +125,7 @@ class FiscalBalanceReportModal extends Component {
         }
       });
     }
-    console.log("Order Count Map (Paid only):", orderCountMap);
+    console.log("Order Count Map (Paid, Collected, Delivered):", orderCountMap);
 
     // Manual quantities to add for specific products
     const manualQuantities = {
@@ -430,8 +430,8 @@ class FiscalBalanceReportModal extends Component {
 
         if (fundraisingData && Array.isArray(fundraisingData)) {
           fundraisingData.forEach((order) => {
-            // Only include paid orders
-            if (order.status && order.status.toLowerCase() === 'paid') {
+            // Only include orders with Paid, Collected, or Delivered status
+            if (order.status && (order.status.toLowerCase() === 'paid' || order.status.toLowerCase() === 'collected' || order.status.toLowerCase() === 'delivered')) {
               // Extract items from order
               let itemsArray = [];
               if (order.items && Array.isArray(order.items)) {

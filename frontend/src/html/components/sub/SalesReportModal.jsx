@@ -395,7 +395,7 @@ class SalesReportModal extends Component {
     // Calculate total only for Paid status orders
     let total = 0;
     filteredData.forEach(row => {
-      if (row.status === 'Paid') {
+      if ((row.status === 'Paid') ||(row.status === 'Delivered') ||(row.status === 'Collected')) {
         total += row.totalAmount;
       }
     });
@@ -529,7 +529,7 @@ class SalesReportModal extends Component {
 
       // Add to total only if status is "Paid" or "Collected" and amount is positive
       const status = item.status || 'Pending';
-      if ((status === 'Paid' || status === 'Collected') && totalPriceValue > 0) {
+      if ((status === 'Paid' || status === 'Collected' || status === 'Delivered') && totalPriceValue > 0) {
         total += totalPriceValue;
       }
 
@@ -809,16 +809,19 @@ class SalesReportModal extends Component {
     const tabData = locationTabType === 'collection'
       ? locationGroupedData[activeTab] || []
       : stationLocationGroupedData[activeStationTab] || [];
-    const filteredData = tabData.filter(row => selectedPaymentMethods[row.paymentMethod]);
+    const filteredData = tabData.filter(row => 
+      selectedPaymentMethods[row.paymentMethod] && 
+      (row.status === 'Paid' || row.status === 'Collected' || row.status === 'Delivered')
+    );
 
     let totalAmount = 0;
     let totalPaid = 0;
-    let totalPending = 0;
     let totalCollected = 0;
+    let totalDelivered = 0;
     let totalRecords = 0;
     let paidCount = 0;
-    let pendingCount = 0;
     let collectedCount = 0;
+    let deliveredCount = 0;
     const paymentMethodCount = {};
 
     filteredData.forEach(row => {
@@ -828,12 +831,12 @@ class SalesReportModal extends Component {
       if (row.status === 'Paid') {
         totalPaid += amount;
         paidCount++;
-      } else if (row.status === 'Pending') {
-        totalPending += amount;
-        pendingCount++;
       } else if (row.status === 'Collected') {
         totalCollected += amount;
         collectedCount++;
+      } else if (row.status === 'Delivered') {
+        totalDelivered += amount;
+        deliveredCount++;
       }
 
       const method = row.paymentMethod || 'Unknown';
@@ -842,13 +845,13 @@ class SalesReportModal extends Component {
 
     return {
       totalAmount,
-      totalPaid,
-      totalPending,
+      totalPaid: totalAmount,
       totalCollected,
+      totalDelivered,
       totalRecords: filteredData.length,
-      paidCount,
-      pendingCount,
+      paidCount: filteredData.length,
       collectedCount,
+      deliveredCount,
       paymentMethodCount
     };
   };
@@ -862,7 +865,11 @@ class SalesReportModal extends Component {
     const tabData = locationTabType === 'collection' 
       ? locationGroupedData[activeTab] || []
       : stationLocationGroupedData[activeStationTab] || [];
-    const filteredData = tabData.filter(row => selectedPaymentMethods[row.paymentMethod] && row.status === 'Paid');
+    // Filter by payment method and status: Paid, Collected, Delivered only
+    const filteredData = tabData.filter(row => 
+      selectedPaymentMethods[row.paymentMethod] && 
+      (row.status === 'Paid' || row.status === 'Collected' || row.status === 'Delivered')
+    );
 
     // Dynamically determine all unique product names from the data
     const productSet = new Set();
@@ -886,8 +893,8 @@ class SalesReportModal extends Component {
       locationBreakdown[location].paidCount++;
       locationBreakdown[location].paidAmount += row.totalAmount || 0;
 
-      // Count items from the original order only if status is 'Paid'
-      if (row.status === 'Paid') {
+      // Count items from the original order only for Paid, Collected, Delivered statuses
+      if (row.status === 'Paid' || row.status === 'Collected' || row.status === 'Delivered') {
         const items = row.originalOrder?.orderDetails?.items || row.originalOrder?.items || [];
         items.forEach(item => {
           const productName = item.productName || item.name || item.itemName || '';
@@ -1208,7 +1215,7 @@ class SalesReportModal extends Component {
     const tabData = locationTabType === 'collection' 
       ? locationGroupedData[tabName] || []
       : stationLocationGroupedData[tabName] || [];
-    const filteredData = tabData.filter(row => selectedPaymentMethods[row.paymentMethod] && row.status === 'Paid');
+    const filteredData = tabData.filter(row => selectedPaymentMethods[row.paymentMethod] && (row.status === 'Paid' || row.status === 'Delievered' || row.status === 'Collected'));
 
     // Dynamically determine all unique product names from the data
     const productSet = new Set();
@@ -1251,7 +1258,7 @@ class SalesReportModal extends Component {
       locationBreakdown[location].paidCount++;
       locationBreakdown[location].paidAmount += row.totalAmount || 0;
 
-      if (row.status === 'Paid') {
+      if (row.status === 'Paid' || row.status === 'Delivered' || row.status === 'Collected') {
         const items = row.originalOrder?.orderDetails?.items || row.originalOrder?.items || [];
         items.forEach(item => {
           const productName = item.productName || item.name || item.itemName || '';
@@ -1303,7 +1310,7 @@ class SalesReportModal extends Component {
     let totalPaid = 0;
     let paidCount = 0;
     filteredData.forEach(row => {
-      if (row.status === 'Paid') {
+      if (row.status === 'Paid' || row.status === 'Delivered' || row.status === 'Collected') {
         totalPaid += row.totalAmount || 0;
         paidCount++;
       }
@@ -1399,67 +1406,6 @@ class SalesReportModal extends Component {
     return tableHTML;
   };
 
-  // Handle Bulk Order submission
-  handleBulkOrder = async () => {
-    try {
-      this.setState({ bulkOrderLoading: true });
-      
-      const { activeTab, activeStationTab, locationTabType } = this.state;
-      const { fundraisingData } = this.props;
-      
-      // Get the current summary data
-      const summary = this.calculatePaymentSummary();
-      
-      // Prepare bulk order data
-      const bulkOrderData = {
-        tabType: locationTabType, // 'collection' or 'station'
-        activeTab: locationTabType === 'collection' ? activeTab : activeStationTab,
-        totalPaidAmount: summary.totalPaid,
-        totalOrders: summary.paidCount,
-        paymentMethods: this.state.selectedPaymentMethods,
-        timestamp: new Date().toISOString(),
-        orders: fundraisingData
-          .filter(order => order.status === 'Paid')
-          .map(order => ({
-            id: order._id || order.id,
-            firstName: order.personalInfo?.firstName || order.firstName,
-            lastName: order.personalInfo?.lastName || order.lastName,
-            email: order.personalInfo?.email || order.email,
-            phone: order.personalInfo?.phone || order.contactNumber,
-            totalAmount: this.calculateTotalAmount(order),
-            items: order.orderDetails?.items || order.items || [],
-            status: order.status,
-            location: order.collectionDetails?.CollectionDeliveryLocation || 'Unknown',
-            stationLocation: order.personalInfo?.location || 'Unknown'
-          }))
-      };
-      
-      console.log('Bulk Order Data:', bulkOrderData);
-      
-      // TODO: Connect to backend
-      // await axios.post('/api/bulk-order', bulkOrderData);
-      
-      // Show success message
-      alert('Bulk order prepared and ready for backend integration');
-      this.setState({ showBulkOrderModal: false });
-      
-    } catch (error) {
-      console.error('Error processing bulk order:', error);
-      alert('Error processing bulk order. Please try again.');
-    } finally {
-      this.setState({ bulkOrderLoading: false });
-    }
-  };
-
-  // Open bulk order confirmation modal
-  openBulkOrderModal = () => {
-    this.setState({ showBulkOrderModal: true });
-  };
-
-  // Close bulk order modal
-  closeBulkOrderModal = () => {
-    this.setState({ showBulkOrderModal: false });
-  };
 
   // Generate PDF Report with landscape orientation - 2 pages (Collection and Station Location)
   generatePDFReport = (preview = false) => {

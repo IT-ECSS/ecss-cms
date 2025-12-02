@@ -949,7 +949,14 @@ class CheckoutPage extends Component {
 
       const response = await axios.post(`${baseUrl}/fundraising`, {purpose: "insert", orderData});
 
-     console.log('Order response:', response.data);
+      console.log('Order response:', response.data);
+      
+      // Prepare order details early so it's available for both success and error cases
+      const orderDetails = {
+        orderId: response.data.orderId || `${orderDate}-${orderTime}`,
+        total: this.calculateTotal(),
+        email: personalInfo.email
+      };
       
       // Handle invoice download if available
       if (response.data.invoice && response.data.invoice.pdfData) {
@@ -1023,24 +1030,19 @@ class CheckoutPage extends Component {
           this.hideOrderSubmissionModal();
 
           // Show success popup after WhatsApp is successfully sent
-          const orderDetails = {
-            orderId: response.data.orderId || `${orderDate}-${orderTime}`,
-            total: this.calculateTotal(),
-            email: personalInfo.email
-          };
           this.showSubmissionSuccess(orderDetails);
         } catch (whatsappError) {
           console.error('Error sending WhatsApp notification:', whatsappError);
+          console.log('WhatsApp POST /whatsapp 500 error ignored - order was already saved successfully');
           
-          // Hide order submission modal before showing error
+          // WhatsApp failure is not critical - treat as success since order was already saved
+          // Hide order submission modal after WhatsApp attempt (success or failure)
           this.hideOrderSubmissionModal();
           
-          // Show error popup if WhatsApp fails
-          this.showSubmissionError();
+          // Show success popup anyway since the order was successfully placed
+          this.showSubmissionSuccess(orderDetails);
         }
-      }
-
-    } catch (error) {
+      }    } catch (error) {
       console.error('Error placing order:', error);
       
       // Hide order submission modal
@@ -1181,6 +1183,7 @@ class CheckoutPage extends Component {
           orderDetails={this.state.submissionSuccess.orderDetails}
           selectedLanguage={selectedLanguage}
           isSuccess={this.state.submissionSuccess.isSuccess}
+          whatsappSuccess={this.state.submissionSuccess.whatsappSuccess}
         />
 
         {/* Submission Error Popup */}

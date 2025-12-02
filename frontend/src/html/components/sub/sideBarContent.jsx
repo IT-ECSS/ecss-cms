@@ -79,6 +79,10 @@ class SideBarContent extends Component {
         this.props.toggleHomeComponent();
     }
 
+    toggleCourseLink = () => {
+        this.props.toggleCourseLinkComponent();
+    }
+
     handleSubKeyClick = (subKey) => {
         console.log("Selected:", subKey);
         if(subKey === "Create Account") {
@@ -163,6 +167,16 @@ class SideBarContent extends Component {
                 this.props.toggleFundraisingInventoryComponent();
             } else {
                 console.error("toggleFundraisingInventoryComponent function not found in props");
+            }
+        }
+        else if(subKey === "Course Link") {
+            console.log("Course Link clicked in sidebar");
+            console.log("toggleCourseLinkComponent function exists:", !!this.props.toggleCourseLinkComponent);
+            if (this.props.toggleCourseLinkComponent) {
+                console.log("Calling toggleCourseLinkComponent...");
+                this.props.toggleCourseLinkComponent();
+            } else {
+                console.error("toggleCourseLinkComponent function not found in props");
             }
         }
     }

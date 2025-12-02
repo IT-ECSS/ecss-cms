@@ -7,9 +7,9 @@ class SubmissionSuccessPopup extends Component {
     
     const translations = {
       orderSuccessfullyPlaced: {
-        english: 'Order Successfully Placed!\nInvoice saved to your device.\nPayment details sent via WhatsApp.',
-        chinese: '订单下单成功！\n发票已保存到您的设备。\n付款详情已通过WhatsApp发送。',
-        malay: 'Pesanan Berjaya Dibuat!\nInvois telah disimpan ke peranti anda.\nButiran pembayaran telah dihantar melalui WhatsApp.'
+        english: 'Order Successfully Placed!\nInvoice saved to your device.',
+        chinese: '订单下单成功！\n发票已保存到您的设备。',
+        malay: 'Pesanan Berjaya Dibuat!\nInvois telah disimpan ke peranti anda.'
       },
       orderFailed: {
         english: 'Order Failed!',
