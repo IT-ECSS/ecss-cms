@@ -27,6 +27,8 @@ import React, { Component } from 'react';
   import ReportSection from './sub/reportSection';
   import WelcomeSection from './sub/welcomeSection';
   import ReceiptModal from './sub/ReceiptModal';
+  import CourseFlyers from './sub/CourseFlyers';
+  import BulkDownloadProgress from './sub/BulkDownloadProgress';
   import { withAuth } from '../../AuthContext';
   import axios from 'axios';  
 
@@ -99,6 +101,7 @@ import React, { Component } from 'react';
         resetMembershipTable: false,
         isFitnessVisible: false,
         fitnessSearchQuery: '',
+        isCourseFlyersVisible: false,
         isFundraisingTableVisible: false,
         isFundraisingInventoryVisible: false,
         fundraisingSearchQuery: '',
@@ -657,6 +660,57 @@ import React, { Component } from 'react';
         this.setState({
           isPopupOpen: true,
           popupMessage: "Error loading fundraising inventory",
+          popupType: "error-message"
+        });
+      }
+    }
+
+    toggleCourseFlyersComponent = async() => {
+      console.log("toggleCourseFlyersComponent called - showing course flyers");
+      try {
+        // Reset search and filters
+        this.setState({ resetSearch: true, }, () => {
+          this.setState({ resetSearch: false });
+        });
+
+        this.setState({
+          // Explicitly set ALL other visibility flags to false
+          courseType: null,
+          accountType: null,
+          createAccount: false,
+          dashboard: false,
+          isRegistrationPaymentVisible: false,
+          isReceiptVisible: false,
+          reportVisibility: false,
+          attendanceVisibility: false,
+          isMembershipVisible: false,
+          isFitnessVisible: false,
+          isFundraisingTableVisible: false,
+          isFundraisingInventoryVisible: false,
+          
+          // Set course flyers mode
+          isCourseFlyersVisible: true,
+          
+          // Popup settings
+          isPopupOpen: true,
+          popupMessage: "Loading Course Flyers",
+          popupType: "loading",
+          
+          // Reset other states
+          sidebarVisible: false,
+          section: "course-flyers",
+          attendanceType: "",
+          
+          // Reset search state
+          searchQuery: ''
+        });
+      } 
+      catch (error) {
+        console.log("Error in toggleCourseFlyersComponent:", error);
+        // Show error message
+        this.setState({
+          isPopupOpen: true,
+          popupMessage: "Error loading course flyers",
           popupType: "error-message"
         });
       }
@@ -1700,6 +1754,9 @@ import React, { Component } from 'react';
         case 'fundraising-inventory':
           this.toggleFundraisingInventoryComponent();
           break;
+        case 'view-course-flyers':
+          this.toggleCourseFlyersComponent();
+          break;
         default:
           console.log('Navigation section not found:', section);
       }
@@ -1733,7 +1790,7 @@ import React, { Component } from 'react';
       const userName = this.props.location.state?.name || 'User';
       const role = this.props.location.state?.role;
       const siteIC = this.props.location.state?.siteIC;
-      const {membershipType, membershipTypes, membershipSearchQuery, isMembershipVisible, isFitnessVisible, fitnessSearchQuery, isFundraisingTableVisible, isFundraisingInventoryVisible, fundraisingSearchQuery, fundraisingPaymentMethod, fundraisingCollectionLocation, fundraisingStatus, fundraisingPaymentMethods, fundraisingCollectionLocations, fundraisingStatuses, showCalendarModal, selectedOrderForCalendar, collectionSchedule, attendanceVisibility, reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo, selectedQuarter, quarters, attendanceFilterType, attendanceFilterCode, attendanceFilterLocation, attendanceSearchQuery, attendanceTypes, activityCodes, attendanceLocations, isSalesReportModalOpen, isPaymentReportModalOpen, isFiscalBalanceReportModalOpen, showItemsModal, selectedItems, selectedRowData, wooCommerceProductDetails, showReceiptModal, selectedReceipt, showInvoiceModal, invoiceModalData} = this.state;
+      const {membershipType, membershipTypes, membershipSearchQuery, isMembershipVisible, isFitnessVisible, fitnessSearchQuery, isCourseFlyersVisible, isFundraisingTableVisible, isFundraisingInventoryVisible, fundraisingSearchQuery, fundraisingPaymentMethod, fundraisingCollectionLocation, fundraisingStatus, fundraisingPaymentMethods, fundraisingCollectionLocations, fundraisingStatuses, showCalendarModal, selectedOrderForCalendar, collectionSchedule, attendanceVisibility, reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo, selectedQuarter, quarters, attendanceFilterType, attendanceFilterCode, attendanceFilterLocation, attendanceSearchQuery, attendanceTypes, activityCodes, attendanceLocations, isSalesReportModalOpen, isPaymentReportModalOpen, isFiscalBalanceReportModalOpen, showItemsModal, selectedItems, selectedRowData, wooCommerceProductDetails, showReceiptModal, selectedReceipt, showInvoiceModal, invoiceModalData} = this.state;
 
       return (
         <>
@@ -1782,6 +1839,7 @@ import React, { Component } from 'react';
                   toggleFitnessComponent = {this.toggleFitnessComponent}
                   toggleFundraisingOrdersComponent = {this.toggleFundraisingOrdersComponent}
                   toggleFundraisingInventoryComponent = {this.toggleFundraisingInventoryComponent}
+                  toggleCourseflyersComponent = {this.toggleCourseFlyersComponent}
                   onAccessRightsUpdate = {this.handleAccessRightsData}
                   key={this.state.refreshKey}
                 />
@@ -1800,6 +1858,7 @@ import React, { Component } from 'react';
                 isFitnessVisible === false &&
                 isFundraisingTableVisible === false &&
                 isFundraisingInventoryVisible === false &&
+                isCourseFlyersVisible === false &&
                 isReceiptVisible === false &&
                 (
                   <>
@@ -2038,6 +2097,25 @@ import React, { Component } from 'react';
                       />
                     </div>
                   </>
+                }
+                {isCourseFlyersVisible && 
+                    <>
+                      <div className="search-section">
+                      </div>
+                      <div className="course-flyers-section-container">
+                        <CourseFlyers
+                          section={section}
+                          userName={userName}
+                          role={role}
+                          siteIC={siteIC}
+                          closePopup1={this.closePopup}
+                          language={language}
+                          key={this.state.refreshKey}
+                          refreshChild={this.refreshChild}
+                          onDataLoaded={this.closePopup}
+                        />
+                      </div>
+                    </>
                 }             
                 { isRegistrationPaymentVisible&& 
                   <>

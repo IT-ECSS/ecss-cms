@@ -245,7 +245,8 @@ class AccountsSection extends Component {
          membership: item["Membership"],
          reports: item["Reports"],
          fitness: item["Fitness"] || {},
-         fundraising: item["Fundraising"] || {}
+         fundraising: item["Fundraising"] || {},
+         viewCourseFlyers: item["View Course Flyers"] || {}
        };
      });
    
@@ -813,6 +814,15 @@ class AccountsSection extends Component {
                       <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
                         <strong>Upload Course(s): </strong>
                         {this.state.accessRightsRowData[this.state.expandedRowIndex].courses["Upload Courses"] ? (
+                          <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
+                        ) : (
+                          <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
+                        )}
+                      </p>
+
+                      <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
+                        <strong>View Course Flyers: </strong>
+                        {this.state.accessRightsRowData[this.state.expandedRowIndex].courses["View Course Flyers"] ? (
                           <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
                         ) : (
                           <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>

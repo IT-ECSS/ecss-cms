@@ -108,6 +108,16 @@ class SideBarContent extends Component {
             subKey = "Talks And Seminar";
             this.props.toggleCourseComponent(subKey);
         }
+        else if(subKey === "Course Flyers") {
+            console.log("Course Flyers clicked in sidebar");
+            console.log("toggleCourseflyersComponent function exists:", !!this.props.toggleCourseflyersComponent);
+            if (this.props.toggleCourseflyersComponent) {
+                console.log("Calling toggleCourseflyersComponent...");
+                this.props.toggleCourseflyersComponent();
+            } else {
+                console.error("toggleCourseflyersComponent function not found in props");
+            }
+        }
         else if(subKey === "Registration And Payment Table") {
             this.props.toggleRegistrationPaymentComponent(subKey);
         }

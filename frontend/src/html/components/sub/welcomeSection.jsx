@@ -139,6 +139,17 @@ class WelcomeSection extends Component {
                 parentKey: 'Courses'
             },
             { 
+                key: 'Course Flyers', 
+                title: 'Course Flyers', 
+                icon: 'fas fa-file-pdf', 
+                description: 'Access Course Flyers', 
+                action: () => {
+                    this.props.onNavigate('view-course-flyers');
+                },
+                accessKey: 'View Course Flyers',
+                parentKey: 'Courses'
+            },
+            { 
                 key: 'Create QR Code', 
                 title: 'Create QR Code', 
                 icon: 'fas fa-qrcode', 
@@ -287,6 +298,7 @@ class WelcomeSection extends Component {
                 'Invoice Table': 3,
                 'Upload Courses': 2,
                 'Update Courses': 2,
+                'Course Flyers': 2,
                 'Fundraising Orders': 4,
                 'Fundraising Inventory': 4,
                 'FFT Results': 2,
@@ -317,6 +329,7 @@ class WelcomeSection extends Component {
             'ILP Courses': 'fas fa-book-open',
             'Marriage Preparation Programme Courses': 'fas fa-heart',
             'Talks And Seminar': 'fas fa-microphone',
+            'Course Flyers': 'fas fa-file-pdf',
             'Registration And Payment Table': 'fas fa-credit-card',
             'Monthly Report': 'fas fa-chart-bar',
             'Payment Report': 'fas fa-file-invoice-dollar',
@@ -336,6 +349,7 @@ class WelcomeSection extends Component {
             'ILP Courses': 'ilp-courses',
             'Marriage Preparation Programme Courses': 'marriage-courses',
             'Talks And Seminar': 'talks-and-seminar',
+            'Course Flyers': 'view-course-flyers',
             'Registration And Payment Table': 'registration',
             'Monthly Report': 'monthly-report',
             'Payment Report': 'payment-report',
@@ -406,6 +420,7 @@ class WelcomeSection extends Component {
             "NSA Courses": "Manage NSA courses offerings and schedules",
             "ILP Courses": "Manage ILP courses offerings and programs",
             "Marriage Preparation Course": "Manage Marriage Preparation courses offerings and programs",
+            "Course Flyers": "Access Course Flyers",
             "Registration And Payment Table": "Handle course registrations and payments",
             "Monthly Report": "Generate monthly analytics and reports",
             "Payment Report": "View payment summaries and financial reports",
@@ -542,6 +557,9 @@ class WelcomeSection extends Component {
                 break;
             case "View Membership":
                 navigationKey = "membership";
+                break;
+            case "Course Flyers":
+                navigationKey = "view-course-flyers";
                 break;
             case "Fundraising Orders":
                 navigationKey = "fundraising-orders";
