@@ -43,7 +43,7 @@ class CoursesSection extends Component {
         {
           headerName: "Centre Location",
           field: "centreLocation",
-          width: 150,
+          width: 200,
         },
         {
           headerName: "Course Mode",
@@ -654,7 +654,7 @@ class CoursesSection extends Component {
             {this.props.courseType === "NSA" ? "NSA Courses" : this.props.courseType === "ILP" ? "ILP Courses" : this.props.courseType === "Marriage Preparation Programme" ? "Marriage Preparation Programme" : this.props.courseType === "Talks And Seminar" ? "Talks And Seminar" : "Courses"}
           </h1>
           <div className="button-row4">
-            <button className="save-btn" onClick={() => this.saveData(this.state.rowData)}>
+            <button className="course-save-btn" onClick={() => this.saveData(this.state.rowData)}>
               Export To Excel
             </button>
           </div>

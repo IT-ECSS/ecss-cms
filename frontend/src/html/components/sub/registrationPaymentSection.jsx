@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
-import '../../../css/sub/registrationPayment.css';
+import '../../../css/sub/registrationPaymentDetails.css';
 import '../../../css/ag-grid-custom-theme.css'; // Import custom AgGrid theme
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
@@ -1794,7 +1794,7 @@ class RegistrationPaymentSection extends Component {
       return `${day}${month}${year}`;
     };
   
-  // Custom Cell Renderer for Slide Button
+  // Custom cell renderer for Slide Button
   slideButtonRenderer = (params) => {
     const paymentMethod = params.data.paymentMethod; // Get payment method for the row
 
@@ -1813,10 +1813,10 @@ class RegistrationPaymentSection extends Component {
     };
 
     return (
-      <div className="slide-button-container">
+      <div className="registration-payment-details-toggle-container">
         <input 
           type="checkbox"
-          className="slide-button"
+          className="registration-payment-details-toggle"
           checked={checked}
           onChange={handleChange}
         />
@@ -1950,11 +1950,11 @@ class RegistrationPaymentSection extends Component {
     };
   
     return (
-      <div className="payment-method-buttons-container">
+      <div className="registration-payment-details-payment-methods">
         {paymentMethods.map((method) => (
           <button
             key={method}
-            className={`payment-method-button ${method === currentPaymentMethod ? 'active' : ''}`}
+            className={`registration-payment-details-payment-btn ${method === currentPaymentMethod ? 'active' : ''}`}
             onClick={() => handleButtonClick(method)}
           >
             {method}
@@ -2941,104 +2941,104 @@ debugMarriagePrepData = () => {
       const isMarriagePrep = courseInfo.courseType === 'Marriage Preparation Programme';
       
       return (
-        <div className="detail-view-container">
-          <div className="detail-view-header">
+        <div className="registration-payment-details-expanded-content">
+          <div className="registration-payment-details-modal-header">
             <h3>Registration Details</h3>
           </div>
           
-          <div className="detail-view-content">
-            <div className="detail-view-section">
-              <h4>Participant Information</h4>
-              <div className="detail-view-grid">
-                <div className="detail-field">
-                  <span className="detail-label">Name:</span>
-                  <span className="detail-value">{participantInfo.name}</span>
+          <div className="registration-payment-details-content-section">
+            <div className="registration-payment-details-section-title" style={{display: 'none'}}>
+              <h4 className="registration-payment-details-section-title">Participant Information</h4>
+              <div className="registration-payment-details-grid">
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Name:</span>
+                  <span className="registration-payment-details-field-value">{participantInfo.name}</span>
                 </div>
-                <div className="detail-field">
-                  <span className="detail-label">NRIC:</span>
-                  <span className="detail-value">{participantInfo.nric}</span>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">NRIC:</span>
+                  <span className="registration-payment-details-field-value">{participantInfo.nric}</span>
                 </div>
-                <div className="detail-field">
-                  <span className="detail-label">Contact:</span>
-                  <span className="detail-value">{participantInfo.contactNumber}</span>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Contact:</span>
+                  <span className="registration-payment-details-field-value">{participantInfo.contactNumber}</span>
                 </div>
-                <div className="detail-field">
-                  <span className="detail-label">Email:</span>
-                  <span className="detail-value">{participantInfo.email}</span>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Email:</span>
+                  <span className="registration-payment-details-field-value">{participantInfo.email}</span>
                 </div>
-                <div className="detail-field">
-                  <span className="detail-label">Gender:</span>
-                  <span className="detail-value">{participantInfo.gender}</span>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Gender:</span>
+                  <span className="registration-payment-details-field-value">{participantInfo.gender}</span>
                 </div>
-                <div className="detail-field">
-                  <span className="detail-label">DOB:</span>
-                  <span className="detail-value">{participantInfo.dateOfBirth}</span>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">DOB:</span>
+                  <span className="registration-payment-details-field-value">{participantInfo.dateOfBirth}</span>
                 </div>
-                <div className="detail-field">
-                  <span className="detail-label">Residential Status:</span>
-                  <span className="detail-value">{participantInfo.residentialStatus}</span>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Residential Status:</span>
+                  <span className="registration-payment-details-field-value">{participantInfo.residentialStatus}</span>
                 </div>
-                <div className="detail-field">
-                  <span className="detail-label">Race:</span>
-                  <span className="detail-value">{participantInfo.race}</span>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Race:</span>
+                  <span className="registration-payment-details-field-value">{participantInfo.race}</span>
                 </div>
-                <div className="detail-field">
-                  <span className="detail-label">Postal Code:</span>
-                  <span className="detail-value">{participantInfo.postalCode}</span>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Postal Code:</span>
+                  <span className="registration-payment-details-field-value">{participantInfo.postalCode}</span>
                 </div>
-                <div className="detail-field">
-                  <span className="detail-label">Education Level:</span>
-                  <span className="detail-value">{participantInfo.educationLevel}</span>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Education Level:</span>
+                  <span className="registration-payment-details-field-value">{participantInfo.educationLevel}</span>
                 </div>
-                <div className="detail-field">
-                  <span className="detail-label">Work Status:</span>
-                  <span className="detail-value">{participantInfo.workStatus}</span>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Work Status:</span>
+                  <span className="registration-payment-details-field-value">{participantInfo.workStatus}</span>
                 </div>
               </div>
             </div>
 
             {/* Marriage Preparation Programme Specific Fields */}
             {isMarriagePrep && marriageDetails && (
-              <div className="detail-view-section">
-                <h4>Marriage Details</h4>
-                <div className="detail-view-grid">
-                  <div className="detail-field">
-                    <span className="detail-label">Marital Status:</span>
-                    <span className="detail-value">{marriageDetails.maritalStatus || 'N/A'}</span>
+              <div style={{marginBottom: '16px'}}>
+                <h4 className="registration-payment-details-section-title">Marriage Details</h4>
+                <div className="registration-payment-details-grid">
+                  <div className="registration-payment-details-field">
+                    <span className="registration-payment-details-field-label">Marital Status:</span>
+                    <span className="registration-payment-details-field-value">{marriageDetails.maritalStatus || 'N/A'}</span>
                   </div>
-                  <div className="detail-field">
-                    <span className="detail-label">Housing Type:</span>
-                    <span className="detail-value">{marriageDetails.housingType || 'N/A'}</span>
+                  <div className="registration-payment-details-field">
+                    <span className="registration-payment-details-field-label">Housing Type:</span>
+                    <span className="registration-payment-details-field-value">{marriageDetails.housingType || 'N/A'}</span>
                   </div>
-                  <div className="detail-field">
-                    <span className="detail-label">Gross Monthly Income:</span>
-                    <span className="detail-value">{marriageDetails.grossMonthlyIncome || 'N/A'}</span>
+                  <div className="registration-payment-details-field">
+                    <span className="registration-payment-details-field-label">Gross Monthly Income:</span>
+                    <span className="registration-payment-details-field-value">{marriageDetails.grossMonthlyIncome || 'N/A'}</span>
                   </div>
-                  <div className="detail-field">
-                    <span className="detail-label">Marriage Duration:</span>
-                    <span className="detail-value">{marriageDetails.marriageDuration || 'N/A'}</span>
+                  <div className="registration-payment-details-field">
+                    <span className="registration-payment-details-field-label">Marriage Duration:</span>
+                    <span className="registration-payment-details-field-value">{marriageDetails.marriageDuration || 'N/A'}</span>
                   </div>
-                  <div className="detail-field">
-                    <span className="detail-label">Type of Marriage:</span>
-                    <span className="detail-value">{marriageDetails.typeOfMarriage || 'N/A'}</span>
+                  <div className="registration-payment-details-field">
+                    <span className="registration-payment-details-field-label">Type of Marriage:</span>
+                    <span className="registration-payment-details-field-value">{marriageDetails.typeOfMarriage || 'N/A'}</span>
                   </div>
-                  <div className="detail-field">
-                    <span className="detail-label">Has Children:</span>
-                    <span className="detail-value">{marriageDetails.hasChildren || 'N/A'}</span>
+                  <div className="registration-payment-details-field">
+                    <span className="registration-payment-details-field-label">Has Children:</span>
+                    <span className="registration-payment-details-field-value">{marriageDetails.hasChildren || 'N/A'}</span>
                   </div>
-                  <div className="detail-field">
-                    <span className="detail-label">How Found Out:</span>
-                    <span className="detail-value">{marriageDetails.howFoundOut || 'N/A'}</span>
+                  <div className="registration-payment-details-field">
+                    <span className="registration-payment-details-field-label">How Found Out:</span>
+                    <span className="registration-payment-details-field-value">{marriageDetails.howFoundOut || 'N/A'}</span>
                   </div>
                   {marriageDetails.howFoundOutOthers && (
-                    <div className="detail-field">
-                      <span className="detail-label">How Found Out (Others):</span>
-                      <span className="detail-value">{marriageDetails.howFoundOutOthers}</span>
+                    <div className="registration-payment-details-field">
+                      <span className="registration-payment-details-field-label">How Found Out (Others):</span>
+                      <span className="registration-payment-details-field-value">{marriageDetails.howFoundOutOthers}</span>
                     </div>
                   )}
-                  <div className="detail-field">
-                    <span className="detail-label">Source of Referral:</span>
-                    <span className="detail-value">{marriageDetails.sourceOfReferral || 'N/A'}</span>
+                  <div className="registration-payment-details-field">
+                    <span className="registration-payment-details-field-label">Source of Referral:</span>
+                    <span className="registration-payment-details-field-value">{marriageDetails.sourceOfReferral || 'N/A'}</span>
                   </div>
                 </div>
               </div>
@@ -3046,56 +3046,56 @@ debugMarriagePrepData = () => {
 
             {/* Spouse Information for Marriage Preparation Programme */}
             {isMarriagePrep && spouse && (
-              <div className="detail-view-section">
-                <h4>Spouse Information</h4>
-                <div className="detail-view-grid">
-                  <div className="detail-field">
-                    <span className="detail-label">Spouse Name:</span>
-                    <span className="detail-value">{spouse.name || 'N/A'}</span>
+              <div style={{marginBottom: '16px'}}>
+                <h4 className="registration-payment-details-section-title">Spouse Information</h4>
+                <div className="registration-payment-details-grid">
+                  <div className="registration-payment-details-field">
+                    <span className="registration-payment-details-field-label">Spouse Name:</span>
+                    <span className="registration-payment-details-field-value">{spouse.name || 'N/A'}</span>
                   </div>
-                  <div className="detail-field">
-                    <span className="detail-label">Spouse NRIC:</span>
-                    <span className="detail-value">{spouse.nric || 'N/A'}</span>
+                  <div className="registration-payment-details-field">
+                    <span className="registration-payment-details-field-label">Spouse NRIC:</span>
+                    <span className="registration-payment-details-field-value">{spouse.nric || 'N/A'}</span>
                   </div>
-                  <div className="detail-field">
-                    <span className="detail-label">Spouse Contact:</span>
-                    <span className="detail-value">{spouse.mobile || 'N/A'}</span>
+                  <div className="registration-payment-details-field">
+                    <span className="registration-payment-details-field-label">Spouse Contact:</span>
+                    <span className="registration-payment-details-field-value">{spouse.mobile || 'N/A'}</span>
                   </div>
-                  <div className="detail-field">
-                    <span className="detail-label">Spouse Email:</span>
-                    <span className="detail-value">{spouse.email || 'N/A'}</span>
+                  <div className="registration-payment-details-field">
+                    <span className="registration-payment-details-field-label">Spouse Email:</span>
+                    <span className="registration-payment-details-field-value">{spouse.email || 'N/A'}</span>
                   </div>
-                  <div className="detail-field">
-                    <span className="detail-label">Spouse Sex:</span>
-                    <span className="detail-value">{spouse.sex || 'N/A'}</span>
+                  <div className="registration-payment-details-field">
+                    <span className="registration-payment-details-field-label">Spouse Sex:</span>
+                    <span className="registration-payment-details-field-value">{spouse.sex || 'N/A'}</span>
                   </div>
-                  <div className="detail-field">
-                    <span className="detail-label">Spouse DOB:</span>
-                    <span className="detail-value">{spouse.dateOfBirth || 'N/A'}</span>
+                  <div className="registration-payment-details-field">
+                    <span className="registration-payment-details-field-label">Spouse DOB:</span>
+                    <span className="registration-payment-details-field-value">{spouse.dateOfBirth || 'N/A'}</span>
                   </div>
-                  <div className="detail-field">
-                    <span className="detail-label">Spouse Ethnicity:</span>
-                    <span className="detail-value">{spouse.ethnicity || 'N/A'}</span>
+                  <div className="registration-payment-details-field">
+                    <span className="registration-payment-details-field-label">Spouse Ethnicity:</span>
+                    <span className="registration-payment-details-field-value">{spouse.ethnicity || 'N/A'}</span>
                   </div>
-                  <div className="detail-field">
-                    <span className="detail-label">Spouse Residential Status:</span>
-                    <span className="detail-value">{spouse.residentialStatus || 'N/A'}</span>
+                  <div className="registration-payment-details-field">
+                    <span className="registration-payment-details-field-label">Spouse Residential Status:</span>
+                    <span className="registration-payment-details-field-value">{spouse.residentialStatus || 'N/A'}</span>
                   </div>
-                  <div className="detail-field">
-                    <span className="detail-label">Spouse Marital Status:</span>
-                    <span className="detail-value">{spouse.maritalStatus || 'N/A'}</span>
+                  <div className="registration-payment-details-field">
+                    <span className="registration-payment-details-field-label">Spouse Marital Status:</span>
+                    <span className="registration-payment-details-field-value">{spouse.maritalStatus || 'N/A'}</span>
                   </div>
-                  <div className="detail-field">
-                    <span className="detail-label">Spouse Education:</span>
-                    <span className="detail-value">{spouse.education || 'N/A'}</span>
+                  <div className="registration-payment-details-field">
+                    <span className="registration-payment-details-field-label">Spouse Education:</span>
+                    <span className="registration-payment-details-field-value">{spouse.education || 'N/A'}</span>
                   </div>
-                  <div className="detail-field">
-                    <span className="detail-label">Spouse Housing Type:</span>
-                    <span className="detail-value">{spouse.housingType || 'N/A'}</span>
+                  <div className="registration-payment-details-field">
+                    <span className="registration-payment-details-field-label">Spouse Housing Type:</span>
+                    <span className="registration-payment-details-field-value">{spouse.housingType || 'N/A'}</span>
                   </div>
-                  <div className="detail-field">
-                    <span className="detail-label">Spouse Postal Code:</span>
-                    <span className="detail-value">{spouse.postalCode || 'N/A'}</span>
+                  <div className="registration-payment-details-field">
+                    <span className="registration-payment-details-field-label">Spouse Postal Code:</span>
+                    <span className="registration-payment-details-field-value">{spouse.postalCode || 'N/A'}</span>
                   </div>
                 </div>
               </div>
@@ -3103,99 +3103,99 @@ debugMarriagePrepData = () => {
 
             {/* Consent Information for Marriage Preparation Programme */}
             {isMarriagePrep && consent && (
-              <div className="detail-view-section">
-                <h4>Consent & Agreements</h4>
-                <div className="detail-view-grid">
-                  <div className="detail-field">
-                    <span className="detail-label">I confirm that my spouse/spouse-to-be and I understand and agree to the collection, use and disclosure of our Personal Information as set out in the link above:</span>
-                    <span className="detail-value">{consent.marriagePrepConsent1 ? 'I confirm that my spouse/spouse-to-be and I understand and agree to the collection, use and disclosure of our Personal Information as set out in the link above' : ''}</span>
+              <div style={{marginBottom: '16px'}}>
+                <h4 className="registration-payment-details-section-title">Consent & Agreements</h4>
+                <div className="registration-payment-details-grid">
+                  <div className="registration-payment-details-field">
+                    <span className="registration-payment-details-field-label">I confirm that my spouse/spouse-to-be and I understand and agree to the collection, use and disclosure of our Personal Information as set out in the link above:</span>
+                    <span className="registration-payment-details-field-value">{consent.marriagePrepConsent1 ? 'I confirm that my spouse/spouse-to-be and I understand and agree to the collection, use and disclosure of our Personal Information as set out in the link above' : ''}</span>
                   </div>
-                  <div className="detail-field">
-                    <span className="detail-label">I confirm that I have read and understood the Terms of Consent as set out in the link above:</span>
-                    <span className="detail-value">{consent.marriagePrepConsent2 ? 'I confirm that I have read and understood the Terms of Consent as set out in the link above' : ''}</span>
+                  <div className="registration-payment-details-field">
+                    <span className="registration-payment-details-field-label">I confirm that I have read and understood the Terms of Consent as set out in the link above:</span>
+                    <span className="registration-payment-details-field-value">{consent.marriagePrepConsent2 ? 'I confirm that I have read and understood the Terms of Consent as set out in the link above' : ''}</span>
                   </div>
                 </div>
               </div>
             )}
             
-            <div className="detail-view-section">
-              <h4>Course Information</h4>
-              <div className="detail-view-grid">
-                <div className="detail-field">
-                  <span className="detail-label">Course Type:</span>
-                  <span className="detail-value">{courseInfo.courseType}</span>
+            <div style={{marginBottom: '16px'}}>
+              <h4 className="registration-payment-details-section-title">Course Information</h4>
+              <div className="registration-payment-details-grid">
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Course Type:</span>
+                  <span className="registration-payment-details-field-value">{courseInfo.courseType}</span>
                 </div>
-                <div className="detail-field">
-                  <span className="detail-label">English Name:</span>
-                  <span className="detail-value">{courseInfo.courseEngName}</span>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">English Name:</span>
+                  <span className="registration-payment-details-field-value">{courseInfo.courseEngName}</span>
                 </div>
-                <div className="detail-field">
-                  <span className="detail-label">Chinese Name:</span>
-                  <span className="detail-value">{courseInfo.courseChiName}</span>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Chinese Name:</span>
+                  <span className="registration-payment-details-field-value">{courseInfo.courseChiName}</span>
                 </div>
-                <div className="detail-field">
-                  <span className="detail-label">Location:</span>
-                  <span className="detail-value">{courseInfo.courseLocation}</span>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Location:</span>
+                  <span className="registration-payment-details-field-value">{courseInfo.courseLocation}</span>
                 </div>
-                <div className="detail-field">
-                  <span className="detail-label">Mode:</span>
-                  <span className="detail-value">{courseInfo.courseMode}</span>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Mode:</span>
+                  <span className="registration-payment-details-field-value">{courseInfo.courseMode}</span>
                 </div>
-                <div className="detail-field">
-                  <span className="detail-label">Price:</span>
-                  <span className="detail-value">{courseInfo.coursePrice}</span>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Price:</span>
+                  <span className="registration-payment-details-field-value">{courseInfo.coursePrice}</span>
                 </div>
-                <div className="detail-field">
-                  <span className="detail-label">Duration:</span>
-                  <span className="detail-value">{courseInfo.courseDuration}</span>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Duration:</span>
+                  <span className="registration-payment-details-field-value">{courseInfo.courseDuration}</span>
                 </div>
-                <div className="detail-field">
-                  <span className="detail-label">Course Time:</span>
-                  <span className="detail-value">{courseInfo.courseTime}</span>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Course Time:</span>
+                  <span className="registration-payment-details-field-value">{courseInfo.courseTime}</span>
                 </div>
               </div>
             </div>
             
-            <div className="detail-view-section">
-              <h4>Payment Information</h4>
-              <div className="detail-view-grid">
-                <div className="detail-field">
-                  <span className="detail-label">Payment Method:</span>
-                  <span className="detail-value">{courseInfo.payment}</span>
+            <div style={{marginBottom: '16px'}}>
+              <h4 className="registration-payment-details-section-title">Payment Information</h4>
+              <div className="registration-payment-details-grid">
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Payment Method:</span>
+                  <span className="registration-payment-details-field-value">{courseInfo.payment}</span>
                 </div>
-                <div className="detail-field">
-                  <span className="detail-label">Payment Status:</span>
-                  <span className="detail-value">{status}</span>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Payment Status:</span>
+                  <span className="registration-payment-details-field-value">{status}</span>
                 </div>
-                <div className="detail-field">
-                  <span className="detail-label">Confirmation Status:</span>
-                  <span className="detail-value">{officialInfo.confirmed ? 'Confirmed' : 'Not Confirmed'}</span>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Confirmation Status:</span>
+                  <span className="registration-payment-details-field-value">{officialInfo.confirmed ? 'Confirmed' : 'Not Confirmed'}</span>
                 </div>
-                <div className="detail-field">
-                  <span className="detail-label">Receipt/Invoice Number:</span>
-                  <span className="detail-value">{officialInfo.receiptNo || 'N/A'}</span>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Receipt/Invoice Number:</span>
+                  <span className="registration-payment-details-field-value">{officialInfo.receiptNo || 'N/A'}</span>
                 </div>
                 {officialInfo.refundedDate && (
-                  <div className="detail-field">
-                    <span className="detail-label">Refunded Date:</span>
-                    <span className="detail-value">{officialInfo.refundedDate}</span>
+                  <div className="registration-payment-details-field">
+                    <span className="registration-payment-details-field-label">Refunded Date:</span>
+                    <span className="registration-payment-details-field-value">{officialInfo.refundedDate}</span>
                   </div>
                 )}
-                <div className="detail-field">
-                  <span className="detail-label">Staff Name:</span>
-                  <span className="detail-value">{officialInfo.name || 'N/A'}</span>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Staff Name:</span>
+                  <span className="registration-payment-details-field-value">{officialInfo.name || 'N/A'}</span>
                 </div>
-                <div className="detail-field">
-                  <span className="detail-label">Received Date:</span>
-                  <span className="detail-value">{officialInfo.date || 'N/A'}</span>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Received Date:</span>
+                  <span className="registration-payment-details-field-value">{officialInfo.date || 'N/A'}</span>
                 </div>
-                <div className="detail-field">
-                  <span className="detail-label">Received Time:</span>
-                  <span className="detail-value">{officialInfo.time || 'N/A'}</span>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Received Time:</span>
+                  <span className="registration-payment-details-field-value">{officialInfo.time || 'N/A'}</span>
                 </div>
-                <div className="detail-field">
-                  <span className="detail-label">Remarks:</span>
-                  <span className="detail-value">{officialInfo.remarks || 'N/A'}</span>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Remarks:</span>
+                  <span className="registration-payment-details-field-value">{officialInfo.remarks || 'N/A'}</span>
                 </div>
               </div>
             </div>
@@ -4262,23 +4262,23 @@ debugMarriagePrepData = () => {
     const { selectedRows, showBulkUpdateModal, bulkUpdateStatus, bulkUpdateMethod, expandedRowIndex } = this.state;
 
     return (
-      <div className="registration-payment-container">
-        <div className="registration-payment-heading">
+      <div className="registration-payment-details-wrapper">
+        <div className="registration-payment-details-heading">
           <h2>Registration & Payment Details</h2>
         </div>
 
-        <div className="button-row">
+        <div className="registration-payment-details-button-row">
           {/* Show button when there are Marriage Preparation Programme entries in the data, but NOT when specifically filtering by Marriage Preparation Programme */}
           {this.state.rowData && 
            this.state.rowData.some(row => row.courseInfo?.courseType === 'Marriage Preparation Programme') && 
            this.props.selectedCourseType !== 'Marriage Preparation Programme' && (
             <button 
-              className="toggle-btn" 
+              className="registration-payment-details-button" 
               onClick={this.toggleHideMarriagePrepFields}
               style={{
-                backgroundColor: this.state.hideMarriagePrepFields ? '#4CAF50' : '#ff6b6b', // Reversed: Green when hidden, Red when shown
-                color: 'white',
-                border: 'none',
+                backgroundColor: 'transparent',
+                color: this.state.hideMarriagePrepFields ? '#4CAF50' : '#ff6b6b',
+                border: `2px solid ${this.state.hideMarriagePrepFields ? '#4CAF50' : '#ff6b6b'}`,
                 padding: '10px 15px',
                 borderRadius: '4px',
                 cursor: 'pointer',
@@ -4290,35 +4290,35 @@ debugMarriagePrepData = () => {
               {this.state.hideMarriagePrepFields ? 'Show Marriage Prep Fields' : 'Hide Marriage Prep Fields'}
             </button>
           )}
-          <button className="save-btn" onClick={() => this.archiveData()}>
+          <button className="registration-payment-details-btn-save" onClick={() => this.archiveData()}>
             Archive Data
           </button>
          {this.props.role !== "Social Worker" && (
             <>
-              <button className="export-btn" 
-                      onClick={this.exportToLOP}
-                      disabled={selectedRows.length === 0}>
+              <button className="registration-payment-details-btn-export" 
+                      onClick={this.exportToLOP}>
                 Export to LOP
               </button>
               <button 
-                className="attendance-btn" 
+                className="registration-payment-details-button" 
                 onClick={this.exportAttendance}
+                style={{color: '#FF0000', borderColor: '#FF0000'}}
               >
                 Export Attendance
               </button>
             </>
           )}
           {(this.props.role === "Social Worker" || this.props.role === "Admin" || this.props.role === "Sub Admin")  && (
-            <button className="export-btn2" 
-                    onClick={this.exportToMarriagePreparationProgramme}
-                    disabled={selectedRows.length === 0}>
+            <button className="registration-payment-details-button"
+                    style={{color: '#808080', borderColor: '#808080'}} 
+                    onClick={this.exportToMarriagePreparationProgramme}>
               Export to Marriage Preparation Programme
             </button>
           )}
           <button 
-            className="bulk-update-btn" 
+            className="registration-payment-details-button" 
+            style={{color: '#9C27B0', borderColor: '#9C27B0'}}
             onClick={this.openBulkUpdateModal}
-            disabled={selectedRows.length === 0}
           >
             Bulk Update ({selectedRows.length})
           </button>
@@ -4344,11 +4344,13 @@ debugMarriagePrepData = () => {
         
         {/* Bulk Update Modal */}
         {showBulkUpdateModal && (
-          <div className="modal-overlay" onClick={this.closeBulkUpdateModal}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <h3>Bulk Update Selected Records</h3>
-              <div className="bulk-update-options">
-                <div className="update-section">
+          <div className="registration-payment-details-modal-overlay" onClick={this.closeBulkUpdateModal}>
+            <div className="registration-payment-details-modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="registration-payment-details-modal-header">
+                <h3>Bulk Update Selected Records</h3>
+              </div>
+              <div className="registration-payment-details-modal-body">
+                <div>
                   <label htmlFor="bulkStatus">Payment Status:</label>
                   <select
                     id="bulkStatus"
@@ -4368,11 +4370,11 @@ debugMarriagePrepData = () => {
                 </div>
               </div>
 
-              <div className="modal-buttons">
-                <button className="update-btn" onClick={this.handleBulkUpdate}>
+              <div className="registration-payment-details-modal-footer">
+                <button className="registration-payment-details-modal-btn registration-payment-details-modal-btn-primary" onClick={this.handleBulkUpdate}>
                   Update {selectedRows.length} Records
                 </button>
-                <button className="cancel-btn" onClick={this.closeBulkUpdateModal}>
+                <button className="registration-payment-details-modal-btn registration-payment-details-modal-btn-secondary" onClick={this.closeBulkUpdateModal}>
                   Cancel
                 </button>
               </div>
@@ -4393,7 +4395,7 @@ debugMarriagePrepData = () => {
                  this.state.rowData && 
                  this.state.rowData.length > 0 && 
                  expandedRowIndex < this.state.rowData.length && (
-               <div className="expanded-row-detail">
+               <div className="registration-payment-details-expanded-row">
                   {this.renderDetailView(this.state.rowData[expandedRowIndex])}
                 </div>
               );

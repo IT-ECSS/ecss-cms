@@ -29,6 +29,30 @@
   white-space: nowrap;
 }
 
+/* New course save button styling */
+.course-save-btn {
+  padding: 0.8rem 1.2rem;
+  font-size: 0.9rem;
+  border: 2px solid #4CAF50;
+  border-radius: 0.5rem;
+  background-color: transparent;
+  color: #4CAF50;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.course-save-btn:hover {
+  background-color: transparent;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.course-save-btn:active {
+  transform: translateY(1px);
+}
+
 /* Center the heading */
 .nsa-course-heading {
   text-align: center;
