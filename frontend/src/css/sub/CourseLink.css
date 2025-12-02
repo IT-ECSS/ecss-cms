@@ -307,3 +307,228 @@
     font-size: 0.8rem;
   }
 }
+
+/* ===== SHORTENED URL COLUMN STYLING ===== */
+
+.url-cell-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  width: 100%;
+}
+
+.url-text {
+  flex: 1;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace;
+  font-size: 12px;
+  color: #0066cc;
+  word-break: break-all;
+  padding: 6px 10px;
+  background: linear-gradient(135deg, #f0f4f8 0%, #e8eef7 100%);
+  border-radius: 6px;
+  border-left: 3px solid #0066cc;
+  letter-spacing: 0.3px;
+  max-height: 36px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.url-button-group {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.url-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.url-action-btn:active {
+  transform: scale(0.95);
+}
+
+.url-action-btn span {
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* Copy Button */
+.url-copy-btn {
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  color: #1565c0;
+  border: 1px solid #90caf9;
+}
+
+.url-copy-btn:hover {
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.35);
+  transform: translateY(-1px);
+}
+
+.url-copy-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.url-copy-btn-success {
+  animation: urlCopyPulse 0.6s ease;
+}
+
+@keyframes urlCopyPulse {
+  0% {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+  50% {
+    background: linear-gradient(135deg, #c8e6c9 0%, #a5d6a7 100%);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.35);
+  }
+  100% {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+}
+
+/* Visit Button */
+.url-visit-btn {
+  background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+  color: #6a1b9a;
+  border: 1px solid #ce93d8;
+}
+
+.url-visit-btn:hover {
+  background: linear-gradient(135deg, #7b1fa2 0%, #6a1b9a 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(123, 31, 162, 0.35);
+  transform: translateY(-1px);
+}
+
+.url-visit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Course Link Container */
+.course-link-container {
+  padding: 20px;
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', sans-serif;
+}
+
+.course-link-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0 0 20px 0;
+  letter-spacing: -0.5px;
+}
+
+/* AG Grid Responsive Adjustments */
+.ag-theme-quartz .ag-cell {
+  display: flex;
+  align-items: center;
+  overflow: visible;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .url-text {
+    font-size: 11px;
+    padding: 5px 8px;
+  }
+
+  .url-action-btn {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+
+  .url-action-btn span {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .url-cell-container {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .url-text {
+    flex: 1 1 100%;
+    font-size: 11px;
+    max-height: 28px;
+  }
+
+  .url-button-group {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .url-action-btn {
+    flex: 1;
+    padding: 6px 8px;
+    font-size: 11px;
+    min-width: 0;
+  }
+
+  .course-link-title {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .url-action-btn span {
+    display: none;
+  }
+
+  .url-action-btn {
+    padding: 6px;
+    min-width: 32px;
+    justify-content: center;
+  }
+
+  .url-text {
+    font-size: 10px;
+    padding: 4px 6px;
+  }
+}
+
+/* ===== EXPORT EXCEL BUTTON ===== */
+
+.export-excel-btn {
+  margin-bottom: 15px;
+  padding: 10px 20px;
+  background: transparent;
+  color: #28a745;
+  border: 2px solid #28a745;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}

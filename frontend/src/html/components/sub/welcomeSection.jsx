@@ -420,8 +420,7 @@ class WelcomeSection extends Component {
             "Reports": 'fas fa-table',
             "Attendances": 'fas fa-calendar-days',
             "Fitness": 'fas fa-dumbbell',
-            "Fundraising": 'fa-solid fa-gift',
-            "Course Link": 'fas fa-link'
+            "Fundraising": 'fa-solid fa-gift'
         };
 
         // Define sub-key descriptions
@@ -444,16 +443,6 @@ class WelcomeSection extends Component {
         };
 
         const navigationCards = [];
-
-        // Always add Course Link as a standalone navigation card
-        navigationCards.push({
-            key: 'Course Link',
-            title: 'Course Link',
-            icon: iconMap['Course Link'] || 'fas fa-link',
-            description: 'Access Course Links',
-            subKeys: [],
-            hasSubKeys: false
-        });
 
         Object.keys(accessRights).forEach((mainKey) => {
             const value = accessRights[mainKey];
