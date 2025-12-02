@@ -18,7 +18,7 @@ class QRCodeGenerator {
             const buffer = await QRCode.toBuffer(this.text, this.options);
 
             // Save the buffer to a JPG file
-            const filename = `Basics of Money Management (CT Hub).jpg`;
+            const filename = `Crafting Connections (CT Hub).jpg`;
             fs.writeFileSync(filename, buffer);
             console.log(`QR code generated and saved as ${filename}`);
         } catch (error) {
@@ -28,5 +28,5 @@ class QRCodeGenerator {
 }
 
 // Usage
-const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/basics-of-money-managementct-hub/`);
+const qrCodeGenerator = new QRCodeGenerator(`http://ecss.org.sg/product/crafting-connectionsct-hub-2/`);
 qrCodeGenerator.generate();

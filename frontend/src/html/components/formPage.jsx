@@ -1428,7 +1428,28 @@ class FormPage extends Component {
     console.log('Formatted address:', formatted);
     return formatted;
   };
-  
+
+  // Process course name parts to extract English and Chinese/Malay names
+  processCourseName = (courseParts) => {
+    console.log("Processing course name parts:", courseParts);
+    // Default behavior - attempt to detect language in content
+    let englishName = '';
+    let chineseName = '';
+    
+    if (courseParts.length >= 2) {
+      // Assume first part is one language, second is another
+      englishName = courseParts[0] || '';
+      chineseName = courseParts[1] || '';
+    } else if (courseParts.length === 1) {
+      englishName = courseParts[0] || '';
+      chineseName = '';
+    }
+    
+    return {
+      englishName: englishName.trim(),
+      chineseName: chineseName.trim()
+    };
+  };
 
   handleSubmit = () => {
     const { formData } = this.state;
