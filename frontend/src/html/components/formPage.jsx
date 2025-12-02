@@ -1436,11 +1436,13 @@ class FormPage extends Component {
     let englishName = '';
     let chineseName = '';
     
-    if (courseParts.length >= 2) {
+    if (courseParts.length == 3) {
       // Assume first part is one language, second is another
-      englishName = courseParts[0] || '';
+      englishName = courseParts[2] || '';
       chineseName = courseParts[1] || '';
-    } else if (courseParts.length === 1) {
+    } 
+    else if (courseParts.length == 2) {
+      // Assume first part is one language, second is another
       englishName = courseParts[0] || '';
       chineseName = '';
     }
