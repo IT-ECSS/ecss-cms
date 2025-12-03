@@ -944,7 +944,7 @@ class BulkUpdateModalForFundraising extends React.Component {
     const documentType = processingType === 'invoices' ? 'Invoices' : 'Receipts';
 
     return (
-      <div className="bulk-update-modal-overlay" onClick={isProcessing ? null : onClose}>
+      <div className="bulk-update-modal-overlay" onClick={onClose}>
         <div 
           className="bulk-update-modal-content" 
           onClick={(e) => e.stopPropagation()}
@@ -957,20 +957,15 @@ class BulkUpdateModalForFundraising extends React.Component {
               </div>
               <button 
                 className="bulk-update-modal-close-btn" 
-                onClick={onClose}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (!isProcessing && onClose) {
+                    onClose();
+                  }
+                }}
                 title="Close modal"
                 disabled={isProcessing}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '28px',
-                  cursor: isProcessing ? 'not-allowed' : 'pointer',
-                  color: isProcessing ? '#ccc' : '#666',
-                  padding: '0 4px',
-                  opacity: isProcessing ? 0 : 1,
-                  visibility: isProcessing ? 'hidden' : 'visible',
-                  pointerEvents: isProcessing ? 'none' : 'auto'
-                }}
               >
                 ×
               </button>

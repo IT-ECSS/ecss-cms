@@ -745,8 +745,48 @@ class CheckoutPage extends Component {
       
       console.log('Invoice preview and download initiated:', invoiceData.filename);
       
+      // Upload invoice to Google Drive asynchronously (non-blocking)
+      this.uploadInvoiceToGoogleDrive(blob, invoiceData.filename);
+      
     } catch (error) {
       console.error('Error processing invoice:', error);
+    }
+  }
+
+  // Function to upload invoice to Google Drive
+  uploadInvoiceToGoogleDrive = async (pdfBlob, filename) => {
+    try {
+      console.log('Starting Google Drive upload for invoice:', filename);
+      
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('file', pdfBlob, filename);
+      formData.append('filename', filename);
+      formData.append('fileType', 'invoice'); // Specify this is an invoice
+      formData.append('purpose', 'upload-to-google-drive');
+      
+      const baseUrl = window.location.hostname === "localhost" 
+        ? "http://localhost:3001" 
+        : "https://ecss-backend-node.azurewebsites.net";
+      
+      const response = await axios.post(`${baseUrl}/fundraising`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      if (response.data.success) {
+        console.log('✓ Invoice uploaded to Google Drive successfully:', response.data);
+        console.log('File Link:', response.data.fileLink);
+      } else if (response.data.fileAlreadyExists) {
+        console.warn('Invoice file already exists in Google Drive:', response.data.error);
+        console.log('Existing file link:', response.data.existingFileLink);
+      } else {
+        console.error('Failed to upload invoice to Google Drive:', response.data.error);
+      }
+    } catch (error) {
+      console.error('Error uploading invoice to Google Drive:', error.message);
+      // Don't throw error - this is a background operation
     }
   }
 

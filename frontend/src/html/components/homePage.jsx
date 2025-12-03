@@ -1260,9 +1260,15 @@ import React, { Component } from 'react';
     };
 
     closeBulkUpdateModal = () => {
+      // First, close the modal in the parent component (homePage)
       this.setState({
         showBulkUpdateModal: false
       });
+      
+      // Then call FundraisingOrders's closeBulkUpdateModal to reset checkboxes
+      if (this.fundraisingTableRef?.current?.closeBulkUpdateModal) {
+        this.fundraisingTableRef.current.closeBulkUpdateModal();
+      }
     };
 
     generateDeleteConfirmationPopup = (id) => {

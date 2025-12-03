@@ -1056,6 +1056,47 @@ class invoiceGenerator {
             console.error('Error in PDF generation:', error);
             res.status(500).json({ error: 'An unexpected error occurred' });
         }
+    }
+    
+    async generateInvoiceBuffer(array, name, receiptNo, age) {
+        console.log(array, name, receiptNo);
+    
+        try {
+            console.log("Staff Name:", name);
+    
+            // Set paper orientation to landscape
+            const doc = new PDFDocument({ layout: 'landscape' });
+    
+            // Collect PDF data into buffer
+            const chunks = [];
+            
+            doc.on('data', (chunk) => {
+                chunks.push(chunk);
+            });
+    
+            // Ensure addContent is called correctly with await
+            await this.addContent(doc, array, name, receiptNo, age);
+    
+            // Finalize the document
+            doc.end();
+    
+            // Return a promise that resolves when the PDF is complete
+            return new Promise((resolve, reject) => {
+                doc.on('end', () => {
+                    const buffer = Buffer.concat(chunks);
+                    console.log('PDF buffer generated successfully, size:', buffer.length);
+                    resolve(buffer);
+                });
+                doc.on('error', (err) => {
+                    console.error('Error while generating PDF buffer:', err);
+                    reject(err);
+                });
+            });
+    
+        } catch (error) {
+            console.error('Error in PDF generation:', error);
+            throw error;
+        }
     }    
 }    
 

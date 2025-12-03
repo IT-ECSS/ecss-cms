@@ -85,12 +85,12 @@
 }
 
 .bulk-update-modal-close-btn {
-  background-color: transparent;
+  background: none;
   border: none;
-  font-size: 32px;
+  font-size: 28px;
   color: #666;
   cursor: pointer;
-  padding: 0;
+  padding: 0 4px;
   width: 40px;
   height: 40px;
   display: flex;
@@ -99,15 +99,26 @@
   border-radius: 6px;
   transition: all 0.25s ease;
   line-height: 1;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
 }
 
-.bulk-update-modal-close-btn:hover {
+.bulk-update-modal-close-btn:hover:not(:disabled) {
   background-color: rgba(0, 0, 0, 0.05);
   color: #333;
 }
 
-.bulk-update-modal-close-btn:active {
+.bulk-update-modal-close-btn:active:not(:disabled) {
   transform: scale(0.95);
+}
+
+.bulk-update-modal-close-btn:disabled {
+  cursor: not-allowed;
+  color: #ccc;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 /* Modal Body */

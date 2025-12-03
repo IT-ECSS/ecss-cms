@@ -967,6 +967,38 @@ class FundraisingOrders extends Component {
       );
     };
 
+    // Header checkbox renderer for select all / deselect all
+    headerCheckboxRenderer = (params) => {
+      const allRowsSelected = this.state.rowData && this.state.rowData.length > 0 
+        ? this.state.rowData.every(row => row.isSelected === true)
+        : false;
+
+      return (
+        <div
+          key={this.state.selectedRowsUpdated}
+          className="fundraising-header-checkbox"
+          onClick={() => {
+            const updatedRowData = this.state.rowData.map(row => ({
+              ...row,
+              isSelected: !allRowsSelected
+            }));
+            
+            this.setState({ 
+              rowData: updatedRowData,
+              selectedRowsUpdated: !this.state.selectedRowsUpdated 
+            }, () => {
+              if (this.gridApi) {
+                this.gridApi.refreshCells({ force: true });
+                this.gridApi.redrawRows();
+              }
+            });
+          }}
+          style={{ cursor: 'pointer', display: 'block', width: '100%', height: '100%' }}
+          title={allRowsSelected ? 'Deselect all' : 'Select all'}
+        />
+      );
+    };
+
     getColumnDefs = () => {
       const columnDefs = [
         {
@@ -1156,6 +1188,8 @@ class FundraisingOrders extends Component {
         {
           width: 80,
           pinned: "right",
+          headerName: "",
+          headerComponent: this.headerCheckboxRenderer,
           cellRenderer: this.checkboxRenderer,
         }
       ];
@@ -3528,7 +3562,17 @@ Sila buat pembayaran anda di lokasi tersebut untuk mengesahkan pesanan anda.
     };
 
     closeBulkUpdateModal = () => {
-      this.setState({ showBulkUpdateModal: false });
+      // Reset all checkbox values
+      const updatedRowData = this.state.rowData?.map(row => ({
+        ...row,
+        isSelected: false
+      })) || [];
+      
+      this.setState({ 
+        showBulkUpdateModal: false,
+        rowData: updatedRowData,
+        selectedRowsUpdated: !this.state.selectedRowsUpdated // Toggle to force re-render
+      });
     };
 
     handleDownloadReceipts = async () => {
@@ -3543,6 +3587,9 @@ Sila buat pembayaran anda di lokasi tersebut untuk mengesahkan pesanan anda.
       if (this.props.onDownloadReceipts) {
         this.props.onDownloadReceipts(selectedRows);
       }
+      
+      // Reset checkboxes after action
+      this.closeBulkUpdateModal();
     };
 
     handleDownloadInvoices = async () => {
@@ -3565,6 +3612,7 @@ Sila buat pembayaran anda di lokasi tersebut untuk mengesahkan pesanan anda.
           }
         }
 
+        // Reset checkboxes after action
         this.closeBulkUpdateModal();
       } catch (error) {
         console.error('Error downloading invoices:', error);
