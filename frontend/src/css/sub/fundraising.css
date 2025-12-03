@@ -10,7 +10,6 @@
 
 /* Center the heading container - matching Registration & Payment Details */
 .fundraising-heading {
-  text-align: center;
   width: 100%;
   height: auto;
 }
@@ -190,6 +189,7 @@
 
 .button-row {
   display: flex !important;
+  flex-direction: column !important;
   justify-content: flex-start !important;
   gap: 0.5rem;
   padding: 0.3rem 0;
@@ -197,6 +197,28 @@
   width: 80vw; /* Match table wrapper width */
   max-width: 120rem; /* Match table wrapper max-width */
   margin-top: -1rem;
+}
+
+/* Button Row Sections with Labels */
+.button-row > div {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.5rem !important;
+}
+
+/* Label styling for button row sections */
+.button-row > div > label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+/* Individual button containers within rows */
+.button-row > div > div {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 0.75rem !important;
 }
 
 .fundraising-export-btn
@@ -330,6 +352,25 @@
 
 .fundraising-create-btn:active {
   transform: translateY(1px);
+}
+
+/* Bulk Update Button */
+.fundraising-bulk-update-btn {
+  padding: 0.9rem 1.05rem;
+  font-size: 0.8rem;
+  border: 1px solid #8B7500;
+  border-radius: 0.3rem;
+  background-color: transparent;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+  white-space: nowrap;
+  color: #8B7500;
+  width: fit-content;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 /* Google Drive Upload Button */
@@ -2929,6 +2970,33 @@
 .receipt-number-btn:hover {
   color: #333;
 }
+
+/* Fundraising checkbox styling */
+.fundraising-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 50%;
+  height: 50%;
+  cursor: pointer;
+  margin: 0 auto;
+  padding: 0;
+  background: transparent;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border: 2px solid black;
+}
+
+.fundraising-checkbox:checked::after {
+  content: '✓';
+  color: #000000;
+  font-size: 23px;
+  font-weight: bold;
+}
+
 
 .receipt-number-btn:focus {
   outline: 2px solid #0066cc;

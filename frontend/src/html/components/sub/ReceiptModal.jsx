@@ -203,6 +203,12 @@ class ReceiptModal extends Component {
       // Store blob URL for later preview action (user clicks to open)
       this.currentBlobUrl = blobUrl;
       
+      // Automatically open preview in new tab
+      const pdfWindow = window.open(blobUrl, '_blank');
+      if (!pdfWindow) {
+        throw new Error('Popup was blocked. Please allow popups for this site.');
+      }
+      
       // Mark as previewed (ready to open)
       this.setState((prevState) => ({
         checklist: { ...prevState.checklist, preview: true },

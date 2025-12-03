@@ -88,12 +88,47 @@ button:disabled:active {
 /* Button Row Styling */
 .button-row {
   display: flex !important;
+  flex-direction: column !important;
   justify-content: flex-start !important;
   gap: 0.5rem;
   padding: 0.3rem 0;
+  width: 80vw; /* Match table-wrapper width */
+  max-width: 120rem; /* Match table-wrapper max-width */
   margin-left: 8rem; /* Align with table-wrapper */
-  width: 80%;
-  max-width: none;
+}
+
+/* Individual button row container (vertical group) */
+.button-row > div {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+  width: fit-content;
+  position: relative;
+}
+
+/* Label styling - positioned at top border */
+.button-row > div > label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+  padding: 0 0.75rem;
+  background-color: white;
+  position: absolute;
+  top: -0.65rem;
+  left: 1rem;
+  z-index: 10;
+}
+
+/* Buttons container - with border */
+.button-row > div > div {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 0.75rem !important;
+  border: 2px solid #ddd;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  background-color: white;
 }
 
 /* Export button styling - matching FundraisingTable */

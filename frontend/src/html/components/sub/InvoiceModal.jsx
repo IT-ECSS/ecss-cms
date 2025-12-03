@@ -134,7 +134,8 @@ class InvoiceModal extends Component {
       this.currentBlob = blob;
       this.currentFilename = response.data.result.pdfFilename;
       
-      // Execute preview (auto-open in new tab)
+      // Execute preview (with immediate window.open)
+      await this.executePreview(blob);
       
       // Wait 1 second before download
       await new Promise(resolve => setTimeout(resolve, 1000));

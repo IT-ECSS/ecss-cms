@@ -30,6 +30,7 @@ import React, { Component } from 'react';
   import CourseFlyers from './sub/CourseFlyers';
   import CourseLink from './sub/CourseLink';
   import BulkDownloadProgress from './sub/BulkDownloadProgress';
+  import BulkUpdateModalForFundraising from './sub/BulkUpdateModalForFundraising';
   import { withAuth } from '../../AuthContext';
   import axios from 'axios';  
 
@@ -1238,6 +1239,20 @@ import React, { Component } from 'react';
       });
     };
 
+    openBulkUpdateModal = (selectedCount, selectedRows = []) => {
+      this.setState({
+        showBulkUpdateModal: true,
+        bulkUpdateSelectedCount: selectedCount,
+        bulkUpdateSelectedRows: selectedRows
+      });
+    };
+
+    closeBulkUpdateModal = () => {
+      this.setState({
+        showBulkUpdateModal: false
+      });
+    };
+
     generateDeleteConfirmationPopup = (id) => {
       console.log("ID deleted:", id);
       this.setState({
@@ -2127,6 +2142,8 @@ import React, { Component } from 'react';
                             openInvoiceModal={this.openInvoiceModal}
                             closeInvoiceModal={this.closeInvoiceModal}
                             openGoogleDriveUploadModal={this.openGoogleDriveUploadModal}
+                            openBulkUpdateModal={this.openBulkUpdateModal}
+                            onDownloadReceipts={this.handleDownloadReceipts}
                           />
                         </div>
                         
@@ -2414,6 +2431,14 @@ import React, { Component } from 'react';
           <GoogleDriveUploadModal
             isOpen={this.state.showGoogleDriveUploadModal}
             onClose={this.closeGoogleDriveUploadModal}
+          />
+          <BulkUpdateModalForFundraising
+            show={this.state.showBulkUpdateModal}
+            selectedCount={this.state.bulkUpdateSelectedCount || 0}
+            selectedRows={this.state.bulkUpdateSelectedRows || []}
+            onClose={this.closeBulkUpdateModal}
+            onDownloadInvoices={this.handleDownloadInvoices}
+            wooCommerceProductDetails={this.fundraisingTableRef?.current?.state?.wooCommerceProductDetails || []}
           />
         </>
       );

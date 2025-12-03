@@ -256,7 +256,7 @@ router.post('/', upload.single('file'), async function(req, res, next)
                     ? `${req.body.personalInfo.firstName || ''}_${req.body.personalInfo.lastName || ''}`.replace(/[^a-zA-Z0-9_]/g, '').trim()
                     : 'customer';
                 const paymentMethod = (req.body.paymentMethod || 'payment').replace(/[^a-zA-Z0-9_]/g, '');
-                const receiptNumber = (req.body.receiptNumber || 'receipt').replace(/[^a-zA-Z0-9_]/g, '');
+                const receiptNumber = (req.body.receiptNumber || 'receipt').replace(/[^a-zA-Z0-9_/]/g, '_');
                 const filename = `${customerName}_${paymentMethod}_${receiptNumber}.pdf`;
                 
                 // Return success result with PDF data
@@ -276,6 +276,70 @@ router.post('/', upload.single('file'), async function(req, res, next)
                     result: {
                         success: false,
                         message: "Failed to generate receipt PDF",
+                        error: pdfError.message
+                    }
+                });
+            }
+        }
+        else if(req.body.purpose === "generateInvoice") {
+            // Generate invoice PDF using CheckoutInvoiceGenerator
+            try {
+                console.log("Generating invoice with invoice number:", req.body.invoiceNumber);
+                console.log("Full request body:", JSON.stringify(req.body, null, 2));
+                
+                // The frontend data already has the correct structure
+                // Just ensure all required nested objects exist with proper null checks
+                const invoiceData = {
+                    personalInfo: req.body.personalInfo,
+                    paymentDetails: req.body.paymentDetails,
+                    collectionDetails: {
+                        collectionMode: req.body.collectionDetails?.collectionMode,
+                        CollectionDeliveryLocation: req.body.collectionDetails?.CollectionDeliveryLocation || '',
+                        collectionDate: req.body.collectionDetails?.collectionDate || '',
+                        collectionTime: req.body.collectionDetails?.collectionTime || ''
+                    },
+                    orderDetails: req.body.orderDetails || {
+                        items: [],
+                        totalPrice: 0,
+                        orderDate: new Date().toLocaleDateString('en-GB'),
+                        orderTime: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+                    }
+                };
+
+                console.log("Invoice data for generator:", JSON.stringify(invoiceData, null, 2));
+
+                // Generate checkout invoice PDF with the data and invoice number
+                const invoiceResult = await checkoutInvoiceGenerator.generateCheckoutInvoice(invoiceData, req.body.invoiceNumber);
+                
+                // Convert buffer to base64 for sending to frontend
+                const pdfBase64 = invoiceResult.buffer.toString('base64');
+                
+                console.log("Invoice PDF generated successfully");
+                
+                // Create filename with invoice number, customer name, and payment method
+                const customerName = `${invoiceData.personalInfo.firstName || ''}_${invoiceData.personalInfo.lastName || ''}`.replace(/[^a-zA-Z0-9_]/g, '').trim();
+                const paymentMethod = (invoiceData.paymentDetails.paymentMethod || 'payment').replace(/[^a-zA-Z0-9_]/g, '');
+                const invoiceNumber = (req.body.invoiceNumber || 'invoice').replace(/[^a-zA-Z0-9_/]/g, '_');
+                const filename = `Invoice_${customerName}_${paymentMethod}_${invoiceNumber}.pdf`;
+                
+                // Return success result with PDF data
+                return res.json({ 
+                    result: {
+                        success: true,
+                        message: "Invoice generated successfully",
+                        pdfGenerated: true,
+                        pdfData: pdfBase64,
+                        pdfFilename: filename
+                    }
+                });
+                
+            } catch (pdfError) {
+                console.error("Error generating invoice PDF:", pdfError);
+                console.error("Error stack:", pdfError.stack);
+                return res.status(500).json({ 
+                    result: {
+                        success: false,
+                        message: "Failed to generate invoice PDF",
                         error: pdfError.message
                     }
                 });
@@ -374,7 +438,7 @@ router.post('/', upload.single('file'), async function(req, res, next)
                         ? `${result.data.personalInfo.firstName || ''}_${result.data.personalInfo.lastName || ''}`.replace(/[^a-zA-Z0-9_]/g, '').trim()
                         : 'customer';
                     const paymentMethod = result.data.paymentDetails.paymentMethod.replace(/[^a-zA-Z0-9_]/g, '');
-                    const receiptNum = (result.data.receiptNumber || 'receipt').replace(/[^a-zA-Z0-9_]/g, '');
+                    const receiptNum = (result.data.receiptNumber || 'receipt').replace(/[^a-zA-Z0-9_/]/g, '_');
                     
                     result.pdfGenerated = true;
                     result.pdfData = pdfBuffer.toString('base64');
@@ -725,6 +789,173 @@ router.post('/', upload.single('file'), async function(req, res, next)
                         success: false,
                         message: "Failed to fetch delivery details from Excel file",
                         error: bulkOrderError.message
+                    }
+                });
+            }
+        }
+        else if(req.body.purpose === "bulkDownloadReceipts") 
+        {
+            console.log("Bulk download receipts request received");
+            try {
+                const receiptsData = req.body.receipts;
+                
+                if (!receiptsData || !Array.isArray(receiptsData) || receiptsData.length === 0) {
+                    return res.status(400).json({
+                        result: {
+                            success: false,
+                            message: "No receipts data provided"
+                        }
+                    });
+                }
+
+                console.log(`Processing ${receiptsData.length} receipts for bulk download`);
+
+                // Generate receipts for each order and zip them
+                const JSZip = require('jszip');
+                const zip = new JSZip();
+
+                // Generate receipt PDFs for each receipt data
+                for (const receiptData of receiptsData) {
+                    try {
+                        const receiptNumber = receiptData.receiptNumber;
+                        if (!receiptNumber) {
+                            console.warn('Skipping receipt without receipt number');
+                            continue;
+                        }
+
+                        // Generate receipt PDF using the fundraising PDF generator with enriched data
+                        const pdfBuffer = await fundraisingPdfGenerator.generateFundraisingReceipt(receiptData);
+                        
+                        // Create filename using backend's standard format from generateFundraisingReceipt
+                        // This will include all details like name, payment method, etc.
+                        const firstName = receiptData.personalInfo?.firstName || receiptData.firstName || '';
+                        const lastName = receiptData.personalInfo?.lastName || receiptData.lastName || '';
+                        const paymentMethod = receiptData.paymentDetails?.paymentMethod || receiptData.paymentMethod || 'Cash';
+                        
+                        // Format: FirstName_LastName_PaymentMethod_ReceiptNumber.pdf (replacing slashes with underscores)
+                        const receiptNumberFormatted = receiptNumber.replace(/\//g, '_');
+                        const personName = `${firstName}_${lastName}`.replace(/\s+/g, '');
+                        const paymentMethodFormatted = paymentMethod.replace(/\s+/g, '');
+                        const filename = `${personName}_${paymentMethodFormatted}_${receiptNumberFormatted}.pdf`;
+                        
+                        zip.file(filename, pdfBuffer);
+                        
+                        console.log(`Added ${filename} to zip`);
+                    } catch (receiptError) {
+                        console.error(`Error generating receipt for ${receiptData.receiptNumber}:`, receiptError);
+                    }
+                }
+
+                // Generate zip file
+                const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+
+                // Set response headers for zip file download
+                res.setHeader('Content-Type', 'application/zip');
+                res.setHeader('Content-Disposition', `attachment; filename="receipts-${new Date().toISOString().split('T')[0]}.zip"`);
+                
+                return res.send(zipBuffer);
+
+            } catch (bulkReceiptError) {
+                console.error("Bulk download receipts error:", bulkReceiptError);
+                return res.status(500).json({
+                    result: {
+                        success: false,
+                        message: "Failed to generate receipts zip",
+                        error: bulkReceiptError.message
+                    }
+                });
+            }
+        }
+        else if(req.body.purpose === "bulkDownloadInvoices") 
+        {
+            console.log("Bulk download invoices request received");
+            try {
+                const invoicesData = req.body.invoices;
+                
+                if (!invoicesData || !Array.isArray(invoicesData) || invoicesData.length === 0) {
+                    return res.status(400).json({
+                        result: {
+                            success: false,
+                            message: "No invoices data provided"
+                        }
+                    });
+                }
+
+                console.log(`Processing ${invoicesData.length} invoices for bulk download`);
+
+                // Generate invoices for each order and zip them
+                const JSZip = require('jszip');
+                const zip = new JSZip();
+
+                // Generate invoice PDFs for each invoice data
+                for (const invoiceData of invoicesData) {
+                    try {
+                        const invoiceNumber = invoiceData.invoiceNumber;
+                        if (!invoiceNumber) {
+                            console.warn('Skipping invoice without invoice number');
+                            continue;
+                        }
+
+                        // The data already has the correct structure from the frontend
+                        // Ensure all required nested objects exist with proper null checks
+                        const structuredInvoiceData = {
+                            personalInfo: invoiceData.personalInfo || {},
+                            paymentDetails: invoiceData.paymentDetails || { paymentMethod: 'Cash' },
+                            collectionDetails: {
+                                collectionMode: invoiceData.collectionDetails?.collectionMode || 'Self-Collection',
+                                CollectionDeliveryLocation: invoiceData.collectionDetails?.CollectionDeliveryLocation || '',
+                                collectionDate: invoiceData.collectionDetails?.collectionDate || '',
+                                collectionTime: invoiceData.collectionDetails?.collectionTime || ''
+                            },
+                            orderDetails: invoiceData.orderDetails || {
+                                items: invoiceData.items || [],
+                                totalPrice: invoiceData.totalPrice || invoiceData.donationAmount || 0,
+                                orderDate: new Date().toLocaleDateString('en-GB'),
+                                orderTime: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+                            }
+                        };
+
+                        console.log(`Processing invoice ${invoiceNumber}:`, JSON.stringify(structuredInvoiceData, null, 2));
+
+                        // Generate invoice PDF using the checkout invoice generator
+                        const invoiceResult = await checkoutInvoiceGenerator.generateCheckoutInvoice(structuredInvoiceData, invoiceNumber);
+                        const pdfBuffer = invoiceResult.buffer;
+                        
+                        // Create filename using backend's standard format
+                        const firstName = structuredInvoiceData.personalInfo.firstName || '';
+                        const lastName = structuredInvoiceData.personalInfo.lastName || '';
+                        const paymentMethod = structuredInvoiceData.paymentDetails.paymentMethod || 'Cash';
+                        
+                        // Format: Invoice_FirstName_LastName_PaymentMethod_InvoiceNumber.pdf (replacing slashes with underscores)
+                        const invoiceNumberFormatted = invoiceNumber.replace(/\//g, '_');
+                        const personName = `${firstName}_${lastName}`.replace(/\s+/g, '');
+                        const paymentMethodFormatted = paymentMethod.replace(/\s+/g, '');
+                        const filename = `Invoice_${personName}_${paymentMethodFormatted}_${invoiceNumberFormatted}.pdf`;
+                        
+                        zip.file(filename, pdfBuffer);
+                        
+                        console.log(`Added ${filename} to zip`);
+                    } catch (invoiceError) {
+                        console.error(`Error generating invoice for ${invoiceData.invoiceNumber}:`, invoiceError);
+                    }
+                }
+
+                // Generate zip file
+                const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+
+                // Set response headers for zip file download
+                res.setHeader('Content-Type', 'application/zip');
+                res.setHeader('Content-Disposition', `attachment; filename="Invoice_${new Date().toISOString().split('T')[0]}.zip"`);
+                
+                return res.send(zipBuffer);
+
+            } catch (bulkInvoiceError) {
+                console.error("Bulk download invoices error:", bulkInvoiceError);
+                return res.status(500).json({
+                    result: {
+                        success: false,
+                        message: "Failed to generate invoices zip",
+                        error: bulkInvoiceError.message
                     }
                 });
             }

@@ -2,12 +2,10 @@ import React, { Component } from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
 import '../../../css/sub/fundraising.css';
-import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { AgGridReact } from 'ag-grid-react'; // React Data Grid Component
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community'; 
-import JSZip from 'jszip';
 import io from 'socket.io-client';
 
 // Register the community modules
@@ -45,7 +43,9 @@ class FundraisingOrders extends Component {
         selectedOrderForCalendar: null,
         isApplyingFilters: false, // Flag to prevent infinite loops in filter application
         showInvoiceModal: false, // Show invoice modal
-        invoiceModalData: { invoiceNumber: '', orderData: null } // Invoice modal data
+        invoiceModalData: { invoiceNumber: '', orderData: null }, // Invoice modal data
+        selectedRowsUpdated: false, // Toggle to force re-render when selection changes
+        showBulkUpdateModal: false // Show bulk update options modal
       };
       this.tableRef = React.createRef();
       this.gridRef = React.createRef();
@@ -950,6 +950,23 @@ class FundraisingOrders extends Component {
       return receiptNumber || '';
     };
 
+    checkboxRenderer = (params) => {
+      return (
+          <input
+            type="checkbox"
+            className="fundraising-checkbox"
+            checked={params.data.isSelected || false}
+            onChange={(e) => {
+              params.data.isSelected = e.target.checked;
+              this.gridApi.refreshCells({ rowNodes: [params.node], force: true });
+              this.gridApi.redrawRows({ rowNodes: [params.node] });
+              // Force re-render of the component to update button count
+              this.setState({ selectedRowsUpdated: !this.state.selectedRowsUpdated });
+            }}
+          />
+      );
+    };
+
     getColumnDefs = () => {
       const columnDefs = [
         {
@@ -1135,6 +1152,11 @@ class FundraisingOrders extends Component {
           field: "receiptNumber",
           width: 200,
           cellRenderer: this.receiptNumberRenderer
+        },
+        {
+          width: 80,
+          pinned: "right",
+          cellRenderer: this.checkboxRenderer,
         }
       ];
 
@@ -1517,6 +1539,13 @@ class FundraisingOrders extends Component {
     getRowStyle = (params) => {
       const { expandedRowIndex, rowData } = this.state;
       const rowIndex = params.rowIndex;
+    
+      // Highlight row if checkbox is selected
+      if (params.data.isSelected) {
+        return {
+          opacity: '0.5'
+        };
+      }
     
       if (expandedRowIndex !== null && expandedRowIndex === rowIndex) {
         return {
@@ -2003,11 +2032,15 @@ class FundraisingOrders extends Component {
 
         console.log('Receipt generation response:', response.data);
         
-        // Handle the PDF response
-        if (response.data.result && response.data.result.success && response.data.result.pdfGenerated) {
-          this.handlePdfResponse(response.data.result);
+        // Handle the PDF response - open receipt modal for preview/download/upload
+        if (response.data.result && response.data.result.pdfData) {
+          // Notify parent (homePage) to open receipt modal
+          if (this.props.openReceiptModal) {
+            this.props.openReceiptModal(rowData.receiptNumber, rowData);
+          }
         } else {
-          console.error('Failed to generate receipt:', response.data);
+          console.error('Failed to generate receipt - Invalid response:', response.data);
+          alert('Failed to generate receipt: ' + (response.data?.result?.message || 'Unknown error'));
         }
       } catch (error) {
         console.error('Error generating receipt:', error);
@@ -3475,6 +3508,72 @@ Sila buat pembayaran anda di lokasi tersebut untuk mengesahkan pesanan anda.
       this.setState({ showFiscalBalanceModal: false });
     };
 
+    // Bulk Update Modal Methods
+    handleBulkUpdate = () => {
+      const selectedRows = this.state.rowData?.filter(row => row.isSelected) || [];
+      const selectedCount = selectedRows.length || 0;
+      
+      if (selectedCount === 0) {
+        alert('Please select at least one row to bulk update');
+        return;
+      }
+      
+      // Use parent's callback if available
+      if (this.props.openBulkUpdateModal) {
+        this.props.openBulkUpdateModal(selectedCount, selectedRows);
+      } else {
+        // Fallback to local state if parent method not available
+        this.setState({ showBulkUpdateModal: true });
+      }
+    };
+
+    closeBulkUpdateModal = () => {
+      this.setState({ showBulkUpdateModal: false });
+    };
+
+    handleDownloadReceipts = async () => {
+      const selectedRows = this.state.rowData?.filter(row => row.isSelected) || [];
+      
+      if (selectedRows.length === 0) {
+        alert('Please select at least one row');
+        return;
+      }
+
+      // Pass selectedRows to modal which will handle the zip download
+      if (this.props.onDownloadReceipts) {
+        this.props.onDownloadReceipts(selectedRows);
+      }
+    };
+
+    handleDownloadInvoices = async () => {
+      try {
+        const selectedRows = this.state.rowData?.filter(row => row.isSelected) || [];
+        
+        if (selectedRows.length === 0) {
+          alert('Please select at least one row');
+          return;
+        }
+
+        console.log('Downloading invoices for selected rows:', selectedRows);
+
+        // Download invoices for each selected row
+        for (const row of selectedRows) {
+          if (row.invoiceNumber) {
+            await this.generateInvoiceFromNumber(row);
+          } else {
+            console.warn(`Row ${row.sn}: No invoice number`);
+          }
+        }
+
+        this.closeBulkUpdateModal();
+      } catch (error) {
+        console.error('Error downloading invoices:', error);
+        alert('Error downloading invoices');
+      }
+    };
+
+
+
     // Receipt Modal Methods
     // Fetch bulk orders from Google Drive Excel file
     // Export confirmed (Paid status) items sales to Excel by location
@@ -3487,40 +3586,69 @@ Sila buat pembayaran anda di lokasi tersebut untuk mengesahkan pesanan anda.
           <div className="fundraising-heading">
             <h2>Fundraising Orders</h2>
              <div className="button-row"> 
-              <button 
-                className="fundraising-export-btn"
-                onClick={this.exportToExcel}
-              >
-              Archive Data
-              </button>
-              <button 
-                className="fundraising-sales-report-btn"
-                onClick={this.generateSalesReport}
-              >
-              Sales Report
-              </button>
-              {this.isUserAuthorized() && (
-              <button 
-                className="fundraising-fiscal-btn"
-                onClick={this.handleNewButtonAction}
-              >
-              Fiscal Balance Report
-              </button>
-              )}
-              <button 
-                className="fundraising-create-btn"
-                onClick={this.props.openBulkOrderModal}
-                title="Fetch delivery details from Excel"
-              >
-                Bulk Orders Report
-              </button>
-              <button 
-                className="fundraising-google-drive-btn"
-                onClick={this.props.openGoogleDriveUploadModal}
-                title="Upload receipts and/or invoices to Google Drive"
-              >
-                Upload to Google Drive
-              </button>
+              {/* Row 1: Archive Data and Upload to Google Drive */}
+              <div>
+                <label>Archive & Upload</label>
+                <div>
+                  <button 
+                    className="fundraising-export-btn"
+                    onClick={this.exportToExcel}
+                  >
+                    Archive Data
+                  </button>
+                  <button 
+                    className="fundraising-google-drive-btn"
+                    onClick={this.props.openGoogleDriveUploadModal}
+                    title="Upload receipts and/or invoices to Google Drive"
+                  >
+                    Upload to Google Drive
+                  </button>
+                </div>
+              </div>
+
+              {/* Row 2: Reports */}
+              <div>
+                <label>Reports</label>
+                <div>
+                  <button 
+                    className="fundraising-sales-report-btn"
+                    onClick={this.generateSalesReport}
+                  >
+                    Sales Report
+                  </button>
+                  {this.isUserAuthorized() && (
+                    <button 
+                      className="fundraising-fiscal-btn"
+                      onClick={this.handleNewButtonAction}
+                    >
+                      Fiscal Balance Report
+                    </button>
+                  )}
+                  {this.isUserAuthorized() && (
+                    <button 
+                      className="fundraising-create-btn"
+                      onClick={this.props.openBulkOrderModal}
+                      title="Fetch delivery details from Excel"
+                    >
+                      Bulk Orders Report
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Row 3: Bulk Update */}
+              <div>
+                <label>Actions</label>
+                <div>
+                  <button 
+                    className="fundraising-bulk-update-btn"
+                    onClick={this.handleBulkUpdate}
+                    title="Bulk update fundraising orders"
+                  >
+                    Bulk Actions ({this.state.rowData?.filter(row => row.isSelected).length || 0})
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 

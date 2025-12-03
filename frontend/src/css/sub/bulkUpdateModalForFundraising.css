@@ -1,0 +1,302 @@
+/* Overlay Background */
+.bulk-update-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.55);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  animation: bulk-modal-fade-in 0.3s ease-in-out;
+  width: 100vw;
+  height: 100vh;
+}
+
+@keyframes bulk-modal-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Modal Container */
+.bulk-update-modal-content {
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  max-width: 550px;
+  width: 90%;
+  animation: bulk-modal-slide-up 0.35s ease-out;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 10001;
+}
+
+@keyframes bulk-modal-slide-up {
+  from {
+    transform: translateY(60px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Modal Header - Updated for new layout */
+.bulk-update-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.bulk-update-modal-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 24px;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.bulk-update-modal-header h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #2c3e50;
+  letter-spacing: 0.3px;
+}
+
+.bulk-update-modal-header-top h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #2c3e50;
+  letter-spacing: 0.3px;
+}
+
+.bulk-update-modal-close-btn {
+  background-color: transparent;
+  border: none;
+  font-size: 32px;
+  color: #666;
+  cursor: pointer;
+  padding: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.25s ease;
+  line-height: 1;
+}
+
+.bulk-update-modal-close-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #333;
+}
+
+.bulk-update-modal-close-btn:active {
+  transform: scale(0.95);
+}
+
+/* Modal Body */
+.bulk-update-modal-body {
+  padding: 32px 24px;
+  flex: 1;
+  background-color: #ffffff;
+}
+
+.bulk-update-instructions {
+  margin: 0 0 28px 0;
+  font-size: 15px;
+  font-weight: 500;
+  color: #4a4a4a;
+  line-height: 1.6;
+  letter-spacing: 0.2px;
+}
+
+/* Action Buttons Container */
+.bulk-update-action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Action Button Base */
+.bulk-update-action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 20px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  background-color: #f8f9fa;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: inherit;
+  min-height: 110px;
+}
+
+.bulk-update-action-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+
+.bulk-update-action-btn:active {
+  transform: translateY(-1px);
+}
+
+/* Download Receipts Button */
+.download-receipts-btn {
+  border-color: #4CAF50;
+  background: linear-gradient(135deg, #f1f8e9 0%, #ffffff 100%);
+}
+
+.download-receipts-btn:hover {
+  border-color: #45a049;
+  background: linear-gradient(135deg, #dcedc8 0%, #f1f8e9 100%);
+  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.2);
+}
+
+/* Download Invoices Button */
+.download-invoices-btn {
+  border-color: #FF9800;
+  background: linear-gradient(135deg, #fff3e0 0%, #ffffff 100%);
+}
+
+.download-invoices-btn:hover {
+  border-color: #f57c00;
+  background: linear-gradient(135deg, #ffe0b2 0%, #fff3e0 100%);
+  box-shadow: 0 6px 20px rgba(255, 152, 0, 0.2);
+}
+
+/* Button Icon */
+.action-btn-icon {
+  font-size: 32px;
+  display: block;
+  line-height: 1;
+}
+
+/* Button Text */
+.action-btn-text {
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.3;
+  color: #2c3e50;
+  letter-spacing: 0.3px;
+}
+
+/* Modal Footer */
+.bulk-update-modal-footer {
+  display: flex;
+  justify-content: center;
+  padding: 16px 24px;
+  background-color: #f8f9fa;
+  border-top: 1px solid #e8e8e8;
+}
+
+.bulk-update-modal-cancel-btn {
+  padding: 12px 32px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.bulk-update-modal-cancel-btn:hover {
+  background-color: #45a049;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.bulk-update-modal-cancel-btn:active {
+  transform: scale(0.98);
+}
+
+@media (max-width: 600px) {
+  .bulk-update-modal-content {
+    width: 95%;
+    max-width: none;
+  }
+
+  .bulk-update-modal-header,
+  .bulk-update-modal-header-top {
+    padding: 20px;
+  }
+
+  .bulk-update-modal-header h3,
+  .bulk-update-modal-header-top h2 {
+    font-size: 18px;
+  }
+
+  .bulk-update-modal-close-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 28px;
+  }
+
+  .bulk-update-modal-body {
+    padding: 24px 20px;
+  }
+
+  .bulk-update-action-buttons {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .bulk-update-action-btn {
+    min-height: 100px;
+    padding: 18px 14px;
+  }
+
+  .action-btn-icon {
+    font-size: 28px;
+  }
+}
+
+@media (max-width: 400px) {
+  .bulk-update-modal-content {
+    width: 95%;
+  }
+
+  .bulk-update-modal-header,
+  .bulk-update-modal-header-top {
+    padding: 16px;
+  }
+
+  .bulk-update-modal-header h3,
+  .bulk-update-modal-header-top h2 {
+    font-size: 16px;
+  }
+
+  .bulk-update-action-btn {
+    min-height: 90px;
+    padding: 14px 10px;
+    gap: 10px;
+  }
+
+  .action-btn-icon {
+    font-size: 24px;
+  }
+
+  .action-btn-text {
+    font-size: 12px;
+  }
+}
