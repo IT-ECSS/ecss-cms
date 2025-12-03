@@ -307,6 +307,7 @@ class BulkUpdateModalForFundraising extends React.Component {
 
       let successCount = 0;
       let failureCount = 0;
+      const uploadedFileLinks = []; // Store file links
 
       // Upload each receipt individually
       for (const row of validRows) {
@@ -356,6 +357,9 @@ class BulkUpdateModalForFundraising extends React.Component {
             
             if (uploadResponse.data.success) {
               console.log(`✓ Uploaded: ${pdfFilename}`);
+              if (uploadResponse.data.fileLink) {
+                uploadedFileLinks.push(uploadResponse.data.fileLink);
+              }
               successCount++;
             } else {
               console.warn(`✗ Failed to upload: ${pdfFilename}`);
@@ -369,6 +373,9 @@ class BulkUpdateModalForFundraising extends React.Component {
       }
 
       console.log(`Bulk upload complete: ${successCount} succeeded, ${failureCount} failed`);
+      
+      // Open Google Drive receipt folder in a new tab
+      window.open('https://drive.google.com/drive/folders/11dHfai2ZsHia2J-Ho7w2arW_-dFYMmVW', '_blank');
       
       // Update state - upload complete
       this.setState((prevState) => ({
@@ -465,6 +472,7 @@ class BulkUpdateModalForFundraising extends React.Component {
 
       let successCount = 0;
       let failureCount = 0;
+      const uploadedFileLinks = []; // Store file links
 
       // Upload each invoice individually
       for (const row of validRows) {
@@ -514,6 +522,9 @@ class BulkUpdateModalForFundraising extends React.Component {
             
             if (uploadResponse.data.success) {
               console.log(`✓ Uploaded: ${pdfFilename}`);
+              if (uploadResponse.data.fileLink) {
+                uploadedFileLinks.push(uploadResponse.data.fileLink);
+              }
               successCount++;
             } else {
               console.warn(`✗ Failed to upload: ${pdfFilename}`);
@@ -527,6 +538,9 @@ class BulkUpdateModalForFundraising extends React.Component {
       }
 
       console.log(`Bulk upload complete: ${successCount} succeeded, ${failureCount} failed`);
+      
+      // Open Google Drive invoice folder in a new tab
+      window.open('https://drive.google.com/drive/folders/1eF1phBpOZnKlRy5ARSNkQeawefDpu8Ou', '_blank');
       
       // Update state - upload complete
       this.setState((prevState) => ({

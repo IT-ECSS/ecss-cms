@@ -3586,22 +3586,15 @@ Sila buat pembayaran anda di lokasi tersebut untuk mengesahkan pesanan anda.
           <div className="fundraising-heading">
             <h2>Fundraising Orders</h2>
              <div className="button-row"> 
-              {/* Row 1: Archive Data and Upload to Google Drive */}
+              {/* Row 1: Archive Data */}
               <div>
-                <label>Archive & Upload</label>
+                <label>Archive</label>
                 <div>
                   <button 
                     className="fundraising-export-btn"
                     onClick={this.exportToExcel}
                   >
                     Archive Data
-                  </button>
-                  <button 
-                    className="fundraising-google-drive-btn"
-                    onClick={this.props.openGoogleDriveUploadModal}
-                    title="Upload receipts and/or invoices to Google Drive"
-                  >
-                    Upload to Google Drive
                   </button>
                 </div>
               </div>
@@ -3646,6 +3639,27 @@ Sila buat pembayaran anda di lokasi tersebut untuk mengesahkan pesanan anda.
                     title="Bulk update fundraising orders"
                   >
                     Bulk Actions ({this.state.rowData?.filter(row => row.isSelected).length || 0})
+                  </button>
+                </div>
+              </div>
+
+              {/* Row 4: Google Drive */}
+              <div>
+                <label>Google Drive</label>
+                <div>
+                  <button 
+                    className="fundraising-google-drive-btn"
+                    onClick={this.props.openGoogleDriveUploadModal}
+                    title="Upload receipts and/or invoices to Google Drive"
+                  >
+                    Upload
+                  </button>
+                  <button 
+                    className="fundraising-google-drive-view-btn"
+                    onClick={this.props.openGoogleDriveViewModal}
+                    title="View Google Drive folder"
+                  >
+                    View
                   </button>
                 </div>
               </div>

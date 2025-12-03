@@ -24,6 +24,7 @@ import React, { Component } from 'react';
   import BulkOrderModal from './sub/BulkOrderModal';
   import FundraisingOrderItemsModal from './sub/FundraisingOrderItemsModal';
   import GoogleDriveUploadModal from './sub/GoogleDriveUploadModal';
+  import GoogleDriveViewModal from './GoogleDriveViewModal';
   import ReportSection from './sub/reportSection';
   import WelcomeSection from './sub/welcomeSection';
   import ReceiptModal from './sub/ReceiptModal';
@@ -135,7 +136,8 @@ import React, { Component } from 'react';
         selectedReceipt: null,
         showInvoiceModal: false,
         invoiceModalData: { invoiceNumber: '', orderData: null },
-        showGoogleDriveUploadModal: false
+        showGoogleDriveUploadModal: false,
+        showGoogleDriveViewModal: false
       };
   
       // Always reset attendance filter/search state to defaults on page load
@@ -1175,6 +1177,16 @@ import React, { Component } from 'react';
       this.setState({ showGoogleDriveUploadModal: false });
     };
 
+    // Open Google Drive View Modal
+    openGoogleDriveViewModal = () => {
+      this.setState({ showGoogleDriveViewModal: true });
+    };
+
+    // Close Google Drive View Modal
+    closeGoogleDriveViewModal = () => {
+      this.setState({ showGoogleDriveViewModal: false });
+    };
+
     // Open bulk order modal and start loading
     openBulkOrderModal = async () => {
       console.log("Opening bulk order modal and starting to load data...");
@@ -2142,6 +2154,7 @@ import React, { Component } from 'react';
                             openInvoiceModal={this.openInvoiceModal}
                             closeInvoiceModal={this.closeInvoiceModal}
                             openGoogleDriveUploadModal={this.openGoogleDriveUploadModal}
+                            openGoogleDriveViewModal={this.openGoogleDriveViewModal}
                             openBulkUpdateModal={this.openBulkUpdateModal}
                             onDownloadReceipts={this.handleDownloadReceipts}
                           />
@@ -2431,6 +2444,10 @@ import React, { Component } from 'react';
           <GoogleDriveUploadModal
             isOpen={this.state.showGoogleDriveUploadModal}
             onClose={this.closeGoogleDriveUploadModal}
+          />
+          <GoogleDriveViewModal
+            isOpen={this.state.showGoogleDriveViewModal}
+            onClose={this.closeGoogleDriveViewModal}
           />
           <BulkUpdateModalForFundraising
             show={this.state.showBulkUpdateModal}

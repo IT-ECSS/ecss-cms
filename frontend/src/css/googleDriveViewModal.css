@@ -1,0 +1,493 @@
+/* Google Drive View Modal Styles */
+
+.gd-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.gd-modal-container {
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  width: 90%;
+  max-width: 1200px;
+  height: 80vh;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: slideIn 0.3s ease-out;
+  box-sizing: border-box;
+  position: relative;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Modal Header */
+.gd-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e9ecef;
+  background-color: #f8f9fa;
+}
+
+.gd-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.gd-close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #7f8c8d;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.gd-close-btn:hover {
+  background-color: #e9ecef;
+  color: #2c3e50;
+}
+
+/* Tab Header with View Toggle */
+.gd-tab-header {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 0;
+  margin-bottom: 12px;
+  position: relative;
+}
+
+.gd-view-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.gd-view-btn {
+  padding: 8px 12px;
+  border: 2px solid #95a5a6;
+  background: none;
+  cursor: pointer;
+  color: #95a5a6;
+  font-size: 14px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.gd-view-btn:first-child {
+  border-color: #1abc9c;
+  color: #1abc9c;
+}
+
+.gd-view-btn:first-child.active {
+  border-color: #1abc9c;
+  color: #1abc9c;
+}
+
+.gd-view-btn:last-child {
+  border-color: #34495e;
+  color: #34495e;
+}
+
+.gd-view-btn:last-child.active {
+  border-color: #34495e;
+  color: #34495e;
+}
+
+.gd-view-btn:hover {
+  opacity: 0.8;
+}
+
+.gd-refresh-icon-btn {
+  background: none;
+  border: 2px solid #3498db;
+  padding: 6px 10px;
+  cursor: pointer;
+  color: #3498db;
+  font-size: 14px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+.gd-refresh-icon-btn:hover {
+  background-color: rgba(52, 152, 219, 0.1);
+  border-color: #2980b9;
+  color: #2980b9;
+}
+
+/* Tab Navigation */
+.gd-tabs {
+  display: flex;
+  border-bottom: 2px solid #e9ecef;
+  background-color: #ffffff;
+  padding: 0 24px;
+}
+
+.gd-tab-btn {
+  background: none;
+  border: none;
+  padding: 16px 24px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #7f8c8d;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.gd-tab-btn:hover {
+  color: #3498db;
+}
+
+.gd-tab-btn.active {
+  color: #3498db;
+}
+
+.gd-tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: #3498db;
+}
+
+/* Receipts Tab - Always Show Background */
+.gd-tab-btn:nth-child(2) {
+  background-color: #F5D5D5;
+  color: #5D2E2E;
+}
+
+.gd-tab-btn:nth-child(2):hover {
+  background-color: #EBBBBB;
+  color: #5D2E2E;
+}
+
+.gd-tab-btn:nth-child(2).active::after {
+  background-color: #D89A9A;
+}
+
+/* Invoices Tab - Always Show Background */
+.gd-tab-btn:nth-child(3) {
+  background-color: #F5E6D3;
+  color: #6B5344;
+}
+
+.gd-tab-btn:nth-child(3):hover {
+  background-color: #EDD9C9;
+  color: #6B5344;
+}
+
+.gd-tab-btn:nth-child(3).active::after {
+  background-color: #D9C4A8;
+}
+
+/* Modal Content */
+.gd-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.gd-tab-content {
+  animation: fadeIn 0.2s ease-in;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Files List */
+.gd-files-list {
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.gd-file-count {
+  padding: 0 0 12px 0;
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.gd-files-scroll {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Row View */
+.gd-files-scroll.gd-view-row {
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gd-view-row .gd-file-item {
+  flex-direction: row;
+}
+
+/* Grid View */
+.gd-files-scroll.gd-view-grid {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-content: flex-start;
+}
+
+.gd-view-grid .gd-file-item {
+  flex-direction: column;
+  width: calc(25% - 9px);
+  min-width: 150px;
+  height: 180px;
+}
+
+.gd-view-grid .gd-file-logo {
+  font-size: 32px;
+  margin: 8px 0;
+}
+
+.gd-view-grid .gd-file-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.gd-view-grid .gd-file-name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gd-view-grid .gd-file-meta {
+  flex-direction: column;
+  gap: 4px;
+  margin-top: auto;
+}
+
+.gd-file-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  background-color: #f8f9fa;
+  transition: all 0.2s;
+  align-items: flex-start;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.gd-file-item:hover {
+  background-color: #f0f4f8;
+  border-color: #3498db;
+}
+
+/* Receipt Files - Soft Pastel Maroon Background */
+.gd-file-item.gd-receipt-item {
+  background-color: #F5D5D5;
+  color: #5D2E2E;
+  border-color: #E9B8B8;
+}
+
+.gd-file-item.gd-receipt-item:hover {
+  background-color: #EBBBBB;
+  border-color: #D89A9A;
+}
+
+.gd-file-item.gd-receipt-item .gd-file-name,
+.gd-file-item.gd-receipt-item .gd-file-size,
+.gd-file-item.gd-receipt-item .gd-file-date {
+  color: #5D2E2E;
+}
+
+/* Invoice Files - Soft Pastel Brown Background */
+.gd-file-item.gd-invoice-item {
+  background-color: #F5E6D3;
+  color: #6B5344;
+  border-color: #E8D4BE;
+}
+
+.gd-file-item.gd-invoice-item:hover {
+  background-color: #EDD9C9;
+  border-color: #D9C4A8;
+}
+
+.gd-file-item.gd-invoice-item .gd-file-name,
+.gd-file-item.gd-invoice-item .gd-file-size,
+.gd-file-item.gd-invoice-item .gd-file-date {
+  color: #6B5344;
+}
+
+.gd-file-logo {
+  font-size: 24px;
+  flex-shrink: 0;
+  min-width: 24px;
+}
+
+.gd-file-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gd-file-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #2c3e50;
+  word-break: break-word;
+}
+
+.gd-file-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: #7f8c8d;
+}
+
+.gd-file-size {
+  display: block;
+}
+
+.gd-file-date {
+  display: block;
+}
+
+/* Error State */
+.gd-error {
+  padding: 24px;
+  color: #e74c3c;
+  font-size: 14px;
+  background-color: #fadbd8;
+  border-radius: 6px;
+  border: 1px solid #e74c3c;
+}
+
+.gd-loading {
+  padding: 24px;
+  color: #3498db;
+  font-size: 14px;
+  text-align: center;
+}
+
+.gd-empty-state {
+  padding: 24px;
+  color: #7f8c8d;
+  font-size: 14px;
+  text-align: center;
+  font-style: italic;
+}
+
+.gd-refresh-btn {
+  padding: 8px 16px;
+  background-color: #3498db;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.gd-refresh-btn:hover {
+  background-color: #2980b9;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+  .gd-modal-container {
+    width: 95%;
+    max-height: 90vh;
+  }
+
+  .gd-header {
+    padding: 16px 16px;
+  }
+
+  .gd-header h2 {
+    font-size: 18px;
+  }
+
+  .gd-content {
+    padding: 16px;
+  }
+
+  .gd-tabs {
+    padding: 0 16px;
+  }
+
+  .gd-tab-btn {
+    padding: 12px 16px;
+    font-size: 12px;
+  }
+
+  .gd-file-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

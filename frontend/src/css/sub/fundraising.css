@@ -402,6 +402,64 @@
   transform: translateY(1px);
 }
 
+/* Google Drive View Button */
+.fundraising-google-drive-view-btn {
+  padding: 0.9rem 1.05rem;
+  font-size: 0.8rem;
+  border: 1px solid #10b981;
+  border-radius: 0.3rem;
+  background-color: transparent;
+  cursor: pointer;
+  transition: all 0.3s;
+  white-space: nowrap;
+  color: #10b981;
+  width: fit-content;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.fundraising-google-drive-view-btn:hover {
+  background-color: #ecfdf5;
+  border-color: #059669;
+  color: #059669;
+  transform: translateY(-2px);
+}
+
+.fundraising-google-drive-view-btn:active {
+  transform: translateY(1px);
+}
+
+/* Google Drive Folder Button */
+.fundraising-google-drive-folder-btn {
+  padding: 0.9rem 1.05rem;
+  font-size: 0.8rem;
+  border: none;
+  border-radius: 0.3rem;
+  background-color: #4285F4;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+  white-space: nowrap;
+  color: #ffffff;
+  width: fit-content;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.fundraising-google-drive-folder-btn:hover {
+  background-color: #357ae8;
+  transform: translateY(-2px);
+}
+
+.fundraising-google-drive-folder-btn:active {
+  transform: translateY(1px);
+}
+
 /* New Button */
 .fundraising-new-btn {
   padding: 0.9rem 1.05rem;
