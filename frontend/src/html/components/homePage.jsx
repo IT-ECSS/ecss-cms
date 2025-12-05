@@ -603,9 +603,12 @@ import React, { Component } from 'react';
           section: "fundraising-table",
           attendanceType: "",
           
-          // Reset fundraising filtering state
+          // Reset fundraising filtering state to show all data
           fundraisingSearchQuery: '',
-          searchQuery: ''
+          searchQuery: '',
+          fundraisingPaymentMethod: '',
+          fundraisingCollectionLocation: '',
+          fundraisingStatus: ''
         });
       } 
       catch (error) {
@@ -2144,6 +2147,7 @@ import React, { Component } from 'react';
                             key={this.state.refreshKey}
                             refreshChild={this.refreshChild}
                             onDataLoaded={this.closePopup}
+                            isVisible={isFundraisingTableVisible}
                             paymentMethod={fundraisingPaymentMethod}
                             // collectionMode={fundraisingCollectionMode}
                             collectionLocation={fundraisingCollectionLocation}

@@ -45,7 +45,10 @@ class FundraisingOrders extends Component {
         showInvoiceModal: false, // Show invoice modal
         invoiceModalData: { invoiceNumber: '', orderData: null }, // Invoice modal data
         selectedRowsUpdated: false, // Toggle to force re-render when selection changes
-        showBulkUpdateModal: false // Show bulk update options modal
+        showBulkUpdateModal: false, // Show bulk update options modal
+        gridSortState: null, // Store grid sort state
+        gridFilterState: null, // Store grid filter state
+        gridScrollState: null // Store grid scroll state
       };
       this.tableRef = React.createRef();
       this.gridRef = React.createRef();
@@ -318,9 +321,6 @@ class FundraisingOrders extends Component {
       if (this.props.closePopup1) {
         this.props.closePopup1();
       }
-      if (this.props.onDataLoaded) {
-        this.props.onDataLoaded();
-      }
       
       // --- Live update via Socket.IO ---
       this.socket = io(
@@ -346,15 +346,36 @@ class FundraisingOrders extends Component {
           paymentMethod: prevProps.paymentMethod,
           collectionLocation: prevProps.collectionLocation,
           status: prevProps.status,
-          searchQuery: prevProps.searchQuery
+          searchQuery: prevProps.searchQuery,
+          isVisible: prevProps.isVisible
         },
         current: {
           paymentMethod: this.props.paymentMethod,
           collectionLocation: this.props.collectionLocation,
           status: this.props.status,
-          searchQuery: this.props.searchQuery
+          searchQuery: this.props.searchQuery,
+          isVisible: this.props.isVisible
         }
       });
+
+      // Check if component visibility changed (page/tab toggle)
+      // When navigating TO this page, reapply filters with reset values
+      if (this.props.isVisible && !prevProps.isVisible) {
+        console.log("FundraisingTable - Component became visible, resetting filters");
+        
+        // Scroll to top after a small delay to ensure DOM is updated
+        setTimeout(() => {
+          const gridContainer = document.querySelector('.ag-body-viewport');
+          if (gridContainer) {
+            gridContainer.scrollTop = 0;
+            console.log("FundraisingTable - Scrolled to top");
+          }
+        }, 100);
+        
+        // Apply filters with the reset values to show all data
+        this.applyFilters();
+        return; // Don't process other filter changes on visibility toggle
+      }
       
       // Prevent applying filters if we're already in the process or if original data is not ready
       if (this.state.isApplyingFilters || !this.state.originalData || this.state.originalData.length === 0) {
@@ -550,11 +571,22 @@ class FundraisingOrders extends Component {
     };
 
     async fetchAndSetFundraisingData() {
+      // Save current grid state before refresh
+      this.saveGridState();
+
       // Save current scroll position and page
       const gridContainer = document.querySelector('.ag-body-viewport');
       const currentScrollTop = gridContainer ? gridContainer.scrollTop : 0;
       const currentPage = (this.gridApi && typeof this.gridApi.paginationGetCurrentPage === 'function') 
         ? this.gridApi.paginationGetCurrentPage() : 0;
+
+      // Save current filters from props
+      const currentFilters = {
+        paymentMethod: this.props.paymentMethod,
+        collectionLocation: this.props.collectionLocation,
+        status: this.props.status,
+        searchQuery: this.props.searchQuery
+      };
 
       const data = await this.fetchFundraisingData();
       
@@ -593,6 +625,12 @@ class FundraisingOrders extends Component {
           this.props.onFiltersLoaded(uniquePaymentMethods, uniqueCollectionLocations, uniqueStatuses);
         }
 
+        // Reapply filters if any filters are active
+        this.reapplyFiltersAfterDataRefresh(currentFilters);
+
+        // Restore grid state after filter reapplication
+        this.restoreGridState();
+
         // Restore scroll position and page after data is set
         if (gridContainer) {
           gridContainer.scrollTop = currentScrollTop;
@@ -609,6 +647,170 @@ class FundraisingOrders extends Component {
         if (this.props.onDataLoaded && typeof this.props.onDataLoaded === 'function') {
           this.props.onDataLoaded();
         }
+      });
+    }
+
+    // Save grid state (sorting, filtering, column state)
+    saveGridState = () => {
+      try {
+        if (this.gridApi) {
+          // Save sort state
+          const sortModel = this.gridApi.getState?.()?.sort || null;
+          
+          // Save filter state
+          const filterModel = this.gridApi.getState?.()?.filter || null;
+
+          // Save scroll position
+          const gridContainer = document.querySelector('.ag-body-viewport');
+          const scrollState = gridContainer ? gridContainer.scrollTop : 0;
+
+          this.setState({
+            gridSortState: sortModel,
+            gridFilterState: filterModel,
+            gridScrollState: scrollState
+          });
+
+          console.log("Grid state saved:", { sortModel, filterModel, scrollState });
+        }
+      } catch (error) {
+        console.warn("Error saving grid state:", error);
+      }
+    };
+
+    // Restore grid state (sorting, filtering, column state)
+    restoreGridState = () => {
+      try {
+        if (this.gridApi && (this.state.gridSortState || this.state.gridFilterState)) {
+          // Restore sort state if it exists
+          if (this.state.gridSortState) {
+            this.gridApi.applyState?.({ sort: this.state.gridSortState });
+            console.log("Grid sort state restored");
+          }
+
+          // Restore filter state if it exists
+          if (this.state.gridFilterState) {
+            this.gridApi.applyState?.({ filter: this.state.gridFilterState });
+            console.log("Grid filter state restored");
+          }
+        }
+      } catch (error) {
+        console.warn("Error restoring grid state:", error);
+      }
+    };
+
+    // Reapply filters after data refresh to maintain filter state
+    reapplyFiltersAfterDataRefresh = (filters) => {
+      const { paymentMethod, collectionLocation, status, searchQuery } = filters;
+      const { originalData } = this.state;
+
+      // Check if any active filters exist
+      const hasActiveFilters = 
+        (paymentMethod && paymentMethod !== 'All Payment Methods' && paymentMethod !== '') ||
+        (collectionLocation && collectionLocation !== 'All Collection Locations' && collectionLocation !== '') ||
+        (status && status !== 'All Statuses' && status !== '') ||
+        (searchQuery && searchQuery.trim() !== '');
+
+      if (!originalData || originalData.length === 0) {
+        console.log("No data available for filtering");
+        return;
+      }
+
+      if (!hasActiveFilters) {
+        console.log("No active filters to reapply, showing all data");
+        // Even without filters, we need to update rowData with the fresh data
+        const processedRowData = this.processRowData(originalData);
+        this.setState({
+          fundraisingData: originalData,
+          rowData: processedRowData.rowData,
+          columnDefs: processedRowData.columnDefs
+        });
+        return;
+      }
+
+      console.log("Reapplying filters after data refresh:", filters);
+
+      let filteredData = [...originalData];
+
+      // Apply payment method filter
+      if (paymentMethod && paymentMethod !== 'All Payment Methods' && paymentMethod !== '') {
+        filteredData = filteredData.filter(record => 
+          record.paymentDetails?.paymentMethod && record.paymentDetails.paymentMethod.toLowerCase().includes(paymentMethod.toLowerCase())
+        );
+      }
+
+      // Apply collection location filter
+      if (collectionLocation && collectionLocation !== 'All Collection Locations' && collectionLocation !== '') {
+        filteredData = filteredData.filter(record => {
+          const recordLocation = record.collectionDetails?.CollectionDeliveryLocation;
+          return recordLocation && recordLocation.toLowerCase().includes(collectionLocation.toLowerCase());
+        });
+      }
+
+      // Apply status filter
+      if (status && status !== 'All Statuses' && status !== '') {
+        filteredData = filteredData.filter(record => 
+          record.status && record.status.toLowerCase().includes(status.toLowerCase())
+        );
+      }
+
+      // Apply search query filter
+      if (searchQuery && searchQuery.trim() !== '') {
+        const query = searchQuery.toLowerCase();
+        
+        filteredData = filteredData.filter(record => {
+          // Helper function to recursively search through nested objects
+          const searchInObject = (obj) => {
+            if (obj === null || obj === undefined) return false;
+            
+            if (typeof obj === 'string' || typeof obj === 'number') {
+              return obj.toString().toLowerCase().includes(query);
+            }
+            
+            if (Array.isArray(obj)) {
+              return obj.some(item => searchInObject(item));
+            }
+            
+            if (typeof obj === 'object') {
+              return Object.values(obj).some(value => searchInObject(value));
+            }
+            
+            return false;
+          };
+
+          // Search in the main record fields
+          const mainFieldsMatch = [
+            record.firstName,
+            record.lastName, 
+            record.contactNumber,
+            record.email,
+            record.receiptNumber,
+            record.paymentMethod,
+            record.collectionMode,
+            record.status,
+            record.donationAmount,
+            record.totalPrice,
+            record.fundraisingKey
+          ].some(field => field && field.toString().toLowerCase().includes(query));
+
+          // Search in personalInfo if it exists
+          const personalInfoMatch = record.personalInfo ? searchInObject(record.personalInfo) : false;
+
+          // Search in items array if it exists
+          const itemsMatch = record.items ? searchInObject(record.items) : false;
+
+          return mainFieldsMatch || personalInfoMatch || itemsMatch;
+        });
+      }
+
+      console.log("Filters reapplied after data refresh. Filtered data length:", filteredData.length);
+
+      // Process filtered data and update state
+      const processedRowData = this.processRowData(filteredData);
+      
+      this.setState({
+        fundraisingData: filteredData,
+        rowData: processedRowData.rowData,
+        columnDefs: processedRowData.columnDefs
       });
     }
 
@@ -1834,12 +2036,6 @@ class FundraisingOrders extends Component {
           if (node) {
             this.gridApi.refreshCells({ rowNodes: [node], force: true });
             console.log('Grid cell refreshed for row:', updatedRowData.id);
-            
-            // Focus back on the updated row
-            setTimeout(() => {
-              this.gridApi.ensureIndexVisible(rowIndex, 'middle');
-              console.log('Row focused and visible at index:', rowIndex);
-            }, 100);
           }
         }
       });
@@ -1913,12 +2109,6 @@ class FundraisingOrders extends Component {
           if (node) {
             this.gridApi.refreshCells({ rowNodes: [node], force: true });
             console.log('Grid cell refreshed for row:', updatedRowData.id);
-            
-            // Focus back on the updated row
-            setTimeout(() => {
-              this.gridApi.ensureIndexVisible(rowIndex, 'middle');
-              console.log('Row focused and visible at index:', rowIndex);
-            }, 100);
           }
         }
       });
@@ -3724,7 +3914,7 @@ Sila buat pembayaran anda di lokasi tersebut untuk mengesahkan pesanan anda.
               onCellClicked={this.handleValueClick}
               suppressRowClickSelection={true}
               pagination={true}
-              paginationPageSize={this.state.rowData.length}
+              paginationPageSize={Math.max(this.state.rowData.length || 10, 10)}
               domLayout="normal"
               getRowStyle={this.getRowStyle}
               defaultColDef={{
