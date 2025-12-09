@@ -3269,7 +3269,25 @@ debugMarriagePrepData = () => {
             </div>
 
             <div style={{marginBottom: '16px'}}>
-              <h4 className="registration-payment-details-section-title">Other Information</h4>
+              <h4 className="registration-payment-details-section-title">Official Use</h4>
+              <div className="registration-payment-details-grid">
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Staff Name:</span>
+                  <span className="registration-payment-details-field-value">{officialInfo.name || 'N/A'}</span>
+                </div>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Processed Date:</span>
+                  <span className="registration-payment-details-field-value">{officialInfo.date || 'N/A'}</span>
+                </div>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Processed Time:</span>
+                  <span className="registration-payment-details-field-value">{officialInfo.time || 'N/A'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{marginBottom: '16px'}}>
+              <h4 className="registration-payment-details-section-title">Other</h4>
               <div className="registration-payment-details-grid">
                 <div className="registration-payment-details-field">
                   <span className="registration-payment-details-field-label">Agreement Status:</span>
@@ -3284,24 +3302,6 @@ debugMarriagePrepData = () => {
                   <span className="registration-payment-details-field-value" style={{color: sendDetails ? '#4CAF50' : '#f44336', fontWeight: 'bold'}}>
                     {sendDetails ? 'Sent' : 'Not Sent'}
                   </span>
-                </div>
-              </div>
-            </div>
-
-            <div style={{marginBottom: '16px'}}>
-              <h4 className="registration-payment-details-section-title">Official Use</h4>
-              <div className="registration-payment-details-grid">
-                <div className="registration-payment-details-field">
-                  <span className="registration-payment-details-field-label">Staff Name:</span>
-                  <span className="registration-payment-details-field-value">{officialInfo.name || 'N/A'}</span>
-                </div>
-                <div className="registration-payment-details-field">
-                  <span className="registration-payment-details-field-label">Processed Date:</span>
-                  <span className="registration-payment-details-field-value">{officialInfo.date || 'N/A'}</span>
-                </div>
-                <div className="registration-payment-details-field">
-                  <span className="registration-payment-details-field-label">Processed Time:</span>
-                  <span className="registration-payment-details-field-value">{officialInfo.time || 'N/A'}</span>
                 </div>
               </div>
             </div>
