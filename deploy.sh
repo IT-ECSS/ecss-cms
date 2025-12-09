@@ -27,7 +27,7 @@ echo -e "${GREEN}✓ Logged in as: $CURRENT_ACCOUNT${NC}"
 # Configuration
 RESOURCE_GROUP="ecss-rg"
 APP_SERVICE_NAME="ecss-backend-node"
-BACKEND_DIR="backend2"
+BACKEND_DIR="backend"
 
 # Verify environment variables
 echo ""

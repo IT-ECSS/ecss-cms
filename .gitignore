@@ -4,7 +4,7 @@ node_modules 2/
 
 # Build outputs
 frontend/dist/
-backend2/build/
+backend/build/
 */build/
 
 # Environment variables - NEVER commit these
@@ -13,7 +13,7 @@ backend2/build/
 .env.development.local
 .env.test.local
 .env.production.local
-backend2/.env
+backend/.env
 
 # Sensitive credentials and API keys
 *.key
@@ -29,8 +29,8 @@ backend2/.env
 *.pfx
 
 # Keep config folder but ignore credentials files
-backend2/config/*.json
-!backend2/config/.gitkeep
+backend/config/*.json
+!backend/config/.gitkeep
 
 # Logs
 npm-debug.log*

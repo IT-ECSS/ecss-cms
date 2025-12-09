@@ -13,8 +13,8 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-# Navigate to backend2
-cd backend2 || exit
+# Navigate to backend
+cd backend || exit
 
 # Check if .env file exists
 if [ ! -f .env ]; then
