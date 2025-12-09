@@ -2937,7 +2937,7 @@ debugMarriagePrepData = () => {
       console.log('Rendering detail view for row data:', rowData);
       if (!rowData) return null;
       
-      const { participantInfo, courseInfo, officialInfo, status, id, marriageDetails, spouse, consent } = rowData;
+      const { participantInfo, courseInfo, officialInfo, status, id, marriageDetails, spouse, consent, agreement, registrationDate, sendDetails } = rowData;
       const isMarriagePrep = courseInfo.courseType === 'Marriage Preparation Programme';
       
       return (
@@ -3246,6 +3246,62 @@ debugMarriagePrepData = () => {
                 <div className="registration-payment-details-field">
                   <span className="registration-payment-details-field-label">Remarks:</span>
                   <span className="registration-payment-details-field-value">{officialInfo.remarks || 'N/A'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{marginBottom: '16px'}}>
+              <h4 className="registration-payment-details-section-title">Official Use</h4>
+              <div className="registration-payment-details-grid">
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Staff Name:</span>
+                  <span className="registration-payment-details-field-value">{officialInfo.name || 'N/A'}</span>
+                </div>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Processed Date:</span>
+                  <span className="registration-payment-details-field-value">{officialInfo.date || 'N/A'}</span>
+                </div>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Processed Time:</span>
+                  <span className="registration-payment-details-field-value">{officialInfo.time || 'N/A'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{marginBottom: '16px'}}>
+              <h4 className="registration-payment-details-section-title">Other Information</h4>
+              <div className="registration-payment-details-grid">
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Agreement Status:</span>
+                  <span className="registration-payment-details-field-value">{typeof agreement === 'boolean' ? (agreement ? 'Agreed' : 'Not Agreed') : agreement || 'N/A'}</span>
+                </div>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Registration Date:</span>
+                  <span className="registration-payment-details-field-value">{registrationDate || 'N/A'}</span>
+                </div>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Whatsapp Message:</span>
+                  <span className="registration-payment-details-field-value" style={{color: sendDetails ? '#4CAF50' : '#f44336', fontWeight: 'bold'}}>
+                    {sendDetails ? 'Sent' : 'Not Sent'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{marginBottom: '16px'}}>
+              <h4 className="registration-payment-details-section-title">Official Use</h4>
+              <div className="registration-payment-details-grid">
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Staff Name:</span>
+                  <span className="registration-payment-details-field-value">{officialInfo.name || 'N/A'}</span>
+                </div>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Processed Date:</span>
+                  <span className="registration-payment-details-field-value">{officialInfo.date || 'N/A'}</span>
+                </div>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Processed Time:</span>
+                  <span className="registration-payment-details-field-value">{officialInfo.time || 'N/A'}</span>
                 </div>
               </div>
             </div>
