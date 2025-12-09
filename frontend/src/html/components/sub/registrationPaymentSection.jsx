@@ -2947,6 +2947,56 @@ debugMarriagePrepData = () => {
           </div>
           
           <div className="registration-payment-details-content-section">
+            <div style={{marginBottom: '16px'}}>
+              <h4 className="registration-payment-details-section-title">Participant Information</h4>
+              <div className="registration-payment-details-grid">
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Name:</span>
+                  <span className="registration-payment-details-field-value">{participantInfo.name}</span>
+                </div>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">NRIC:</span>
+                  <span className="registration-payment-details-field-value">{participantInfo.nric}</span>
+                </div>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Contact:</span>
+                  <span className="registration-payment-details-field-value">{participantInfo.contactNumber}</span>
+                </div>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Email:</span>
+                  <span className="registration-payment-details-field-value">{participantInfo.email}</span>
+                </div>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Gender:</span>
+                  <span className="registration-payment-details-field-value">{participantInfo.gender}</span>
+                </div>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">DOB:</span>
+                  <span className="registration-payment-details-field-value">{participantInfo.dateOfBirth}</span>
+                </div>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Residential Status:</span>
+                  <span className="registration-payment-details-field-value">{participantInfo.residentialStatus}</span>
+                </div>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Race:</span>
+                  <span className="registration-payment-details-field-value">{participantInfo.race}</span>
+                </div>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Postal Code:</span>
+                  <span className="registration-payment-details-field-value">{participantInfo.postalCode}</span>
+                </div>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Education Level:</span>
+                  <span className="registration-payment-details-field-value">{participantInfo.educationLevel}</span>
+                </div>
+                <div className="registration-payment-details-field">
+                  <span className="registration-payment-details-field-label">Work Status:</span>
+                  <span className="registration-payment-details-field-value">{participantInfo.workStatus}</span>
+                </div>
+              </div>
+            </div>
+
             <div className="registration-payment-details-section-title" style={{display: 'none'}}>
               <h4 className="registration-payment-details-section-title">Participant Information</h4>
               <div className="registration-payment-details-grid">
