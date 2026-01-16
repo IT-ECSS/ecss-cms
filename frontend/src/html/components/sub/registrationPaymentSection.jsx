@@ -1076,13 +1076,23 @@ class RegistrationPaymentSection extends Component {
             let courseChiName = detail.courseInfo.courseChiName;
             let courseCode = this.ecssChineseCourseCode(courseChiName) || this.ecssEnglishCourseCode(courseEngName);
             sourceSheet.getCell(`O${rowIndex}`).value = courseCode.trim();
-            let courseName = courseChiName || courseEngName;
-            let languages = courseName.split("–").pop().trim();
-            if (!((languages === "English") || (languages === "Mandarin"))) {
-              sourceSheet.getCell(`P${rowIndex}`).value = courseName.trim();
-            } else {
-              sourceSheet.getCell(`P${rowIndex}`).value = courseName.split("–")[0].trim();
+            // Only remove language suffixes like Mandarin, English, Malay - keep full name for other cases
+            const languageSuffixes = ['Mandarin', 'English', 'Malay'];
+            let courseNameForP = courseEngName;
+            if (courseEngName.includes(" – ")) {
+              const parts = courseEngName.split(" – ");
+              const lastPart = parts[parts.length - 1].trim();
+              if (languageSuffixes.includes(lastPart)) {
+                courseNameForP = parts.slice(0, -1).join(" – ");
+              }
+            } else if (courseEngName.includes(" - ")) {
+              const parts = courseEngName.split(" - ");
+              const lastPart = parts[parts.length - 1].trim();
+              if (languageSuffixes.includes(lastPart)) {
+                courseNameForP = parts.slice(0, -1).join(" - ");
+              }
             }
+            sourceSheet.getCell(`P${rowIndex}`).value = courseNameForP;
             sourceSheet.getCell(`Q${rowIndex}`).value = `$${(parseFloat(detail.courseInfo.coursePrice.replace('$', ''))*5).toFixed(2)}`;
             sourceSheet.getCell(`R${rowIndex}`).value = `$${(parseFloat(detail.courseInfo.coursePrice.replace('$', ''))*4).toFixed(2)}`;
             const [startDate, endDate] = detail.courseInfo.courseDuration.split(" - ");
@@ -1410,23 +1420,19 @@ class RegistrationPaymentSection extends Component {
         course = course.trim();
     
         switch (course) {
-            case "Community Ukulele – Mandarin L2":
-              return "ECSS-CBO-M-037C";
-            case "Community Ukulele – Mandarin L2A":
-              return "ECSS-CBO-M-037C";
-            case "Community Ukulele – Mandarin L2B":
-              return "ECSS-CBO-M-037C";
+            case "Fall Prevention & Functional Improvement Training":
+              return "ECSS-CBO-M-002C";
             case "TCM – Don’t be a friend of Chronic Diseases":
                 return "ECSS-CBO-M-016C";
-            case "Nagomi Pastel Art Basic":
+            case "Nagomi Pastel Art Basic Course":
                 return "ECSS-CBO-M-019C";
-            case "Nagomi Pastel Art Appreciation":
+            case "Nagomi Pastel Art Appreciation Course":
                 return "ECSS-CBO-M-018C";
             case "Therapeutic Watercolour Painting for Beginners":
                 return "ECSS-CBO-M-024E";
-            case "Chinese Calligraphy Intermediate":
+            case "Chinese Calligraphy Intermediate Course":
                 return "ECSS-CBO-M-021C";
-            case "Chinese Calligraphy Basic":
+            case "Chinese Calligraphy Basic Course":
                 return "ECSS-CBO-M-020C";
             case "Community Ukulele – Mandarin":
                 return "ECSS-CBO-M-004C";
@@ -1438,16 +1444,16 @@ class RegistrationPaymentSection extends Component {
                 return "ECSS-CBO-M-001C";
             case "Hanyu Pinyin for Beginners":
                 return "ECSS-CBO-M-011C";
-            case "Hanyu Pinyin For Intermediate – Mandarin":
+            case "Hanyu Pinyin - Intermediate":
                 return "ECSS-CBO-M-025C";
-            case "Hanyu Pinyin – 300 Tang Poems":
+            case "Hanyu Pinyin & The Three Hundred Tang Poems":
                 return "ECSS-CBO-M-036C";
             case "The Rest Note of Life – Mandarin":
                 return "ECSS-CBO-M-023C";
             case "TCM Diet & Therapy":
                 return "ECSS-CBO-M-010C";
-            case "Therapeutic Basic Line Work":
-                return "ECSS-CBO-M-030E";
+            case "Therapeutic Basic Line Work Course":
+                return "ECSS-CBO-M-030C";
             case "Healthy Minds, Healthy Lives – Mandarin":
                 return "ECSS-CBO-M-028C";
             case "C3A AgeMAP – Healthy Minds for Healthy Lives":
@@ -1456,9 +1462,9 @@ class RegistrationPaymentSection extends Component {
                 return "ECSS-CBO-M-038C";
             case "Art of Positive Communication builds happy homes":
                 return "ECSS-CBO-M-031C";
-            case "Nagomi Pastel Art Basic – Level 2":
+            case "Nagomi Basic Level 2":
                 return "ECSS-CBO-M-039C";
-            case "Intermediate Therapeutic Watercolour":
+            case "Enhanced Therapeutic Intermediate Watercolour":
                 return "ECSS-CBO-M-040C";
             case "My Growth":
                 return "ECSS-CBO-M-013C";
@@ -1480,10 +1486,12 @@ class RegistrationPaymentSection extends Component {
                 return "ECSS-CBO-M-032E";
             case "Community Cajon Foundation 1":
                 return "ECSS-CBO-M-033E";
-            case "Bonsai Course":
+            case "Bonsai Learning (Elementary)":
                 return "ECSS-CBO-M-034C";
             case "Happy Grandparenting":
                 return "ECSS-CBO-M-035C";
+            case "TCM – Don't be a Friend of Chronic Diseases":
+              return "ECSS-CBO-M-016C";
             default:
                 return "";
         }

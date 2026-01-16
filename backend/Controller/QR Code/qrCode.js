@@ -18,7 +18,7 @@ class QRCodeGenerator {
             const buffer = await QRCode.toBuffer(this.text, this.options);
 
             // Save the buffer to a JPG file
-            const filename = `Crafting Connections (CT Hub).jpg`;
+            const filename = `Digital Literacy For Seniors 数字素养 (Tampines North Community Centre).jpg`;
             fs.writeFileSync(filename, buffer);
             console.log(`QR code generated and saved as ${filename}`);
         } catch (error) {
@@ -28,5 +28,5 @@ class QRCodeGenerator {
 }
 
 // Usage
-const qrCodeGenerator = new QRCodeGenerator(`http://ecss.org.sg/product/crafting-connectionsct-hub-2/`);
+const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/digital-literacy-for-seniors%e6%95%b0%e5%ad%97%e7%b4%a0%e5%85%bbtampines-north-community-centre/`);
 qrCodeGenerator.generate();
