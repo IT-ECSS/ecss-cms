@@ -1382,7 +1382,7 @@ class RegistrationPaymentSection extends Component {
         case "食疗与健康":
             return "ECSS-CBO-M-010C";
         case "疗愈基础素描":
-            return "ECSS-CBO-M-030E";
+            return "ECSS-CBO-M-030C";
         case "健康心灵，健康生活":
             return "ECSS-CBO-M-028C";
         case "智能手机摄影":
