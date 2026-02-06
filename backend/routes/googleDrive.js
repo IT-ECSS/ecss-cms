@@ -43,4 +43,29 @@ router.post('/', async (req, res) => {
     }
 });
 
+// POST endpoint to read spreadsheet data
+router.post('/readSpreadsheet', async (req, res) => {
+    try {
+        const { fileId, sheetName } = req.body;
+        
+        if (!fileId) {
+            return res.status(400).json({
+                success: false,
+                error: 'fileId is required'
+            });
+        }
+
+        console.log(`Reading spreadsheet: ${fileId}, sheet: ${sheetName || 'default'}`);
+        const result = await googleDriveController.readSpreadsheet(fileId, sheetName);
+        
+        res.json(result);
+    } catch (error) {
+        console.error('Error in POST /readSpreadsheet:', error.message);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
 module.exports = router;

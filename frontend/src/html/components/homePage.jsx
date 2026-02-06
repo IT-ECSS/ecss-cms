@@ -512,7 +512,7 @@ import React, { Component } from 'react';
         // First show loading popup
         this.setState({
           isPopupOpen: true,
-          popupMessage: "Loading Fitness Module",
+          popupMessage: "Loading FFT Fitness Results",
           popupType: "loading",
         }, () => {
           console.log("Setting fitness visibility states");
@@ -562,7 +562,7 @@ import React, { Component } from 'react';
         // Show error message
         this.setState({
           isPopupOpen: true,
-          popupMessage: "Error loading fitness module",
+          popupMessage: "Error loading FFT Fitness Results",
           popupType: "error-message"
         });
       }
@@ -2097,14 +2097,14 @@ import React, { Component } from 'react';
                 }
                 {isFitnessVisible && 
                     <>
-                        <div className="search-section">
+                       {/* <div className="search-section">
                             <Search
                               section={section}
                               language={language}
                               resetSearch={resetSearch}
                               passSearchedValueToParent={this.handleFitnessSearchFromChild}
                             />
-                        </div>
+                        </div>*/}
                           <FitnessSection 
                             section={section}
                             userName={userName}

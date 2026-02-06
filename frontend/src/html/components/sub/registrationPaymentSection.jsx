@@ -2078,7 +2078,7 @@ class RegistrationPaymentSection extends Component {
     {
       headerName: "Course Name",
       field: "course",
-      width: 750,
+      width: 400,
     },
     {
       headerName: "Course Mode",
@@ -2088,7 +2088,7 @@ class RegistrationPaymentSection extends Component {
     {
       headerName: "Course Time",
       field: "courseTime",
-      width: 300,
+      width: 200,
       hide: shouldHideCourseTimeColumn, // Always visible now
     },
     {
@@ -2121,7 +2121,7 @@ class RegistrationPaymentSection extends Component {
     {
       headerName: "Receipt/Invoice Number",
       field: "recinvNo",
-      width: 500,
+      width: 300,
       hide: shouldHidePaymentColumns // Hide Receipt/Invoice Number column when filtering by ILP or Talks And Seminar
     },
     {

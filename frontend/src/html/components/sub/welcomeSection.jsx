@@ -581,6 +581,9 @@ class WelcomeSection extends Component {
             case "Fundraising Inventory":
                 navigationKey = "fundraising-inventory";
                 break;
+            case "FFT Results":
+                navigationKey = "fitness";
+                break;
             default:
                 navigationKey = subKey;
         }

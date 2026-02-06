@@ -1,0 +1,196 @@
+/* FFT Filter Section Styles */
+/* Brand new unique class names for FitnessFilterSection component */
+
+.fft-filter-section-wrapper {
+  width: 100%;
+  background: linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%);
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.fft-filter-section-container {
+  padding: 20px 24px;
+  max-width: 100%;
+}
+
+.fft-filter-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.fft-filter-section-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fft-filter-section-title::before {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 20px;
+  background: #4CAF50;
+  border-radius: 2px;
+}
+
+.fft-filter-section-clear-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 17px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fft-filter-section-clear-btn:hover {
+  background: #fff;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+.fft-filter-section-clear-btn i {
+  font-size: 14px;
+}
+
+.fft-filter-section-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.fft-filter-section-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fft-filter-section-label {
+  font-size: 17px;
+  font-weight: 500;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fft-filter-section-label i {
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+.fft-filter-section-select {
+  width: 100%;
+  padding: 10px 14px;
+  padding-right: 36px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 18px;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+}
+
+.fft-filter-section-select:hover {
+  border-color: #cbd5e1;
+}
+
+.fft-filter-section-select:focus {
+  outline: none;
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+}
+
+.fft-filter-section-select option {
+  padding: 10px;
+}
+
+.fft-filter-section-active {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 32px;
+  align-items: center;
+}
+
+.fft-filter-section-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #e8f5e9;
+  border: 1px solid #c8e6c9;
+  border-radius: 20px;
+  font-size: 17px;
+  color: #2e7d32;
+  height: 32px;
+  box-sizing: border-box;
+}
+
+.fft-filter-section-tag i {
+  font-size: 13px;
+}
+
+.fft-filter-section-tag-year {
+  background: #e3f2fd;
+  border-color: #bbdefb;
+  color: #1565c0;
+}
+
+.fft-filter-section-tag-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  font-size: 18px;
+  color: inherit;
+  cursor: pointer;
+  margin-left: 2px;
+  transition: all 0.2s ease;
+}
+
+.fft-filter-section-tag-remove:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .fft-filter-section-container {
+    padding: 16px;
+  }
+
+  .fft-filter-section-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fft-filter-section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .fft-filter-section-clear-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

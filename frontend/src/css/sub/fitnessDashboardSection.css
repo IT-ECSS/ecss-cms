@@ -1,0 +1,904 @@
+.fft-dash-container {
+  padding: 24px;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Tabs */
+.fft-dash-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 0;
+}
+
+.fft-dash-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 24px;
+  font-size: 22px;
+  font-weight: 600;
+  color: #64748b;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: -2px;
+}
+
+.fft-dash-tab:hover {
+  color: #3b82f6;
+  background: #f1f5f9;
+}
+
+.fft-dash-tab.active {
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
+  background: transparent;
+}
+
+.fft-dash-tab i {
+  font-size: 24px;
+}
+
+/* Quick Stats */
+.fft-dash-quick-stats {
+  margin-top: 32px;
+}
+
+.fft-dash-quick-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.fft-dash-quick-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  border-left: 4px solid #3b82f6;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.fft-dash-quick-label {
+  font-size: 18px;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.fft-dash-quick-value {
+  font-size: 36px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.fft-dash-quick-value small {
+  font-size: 20px;
+  font-weight: 400;
+  color: #94a3b8;
+}
+
+.fft-dash-quick-year {
+  font-size: 17px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+/* Progress Detail Section */
+.fft-dash-progress-detail {
+  margin-top: 32px;
+}
+
+.fft-dash-subsection-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 20px 0;
+}
+
+.fft-dash-progress-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fft-dash-progress-item {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.fft-dash-progress-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-left: 12px;
+  border-left: 4px solid #3b82f6;
+}
+
+.fft-dash-progress-item-name {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.fft-dash-progress-item-count {
+  font-size: 18px;
+  color: #94a3b8;
+}
+
+.fft-dash-progress-item-bars {
+  display: flex;
+  gap: 24px;
+}
+
+.fft-dash-progress-item-bar {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.fft-dash-progress-item-bar span {
+  min-width: 60px;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.fft-dash-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  color: #64748b;
+}
+
+.fft-dash-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #e2e8f0;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: fft-spin 1s linear infinite;
+}
+
+@keyframes fft-spin {
+  to { transform: rotate(360deg); }
+}
+
+.fft-dash-loading p {
+  margin-top: 16px;
+  font-size: 22px;
+}
+
+.fft-dash-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.fft-dash-empty i {
+  font-size: 68px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.fft-dash-empty p {
+  font-size: 28px;
+  font-weight: 600;
+  margin: 0;
+  color: #64748b;
+}
+
+.fft-dash-empty span {
+  font-size: 20px;
+  margin-top: 8px;
+}
+
+.fft-dash-header {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.fft-dash-header-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e2e8f0;
+}
+
+.fft-dash-header-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: white;
+}
+
+.fft-dash-header-total .fft-dash-header-icon { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+.fft-dash-header-male .fft-dash-header-icon { background: linear-gradient(135deg, #3b82f6, #06b6d4); }
+.fft-dash-header-female .fft-dash-header-icon { background: linear-gradient(135deg, #ec4899, #f472b6); }
+.fft-dash-header-years .fft-dash-header-icon { background: linear-gradient(135deg, #10b981, #34d399); }
+
+.fft-dash-header-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.fft-dash-header-value {
+  font-size: 40px;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1;
+}
+
+.fft-dash-header-label {
+  font-size: 20px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.fft-dash-section-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 28px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 24px 0;
+}
+
+.fft-dash-section-title i {
+  color: #6366f1;
+}
+
+.fft-dash-metrics-section {
+  margin-bottom: 32px;
+}
+
+.fft-dash-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.fft-dash-metric-card {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e2e8f0;
+}
+
+.fft-dash-metric-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  color: white;
+}
+
+.fft-dash-metric-name {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.fft-dash-metric-unit {
+  font-size: 20px;
+  opacity: 0.9;
+}
+
+.fft-dash-metric-body {
+  padding: 20px;
+}
+
+.fft-dash-metric-years {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.fft-dash-metric-year {
+  flex: 1;
+  min-width: 100px;
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+}
+
+.fft-dash-metric-year-label {
+  font-size: 22px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.fft-dash-metric-year-value {
+  font-size: 38px;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1.2;
+}
+
+.fft-dash-metric-year-count {
+  font-size: 20px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+.fft-dash-metric-progress {
+  padding-top: 8px;
+}
+
+.fft-dash-metric-progress-title {
+  font-size: 21px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 14px;
+}
+
+/* Year Pair Progress */
+.fft-dash-year-pair {
+  margin-bottom: 16px;
+}
+
+.fft-dash-year-pair:last-child {
+  margin-bottom: 0;
+}
+
+.fft-dash-year-pair-label {
+  font-size: 20px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 8px;
+}
+
+/* Stacked Bar */
+.fft-dash-stacked-bar {
+  display: flex;
+  height: 24px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f1f5f9;
+}
+
+.fft-dash-stacked-segment {
+  height: 100%;
+  transition: width 0.5s ease;
+}
+
+.fft-dash-stacked-legend {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.fft-dash-stacked-legend span {
+  font-size: 20px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fft-dash-metric-progress-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fft-dash-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.fft-dash-progress-label {
+  width: 110px;
+  font-size: 20px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fft-dash-progress-label i {
+  font-size: 12px;
+}
+
+.fft-dash-improved { color: #10b981; }
+.fft-dash-declined { color: #ef4444; }
+.fft-dash-nochange { color: #94a3b8; }
+
+.fft-dash-progress-bar-wrap {
+  flex: 1;
+  height: 10px;
+  background: #f1f5f9;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.fft-dash-progress-bar {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.5s ease;
+}
+
+.fft-dash-bar-improved { background: linear-gradient(90deg, #10b981, #34d399); }
+.fft-dash-bar-declined { background: linear-gradient(90deg, #ef4444, #f87171); }
+.fft-dash-bar-nochange { background: linear-gradient(90deg, #94a3b8, #cbd5e1); }
+
+.fft-dash-progress-value {
+  width: 36px;
+  text-align: right;
+  font-size: 19px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.fft-dash-summary {
+  margin-top: 32px;
+}
+
+.fft-dash-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.fft-dash-summary-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px;
+  border-radius: 16px;
+  text-align: center;
+}
+
+.fft-dash-summary-card i {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+
+.fft-dash-summary-num {
+  font-size: 52px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.fft-dash-summary-text {
+  font-size: 20px;
+  margin-top: 8px;
+  opacity: 0.8;
+}
+
+.fft-dash-summary-improved {
+  background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+  color: #047857;
+}
+
+.fft-dash-summary-declined {
+  background: linear-gradient(135deg, #fef2f2, #fee2e2);
+  color: #b91c1c;
+}
+
+.fft-dash-summary-balanced {
+  background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+  color: #475569;
+}
+
+@media (max-width: 1200px) {
+  .fft-dash-header {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .fft-dash-summary-cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .fft-dash-container {
+    padding: 16px;
+  }
+  
+  .fft-dash-header {
+    grid-template-columns: 1fr;
+  }
+  
+  .fft-dash-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .fft-dash-summary-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  .fft-dash-header-value {
+    font-size: 28px;
+  }
+  
+  .fft-dash-metric-year-value {
+    font-size: 26px;
+  }
+  
+  .fft-dash-quick-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .fft-dash-tabs {
+    flex-wrap: wrap;
+  }
+  
+  .fft-dash-tab {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+  
+  .fft-dash-progress-item-bars {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+/* Year Comparison in Metric Cards */
+.fft-dash-year-comparison {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.fft-dash-year-col {
+  flex: 1;
+  text-align: center;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 10px;
+}
+
+.fft-dash-year-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.fft-dash-year-avg {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.fft-dash-year-count {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+.fft-dash-year-change {
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+/* Comparison Table */
+.fft-dash-comparison-table {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  margin-bottom: 32px;
+}
+
+.fft-dash-comparison-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.fft-dash-comparison-table th,
+.fft-dash-comparison-table td {
+  padding: 16px 20px;
+  text-align: center;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.fft-dash-comparison-table th {
+  background: #f8fafc;
+  font-weight: 600;
+  color: #475569;
+  font-size: 15px;
+}
+
+.fft-dash-comparison-table td {
+  font-size: 16px;
+  color: #1e293b;
+}
+
+.fft-dash-table-metric {
+  text-align: left !important;
+  font-weight: 600;
+}
+
+.fft-dash-table-value {
+  font-weight: 500;
+}
+
+.fft-dash-table-change {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* Participant Trend */
+.fft-dash-participant-trend {
+  margin-top: 24px;
+}
+
+.fft-dash-trend-cards {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.fft-dash-trend-card {
+  flex: 1;
+  min-width: 120px;
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.fft-dash-trend-year {
+  font-size: 16px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.fft-dash-trend-count {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.fft-dash-trend-diff {
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+/* Line Chart / Bar Chart */
+.fft-dash-chart-section {
+  margin-top: 32px;
+}
+
+.fft-dash-line-chart {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  overflow: visible;
+}
+
+.fft-dash-chart-container {
+  display: flex;
+  height: 280px;
+  gap: 12px;
+}
+
+.fft-dash-chart-yaxis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 0 8px;
+  font-size: 13px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.fft-dash-chart-area {
+  flex: 1;
+  position: relative;
+  border-left: 2px solid #e2e8f0;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.fft-dash-chart-grid {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.fft-dash-chart-grid-line {
+  border-top: 1px dashed #e2e8f0;
+}
+
+.fft-dash-chart-bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  height: 100%;
+  padding: 0 20px;
+}
+
+.fft-dash-chart-bar-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  max-width: 120px;
+}
+
+.fft-dash-chart-bars-wrapper {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  height: 100%;
+  padding-bottom: 8px;
+}
+
+.fft-dash-chart-bar {
+  width: 36px;
+  border-radius: 6px 6px 0 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 8px;
+  min-height: 30px;
+  transition: height 0.5s ease;
+}
+
+.fft-dash-bar-unique {
+  background: linear-gradient(180deg, #6366f1, #8b5cf6);
+}
+
+.fft-dash-bar-total {
+  background: linear-gradient(180deg, #10b981, #34d399);
+}
+
+.fft-dash-bar-male {
+  background: linear-gradient(180deg, #3b82f6, #60a5fa);
+}
+
+.fft-dash-bar-female {
+  background: linear-gradient(180deg, #ec4899, #f472b6);
+}
+
+.fft-dash-bar-value {
+  font-size: 12px;
+  font-weight: 700;
+  color: white;
+}
+
+.fft-dash-chart-bar-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #475569;
+  margin-top: 8px;
+}
+
+.fft-dash-chart-legend {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.fft-dash-chart-legend span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.fft-dash-legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.fft-dash-legend-unique .fft-dash-legend-dot {
+  background: linear-gradient(180deg, #6366f1, #8b5cf6);
+}
+
+.fft-dash-legend-total .fft-dash-legend-dot {
+  background: linear-gradient(180deg, #10b981, #34d399);
+}
+
+.fft-dash-legend-male .fft-dash-legend-dot {
+  background: linear-gradient(180deg, #3b82f6, #60a5fa);
+}
+
+.fft-dash-legend-female .fft-dash-legend-dot {
+  background: linear-gradient(180deg, #ec4899, #f472b6);
+}
+
+/* SVG Line Chart */
+.fft-dash-svg-container {
+  width: 100%;
+  padding: 16px 0;
+  overflow: visible;
+  min-height: 320px;
+}
+
+.fft-dash-svg-chart {
+  width: 100%;
+  height: 300px;
+  display: block;
+  overflow: visible;
+  background: #fafafa;
+  border-radius: 8px;
+}
+
+.fft-dash-svg-label {
+  font-size: 12px;
+  fill: #94a3b8;
+  font-weight: 500;
+  font-family: inherit;
+}
+
+.fft-dash-svg-value {
+  font-size: 13px;
+  fill: #1e293b;
+  font-weight: 700;
+  font-family: inherit;
+}
+
+.fft-dash-svg-xlabel {
+  font-size: 14px;
+  fill: #475569;
+  font-weight: 600;
+  font-family: inherit;
+}
+
+/* Ensure SVG elements are visible */
+.fft-dash-svg-chart line,
+.fft-dash-svg-chart polyline,
+.fft-dash-svg-chart circle {
+  vector-effect: non-scaling-stroke;
+}
+
+.fft-dash-svg-chart text {
+  pointer-events: none;
+}

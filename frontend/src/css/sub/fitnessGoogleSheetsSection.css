@@ -1,0 +1,704 @@
+/* FFT Google Sheets Section Styles */
+/* Brand new unique class names for FitnessGoogleSheetsSection component */
+
+.fft-gsheets-section-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #f5f7fa;
+}
+
+/* Main Content Layout */
+.fft-gsheets-main-content {
+  display: flex;
+  flex: 1;
+  min-height: 500px;
+}
+
+/* Sidebar */
+.fft-gsheets-sidebar {
+  width: 280px;
+  min-width: 280px;
+  background: #ffffff;
+  border-right: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+}
+
+.fft-gsheets-sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.fft-gsheets-sidebar-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fft-gsheets-sidebar-title i {
+  color: #16a34a;
+}
+
+.fft-gsheets-refresh-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.fft-gsheets-refresh-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.fft-gsheets-refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Files List */
+.fft-gsheets-files-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.fft-gsheets-files-loading,
+.fft-gsheets-files-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.fft-gsheets-files-loading i,
+.fft-gsheets-files-empty i {
+  font-size: 32px;
+  margin-bottom: 12px;
+}
+
+.fft-gsheets-files-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #16a34a;
+  border-radius: 50%;
+  animation: fft-gsheets-spin 0.8s linear infinite;
+  margin-bottom: 12px;
+}
+
+@keyframes fft-gsheets-spin {
+  to { transform: rotate(360deg); }
+}
+
+.fft-gsheets-file-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-bottom: 4px;
+}
+
+.fft-gsheets-file-item:hover {
+  background: #f1f5f9;
+}
+
+.fft-gsheets-file-selected {
+  background: #dcfce7;
+  border: 1px solid #86efac;
+}
+
+.fft-gsheets-file-selected:hover {
+  background: #bbf7d0;
+}
+
+.fft-gsheets-file-icon {
+  font-size: 18px;
+  color: #16a34a;
+}
+
+.fft-gsheets-file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.fft-gsheets-file-name {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #334155;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fft-gsheets-file-date {
+  display: block;
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+/* Content Area */
+.fft-gsheets-content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  overflow: hidden;
+}
+
+.fft-gsheets-content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.fft-gsheets-file-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fft-gsheets-file-title i {
+  color: #16a34a;
+}
+
+.fft-gsheets-open-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #475569;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.fft-gsheets-open-link:hover {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+/* Sheet Tabs */
+.fft-gsheets-sheet-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 0 16px 0;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 16px;
+  overflow-x: auto;
+}
+
+.fft-gsheets-sheet-tab {
+  padding: 10px 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px 6px 0 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.fft-gsheets-sheet-tab:hover {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.fft-gsheets-sheet-tab-active {
+  background: #ffffff;
+  color: #16a34a;
+  border-color: #16a34a;
+  border-bottom-color: #ffffff;
+  position: relative;
+  top: 1px;
+}
+
+/* Error Banner */
+.fft-gsheets-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  color: #dc2626;
+  font-size: 13px;
+}
+
+.fft-gsheets-error-banner button {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #dc2626;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+/* Select File Prompt */
+.fft-gsheets-select-file {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.fft-gsheets-select-file i {
+  font-size: 48px;
+  margin-bottom: 16px;
+  color: #cbd5e1;
+}
+
+.fft-gsheets-select-file h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  color: #64748b;
+}
+
+.fft-gsheets-select-file p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* Data Loading */
+.fft-gsheets-data-loading,
+.fft-gsheets-no-data {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.fft-gsheets-data-loading i,
+.fft-gsheets-no-data i {
+  font-size: 40px;
+  margin-bottom: 12px;
+  color: #cbd5e1;
+}
+
+.fft-gsheets-data-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #16a34a;
+  border-radius: 50%;
+  animation: fft-gsheets-spin 0.8s linear infinite;
+  margin-bottom: 16px;
+}
+
+/* Table Wrapper */
+.fft-gsheets-table-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+/* Search Container */
+.fft-gsheets-search-container {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  gap: 10px;
+}
+
+.fft-gsheets-search-icon {
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.fft-gsheets-search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: #334155;
+}
+
+.fft-gsheets-search-input::placeholder {
+  color: #94a3b8;
+}
+
+/* Table Scroll */
+.fft-gsheets-table-scroll {
+  flex: 1;
+  overflow: auto;
+}
+
+/* Table */
+.fft-gsheets-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px;
+}
+
+.fft-gsheets-thead {
+  background: #f8fafc;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.fft-gsheets-header-row {
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.fft-gsheets-header-cell {
+  padding: 12px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.fft-gsheets-sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.fft-gsheets-sortable:hover {
+  background: #f1f5f9;
+}
+
+.fft-gsheets-header-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fft-gsheets-sort-indicator {
+  font-size: 12px;
+  color: #16a34a;
+}
+
+.fft-gsheets-tbody {}
+
+.fft-gsheets-data-row {
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.15s ease;
+}
+
+.fft-gsheets-data-row:hover {
+  background: #f8fafc;
+}
+
+.fft-gsheets-data-cell {
+  padding: 12px;
+  font-size: 13px;
+  color: #334155;
+}
+
+.fft-gsheets-cell-value {
+  display: block;
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fft-gsheets-no-columns {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  padding: 40px;
+}
+
+.fft-gsheets-no-columns i {
+  font-size: 40px;
+  margin-bottom: 12px;
+  color: #cbd5e1;
+}
+
+/* Pagination */
+.fft-gsheets-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 14px 16px;
+  border-top: 1px solid #e2e8f0;
+  background: #fafafa;
+}
+
+.fft-gsheets-pagination-info {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.fft-gsheets-pagination-size {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.fft-gsheets-page-size-select {
+  padding: 6px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 13px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.fft-gsheets-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fft-gsheets-pagination-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 12px;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.fft-gsheets-pagination-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.fft-gsheets-pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.fft-gsheets-page-number {
+  padding: 0 10px;
+  font-size: 13px;
+  color: #334155;
+  font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .fft-gsheets-main-content {
+    flex-direction: column;
+  }
+
+  .fft-gsheets-sidebar {
+    width: 100%;
+    min-width: 100%;
+    max-height: 200px;
+    border-right: none;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .fft-gsheets-content-area {
+    padding: 16px;
+  }
+
+  .fft-gsheets-content-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 600px) {
+  .fft-gsheets-pagination {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+
+  .fft-gsheets-pagination-controls {
+    justify-content: center;
+  }
+}
+
+/* Configuration Card Styles */
+.fft-gsheets-config-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  background: linear-gradient(135deg, #f8fafc 0%, #e8f5e9 100%);
+}
+
+.fft-gsheets-config-card {
+  max-width: 500px;
+  width: 100%;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 40px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.fft-gsheets-config-icon {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+}
+
+.fft-gsheets-config-icon i {
+  font-size: 32px;
+  color: #ffffff;
+}
+
+.fft-gsheets-config-title {
+  margin: 0 0 12px 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.fft-gsheets-config-description {
+  margin: 0 0 24px 0;
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.fft-gsheets-config-input-group {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.fft-gsheets-config-input {
+  flex: 1;
+  padding: 14px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #334155;
+  transition: all 0.2s ease;
+}
+
+.fft-gsheets-config-input:focus {
+  outline: none;
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+}
+
+.fft-gsheets-config-input::placeholder {
+  color: #94a3b8;
+}
+
+.fft-gsheets-config-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.fft-gsheets-config-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+}
+
+.fft-gsheets-config-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fft-gsheets-config-hint {
+  margin: 0;
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+.fft-gsheets-config-hint code {
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+  color: #16a34a;
+}
+
+@media (max-width: 600px) {
+  .fft-gsheets-config-container {
+    padding: 20px;
+  }
+
+  .fft-gsheets-config-card {
+    padding: 24px;
+  }
+
+  .fft-gsheets-config-input-group {
+    flex-direction: column;
+  }
+
+  .fft-gsheets-config-btn {
+    justify-content: center;
+  }
+}

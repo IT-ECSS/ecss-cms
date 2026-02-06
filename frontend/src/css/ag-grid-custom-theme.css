@@ -15,24 +15,21 @@
   --ag-borders-side-button: none;
 }
 
-/* Remove all borders from rows and cells */
+/* Row borders */
 .ag-theme-alpine .ag-row {
-  border: none !important;
-  border-bottom: none !important;
-  border-top: none !important;
-  border-left: none !important;
-  border-right: none !important;
+  border-bottom: 1px solid #ddd !important;
   background-color: transparent !important; /* Ensure transparent background for getRowStyle */
 }
 
 .ag-cell {
-  border: none !important;
-  border-right: none !important;
-  border-left: none !important;
-  border-top: none !important;
-  border-bottom: none !important;
   display: flex !important;
   align-items: center !important;
+}
+
+/* Comparison table specific cell borders */
+.fft-entries-table-wrapper .ag-cell {
+  border-right: 1px solid #ddd !important;
+  border-bottom: 1px solid #ddd !important;
 }
 
 /* Remove borders from all cell types */
@@ -131,6 +128,94 @@
 .ag-header-cell-label {
   font-weight: bold;
   color: #FFFFFF !important;
+  justify-content: center !important;
+}
+
+/* Header cells with borders for Year Comparison table */
+.ag-header-cell-bordered {
+  border-right: 1px solid #c9a097 !important;
+  border-bottom: 1px solid #c9a097 !important;
+}
+
+.ag-header-cell-bordered .ag-header-cell-label {
+  justify-content: center !important;
+  font-weight: bold !important;
+}
+
+.ag-header-group-bordered {
+  border-right: 2px solid #a08078 !important;
+  border-bottom: 1px solid #c9a097 !important;
+}
+
+.ag-header-group-bordered .ag-header-group-cell-label {
+  justify-content: center !important;
+  font-weight: bold !important;
+}
+
+/* ===== Year Comparison Table Specific Styles ===== */
+.fft-year-comparison-table .ag-header-cell {
+  border-right: 1px solid #c9a097 !important;
+  border-bottom: 1px solid #c9a097 !important;
+}
+
+.fft-year-comparison-table .ag-header-cell .ag-header-cell-label {
+  justify-content: center !important;
+  font-weight: bold !important;
+  font-size: 20px !important;
+}
+
+.fft-year-comparison-table .ag-header-group-cell {
+  border-right: 2px solid #a08078 !important;
+  border-bottom: 1px solid #c9a097 !important;
+  font-size: 20px !important;
+}
+
+.fft-year-comparison-table .ag-header-group-cell .ag-header-group-cell-label {
+  justify-content: center !important;
+  font-weight: bold !important;
+  font-size: 20px !important;
+}
+
+.fft-year-comparison-table .ag-cell {
+  border-right: 1px solid #ddd !important;
+  border-bottom: 1px solid #ddd !important;
+  font-size: 20px !important;
+}
+
+/* Fitness Participants Table cell font size */
+.fft-grid-container .ag-cell {
+  font-size: 20px !important;
+}
+
+.fft-year-comparison-table .ag-row {
+  border-bottom: 1px solid #ddd !important;
+}
+
+/* Ensure all header cells in comparison view have borders and centered text */
+.fft-entries-table-wrapper .ag-header-cell {
+  border-right: 1px solid #c9a097 !important;
+}
+
+.fft-entries-table-wrapper .ag-header-cell .ag-header-cell-label {
+  justify-content: center !important;
+  font-weight: bold !important;
+  font-size: 20px !important;
+  white-space: nowrap !important;
+}
+
+.fft-entries-table-wrapper .ag-header-group-cell {
+  border-right: 2px solid #a08078 !important;
+  border-bottom: 1px solid #c9a097 !important;
+}
+
+.fft-entries-table-wrapper .ag-header-group-cell .ag-header-group-cell-label {
+  justify-content: center !important;
+  font-weight: bold !important;
+}
+
+/* Fitness Entries Table cell font size (single year view) */
+.fft-entries-table-wrapper .ag-cell {
+  font-size: 20px !important;
 }
 
 /* Grid container */

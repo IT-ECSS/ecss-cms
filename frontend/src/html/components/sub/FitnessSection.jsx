@@ -1,722 +1,935 @@
-import React, { Component, useMemo, useState } from "react";
+import React, { Component } from 'react';
 import axios from 'axios';
-import '../../../css/sub/FitnessSection.css';
-import {
-  getCoreRowModel,
-  getSortedRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  useReactTable,
-  flexRender,
-} from '@tanstack/react-table';
+import FitnessFilterSection from './FitnessFilterSection';
+import FitnessDashboardSection from './FitnessDashboardSection';
+import FitnessParticipantsSection from './FitnessParticipantsSection';
+import '../../../css/sub/fitnessMainSection.css';
 
-// Advanced Table Component
-const AdvancedFitnessTable = ({ data, calculateChange, getStationStats, onSelectionChange, onRowClick, yearFrom, yearTo }) => {
-  const [sorting, setSorting] = useState([]);
-  const [columnFilters, setColumnFilters] = useState([]);
-  const [globalFilter, setGlobalFilter] = useState('');
-  const [pagination, setPagination] = useState({
-    pageIndex: 0,
-    pageSize: 1000, // Set to a large number to show all entries by default
-  });
-  const [expandedRows, setExpandedRows] = useState(new Set());
-  const [selectedRows, setSelectedRows] = useState(new Set());
-
-  const toggleRowExpansion = (rowId) => {
-    const newExpandedRows = new Set(expandedRows);
-    if (newExpandedRows.has(rowId)) {
-      newExpandedRows.delete(rowId);
-    } else {
-      newExpandedRows.add(rowId);
-    }
-    setExpandedRows(newExpandedRows);
-  };
-
-  const toggleRowSelection = (rowIndex) => {
-    const newSelectedRows = new Set(selectedRows);
-    if (newSelectedRows.has(rowIndex)) {
-      newSelectedRows.delete(rowIndex);
-    } else {
-      newSelectedRows.add(rowIndex);
-    }
-    setSelectedRows(newSelectedRows);
-    
-    // Get selected participant data
-    const selectedData = data.filter((_, index) => newSelectedRows.has(index));
-    onSelectionChange(selectedData);
-  };
-
-  const calculateOverallSummary = (participant) => {
-    const data2024 = participant['2024'] || {};
-    const data2025 = participant['2025'] || {};
-    
-    let improved = 0;
-    let declined = 0;
-    let noChange = 0;
-    let totalMetrics = 0;
-
-    stationMetrics.forEach(station => {
-      const value2024 = data2024[station.key];
-      const value2025 = data2025[station.key];
-      
-      if (value2024 && value2025 && value2024 !== '-' && value2025 !== '-') {
-        totalMetrics++;
-        const change = calculateChange(value2024, value2025, station.isHigherBetter);
-        
-        if (change.trend === 'improved') {
-          improved++;
-        } else if (change.trend === 'declined') {
-          declined++;
-        } else {
-          noChange++;
-        }
-      }
-    });
-
-    return { improved, declined, noChange, totalMetrics };
-  };
-
-  const stationMetrics = [
-    { key: 'grip', name: 'Grip Strength', isHigherBetter: true, unit: '' },
-    { key: 'march', name: '2-Min March', isHigherBetter: true, unit: '' },
-    { key: 'arm_curl', name: 'Arm Curl', isHigherBetter: true, unit: '' },
-    { key: 'sit_reach', name: 'Sit & Reach', isHigherBetter: true, unit: 'cm' },
-    { key: 'back_stretch', name: 'Back Stretch', isHigherBetter: true, unit: 'cm' },
-    { key: 'speed_walk', name: 'Speed Walk', isHigherBetter: false, unit: 's' },
-    { key: 'squat', name: '30s Squat', isHigherBetter: true, unit: '' }
-  ];
-
-  const columns = useMemo(() => [
-    {
-      accessorKey: 'name',
-      header: 'Participant',
-      size: 200,
-      cell: ({ row }) => (
-        <div className="participant-info">
-          <div className="name">{row.original.name}</div>
-          <div className="dob">{row.original.dob}</div>
-        </div>
-      ),
-      filterFn: 'includesString',
-    },
-    {
-      accessorKey: 'gender',
-      header: 'Gender',
-      size: 100,
-      cell: ({ getValue }) => (
-        <span className={`gender-badge ${getValue()?.toLowerCase()}`}>
-          {getValue()}
-        </span>
-      ),
-      filterFn: 'equals',
-    },
-      {
-      accessorKey: 'location',
-      header: 'Location',
-      size: 150,
-      cell: ({ getValue }) => {
-        const location = getValue();
-        let badgeClass = 'location-badge'; // base class
-
-        if (location === 'CT Hub') {
-          badgeClass += ' green';
-        } else if (location === 'Tampines North Community Centre') {
-          badgeClass += ' brown';
-        } else if (location === 'Pasir Ris West') {
-          badgeClass += ' grey';
-        }
-
-        return <span className={badgeClass}>{location}</span>;
-      },
-      filterFn: 'includesString',
-    },
-    {
-      accessorKey: 'phone_number',
-      header: 'Phone',
-      size: 150,
-      enableSorting: false,
-    },
-    ...stationMetrics.map(station => ({
-      id: station.key,
-      header: station.name,
-      size: 140,
-      cell: ({ row }) => {
-        const dataFrom = row.original[yearFrom] || {};
-        const dataTo = row.original[yearTo] || {};
-        const valueFrom = dataFrom[station.key] || '-';
-        const valueTo = dataTo[station.key] || '-';
-        const change = calculateChange(valueFrom, valueTo, station.isHigherBetter);
-        const hasComparison = valueFrom !== '-' && valueTo !== '-';
-
-        if (!hasComparison) {
-          return <div className="no-data">No Data</div>;
-        }
-
-        const changeValue = parseFloat(change.value);
-        const isPositiveChange = changeValue > 0;
-        const isImprovement = change.trend === 'improved';
-
-        return (
-          <div className="stock-indicator">
-            <div className={`stock-arrow ${isImprovement ? 'positive' : 'negative'}`}>
-              {isPositiveChange ? '▲' : '▼'}
-            </div>
-            <div className="stock-values">
-              <div className={`change-value ${isImprovement ? 'positive' : 'negative'}`}>
-                {isPositiveChange ? '+' : ''}{change.value}{station.unit}
-              </div>
-              <div className={`percentage-value ${isImprovement ? 'positive' : 'negative'}`}>
-                ({change.percentage}%)
-              </div>
-            </div>
-          </div>
-        );
-      },
-      sortingFn: (rowA, rowB) => {
-        const aFrom = rowA.original[yearFrom]?.[station.key] || 0;
-        const aTo = rowA.original[yearTo]?.[station.key] || 0;
-        const bFrom = rowB.original[yearFrom]?.[station.key] || 0;
-        const bTo = rowB.original[yearTo]?.[station.key] || 0;
-        
-        const aChange = parseFloat(aTo) - parseFloat(aFrom);
-        const bChange = parseFloat(bTo) - parseFloat(bFrom);
-        
-        return aChange - bChange;
-      },
-    }))
-  ], [data, calculateChange, expandedRows]);
-
-  const table = useReactTable({
-    data,
-    columns,
-    state: {
-      sorting,
-      columnFilters,
-      globalFilter,
-      pagination,
-    },
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    onGlobalFilterChange: setGlobalFilter,
-    onPaginationChange: setPagination,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    enableColumnFilters: true,
-    enableSorting: true,
-    debugTable: false,
-  });
-
-  return (
-    <div className="table-container">
-      {/* Table */}
-      <table className="advanced-fitness-table">
-        <thead>
-          {table.getHeaderGroups().map(headerGroup => (
-            <tr key={headerGroup.id}>
-              {headerGroup.headers.map(header => (
-                <th 
-                  key={header.id} 
-                  className={`header-cell ${header.column.getCanSort() ? 'sortable' : ''}`}
-                  onClick={header.column.getToggleSortingHandler()}
-                  style={{ width: header.getSize() }}
-                >
-                  <div className="header-content">
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())
-                    }
-                    {header.column.getCanSort() && (
-                      <span className="sort-indicator">
-                        {{
-                          asc: '🔼',
-                          desc: '🔽',
-                        }[header.column.getIsSorted()] ?? ''}
-                      </span>
-                    )}
-                  </div>
-                </th>
-              ))}
-            </tr>
-          ))}
-        </thead>
-        <tbody>
-          {table.getRowModel().rows.map(row => (
-            <tr 
-              key={row.id} 
-              className={`data-row compact-row ${selectedRows.has(parseInt(row.id)) ? 'selected' : ''}`}
-              onClick={(e) => {
-                // Don't trigger row click if clicking on checkbox
-                if (e.target.type !== 'checkbox') {
-                  onRowClick(row.original);
-                }
-              }}
-            >
-              {row.getVisibleCells().map(cell => (
-                <td key={cell.id} className="data-cell compact-cell">
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {/* Pagination */}
-      <div className="table-pagination">
-        <div className="pagination-info">
-          <span>
-            Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{' '}
-            {Math.min(
-              (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-              table.getFilteredRowModel().rows.length
-            )}{' '}
-            of {table.getFilteredRowModel().rows.length} participants
-          </span>
-        </div>
-
-        <div className="pagination-size-controls">
-          <span>Show:</span>
-          <select
-            value={table.getState().pagination.pageSize >= table.getFilteredRowModel().rows.length ? 
-                   table.getFilteredRowModel().rows.length : table.getState().pagination.pageSize}
-            onChange={e => {
-              table.setPageSize(Number(e.target.value));
-            }}
-            className="page-size-select"
-          >
-            {[10, 25, 50, 100].map(pageSize => (
-              <option key={pageSize} value={pageSize}>
-                {pageSize}
-              </option>
-            ))}
-            <option value={table.getFilteredRowModel().rows.length}>
-              All ({table.getFilteredRowModel().rows.length})
-            </option>
-          </select>
-          <span>entries</span>
-        </div>
-        
-        <div className="pagination-controls">
-          <button
-            className="pagination-btn"
-            onClick={() => table.setPageIndex(0)}
-            disabled={!table.getCanPreviousPage()}
-          >
-            ⏮️ First
-          </button>
-          <button
-            className="pagination-btn"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            ⬅️ Previous
-          </button>
-          
-          <span className="page-info">
-            Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
-          </span>
-          
-          <button
-            className="pagination-btn"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Next ➡️
-          </button>
-          <button
-            className="pagination-btn"
-            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-            disabled={!table.getCanNextPage()}
-          >
-            Last ⏭️
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Participant Detail Card Component
-const ParticipantDetailCard = ({ participant, calculateChange, stationMetrics, onClose, yearFrom, yearTo }) => {
-  return (
-    <div className="participant-detail-overlay" onClick={onClose}>
-      <div className="participant-detail-card" onClick={(e) => e.stopPropagation()}>
-        <div className="card-header">
-          <div className="participant-info-card">
-            <h2>{participant.name}</h2>
-            <p className="participant-details">
-              <span className="detail-item">📅 {participant.dob}</span>
-              <span className="detail-item">👤 {participant.gender}</span>
-              <span className="detail-item">📍 {participant.location}</span>
-              <span className="detail-item">📞 {participant.phone_number}</span>
-            </p>
-          </div>
-          <button className="close-card-btn" onClick={onClose}>✕</button>
-        </div>
-        
-        <div className="card-content">
-          <h3>Fitness Performance Analysis</h3>
-          <div className="metrics-card-grid">
-            {stationMetrics.map(station => {
-              const dataFrom = participant[yearFrom] || {};
-              const dataTo = participant[yearTo] || {};
-              const valueFrom = dataFrom[station.key] || '-';
-              const valueTo = dataTo[station.key] || '-';
-              const change = calculateChange(valueFrom, valueTo, station.isHigherBetter);
-              const hasComparison = valueFrom !== '-' && valueTo !== '-';
-
-              return (
-                <div key={station.key} className="metric-card">
-                  <div className="metric-card-header">
-                    <h4>{station.name}</h4>
-                  </div>
-                  <div className="metric-card-body">
-                    <div className="year-values">
-                      <div className="year-value">
-                        <span className="year-label">{yearFrom}</span>
-                        <span className="value">{valueFrom}{station.unit}</span>
-                      </div>
-                      <div className="year-value">
-                        <span className="year-label">{yearTo}</span>
-                        <span className="value">{valueTo}{station.unit}</span>
-                      </div>
-                    </div>
-                    {hasComparison && (
-                      <div className="change-info">
-                        <div className={`change-amount ${change.trend}`}>
-                          {change.value > 0 ? '+' : ''}{change.value}{station.unit}
-                        </div>
-                        <div className={`change-percentage ${change.trend}`}>
-                          ({change.percentage}%)
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
+/**
+ * FitnessSection - Main container for FFT Fitness Results
+ * Shows filter first, then tabs after location is selected
+ * Reads data from Google Drive spreadsheets
+ */
 class FitnessSection extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      fftData: [],
+      // Data states
+      fitnessData: [],
       loading: false,
-      searchTerm: '',
-      sortBy: 'name',
-      sortOrder: 'asc',
-      currentPage: 1,
-      itemsPerPage: 10,
-      filterType: 'all',
-      selectedParticipants: [],
-      selectedParticipantForDetail: null,
+      error: null,
+      
+      // Google Drive states
+      spreadsheetFiles: [],
+      yearFolders: {},
+      locationFileMap: {},
+      locationYearMap: {}, // Maps location -> [years] where that location has data
+      fftFolderId: '',
+      
+      // Filter states
+      selectedLocation: '',
       yearFrom: '',
       yearTo: '',
+      availableLocations: [],
       availableYears: [],
-      selectedLocation: '', // Added location filter
-      availableLocations: [] // Added available locations
+      
+      // Tab state (only shown after location selected)
+      activeTab: 'dashboard',
+      
+      // Dashboard stats
+      dashboardStats: null
     };
   }
 
   componentDidMount() {
-    this.fetchFitnessData();
-  }
-
-  fetchFitnessData = async () => {
-    this.setState({ loading: true });
-    
-    try {
-      const response = await axios.post(
-        `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/fitness`,
-        { purpose: "retrieve" }
-      );
-      if (response.data.success) {
-        console.log("Fitness Report Data:", response.data.data);
-        
-        // Extract available years and locations from the participant data
-        const years = new Set();
-        const locations = new Set();
-        
-        response.data.data.forEach(participant => {
-          Object.keys(participant).forEach(key => {
-            // Only look at main keys that are 4-digit years, excluding other fields like 'name', 'dob', etc.
-            if (!isNaN(key) && key.length === 4 && parseInt(key) >= 1900 && parseInt(key) <= 2100) {
-              years.add(key);
-            }
-          });
-          
-          // Extract locations
-          if (participant.location) {
-            locations.add(participant.location);
-          }
-        });
-        
-        const sortedYears = Array.from(years).sort();
-        const sortedLocations = Array.from(locations).sort();
-        
-        console.log("Available years found:", sortedYears);
-        console.log("Available locations found:", sortedLocations);
-        
-        this.setState({ 
-          fftData: response.data.data,
-          availableYears: sortedYears,
-          availableLocations: sortedLocations
-        });
-      } else {
-        console.error('Error fetching fitness data:', response.data.message);
-      }
-    } catch (error) {
-      console.error('Error fetching fitness data:', error);
-    } finally {
-      this.setState({ loading: false });
-      
-      // Call parent callback to close popup when data loading is complete
-      if (this.props.onDataLoaded) {
-        this.props.onDataLoaded();
-      }
-    }
-  }
-
-  calculateChange = (oldValue, newValue, isHigherBetter = false) => {
-    if (!oldValue || !newValue || oldValue === '-' || newValue === '-') {
-      return { value: '-', trend: 'neutral', icon: '➖' };
-    }
-    
-    const old = parseFloat(oldValue);
-    const newVal = parseFloat(newValue);
-    
-    if (isNaN(old) || isNaN(newVal)) {
-      return { value: '-', trend: 'neutral', icon: '➖' };
-    }
-    
-    const change = newVal - old;
-    const percentage = ((change / old) * 100);
-    
-    let trend = 'neutral';
-    let icon = '➖';
-    
-    if (change > 0) {
-      trend = isHigherBetter ? 'improved' : 'declined';
-      icon = isHigherBetter ? '📈' : '📉';
-    } else if (change < 0) {
-      trend = isHigherBetter ? 'declined' : 'improved';
-      icon = isHigherBetter ? '📉' : '📈';
-    }
-    
-    return { 
-      value: change.toFixed(2), 
-      percentage: percentage.toFixed(1),
-      trend,
-      icon
-    };
-  }
-
-  getFilteredData = () => {
-    let filtered = [...this.state.fftData];
-    
-    // Filter by location if selected
-    if (this.state.selectedLocation) {
-      filtered = filtered.filter(participant => 
-        participant.location === this.state.selectedLocation
-      );
-    }
-    
-    return filtered;
-  }
-
-  handleSelectionChange = (selectedData) => {
-    this.setState({ selectedParticipants: selectedData });
-  }
-
-  handleRowClick = (participant) => {
-    this.setState({ selectedParticipantForDetail: participant });
-  }
-
-  handleCloseDetailCard = () => {
-    this.setState({ selectedParticipantForDetail: null });
-  }
-
-  handleYearFromChange = (event) => {
-    this.setState({ yearFrom: event.target.value });
-  }
-
-  handleYearToChange = (event) => {
-    this.setState({ yearTo: event.target.value });
-  }
-
-  handleLocationChange = (event) => {
-    this.setState({ selectedLocation: event.target.value });
-  }
-
-  // Enhanced table component using React Table
-  renderAdvancedTable = () => {
-    const stationMetrics = [
-      { key: 'grip', name: 'Grip Strength', isHigherBetter: true, unit: '' },
-      { key: 'march', name: '2-Min March', isHigherBetter: true, unit: '' },
-      { key: 'arm_curl', name: 'Arm Curl', isHigherBetter: true, unit: '' },
-      { key: 'sit_reach', name: 'Sit & Reach', isHigherBetter: true, unit: 'cm' },
-      { key: 'back_stretch', name: 'Back Stretch', isHigherBetter: true, unit: 'cm' },
-      { key: 'speed_walk', name: 'Speed Walk', isHigherBetter: false, unit: 's' },
-      { key: 'squat', name: '30s Squat', isHigherBetter: true, unit: '' }
-    ];
-
-    const filteredData = this.getFilteredData();
-
-    return (
-      <>
-        <AdvancedFitnessTable 
-          data={filteredData} 
-          calculateChange={this.calculateChange}
-          getStationStats={this.getStationStats}
-          onSelectionChange={this.handleSelectionChange}
-          onRowClick={this.handleRowClick}
-          yearFrom={this.state.yearFrom}
-          yearTo={this.state.yearTo}
-        />
-        {this.state.selectedParticipantForDetail && (
-          <ParticipantDetailCard
-            participant={this.state.selectedParticipantForDetail}
-            calculateChange={this.calculateChange}
-            stationMetrics={stationMetrics}
-            onClose={this.handleCloseDetailCard}
-            yearFrom={this.state.yearFrom}
-            yearTo={this.state.yearTo}
-          />
-        )}
-      </>
-    );
-  }
-
-  handleSort = (column) => {
-    const isAsc = this.state.sortBy === column && this.state.sortOrder === 'asc';
-    this.setState({
-      sortBy: column,
-      sortOrder: isAsc ? 'desc' : 'asc'
+    // Load folder ID from localStorage or use default FFT folder
+    const defaultFolderId = '1EsnCGO1QfPrqfmDtsy-cELUO3UyZKCci';
+    const savedFolderId = localStorage.getItem('fftGoogleDriveFolderId') || defaultFolderId;
+    this.setState({ fftFolderId: savedFolderId }, () => {
+      this.fetchYearFolders();
     });
   }
 
-  getStationStats = (metricKey, isHigherBetter = true) => {
-    const participants = this.getFilteredData(); // Use filtered data instead of all data
-    const { yearFrom, yearTo } = this.state;
-    let improved = 0;
-    let declined = 0;
-    let noChange = 0;
-    let totalWithData = 0;
+  getApiBaseUrl = () => {
+    return window.location.hostname === "localhost" 
+      ? "http://localhost:3001" 
+      : "https://ecss-backend-node.azurewebsites.net";
+  }
 
-    participants.forEach(participant => {
-      const dataFrom = participant[yearFrom] || {};
-      const dataTo = participant[yearTo] || {};
-      const valueFrom = dataFrom[metricKey];
-      const valueTo = dataTo[metricKey];
+  fetchYearFolders = async () => {
+    const { fftFolderId } = this.state;
+    
+    try {
+      this.setState({ error: null });
+      
+      if (!fftFolderId) {
+        this.setState({ 
+          availableYears: [],
+          yearFolders: {}
+        }, () => {
+          if (this.props.onDataLoaded) {
+            this.props.onDataLoaded();
+          }
+        });
+        return;
+      }
 
-      if (valueFrom && valueTo && valueFrom !== '-' && valueTo !== '-') {
-        totalWithData++;
-        const change = this.calculateChange(valueFrom, valueTo, isHigherBetter);
+      const response = await axios.post(
+        `${this.getApiBaseUrl()}/googleDrive`,
+        { folderId: fftFolderId, purpose: 'listFiles' }
+      );
+      
+      if (response.data.success) {
+        const files = response.data.files || [];
         
-        if (change.trend === 'improved') {
-          improved++;
-        } else if (change.trend === 'declined') {
-          declined++;
+        // Filter for folders only (year folders like 2024, 2025, 2026)
+        const yearFolders = {};
+        const yearsSet = new Set();
+        
+        files.forEach(file => {
+          if (file.mimeType === 'application/vnd.google-apps.folder') {
+            // Check if folder name is a year
+            if (/^20\d{2}$/.test(file.name)) {
+              yearsSet.add(file.name);
+              yearFolders[file.name] = file.id;
+            }
+          }
+        });
+
+        const availableYears = [...yearsSet].sort();
+
+        this.setState({
+          yearFolders,
+          availableYears
+        }, () => {
+          // After loading year folders, scan for location-year mapping
+          this.buildLocationYearMap(yearFolders, availableYears);
+          if (this.props.onDataLoaded) {
+            this.props.onDataLoaded();
+          }
+        });
+      } else {
+        throw new Error(response.data.error || 'Failed to fetch folders from Google Drive');
+      }
+    } catch (error) {
+      console.error('Error fetching year folders:', error);
+      this.setState({
+        error: error.message || 'Failed to fetch folders from Google Drive'
+      }, () => {
+        if (this.props.onDataLoaded) {
+          this.props.onDataLoaded();
+        }
+      });
+    }
+  }
+
+  // Hardcoded centre locations with file name prefixes
+  getHardcodedLocations = () => {
+    return [
+      { name: 'CT Hub', prefixes: ['CT Hub', 'CT'] },
+      { name: 'Pasir Ris', prefixes: ['PRW'] },
+      { name: 'Tampines', prefixes: ['Tampines', 'TNCC'] }
+    ];
+  }
+
+  // Check if filename starts with any of the location prefixes
+  matchesLocation = (filename, locationPrefixes) => {
+    const lowerFilename = filename.toLowerCase();
+    return locationPrefixes.some(prefix => 
+      lowerFilename.startsWith(prefix.toLowerCase())
+    );
+  }
+
+  // Build a map of which years each location has data in
+  buildLocationYearMap = async (yearFolders, availableYears) => {
+    const hardcodedLocations = this.getHardcodedLocations();
+    const locationYearMap = {};
+    
+    // Initialize map for each location
+    hardcodedLocations.forEach(loc => {
+      locationYearMap[loc.name] = [];
+    });
+
+    // Scan each year folder in parallel
+    const scanPromises = availableYears.map(async (year) => {
+      const folderId = yearFolders[year];
+      if (!folderId) return { year, files: [] };
+
+      try {
+        const response = await axios.post(
+          `${this.getApiBaseUrl()}/googleDrive`,
+          { folderId, purpose: 'listFiles' }
+        );
+
+        if (response.data.success) {
+          return { year, files: response.data.files || [] };
+        }
+      } catch (err) {
+        console.error(`Error scanning year folder ${year}:`, err);
+      }
+      return { year, files: [] };
+    });
+
+    const results = await Promise.all(scanPromises);
+
+    // Map files to locations
+    results.forEach(({ year, files }) => {
+      files.forEach(file => {
+        // Check if it's a spreadsheet
+        const isSpreadsheet = file.mimeType === 'application/vnd.google-apps.spreadsheet' ||
+          file.mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+          file.name.endsWith('.xlsx') ||
+          file.name.endsWith('.csv');
+
+        if (isSpreadsheet) {
+          // Find which location this file belongs to
+          for (const loc of hardcodedLocations) {
+            if (this.matchesLocation(file.name, loc.prefixes)) {
+              if (!locationYearMap[loc.name].includes(year)) {
+                locationYearMap[loc.name].push(year);
+              }
+              break;
+            }
+          }
+        }
+      });
+    });
+
+    // Sort years for each location
+    Object.keys(locationYearMap).forEach(loc => {
+      locationYearMap[loc].sort();
+    });
+
+    console.log('Location-Year Map:', locationYearMap);
+    this.setState({ locationYearMap });
+  }
+
+  fetchSpreadsheetFiles = async (yearFolderId) => {
+    try {
+      this.setState({ error: null });
+
+      const response = await axios.post(
+        `${this.getApiBaseUrl()}/googleDrive`,
+        { folderId: yearFolderId, purpose: 'listFiles' }
+      );
+      
+      if (response.data.success) {
+        const files = response.data.files || [];
+        
+        // Filter for spreadsheet files only
+        const spreadsheetFiles = files.filter(file => 
+          file.mimeType === 'application/vnd.google-apps.spreadsheet' ||
+          file.mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+          file.name.endsWith('.xlsx') ||
+          file.name.endsWith('.csv')
+        );
+        
+        // Map files to hardcoded locations based on file name prefix
+        // File format: "[Location] [Year] FFT" e.g., "CT Hub 2025 FFT"
+        const locationMap = {};
+        const hardcodedLocations = this.getHardcodedLocations();
+        
+        spreadsheetFiles.forEach(file => {
+          // Find matching hardcoded location by prefix
+          for (const loc of hardcodedLocations) {
+            if (this.matchesLocation(file.name, loc.prefixes)) {
+              if (!locationMap[loc.name]) {
+                locationMap[loc.name] = [];
+              }
+              locationMap[loc.name].push(file);
+              break;
+            }
+          }
+        });
+
+        // Use hardcoded location names for dropdown
+        const availableLocations = hardcodedLocations.map(loc => loc.name);
+
+        this.setState({
+          spreadsheetFiles,
+          locationFileMap: locationMap,
+          availableLocations
+        });
+      } else {
+        throw new Error(response.data.error || 'Failed to fetch files from Google Drive');
+      }
+    } catch (error) {
+      console.error('Error fetching spreadsheet files:', error);
+      this.setState({
+        error: error.message || 'Failed to fetch files from Google Drive'
+      });
+    }
+  }
+
+  fetchFitnessData = async () => {
+    try {
+      this.setState({ loading: true, error: null });
+      
+      const response = await axios.post(
+        `${this.getApiBaseUrl()}/fitness`,
+        { purpose: 'retrieve' }
+      );
+
+      if (response.data.success) {
+        const data = response.data.data || [];
+        
+        // Extract unique locations
+        const locations = [...new Set(data.map(item => item.location).filter(Boolean))];
+        
+        // Extract available years from data
+        const years = new Set();
+        data.forEach(item => {
+          Object.keys(item).forEach(key => {
+            if (/^\d{4}$/.test(key)) {
+              years.add(key);
+            }
+          });
+        });
+        const sortedYears = [...years].sort();
+
+        this.setState({
+          fitnessData: data,
+          availableLocations: locations,
+          availableYears: sortedYears,
+          loading: false
+        }, () => {
+          // Close loading popup after data is loaded
+          if (this.props.onDataLoaded) {
+            this.props.onDataLoaded();
+          }
+        });
+      } else {
+        throw new Error(response.data.message || 'Failed to fetch fitness data');
+      }
+    } catch (error) {
+      console.error('Error fetching fitness data:', error);
+      this.setState({
+        error: error.message || 'Failed to fetch fitness data',
+        loading: false
+      }, () => {
+        // Also close popup on error
+        if (this.props.onDataLoaded) {
+          this.props.onDataLoaded();
+        }
+      });
+    }
+  };
+
+  calculateDashboardStats = (filteredData) => {
+    const { yearFrom, yearTo } = this.state;
+    
+    if (!filteredData || filteredData.length === 0) {
+      return null;
+    }
+
+    // Get years to analyze based on yearFrom and yearTo
+    const yearsToAnalyze = [];
+    if (yearFrom && yearTo) {
+      for (let y = parseInt(yearFrom); y <= parseInt(yearTo); y++) {
+        yearsToAnalyze.push(y.toString());
+      }
+    } else if (yearFrom) {
+      yearsToAnalyze.push(yearFrom);
+    } else if (yearTo) {
+      yearsToAnalyze.push(yearTo);
+    } else {
+      // Use all available years
+      filteredData.forEach(item => {
+        Object.keys(item).forEach(key => {
+          if (/^\d{4}$/.test(key) && !yearsToAnalyze.includes(key)) {
+            yearsToAnalyze.push(key);
+          }
+        });
+      });
+    }
+
+    // Calculate statistics by centre/location
+    const centreStats = {};
+    let totalParticipants = 0;
+    let totalImproved = 0;
+    let totalDeclined = 0;
+    let totalMaintained = 0;
+
+    filteredData.forEach(participant => {
+      const location = participant.location || 'Unknown';
+      
+      if (!centreStats[location]) {
+        centreStats[location] = {
+          total: 0,
+          improved: 0,
+          declined: 0,
+          maintained: 0,
+          male: 0,
+          female: 0
+        };
+      }
+
+      centreStats[location].total++;
+      totalParticipants++;
+
+      // Gender count
+      if (participant.gender?.toLowerCase() === 'male') {
+        centreStats[location].male++;
+      } else if (participant.gender?.toLowerCase() === 'female') {
+        centreStats[location].female++;
+      }
+
+      // Calculate improvement trends if multiple years
+      if (yearsToAnalyze.length >= 2) {
+        const improvement = this.calculateParticipantImprovement(participant, yearsToAnalyze);
+        if (improvement > 0) {
+          centreStats[location].improved++;
+          totalImproved++;
+        } else if (improvement < 0) {
+          centreStats[location].declined++;
+          totalDeclined++;
         } else {
-          noChange++;
+          centreStats[location].maintained++;
+          totalMaintained++;
         }
       }
     });
 
-    return { improved, declined, noChange, totalWithData };
+    // Calculate participants by year
+    const byYear = {};
+    filteredData.forEach(participant => {
+      yearsToAnalyze.forEach(year => {
+        if (participant[year]) {
+          byYear[year] = (byYear[year] || 0) + 1;
+        }
+      });
+    });
+
+    // Transform centreStats to have noChange instead of maintained for component compatibility
+    const byLocation = {};
+    Object.entries(centreStats).forEach(([location, stats]) => {
+      byLocation[location] = {
+        ...stats,
+        noChange: stats.maintained // Map maintained to noChange for component
+      };
+    });
+
+    return {
+      totalParticipants,
+      overallImprovement: {
+        improved: totalImproved,
+        declined: totalDeclined,
+        noChange: totalMaintained
+      },
+      byLocation,
+      byYear,
+      yearsAnalyzed: yearsToAnalyze
+    };
+  };
+
+  calculateParticipantImprovement = (participant, years) => {
+    // Simple improvement calculation based on fitness metrics
+    let improvementScore = 0;
+    const sortedYears = [...years].sort();
+    
+    for (let i = 1; i < sortedYears.length; i++) {
+      const prevYear = sortedYears[i - 1];
+      const currYear = sortedYears[i];
+      
+      if (participant[prevYear] && participant[currYear]) {
+        // Compare key metrics (lower is better for some, higher for others)
+        const prevData = participant[prevYear];
+        const currData = participant[currYear];
+        
+        // Chair stand - higher is better
+        if (currData.chair_stand > prevData.chair_stand) improvementScore++;
+        else if (currData.chair_stand < prevData.chair_stand) improvementScore--;
+        
+        // Arm curl - higher is better
+        if (currData.arm_curl > prevData.arm_curl) improvementScore++;
+        else if (currData.arm_curl < prevData.arm_curl) improvementScore--;
+        
+        // Sit and reach - higher is better
+        if (currData.sit_and_reach > prevData.sit_and_reach) improvementScore++;
+        else if (currData.sit_and_reach < prevData.sit_and_reach) improvementScore--;
+        
+        // Two min step - higher is better
+        if (currData.two_min_step > prevData.two_min_step) improvementScore++;
+        else if (currData.two_min_step < prevData.two_min_step) improvementScore--;
+      }
+    }
+    
+    return improvementScore;
+  };
+
+  getFilteredData = () => {
+    const { fitnessData, selectedLocation, yearFrom, yearTo } = this.state;
+    
+    let filtered = [...fitnessData];
+    
+    // Filter by location (data already filtered by location when fetched)
+    if (selectedLocation) {
+      filtered = filtered.filter(item => item.location === selectedLocation);
+    }
+    
+    // Filter by year - each row has a 'year' property
+    if (yearFrom || yearTo) {
+      filtered = filtered.filter(item => {
+        const itemYear = parseInt(item.year);
+        if (yearFrom && yearTo) {
+          return itemYear >= parseInt(yearFrom) && itemYear <= parseInt(yearTo);
+        } else if (yearFrom) {
+          return itemYear >= parseInt(yearFrom);
+        } else if (yearTo) {
+          return itemYear <= parseInt(yearTo);
+        }
+        return true;
+      });
+    }
+    
+    return filtered;
+  };
+
+  handleLocationChange = async (location) => {
+    if (!location) {
+      this.setState({ 
+        selectedLocation: '', 
+        yearFrom: '',
+        yearTo: '',
+        fitnessData: [],
+        dashboardStats: null,
+        loading: false
+      });
+      return;
+    }
+
+    // Clear year selections when location changes (years will be filtered for new location)
+    this.setState({ 
+      selectedLocation: location, 
+      yearFrom: '', 
+      yearTo: '', 
+      fitnessData: [],
+      dashboardStats: null,
+      loading: false 
+    });
+  };
+
+  // Get years available for the selected location
+  getFilteredYearsForLocation = () => {
+    const { selectedLocation, locationYearMap, availableYears } = this.state;
+    
+    // If no location selected, return empty (years should only show after location is selected)
+    if (!selectedLocation) {
+      return [];
+    }
+    
+    // If we have the location-year map, use it to filter years
+    if (locationYearMap && locationYearMap[selectedLocation]) {
+      return locationYearMap[selectedLocation];
+    }
+    
+    // Fallback to all available years
+    return availableYears;
+  };
+
+  // Fetch data when both location and year(s) are selected
+  fetchLocationYearData = async () => {
+    const { selectedLocation, yearFrom, yearTo, yearFolders } = this.state;
+    
+    if (!selectedLocation || (!yearFrom && !yearTo)) {
+      return;
+    }
+
+    this.setState({ loading: true });
+    
+    try {
+      // Get the centre codes for the selected location
+      const hardcodedLocations = this.getHardcodedLocations();
+      const selectedCentre = hardcodedLocations.find(loc => loc.name === selectedLocation);
+      
+      console.log('Selected location:', selectedLocation);
+      console.log('Selected centre:', selectedCentre);
+      
+      if (!selectedCentre) {
+        console.error('No matching centre found for:', selectedLocation);
+        throw new Error('Invalid centre selected');
+      }
+
+      console.log('Year folders:', yearFolders);
+      const location = selectedLocation;
+
+      // Determine which years to fetch
+      let yearsToFetch = Object.keys(yearFolders).sort();
+      console.log('All available years:', yearsToFetch);
+      
+      if (yearsToFetch.length === 0) {
+        console.warn('No year folders available. Make sure the FFT folder is accessible.');
+        this.setState({
+          fitnessData: [],
+          dashboardStats: null,
+          loading: false
+        });
+        return;
+      }
+      
+      // If Year From is set but Year To is empty, just use Year From only
+      if (yearFrom && !yearTo) {
+        yearsToFetch = yearsToFetch.filter(y => y === yearFrom);
+      } else if (yearFrom && yearTo) {
+        yearsToFetch = yearsToFetch.filter(y => 
+          parseInt(y) >= parseInt(yearFrom) && parseInt(y) <= parseInt(yearTo)
+        );
+      } else if (yearTo) {
+        yearsToFetch = yearsToFetch.filter(y => parseInt(y) <= parseInt(yearTo));
+      }
+      // If no year filters, fetch all years
+
+      console.log('Years to fetch after filter:', yearsToFetch);
+
+      // Fetch spreadsheets from each year folder IN PARALLEL for faster loading
+      const fetchPromises = yearsToFetch.map(async (year) => {
+        const folderId = yearFolders[year];
+        
+        try {
+          // List files in the year folder
+          const listResponse = await axios.post(
+            `${this.getApiBaseUrl()}/googleDrive`,
+            { folderId, purpose: 'listFiles' }
+          );
+
+          if (listResponse.data.success) {
+            const files = listResponse.data.files || [];
+            
+            // Find spreadsheet matching the centre prefixes
+            const matchingFile = files.find(file => {
+              const isSpreadsheet = file.mimeType === 'application/vnd.google-apps.spreadsheet' ||
+                file.mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+                file.name.endsWith('.xlsx') ||
+                file.name.endsWith('.csv');
+              
+              const matchesLoc = selectedCentre && selectedCentre.prefixes ? 
+                this.matchesLocation(file.name, selectedCentre.prefixes) : false;
+              
+              return isSpreadsheet && matchesLoc;
+            });
+
+            if (matchingFile) {
+              // Read the spreadsheet data
+              const readResponse = await axios.post(
+                `${this.getApiBaseUrl()}/googleDrive/readSpreadsheet`,
+                { fileId: matchingFile.id }
+              );
+
+              if (readResponse.data.success && readResponse.data.data) {
+                const { data: rows, columns } = readResponse.data;
+                
+                // Convert array rows to objects using column headers
+                return rows.map(row => {
+                  const obj = { year, location };
+                  columns.forEach((colName, index) => {
+                    obj[colName] = row[index] ?? '';
+                  });
+                  return obj;
+                });
+              }
+            }
+          }
+        } catch (err) {
+          console.error(`Error fetching data for year ${year}:`, err);
+        }
+        return [];
+      });
+
+      // Wait for all parallel fetches to complete
+      const results = await Promise.all(fetchPromises);
+      const allData = results.flat();
+
+      console.log('Total data rows:', allData.length);
+
+      // Calculate dashboard stats
+      const dashboardStats = this.calculateDashboardStatsFromData(allData);
+
+      this.setState({
+        fitnessData: allData,
+        dashboardStats,
+        loading: false
+      });
+
+    } catch (error) {
+      console.error('Error fetching centre data:', error);
+      this.setState({
+        error: error.message || 'Failed to fetch centre data',
+        loading: false
+      });
+    }
+  };
+
+  calculateDashboardStatsFromData = (data) => {
+    if (!data || data.length === 0) {
+      return null;
+    }
+
+    console.log('Calculating stats for data:', data.length, 'rows');
+    console.log('Sample data row:', data[0]);
+
+    const totalParticipants = data.length;
+    
+    // Count by gender
+    let maleCount = 0;
+    let femaleCount = 0;
+    
+    data.forEach(row => {
+      const gender = (row.gender || row.Gender || row.GENDER || '').toLowerCase();
+      if (gender === 'male' || gender === 'm') {
+        maleCount++;
+      } else if (gender === 'female' || gender === 'f') {
+        femaleCount++;
+      }
+    });
+
+    // Count by year
+    const byYear = {};
+    data.forEach(row => {
+      const year = row.year;
+      if (year) {
+        byYear[year] = (byYear[year] || 0) + 1;
+      }
+    });
+
+    // Count by location
+    const byLocation = {};
+    data.forEach(row => {
+      const location = row.location;
+      if (location) {
+        if (!byLocation[location]) {
+          byLocation[location] = {
+            total: 0,
+            improved: 0,
+            declined: 0,
+            noChange: 0
+          };
+        }
+        byLocation[location].total++;
+        byLocation[location].noChange++;
+      }
+    });
+
+    console.log('Dashboard stats calculated:', { totalParticipants, maleCount, femaleCount, byYear, byLocation });
+
+    return {
+      totalParticipants,
+      maleCount,
+      femaleCount,
+      byYear,
+      byLocation,
+      overallImprovement: {
+        improved: 0,
+        declined: 0,
+        noChange: totalParticipants
+      }
+    };
+  };
+
+  handleYearFromChange = (year) => {
+    this.setState({ yearFrom: year }, () => {
+      // Fetch data if a centre is already selected
+      this.fetchLocationYearData();
+    });
+  };
+
+  handleYearToChange = (year) => {
+    this.setState({ yearTo: year }, () => {
+      // Fetch data if a centre is already selected
+      this.fetchLocationYearData();
+    });
+  };
+
+  handleTabChange = (tab) => {
+    this.setState({ activeTab: tab });
+  };
+
+  handleFolderIdChange = (e) => {
+    this.setState({ fftFolderId: e.target.value });
   }
 
-  render() {
-    const { loading, yearFrom, yearTo, availableYears, selectedLocation, availableLocations } = this.state;
+  handleSaveFolderId = () => {
+    const { fftFolderId } = this.state;
+    localStorage.setItem('fftGoogleDriveFolderId', fftFolderId);
+    this.fetchYearFolders();
+  }
+
+  renderTabContent = () => {
+    const { activeTab, dashboardStats, yearFrom, yearTo, locationFileMap, selectedLocation, availableYears } = this.state;
     const filteredData = this.getFilteredData();
-    const totalCount = filteredData.length;
-    const bothYearsSelected = yearFrom && yearTo && yearFrom !== yearTo;
-    
+
+    switch (activeTab) {
+      case 'dashboard':
+        return (
+          <FitnessDashboardSection
+            dashboardStats={dashboardStats}
+            filteredData={filteredData}
+            yearFrom={yearFrom}
+            yearTo={yearTo}
+          />
+        );
+      case 'participants':
+        // Get all data for the location (not filtered by year) for cross-year visualization
+        const allLocationData = this.state.fitnessData.filter(item => item.location === selectedLocation);
+        return (
+          <FitnessParticipantsSection
+            data={filteredData}
+            allLocationData={allLocationData}
+            yearFrom={yearFrom}
+            yearTo={yearTo}
+            availableYears={availableYears}
+            spreadsheetFiles={locationFileMap[selectedLocation] || []}
+            yearFolders={this.state.yearFolders}
+            selectedLocation={selectedLocation}
+            getApiBaseUrl={this.getApiBaseUrl}
+            getHardcodedLocations={this.getHardcodedLocations}
+            matchesLocation={this.matchesLocation}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
+  render() {
+    const {
+      loading,
+      error,
+      selectedLocation,
+      yearFrom,
+      yearTo,
+      availableLocations,
+      availableYears,
+      activeTab,
+      fftFolderId
+    } = this.state;
+
+    // Define tabs - renamed as requested
+    const tabs = [
+      { key: 'dashboard', label: 'Dashboard', icon: 'fas fa-chart-bar' },
+      { key: 'participants', label: 'Individual Participants', icon: 'fas fa-users' }
+    ];
+
+    if (error) {
+      return (
+        <div className="fft-main-error">
+          <i className="fas fa-exclamation-triangle"></i>
+          <span>{error}</span>
+          <button onClick={this.fetchYearFolders} className="fft-main-retry-btn">
+            <i className="fas fa-redo"></i> Retry
+          </button>
+        </div>
+      );
+    }
+
     return (
       <>
-        <div className="report-header">
-          <h1 className="report-title">FFT Fitness Results</h1>
-        </div>
-        
-        {/* Payment Report Style Controls */}
-        <div className="report-controls">
-          <div className="date-range-selector">
-            <div className="date-input-group">
-              <label htmlFor="yearFrom">From</label>
-              <select 
-                id="yearFrom"
-                value={yearFrom} 
-                onChange={this.handleYearFromChange}
-                className="date-select"
-              >
-                <option value="">Select Year</option>
-                {availableYears.map(year => (
-                  <option key={year} value={year} disabled={year === yearTo}>
-                    {year}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="date-input-group">
-              <label htmlFor="yearTo">To</label>
-              <select 
-                id="yearTo"
-                value={yearTo} 
-                onChange={this.handleYearToChange}
-                className="date-select"
-              >
-                <option value="">Select Year</option>
-                {availableYears.map(year => (
-                  <option key={year} value={year} disabled={year === yearFrom}>
-                    {year}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            {bothYearsSelected && (
-              <div className="date-input-group">
-                <label htmlFor="location">Location</label>
-                <select 
-                  id="location"
-                  value={selectedLocation} 
-                  onChange={this.handleLocationChange}
-                  className="date-select"
-                >
-                  <option value="">All Locations</option>
-                  {availableLocations.map(location => (
-                    <option key={location} value={location}>
-                      {location}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
+        {/* Header */}
+        <div className="fft-main-header">
+          <h2 className="fft-main-title">
+            <i className="fas fa-person-running"></i>
+            FFT Results
+          </h2>
+          <p className="fft-main-subtitle">
+            Functional Fitness Test data analysis and tracking
+          </p>
         </div>
 
-        {selectedLocation && (
-          <div className="report-content">
-            {loading ? (
-              <div className="loading-state">
-                <div className="loading-spinner"></div>
-                <p>Loading fitness data...</p>
+        {/* Folder Configuration - Show if no folder ID */}
+        {!fftFolderId && (
+          <div className="fft-main-folder-config">
+            <div className="fft-main-folder-config-content">
+              <i className="fas fa-folder-open"></i>
+              <h3>Configure Google Drive Folder</h3>
+              <p>Enter your Google Drive folder ID containing FFT spreadsheets to get started.</p>
+              <div className="fft-main-folder-input-row">
+                <input
+                  type="text"
+                  value={fftFolderId}
+                  onChange={this.handleFolderIdChange}
+                  placeholder="Enter Google Drive folder ID..."
+                  className="fft-main-folder-input"
+                />
+                <button 
+                  onClick={this.handleSaveFolderId}
+                  className="fft-main-folder-save-btn"
+                >
+                  <i className="fas fa-save"></i> Save & Load
+                </button>
               </div>
-            ) : totalCount === 0 ? (
-             <></>
-            ) : (
-              this.renderAdvancedTable()
-            )}
+              <p className="fft-main-folder-hint">
+                The folder ID is the last part of your Google Drive folder URL.
+              </p>
+            </div>
           </div>
+        )}
+
+        {/* Show filters and content only if folder is configured */}
+        {fftFolderId && (
+          <>
+            {/* Filter Section - Year From, Year To, and Centre */}
+            <FitnessFilterSection
+              availableLocations={availableLocations}
+              availableYears={this.getFilteredYearsForLocation()}
+              selectedLocation={selectedLocation}
+              yearFrom={yearFrom}
+              yearTo={yearTo}
+              onLocationChange={this.handleLocationChange}
+              onYearFromChange={this.handleYearFromChange}
+              onYearToChange={this.handleYearToChange}
+              showYearRange={true}
+              showSingleYear={false}
+              showLocation={true}
+              title="Filter by Year & Centre"
+            />
+
+        {/* Loading State */}
+        {loading && (
+          <div className="fft-main-loading">
+            <div className="fft-main-loading-spinner"></div>
+            <p>Loading fitness data...</p>
+          </div>
+        )}
+
+        {/* Tabs and Content - Only shown after centre AND year(s) are selected and not loading */}
+        {!loading && selectedLocation && (yearFrom || yearTo) ? (
+          <>
+            {/* Tab Navigation */}
+            <div className="fft-main-tabs">
+              {tabs.map(tab => (
+                <button
+                  key={tab.key}
+                  className={`fft-main-tab ${activeTab === tab.key ? 'fft-main-tab-active' : ''}`}
+                  onClick={() => this.handleTabChange(tab.key)}
+                >
+                  <i className={tab.icon}></i>
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Tab Content */}
+            <div className="fft-main-content">
+              {this.renderTabContent()}
+            </div>
+          </>
+        ) : !loading && (
+          /* Prompt to select years and centre */
+          <div className="fft-main-select-prompt">
+            <div className="fft-main-prompt-content">
+              <i className="fas fa-filter"></i>
+              <h3>Select Filters to View Data</h3>
+              <p>
+                {!yearFrom && !yearTo
+                  ? 'Please select Year From or Year To to begin.'
+                  : !selectedLocation
+                  ? 'Please select a Centre from the filter above to view the dashboard and participant data.'
+                  : 'Please select both Centre and Year(s) to view data.'
+                }
+              </p>
+            </div>
+          </div>
+        )}
+          </>
         )}
       </>
     );

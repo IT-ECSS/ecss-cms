@@ -1,0 +1,2890 @@
+/* FFT Participants Section Styles */
+/* Brand new unique class names for FitnessParticipantsSection component */
+
+.fft-participants-section-wrapper {
+  padding: 20px;
+  padding-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* AG Grid Container for Raw Data Tab - Same styling as Registration & Payment */
+.fft-grid-container {
+  width: 100%;
+  height: 55vh;
+  min-height: 400px;
+  box-sizing: border-box;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.fft-grid-container .ag-header {
+  background-color: #e27d7d !important;
+}
+
+.fft-grid-container .ag-header-cell-label {
+  color: #FFFFFF !important;
+  font-weight: bold;
+}
+
+/* Row styling for Raw Data table - gender based via getRowStyle */
+.fft-grid-container .ag-row {
+  border-bottom: 1px solid #000000 !important;
+}
+
+.fft-grid-container .ag-row:hover {
+  filter: brightness(0.95) !important;
+}
+
+/* Gender cell styling for Raw Data grid */
+.fft-grid-container .ag-cell.fft-ag-gender-male,
+.fft-grid-container .fft-ag-gender-male {
+  background-color: #e3f2fd !important;
+  color: #1976d2 !important;
+  font-weight: 600 !important;
+}
+
+.fft-grid-container .ag-cell.fft-ag-gender-female,
+.fft-grid-container .fft-ag-gender-female {
+  background-color: #fce4ec !important;
+  color: #c2185b !important;
+  font-weight: 600 !important;
+}
+
+/* AG Grid Container for Data Visualization Tab - Brand new unique class */
+.fft-viz-grid-container {
+  width: 100%;
+  height: 600px;
+  min-height: 400px;
+  display: block;
+  overflow: auto;
+  box-sizing: border-box;
+  border: 1px solid #c8e6c9;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.1);
+  margin-top: 16px;
+}
+
+.fft-viz-grid-container .ag-header {
+  background-color: #4CAF50 !important;
+}
+
+.fft-viz-grid-container .ag-header-cell-label {
+  color: #FFFFFF !important;
+  font-weight: bold;
+}
+
+/* Row styling for Data Visualization table - gender based via getRowStyle */
+.fft-viz-grid-container .ag-row {
+  border-bottom: 1px solid #ddd !important;
+}
+
+.fft-viz-grid-container .ag-row:hover {
+  filter: brightness(0.95) !important;
+}
+
+/* Gender cell styling for Data Visualization grid */
+.fft-viz-grid-container .ag-cell.fft-ag-gender-male,
+.fft-viz-grid-container .fft-ag-gender-male {
+  background-color: #e3f2fd !important;
+  color: #1976d2 !important;
+  font-weight: 600 !important;
+}
+
+.fft-viz-grid-container .ag-cell.fft-ag-gender-female,
+.fft-viz-grid-container .fft-ag-gender-female {
+  background-color: #fce4ec !important;
+  color: #c2185b !important;
+  font-weight: 600 !important;
+}
+
+/* AG Grid Gender Cell Styling - Applied via cellClass */
+.ag-cell.fft-ag-gender-male,
+.fft-ag-gender-male {
+  background-color: #e3f2fd !important;
+  color: #1976d2 !important;
+  font-weight: 600 !important;
+}
+
+.ag-cell.fft-ag-gender-female,
+.fft-ag-gender-female {
+  background-color: #fce4ec !important;
+  color: #c2185b !important;
+  font-weight: 600 !important;
+}
+
+/* Sub-Tab Navigation */
+.fft-participants-subtabs {
+  display: flex;
+  gap: 8px;
+  padding: 0;
+  background: transparent;
+  border-bottom: 2px solid #e2e8f0;
+  margin-bottom: 24px;
+}
+
+.fft-participants-subtab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 24px;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  font-size: 18px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: -2px;
+}
+
+.fft-participants-subtab:hover {
+  color: #3b82f6;
+  background: #f1f5f9;
+}
+
+.fft-participants-subtab i {
+  font-size: 20px;
+}
+
+.fft-participants-subtab-active {
+  color: #3b82f6;
+  background: transparent;
+  border-bottom-color: #3b82f6;
+}
+
+.fft-participants-subtab-active:hover {
+  color: #3b82f6;
+  background: transparent;
+}
+
+.fft-participants-subtab-content {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* Loading State */
+.fft-participants-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px;
+  text-align: center;
+  color: #64748b;
+}
+
+.fft-participants-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #4CAF50;
+  border-radius: 50%;
+  animation: fft-participants-spin 0.8s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes fft-participants-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Empty State */
+.fft-participants-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px;
+  text-align: center;
+  color: #94a3b8;
+}
+
+.fft-participants-empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+/* Count Display */
+.fft-participants-count {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #fff;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #64748b;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.fft-participants-count i {
+  color: #4CAF50;
+}
+
+.fft-participants-count strong {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+/* Table Wrapper */
+.fft-participants-table-wrapper {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+/* Search Bar */
+.fft-participants-search-bar {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #e2e8f0;
+  gap: 10px;
+}
+
+.fft-participants-search-icon {
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.fft-participants-search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: #334155;
+}
+
+.fft-participants-search-input::placeholder {
+  color: #94a3b8;
+}
+
+/* Table Container */
+.fft-participants-table-container {
+  overflow-x: auto;
+}
+
+/* Table */
+.fft-participants-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1200px;
+}
+
+/* Header */
+.fft-participants-thead {
+  background: #f8fafc;
+}
+
+.fft-participants-header-row {
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.fft-participants-header-cell {
+  padding: 14px 12px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.fft-participants-sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.fft-participants-sortable:hover {
+  background: #f1f5f9;
+}
+
+.fft-participants-header-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fft-participants-sort-icon {
+  font-size: 12px;
+  color: #4CAF50;
+}
+
+/* Body */
+.fft-participants-data-row {
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.15s ease;
+  cursor: pointer;
+}
+
+.fft-participants-data-row:hover {
+  background: #f8fafc;
+}
+
+.fft-participants-data-cell {
+  padding: 12px;
+  font-size: 13px;
+  color: #334155;
+  vertical-align: middle;
+}
+
+/* Cell Styles */
+.fft-participants-cell-name {
+  font-weight: 500;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+
+.fft-participants-cell-dob {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* Gender Badge */
+.fft-participants-gender-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.fft-participants-gender-male {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.fft-participants-gender-female {
+  background: #fce4ec;
+  color: #c2185b;
+}
+
+/* Location Badge */
+.fft-participants-location-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.fft-participants-location-cthub {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.fft-participants-location-tncc {
+  background: #efebe9;
+  color: #5d4037;
+}
+
+.fft-participants-location-prw {
+  background: #eceff1;
+  color: #546e7a;
+}
+
+/* No Data */
+.fft-participants-no-data {
+  color: #cbd5e1;
+  font-size: 14px;
+}
+
+/* Metric Cell */
+.fft-participants-metric-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.fft-participants-trend-up {
+  color: #16a34a;
+}
+
+.fft-participants-trend-down {
+  color: #dc2626;
+}
+
+.fft-participants-metric-arrow {
+  font-size: 10px;
+}
+
+.fft-participants-metric-change {
+  font-weight: 600;
+}
+
+.fft-participants-metric-percent {
+  color: #64748b;
+  font-weight: 400;
+}
+
+/* Pagination */
+.fft-participants-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px;
+  border-top: 1px solid #e2e8f0;
+  background: #fafafa;
+}
+
+.fft-participants-pagination-info {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.fft-participants-pagination-size {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.fft-participants-page-select {
+  padding: 6px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 13px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.fft-participants-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fft-participants-pagination-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 12px;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.fft-participants-pagination-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.fft-participants-pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.fft-participants-page-indicator {
+  padding: 0 12px;
+  font-size: 13px;
+  color: #334155;
+  font-weight: 500;
+}
+
+/* Modal Overlay */
+.fft-participants-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.fft-participants-modal-content {
+  background: #fff;
+  border-radius: 16px;
+  max-width: 800px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+}
+
+.fft-participants-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 24px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.fft-participants-modal-name {
+  margin: 0 0 12px 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.fft-participants-modal-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.fft-participants-modal-detail {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.fft-participants-modal-detail i {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.fft-participants-modal-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.fft-participants-modal-close:hover {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.fft-participants-modal-body {
+  padding: 24px;
+}
+
+.fft-participants-modal-section-title {
+  margin: 0 0 20px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.fft-participants-modal-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.fft-participants-modal-metric-card {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.fft-participants-modal-metric-name {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.fft-participants-modal-metric-values {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.fft-participants-modal-year-value {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fft-participants-modal-year-label {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.fft-participants-modal-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.fft-participants-modal-change {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 6px;
+}
+
+.fft-participants-modal-change-improved {
+  background: #dcfce7;
+}
+
+.fft-participants-modal-change-declined {
+  background: #fee2e2;
+}
+
+.fft-participants-modal-change-neutral {
+  background: #f1f5f9;
+}
+
+.fft-participants-modal-change-value {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.fft-participants-modal-change-improved .fft-participants-modal-change-value {
+  color: #16a34a;
+}
+
+.fft-participants-modal-change-declined .fft-participants-modal-change-value {
+  color: #dc2626;
+}
+
+.fft-participants-modal-change-percent {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* Data Source Toggle */
+.fft-participants-source-toggle {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 6px;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.fft-participants-source-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fft-participants-source-btn:hover {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.fft-participants-source-btn i {
+  font-size: 14px;
+}
+
+.fft-participants-source-active {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.fft-participants-source-active:hover {
+  background: #15803d;
+  color: #ffffff;
+}
+
+/* Google Sheets Section */
+.fft-participants-gsheets-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fft-participants-gsheets-header {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.fft-participants-config-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fft-participants-config-btn:hover {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.fft-participants-folder-config {
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.fft-participants-folder-config label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #334155;
+}
+
+.fft-participants-folder-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.fft-participants-folder-input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #334155;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.fft-participants-folder-input:focus {
+  border-color: #16a34a;
+}
+
+.fft-participants-folder-save-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: #16a34a;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.fft-participants-folder-save-btn:hover {
+  background: #15803d;
+}
+
+.fft-participants-folder-hint {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.fft-participants-file-selector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.fft-participants-file-selector label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.fft-participants-file-dropdown {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #334155;
+  background: #ffffff;
+  cursor: pointer;
+  outline: none;
+}
+
+.fft-participants-file-dropdown:focus {
+  border-color: #16a34a;
+}
+
+.fft-participants-sheet-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  overflow-x: auto;
+}
+
+.fft-participants-sheet-tab {
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #64748b;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.fft-participants-sheet-tab:hover {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.fft-participants-sheet-active {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.fft-participants-sheet-active:hover {
+  background: #15803d;
+  color: #ffffff;
+}
+
+.fft-participants-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  background: #fef2f2;
+  border-radius: 12px;
+  text-align: center;
+  color: #dc2626;
+}
+
+.fft-participants-error i {
+  font-size: 32px;
+  margin-bottom: 12px;
+}
+
+.fft-participants-error p {
+  font-size: 14px;
+  margin: 0;
+}
+
+.fft-participants-gsheets-data {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fft-participants-gsheet-cell {
+  font-size: 13px;
+  color: #334155;
+}
+
+.fft-participants-empty-hint {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+/* ========================================
+   ENTRIES TABLE STYLES
+   ======================================== */
+
+/* Entries Table Wrapper */
+.fft-entries-table-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 640px;
+  overflow: auto;
+}
+
+/* Entries Search Bar */
+.fft-entries-search-bar {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #e2e8f0;
+  gap: 10px;
+  background: #fafbfc;
+}
+
+.fft-entries-search-icon {
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.fft-entries-search-input {
+  flex: 1;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 8px 12px;
+  outline: none;
+  font-size: 14px;
+  color: #334155;
+  transition: border-color 0.2s;
+}
+
+.fft-entries-search-input:focus {
+  border-color: #4CAF50;
+}
+
+.fft-entries-search-input::placeholder {
+  color: #94a3b8;
+}
+
+.fft-entries-result-count {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+  padding: 6px 12px;
+  background: #e2e8f0;
+  border-radius: 16px;
+}
+
+/* Entries Table Container */
+.fft-entries-table-container {
+  overflow-x: auto;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+/* Entries Table */
+.fft-entries-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 800px;
+}
+
+/* Entries Header */
+.fft-entries-thead {
+  background: #f8fafc;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.fft-entries-header-row {
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.fft-entries-header-cell {
+  padding: 12px 10px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  background: #f8fafc;
+}
+
+.fft-entries-row-num {
+  width: 50px;
+  text-align: center;
+  color: #94a3b8;
+}
+
+.fft-entries-sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.fft-entries-sortable:hover {
+  background: #f1f5f9;
+}
+
+.fft-entries-header-content {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.fft-entries-sort-icon {
+  font-size: 11px;
+  color: #4CAF50;
+  font-weight: 700;
+}
+
+/* Entries Body */
+.fft-entries-tbody tr:nth-child(even) {
+  background: #fafbfc;
+}
+
+.fft-entries-data-row {
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.15s ease;
+  cursor: pointer;
+}
+
+.fft-entries-data-row:hover {
+  background: #e8f5e9 !important;
+}
+
+.fft-entries-data-cell {
+  padding: 10px;
+  font-size: 13px;
+  color: #334155;
+  vertical-align: middle;
+}
+
+/* Entry Cell Styles */
+.fft-entry-cell {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}
+
+.fft-entry-gender {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.fft-entry-gender-male {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.fft-entry-gender-female {
+  background: #fce4ec;
+  color: #c2185b;
+}
+
+.fft-entry-year-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  background: #4CAF50;
+  color: white;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.fft-entry-location {
+  display: inline-block;
+  padding: 3px 10px;
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* Numeric Cell with Bar Visualization */
+.fft-entry-numeric-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 80px;
+}
+
+.fft-entry-numeric-value {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 13px;
+}
+
+.fft-entry-bar-container {
+  width: 100%;
+  height: 4px;
+  background: #e2e8f0;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.fft-entry-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #4CAF50, #81c784);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* Entries Pagination */
+.fft-entries-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-top: 1px solid #e2e8f0;
+  background: #fafbfc;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.fft-entries-pagination-info {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.fft-entries-pagination-size {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.fft-entries-page-select {
+  padding: 6px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #334155;
+  background: white;
+  cursor: pointer;
+}
+
+.fft-entries-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fft-entries-pagination-btn {
+  padding: 6px 10px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 12px;
+}
+
+.fft-entries-pagination-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: #4CAF50;
+}
+
+.fft-entries-pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fft-entries-page-indicator {
+  font-size: 13px;
+  color: #64748b;
+  padding: 0 8px;
+}
+
+/* ========================================
+   PARTICIPANT DETAIL MODAL STYLES
+   ======================================== */
+
+.fft-detail-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.fft-detail-modal-content {
+  background: white;
+  border-radius: 16px;
+  max-width: 700px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.fft-detail-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 16px 16px 0 0;
+}
+
+.fft-detail-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.fft-detail-modal-title i {
+  color: #4CAF50;
+  font-size: 24px;
+}
+
+.fft-detail-modal-close {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: #e2e8f0;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.fft-detail-modal-close:hover {
+  background: #cbd5e1;
+}
+
+.fft-detail-modal-close i {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.fft-detail-modal-body {
+  padding: 24px;
+}
+
+.fft-detail-metadata {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.fft-detail-meta-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.fft-detail-year {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.fft-detail-location {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.fft-detail-section {
+  margin-bottom: 24px;
+}
+
+.fft-detail-section:last-child {
+  margin-bottom: 0;
+}
+
+.fft-detail-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 16px 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.fft-detail-text-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.fft-detail-text-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fft-detail-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.fft-detail-value {
+  font-size: 14px;
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.fft-detail-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.fft-detail-metric-card {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+}
+
+.fft-detail-metric-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.fft-detail-metric-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.fft-detail-metric-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #4CAF50;
+}
+
+.fft-detail-metric-bar-container {
+  width: 100%;
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.fft-detail-metric-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #4CAF50, #81c784);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+/* Header Styles */
+.fft-participants-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.fft-participants-year-info {
+  color: #64748b;
+  font-weight: 400;
+  margin-left: 4px;
+}
+
+/* ========================================
+   DATA VISUALIZATION STYLES
+   ======================================== */
+
+.fft-viz-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex: 1;
+  overflow: visible;
+}
+
+.fft-viz-section {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+  overflow: visible;
+}
+
+.fft-viz-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 20px 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.fft-viz-section-title i {
+  color: #4CAF50;
+  font-size: 22px;
+}
+
+.fft-viz-year-badge {
+  margin-left: auto;
+  padding: 4px 12px;
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* Summary Cards */
+.fft-viz-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.fft-viz-summary-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.fft-viz-summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.fft-viz-card-total {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-color: #86efac;
+}
+
+.fft-viz-card-male {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #93c5fd;
+}
+
+.fft-viz-card-female {
+  background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%);
+  border-color: #f9a8d4;
+}
+
+.fft-viz-card-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  font-size: 28px;
+}
+
+.fft-viz-card-total .fft-viz-card-icon {
+  background: #22c55e;
+  color: white;
+}
+
+.fft-viz-card-male .fft-viz-card-icon {
+  background: #3b82f6;
+  color: white;
+}
+
+.fft-viz-card-female .fft-viz-card-icon {
+  background: #ec4899;
+  color: white;
+}
+
+.fft-viz-card-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.fft-viz-card-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.fft-viz-card-label {
+  font-size: 17px;
+  color: #64748b;
+}
+
+/* Year Chart */
+.fft-viz-year-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fft-viz-year-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.fft-viz-year-label {
+  width: 60px;
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 18px;
+}
+
+.fft-viz-year-bars {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.fft-viz-bar-container {
+  flex: 1;
+  display: flex;
+  height: 32px;
+  background: #f1f5f9;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.fft-viz-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  transition: width 0.5s ease;
+}
+
+.fft-viz-bar-male {
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+}
+
+.fft-viz-bar-female {
+  background: linear-gradient(90deg, #ec4899, #f472b6);
+}
+
+.fft-viz-bar-value {
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.fft-viz-year-total {
+  width: 50px;
+  text-align: right;
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 18px;
+}
+
+.fft-viz-legend {
+  display: flex;
+  gap: 20px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.fft-viz-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+  color: #64748b;
+}
+
+.fft-viz-legend-male .fft-viz-legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+}
+
+.fft-viz-legend-female .fft-viz-legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #ec4899, #f472b6);
+}
+
+/* Metrics Grid */
+.fft-viz-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.fft-viz-metric-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.fft-viz-metric-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.fft-viz-metric-name {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 18px;
+}
+
+.fft-viz-metric-avg {
+  font-size: 16px;
+  color: #4CAF50;
+  font-weight: 600;
+  background: #e8f5e9;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.fft-viz-metric-range {
+  display: flex;
+  justify-content: space-between;
+  font-size: 15px;
+  color: #94a3b8;
+  margin-bottom: 12px;
+}
+
+.fft-viz-metric-comparison {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fft-viz-comparison-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fft-viz-comparison-label {
+  width: 100px;
+  font-size: 16px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fft-viz-male-label {
+  color: #3b82f6;
+}
+
+.fft-viz-female-label {
+  color: #ec4899;
+}
+
+.fft-viz-comparison-bar-container {
+  flex: 1;
+  height: 20px;
+  background: #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.fft-viz-comparison-bar {
+  height: 100%;
+  border-radius: 10px;
+  transition: width 0.5s ease;
+}
+
+.fft-viz-comparison-value {
+  width: 45px;
+  text-align: right;
+  font-size: 17px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.fft-viz-participants-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.fft-viz-participants-empty i {
+  font-size: 52px;
+  margin-bottom: 16px;
+  color: #cbd5e1;
+}
+
+/* Overview Cards */
+.fft-viz-overview-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.fft-viz-overview-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: #f8fafc;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.fft-viz-overview-card i {
+  font-size: 32px;
+  color: #4CAF50;
+}
+
+.fft-viz-overview-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.fft-viz-overview-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.fft-viz-overview-label {
+  font-size: 16px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Distribution Bars */
+.fft-viz-distribution {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fft-viz-dist-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fft-viz-dist-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.fft-viz-dist-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.fft-viz-male {
+  color: #1976d2;
+}
+
+.fft-viz-female {
+  color: #c2185b;
+}
+
+.fft-viz-dist-count {
+  font-size: 18px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.fft-viz-dist-bar-container {
+  width: 100%;
+  height: 24px;
+  background: #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.fft-viz-dist-bar {
+  height: 100%;
+  border-radius: 12px;
+  transition: width 0.5s ease;
+}
+
+.fft-viz-bar-male {
+  background: linear-gradient(90deg, #1976d2, #42a5f5);
+}
+
+.fft-viz-bar-female {
+  background: linear-gradient(90deg, #c2185b, #f06292);
+}
+
+/* Age Chart */
+.fft-viz-age-chart {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  height: 200px;
+  padding: 20px 0;
+  gap: 16px;
+}
+
+.fft-viz-age-bar-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  max-width: 80px;
+}
+
+.fft-viz-age-count {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.fft-viz-age-bar-container {
+  width: 100%;
+  height: 140px;
+  background: #e2e8f0;
+  border-radius: 8px 8px 0 0;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+
+.fft-viz-age-bar {
+  width: 100%;
+  background: linear-gradient(180deg, #4CAF50, #81c784);
+  border-radius: 8px 8px 0 0;
+  transition: height 0.5s ease;
+  min-height: 4px;
+}
+
+.fft-viz-age-label {
+  font-size: 16px;
+  color: #64748b;
+  margin-top: 8px;
+  font-weight: 500;
+}
+
+/* Stats Grid */
+.fft-viz-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.fft-viz-stat-card {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+}
+
+.fft-viz-stat-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 16px 0;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.fft-viz-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.fft-viz-stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  background: #ffffff;
+  border-radius: 8px;
+}
+
+.fft-viz-stat-highlight {
+  background: #e8f5e9;
+}
+
+.fft-viz-stat-label {
+  font-size: 15px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.fft-viz-stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.fft-viz-stat-highlight .fft-viz-stat-value {
+  color: #2e7d32;
+}
+
+/* Range Indicator */
+.fft-viz-range-indicator {
+  margin-top: 8px;
+}
+
+.fft-viz-range-bar {
+  width: 100%;
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  position: relative;
+  margin-bottom: 6px;
+}
+
+.fft-viz-range-fill {
+  position: absolute;
+  height: 100%;
+  background: linear-gradient(90deg, #81c784, #4CAF50, #2e7d32);
+  border-radius: 4px;
+}
+
+.fft-viz-range-avg {
+  position: absolute;
+  top: -4px;
+  width: 4px;
+  height: 16px;
+  background: #1e293b;
+  border-radius: 2px;
+  transform: translateX(-50%);
+}
+
+.fft-viz-range-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 15px;
+  color: #94a3b8;
+}
+
+/* Responsive for Data Visualization */
+@media (max-width: 768px) {
+  .fft-participants-section-wrapper {
+    padding: 16px;
+  }
+
+  .fft-participants-subtabs {
+    flex-wrap: wrap;
+  }
+
+  .fft-participants-subtab {
+    flex: 1;
+    justify-content: center;
+    min-width: 120px;
+  }
+
+  .fft-entries-pagination {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .fft-detail-modal-content {
+    margin: 10px;
+    max-height: 95vh;
+  }
+
+  .fft-detail-metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .fft-detail-text-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fft-viz-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fft-viz-fitness-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ========================================
+   SEARCH PARTICIPANT STYLES (Data Visualization Tab)
+   ======================================== */
+
+/* Search container - must be relative for dropdown positioning */
+.fft-viz-wrapper .fft-viz-search-container {
+  position: relative;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+/* Search input wrapper - the search box */
+.fft-viz-wrapper .fft-viz-search-input-wrapper {
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0 16px;
+  transition: all 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.fft-viz-wrapper .fft-viz-search-input-wrapper:focus-within {
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.15);
+}
+
+/* Search icon */
+.fft-viz-wrapper .fft-viz-search-icon {
+  color: #94a3b8;
+  font-size: 22px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+/* Search input field */
+.fft-viz-wrapper .fft-viz-search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 16px 0;
+  font-size: 20px;
+  color: #1e293b;
+  outline: none;
+  min-width: 0;
+}
+
+.fft-viz-wrapper .fft-viz-search-input::placeholder {
+  color: #94a3b8;
+}
+
+/* Clear button */
+.fft-viz-wrapper .fft-viz-search-clear {
+  background: #e2e8f0;
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #64748b;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.fft-viz-wrapper .fft-viz-search-clear:hover {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+/* Search hint text */
+.fft-viz-wrapper .fft-viz-search-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 12px 0 0 0;
+}
+
+.fft-viz-wrapper .fft-viz-search-hint i {
+  color: #4CAF50;
+}
+
+/* ========================================
+   SEARCH RESULTS DROPDOWN
+   ======================================== */
+
+.fft-viz-wrapper .fft-viz-search-results {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 2px solid #4CAF50;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  max-height: 400px;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+/* Individual result item */
+.fft-viz-wrapper .fft-viz-search-result-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.15s ease;
+}
+
+.fft-viz-wrapper .fft-viz-search-result-item:last-child {
+  border-bottom: none;
+}
+
+.fft-viz-wrapper .fft-viz-search-result-item:hover {
+  background: #f0fdf4;
+}
+
+/* Gender indicator on result items */
+.fft-viz-wrapper .fft-viz-result-male {
+  border-left: 4px solid #3b82f6;
+}
+
+.fft-viz-wrapper .fft-viz-result-female {
+  border-left: 4px solid #ec4899;
+}
+
+/* Result name row */
+.fft-viz-wrapper .fft-viz-result-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 15px;
+  color: #1e293b;
+}
+
+.fft-viz-wrapper .fft-viz-result-male .fft-viz-result-name i {
+  color: #3b82f6;
+  font-size: 16px;
+}
+
+.fft-viz-wrapper .fft-viz-result-female .fft-viz-result-name i {
+  color: #ec4899;
+  font-size: 16px;
+}
+
+/* Chinese name */
+.fft-viz-wrapper .fft-viz-result-chinese {
+  font-weight: 400;
+  color: #64748b;
+  font-size: 14px;
+}
+
+/* Result info row (age, year) */
+.fft-viz-wrapper .fft-viz-result-info {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: #64748b;
+  margin-left: 26px;
+}
+
+/* ========================================
+   SELECTED PARTICIPANT RESULTS
+   ======================================== */
+
+/* Results Section */
+.fft-viz-results-section {
+  border: 2px solid #4CAF50;
+  overflow: visible;
+  position: relative;
+}
+
+.fft-viz-results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.fft-viz-results-header .fft-viz-section-title {
+  margin: 0;
+}
+
+.fft-viz-close-results {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #fee2e2;
+  color: #dc2626;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.fft-viz-close-results:hover {
+  background: #fecaca;
+}
+
+/* Participant Card */
+.fft-viz-participant-card {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 24px;
+  border-radius: 16px;
+  margin-bottom: 24px;
+}
+
+.fft-viz-card-male-bg {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 2px solid #93c5fd;
+}
+
+.fft-viz-card-female-bg {
+  background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%);
+  border: 2px solid #f9a8d4;
+}
+
+.fft-viz-participant-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  flex-shrink: 0;
+}
+
+.fft-viz-card-male-bg .fft-viz-participant-avatar {
+  background: #3b82f6;
+  color: white;
+}
+
+.fft-viz-card-female-bg .fft-viz-participant-avatar {
+  background: #ec4899;
+  color: white;
+}
+
+.fft-viz-participant-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.fft-viz-participant-name {
+  margin: 0 0 12px 0;
+  font-size: 26px;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.fft-viz-participant-chinese {
+  font-weight: 400;
+  color: #64748b;
+  margin-left: 8px;
+}
+
+.fft-viz-participant-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.fft-viz-meta-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 17px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.fft-viz-badge-male {
+  background: #3b82f6;
+  color: white;
+}
+
+.fft-viz-badge-female {
+  background: #ec4899;
+  color: white;
+}
+
+.fft-viz-badge-age {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #86efac;
+}
+
+.fft-viz-badge-year {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fcd34d;
+}
+
+.fft-viz-badge-location {
+  background: #f3e8ff;
+  color: #7c3aed;
+  border: 1px solid #c4b5fd;
+}
+
+/* Fitness Metrics Grid */
+.fft-viz-fitness-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.fft-viz-fitness-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 12px;
+  transition: all 0.2s;
+}
+
+.fft-viz-fitness-card-active {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border: 1px solid #86efac;
+}
+
+.fft-viz-fitness-card-empty {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.fft-viz-fitness-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.fft-viz-fitness-card-active .fft-viz-fitness-icon {
+  background: #22c55e;
+  color: white;
+}
+
+.fft-viz-fitness-card-empty .fft-viz-fitness-icon {
+  background: #e2e8f0;
+  color: #94a3b8;
+}
+
+.fft-viz-fitness-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.fft-viz-fitness-label {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.fft-viz-fitness-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.fft-viz-value-empty {
+  color: #cbd5e1;
+  font-size: 18px;
+}
+
+/* Empty State */
+.fft-viz-empty-state {
+  background: #f8fafc;
+  border: 2px dashed #e2e8f0;
+}
+
+.fft-viz-empty-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.fft-viz-empty-icon {
+  font-size: 64px;
+  color: #cbd5e1;
+  margin-bottom: 20px;
+}
+
+.fft-viz-empty-content h4 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  color: #1e293b;
+}
+
+.fft-viz-empty-content p {
+  margin: 0 0 24px 0;
+  color: #64748b;
+}
+
+.fft-viz-empty-metrics {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: left;
+  border: 1px solid #e2e8f0;
+}
+
+.fft-viz-empty-metrics span {
+  display: block;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 12px;
+}
+
+.fft-viz-empty-metrics ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.fft-viz-empty-metrics li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.fft-viz-empty-metrics li i {
+  color: #22c55e;
+  font-size: 12px;
+}
+
+@media (max-width: 480px) {
+  .fft-entries-search-bar {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .fft-entries-search-input {
+    width: 100%;
+  }
+
+  .fft-entries-result-count {
+    align-self: flex-end;
+  }
+
+  .fft-viz-overview-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .fft-viz-participant-metrics {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ========================================
+   Chart Visualization Styles
+   ======================================== */
+
+/* Chart Type Selector */
+.fft-viz-chart-selector {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.fft-viz-chart-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  background: white;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fft-viz-chart-btn:hover {
+  border-color: #4CAF50;
+  color: #4CAF50;
+  background: #f0fdf4;
+}
+
+.fft-viz-chart-btn.active {
+  border-color: #4CAF50;
+  background: #4CAF50;
+  color: white;
+}
+
+.fft-viz-chart-btn i {
+  font-size: 16px;
+}
+
+/* Charts Container */
+.fft-fitness-progress-chart-outer {
+  display: block;
+  width: 100%;
+  margin-bottom: 24px;
+  clear: both;
+}
+
+.fft-fitness-progress-chart-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  position: relative;
+  z-index: 1;
+  overflow: visible;
+}
+
+.fft-fitness-progress-chart-area {
+  width: 100%;
+  height: 450px;
+  min-height: 450px;
+  position: relative;
+  display: block;
+}
+
+.fft-fitness-progress-chart-area > div {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.fft-fitness-progress-chart-area .recharts-responsive-container {
+  width: 100% !important;
+  height: 450px !important;
+  min-width: 0 !important;
+}
+
+.fft-fitness-progress-chart-card .recharts-wrapper {
+  width: 100% !important;
+  height: 450px !important;
+  position: relative !important;
+  cursor: default !important;
+}
+
+.fft-fitness-progress-chart-card .recharts-surface {
+  width: 100% !important;
+  height: 100% !important;
+  overflow: visible !important;
+  display: block !important;
+}
+
+.fft-fitness-progress-chart-card svg {
+  overflow: visible !important;
+  display: block !important;
+}
+
+.fft-fitness-progress-chart-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 20px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.fft-fitness-progress-chart-heading i {
+  color: #4CAF50;
+}
+
+.fft-viz-charts-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.fft-viz-chart-wrapper {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  min-height: 500px;
+  position: relative;
+}
+
+.fft-line-chart-container {
+  width: 100%;
+  height: 400px;
+  min-height: 400px;
+}
+
+.fft-viz-chart-wrapper .recharts-wrapper {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.fft-viz-chart-wrapper .recharts-surface {
+  overflow: visible !important;
+}
+
+.fft-viz-chart-wrapper svg {
+  overflow: visible !important;
+}
+
+.fft-viz-chart-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.fft-viz-chart-title i {
+  color: #4CAF50;
+}
+
+/* Improvement Summary */
+.fft-viz-improvement-summary {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+}
+
+.fft-viz-improvement-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.fft-viz-improvement-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.fft-viz-improvement-card.improved {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-color: #86efac;
+}
+
+.fft-viz-improvement-card.declined {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border-color: #fca5a5;
+}
+
+.fft-viz-improvement-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.fft-viz-improvement-card.improved .fft-viz-improvement-icon {
+  background: #22c55e;
+  color: white;
+}
+
+.fft-viz-improvement-card.declined .fft-viz-improvement-icon {
+  background: #ef4444;
+  color: white;
+}
+
+.fft-viz-improvement-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.fft-viz-improvement-label {
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 2px;
+}
+
+.fft-viz-improvement-value {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.fft-viz-improvement-card.improved .fft-viz-improvement-value {
+  color: #16a34a;
+}
+
+.fft-viz-improvement-card.declined .fft-viz-improvement-value {
+  color: #dc2626;
+}
+
+/* Metrics Grid Title */
+.fft-viz-metrics-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.fft-viz-metrics-title i {
+  color: #4CAF50;
+}
+
+.fft-viz-metrics-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+/* Year-by-Year Table */
+.fft-viz-yearly-table {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+}
+
+.fft-viz-table-wrapper {
+  overflow-x: auto;
+}
+
+.fft-viz-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.fft-viz-data-table th,
+.fft-viz-data-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.fft-viz-data-table th {
+  background: #f8fafc;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+}
+
+.fft-viz-data-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.fft-viz-data-table td {
+  color: #475569;
+}
+
+.fft-viz-data-table td strong {
+  color: #1e293b;
+}
+
+/* Badge for Years */
+.fft-viz-badge-years {
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%) !important;
+  color: white !important;
+}
+
+/* Empty State Features */
+.fft-viz-empty-features {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.fft-viz-empty-feature {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 24px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.fft-viz-empty-feature i {
+  font-size: 24px;
+  color: #4CAF50;
+}
+
+.fft-viz-empty-feature span {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Responsive Chart Styles */
+@media (max-width: 768px) {
+  .fft-viz-chart-selector {
+    flex-direction: column;
+  }
+  
+  .fft-viz-chart-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .fft-viz-improvement-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .fft-viz-metrics-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  .fft-viz-empty-features {
+    flex-direction: column;
+    align-items: center;
+  }
+}

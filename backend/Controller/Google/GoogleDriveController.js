@@ -482,6 +482,180 @@ class GoogleDriveController {
         }
     }
 
+    async initializeSheetsAuth() {
+        let credentials = null;
+
+        // Priority 1: Check for GOOGLE_SERVICE_ACCOUNT_NORSE environment variable
+        if (process.env.GOOGLE_SERVICE_ACCOUNT_NORSE) {
+            try {
+                credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_NORSE);
+            } catch (error) {
+                console.error('Error parsing GOOGLE_SERVICE_ACCOUNT_NORSE:', error.message);
+            }
+        }
+
+        // Priority 2: Check for GOOGLE_DRIVE_CREDENTIALS environment variable
+        if (!credentials && process.env.GOOGLE_DRIVE_CREDENTIALS) {
+            try {
+                credentials = JSON.parse(process.env.GOOGLE_DRIVE_CREDENTIALS);
+            } catch {
+                credentials = JSON.parse(Buffer.from(process.env.GOOGLE_DRIVE_CREDENTIALS, 'base64').toString('utf8'));
+            }
+        }
+
+        // Priority 3: Try local credentials file
+        if (!credentials) {
+            let keyFile = path.join(__dirname, '../../config/norse-study-479913-b7-00b6903f8f4f.json');
+            if (fs.existsSync(keyFile)) {
+                credentials = JSON.parse(fs.readFileSync(keyFile, 'utf8'));
+            }
+        }
+
+        if (!credentials) {
+            throw new Error("Google credentials not found");
+        }
+
+        const auth = new google.auth.GoogleAuth({
+            credentials: credentials,
+            scopes: [
+                'https://www.googleapis.com/auth/drive',
+                'https://www.googleapis.com/auth/spreadsheets.readonly'
+            ]
+        });
+
+        return google.sheets({ version: 'v4', auth });
+    }
+
+    async readSpreadsheet(fileId, sheetName = null) {
+        try {
+            const drive = await this.initializeAuth();
+            const sheets = await this.initializeSheetsAuth();
+
+            console.log(`[SHEETS] Reading spreadsheet: ${fileId}`);
+
+            // First, get spreadsheet metadata to get sheet names
+            const spreadsheet = await sheets.spreadsheets.get({
+                spreadsheetId: fileId,
+                fields: 'sheets.properties'
+            });
+
+            const sheetNames = spreadsheet.data.sheets.map(s => s.properties.title);
+            console.log(`[SHEETS] Available sheets: ${sheetNames.join(', ')}`);
+
+            // Determine which sheet to read
+            const targetSheet = sheetName || sheetNames[0];
+
+            // Read data from the sheet
+            const range = `'${targetSheet}'!A:ZZ`;
+            const response = await sheets.spreadsheets.values.get({
+                spreadsheetId: fileId,
+                range: range
+            });
+
+            const values = response.data.values || [];
+            console.log(`[SHEETS] Read ${values.length} rows from '${targetSheet}'`);
+
+            if (values.length === 0) {
+                return {
+                    success: true,
+                    sheets: sheetNames,
+                    data: [],
+                    columns: []
+                };
+            }
+
+            // First row is headers/columns
+            const columns = values[0] || [];
+            // Remaining rows are data
+            const data = values.slice(1);
+
+            return {
+                success: true,
+                sheets: sheetNames,
+                columns: columns,
+                data: data,
+                rowCount: data.length
+            };
+        } catch (error) {
+            console.error('[SHEETS] Error reading spreadsheet:', error.message);
+            
+            // If it's not a Google Sheets file, try to export it
+            if (error.message.includes('not found') || error.code === 404) {
+                return await this.readExportedSpreadsheet(fileId);
+            }
+            
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
+    async readExportedSpreadsheet(fileId) {
+        try {
+            const drive = await this.initializeAuth();
+
+            console.log(`[SHEETS] Attempting to export spreadsheet as CSV: ${fileId}`);
+
+            // Export Google Sheets as CSV
+            const response = await drive.files.export({
+                fileId: fileId,
+                mimeType: 'text/csv'
+            }, { responseType: 'text' });
+
+            const csvContent = response.data;
+            
+            // Parse CSV
+            const lines = csvContent.split('\n').filter(line => line.trim());
+            if (lines.length === 0) {
+                return {
+                    success: true,
+                    sheets: ['Sheet1'],
+                    data: [],
+                    columns: []
+                };
+            }
+
+            // Parse header and data
+            const parseCSVLine = (line) => {
+                const result = [];
+                let current = '';
+                let inQuotes = false;
+                
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        result.push(current.trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                result.push(current.trim());
+                return result;
+            };
+
+            const columns = parseCSVLine(lines[0]);
+            const data = lines.slice(1).map(parseCSVLine);
+
+            return {
+                success: true,
+                sheets: ['Sheet1'],
+                columns: columns,
+                data: data,
+                rowCount: data.length
+            };
+        } catch (error) {
+            console.error('[SHEETS] Error exporting spreadsheet:', error.message);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
     async addFolderToArchive(drive, folderId, archive, folderPath) {
         // This method is now deprecated, kept for backward compatibility
         try {
