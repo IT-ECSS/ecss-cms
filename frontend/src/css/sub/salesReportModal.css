@@ -899,8 +899,57 @@ tr.location-enchurch td {
   margin-bottom: 1.5rem;
   padding: 0;
   background-color: #f9f9f9;
-  border-radius: 8px;
-  overflow: hidden;
+  border-radius: 0.25rem;
+  overflow: auto;
+  border: 1px solid #ddd;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Match Registration & Payment table look */
+.combined-summary-table {
+  width: 100%;
+  min-width: max-content;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.combined-summary-table thead {
+  background-color: #E7B8B0;
+  color: #ffffff;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.combined-summary-table th,
+.combined-summary-table td {
+  padding: 0.75rem;
+  border: none;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.combined-summary-table th:first-child,
+.combined-summary-table td:first-child {
+  text-align: left;
+}
+
+.combined-summary-table tbody tr {
+  background-color: transparent;
+}
+
+.combined-summary-table tbody tr:hover {
+  background-color: transparent;
+}
+
+.combined-summary-table .summary-total-row {
+  background-color: transparent;
+  font-weight: 600;
+}
+
+.combined-summary-table .row-even,
+.combined-summary-table .row-odd {
+  background-color: transparent;
 }
 
 

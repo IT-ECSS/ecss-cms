@@ -7,6 +7,9 @@ class WooCommerceAPI:
     def __init__(self):
         self.base_url = settings.WOOCOMMERCE_API_URL
         self.auth = (settings.WOOCOMMERCE_CONSUMER_KEY, settings.WOOCOMMERCE_CONSUMER_SECRET)
+        self.headers = {
+            'Accept': 'application/json'
+        }
 
     def get_nsa_products(self):
         all_products = []
@@ -224,6 +227,136 @@ class WooCommerceAPI:
                 break
 
         return all_products
+
+    def get_inventory_products(self):
+        """Fetch and filter inventory products from WooCommerce by 'Inventory' category, including variations."""
+        all_products = []
+        page = 1
+        per_page = 100  # Maximum number of products per page for WooCommerce API
+        max_retries = 3  # Number of retry attempts
+
+        while True:
+            try:
+                # Construct the API URL with pagination
+                url = f"{self.base_url}products"
+                params = {
+                    'per_page': per_page,
+                    'page': page
+                }
+                
+                # Make the API request with timeout and retries
+                response = None
+                for attempt in range(max_retries):
+                    try:
+                        response = requests.get(url, params=params, auth=self.auth, timeout=30)
+                        response.raise_for_status()
+                        break  # Success, exit retry loop
+                    except requests.exceptions.Timeout:
+                        if attempt < max_retries - 1:
+                            import time
+                            wait_time = 2 ** attempt  # Exponential backoff: 1s, 2s, 4s
+                            print(f"Timeout on attempt {attempt + 1}, retrying in {wait_time}s...")
+                            time.sleep(wait_time)
+                        else:
+                            raise  # Re-raise on final attempt
+                
+                if response is None:
+                    break  # Failed all retries
+
+                # Parse the response as JSON
+                products = response.json()
+                if not products:
+                    break  # Exit the loop if no products are returned
+
+                # Filter products that have 'Inventory' in their categories
+                filtered_products = [
+                    product for product in products
+                    if 'categories' in product
+                    and any(category.get('name') == 'Inventory' for category in product['categories'])
+                ]
+
+                # For each filtered product, check if it's a variable product and fetch variations
+                for product in filtered_products:
+                    if product.get('type') == 'variable':
+                        # Fetch variations for this variable product
+                        variations = self.get_product_variations(product['id'])
+                        if variations:
+                            # Add each variation as a separate product entry
+                            for variation in variations:
+                                variation_product = {
+                                    'id': variation['id'],
+                                    'parent_id': product['id'],
+                                    'name': product['name'],
+                                    'variation_name': self.get_variation_name(variation),
+                                    'price': variation.get('price', product.get('price', '0')),
+                                    'regular_price': variation.get('regular_price', ''),
+                                    'sale_price': variation.get('sale_price', ''),
+                                    'stock_quantity': variation.get('stock_quantity', 0),
+                                    'manage_stock': variation.get('manage_stock', False),
+                                    'sku': variation.get('sku', ''),
+                                    'images': variation.get('image', {}).get('src') if variation.get('image') else (product.get('images', [{}])[0].get('src') if product.get('images') else None),
+                                    'attributes': variation.get('attributes', []),
+                                    'type': 'variation'
+                                }
+                                # Convert images to the expected format
+                                if variation_product['images']:
+                                    variation_product['images'] = [{'src': variation_product['images']}]
+                                else:
+                                    variation_product['images'] = product.get('images', [])
+                                all_products.append(variation_product)
+                        else:
+                            # If no variations found, add the parent product
+                            all_products.append(product)
+                    else:
+                        # Simple product, add directly
+                        all_products.append(product)
+
+                # Increment page to fetch next set of products
+                page += 1
+
+            except requests.exceptions.RequestException as e:
+                # Handle any errors during the request
+                print(f"Error while fetching inventory products: {e}")
+                break
+
+        return all_products
+
+    def get_product_variations(self, product_id):
+        """Fetch all variations for a variable product."""
+        all_variations = []
+        page = 1
+        per_page = 100
+
+        while True:
+            try:
+                url = f"{self.base_url}products/{product_id}/variations"
+                params = {
+                    'per_page': per_page,
+                    'page': page
+                }
+                
+                response = requests.get(url, params=params, auth=self.auth, timeout=30)
+                response.raise_for_status()
+
+                variations = response.json()
+                if not variations:
+                    break
+
+                all_variations.extend(variations)
+                page += 1
+
+            except requests.exceptions.RequestException as e:
+                print(f"Error fetching variations for product {product_id}: {e}")
+                break
+
+        return all_variations
+
+    def get_variation_name(self, variation):
+        """Get a readable name for a variation based on its attributes."""
+        attributes = variation.get('attributes', [])
+        if attributes:
+            return ' - '.join([attr.get('option', '') for attr in attributes])
+        return ''
 
     def getProductId(self, chinese, english, location):
         """Fetches the product ID by matching Chinese, English, and Location names from WooCommerce."""
@@ -787,4 +920,60 @@ class WooCommerceAPI:
                 "success": False,
                 "error": str(e),
                 "message": f"Failed to update product {product_id}"
+            }
+
+    def decrease_inventory_stock(self, product_id, quantity, is_variation=False, parent_id=None):
+        """
+        Decreases inventory product stock by the specified quantity.
+        
+        Args:
+            product_id: The ID of the product or variation to update.
+            quantity: The quantity to decrease from current stock.
+            is_variation: Whether this is a variation (True) or simple product (False).
+            parent_id: The parent product ID if this is a variation.
+        
+        Returns:
+            dict: Success status and updated product data or error message.
+        """
+        try:
+            # Build the correct URL based on whether it's a variation or simple product
+            if is_variation and parent_id:
+                url = f"{self.base_url}products/{parent_id}/variations/{product_id}"
+            else:
+                url = f"{self.base_url}products/{product_id}"
+            
+            # First, get current stock
+            response = requests.get(url, auth=self.auth)
+            response.raise_for_status()
+            product_data = response.json()
+            
+            current_stock = int(product_data.get('stock_quantity') or 0)
+            new_stock = max(0, current_stock - int(quantity))
+            
+            # Update the stock using POST method
+            update_data = {
+                "stock_quantity": new_stock,
+                "manage_stock": True
+            }
+            
+            response = requests.post(url, json=update_data, auth=self.auth)
+            response.raise_for_status()
+            
+            updated_product = response.json()
+            
+            return {
+                "success": True,
+                "product_id": product_id,
+                "previous_stock": current_stock,
+                "new_stock": new_stock,
+                "quantity_decreased": int(quantity),
+                "message": f"Stock decreased successfully from {current_stock} to {new_stock}"
+            }
+            
+        except requests.exceptions.RequestException as e:
+            print(f"Error decreasing inventory stock for product {product_id}: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "message": f"Failed to decrease stock for product {product_id}"
             }

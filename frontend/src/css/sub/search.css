@@ -1,28 +1,29 @@
 /* Existing styles */
-.filter-section {
+.ss-filter-wrapper {
   width: 80vw; /* Sets the width of the filter section */
   margin-top: 2.5rem; /* Adds margin at the top */
+  margin-bottom: 4rem; /* Adds gap at the bottom */
 }
 
-.form-group-row {
+.ss-controls-row {
   display: flex; /* Aligns child elements in a row */
   gap: 1rem; /* Adds space between elements */
   flex-wrap: wrap; /* Allows wrapping to the next line if needed */
   align-items: center; /* Vertically aligns items in the center */
 }
 
-.form-group {
+.ss-field-group {
   flex: 1; /* Allows form groups to grow and fill available space */
   min-width: 150px; /* Ensures form groups have a minimum width */
   display: flex;
   flex-direction: column; /* Aligns label and input in a column */
 }
 
-.dropdown-container {
+.ss-dropdown-wrap {
   position: relative; /* Ensures the icon is positioned correctly */
 }
 
-.dropdown-icon {
+.ss-chevron-icon {
   position: absolute; /* Positions the icon inside the input field */
   right: 0.5rem; /* Adjust as needed */
   top: 50%; /* Center vertically */
@@ -33,7 +34,7 @@
 }
 
 /* Input field styles */
-.form-group input[type="text"] {
+.ss-field-group input[type="text"] {
   width: 100%; /* Ensures the input field takes full width */
   height: 2rem; /* Adjust the height as needed */
   margin-top: 0.5rem; /* Adds margin at the top */
@@ -43,16 +44,15 @@
   border: none; /* Border to match the dropdown look */
   border-radius: 4px; /* Rounded corners */
   position: relative; /* Position relative to contain the icon */
-  min-width: 300px; /* Ensures minimum width for longer placeholder text */
 }
 
-.form-group input[type="text"]:focus {
+.ss-field-group input[type="text"]:focus {
   outline: none; /* Removes default focus outline */
   border-color: #007bff; /* Changes border color on focus */
 }
 
 /* Dropdown list styling */
-.dropdown-list {
+.ss-options-list {
   position: absolute; /* Positions the dropdown list absolutely */
   top: 100%; /* Positions the list below the input field */
   left: 0; /* Aligns the list with the left edge of the input */
@@ -68,18 +68,18 @@
   margin: 0; /* Removes default margin */
 }
   
-.dropdown-list li {
+.ss-options-list li {
   padding: 0.5rem; /* Adds padding inside each list item */
   cursor: pointer; /* Changes cursor to pointer for list items */
 }
 
 /* Search container styling */
-.search-container {
+.ss-search-wrap {
   position: relative; /* Positions the icon correctly */
 
 }
 
-.search-icon {
+.ss-magnifier-icon {
   position: absolute; /* Positions the icon inside the input field */
   right: 0.5rem; /* Adjust as needed */
   top: 50%; /* Center vertically */
@@ -90,7 +90,7 @@
 }
 
 /* Dropdown icon styling */
-.dropdown-container .dropdown-icon {
+.ss-dropdown-wrap .ss-chevron-icon {
   position: absolute; /* Position the dropdown icon inside the input field */
   right: 0.5rem; /* Adjust as needed */
   top: 50%; /* Center vertically */

@@ -29,6 +29,7 @@ var whatsappRouter = require('./routes/whatsapp');
 var fitnessRouter = require('./routes/fitness');
 var fundraisingRouter = require('./routes/fundraising');
 var googleDriveRouter = require('./routes/googleDrive');
+var inventoryRouter = require('./routes/inventory');
 
 
 app.use(cors()); // Enable CORS
@@ -111,6 +112,7 @@ app.use("/whatsapp", whatsappRouter);
 app.use("/fitness", fitnessRouter);
 app.use("/fundraising", fundraisingRouter);
 app.use("/googleDrive", googleDriveRouter);
+app.use("/inventory", inventoryRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

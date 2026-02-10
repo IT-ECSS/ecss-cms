@@ -131,6 +131,9 @@ class SideBarContent extends Component {
         else if(subKey === "Payment Report") {
             this.props.toggleReportComponent(subKey);
         }
+        else if(subKey === "Course Coordinator Report") {
+            this.props.toggleReportComponent(subKey);
+        }
         else if(subKey === "View Attendance") {
             console.log("View Attendance clicked");
             this.props.toggleAttendanceComponent(subKey);
@@ -179,6 +182,36 @@ class SideBarContent extends Component {
                 console.error("toggleCourseLinkComponent function not found in props");
             }
         }
+        else if(subKey === "InventoryStore" || subKey === "Inventory Store") {
+            console.log("Inventory Store clicked in sidebar");
+            console.log("toggleInventoryModulesComponent function exists:", !!this.props.toggleInventoryModulesComponent);
+            if (this.props.toggleInventoryModulesComponent) {
+                console.log("Calling toggleInventoryModulesComponent...");
+                this.props.toggleInventoryModulesComponent();
+            } else {
+                console.error("toggleInventoryModulesComponent function not found in props");
+            }
+        }
+        else if(subKey === "InventoryForm" || subKey === "Inventory Form") {
+            console.log("Inventory Form clicked in sidebar");
+            console.log("toggleInventoryFormComponent function exists:", !!this.props.toggleInventoryFormComponent);
+            if (this.props.toggleInventoryFormComponent) {
+                console.log("Calling toggleInventoryFormComponent...");
+                this.props.toggleInventoryFormComponent();
+            } else {
+                console.error("toggleInventoryFormComponent function not found in props");
+            }
+        }
+        else if(subKey === "InventoryRecords" || subKey === "Inventory Records") {
+            console.log("Inventory Records clicked in sidebar");
+            console.log("toggleInventoryRecordsComponent function exists:", !!this.props.toggleInventoryRecordsComponent);
+            if (this.props.toggleInventoryRecordsComponent) {
+                console.log("Calling toggleInventoryRecordsComponent...");
+                this.props.toggleInventoryRecordsComponent();
+            } else {
+                console.error("toggleInventoryRecordsComponent function not found in props");
+            }
+        }
     }
 
     closeSubMenu = () => {
@@ -201,7 +234,8 @@ class SideBarContent extends Component {
             "Reports": 'fa-solid fa-table',
             "Attendances": 'fa-solid fa-calendar-days',
             "Fitness": 'fa-solid fa-dumbbell',
-            "Fundraising": 'fa-solid fa-gift'
+            "Fundraising": 'fa-solid fa-gift',
+            "Inventory": 'fa-solid fa-warehouse'
         };
 
         return (
@@ -246,15 +280,24 @@ class SideBarContent extends Component {
                                         </div>
                                         {openKey === key && (
                                             <ul>
-                                                {enabledSubKeys.map(subKey => (
-                                                    <li 
-                                                        key={subKey} 
-                                                        onClick={() => this.handleSubKeyClick(subKey)}
-                                                        className="enabled-item"
-                                                    >
-                                                        <span>{subKey}</span>
-                                                    </li>
-                                                ))}
+                                                {enabledSubKeys.map(subKey => {
+                                                    // Display name mapping for better readability
+                                                    const displayNameMap = {
+                                                        'InventoryStore': 'Inventory Store',
+                                                        'InventoryForm': 'Inventory Form',
+                                                        'InventoryRecords': 'Inventory Records'
+                                                    };
+                                                    const displayName = displayNameMap[subKey] || subKey;
+                                                    return (
+                                                        <li 
+                                                            key={subKey} 
+                                                            onClick={() => this.handleSubKeyClick(subKey)}
+                                                            className="enabled-item"
+                                                        >
+                                                            <span>{displayName}</span>
+                                                        </li>
+                                                    );
+                                                })}
                                             </ul>
                                         )}
                                     </li>

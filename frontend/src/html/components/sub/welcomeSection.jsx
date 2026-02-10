@@ -130,6 +130,15 @@ class WelcomeSection extends Component {
                 parentKey: 'Reports'
             },
             { 
+                key: 'Course Coordinator Report', 
+                title: 'Course Coordinator Report', 
+                icon: 'fas fa-user-tie', 
+                description: 'Generate course coordinator reports', 
+                action: () => this.props.onNavigate('course-coordinator-report'),
+                accessKey: 'Course Coordinator Report',
+                parentKey: 'Reports'
+            },
+            { 
                 key: 'Upload Courses', 
                 title: 'Upload Courses', 
                 icon: 'fas fa-upload', 
@@ -249,6 +258,33 @@ class WelcomeSection extends Component {
                 action: () => this.props.onNavigate('fundraising-orders'),
                 accessKey: 'Fundraising Orders',
                 parentKey: 'Fundraising'
+            },
+            { 
+                key: 'InventoryStore', 
+                title: 'Inventory Store', 
+                icon: 'fas fa-warehouse', 
+                description: 'View and manage inventory stock levels', 
+                action: () => this.props.onNavigate('inventory-modules'),
+                accessKey: 'InventoryStore',
+                parentKey: 'Inventory'
+            },
+            { 
+                key: 'InventoryForm', 
+                title: 'Inventory Form', 
+                icon: 'fas fa-clipboard-list', 
+                description: 'Submit inventory orders and track stock', 
+                action: () => this.props.onNavigate('inventory-form'),
+                accessKey: 'InventoryForm',
+                parentKey: 'Inventory'
+            },
+            { 
+                key: 'InventoryRecords', 
+                title: 'Inventory Records', 
+                icon: 'fas fa-file-alt', 
+                description: 'View inventory order records and history', 
+                action: () => this.props.onNavigate('inventory-records'),
+                accessKey: 'InventoryRecords',
+                parentKey: 'Inventory'
             }
         ];
 
@@ -306,6 +342,7 @@ class WelcomeSection extends Component {
                 'Access Rights Table': 4,
                 'Monthly Report': 3,
                 'Payment Report': 3,
+                'Course Coordinator Report': 3,
                 'Invoice Table': 3,
                 'Upload Courses': 2,
                 'Update Courses': 2,
@@ -344,6 +381,7 @@ class WelcomeSection extends Component {
             'Registration And Payment Table': 'fas fa-credit-card',
             'Monthly Report': 'fas fa-chart-bar',
             'Payment Report': 'fas fa-file-invoice-dollar',
+            'Course Coordinator Report': 'fas fa-user-tie',
             'Upload Courses': 'fas fa-upload',
             'Create QR Code': 'fas fa-qrcode',
             'QR Code Table': 'fas fa-table',
@@ -364,6 +402,7 @@ class WelcomeSection extends Component {
             'Registration And Payment Table': 'registration',
             'Monthly Report': 'monthly-report',
             'Payment Report': 'payment-report',
+            'Course Coordinator Report': 'course-coordinator-report',
             'Upload Courses': 'upload-courses',
             'Create QR Code': 'qr-code',
             'QR Code Table': 'qr-code-table',
@@ -420,7 +459,8 @@ class WelcomeSection extends Component {
             "Reports": 'fas fa-table',
             "Attendances": 'fas fa-calendar-days',
             "Fitness": 'fas fa-dumbbell',
-            "Fundraising": 'fa-solid fa-gift'
+            "Fundraising": 'fa-solid fa-gift',
+            "Inventory": 'fas fa-warehouse'
         };
 
         // Define sub-key descriptions
@@ -435,11 +475,18 @@ class WelcomeSection extends Component {
             "Registration And Payment Table": "Handle course registrations and payments",
             "Monthly Report": "Generate monthly analytics and reports",
             "Payment Report": "View payment summaries and financial reports",
+            "Course Coordinator Report": "Access Course Coordinator Report functionality",
             "View Attendance": "Monitor and record student attendance",
             "View Membership": "Manage member information and records",
             "FFT Results": "View fitness assessment results and tracking",
             "Fundraising Orders": "Manage fundraising orders",
-            "Fundraising Inventory": "Manage fundraising inventory and stock"
+            "Fundraising Inventory": "Manage fundraising inventory and stock",
+            "InventoryStore": "View and manage inventory stock levels",
+            "Inventory Store": "View and manage inventory stock levels",
+            "InventoryForm": "Submit inventory orders and track stock",
+            "Inventory Form": "Submit inventory orders and track stock",
+            "InventoryRecords": "View inventory order records and history",
+            "Inventory Records": "View inventory order records and history"
         };
 
         const navigationCards = [];
@@ -461,6 +508,20 @@ class WelcomeSection extends Component {
                 // Multi-item navigation with sub-keys
                 const subKeys = Object.keys(value).filter(subKey => value[subKey] === true);
                 if (subKeys.length > 0) {
+                    // Display name mapping for sub-keys
+                    const subKeyDisplayNames = {
+                        'InventoryStore': 'Inventory Store',
+                        'InventoryForm': 'Inventory Form',
+                        'InventoryRecords': 'Inventory Records'
+                    };
+                    
+                    // Icon mapping for sub-keys
+                    const subKeyIcons = {
+                        'InventoryStore': 'fas fa-warehouse',
+                        'InventoryForm': 'fas fa-clipboard-list',
+                        'InventoryRecords': 'fas fa-file-alt'
+                    };
+                    
                     navigationCards.push({
                         key: mainKey,
                         title: mainKey,
@@ -468,8 +529,9 @@ class WelcomeSection extends Component {
                         description: `Manage ${mainKey} options (${subKeys.length} items)`,
                         subKeys: subKeys.map(subKey => ({
                             key: subKey,
-                            title: subKey,
-                            description: subKeyDescriptions[subKey] || `Access ${subKey} functionality`,
+                            title: subKeyDisplayNames[subKey] || subKey,
+                            icon: subKeyIcons[subKey] || 'fas fa-cog',
+                            description: subKeyDescriptions[subKey] || `Access ${subKeyDisplayNames[subKey] || subKey} functionality`,
                             action: () => this.handleSubKeyNavigation(subKey)
                         })),
                         hasSubKeys: true
@@ -563,6 +625,9 @@ class WelcomeSection extends Component {
             case "Payment Report":
                 navigationKey = "payment-report";
                 break;
+            case "Course Coordinator Report":
+                navigationKey = "course-coordinator-report";
+                break;
             case "View Attendance":
                 navigationKey = "attendance";
                 break;
@@ -583,6 +648,18 @@ class WelcomeSection extends Component {
                 break;
             case "FFT Results":
                 navigationKey = "fitness";
+                break;
+            case "InventoryStore":
+            case "Inventory Store":
+                navigationKey = "inventory-modules";
+                break;
+            case "InventoryForm":
+            case "Inventory Form":
+                navigationKey = "inventory-form";
+                break;
+            case "InventoryRecords":
+            case "Inventory Records":
+                navigationKey = "inventory-records";
                 break;
             default:
                 navigationKey = subKey;
@@ -652,6 +729,9 @@ class WelcomeSection extends Component {
                                         <div className="navigation-subkeys">
                                             {card.subKeys.map((subKey) => (
                                                 <div key={subKey.key} className="subkey-item" onClick={subKey.action}>
+                                                    <div className="subkey-icon">
+                                                        <i className={subKey.icon}></i>
+                                                    </div>
                                                     <div className="subkey-content">
                                                         <h4>{subKey.title}</h4>
                                                         <p>{subKey.description}</p>

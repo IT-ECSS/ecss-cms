@@ -16,6 +16,7 @@ import React, { Component } from 'react';
   import FitnessSection from './sub/FitnessSection';
   import FundraisingOrders from './sub/FundraisingOrders';
   import FundraisingInventory from './sub/FundraisingInventory';
+  import InventoryModules from './sub/InventoryModules';
   import CollectionDateCalendar from './sub/CollectionDateCalendar';
   import SalesReportModal from './sub/SalesReportModal';
   import PaymentReportModal from './sub/PaymentReportModal';
@@ -108,6 +109,9 @@ import React, { Component } from 'react';
         isCourseLinkVisible: false,
         isFundraisingTableVisible: false,
         isFundraisingInventoryVisible: false,
+        isInventoryModulesVisible: false,
+        isInventoryFormVisible: false,
+        inventoryTab: 'store',
         fundraisingSearchQuery: '',
         fundraisingPaymentMethod: 'All Payment Methods',
         // fundraisingCollectionMode: 'All Collection Modes',
@@ -391,7 +395,9 @@ import React, { Component } from 'react';
             isMembershipVisible: false,
             isFitnessVisible: false, // Added this
             isFundraisingTableVisible: false,
-            isFundraisingInventoryVisible: false // Added this missing line
+            isFundraisingInventoryVisible: false, // Added this missing line
+            isInventoryModulesVisible: false,
+            isInventoryFormVisible: false
           });
       } 
       catch (error) 
@@ -431,7 +437,9 @@ import React, { Component } from 'react';
               isMembershipVisible: false,
               isFitnessVisible: false,
               isFundraisingTableVisible: false,
-              isFundraisingInventoryVisible: false // Added this missing line
+              isFundraisingInventoryVisible: false, // Added this missing line
+              isInventoryModulesVisible: false,
+              isInventoryFormVisible: false
             });
           });
       } 
@@ -480,6 +488,8 @@ import React, { Component } from 'react';
               isFitnessVisible: false, // Added this
               isFundraisingTableVisible: false,
               isFundraisingInventoryVisible: false, // Added this missing line
+              isInventoryModulesVisible: false,
+              isInventoryFormVisible: false,
               // Reset membership filtering state
               membershipType: 'All Types',
               membershipSearchQuery: '',
@@ -533,6 +543,8 @@ import React, { Component } from 'react';
             isFitnessVisible: true,
             isFundraisingTableVisible: false,
             isFundraisingInventoryVisible: false, // Added this missing line
+            isInventoryModulesVisible: false,
+            isInventoryFormVisible: false,
             
             // Reset other states
             sidebarVisible: false,
@@ -592,6 +604,8 @@ import React, { Component } from 'react';
           // Set table-only mode
           isFundraisingTableVisible: true,
           isFundraisingInventoryVisible: false, // Added this missing line
+          isInventoryModulesVisible: false,
+          isInventoryFormVisible: false,
           
           // Popup settings
           isPopupOpen: true,
@@ -646,6 +660,8 @@ import React, { Component } from 'react';
           
           // Set inventory-only mode
           isFundraisingInventoryVisible: true,
+          isInventoryModulesVisible: false,
+          isInventoryFormVisible: false,
           
           // Popup settings
           isPopupOpen: true,
@@ -696,6 +712,8 @@ import React, { Component } from 'react';
           isCourseFlyersVisible: false,
           isFundraisingTableVisible: false,
           isFundraisingInventoryVisible: false,
+          isInventoryModulesVisible: false,
+          isInventoryFormVisible: false,
           
           // Set course link mode
           isCourseLinkVisible: true,
@@ -725,6 +743,171 @@ import React, { Component } from 'react';
       }
     }
 
+    toggleInventoryModulesComponent = async() => {
+      console.log("toggleInventoryModulesComponent called - showing inventory modules");
+      try {
+        // Reset search and filters
+        this.setState({ resetSearch: true, }, () => {
+          this.setState({ resetSearch: false });
+        });
+
+        this.setState({
+          // Explicitly set ALL other visibility flags to false
+          courseType: null,
+          accountType: null,
+          createAccount: false,
+          dashboard: false,
+          isRegistrationPaymentVisible: false,
+          isReceiptVisible: false,
+          reportVisibility: false,
+          attendanceVisibility: false,
+          isMembershipVisible: false,
+          isFitnessVisible: false,
+          isFundraisingTableVisible: false,
+          isFundraisingInventoryVisible: false,
+          isCourseFlyersVisible: false,
+          isCourseLinkVisible: false,
+          isInventoryFormVisible: false,
+          
+          // Set inventory modules mode
+          isInventoryModulesVisible: true,
+          inventoryTab: 'store',
+          
+          // Popup settings
+          isPopupOpen: true,
+          popupMessage: "Loading Inventory Store",
+          popupType: "loading",
+          
+          // Reset other states
+          sidebarVisible: false,
+          section: "inventory-modules",
+          attendanceType: "",
+          
+          // Reset search state
+          searchQuery: ''
+        });
+      } 
+      catch (error) {
+        console.log("Error in toggleInventoryModulesComponent:", error);
+        // Show error message
+        this.setState({
+          isPopupOpen: true,
+          popupMessage: "Error loading inventory store",
+          popupType: "error-message"
+        });
+      }
+    }
+
+    toggleInventoryFormComponent = async() => {
+      console.log("toggleInventoryFormComponent called - showing inventory form");
+      try {
+        // Reset search and filters
+        this.setState({ resetSearch: true, }, () => {
+          this.setState({ resetSearch: false });
+        });
+
+        this.setState({
+          // Explicitly set ALL other visibility flags to false
+          courseType: null,
+          accountType: null,
+          createAccount: false,
+          dashboard: false,
+          isRegistrationPaymentVisible: false,
+          isReceiptVisible: false,
+          reportVisibility: false,
+          attendanceVisibility: false,
+          isMembershipVisible: false,
+          isFitnessVisible: false,
+          isFundraisingTableVisible: false,
+          isFundraisingInventoryVisible: false,
+          isCourseFlyersVisible: false,
+          isCourseLinkVisible: false,
+          isInventoryFormVisible: false,
+          
+          // Set inventory modules mode with form tab
+          isInventoryModulesVisible: true,
+          inventoryTab: 'form',
+          
+          // Popup settings
+          isPopupOpen: true,
+          popupMessage: "Loading Inventory Form",
+          popupType: "loading",
+          
+          // Reset other states
+          sidebarVisible: false,
+          section: "inventory-form",
+          attendanceType: "",
+          
+          // Reset search state
+          searchQuery: ''
+        });
+      } 
+      catch (error) {
+        console.log("Error in toggleInventoryFormComponent:", error);
+        // Show error message
+        this.setState({
+          isPopupOpen: true,
+          popupMessage: "Error loading inventory form",
+          popupType: "error-message"
+        });
+      }
+    }
+
+    toggleInventoryRecordsComponent = async() => {
+      console.log("toggleInventoryRecordsComponent called - showing inventory records");
+      try {
+        // Reset search and filters
+        this.setState({ resetSearch: true, }, () => {
+          this.setState({ resetSearch: false });
+        });
+
+        this.setState({
+          // Explicitly set ALL other visibility flags to false
+          courseType: null,
+          accountType: null,
+          createAccount: false,
+          dashboard: false,
+          isRegistrationPaymentVisible: false,
+          isReceiptVisible: false,
+          reportVisibility: false,
+          attendanceVisibility: false,
+          isMembershipVisible: false,
+          isFitnessVisible: false,
+          isFundraisingTableVisible: false,
+          isFundraisingInventoryVisible: false,
+          isCourseFlyersVisible: false,
+          isCourseLinkVisible: false,
+          isInventoryFormVisible: false,
+          
+          // Set inventory modules mode with records tab
+          isInventoryModulesVisible: true,
+          inventoryTab: 'records',
+          
+          // Popup settings
+          isPopupOpen: true,
+          popupMessage: "Loading Inventory Records",
+          popupType: "loading",
+          
+          // Reset other states
+          sidebarVisible: false,
+          section: "inventory-records",
+          attendanceType: "",
+          
+          // Reset search state
+          searchQuery: ''
+        });
+      } 
+      catch (error) {
+        console.log("Error in toggleInventoryRecordsComponent:", error);
+        // Show error message
+        this.setState({
+          isPopupOpen: true,
+          popupMessage: "Error loading inventory records",
+          popupType: "error-message"
+        });
+      }
+    }
+
     toggleCourseFlyersComponent = async() => {
       console.log("toggleCourseFlyersComponent called - showing course flyers");
       try {
@@ -747,6 +930,8 @@ import React, { Component } from 'react';
           isFitnessVisible: false,
           isFundraisingTableVisible: false,
           isFundraisingInventoryVisible: false,
+          isInventoryModulesVisible: false,
+          isInventoryFormVisible: false,
           
           // Set course flyers mode
           isCourseFlyersVisible: true,
@@ -848,7 +1033,9 @@ import React, { Component } from 'react';
           isMembershipVisible: false,
           isFitnessVisible: false, // Added this
           isFundraisingTableVisible: false,
-          isFundraisingInventoryVisible: false // Added this missing line
+          isFundraisingInventoryVisible: false, // Added this missing line
+          isInventoryModulesVisible: false,
+          isInventoryFormVisible: false
         });
       } catch (error) {
         console.log(error);
@@ -935,6 +1122,8 @@ import React, { Component } from 'react';
             isFitnessVisible: false, // Added this
             isFundraisingTableVisible: false,
             isFundraisingInventoryVisible: false, // Added this missing line
+            isInventoryModulesVisible: false,
+            isInventoryFormVisible: false,
             
             // Set dashboard to true
             dashboard: true,
@@ -981,7 +1170,9 @@ import React, { Component } from 'react';
             isMembershipVisible: false,
             isFitnessVisible: false, // Added this
             isFundraisingTableVisible: false,
-            isFundraisingInventoryVisible: false // Added this missing line
+            isFundraisingInventoryVisible: false, // Added this missing line
+            isInventoryModulesVisible: false,
+            isInventoryFormVisible: false
           });
         }
         else
@@ -1001,7 +1192,9 @@ import React, { Component } from 'react';
             isMembershipVisible: false,
             isFitnessVisible: false, // Added this
             isFundraisingTableVisible: false,
-            isFundraisingInventoryVisible: false // Added this missing line
+            isFundraisingInventoryVisible: false, // Added this missing line
+            isInventoryModulesVisible: false,
+            isInventoryFormVisible: false
           });
         }
       } 
@@ -1381,7 +1574,9 @@ import React, { Component } from 'react';
             isMembershipVisible: false,
             isFitnessVisible: false, // Added this
             isFundraisingTableVisible: false,
-            isFundraisingInventoryVisible: false // Added this missing line
+            isFundraisingInventoryVisible: false, // Added this missing line
+            isInventoryModulesVisible: false,
+            isInventoryFormVisible: false
             //viewMode: "full"
         }));
       }
@@ -1407,7 +1602,9 @@ import React, { Component } from 'react';
               isMembershipVisible: false,
               isFitnessVisible: false, // Added this
               isFundraisingTableVisible: false,
-              isFundraisingInventoryVisible: false // Added this missing line
+              isFundraisingInventoryVisible: false, // Added this missing line
+              isInventoryModulesVisible: false,
+              isInventoryFormVisible: false
               //viewMode: "full"
           }));
       }
@@ -1825,6 +2022,9 @@ import React, { Component } from 'react';
         case 'payment-report':
           this.toggleReportComponent('Payment Report');
           break;
+        case 'course-coordinator-report':
+          this.toggleReportComponent('Course Coordinator Report');
+          break;
         case 'create-account':
           this.toggleAccountsComponent('Create Account');
           break;
@@ -1843,6 +2043,15 @@ import React, { Component } from 'react';
           break;
         case 'fundraising-inventory':
           this.toggleFundraisingInventoryComponent();
+          break;
+        case 'inventory-modules':
+          this.toggleInventoryModulesComponent();
+          break;
+        case 'inventory-form':
+          this.toggleInventoryFormComponent();
+          break;
+        case 'inventory-records':
+          this.toggleInventoryRecordsComponent();
           break;
         case 'view-course-flyers':
           this.toggleCourseFlyersComponent();
@@ -1871,6 +2080,8 @@ import React, { Component } from 'react';
         isFitnessVisible: false,
         isFundraisingTableVisible: false,
         isFundraisingInventoryVisible: false,
+        isInventoryModulesVisible: false,
+        isInventoryFormVisible: false,
         isCourseFlyersVisible: false,
         isReceiptVisible: false,
         isCourseLinkVisible: false,
@@ -1885,7 +2096,7 @@ import React, { Component } from 'react';
       const userName = this.props.location.state?.name || 'User';
       const role = this.props.location.state?.role;
       const siteIC = this.props.location.state?.siteIC;
-      const {membershipType, membershipTypes, membershipSearchQuery, isMembershipVisible, isFitnessVisible, fitnessSearchQuery, isCourseFlyersVisible, isCourseLinkVisible, isFundraisingTableVisible, isFundraisingInventoryVisible, fundraisingSearchQuery, fundraisingPaymentMethod, fundraisingCollectionLocation, fundraisingStatus, fundraisingPaymentMethods, fundraisingCollectionLocations, fundraisingStatuses, showCalendarModal, selectedOrderForCalendar, collectionSchedule, attendanceVisibility, reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo, selectedQuarter, quarters, attendanceFilterType, attendanceFilterCode, attendanceFilterLocation, attendanceSearchQuery, attendanceTypes, activityCodes, attendanceLocations, isSalesReportModalOpen, isPaymentReportModalOpen, isFiscalBalanceReportModalOpen, showItemsModal, selectedItems, selectedRowData, wooCommerceProductDetails, showReceiptModal, selectedReceipt, showInvoiceModal, invoiceModalData} = this.state;
+      const {membershipType, membershipTypes, membershipSearchQuery, isMembershipVisible, isFitnessVisible, fitnessSearchQuery, isCourseFlyersVisible, isCourseLinkVisible, isFundraisingTableVisible, isFundraisingInventoryVisible, isInventoryModulesVisible, isInventoryFormVisible, inventoryTab, fundraisingSearchQuery, fundraisingPaymentMethod, fundraisingCollectionLocation, fundraisingStatus, fundraisingPaymentMethods, fundraisingCollectionLocations, fundraisingStatuses, showCalendarModal, selectedOrderForCalendar, collectionSchedule, attendanceVisibility, reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo, selectedQuarter, quarters, attendanceFilterType, attendanceFilterCode, attendanceFilterLocation, attendanceSearchQuery, attendanceTypes, activityCodes, attendanceLocations, isSalesReportModalOpen, isPaymentReportModalOpen, isFiscalBalanceReportModalOpen, showItemsModal, selectedItems, selectedRowData, wooCommerceProductDetails, showReceiptModal, selectedReceipt, showInvoiceModal, invoiceModalData} = this.state;
 
       return (
         <>
@@ -1934,6 +2145,9 @@ import React, { Component } from 'react';
                   toggleFitnessComponent = {this.toggleFitnessComponent}
                   toggleFundraisingOrdersComponent = {this.toggleFundraisingOrdersComponent}
                   toggleFundraisingInventoryComponent = {this.toggleFundraisingInventoryComponent}
+                  toggleInventoryModulesComponent = {this.toggleInventoryModulesComponent}
+                  toggleInventoryFormComponent = {this.toggleInventoryFormComponent}
+                  toggleInventoryRecordsComponent = {this.toggleInventoryRecordsComponent}
                   toggleCourseflyersComponent = {this.toggleCourseFlyersComponent}
                   toggleCourseLinkComponent = {this.toggleCourseLinkComponent}
                   onAccessRightsUpdate = {this.handleAccessRightsData}
@@ -1955,6 +2169,8 @@ import React, { Component } from 'react';
                 isFitnessVisible === false &&
                 isFundraisingTableVisible === false &&
                 isFundraisingInventoryVisible === false &&
+                isInventoryModulesVisible === false &&
+                isInventoryFormVisible === false &&
                 isCourseFlyersVisible === false &&
                 isReceiptVisible === false &&
                 isCourseLinkVisible === false &&
@@ -2196,6 +2412,26 @@ import React, { Component } from 'react';
                         key={this.state.refreshKey}
                         refreshChild={this.refreshChild}
                         onDataLoaded={this.closePopup}
+                      />
+                    </div>
+                  </>
+                }
+                {isInventoryModulesVisible && 
+                <>
+                  <div className="search-section">
+                    </div>
+                    <div className="inventory-modules-section">
+                      <InventoryModules 
+                        section={section}
+                        userName={userName}
+                        role={role}
+                        siteIC={siteIC}
+                        closePopup1={this.closePopup}
+                        language={language}
+                        key={this.state.refreshKey}
+                        refreshChild={this.refreshChild}
+                        onDataLoaded={this.closePopup}
+                        initialTab={inventoryTab}
                       />
                     </div>
                   </>

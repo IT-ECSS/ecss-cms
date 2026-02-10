@@ -2078,12 +2078,22 @@ class RegistrationPaymentSection extends Component {
     {
       headerName: "Course Name",
       field: "course",
-      width: 400,
+      width: 350,
     },
+    { headerName: "Payment Method", field: "payment", width: 200},
     {
       headerName: "Course Mode",
       field: "courseMode",
       width: 150,
+    },
+    {
+      headerName: "Course Duration",
+      field: "courseDuration",
+      width: 300,
+      cellRenderer: (params) => {
+        // Fallback to courseInfo if direct field is empty
+        return params.value || params.data?.courseInfo?.courseDuration || '';
+      },
     },
     {
       headerName: "Course Time",
@@ -2655,6 +2665,7 @@ debugMarriagePrepData = () => {
       courseChi: item.course.courseChiName,
       location: item.course.courseLocation,
       courseMode: item.course.courseMode === "Face-to-Face" ? "F2F" : item.course?.courseMode,
+      courseDuration: item.course.courseDuration || '',
       courseTime: item.course.courseTime || '',
       paymentMethod: item.course.payment,
       confirmed: item.official.confirmed,

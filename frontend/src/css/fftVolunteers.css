@@ -1,0 +1,91 @@
+.fft-volunteers-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px;
+  animation: fftVolunteersFadeIn 0.4s ease-out;
+}
+
+@keyframes fftVolunteersFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.fft-volunteers-back-btn {
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 24px;
+  border: 2px solid #cbd5e1;
+  background-color: #ffffff;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 32px;
+  transition: all 0.25s ease;
+}
+
+.fft-volunteers-back-btn:hover {
+  background-color: #f1f5f9;
+  border-color: #94a3b8;
+  color: #1e293b;
+  transform: translateX(-4px);
+}
+
+.fft-volunteers-back-icon {
+  font-size: 1.5rem;
+  transition: transform 0.25s ease;
+}
+
+.fft-volunteers-back-btn:hover .fft-volunteers-back-icon {
+  transform: translateX(-4px);
+}
+
+.fft-volunteers-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.fft-volunteers-title {
+  font-size: 4rem;
+  font-weight: 800;
+  color: #16a34a;
+  margin: 0 0 16px 0;
+  letter-spacing: -1px;
+}
+
+.fft-volunteers-description {
+  font-size: 1.5rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.fft-volunteers-content {
+  width: 100%;
+  max-width: 600px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-radius: 16px;
+  padding: 40px;
+  text-align: center;
+  border: 1px solid #bbf7d0;
+}
+
+.fft-volunteers-placeholder-icon {
+  font-size: 5rem;
+  margin-bottom: 16px;
+}
+
+.fft-volunteers-placeholder-text {
+  font-size: 1.5rem;
+  color: #22c55e;
+  font-weight: 500;
+}

@@ -139,7 +139,7 @@ class DashboardController extends Component {
                 </div>
 
                 {/* Dashboard Styles */}
-                <style jsx>{`
+                <style>{`
                     .dashboard-controller {
                         width: 100%;
                         min-height: 100vh;

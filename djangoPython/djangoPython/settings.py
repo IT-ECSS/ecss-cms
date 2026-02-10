@@ -33,8 +33,8 @@ DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'ecss-backend-django-backup.azurewebsites.net', 'ecss-backend-django.azurewebsites.net', 'ecss.org.sg', '169.254.130.2', '169.254.131.2', '169.254.130.3', '169.254.130.4']
 
 WOOCOMMERCE_API_URL = os.environ.get('WOOCOMMERCE_API_URL', 'https://ecss.org.sg/wp-json/wc/v3/')
-WOOCOMMERCE_CONSUMER_KEY = os.environ.get('WOOCOMMERCE_CONSUMER_KEY', 'ck_be09fee650a20cf08d693e4fe88d340a8f2c63ec')
-WOOCOMMERCE_CONSUMER_SECRET = os.environ.get('WOOCOMMERCE_CONSUMER_SECRET', 'cs_37a64021bcb71424551c4c5a1f56ad7c5dc05dbb')
+WOOCOMMERCE_CONSUMER_KEY = os.environ.get('WOOCOMMERCE_CONSUMER_KEY', 'ck_439198907a526a5a9e3f8391dfb5f4eea970b9d7')
+WOOCOMMERCE_CONSUMER_SECRET = os.environ.get('WOOCOMMERCE_CONSUMER_SECRET', 'cs_47aed789dabc337d4e6e55f3142b598d4a2dc837')
 
 
 # Application definition

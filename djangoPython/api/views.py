@@ -5,6 +5,7 @@ from django.conf import settings
 import os
 import requests
 import base64
+from datetime import datetime
 
 import json
 import plotly.express as px
@@ -106,6 +107,136 @@ def fundraising_product_details(request):
         # Catch and log unexpected errors
         print("Error:", e)
         return JsonResponse({"error": "An error occurred while processing the request."}, status=500)
+
+@csrf_exempt
+def inventory_product_details(request):
+    """Fetches inventory products from WooCommerce filtered by 'Inventory' category."""
+    try:
+        # Initialize WooCommerce API instance
+        woo_api = WooCommerceAPI()
+        
+        # Get all inventory products
+        print("Fetching inventory products from all pages...")
+        products = woo_api.get_inventory_products()
+        print(f"Total inventory products found: {len(products)}")
+
+
+        # Return inventory products as a JSON response
+        return JsonResponse({
+            "success": True,
+            "inventory_products": products
+        })
+
+    except Exception as e:
+        # Catch and log unexpected errors
+        print("Error:", e)
+        return JsonResponse({"error": "An error occurred while processing the request."}, status=500)
+
+@csrf_exempt
+def inventory_order(request):
+    """Processes an inventory order and decreases stock based on product ID."""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Invalid method, please use POST'}, status=405)
+
+    try:
+        # Parse the request body as JSON
+        data = json.loads(request.body)
+        print("Inventory order data received:", data)
+
+        # Extract required fields
+        customer_name = data.get('customerName')
+        product_name = data.get('product')
+        location = data.get('location')
+        quantity = data.get('quantity', 1)
+        order_date = data.get('orderDate')
+        order_time = data.get('orderTime')
+        staff_name = data.get('staffName')
+        product_id = data.get('productId')  # Optional: direct product ID
+        parent_id = data.get('parentId')    # Optional: parent ID for variations
+
+        # Validate required fields
+        if not customer_name:
+            return JsonResponse({'success': False, 'error': 'Customer name is required'}, status=400)
+        if not product_name:
+            return JsonResponse({'success': False, 'error': 'Product is required'}, status=400)
+        if not location:
+            return JsonResponse({'success': False, 'error': 'Location is required'}, status=400)
+
+        try:
+            quantity = int(quantity)
+            if quantity < 1:
+                return JsonResponse({'success': False, 'error': 'Quantity must be at least 1'}, status=400)
+        except (ValueError, TypeError):
+            return JsonResponse({'success': False, 'error': 'Invalid quantity format'}, status=400)
+
+        # Initialize WooCommerce API
+        woo_api = WooCommerceAPI()
+
+        # If product_id is not provided, find it by searching inventory products
+        if not product_id:
+            inventory_products = woo_api.get_inventory_products()
+            
+            # Find matching product by name and location (variation_name)
+            matching_product = None
+            for product in inventory_products:
+                if (product.get('name') == product_name and 
+                    product.get('variation_name') == location):
+                    matching_product = product
+                    break
+            
+            if not matching_product:
+                return JsonResponse({
+                    'success': False, 
+                    'error': f'Product "{product_name}" with location "{location}" not found'
+                }, status=404)
+            
+            product_id = matching_product.get('id')
+            parent_id = matching_product.get('parent_id')
+            is_variation = matching_product.get('type') == 'variation'
+        else:
+            is_variation = parent_id is not None
+
+        # Decrease the stock
+        result = woo_api.decrease_inventory_stock(
+            product_id=product_id,
+            quantity=quantity,
+            is_variation=is_variation,
+            parent_id=parent_id
+        )
+
+        if result['success']:
+            order_details = {
+                'customerName': customer_name,
+                'product': product_name,
+                'location': location,
+                'quantity': quantity,
+                'orderDate': order_date,
+                'orderTime': order_time,
+                'staffName': staff_name
+            }
+            stock_update = {
+                'product_id': product_id,
+                'previous_stock': result.get('previous_stock'),
+                'new_stock': result.get('new_stock')
+            }
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Order processed successfully. Stock decreased by {quantity}.',
+                'order_details': order_details,
+                'stock_update': stock_update
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': result.get('error', 'Failed to update stock')
+            }, status=500)
+
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        print("Error processing inventory order:", e)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 import re
 import json

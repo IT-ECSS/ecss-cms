@@ -13,16 +13,33 @@ class ReportSection extends Component {
       invoiceData: [],  // Store invoice data,
       updatedInvoiceData: [],  // Store invoice data
       columnDefs: [  // Define the column headers and configurations
-        { headerName: "S/N", field: "index", width: 100, sortable: true },
-        { headerName: "Received From", field: "participant.name", width: 200, sortable: true },
-        { headerName: "Course Name", field: "course.courseEngName", width: 350, sortable: true },
+        { headerName: "S/N", field: "index", width: 100, sortable: true, pinned: "left" },
+        { headerName: "Received From", field: "participant.name", width: 200, sortable: true, pinned: "left" },
+        { headerName: "Course Name", field: "course.courseEngName", width: 350, sortable: true, pinned: "left" },
         { headerName: "Course Location", field: "course.courseLocation", width: 300, sortable: true },
-        { headerName: "Payment Method", field: "course.payment", width: 150, sortable: true },
+        { headerName: "Course Duration", field: "course.courseDuration", width: 300, sortable: true },
+        { headerName: "Payment Method", field: "course.payment", width: 200, sortable: true },
         { headerName: "Price", field: "course.coursePrice", width: 150, sortable: true },
         { headerName: "Payment Status", field: "status", width: 200, sortable: true },
         { headerName: "Receipt Number", field: "official.receiptNo", width: 300, sortable: true },
         { headerName: "Registration Date", field: "registrationDate", width: 150, sortable: true },
         { headerName: "Payment Date", field: "official.date", width: 150, sortable: true },
+        { headerName: "Refunded Date", field: "official.refundedDate", width: 150, sortable: true },
+        { headerName: "Misc", field: "misc", width: 250, sortable: true },
+        { headerName: "Remarks", field: "official.remarks", width: 250, sortable: true },
+      ],
+      // Course Coordinator Report column definitions (without Payment Date)
+      courseCoordinatorColumnDefs: [
+        { headerName: "S/N", field: "index", width: 100, sortable: true, pinned: "left" },
+        { headerName: "Received From", field: "participant.name", width: 200, sortable: true, pinned: "left" },
+        { headerName: "Course Name", field: "course.courseEngName", width: 350, sortable: true, pinned: "left" },
+        { headerName: "Course Location", field: "course.courseLocation", width: 300, sortable: true },
+        { headerName: "Course Duration", field: "course.courseDuration", width: 300, sortable: true },
+        { headerName: "Payment Method", field: "course.payment", width: 150, sortable: true },
+        { headerName: "Price", field: "course.coursePrice", width: 150, sortable: true },
+        { headerName: "Payment Status", field: "status", width: 200, sortable: true },
+        { headerName: "Receipt Number", field: "official.receiptNo", width: 300, sortable: true },
+        { headerName: "Registration Date", field: "registrationDate", width: 150, sortable: true },
         { headerName: "Refunded Date", field: "official.refundedDate", width: 150, sortable: true },
         { headerName: "Misc", field: "misc", width: 250, sortable: true },
         { headerName: "Remarks", field: "official.remarks", width: 250, sortable: true },
@@ -44,7 +61,31 @@ class ReportSection extends Component {
       selectedSiteICLocation: '', // Start with no default value
       showSiteICDropdown: false, // State to control visibility of Site IC dropdown
       showSiteDropdown: false, // State to control visibility of Site dropdown list
-      filteredSiteOptions: [] // List of filtered site options
+      filteredSiteOptions: [], // List of filtered site options
+      // Course Coordinator Report state
+      courseCoordinatorData: [], // Data for course coordinator report (sorted by course name and duration)
+      showCourseCoordinatorReport: false,
+      courseCoordinatorFromDate: '',
+      courseCoordinatorToDate: '',
+      courseCoordinatorDateRange: '',
+      courseCoordinatorTotalPrice: 0,
+      courseCoordinatorTotalCash: 0,
+      courseCoordinatorTotalPayNow: 0,
+      // Course Name dropdown
+      selectedCourseName: '',
+      courseNameOptions: [],
+      filteredCourseNameOptions: [],
+      showCourseNameDropdown: false,
+      // Course Duration dropdown
+      selectedCourseDuration: '',
+      courseDurationOptions: [],
+      filteredCourseDurationOptions: [],
+      showCourseDurationDropdown: false,
+      // Course Location dropdown
+      selectedCourseLocation: '',
+      courseLocationOptions: [],
+      filteredCourseLocationOptions: [],
+      showCourseLocationDropdown: false
     };
   }
 
@@ -111,15 +152,15 @@ class ReportSection extends Component {
       // Create a "Month Year" string from the item date
       const itemFormattedMonthYear = `${itemMonthName} ${itemYear}`;
   
-      return item.official.receiptNo && itemFormattedMonthYear === selectedMonth; // Compare formatted month-year
+      return item.official.receiptNo && itemFormattedMonthYear === selectedMonth && item.status === "Paid"; // Compare formatted month-year and only Paid entries
     });
   
     console.log("Filtered Data:", filteredData);
   
-    // Calculate total price for the filtered data
+    // Calculate total price for the filtered data (only Paid entries)
     const totalPrice = filteredData.reduce((total, item) => {
       let price = 0;
-      if (item.official.date) {
+      if (item.status === "Paid") {
         const priceString = item.course?.coursePrice.replace('$', '').trim();
         if (priceString !== "" && !isNaN(parseFloat(priceString))) {
           price = parseFloat(priceString);
@@ -467,9 +508,9 @@ class ReportSection extends Component {
       'Remarks'
     ];
   
-    // First filter out SkillsFuture payments
+    // First filter out SkillsFuture payments and only include Paid entries
     const filteredData = updatedInvoiceData.filter(item => 
-      item.course?.payment !== "SkillsFuture"
+      item.course?.payment !== "SkillsFuture" && item.status === "Paid"
     );
     
     // Group by receipt number prefix
@@ -525,10 +566,10 @@ class ReportSection extends Component {
       item.official?.remarks || ''
     ]);
   
-    // Calculate total price for the filtered data
+    // Calculate total price for the filtered data (only Paid entries)
     const totalPrice = sortedData.reduce((total, item) => {
       let price = 0;
-      if (item.official?.date) {
+      if (item.status === "Paid") {
         const priceString = (item.course?.coursePrice || '').replace('$', '').trim();
         if (priceString !== "" && !isNaN(parseFloat(priceString))) {
           price = parseFloat(priceString);
@@ -646,11 +687,13 @@ class ReportSection extends Component {
       });
     });
   
-    // Calculate total price for the filtered data
+    // Calculate total price for the filtered data (only Paid entries)
     const { totalPriceCash, totalPricePaynow } = updatedInvoiceData.reduce((acc, item) => {
-      let price = parseFloat(item.course?.coursePrice.replace('$', '').trim()) || 0;
-      if (item.course?.payment === 'Cash') acc.totalPriceCash += price;
-      if (item.course?.payment === 'PayNow') acc.totalPricePaynow += price;
+      if (item.status === 'Paid') {
+        let price = parseFloat(item.course?.coursePrice.replace('$', '').trim()) || 0;
+        if (item.course?.payment === 'Cash') acc.totalPriceCash += price;
+        if (item.course?.payment === 'PayNow') acc.totalPricePaynow += price;
+      }
       return acc;
     }, { totalPriceCash: 0, totalPricePaynow: 0 });
   
@@ -699,6 +742,369 @@ class ReportSection extends Component {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Invoice Report');
     XLSX.writeFile(wb, `Invoice Report - ${dateRange}.xlsx`);
+  };
+
+  // Course Coordinator Report Methods
+  
+  // Get unique course names from invoice data
+  getCourseNameOptions = () => {
+    const { invoiceData } = this.state;
+    const courseNameSet = new Set();
+    invoiceData.forEach(item => {
+      if (item.course?.courseEngName) {
+        courseNameSet.add(item.course.courseEngName);
+      }
+    });
+    const courseNameOptions = Array.from(courseNameSet).sort();
+    this.setState({ 
+      courseNameOptions, 
+      filteredCourseNameOptions: courseNameOptions 
+    });
+  };
+
+  // Get course durations for selected course name
+  getCourseDurationOptions = (courseName) => {
+    const { invoiceData } = this.state;
+    const durationSet = new Set();
+    invoiceData.forEach(item => {
+      if (item.course?.courseEngName === courseName && item.course?.courseDuration) {
+        durationSet.add(item.course.courseDuration);
+      }
+    });
+    
+    // Sort chronologically by parsing the start date from each duration
+    const courseDurationOptions = Array.from(durationSet).sort((a, b) => {
+      // Parse the start date from duration strings (e.g., "01/01/2024 - 31/03/2024" or "Jan 2024 - Mar 2024")
+      const parseStartDate = (duration) => {
+        // Try to extract the first date-like portion
+        const parts = duration.split('-')[0].trim();
+        
+        // Try dd/mm/yyyy format first
+        const ddmmyyyyMatch = parts.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+        if (ddmmyyyyMatch) {
+          return new Date(parseInt(ddmmyyyyMatch[3]), parseInt(ddmmyyyyMatch[2]) - 1, parseInt(ddmmyyyyMatch[1]));
+        }
+        
+        // Try "Month Year" format (e.g., "Jan 2024")
+        const monthYearMatch = parts.match(/([A-Za-z]+)\s*(\d{4})/);
+        if (monthYearMatch) {
+          const monthStr = monthYearMatch[1];
+          const year = parseInt(monthYearMatch[2]);
+          const monthIndex = new Date(Date.parse(monthStr + " 1, 2000")).getMonth();
+          return new Date(year, monthIndex, 1);
+        }
+        
+        // Fallback: try to parse as-is
+        const parsed = new Date(parts);
+        return isNaN(parsed.getTime()) ? new Date(0) : parsed;
+      };
+      
+      const dateA = parseStartDate(a);
+      const dateB = parseStartDate(b);
+      return dateA.getTime() - dateB.getTime();
+    });
+    
+    // Also get location options for this course name
+    const locationSet = new Set();
+    invoiceData.forEach(item => {
+      if (item.course?.courseEngName === courseName && item.course?.courseLocation) {
+        locationSet.add(item.course.courseLocation);
+      }
+    });
+    const courseLocationOptions = Array.from(locationSet).sort();
+    
+    this.setState({ 
+      courseDurationOptions, 
+      filteredCourseDurationOptions: courseDurationOptions,
+      selectedCourseDuration: '', // Reset duration when course name changes
+      selectedCourseLocation: '', // Reset location when course name changes
+      courseLocationOptions,
+      filteredCourseLocationOptions: courseLocationOptions,
+      showCourseCoordinatorReport: false // Hide report when selection changes
+    });
+  };
+
+  // Get course locations for selected course name (not dependent on duration)
+  getCourseLocationOptions = (courseName) => {
+    const { invoiceData } = this.state;
+    const locationSet = new Set();
+    invoiceData.forEach(item => {
+      if (item.course?.courseEngName === courseName && item.course?.courseLocation) {
+        locationSet.add(item.course.courseLocation);
+      }
+    });
+    const courseLocationOptions = Array.from(locationSet).sort();
+    this.setState({ 
+      courseLocationOptions, 
+      filteredCourseLocationOptions: courseLocationOptions,
+      selectedCourseLocation: '', // Reset location
+      showCourseCoordinatorReport: false // Hide report when selection changes
+    });
+  };
+
+  handleCourseNameChange = (e) => {
+    const value = e.target.value;
+    const filteredCourseNameOptions = this.state.courseNameOptions.filter(name =>
+      name.toLowerCase().includes(value.toLowerCase())
+    );
+    this.setState({
+      selectedCourseName: value,
+      filteredCourseNameOptions,
+      showCourseNameDropdown: true
+    });
+  };
+
+  handleCourseNameSelect = (courseName) => {
+    this.setState({ 
+      selectedCourseName: courseName, 
+      showCourseNameDropdown: false 
+    });
+    this.getCourseDurationOptions(courseName);
+  };
+
+  handleCourseDurationChange = (e) => {
+    const value = e.target.value;
+    const filteredCourseDurationOptions = this.state.courseDurationOptions.filter(duration =>
+      duration.toLowerCase().includes(value.toLowerCase())
+    );
+    this.setState({
+      selectedCourseDuration: value,
+      filteredCourseDurationOptions,
+      showCourseDurationDropdown: true
+    });
+  };
+
+  handleCourseDurationSelect = (duration) => {
+    this.setState({ 
+      selectedCourseDuration: duration, 
+      showCourseDurationDropdown: false 
+    });
+  };
+
+  handleCourseLocationChange = (e) => {
+    const value = e.target.value;
+    const filteredCourseLocationOptions = this.state.courseLocationOptions.filter(location =>
+      location.toLowerCase().includes(value.toLowerCase())
+    );
+    this.setState({
+      selectedCourseLocation: value,
+      filteredCourseLocationOptions,
+      showCourseLocationDropdown: true
+    });
+  };
+
+  handleCourseLocationSelect = (location) => {
+    this.setState({ 
+      selectedCourseLocation: location, 
+      showCourseLocationDropdown: false 
+    });
+  };
+
+  generateCourseCoordinatorReport = () => {
+    const { invoiceData, selectedCourseName, selectedCourseDuration, selectedCourseLocation } = this.state;
+    
+    // Validate that course name is selected
+    if (!selectedCourseName) {
+      alert('Please select a Course Name');
+      return;
+    }
+
+    // Filter data based on selected course name, duration, and location
+    let filteredData = invoiceData.filter(item => {
+      if (item.course?.payment === "SkillsFuture") return false;
+      if (item.course?.courseEngName !== selectedCourseName) return false;
+      
+      // If duration is selected, filter by it too
+      if (selectedCourseDuration && item.course?.courseDuration !== selectedCourseDuration) {
+        return false;
+      }
+      
+      // If location is selected, filter by it too
+      if (selectedCourseLocation && item.course?.courseLocation !== selectedCourseLocation) {
+        return false;
+      }
+      
+      return true;
+    });
+
+    // Sort by Course Name first, then by Course Duration
+    const sortedData = [...filteredData].sort((a, b) => {
+      const nameA = a.course?.courseEngName || '';
+      const nameB = b.course?.courseEngName || '';
+      const nameCompare = nameA.localeCompare(nameB);
+      if (nameCompare !== 0) return nameCompare;
+      
+      const durationA = a.course?.courseDuration || '';
+      const durationB = b.course?.courseDuration || '';
+      return durationA.localeCompare(durationB);
+    });
+
+    // Re-index after sorting
+    const courseCoordinatorData = sortedData.map((item, index) => ({
+      ...item,
+      index: index + 1
+    }));
+
+    // Calculate totals (only Paid entries)
+    const totalCash = courseCoordinatorData.reduce((total, item) => {
+      let price = 0;
+      if (item.course?.payment === "Cash" && item.status === "Paid") {
+        const priceString = (item.course?.coursePrice || '').replace('$', '').trim();
+        if (priceString !== "" && !isNaN(parseFloat(priceString))) {
+          price = parseFloat(priceString);
+        }
+      }
+      return total + price;
+    }, 0);
+
+    const totalPayNow = courseCoordinatorData.reduce((total, item) => {
+      let price = 0;
+      if (item.course?.payment === "PayNow" && item.status === "Paid") {
+        const priceString = (item.course?.coursePrice || '').replace('$', '').trim();
+        if (priceString !== "" && !isNaN(parseFloat(priceString))) {
+          price = parseFloat(priceString);
+        }
+      }
+      return total + price;
+    }, 0);
+
+    const totalPrice = courseCoordinatorData.reduce((total, item) => {
+      let price = 0;
+      if (item.status === "Paid") {
+        const priceString = (item.course?.coursePrice || '').replace('$', '').trim();
+        if (priceString !== "" && !isNaN(parseFloat(priceString))) {
+          price = parseFloat(priceString);
+        }
+      }
+      return total + price;
+    }, 0);
+
+    this.setState({
+      courseCoordinatorData,
+      showCourseCoordinatorReport: true,
+      courseCoordinatorDateRange: this.buildReportLabel(courseCoordinatorData),
+      courseCoordinatorTotalPrice: totalPrice.toFixed(2),
+      courseCoordinatorTotalCash: totalCash.toFixed(2),
+      courseCoordinatorTotalPayNow: totalPayNow.toFixed(2)
+    });
+  };
+
+  // Build the report label from selected filters or derived from data
+  buildReportLabel = (filteredData) => {
+    const { selectedCourseName, selectedCourseDuration, selectedCourseLocation } = this.state;
+    let label = selectedCourseName;
+    
+    // If duration wasn't explicitly selected, try to derive it from the filtered data
+    let durationToShow = selectedCourseDuration;
+    if (!durationToShow && filteredData && filteredData.length > 0) {
+      // Get unique durations from the data
+      const uniqueDurations = [...new Set(filteredData.map(item => item.course?.courseDuration).filter(Boolean))];
+      if (uniqueDurations.length === 1) {
+        durationToShow = uniqueDurations[0];
+      }
+    }
+    
+    // If location wasn't explicitly selected, try to derive it from the filtered data
+    let locationToShow = selectedCourseLocation;
+    if (!locationToShow && filteredData && filteredData.length > 0) {
+      // Get unique locations from the data
+      const uniqueLocations = [...new Set(filteredData.map(item => item.course?.courseLocation).filter(Boolean))];
+      if (uniqueLocations.length === 1) {
+        locationToShow = uniqueLocations[0];
+      }
+    }
+    
+    if (durationToShow) {
+      label += ` - ${durationToShow}`;
+    }
+    if (locationToShow) {
+      label += ` - ${locationToShow}`;
+    }
+    return label;
+  };
+
+  exportCourseCoordinatorReport = () => {
+    const { courseCoordinatorData, courseCoordinatorDateRange } = this.state;
+
+    const headers = [
+      'S/N', 'Received From', 'Course Name', 
+      'Course Location', 'Course Duration', 'Payment Method', 'Price', 
+      'Payment Status', 'Receipt Number', 'Registration Date', 
+      'Refunded Date', 'Misc', 'Remarks'
+    ];
+
+    // Prepare the rows from the sorted data (no Payment Date)
+    const rows = courseCoordinatorData.map((item, index) => [
+      index + 1, // Serial number (S/N)
+      item.participant?.name || '', // Received From
+      item.course?.courseEngName || '', // Course Name
+      item.course?.courseLocation || '', // Course Location
+      item.course?.courseDuration || '', // Course Duration
+      item.course?.payment || '', // Payment Method
+      item.course?.coursePrice || '', // Price
+      item.status || '', // Payment Status
+      item.official?.receiptNo || '', // Receipt Number
+      item.registrationDate || '', // Registration Date
+      item.official?.refundedDate || '', // Refunded Date
+      '', // Misc
+      item.official?.remarks || '' // Remarks
+    ]);
+
+    // Calculate total price for the filtered data (only Paid entries)
+    const { totalPriceCash, totalPricePaynow } = courseCoordinatorData.reduce((acc, item) => {
+      if (item.status === 'Paid') {
+        let price = parseFloat((item.course?.coursePrice || '').replace('$', '').trim()) || 0;
+        if (item.course?.payment === 'Cash') acc.totalPriceCash += price;
+        if (item.course?.payment === 'PayNow') acc.totalPricePaynow += price;
+      }
+      return acc;
+    }, { totalPriceCash: 0, totalPricePaynow: 0 });
+
+    const formattedTotalPriceCash = `$ ${totalPriceCash.toFixed(2)}`;
+    const formattedTotalPricePaynow = `$ ${totalPricePaynow.toFixed(2)}`;
+    const formattedTotalPrice = `$ ${(totalPricePaynow + totalPriceCash).toFixed(2)}`;
+
+    // Empty and collection rows
+    const emptyRow = new Array(headers.length).fill('');
+    const collectionRow = new Array(headers.length).fill('');
+    collectionRow[2] = 'dd-mm-yy'; 
+    collectionRow[3] = `Collection by ${this.props.userName}`;
+
+    // Total rows
+    const cashRow = new Array(headers.length).fill('');
+    cashRow[6] = `Total (Cash): ${formattedTotalPriceCash}`;
+    const payNowRow = new Array(headers.length).fill('');
+    payNowRow[6] = `Total (PayNow): ${formattedTotalPricePaynow}`;
+    const totalRow = new Array(headers.length).fill('');
+    totalRow[6] = `Total: ${formattedTotalPrice}`;
+
+    // Create the sheet
+    const sheetData = [headers, ...rows, emptyRow, collectionRow, emptyRow, cashRow, payNowRow, totalRow];
+
+    // Determine column widths
+    const colWidths = headers.map((_, colIndex) => {
+      let maxLength = headers[colIndex].length;
+      sheetData.forEach(row => {
+        const cellValue = row[colIndex]?.toString() || '';
+        if (cellValue.length > maxLength) {
+          maxLength = cellValue.length;
+        }
+      });
+      return { wch: maxLength + 2 };
+    });
+
+    // Create worksheet and workbook, then export as Excel file
+    const ws = XLSX.utils.aoa_to_sheet(sheetData);
+    ws['!cols'] = colWidths;
+
+    // Apply bold font for headers
+    for (let col = 0; col < headers.length; col++) {
+      ws[`${String.fromCharCode(65 + col)}1`].s = { font: { bold: true } };
+    }
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Course Coordinator Report');
+    XLSX.writeFile(wb, `Course Coordinator Report - ${courseCoordinatorDateRange}.xlsx`);
   };
   
 
@@ -1072,6 +1478,188 @@ class ReportSection extends Component {
         )}
         {this.state.showTable && updatedInvoiceData.length === 0 && (
           <div style={{textAlign: 'center', color: 'red'}}>No data available for the selected period.</div>
+        )}
+
+        {this.props.reportType === "Course Coordinator Report" && (
+          <>
+            <h1 style={{ textAlign: 'center', marginBottom: '20px' }}>Course Coordinator Report</h1>
+            
+            {/* Course Selection - All 3 fields visible */}
+            <div style={{ marginTop: '20px', textAlign: 'center' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                
+                {/* Course Name */}
+                <div style={{ textAlign: 'left', width: 'auto' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Course Name</label>
+                  <div
+                    id="course-name-selector"
+                    className={`dropdown-container1 ${this.state.showCourseNameDropdown ? 'open' : ''}`}
+                    style={{ width: '450px' }}
+                  >
+                    <input
+                      type="text"
+                      id="course-name-dropdown"
+                      name="selectedCourseName"
+                      value={this.state.selectedCourseName}
+                      onChange={this.handleCourseNameChange}
+                      onClick={() => {
+                        this.getCourseNameOptions();
+                        this.setState({ showCourseNameDropdown: true });
+                      }}
+                      placeholder="Click to select or type to search"
+                      autoComplete="off"
+                      style={{ width: '100%', padding: '8px', fontSize: '1rem', border: '1px solid #000000', borderRadius: '4px' }}
+                    />
+                    {this.state.showCourseNameDropdown && (
+                      <ul className="dropdown-list1" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                        {this.state.filteredCourseNameOptions.map((name, index) => (
+                          <li
+                            key={index}
+                            onClick={() => this.handleCourseNameSelect(name)}
+                          >
+                            {name}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+
+                {/* Centre (Course Location) */}
+                <div style={{ textAlign: 'left', width: 'auto' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Centre</label>
+                  <div
+                    id="course-location-selector"
+                    className={`dropdown-container1 ${this.state.showCourseLocationDropdown ? 'open' : ''}`}
+                    style={{ width: '375px' }}
+                  >
+                    <input
+                      type="text"
+                      id="course-location-dropdown"
+                      name="selectedCourseLocation"
+                      value={this.state.selectedCourseLocation}
+                      onChange={this.handleCourseLocationChange}
+                      onClick={() => this.setState({ showCourseLocationDropdown: true })}
+                      placeholder={this.state.selectedCourseName ? "Select centre (optional)" : "Select course name first"}
+                      autoComplete="off"
+                      disabled={!this.state.selectedCourseName}
+                      style={{ 
+                        width: '100%', 
+                        padding: '8px', 
+                        fontSize: '1rem', 
+                        border: '1px solid #000000', 
+                        borderRadius: '4px',
+                        backgroundColor: this.state.selectedCourseName ? '#fff' : '#f5f5f5'
+                      }}
+                    />
+                    {this.state.showCourseLocationDropdown && this.state.selectedCourseName && (
+                      <ul className="dropdown-list1" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                        {this.state.filteredCourseLocationOptions.map((location, index) => (
+                          <li
+                            key={index}
+                            onClick={() => this.handleCourseLocationSelect(location)}
+                          >
+                            {location}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+
+                {/* Course Duration */}
+                <div style={{ textAlign: 'left', width: 'auto' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Course Duration</label>
+                  <div
+                    id="course-duration-selector"
+                    className={`dropdown-container1 ${this.state.showCourseDurationDropdown ? 'open' : ''}`}
+                    style={{ width: '375px' }}
+                  >
+                    <input
+                      type="text"
+                      id="course-duration-dropdown"
+                      name="selectedCourseDuration"
+                      value={this.state.selectedCourseDuration}
+                      onChange={this.handleCourseDurationChange}
+                      onClick={() => this.setState({ showCourseDurationDropdown: true })}
+                      placeholder={this.state.selectedCourseName ? "Select duration (optional)" : "Select centre first"}
+                      autoComplete="off"
+                      disabled={!this.state.selectedCourseName}
+                      style={{ 
+                        width: '100%', 
+                        padding: '8px', 
+                        fontSize: '1rem', 
+                        border: '1px solid #000000', 
+                        borderRadius: '4px',
+                        backgroundColor: this.state.selectedCourseName ? '#fff' : '#f5f5f5'
+                      }}
+                    />
+                    {this.state.showCourseDurationDropdown && this.state.selectedCourseName && (
+                      <ul className="dropdown-list1" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                        {this.state.filteredCourseDurationOptions.map((duration, index) => (
+                          <li
+                            key={index}
+                            onClick={() => this.handleCourseDurationSelect(duration)}
+                          >
+                            {duration}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+
+                {/* Generate Button */}
+                <div style={{ alignSelf: 'flex-end', marginBottom: '2px' }}>
+                  <button className="generate-btn" onClick={() => this.generateCourseCoordinatorReport()}>Generate</button>
+                </div>
+              </div>
+            </div>
+
+            {this.state.showCourseCoordinatorReport && (
+              <>
+                <div className='report-container'>
+                  <p>
+                    <strong>Report For {this.state.courseCoordinatorDateRange}</strong>
+                  </p>
+                  <p>
+                    <strong>Status : {this.state.status}</strong>
+                  </p>
+                  <p style={{ display: 'flex', alignItems: 'flex-start' }}>
+                    <strong style={{ marginRight: '10px' }}>Total:</strong>
+                    <span style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span>${this.state.courseCoordinatorTotalPrice} </span>
+                      <span>${this.state.courseCoordinatorTotalCash}   (Cash)</span>
+                      <span> ${this.state.courseCoordinatorTotalPayNow}   (PayNow)</span>
+                    </span>
+                  </p>
+                </div>
+                <div id="ag-grid-container" name="agGridContainer" className="ag-theme-alpine">
+                  <AgGridReact
+                    columnDefs={this.state.courseCoordinatorColumnDefs}
+                    rowData={this.state.courseCoordinatorData}
+                    pagination={true}
+                    paginationPageSize={this.state.courseCoordinatorData.length}
+                    domLayout="normal"
+                    onGridReady={this.onGridReady}
+                  />
+                </div>
+                <div id="export-button-container" name="exportButtonContainer" style={{ textAlign: 'center', marginTop: '20px' }}>
+                  <button
+                    id="export-to-excel-button"
+                    name="exportToExcelButton"
+                    onClick={this.exportCourseCoordinatorReport}
+                  >
+                    Export to Excel
+                  </button>
+                </div>
+              </>
+            )}
+
+            {this.state.showCourseCoordinatorReport && this.state.courseCoordinatorData.length === 0 && (
+              <div style={{textAlign: 'center', color: 'red', marginTop: '20px'}}>No data available for the selected period.</div>
+            )}
+          </>
         )}
       </>
       );   

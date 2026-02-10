@@ -161,30 +161,21 @@
 .fft-year-comparison-table .ag-header-cell .ag-header-cell-label {
   justify-content: center !important;
   font-weight: bold !important;
-  font-size: 20px !important;
 }
 
 .fft-year-comparison-table .ag-header-group-cell {
   border-right: 2px solid #a08078 !important;
   border-bottom: 1px solid #c9a097 !important;
-  font-size: 20px !important;
 }
 
 .fft-year-comparison-table .ag-header-group-cell .ag-header-group-cell-label {
   justify-content: center !important;
   font-weight: bold !important;
-  font-size: 20px !important;
 }
 
 .fft-year-comparison-table .ag-cell {
   border-right: 1px solid #ddd !important;
   border-bottom: 1px solid #ddd !important;
-  font-size: 20px !important;
-}
-
-/* Fitness Participants Table cell font size */
-.fft-grid-container .ag-cell {
-  font-size: 20px !important;
 }
 
 .fft-year-comparison-table .ag-row {
@@ -199,8 +190,6 @@
 .fft-entries-table-wrapper .ag-header-cell .ag-header-cell-label {
   justify-content: center !important;
   font-weight: bold !important;
-  font-size: 20px !important;
-  white-space: nowrap !important;
 }
 
 .fft-entries-table-wrapper .ag-header-group-cell {
@@ -211,11 +200,6 @@
 .fft-entries-table-wrapper .ag-header-group-cell .ag-header-group-cell-label {
   justify-content: center !important;
   font-weight: bold !important;
-}
-
-/* Fitness Entries Table cell font size (single year view) */
-.fft-entries-table-wrapper .ag-cell {
-  font-size: 20px !important;
 }
 
 /* Grid container */

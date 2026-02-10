@@ -1,0 +1,149 @@
+.fft-home-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px 20px;
+  animation: fftHomeSlideIn 0.4s ease-out;
+  width: 100%;
+}
+
+@keyframes fftHomeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fft-home-header {
+  margin-bottom: 48px;
+  width: 100%;
+  text-align: center;
+}
+
+.fft-home-title {
+  font-size: 5rem;
+  font-weight: 800;
+  color: #1a202c;
+  margin: 0;
+  letter-spacing: -1px;
+}
+
+.fft-home-navigation {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  width: 100%;
+  padding: 0 20px;
+}
+
+.fft-home-nav-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 50px 30px;
+  border: 1px solid #d1d5db;
+  border-radius: 28px;
+  cursor: pointer;
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: #ffffff;
+  background: transparent;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: none;
+  position: relative;
+  overflow: hidden;
+  flex: 1;
+}
+
+.fft-home-nav-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.fft-home-nav-card:hover {
+  transform: translateY(-8px);
+  box-shadow: none;
+}
+
+.fft-home-nav-card:hover::before {
+  opacity: 0;
+}
+
+.fft-home-nav-card:active {
+  transform: translateY(-4px);
+}
+
+.fft-home-nav-card--admin {
+  background: transparent;
+}
+
+.fft-home-nav-card--admin .fft-home-nav-icon,
+.fft-home-nav-card--admin .fft-home-nav-text {
+  color: #4b5563;
+}
+
+.fft-home-nav-card--admin:hover {
+  background: transparent;
+  box-shadow: none;
+}
+
+.fft-home-nav-card--participants {
+  background: transparent;
+}
+
+.fft-home-nav-card--participants .fft-home-nav-icon,
+.fft-home-nav-card--participants .fft-home-nav-text {
+  color: #4a6fa5;
+}
+
+.fft-home-nav-card--participants:hover {
+  background: transparent;
+  box-shadow: none;
+}
+
+.fft-home-nav-card--volunteers {
+  background: transparent;
+}
+
+.fft-home-nav-card--volunteers .fft-home-nav-icon,
+.fft-home-nav-card--volunteers .fft-home-nav-text {
+  color: #557a6f;
+}
+
+.fft-home-nav-card--volunteers:hover {
+  background: transparent;
+  box-shadow: none;
+}
+
+.fft-home-nav-icon {
+  font-size: 3.5rem;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fft-home-nav-card:hover .fft-home-nav-icon {
+  transform: scale(1.1) translateY(-2px);
+}
+
+.fft-home-nav-text {
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.3;
+  letter-spacing: 0.3px;
+}

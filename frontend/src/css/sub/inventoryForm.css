@@ -1,0 +1,391 @@
+/* Inventory Form Component Styles */
+
+/* Main Container */
+.inventory-form-container {
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    min-height: auto;
+    background-color: transparent;
+}
+
+/* Header Section */
+.inventory-form-header {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.inventory-form-header h2 {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0 0 0.5rem 0;
+}
+
+.inventory-form-header h2 i {
+    color: #3498db;
+    font-size: 1.5rem;
+}
+
+.form-subtitle {
+    color: #6c757d;
+    font-size: 0.95rem;
+    margin: 0;
+}
+
+/* Form Content */
+.inventory-form-content {
+    flex: 1;
+    max-width: 100%;
+    width: 100%;
+    padding: 2rem;
+    background-color: transparent;
+    overflow: visible;
+}
+
+/* High specificity input styles for inventory form */
+.inventory-form-content .inventory-order-form .form-group input[type="text"] {
+    width: 100%;
+    height: 56px;
+    padding: 1rem 1.25rem;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 8px;
+    font-size: 1.25rem;
+    color: #374151;
+    background-color: #fff;
+    box-sizing: border-box;
+}
+
+.inventory-form-content .inventory-order-form .form-group input[type="text"]:hover {
+    border-color: #d1d5db !important;
+}
+
+.inventory-form-content .inventory-order-form .form-group input[type="text"]:focus {
+    border-color: #93c5fd !important;
+    box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.2);
+    outline: none;
+}
+
+/* Loading State */
+.inventory-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    gap: 1rem;
+}
+
+.inventory-loading i {
+    font-size: 2.5rem;
+    color: #3498db;
+}
+
+.inventory-loading p {
+    color: #6c757d;
+    font-size: 1rem;
+    margin: 0;
+}
+
+/* Form Styles */
+.inventory-order-form {
+    background-color: transparent;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+    overflow: visible;
+}
+
+/* Form Messages */
+.form-message {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+}
+
+.form-message.error {
+    background-color: #fee2e2;
+    border: 1px solid #fecaca;
+    color: #dc2626;
+}
+
+.form-message.success {
+    background-color: #d1fae5;
+    border: 1px solid #a7f3d0;
+    color: #059669;
+}
+
+.form-message i {
+    font-size: 1.25rem;
+}
+
+/* Form Row */
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+    overflow: visible;
+}
+
+/* Form Group */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    position: relative;
+    overflow: visible;
+}
+
+.form-group.empty-placeholder {
+    visibility: hidden;
+}
+
+.form-group label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.form-group label i {
+    color: #3498db;
+    font-size: 0.9rem;
+}
+
+.required {
+    color: #dc2626;
+}
+
+/* Input Styles */
+.form-group input,
+.form-group select,
+.inventory-order-form input[type="text"] {
+    width: 100%;
+    height: 56px;
+    padding: 1rem 1.25rem;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 8px;
+    font-size: 1.25rem;
+    color: #374151;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    background-color: #fff;
+    box-sizing: border-box;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+.form-group input:hover,
+.form-group select:hover,
+.inventory-order-form input[type="text"]:hover {
+    border-color: #d1d5db !important;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.inventory-order-form input[type="text"]:focus {
+    border-color: #93c5fd !important;
+    box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.2);
+    outline: none;
+}
+
+.form-group input[readonly] {
+    background-color: #f8f9fa;
+    color: #6c757d;
+    cursor: not-allowed;
+}
+
+/* Total Price Input - highlighted display */
+.form-group .total-price-input {
+    background-color: #e8f5e9 !important;
+    color: #2e7d32 !important;
+    font-weight: 600;
+    font-size: 1.1rem;
+    text-align: center;
+    cursor: default;
+}
+
+.form-group select:disabled {
+    background-color: #f8f9fa;
+    color: #adb5bd;
+    cursor: not-allowed;
+}
+
+.form-group input::placeholder {
+    color: #adb5bd;
+}
+
+/* Custom Dropdown Styles */
+.custom-dropdown-container {
+    position: relative;
+    width: 100%;
+}
+
+.custom-dropdown-container input,
+.inventory-order-form .custom-dropdown-container input[type="text"],
+.inventory-form-content input[type="text"] {
+    width: 100%;
+    height: 56px;
+    padding: 1rem 1.25rem;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 8px;
+    font-size: 1.25rem;
+    color: #374151;
+    background-color: #fff;
+    box-sizing: border-box;
+}
+
+.custom-dropdown-container input:hover,
+.inventory-order-form .custom-dropdown-container input[type="text"]:hover,
+.inventory-form-content input[type="text"]:hover {
+    border-color: #d1d5db !important;
+}
+
+.custom-dropdown-container input:focus,
+.inventory-order-form .custom-dropdown-container input[type="text"]:focus,
+.inventory-form-content input[type="text"]:focus {
+    border-color: #93c5fd !important;
+    box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.2);
+    outline: none;
+}
+
+.custom-dropdown-list {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    max-height: 250px;
+    overflow-y: auto;
+    background-color: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    z-index: 9999;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.custom-dropdown-item {
+    padding: 0.875rem 1.25rem;
+    font-size: 1.25rem;
+    color: #374151;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.custom-dropdown-item:hover {
+    background-color: #f3f4f6;
+}
+
+.custom-dropdown-item:last-child {
+    border-radius: 0 0 0.5rem 0.5rem;
+}
+
+/* Stock Info */
+.stock-info {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+
+/* Form Actions */
+.form-actions {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: none;
+    justify-content: flex-start;
+}
+
+.submit-btn,
+.reset-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem 2.5rem;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 1.25rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 180px;
+}
+
+.submit-btn {
+    background-color: #3498db;
+    color: #fff;
+}
+
+.submit-btn:hover:not(:disabled) {
+    background-color: #2980b9;
+}
+
+.submit-btn:disabled {
+    background-color: #93c5fd;
+    cursor: not-allowed;
+}
+
+.reset-btn {
+    background-color: #f8f9fa;
+    color: #6c757d;
+    border: 1px solid #dee2e6;
+}
+
+.reset-btn:hover {
+    background-color: #e9ecef;
+    color: #495057;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .inventory-form-container {
+        padding: 1rem;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .form-group.empty-placeholder {
+        display: none;
+    }
+
+    .inventory-order-form {
+        padding: 1.5rem;
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+
+    .submit-btn,
+    .reset-btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 576px) {
+    .inventory-form-header h2 {
+        font-size: 1.5rem;
+    }
+
+    .inventory-order-form {
+        padding: 1rem;
+    }
+}

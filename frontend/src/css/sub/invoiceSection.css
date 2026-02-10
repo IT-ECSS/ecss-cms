@@ -65,6 +65,22 @@
   overflow: auto;  /* Allow scrolling both horizontally and vertically */
 }
 
+#ag-grid-container .ag-row,
+#ag-grid-container .ag-row-even,
+#ag-grid-container .ag-row-odd {
+  background-color: #E3C2A7 !important;
+  border-bottom: 1px solid #888 !important;
+}
+
+/* Single vertical line for pinned left columns */
+#ag-grid-container .ag-pinned-left-cols-container {
+  border-right: 2px solid #888 !important;
+}
+
+#ag-grid-container .ag-pinned-left-header {
+  border-right: 2px solid #888 !important;
+}
+
 .report-container {
   border-radius: 8px; /* Rounded corners for the container */
   margin-left: auto;

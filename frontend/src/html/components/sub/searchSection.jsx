@@ -937,14 +937,14 @@ render()
   console.log("Course Name List:", this.state);
   console.log("Section:", section);
   return (
-  <div className="filter-section"> {/* Same class name for both sections */}
-    <div className="form-group-row" >
+  <div className="ss-filter-wrapper"> {/* Same class name for both sections */}
+    <div className="ss-controls-row" >
       {section === "accounts" && ( // Content for "registration"
         <>
-        <div className="form-group">
+        <div className="ss-field-group">
             <label htmlFor="accountType">{this.props.language === 'zh' ? '' : 'Account Type'}</label>
             <div
-              className={`dropdown-container ${showAccountTypeDropdown ? 'open' : ''}`}
+              className={`ss-dropdown-wrap ${showAccountTypeDropdown ? 'open' : ''}`}
               ref={this.accountTypeDropdownRef}
             >
               <input
@@ -958,7 +958,7 @@ render()
                 autoComplete="off"
               />
               {showAccountTypeDropdown && (
-                <ul className="dropdown-list">
+                <ul className="ss-options-list">
                   {filteredRoles.map((role, index) => (
                     <li
                       key={index}
@@ -969,12 +969,12 @@ render()
                   ))}
                 </ul>
               )}
-              <i className="fas fa-angle-down dropdown-icon"></i>
+              <i className="fas fa-angle-down ss-chevron-icon"></i>
             </div>
           </div>
-            <div className="form-group">
+            <div className="ss-field-group">
             <label htmlFor="searchQuery">{this.props.language === 'zh' ? '搜寻' : 'Search'}</label>
-            <div className="search-container">
+            <div className="ss-search-wrap">
               <input
                 type="text"
                 id="searchQuery"
@@ -984,7 +984,7 @@ render()
                 placeholder={this.props.language === 'zh' ? '搜索' : 'Search'}
                 autoComplete="off"
               />
-              <i className="fas fa-search search-icon"></i>
+              <i className="fas fa-search ss-magnifier-icon"></i>
             </div>
           </div>
         </>            
@@ -992,10 +992,10 @@ render()
 
       {section === "courses" && ( // Content for "courses"
         <>
-          <div className="form-group">
+          <div className="ss-field-group">
             <label htmlFor="centreLocation">{this.props.language === 'zh' ? '中心位置' : 'Locations'}</label>
             <div
-              className={`dropdown-container ${showLocationDropdown ? 'open' : ''}`}
+              className={`ss-dropdown-wrap ${showLocationDropdown ? 'open' : ''}`}
               ref={this.locationDropdownRef}
             >
               <input
@@ -1009,7 +1009,7 @@ render()
                 autoComplete="off"
               />
               {showLocationDropdown && (
-                <ul className="dropdown-list">
+                <ul className="ss-options-list">
                   {filteredLocations.map((location, index) => (
                     <li
                       key={index}
@@ -1020,12 +1020,12 @@ render()
                   ))}
                 </ul>
               )}
-              <i className="fas fa-angle-down dropdown-icon"></i>
+              <i className="fas fa-angle-down ss-chevron-icon"></i>
             </div>
           </div>
-          <div className="form-group">
+          <div className="ss-field-group">
             <label htmlFor="searchQuery">{this.props.language === 'zh' ? '搜寻' : 'Search'}</label>
-            <div className="search-container">
+            <div className="ss-search-wrap">
               <input
                 type="text"
                 id="searchQuery"
@@ -1035,7 +1035,7 @@ render()
                 placeholder={this.props.language === 'zh' ? '搜索' : 'Search'}
                 autoComplete="off"
               />
-              <i className="fas fa-search search-icon"></i>
+              <i className="fas fa-search ss-magnifier-icon"></i>
             </div>
           </div>
         </>
@@ -1043,10 +1043,10 @@ render()
       
       {section === "registration" &&  ( // Content for "registration"
         <>
-        <div className="form-group">
+        <div className="ss-field-group">
               <label htmlFor="courseType">{this.props.language === 'zh' ? '' : 'Type'}</label>
               <div
-                className={`dropdown-container ${showTypeDropdown ? 'open' : ''}`}
+                className={`ss-dropdown-wrap ${showTypeDropdown ? 'open' : ''}`}
                 ref={this.typeDropdownRef}
               >
                 <input
@@ -1060,7 +1060,7 @@ render()
                   autoComplete="off"
                 />
                 {showTypeDropdown && (
-                  <ul className="dropdown-list">
+                  <ul className="ss-options-list">
                     {filteredTypes.map((type, index) => (
                       <li
                         key={index}
@@ -1071,13 +1071,13 @@ render()
                     ))}
                   </ul>
                 )}
-                <i className="fas fa-angle-down dropdown-icon"></i>
+                <i className="fas fa-angle-down ss-chevron-icon"></i>
               </div>
             </div>
-            <div className="form-group">
+            <div className="ss-field-group">
               <label htmlFor="centreLocation">{this.props.language === 'zh' ? '中心位置' : 'Locations'}</label>
               <div
-                className={`dropdown-container ${showLocationDropdown ? 'open' : ''}`}
+                className={`ss-dropdown-wrap ${showLocationDropdown ? 'open' : ''}`}
                 ref={this.locationDropdownRef}
               >
                 <input
@@ -1091,7 +1091,7 @@ render()
                   autoComplete="off"
                 />
                 {showLocationDropdown && (
-                  <ul className="dropdown-list">
+                  <ul className="ss-options-list">
                     {filteredLocations.map((location, index) => (
                       <li
                         key={index}
@@ -1102,13 +1102,13 @@ render()
                     ))}
                   </ul>
                 )}
-                <i className="fas fa-angle-down dropdown-icon"></i>
+                <i className="fas fa-angle-down ss-chevron-icon"></i>
               </div>
             </div>
-            <div className="form-group">
+            <div className="ss-field-group">
               <label htmlFor="courseQuarter">{this.props.language === 'zh' ? '中心位置' : 'Quarter Year'}</label>
               <div
-                className={`dropdown-container ${showLocationDropdown ? 'open' : ''}`}
+                className={`ss-dropdown-wrap ${showLocationDropdown ? 'open' : ''}`}
                 ref={this.quarterDropdownRef}
               >
                 <input
@@ -1122,7 +1122,7 @@ render()
                   autoComplete="off"
                 />
                 {showQuarterDropdown && (
-                  <ul className="dropdown-list">
+                  <ul className="ss-options-list">
                     {filteredQuarters.map((quarter, index) => (
                       <li
                         key={index}
@@ -1133,13 +1133,13 @@ render()
                     ))}
                   </ul>
                 )}
-                <i className="fas fa-angle-down dropdown-icon"></i>
+                <i className="fas fa-angle-down ss-chevron-icon"></i>
               </div>
             </div>
-            <div className="form-group">
+            <div className="ss-field-group">
             <label htmlFor="course">{this.props.language === 'zh' ? '': 'Course'}</label>
             <div
-              className={`dropdown-container ${showCourseDropdown ? 'open' : ''}`}
+              className={`ss-dropdown-wrap ${showCourseDropdown ? 'open' : ''}`}
               ref={this.courseDropdownRef}
             >
             <input
@@ -1153,7 +1153,7 @@ render()
               autoComplete="off"
             />
               {showCourseDropdown && (
-                <ul className="dropdown-list">
+                <ul className="ss-options-list">
                   {filteredCoursesName.map((name, index) => (
                     <li
                       key={index}
@@ -1164,12 +1164,12 @@ render()
                   ))}
                 </ul>
               )}
-              <i className="fas fa-angle-down dropdown-icon"></i>
+              <i className="fas fa-angle-down ss-chevron-icon"></i>
             </div>
             </div>
-            <div className="form-group">
+            <div className="ss-field-group">
             <label htmlFor="searchQuery">{this.props.language === 'zh' ? '搜寻' : 'Search'}</label>
-            <div className="search-container">
+            <div className="ss-search-wrap">
               <input
                 type="text"
                 id="searchQuery"
@@ -1179,7 +1179,7 @@ render()
                 placeholder={this.props.language === 'zh' ? '搜索' : 'Search'}
                 autoComplete="off"
               />
-              <i className="fas fa-search search-icon"></i>
+              <i className="fas fa-search ss-magnifier-icon"></i>
             </div>
           </div>
         </>            
@@ -1187,10 +1187,10 @@ render()
 
       {section === "attendance" && (
         <>
-          <div className="form-group">
+          <div className="ss-field-group">
             <label htmlFor="attendanceType">{this.props.language === 'zh' ? '类型' : 'Type'}</label>
             <div
-              className={`dropdown-container ${this.state.showAttendanceTypeDropdown ? 'open' : ''}`}
+              className={`ss-dropdown-wrap ${this.state.showAttendanceTypeDropdown ? 'open' : ''}`}
               ref={this.attendanceTypeDropdownRef}
             >
               <input
@@ -1204,7 +1204,7 @@ render()
                 autoComplete="off"
               />
               {this.state.showAttendanceTypeDropdown && (
-                <ul className="dropdown-list">
+                <ul className="ss-options-list">
                   {this.state.filteredAttendanceTypes.map((type, index) => (
                     <li
                       key={index}
@@ -1215,14 +1215,14 @@ render()
                   ))}
                 </ul>
               )}
-              <i className="fas fa-angle-down dropdown-icon"></i>
+              <i className="fas fa-angle-down ss-chevron-icon"></i>
             </div>
           </div>
 
-          <div className="form-group">
+          <div className="ss-field-group">
             <label htmlFor="attendanceLocation">{this.props.language === 'zh' ? '地点' : 'Location'}</label>
             <div
-              className={`dropdown-container ${this.state.showAttendanceLocationDropdown ? 'open' : ''}`}
+              className={`ss-dropdown-wrap ${this.state.showAttendanceLocationDropdown ? 'open' : ''}`}
               ref={this.attendanceLocationDropdownRef}
             >
               <input
@@ -1236,7 +1236,7 @@ render()
                 autoComplete="off"
               />
               {this.state.showAttendanceLocationDropdown && (
-                <ul className="dropdown-list">
+                <ul className="ss-options-list">
                   {this.state.filteredAttendanceLocations.map((location, index) => (
                     <li
                       key={index}
@@ -1247,13 +1247,13 @@ render()
                   ))}
                 </ul>
               )}
-              <i className="fas fa-angle-down dropdown-icon"></i>
+              <i className="fas fa-angle-down ss-chevron-icon"></i>
             </div>
           </div>
           
-          <div className="form-group">
+          <div className="ss-field-group">
             <label htmlFor="activityCode">{this.props.language === 'zh' ? '活动代码' : 'Activity Code'}</label>
-            <div  className={`dropdown-container ${this.state.showActivityCodeDropdown ? 'open' : ''}`} style={{ position: 'relative' }} ref={this.activityCodeDropdownRef}>
+            <div  className={`ss-dropdown-wrap ${this.state.showActivityCodeDropdown ? 'open' : ''}`} style={{ position: 'relative' }} ref={this.activityCodeDropdownRef}>
               <input
                 type="text"
                 id="activityCode"
@@ -1274,7 +1274,7 @@ render()
               {this.state.showActivityCodeDropdown && this.state.filteredActivityCodes.filter(code =>
                 !this.state.activityCode || code.toLowerCase().includes(this.state.activityCode.toLowerCase())
               ).length > 0 && (
-                <ul className="dropdown-list" style={{ position: 'absolute', zIndex: 10, width: '100%' }}>
+                <ul className="ss-options-list" style={{ position: 'absolute', zIndex: 10, width: '100%' }}>
                   {this.state.filteredActivityCodes.filter(code =>
                     !this.state.activityCode || code.toLowerCase().includes(this.state.activityCode.toLowerCase())
                   ).map((code, idx) => (
@@ -1292,13 +1292,13 @@ render()
                   ))}
                 </ul>
               )}
-              <i className="fas fa-angle-down dropdown-icon"></i>
+              <i className="fas fa-angle-down ss-chevron-icon"></i>
             </div>
           </div>
           
-          <div className="form-group">
+          <div className="ss-field-group">
             <label htmlFor="searchQuery">{this.props.language === 'zh' ? '搜寻' : 'Search'}</label>
-            <div className="search-container">
+            <div className="ss-search-wrap">
               <input
                 type="text"
                 id="searchQuery"
@@ -1308,7 +1308,7 @@ render()
                 placeholder={this.props.language === 'zh' ? '搜索' : 'Search'}
                 autoComplete="off"
               />
-              <i className="fas fa-search search-icon"></i>
+              <i className="fas fa-search ss-magnifier-icon"></i>
             </div>
           </div>
         </>
@@ -1320,10 +1320,10 @@ render()
           {console.log("Membership Types in state:", this.state.membershipTypes)}
           {console.log("Filtered Membership Types:", this.state.filteredMembershipTypes)}
           {console.log("Show Dropdown:", this.state.showMembershipTypeDropdown)}
-          <div className="form-group">
+          <div className="ss-field-group">
             <label htmlFor="membershipType">{this.props.language === 'zh' ? '会员类型' : 'Membership Type'}</label>
             <div
-              className={`dropdown-container ${this.state.showMembershipTypeDropdown ? 'open' : ''}`}
+              className={`ss-dropdown-wrap ${this.state.showMembershipTypeDropdown ? 'open' : ''}`}
               ref={this.membershipTypeDropdownRef}
             >
               <input
@@ -1338,7 +1338,7 @@ render()
                 ref={this.searchInputRef} // Add ref to the search input
               />
               {this.state.showMembershipTypeDropdown && (
-                <ul className="dropdown-list">
+                <ul className="ss-options-list">
                   {console.log("Rendering dropdown with types:", this.state.filteredMembershipTypes)}
                   {this.state.filteredMembershipTypes.map((type, index) => (
                     <li
@@ -1350,13 +1350,13 @@ render()
                   ))}
                 </ul>
               )}
-              <i className="fas fa-angle-down dropdown-icon"></i>
+              <i className="fas fa-angle-down ss-chevron-icon"></i>
             </div>
           </div>
           
-          <div className="form-group">
+          <div className="ss-field-group">
             <label htmlFor="searchQuery">{this.props.language === 'zh' ? '搜寻' : 'Search'}</label>
-            <div className="search-container">
+            <div className="ss-search-wrap">
               <input
                 type="text"
                 id="searchQuery"
@@ -1366,7 +1366,7 @@ render()
                 placeholder={this.props.language === 'zh' ? '搜索会员' : 'Search membership'}
                 autoComplete="off"
               />
-              <i className="fas fa-search search-icon"></i>
+              <i className="fas fa-search ss-magnifier-icon"></i>
             </div>
           </div>
         </>
@@ -1374,10 +1374,10 @@ render()
 
       {section === "fundraising-table" && (
         <>
-          <div className="form-group">
+          <div className="ss-field-group">
             <label htmlFor="paymentMethod">{this.props.language === 'zh' ? '付款方式' : 'Payment Method'}</label>
             <div
-              className={`dropdown-container ${this.state.showPaymentMethodDropdown ? 'open' : ''}`}
+              className={`ss-dropdown-wrap ${this.state.showPaymentMethodDropdown ? 'open' : ''}`}
               ref={this.paymentMethodDropdownRef}
             >
               <input
@@ -1391,7 +1391,7 @@ render()
                 autoComplete="off"
               />
               {showPaymentMethodDropdown && (
-                <ul className="dropdown-list">
+                <ul className="ss-options-list">
                   {filteredPaymentMethods.map((method, index) => (
                     <li
                       key={index}
@@ -1402,15 +1402,15 @@ render()
                   ))}
                 </ul>
               )}
-              <i className="fas fa-angle-down dropdown-icon"></i>
+              <i className="fas fa-angle-down ss-chevron-icon"></i>
             </div>
           </div>
 
           {/*
-          <div className="form-group">
+          <div className="ss-field-group">
             <label htmlFor="collectionMode">{this.props.language === 'zh' ? '收集方式' : 'Collection Mode'}</label>
             <div
-              className={`dropdown-container ${showCollectionModeDropdown ? 'open' : ''}`}
+              className={`ss-dropdown-wrap ${showCollectionModeDropdown ? 'open' : ''}`}
               ref={this.collectionModeDropdownRef}
             >
               <input
@@ -1424,7 +1424,7 @@ render()
                 autoComplete="off"
               />
               {showCollectionModeDropdown && (
-                <ul className="dropdown-list">
+                <ul className="ss-options-list">
                   {filteredCollectionModes.map((mode, index) => (
                     <li
                       key={index}
@@ -1435,15 +1435,15 @@ render()
                   ))}
                 </ul>
               )}
-              <i className="fas fa-angle-down dropdown-icon"></i>
+              <i className="fas fa-angle-down ss-chevron-icon"></i>
             </div>
           </div>
           */}
 
-          <div className="form-group">
+          <div className="ss-field-group">
             <label htmlFor="collectionLocation">{this.props.language === 'zh' ? '收集地点' : 'Collection Location'}</label>
             <div
-              className={`dropdown-container ${showCollectionLocationDropdown ? 'open' : ''}`}
+              className={`ss-dropdown-wrap ${showCollectionLocationDropdown ? 'open' : ''}`}
               ref={this.collectionLocationDropdownRef}
             >
               <input
@@ -1457,7 +1457,7 @@ render()
                 autoComplete="off"
               />
               {showCollectionLocationDropdown && (
-                <ul className="dropdown-list">
+                <ul className="ss-options-list">
                   {filteredCollectionLocations.map((location, index) => (
                     <li
                       key={index}
@@ -1468,14 +1468,14 @@ render()
                   ))}
                 </ul>
               )}
-              <i className="fas fa-angle-down dropdown-icon"></i>
+              <i className="fas fa-angle-down ss-chevron-icon"></i>
             </div>
           </div>
 
-          <div className="form-group">
+          <div className="ss-field-group">
             <label htmlFor="fundraisingStatus">{this.props.language === 'zh' ? '状态' : 'Status'}</label>
             <div
-              className={`dropdown-container ${showStatusDropdown ? 'open' : ''}`}
+              className={`ss-dropdown-wrap ${showStatusDropdown ? 'open' : ''}`}
               ref={this.statusDropdownRef}
             >
               <input
@@ -1489,7 +1489,7 @@ render()
                 autoComplete="off"
               />
               {showStatusDropdown && (
-                <ul className="dropdown-list">
+                <ul className="ss-options-list">
                   {filteredFundraisingStatuses.map((status, index) => (
                     <li
                       key={index}
@@ -1500,13 +1500,13 @@ render()
                   ))}
                 </ul>
               )}
-              <i className="fas fa-angle-down dropdown-icon"></i>
+              <i className="fas fa-angle-down ss-chevron-icon"></i>
             </div>
           </div>
 
-          <div className="form-group">
+          <div className="ss-field-group">
             <label htmlFor="searchQuery">{this.props.language === 'zh' ? '搜寻' : 'Search'}</label>
-            <div className="search-container">
+            <div className="ss-search-wrap">
               <input
                 type="text"
                 id="searchQuery"
@@ -1516,7 +1516,7 @@ render()
                 placeholder={this.props.language === 'zh' ? '搜索...' : 'Search...'}
                 autoComplete="off"
               />
-              <i className="fas fa-search search-icon"></i>
+              <i className="fas fa-search ss-magnifier-icon"></i>
             </div>
           </div>
         </>
