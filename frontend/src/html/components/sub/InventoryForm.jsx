@@ -281,6 +281,43 @@ class InventoryForm extends Component {
 
             // Both updates complete, now show result
             if (woocommerceResponse.data.success) {
+                // Step 3: Generate receipt PDF
+                const backendUrl = window.location.hostname === "localhost" 
+                    ? "http://localhost:3001" 
+                    : "https://ecss-backend-node.azurewebsites.net";
+                
+                // Get receipt number from data object
+                const receiptNumber = backendResponse.data.data?.receiptNumber || backendResponse.data.receiptNumber || '';
+                
+                const receiptResponse = await axios.post(`${backendUrl}/inventory`, {
+                    purpose: "generateReceipt",
+                    customerName: formData.customerName,
+                    paymentMethod: 'Cash/PayNow',
+                    receiptNumber: receiptNumber,
+                    product: formData.product,
+                    location: formData.location,
+                    quantity: parseInt(formData.quantity),
+                    orderDate: formData.orderDate,
+                    orderTime: formData.orderTime,
+                    staffName: formData.staffName,
+                    unitPrice: this.getSelectedProductPrice(),
+                    totalPrice: this.getTotalPrice()
+                });
+
+                // Handle PDF download if generated
+                if (receiptResponse.data.result?.pdfGenerated && receiptResponse.data.result?.pdfData) {
+                    const pdfBlob = new Blob(
+                        [Uint8Array.from(atob(receiptResponse.data.result.pdfData), c => c.charCodeAt(0))],
+                        { type: 'application/pdf' }
+                    );
+                    const pdfUrl = URL.createObjectURL(pdfBlob);
+                    const link = document.createElement('a');
+                    link.href = pdfUrl;
+                    link.download = receiptResponse.data.result.pdfFilename || 'receipt.pdf';
+                    link.click();
+                    URL.revokeObjectURL(pdfUrl);
+                }
+
                 this.setState({
                     successMessage: 'Order submitted successfully!',
                     isSubmitting: false,

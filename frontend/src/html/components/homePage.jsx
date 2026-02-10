@@ -773,11 +773,6 @@ import React, { Component } from 'react';
           isInventoryModulesVisible: true,
           inventoryTab: 'store',
           
-          // Popup settings
-          isPopupOpen: true,
-          popupMessage: "Loading Inventory Store",
-          popupType: "loading",
-          
           // Reset other states
           sidebarVisible: false,
           section: "inventory-modules",
@@ -785,6 +780,9 @@ import React, { Component } from 'react';
           
           // Reset search state
           searchQuery: ''
+        }, () => {
+          // Close the loading popup after state is set
+          this.setState({ isPopupOpen: false });
         });
       } 
       catch (error) {
@@ -828,11 +826,6 @@ import React, { Component } from 'react';
           isInventoryModulesVisible: true,
           inventoryTab: 'form',
           
-          // Popup settings
-          isPopupOpen: true,
-          popupMessage: "Loading Inventory Form",
-          popupType: "loading",
-          
           // Reset other states
           sidebarVisible: false,
           section: "inventory-form",
@@ -840,6 +833,9 @@ import React, { Component } from 'react';
           
           // Reset search state
           searchQuery: ''
+        }, () => {
+          // Close the loading popup after state is set
+          this.setState({ isPopupOpen: false });
         });
       } 
       catch (error) {
@@ -883,11 +879,6 @@ import React, { Component } from 'react';
           isInventoryModulesVisible: true,
           inventoryTab: 'records',
           
-          // Popup settings
-          isPopupOpen: true,
-          popupMessage: "Loading Inventory Records",
-          popupType: "loading",
-          
           // Reset other states
           sidebarVisible: false,
           section: "inventory-records",
@@ -895,6 +886,9 @@ import React, { Component } from 'react';
           
           // Reset search state
           searchQuery: ''
+        }, () => {
+          // Close the loading popup after state is set
+          this.setState({ isPopupOpen: false });
         });
       } 
       catch (error) {
