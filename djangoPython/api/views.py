@@ -1,13 +1,61 @@
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, StreamingHttpResponse
 from .services import WooCommerceAPI
-from django.views.decorators.csrf import csrf_exempt  # Temporarily disable CSRF validation for this view
+from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 import os
 import requests
 import base64
 from datetime import datetime
+import threading
+import queue
 
 import json
+
+# SSE: Store connected clients
+_sse_clients = []
+_sse_lock = threading.Lock()
+
+def notify_inventory_update(product_name, location, product_id, new_stock):
+    """Push instant update to all connected clients."""
+    event_data = json.dumps({
+        'type': 'inventory_updated',
+        'product_name': product_name,
+        'location': location, 
+        'product_id': product_id,
+        'new_stock': new_stock
+    })
+    with _sse_lock:
+        for q in _sse_clients:
+            try:
+                q.put_nowait(event_data)
+            except:
+                pass
+
+@csrf_exempt
+def inventory_sse(request):
+    """SSE endpoint - instant push when stock changes."""
+    def stream():
+        client_q = queue.Queue(maxsize=50)
+        with _sse_lock:
+            _sse_clients.append(client_q)
+        try:
+            yield 'data: {"type":"connected"}\n\n'
+            while True:
+                try:
+                    data = client_q.get(timeout=25)
+                    yield f'data: {data}\n\n'
+                except queue.Empty:
+                    yield ': ping\n\n'  # Keep-alive
+        finally:
+            with _sse_lock:
+                if client_q in _sse_clients:
+                    _sse_clients.remove(client_q)
+    
+    resp = StreamingHttpResponse(stream(), content_type='text/event-stream')
+    resp['Cache-Control'] = 'no-cache'
+    resp['X-Accel-Buffering'] = 'no'
+    resp['Access-Control-Allow-Origin'] = '*'
+    return resp
 import plotly.express as px
 import pandas as pd
 from django.shortcuts import render
@@ -134,103 +182,60 @@ def inventory_product_details(request):
 
 @csrf_exempt
 def inventory_order(request):
-    """Processes an inventory order and decreases stock based on product ID."""
+    """Processes an inventory order and decreases stock based on product name and location."""
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Invalid method, please use POST'}, status=405)
 
     try:
-        # Parse the request body as JSON
         data = json.loads(request.body)
         print("Inventory order data received:", data)
 
         # Extract required fields
-        customer_name = data.get('customerName')
         product_name = data.get('product')
         location = data.get('location')
-        quantity = data.get('quantity', 1)
-        order_date = data.get('orderDate')
-        order_time = data.get('orderTime')
-        staff_name = data.get('staffName')
-        product_id = data.get('productId')  # Optional: direct product ID
-        parent_id = data.get('parentId')    # Optional: parent ID for variations
+        quantity = int(data.get('quantity', 0))
 
-        # Validate required fields
-        if not customer_name:
-            return JsonResponse({'success': False, 'error': 'Customer name is required'}, status=400)
-        if not product_name:
-            return JsonResponse({'success': False, 'error': 'Product is required'}, status=400)
-        if not location:
-            return JsonResponse({'success': False, 'error': 'Location is required'}, status=400)
+        if not product_name or not location or quantity <= 0:
+            return JsonResponse({'success': False, 'error': 'Product, location, and valid quantity are required'}, status=400)
 
-        try:
-            quantity = int(quantity)
-            if quantity < 1:
-                return JsonResponse({'success': False, 'error': 'Quantity must be at least 1'}, status=400)
-        except (ValueError, TypeError):
-            return JsonResponse({'success': False, 'error': 'Invalid quantity format'}, status=400)
-
-        # Initialize WooCommerce API
+        # Find product by name and location
         woo_api = WooCommerceAPI()
+        inventory_products = woo_api.get_inventory_products()
+        
+        product_info = None
+        for product in inventory_products:
+            if product.get('name') == product_name and product.get('variation_name') == location:
+                product_info = product
+                break
 
-        # If product_id is not provided, find it by searching inventory products
-        if not product_id:
-            inventory_products = woo_api.get_inventory_products()
-            
-            # Find matching product by name and location (variation_name)
-            matching_product = None
-            for product in inventory_products:
-                if (product.get('name') == product_name and 
-                    product.get('variation_name') == location):
-                    matching_product = product
-                    break
-            
-            if not matching_product:
-                return JsonResponse({
-                    'success': False, 
-                    'error': f'Product "{product_name}" with location "{location}" not found'
-                }, status=404)
-            
-            product_id = matching_product.get('id')
-            parent_id = matching_product.get('parent_id')
-            is_variation = matching_product.get('type') == 'variation'
-        else:
-            is_variation = parent_id is not None
+        if not product_info:
+            return JsonResponse({'success': False, 'error': f'Product "{product_name}" with location "{location}" not found'}, status=404)
 
-        # Decrease the stock
+        # Decrease stock
         result = woo_api.decrease_inventory_stock(
-            product_id=product_id,
+            product_id=product_info.get('id'),
             quantity=quantity,
-            is_variation=is_variation,
-            parent_id=parent_id
+            is_variation=product_info.get('type') == 'variation',
+            parent_id=product_info.get('parent_id')
         )
 
-        if result['success']:
-            order_details = {
-                'customerName': customer_name,
-                'product': product_name,
-                'location': location,
-                'quantity': quantity,
-                'orderDate': order_date,
-                'orderTime': order_time,
-                'staffName': staff_name
-            }
-            stock_update = {
-                'product_id': product_id,
-                'previous_stock': result.get('previous_stock'),
-                'new_stock': result.get('new_stock')
-            }
-            
-            return JsonResponse({
-                'success': True,
-                'message': f'Order processed successfully. Stock decreased by {quantity}.',
-                'order_details': order_details,
-                'stock_update': stock_update
-            })
-        else:
-            return JsonResponse({
-                'success': False,
-                'error': result.get('error', 'Failed to update stock')
-            }, status=500)
+        if not result['success']:
+            return JsonResponse({'success': False, 'error': result.get('error', 'Failed to update stock')}, status=500)
+
+        # INSTANT SSE push to all connected clients
+        notify_inventory_update(
+            product_name=product_name,
+            location=location,
+            product_id=product_info.get('id'),
+            new_stock=result.get('new_stock')
+        )
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Stock decreased by {quantity}.',
+            'previous_stock': result.get('previous_stock'),
+            'new_stock': result.get('new_stock')
+        })
 
     except json.JSONDecodeError:
         return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)

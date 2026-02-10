@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    path('inventory_sse/', views.inventory_sse, name='inventory_sse'),  # SSE for live inventory updates
     path('courses/', views.product_list, name='product_list'),
     path('fundraising/', views.fundraising_list, name='fundraising_list'),
     path('fundraising_product_details/', views.fundraising_product_details, name='fundraising_product_details'),

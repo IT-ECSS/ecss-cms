@@ -6,6 +6,8 @@ class InventoryForm extends Component {
     constructor(props) {
         super(props);
         this.state = {
+            inventoryProducts: [],
+            isLoading: true,
             isSubmitting: false,
             error: null,
             successMessage: null,
@@ -13,7 +15,7 @@ class InventoryForm extends Component {
                 customerName: '',
                 product: '',
                 location: '',
-                quantity: 1,
+                quantity: "",
                 orderDate: '',
                 orderTime: '',
                 staffName: props.userName || ''
@@ -25,16 +27,16 @@ class InventoryForm extends Component {
         this.locationRef = React.createRef();
     }
 
-    // Get unique product names from inventoryProducts prop
+    // Get unique product names from inventoryProducts state
     getProductSuggestions = () => {
-        const { inventoryProducts = [] } = this.props;
+        const { inventoryProducts = [] } = this.state;
         const productNames = [...new Set(inventoryProducts.map(p => p.name))];
         return productNames;
     };
 
-    // Get unique location names from inventoryProducts prop
+    // Get unique location names from inventoryProducts state
     getLocationSuggestions = () => {
-        const { inventoryProducts = [] } = this.props;
+        const { inventoryProducts = [] } = this.state;
         const locationNames = [...new Set(
             inventoryProducts
                 .map(p => p.variation_name)
@@ -64,8 +66,7 @@ class InventoryForm extends Component {
 
     // Get the price of the currently selected product and location
     getSelectedProductPrice = () => {
-        const { formData } = this.state;
-        const { inventoryProducts = [] } = this.props;
+        const { formData, inventoryProducts = [] } = this.state;
         
         if (!formData.product || !formData.location) return null;
         
@@ -74,6 +75,19 @@ class InventoryForm extends Component {
         );
         
         return matchedProduct ? parseFloat(matchedProduct.price) || 0 : null;
+    };
+
+    // Get the SKU of the currently selected product and location
+    getSelectedProductSku = () => {
+        const { formData, inventoryProducts = [] } = this.state;
+        
+        if (!formData.product || !formData.location) return '';
+        
+        const matchedProduct = inventoryProducts.find(p => 
+            p.name === formData.product && p.variation_name === formData.location
+        );
+        
+        return matchedProduct ? matchedProduct.sku || '' : '';
     };
 
     // Calculate total price based on quantity and product price
@@ -117,32 +131,44 @@ class InventoryForm extends Component {
         }
     };
 
-    componentDidMount() {
+    async componentDidMount() {
         document.addEventListener('mousedown', this.handleClickOutside);
         this.setCurrentDateTime();
         
-        // Close popup only if dropdown data is already available
-        this.checkAndClosePopup();
+        // Fetch inventory products on mount
+        await this.fetchInventoryProducts();
     }
 
-    componentDidUpdate(prevProps) {
-        // Close popup when inventoryProducts becomes available
-        if (prevProps.inventoryProducts !== this.props.inventoryProducts) {
-            this.checkAndClosePopup();
-        }
-    }
+    fetchInventoryProducts = async () => {
+        try {
+            this.setState({ isLoading: true, error: null });
 
-    checkAndClosePopup = () => {
-        const { inventoryProducts = [] } = this.props;
-        
-        // Only close popup when we have dropdown data loaded
-        if (inventoryProducts.length > 0) {
-            if (this.props.closePopup1) {
-                this.props.closePopup1();
+            const baseUrl = window.location.hostname === "localhost" 
+                ? "http://localhost:3002" 
+                : "https://ecss-backend-django.azurewebsites.net";
+
+            const response = await axios.get(`${baseUrl}/inventory_product_details/`);
+
+            console.log('Inventory products fetched:', response.data);
+
+            if (response.data.success) {
+                const products = response.data.inventory_products || [];
+                this.setState({
+                    inventoryProducts: products,
+                    isLoading: false
+                });
+            } else {
+                this.setState({
+                    error: 'Failed to fetch inventory products',
+                    isLoading: false
+                });
             }
-            if (this.props.onDataLoaded) {
-                this.props.onDataLoaded();
-            }
+        } catch (error) {
+            console.error('Error fetching inventory products:', error);
+            this.setState({
+                error: error.message || 'An error occurred while fetching inventory products',
+                isLoading: false
+            });
         }
     };
 
@@ -185,6 +211,7 @@ class InventoryForm extends Component {
             : "https://ecss-backend-node.azurewebsites.net";
 
         const response = await axios.post(`${backendUrl}/inventory`, {payload: payload, purpose: "insert"});
+        console.log('Backend response:', response.data);
         return response;
     };
 
@@ -231,7 +258,8 @@ class InventoryForm extends Component {
                 quantity: parseInt(formData.quantity),
                 orderDate: formData.orderDate,
                 orderTime: formData.orderTime,
-                staffName: formData.staffName
+                staffName: formData.staffName,
+                sku: this.getSelectedProductSku()
             };
 
             // Step 1: Update backend (port 3001)
@@ -261,11 +289,8 @@ class InventoryForm extends Component {
                         customerName: '',
                         product: '',
                         location: '',
-                        quantity: 1
+                        quantity: ""
                     }
-                }, () => {
-                    // Only set date/time after state is updated
-                    this.setCurrentDateTime();
                 });
             } else {
                 const wooErrorMsg = typeof woocommerceResponse.data.error === 'string'
@@ -294,9 +319,18 @@ class InventoryForm extends Component {
     };
 
     render() {
-        const { isSubmitting, error, successMessage, formData, showProductDropdown, showLocationDropdown } = this.state;
+        const { isSubmitting, isLoading, error, successMessage, formData, showProductDropdown, showLocationDropdown } = this.state;
         const filteredProducts = this.getFilteredProducts();
         const filteredLocations = this.getFilteredLocations();
+
+        if (isLoading) {
+            return (
+                <div className="inventory-loading">
+                    <i className="fas fa-spinner fa-spin"></i>
+                    <p>Loading inventory form...</p>
+                </div>
+            );
+        }
 
         return (
             <>

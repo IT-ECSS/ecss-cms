@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
+import axios from 'axios';
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
+import { io } from 'socket.io-client';
 import '../../../css/sub/inventoryModules.css';
 import '../../../css/ag-grid-custom-theme.css';
 
@@ -10,9 +12,63 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 class InventoryRecords extends Component {
     constructor(props) {
         super(props);
+        this.state = {
+            records: [],
+            isLoading: true,
+            error: null
+        };
         this.gridApi = null;
         this.gridColumnApi = null;
+        this.socket = null;
     }
+
+    async componentDidMount() {
+        console.log("InventoryRecords - componentDidMount called");
+        await this.fetchInventoryRecords();
+        
+        // --- Live update via Socket.IO ---
+        this.socket = io(
+            window.location.hostname === "localhost"
+                ? "http://localhost:3001"
+                : "https://ecss-backend-node.azurewebsites.net"
+        );
+        this.socket.on('inventory', (data) => {
+            console.log("Socket inventory event received", data);
+            this.fetchInventoryRecords();
+        });
+    }
+
+    fetchInventoryRecords = async () => {
+        try {
+            this.setState({ isLoading: true, error: null });
+
+            const backendUrl = window.location.hostname === "localhost" 
+                ? "http://localhost:3001" 
+                : "https://ecss-backend-node.azurewebsites.net";
+
+            const response = await axios.post(`${backendUrl}/inventory`, { purpose: "retrieve" });
+
+            console.log('Inventory records fetched:', response.data);
+
+            if (response.data.success) {
+                this.setState({
+                    records: response.data.records || [],
+                    isLoading: false
+                });
+            } else {
+                this.setState({
+                    error: response.data.error || 'Failed to fetch inventory records',
+                    isLoading: false
+                });
+            }
+        } catch (error) {
+            console.error('Error fetching inventory records:', error);
+            this.setState({
+                error: error.message || 'An error occurred while fetching inventory records',
+                isLoading: false
+            });
+        }
+    };
 
     // Column definitions for the AG Grid
     columnDefs = [
@@ -20,45 +76,59 @@ class InventoryRecords extends Component {
             headerName: 'S/N', 
             valueGetter: (params) => params.node.rowIndex + 1,  
             width: 80, 
-            pinned: 'left'
+            pinned: 'left',
+            cellStyle: { textAlign: 'center' }
         },
         { 
             headerName: 'Customer Name', 
             field: 'customerName', 
             width: 180, 
-            pinned: 'left'
+            pinned: 'left',
+            cellStyle: { textAlign: 'center' }
         },
         { 
             headerName: 'Product', 
             field: 'product', 
-            width: 200, 
-            pinned: 'left'
+            width: 300, 
+            pinned: 'left',
+            cellStyle: { textAlign: 'center' }
         },
         { 
             headerName: 'Location', 
             field: 'location', 
-            width: 250, 
+            width: 300,
+            cellStyle: { textAlign: 'center' }
         },
         { 
             headerName: 'Quantity', 
             field: 'quantity', 
-            width: 100, 
+            width: 150, 
             cellStyle: { textAlign: 'center' }
         },
         { 
             headerName: 'Order Date', 
             field: 'orderDate', 
-            width: 130
+            width: 150,
+            cellStyle: { textAlign: 'center' }
         },
         { 
             headerName: 'Order Time', 
             field: 'orderTime', 
-            width: 120
+            width: 150,
+            cellStyle: { textAlign: 'center' }
         },
         { 
             headerName: 'Staff Name', 
             field: 'staffName', 
-            width: 180
+            width: 180,
+            cellStyle: { textAlign: 'center' }
+        },
+        { 
+            headerName: 'Receipt Number', 
+            field: 'receiptNumber', 
+            width: 200,
+            pinned: 'right',
+            cellStyle: { textAlign: 'center' }
         }
     ];
 
@@ -87,10 +157,14 @@ class InventoryRecords extends Component {
         if (this.handleResize) {
             window.removeEventListener('resize', this.handleResize);
         }
+        // Disconnect socket
+        if (this.socket) {
+            this.socket.disconnect();
+        }
     }
 
     render() {
-        const { records = [], isLoading = false, error = null, onRetry } = this.props;
+        const { records, isLoading, error } = this.state;
 
         if (isLoading) {
             return (
@@ -118,7 +192,7 @@ class InventoryRecords extends Component {
                         <div className="inventory-error">
                             <i className="fas fa-exclamation-circle"></i>
                             <p>{error}</p>
-                            <button onClick={onRetry} className="retry-btn">
+                            <button onClick={this.fetchInventoryRecords} className="retry-btn">
                                 <i className="fas fa-redo"></i> Retry
                             </button>
                         </div>

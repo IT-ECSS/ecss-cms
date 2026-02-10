@@ -977,3 +977,4 @@ class WooCommerceAPI:
                 "error": str(e),
                 "message": f"Failed to decrease stock for product {product_id}"
             }
+
