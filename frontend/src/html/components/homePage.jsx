@@ -31,7 +31,9 @@ import React, { Component } from 'react';
   import ReceiptModal from './sub/ReceiptModal';
   import CourseFlyers from './sub/CourseFlyers';
   import CourseLink from './sub/CourseLink';
+  import AuditLogsSection from './sub/AuditLogsSection';
   import BulkDownloadProgress from './sub/BulkDownloadProgress';
+  import { logFilterChange } from '../../utils/auditLog';
   import BulkUpdateModalForFundraising from './sub/BulkUpdateModalForFundraising';
   import { withAuth } from '../../AuthContext';
   import axios from 'axios';  
@@ -111,6 +113,7 @@ import React, { Component } from 'react';
         isFundraisingInventoryVisible: false,
         isInventoryModulesVisible: false,
         isInventoryFormVisible: false,
+        isAuditLogsVisible: false,
         inventoryTab: 'store',
         fundraisingSearchQuery: '',
         fundraisingPaymentMethod: 'All Payment Methods',
@@ -344,31 +347,68 @@ import React, { Component } from 'react';
     // Handle selection for registration payments
     handleRegPaymentSelectFromChild = async (updateState, dropdown) => 
     {
+      const userName = this.props.location.state?.name || 'User';
       console.log("Selected Data (Registration Payment):", updateState, dropdown);
       if(updateState.centreLocation)
       {
+        const oldValue = this.state.selectedLocation;
         this.setState({
           selectedLocation: updateState.centreLocation
+        });
+        // Audit log for location filter change
+        logFilterChange({
+          userName,
+          module: "Registration And Payment",
+          filterType: "Location",
+          oldValue: oldValue,
+          newValue: updateState.centreLocation
         });
       }
       else if(updateState.courseType)
       {
+        const oldValue = this.state.selectedCourseType;
         this.setState({
           selectedCourseType: updateState.courseType
+        });
+        // Audit log for type filter change
+        logFilterChange({
+          userName,
+          module: "Registration And Payment",
+          filterType: "Type",
+          oldValue: oldValue,
+          newValue: updateState.courseType
         });
       }
       else if(updateState.courseName)
       {
         console.log("Hello");
+        const oldValue = this.state.selectedCourseName;
         this.setState({
           selectedCourseName: updateState.courseName
+        });
+        // Audit log for course filter change
+        logFilterChange({
+          userName,
+          module: "Registration And Payment",
+          filterType: "Course",
+          oldValue: oldValue,
+          newValue: updateState.courseName
         });
       }
       else if(updateState.quarter)
       {
         console.log("Hello");
+        const oldValue = this.state.selectedQuarter;
         this.setState({
           selectedQuarter: updateState.quarter
+        });
+        // Audit log for quarter filter change
+        logFilterChange({
+          userName,
+          module: "Registration And Payment",
+          filterType: "Quarter Year",
+          oldValue: oldValue,
+          newValue: updateState.quarter
         });
       }
     }
@@ -397,7 +437,8 @@ import React, { Component } from 'react';
             isFundraisingTableVisible: false,
             isFundraisingInventoryVisible: false, // Added this missing line
             isInventoryModulesVisible: false,
-            isInventoryFormVisible: false
+            isInventoryFormVisible: false,
+            isAuditLogsVisible: false
           });
       } 
       catch (error) 
@@ -439,7 +480,8 @@ import React, { Component } from 'react';
               isFundraisingTableVisible: false,
               isFundraisingInventoryVisible: false, // Added this missing line
               isInventoryModulesVisible: false,
-              isInventoryFormVisible: false
+              isInventoryFormVisible: false,
+              isAuditLogsVisible: false
             });
           });
       } 
@@ -490,6 +532,7 @@ import React, { Component } from 'react';
               isFundraisingInventoryVisible: false, // Added this missing line
               isInventoryModulesVisible: false,
               isInventoryFormVisible: false,
+              isAuditLogsVisible: false,
               // Reset membership filtering state
               membershipType: 'All Types',
               membershipSearchQuery: '',
@@ -545,6 +588,7 @@ import React, { Component } from 'react';
             isFundraisingInventoryVisible: false, // Added this missing line
             isInventoryModulesVisible: false,
             isInventoryFormVisible: false,
+            isAuditLogsVisible: false,
             
             // Reset other states
             sidebarVisible: false,
@@ -606,6 +650,7 @@ import React, { Component } from 'react';
           isFundraisingInventoryVisible: false, // Added this missing line
           isInventoryModulesVisible: false,
           isInventoryFormVisible: false,
+          isAuditLogsVisible: false,
           
           // Popup settings
           isPopupOpen: true,
@@ -662,6 +707,7 @@ import React, { Component } from 'react';
           isFundraisingInventoryVisible: true,
           isInventoryModulesVisible: false,
           isInventoryFormVisible: false,
+          isAuditLogsVisible: false,
           
           // Popup settings
           isPopupOpen: true,
@@ -714,6 +760,7 @@ import React, { Component } from 'react';
           isFundraisingInventoryVisible: false,
           isInventoryModulesVisible: false,
           isInventoryFormVisible: false,
+          isAuditLogsVisible: false,
           
           // Set course link mode
           isCourseLinkVisible: true,
@@ -768,6 +815,7 @@ import React, { Component } from 'react';
           isCourseFlyersVisible: false,
           isCourseLinkVisible: false,
           isInventoryFormVisible: false,
+          isAuditLogsVisible: false,
           
           // Set inventory modules mode
           isInventoryModulesVisible: true,
@@ -821,6 +869,7 @@ import React, { Component } from 'react';
           isCourseFlyersVisible: false,
           isCourseLinkVisible: false,
           isInventoryFormVisible: false,
+          isAuditLogsVisible: false,
           
           // Set inventory modules mode with form tab
           isInventoryModulesVisible: true,
@@ -874,6 +923,7 @@ import React, { Component } from 'react';
           isCourseFlyersVisible: false,
           isCourseLinkVisible: false,
           isInventoryFormVisible: false,
+          isAuditLogsVisible: false,
           
           // Set inventory modules mode with records tab
           isInventoryModulesVisible: true,
@@ -897,6 +947,61 @@ import React, { Component } from 'react';
         this.setState({
           isPopupOpen: true,
           popupMessage: "Error loading inventory records",
+          popupType: "error-message"
+        });
+      }
+    }
+
+    toggleAuditLogsComponent = async() => {
+      console.log("toggleAuditLogsComponent called - showing audit logs");
+      try {
+        // Reset search and filters
+        this.setState({ resetSearch: true, }, () => {
+          this.setState({ resetSearch: false });
+        });
+
+        this.setState({
+          // Explicitly set ALL other visibility flags to false
+          courseType: null,
+          accountType: null,
+          createAccount: false,
+          dashboard: false,
+          isRegistrationPaymentVisible: false,
+          isReceiptVisible: false,
+          reportVisibility: false,
+          attendanceVisibility: false,
+          isMembershipVisible: false,
+          isFitnessVisible: false,
+          isFundraisingTableVisible: false,
+          isFundraisingInventoryVisible: false,
+          isCourseFlyersVisible: false,
+          isCourseLinkVisible: false,
+          isInventoryModulesVisible: false,
+          isInventoryFormVisible: false,
+          
+          // Set audit logs mode
+          isAuditLogsVisible: true,
+          
+          // Popup settings
+          isPopupOpen: true,
+          popupMessage: "Loading Audit Logs",
+          popupType: "loading",
+          
+          // Reset other states
+          sidebarVisible: false,
+          section: "audit-logs",
+          attendanceType: "",
+          
+          // Reset search state
+          searchQuery: ''
+        });
+      } 
+      catch (error) {
+        console.log("Error in toggleAuditLogsComponent:", error);
+        // Show error message
+        this.setState({
+          isPopupOpen: true,
+          popupMessage: "Error loading audit logs",
           popupType: "error-message"
         });
       }
@@ -926,6 +1031,7 @@ import React, { Component } from 'react';
           isFundraisingInventoryVisible: false,
           isInventoryModulesVisible: false,
           isInventoryFormVisible: false,
+          isAuditLogsVisible: false,
           
           // Set course flyers mode
           isCourseFlyersVisible: true,
@@ -957,9 +1063,21 @@ import React, { Component } from 'react';
 
     // Handle selection for registration payments
     handleRegPaymentSearchFromChild = async (data) => {
+      const oldValue = this.state.searchQuery;
+      const userName = this.props.location.state?.name || 'User';
       this.setState({
         searchQuery: data
       });
+      // Audit log for search filter change
+      if (data !== oldValue) {
+        logFilterChange({
+          userName: userName,
+          module: "Registration And Payment",
+          filterType: "Search",
+          oldValue: oldValue,
+          newValue: data
+        });
+      }
     }
 
 
@@ -1029,7 +1147,8 @@ import React, { Component } from 'react';
           isFundraisingTableVisible: false,
           isFundraisingInventoryVisible: false, // Added this missing line
           isInventoryModulesVisible: false,
-          isInventoryFormVisible: false
+          isInventoryFormVisible: false,
+          isAuditLogsVisible: false
         });
       } catch (error) {
         console.log(error);
@@ -1118,6 +1237,7 @@ import React, { Component } from 'react';
             isFundraisingInventoryVisible: false, // Added this missing line
             isInventoryModulesVisible: false,
             isInventoryFormVisible: false,
+            isAuditLogsVisible: false,
             
             // Set dashboard to true
             dashboard: true,
@@ -1166,7 +1286,8 @@ import React, { Component } from 'react';
             isFundraisingTableVisible: false,
             isFundraisingInventoryVisible: false, // Added this missing line
             isInventoryModulesVisible: false,
-            isInventoryFormVisible: false
+            isInventoryFormVisible: false,
+            isAuditLogsVisible: false
           });
         }
         else
@@ -1188,7 +1309,8 @@ import React, { Component } from 'react';
             isFundraisingTableVisible: false,
             isFundraisingInventoryVisible: false, // Added this missing line
             isInventoryModulesVisible: false,
-            isInventoryFormVisible: false
+            isInventoryFormVisible: false,
+            isAuditLogsVisible: false
           });
         }
       } 
@@ -1570,7 +1692,8 @@ import React, { Component } from 'react';
             isFundraisingTableVisible: false,
             isFundraisingInventoryVisible: false, // Added this missing line
             isInventoryModulesVisible: false,
-            isInventoryFormVisible: false
+            isInventoryFormVisible: false,
+            isAuditLogsVisible: false
             //viewMode: "full"
         }));
       }
@@ -1598,7 +1721,8 @@ import React, { Component } from 'react';
               isFundraisingTableVisible: false,
               isFundraisingInventoryVisible: false, // Added this missing line
               isInventoryModulesVisible: false,
-              isInventoryFormVisible: false
+              isInventoryFormVisible: false,
+              isAuditLogsVisible: false
               //viewMode: "full"
           }));
       }
@@ -2047,6 +2171,9 @@ import React, { Component } from 'react';
         case 'inventory-records':
           this.toggleInventoryRecordsComponent();
           break;
+        case 'audit-logs':
+          this.toggleAuditLogsComponent();
+          break;
         case 'view-course-flyers':
           this.toggleCourseFlyersComponent();
           break;
@@ -2079,6 +2206,7 @@ import React, { Component } from 'react';
         isCourseFlyersVisible: false,
         isReceiptVisible: false,
         isCourseLinkVisible: false,
+        isAuditLogsVisible: false,
         section: '',
         submenuVisible: null
       });
@@ -2090,7 +2218,7 @@ import React, { Component } from 'react';
       const userName = this.props.location.state?.name || 'User';
       const role = this.props.location.state?.role;
       const siteIC = this.props.location.state?.siteIC;
-      const {membershipType, membershipTypes, membershipSearchQuery, isMembershipVisible, isFitnessVisible, fitnessSearchQuery, isCourseFlyersVisible, isCourseLinkVisible, isFundraisingTableVisible, isFundraisingInventoryVisible, isInventoryModulesVisible, isInventoryFormVisible, inventoryTab, fundraisingSearchQuery, fundraisingPaymentMethod, fundraisingCollectionLocation, fundraisingStatus, fundraisingPaymentMethods, fundraisingCollectionLocations, fundraisingStatuses, showCalendarModal, selectedOrderForCalendar, collectionSchedule, attendanceVisibility, reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo, selectedQuarter, quarters, attendanceFilterType, attendanceFilterCode, attendanceFilterLocation, attendanceSearchQuery, attendanceTypes, activityCodes, attendanceLocations, isSalesReportModalOpen, isPaymentReportModalOpen, isFiscalBalanceReportModalOpen, showItemsModal, selectedItems, selectedRowData, wooCommerceProductDetails, showReceiptModal, selectedReceipt, showInvoiceModal, invoiceModalData} = this.state;
+      const {membershipType, membershipTypes, membershipSearchQuery, isMembershipVisible, isFitnessVisible, fitnessSearchQuery, isCourseFlyersVisible, isCourseLinkVisible, isFundraisingTableVisible, isFundraisingInventoryVisible, isInventoryModulesVisible, isInventoryFormVisible, isAuditLogsVisible, inventoryTab, fundraisingSearchQuery, fundraisingPaymentMethod, fundraisingCollectionLocation, fundraisingStatus, fundraisingPaymentMethods, fundraisingCollectionLocations, fundraisingStatuses, showCalendarModal, selectedOrderForCalendar, collectionSchedule, attendanceVisibility, reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo, selectedQuarter, quarters, attendanceFilterType, attendanceFilterCode, attendanceFilterLocation, attendanceSearchQuery, attendanceTypes, activityCodes, attendanceLocations, isSalesReportModalOpen, isPaymentReportModalOpen, isFiscalBalanceReportModalOpen, showItemsModal, selectedItems, selectedRowData, wooCommerceProductDetails, showReceiptModal, selectedReceipt, showInvoiceModal, invoiceModalData} = this.state;
 
       return (
         <>
@@ -2144,6 +2272,7 @@ import React, { Component } from 'react';
                   toggleInventoryRecordsComponent = {this.toggleInventoryRecordsComponent}
                   toggleCourseflyersComponent = {this.toggleCourseFlyersComponent}
                   toggleCourseLinkComponent = {this.toggleCourseLinkComponent}
+                  toggleAuditLogsComponent = {this.toggleAuditLogsComponent}
                   onAccessRightsUpdate = {this.handleAccessRightsData}
                   key={this.state.refreshKey}
                 />
@@ -2168,6 +2297,7 @@ import React, { Component } from 'react';
                 isCourseFlyersVisible === false &&
                 isReceiptVisible === false &&
                 isCourseLinkVisible === false &&
+                isAuditLogsVisible === false &&
                 (
                   <>
                     <div className="welcome-section">
@@ -2320,6 +2450,22 @@ import React, { Component } from 'react';
                             userName={userName}
                             role={role}
                             siteIC={siteIC}
+                            closePopup1={this.closePopup}
+                            searchQuery={searchQuery}
+                            resetSearch={resetSearch}
+                            language={language}
+                            key={this.state.refreshKey}
+                            refreshChild={this.refreshChild}
+                            onDataLoaded={this.closePopup}
+                          />
+                    </>
+                }
+                {isAuditLogsVisible && 
+                    <>
+                          <AuditLogsSection 
+                            section={section}
+                            userName={userName}
+                            role={role}
                             closePopup1={this.closePopup}
                             searchQuery={searchQuery}
                             resetSearch={resetSearch}

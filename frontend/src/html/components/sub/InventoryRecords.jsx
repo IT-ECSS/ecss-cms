@@ -70,19 +70,59 @@ class InventoryRecords extends Component {
         }
     };
 
+    generateReceipt = async (record) => {
+        try {
+            const backendUrl = window.location.hostname === "localhost" 
+                ? "http://localhost:3001" 
+                : "https://ecss-backend-node.azurewebsites.net";
+
+            const response = await axios.post(`${backendUrl}/inventory`, {
+                purpose: "generateReceipt",
+                customerName: record.customerName,
+                paymentMethod: record.paymentMethod || 'Cash',
+                receiptNumber: record.receiptNumber,
+                product: record.product,
+                location: record.location,
+                quantity: record.quantity,
+                orderDate: record.orderDate,
+                orderTime: record.orderTime,
+                staffName: record.staffName,
+                unitPrice: record.unitPrice || 0,
+                totalPrice: record.totalPrice || 0
+            });
+
+            // Handle PDF download if generated
+            if (response.data.result?.pdfGenerated && response.data.result?.pdfData) {
+                const pdfBlob = new Blob(
+                    [Uint8Array.from(atob(response.data.result.pdfData), c => c.charCodeAt(0))],
+                    { type: 'application/pdf' }
+                );
+                const pdfUrl = URL.createObjectURL(pdfBlob);
+                const link = document.createElement('a');
+                link.href = pdfUrl;
+                link.download = response.data.result.pdfFilename || 'receipt.pdf';
+                link.click();
+                URL.revokeObjectURL(pdfUrl);
+            }
+        } catch (error) {
+            console.error('Error generating receipt:', error);
+            alert('Failed to generate receipt. Please try again.');
+        }
+    };
+
     // Column definitions for the AG Grid
     columnDefs = [
         { 
             headerName: 'S/N', 
             valueGetter: (params) => params.node.rowIndex + 1,  
-            width: 80, 
+            width: 100, 
             pinned: 'left',
             cellStyle: { textAlign: 'center' }
         },
         { 
             headerName: 'Customer Name', 
             field: 'customerName', 
-            width: 180, 
+            width: 300, 
             pinned: 'left',
             cellStyle: { textAlign: 'center' }
         },
@@ -96,60 +136,64 @@ class InventoryRecords extends Component {
         { 
             headerName: 'Location', 
             field: 'location', 
-            width: 300,
+            width: 200,
             cellStyle: { textAlign: 'center' }
         },
         { 
             headerName: 'Quantity', 
             field: 'quantity', 
-            width: 150, 
+            width: 180, 
             cellStyle: { textAlign: 'center' }
         },
         { 
             headerName: 'Order Date', 
             field: 'orderDate', 
-            width: 150,
+            width: 220,
             cellStyle: { textAlign: 'center' }
         },
         { 
             headerName: 'Order Time', 
             field: 'orderTime', 
-            width: 150,
+            width: 220,
             cellStyle: { textAlign: 'center' }
         },
         { 
             headerName: 'Staff Name', 
             field: 'staffName', 
-            width: 180,
+            width: 250,
+            cellStyle: { textAlign: 'center' }
+        },
+        { 
+            headerName: 'Payment Method', 
+            field: 'paymentMethod', 
+            width: 300,
             cellStyle: { textAlign: 'center' }
         },
         { 
             headerName: 'Receipt Number', 
             field: 'receiptNumber', 
-            width: 200,
+            width: 300,
             pinned: 'right',
-            cellStyle: { textAlign: 'center' }
+            cellStyle: { textAlign: 'center' },
+            cellRenderer: (params) => {
+                if (!params.value) return '';
+                return (
+                    <span 
+                        style={{ 
+                            textDecoration: 'none' 
+                        }}
+                        onClick={() => this.generateReceipt(params.data)}
+                    >
+                        {params.value}
+                    </span>
+                );
+            }
         }
     ];
 
     onGridReady = (params) => {
         this.gridApi = params.api;
         this.gridColumnApi = params.columnApi;
-        
-        // Size columns to fit on initial load
-        params.api.sizeColumnsToFit();
-        
-        // Add resize listener for responsive behavior
-        const handleResize = () => {
-            setTimeout(() => {
-                if (this.gridApi) {
-                    this.gridApi.sizeColumnsToFit();
-                }
-            }, 100);
-        };
-        
-        window.addEventListener('resize', handleResize);
-        this.handleResize = handleResize;
     };
 
     componentWillUnmount() {
@@ -227,6 +271,7 @@ class InventoryRecords extends Component {
                                 animateRows={true}
                                 rowSelection="single"
                                 enableCellTextSelection={true}
+                                headerHeight={60}
                             />
                         </div>
                     )}

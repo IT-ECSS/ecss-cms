@@ -18,7 +18,8 @@ class InventoryForm extends Component {
                 quantity: "",
                 orderDate: '',
                 orderTime: '',
-                staffName: props.userName || ''
+                staffName: props.userName || '',
+                paymentMethod: ''
             },
             showProductDropdown: false,
             showLocationDropdown: false
@@ -47,21 +48,13 @@ class InventoryForm extends Component {
 
     // Filter suggestions based on input
     getFilteredProducts = () => {
-        const { formData } = this.state;
         const allProducts = this.getProductSuggestions();
-        if (!formData.product) return allProducts;
-        return allProducts.filter(p => 
-            p.toLowerCase().includes(formData.product.toLowerCase())
-        );
+        return allProducts;
     };
 
     getFilteredLocations = () => {
-        const { formData } = this.state;
         const allLocations = this.getLocationSuggestions();
-        if (!formData.location) return allLocations;
-        return allLocations.filter(l => 
-            l.toLowerCase().includes(formData.location.toLowerCase())
-        );
+        return allLocations;
     };
 
     // Get the price of the currently selected product and location
@@ -259,7 +252,8 @@ class InventoryForm extends Component {
                 orderDate: formData.orderDate,
                 orderTime: formData.orderTime,
                 staffName: formData.staffName,
-                sku: this.getSelectedProductSku()
+                sku: this.getSelectedProductSku(),
+                paymentMethod: formData.paymentMethod
             };
 
             // Step 1: Update backend (port 3001)
@@ -292,7 +286,7 @@ class InventoryForm extends Component {
                 const receiptResponse = await axios.post(`${backendUrl}/inventory`, {
                     purpose: "generateReceipt",
                     customerName: formData.customerName,
-                    paymentMethod: 'Cash/PayNow',
+                    paymentMethod: formData.paymentMethod,
                     receiptNumber: receiptNumber,
                     product: formData.product,
                     location: formData.location,
@@ -326,7 +320,8 @@ class InventoryForm extends Component {
                         customerName: '',
                         product: '',
                         location: '',
-                        quantity: ""
+                        quantity: "",
+                        paymentMethod: ''
                     }
                 });
             } else {
@@ -529,50 +524,85 @@ class InventoryForm extends Component {
                                 </div>
 
                                 <div className="form-group">
-                                    <label htmlFor="orderDate">
-                                        <i className="fas fa-calendar-alt"></i>
-                                        Order Date
-                                    </label>
-                                    <input
-                                        type="text"
-                                        id="orderDate"
-                                        name="orderDate"
-                                        value={formData.orderDate}
-                                        onChange={this.handleInputChange}
-                                        placeholder="DD/MM/YYYY"
-                                    />
+                                    <div style={{ display: 'flex', gap: '10px' }}>
+                                        <div style={{ flex: 1 }}>
+                                            <label htmlFor="orderDate">
+                                                <i className="fas fa-calendar-alt"></i>
+                                                Order Date
+                                            </label>
+                                            <input
+                                                type="text"
+                                                id="orderDate"
+                                                name="orderDate"
+                                                value={formData.orderDate}
+                                                onChange={this.handleInputChange}
+                                                placeholder="DD/MM/YYYY"
+                                            />
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <label htmlFor="orderTime">
+                                                <i className="fas fa-clock"></i>
+                                                Order Time
+                                            </label>
+                                            <input
+                                                type="text"
+                                                id="orderTime"
+                                                name="orderTime"
+                                                value={formData.orderTime}
+                                                onChange={this.handleInputChange}
+                                                placeholder="HH:MM"
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label htmlFor="orderTime">
-                                        <i className="fas fa-clock"></i>
-                                        Order Time
-                                    </label>
-                                    <input
-                                        type="text"
-                                        id="orderTime"
-                                        name="orderTime"
-                                        value={formData.orderTime}
-                                        onChange={this.handleInputChange}
-                                        placeholder="HH:MM"
-                                    />
-                                </div>
 
                                 <div className="form-group">
-                                    <label htmlFor="totalPrice">
-                                        <i className="fas fa-dollar-sign"></i>
-                                        Total Price
-                                    </label>
-                                    <input
-                                        type="text"
-                                        id="totalPrice"
-                                        name="totalPrice"
-                                        value={`$${this.getTotalPrice() || '0.00'}`}
-                                        readOnly
-                                        placeholder="Quantity × Unit Price"
-                                    />
+                                    <div style={{ display: 'flex', gap: '10px'}}>
+                                        <div style={{ flex: 1 }}>
+                                            <label htmlFor="totalPrice">
+                                                <i className="fas fa-dollar-sign"></i>
+                                                Total Price
+                                            </label>
+                                            <input
+                                                type="text"
+                                                id="totalPrice"
+                                                name="totalPrice"
+                                                value={`$${this.getTotalPrice() || '0.00'}`}
+                                                readOnly
+                                                placeholder="Quantity × Unit Price"
+                                            />
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <label>
+                                                <i className="fas fa-credit-card"></i>
+                                                Payment Method <span className="required">*</span>
+                                            </label>
+                                            <div className="radio-group">
+                                                <label className="radio-label">
+                                                    <input
+                                                        type="radio"
+                                                        name="paymentMethod"
+                                                        value="Cash"
+                                                        checked={formData.paymentMethod === 'Cash'}
+                                                        onChange={this.handleInputChange}
+                                                    />
+                                                    <span className="radio-custom"></span>
+                                                    Cash
+                                                </label>
+                                                <label className="radio-label">
+                                                    <input
+                                                        type="radio"
+                                                        name="paymentMethod"
+                                                        value="PayNow"
+                                                        checked={formData.paymentMethod === 'PayNow'}
+                                                        onChange={this.handleInputChange}
+                                                    />
+                                                    <span className="radio-custom"></span>
+                                                    PayNow
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -604,7 +634,8 @@ class InventoryForm extends Component {
                                                 customerName: '',
                                                 product: '',
                                                 location: '',
-                                                quantity: 1
+                                                quantity: 1,
+                                                paymentMethod: ''
                                             },
                                             error: null,
                                             successMessage: null

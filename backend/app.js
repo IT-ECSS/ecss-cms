@@ -30,6 +30,7 @@ var fitnessRouter = require('./routes/fitness');
 var fundraisingRouter = require('./routes/fundraising');
 var googleDriveRouter = require('./routes/googleDrive');
 var inventoryRouter = require('./routes/inventory');
+var LogsRouter = require('./routes/logs');
 
 
 app.use(cors()); // Enable CORS
@@ -113,6 +114,7 @@ app.use("/fitness", fitnessRouter);
 app.use("/fundraising", fundraisingRouter);
 app.use("/googleDrive", googleDriveRouter);
 app.use("/inventory", inventoryRouter);
+app.use("/logs", LogsRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

@@ -62,6 +62,11 @@
   box-shadow: none !important;
 }
 
+.ag-header-cell-label {
+  font-size: 1.5em !important;
+  font-weight: bold !important;
+}
+
 .ag-header-cell-resize {
   display: none !important; /* Hide the column resize handle */
 }
@@ -251,4 +256,38 @@
 
 .ag-row[data-expanded="true"][data-anomaly="true"] {
   background: #f1f1f1 !important;
+}
+
+/* Inventory Records Grid - 2x larger text */
+.inventory-records-grid-container .ag-header {
+  height: 80px !important;
+  min-height: 80px !important;
+}
+
+.inventory-records-grid-container .ag-header-cell {
+  text-align: center !important;
+  justify-content: center !important;
+  padding: 16px !important;
+  height: 80px !important;
+}
+
+.inventory-records-grid-container .ag-header-cell-text {
+  font-size: 28px !important;
+  font-weight: 600 !important;
+  text-align: center !important;
+}
+
+.inventory-records-grid-container .ag-cell {
+  font-size: 21px !important;
+  text-align: center !important;
+  justify-content: center !important;
+  padding: 16px !important;
+}
+
+.inventory-records-grid-container .ag-header-row {
+  height: 80px !important;
+}
+
+.inventory-records-grid-container .ag-row {
+  height: 75px !important;
 }

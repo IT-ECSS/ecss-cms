@@ -212,6 +212,16 @@ class SideBarContent extends Component {
                 console.error("toggleInventoryRecordsComponent function not found in props");
             }
         }
+        else if(subKey === "AuditLogs" || subKey === "Audit Logs") {
+            console.log("Audit Logs clicked in sidebar");
+            console.log("toggleAuditLogsComponent function exists:", !!this.props.toggleAuditLogsComponent);
+            if (this.props.toggleAuditLogsComponent) {
+                console.log("Calling toggleAuditLogsComponent...");
+                this.props.toggleAuditLogsComponent();
+            } else {
+                console.error("toggleAuditLogsComponent function not found in props");
+            }
+        }
     }
 
     closeSubMenu = () => {
@@ -235,7 +245,8 @@ class SideBarContent extends Component {
             "Attendances": 'fa-solid fa-calendar-days',
             "Fitness": 'fa-solid fa-dumbbell',
             "Fundraising": 'fa-solid fa-gift',
-            "Inventory": 'fa-solid fa-warehouse'
+            "Inventory": 'fa-solid fa-warehouse',
+            "Logs": 'fa-solid fa-clipboard-list'
         };
 
         return (
@@ -285,7 +296,8 @@ class SideBarContent extends Component {
                                                     const displayNameMap = {
                                                         'InventoryStore': 'Inventory Store',
                                                         'InventoryForm': 'Inventory Form',
-                                                        'InventoryRecords': 'Inventory Records'
+                                                        'InventoryRecords': 'Inventory Records',
+                                                        'AuditLogs': 'Audit Logs'
                                                     };
                                                     const displayName = displayNameMap[subKey] || subKey;
                                                     return (

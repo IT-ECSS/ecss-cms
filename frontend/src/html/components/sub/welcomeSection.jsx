@@ -285,6 +285,15 @@ class WelcomeSection extends Component {
                 action: () => this.props.onNavigate('inventory-records'),
                 accessKey: 'InventoryRecords',
                 parentKey: 'Inventory'
+            },
+            { 
+                key: 'AuditLogs', 
+                title: 'Audit Logs', 
+                icon: 'fas fa-clipboard-list', 
+                description: 'View system audit logs and user activity', 
+                action: () => this.props.onNavigate('audit-logs'),
+                accessKey: 'AuditLogs',
+                parentKey: 'Logs'
             }
         ];
 
@@ -354,7 +363,9 @@ class WelcomeSection extends Component {
                 'QR Code Table': 1,
                 'Update QR Code': 1,
                 'Delete QR Code': 1,
-                'Delete Courses': 1
+                'Delete Courses': 1,
+                'AuditLogs': 3,
+                'Audit Logs': 3
             };
 
             return actions.sort((a, b) => {
@@ -387,7 +398,9 @@ class WelcomeSection extends Component {
             'QR Code Table': 'fas fa-table',
             'Delete QR Code': 'fas fa-trash-alt',
             'View Attendance': 'fas fa-calendar-check',
-            'View Membership': 'fas fa-id-card'
+            'View Membership': 'fas fa-id-card',
+            'AuditLogs': 'fas fa-clipboard-list',
+            'Audit Logs': 'fas fa-clipboard-list'
         };
 
         const navigationMapping = {
@@ -408,7 +421,9 @@ class WelcomeSection extends Component {
             'QR Code Table': 'qr-code-table',
             'Delete QR Code': 'delete-qr-code',
             'View Attendance': 'attendance',
-            'View Membership': 'membership'
+            'View Membership': 'membership',
+            'AuditLogs': 'audit-logs',
+            'Audit Logs': 'audit-logs'
         };
 
         // Scan database access rights for any subkeys not in predefined actions
@@ -460,7 +475,8 @@ class WelcomeSection extends Component {
             "Attendances": 'fas fa-calendar-days',
             "Fitness": 'fas fa-dumbbell',
             "Fundraising": 'fa-solid fa-gift',
-            "Inventory": 'fas fa-warehouse'
+            "Inventory": 'fas fa-warehouse',
+            "Logs": 'fas fa-clipboard-list'
         };
 
         // Define sub-key descriptions
@@ -486,7 +502,9 @@ class WelcomeSection extends Component {
             "InventoryForm": "Submit inventory orders and track stock",
             "Inventory Form": "Submit inventory orders and track stock",
             "InventoryRecords": "View inventory order records and history",
-            "Inventory Records": "View inventory order records and history"
+            "Inventory Records": "View inventory order records and history",
+            "AuditLogs": "View system audit logs and user activity",
+            "Audit Logs": "View system audit logs and user activity"
         };
 
         const navigationCards = [];
@@ -512,14 +530,16 @@ class WelcomeSection extends Component {
                     const subKeyDisplayNames = {
                         'InventoryStore': 'Inventory Store',
                         'InventoryForm': 'Inventory Form',
-                        'InventoryRecords': 'Inventory Records'
+                        'InventoryRecords': 'Inventory Records',
+                        'AuditLogs': 'Audit Logs'
                     };
                     
                     // Icon mapping for sub-keys
                     const subKeyIcons = {
                         'InventoryStore': 'fas fa-warehouse',
                         'InventoryForm': 'fas fa-clipboard-list',
-                        'InventoryRecords': 'fas fa-file-alt'
+                        'InventoryRecords': 'fas fa-file-alt',
+                        'AuditLogs': 'fas fa-clipboard-list'
                     };
                     
                     navigationCards.push({
@@ -660,6 +680,10 @@ class WelcomeSection extends Component {
             case "InventoryRecords":
             case "Inventory Records":
                 navigationKey = "inventory-records";
+                break;
+            case "AuditLogs":
+            case "Audit Logs":
+                navigationKey = "audit-logs";
                 break;
             default:
                 navigationKey = subKey;

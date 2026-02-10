@@ -9,6 +9,7 @@ import { saveAs } from 'file-saver';
 import { AgGridReact } from 'ag-grid-react'; // React Data Grid Component
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community'; 
 import { io } from 'socket.io-client';
+import { logRegistrationUpdate, logRegistrationBulkUpdate, logExportAction, logReceiptGeneration, logMessageSend } from '../../../utils/auditLog';
 
 // Register the community modules
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -490,6 +491,19 @@ class RegistrationPaymentSection extends Component {
         try {
           const pdfResponse = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { purpose: "addReceiptNumber", id, participant, course, staff: this.props.userName, receiptNo, status });
           console.log("generatePDFReceipt:", pdfResponse);
+
+          // Audit log for receipt generation via payment status change
+          logReceiptGeneration({
+            userName: this.props.userName,
+            module: "Registration And Payment",
+            receiptNo: receiptNo,
+            participantName: participant.name,
+            contactNumber: participant.contactNumber || "N/A",
+            courseName: course.courseEngName || course.courseName || "N/A",
+            paymentType: course.payment,
+            triggerSource: "Payment Status Change"
+          });
+
           return pdfResponse;
         } catch (error) {
           console.error("Error generating PDF receipt:", error);
@@ -545,6 +559,18 @@ class RegistrationPaymentSection extends Component {
       
           // Clean up by revoking the Blob URL after download is triggered
           window.URL.revokeObjectURL(blobUrl);
+
+          // Audit log for receipt/invoice generation when clicking receipt number
+          logReceiptGeneration({
+            userName: this.props.userName,
+            module: "Registration And Payment",
+            receiptNo: receiptNo,
+            participantName: participant.name,
+            contactNumber: participant.contactNumber || "N/A",
+            courseName: course.courseEngName || course.courseName || "N/A",
+            paymentType: course.payment,
+            triggerSource: "Click Receipt Number"
+          });
         } catch (error) {
           console.error("Error generating PDF receipt:", error);
         }
@@ -653,6 +679,19 @@ class RegistrationPaymentSection extends Component {
           `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
           { purpose: "addInvoiceNumber", id, participant, course, staff: this.props.userName, receiptNo, status }
         );        
+
+        // Audit log for invoice generation via payment status change
+        logReceiptGeneration({
+          userName: this.props.userName,
+          module: "Registration And Payment",
+          receiptNo: receiptNo,
+          participantName: participant.name,
+          contactNumber: participant.contactNumber || "N/A",
+          courseName: course.courseEngName || course.courseName || "N/A",
+          paymentType: "SkillsFuture",
+          triggerSource: "Payment Status Change (SkillsFuture Invoice)"
+        });
+
         return pdfResponse;
       } catch (error) {
         console.error("Error generating PDF receipt:", error);
@@ -1183,6 +1222,21 @@ class RegistrationPaymentSection extends Component {
           type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         });
         saveAs(blob, outputFileName);
+        
+        // Audit log for Export to LOP action
+        await logExportAction({
+          userName: this.props.userName,
+          module: "Registration And Payment",
+          actionType: "Export to LOP",
+          recordCount: filteredRows.length,
+          additionalInfo: `Course Type: ${firstType}`,
+          records: filteredRows.map((row, idx) => ({
+            sn: row.sn || (idx + 1),
+            name: row.participantInfo?.name || 'Unknown',
+            contactNumber: row.participantInfo?.contactNumber || 'N/A',
+            courseName: row.courseInfo?.courseEngName || row.course?.courseEngName || 'N/A'
+          }))
+        });
       } catch (error) {
         console.error("Error exporting LOP:", error);
         this.props.warningPopUpMessage("An error occurred during export.");
@@ -1337,6 +1391,21 @@ class RegistrationPaymentSection extends Component {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       });
       saveAs(blob, outputFileName);
+      
+      // Audit log for Export to Marriage Preparation Programme action
+      await logExportAction({
+        userName: this.props.userName,
+        module: "Registration And Payment",
+        actionType: "Export to Marriage Preparation Programme",
+        recordCount: filteredRows.length,
+        additionalInfo: '',
+        records: filteredRows.map((row, idx) => ({
+          sn: row.sn || (idx + 1),
+          name: row.participantInfo?.name || 'Unknown',
+          contactNumber: row.participantInfo?.contactNumber || 'N/A',
+          courseName: row.courseInfo?.courseEngName || row.course?.courseEngName || 'N/A'
+        }))
+      });
     } catch (error) {
       console.error("Error exporting Marriage Preparation Programme:", error);
       this.props.warningPopUpMessage("An error occurred during export.");
@@ -1659,6 +1728,21 @@ class RegistrationPaymentSection extends Component {
       
           // Trigger the file download with a new name
           saveAs(blob, `Attendance (Course) ECSS${formatDateToDDMMYYYY1(start)} ${courseName}.xlsx`);
+
+          // Audit log for export attendance
+          logExportAction({
+            userName: this.props.userName,
+            module: "Registration And Payment",
+            actionType: "Export Attendance (NSA)",
+            recordCount: filteredRows.length,
+            additionalInfo: `Course: ${courseName}`,
+            records: filteredRows.map((row, idx) => ({
+              sn: row.sn || (idx + 1),
+              name: row.participantInfo?.name || 'Unknown',
+              contactNumber: row.participantInfo?.contactNumber || 'N/A',
+              courseName: row.courseInfo?.courseEngName || row.course?.courseEngName || 'N/A'
+            }))
+          });
         }
         else if(firstType === "ILP")
         {
@@ -1755,6 +1839,21 @@ class RegistrationPaymentSection extends Component {
       
           // Trigger the file download with a new name
           saveAs(blob, `2025 ILP ${courseName} ${courseLocation} ${courseCommencementDate}.xlsx`);
+
+          // Audit log for export attendance
+          logExportAction({
+            userName: this.props.userName,
+            module: "Registration And Payment",
+            actionType: "Export Attendance (ILP)",
+            recordCount: filteredRows.length,
+            additionalInfo: `Course: ${courseName}, Location: ${courseLocation}, Date: ${courseCommencementDate}`,
+            records: filteredRows.map((row, idx) => ({
+              sn: row.sn || (idx + 1),
+              name: row.participantInfo?.name || 'Unknown',
+              contactNumber: row.participantInfo?.contactNumber || 'N/A',
+              courseName: row.courseInfo?.courseEngName || row.course?.courseEngName || 'N/A'
+            }))
+          });
         }
 
          function formatDateToDDMMYYYY(date) {
@@ -2815,7 +2914,17 @@ debugMarriagePrepData = () => {
               More Information: https://ecss.org.sg/wp-content/uploads/2025/07/Step-by-step-guide-on-how-to-do-Skillsfuture-claim-submission.pdf`;
 
               const whatsappWebURL = `https://web.whatsapp.com/send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
-              window.open(whatsappWebURL, "_blank"); // Opens in a new browser tab              
+              window.open(whatsappWebURL, "_blank"); // Opens in a new browser tab
+
+              // Audit log for SkillsFuture invoice message
+              logMessageSend({
+                userName: this.props.userName,
+                module: "Registration And Payment",
+                participantName: participantInfo.name,
+                contactNumber: participantInfo.contactNumber,
+                courseEngName: courseInfo.courseEngName,
+                messageType: "SkillsFuture Invoice Instructions"
+              });
             }
             else if (
               participantInfo &&
@@ -2838,6 +2947,16 @@ debugMarriagePrepData = () => {
               const whatsappWebURL = `https://web.whatsapp.com/send?phone=+65${phoneNumber}&text=${encodeURIComponent(message)}`;
               window.open(whatsappWebURL, "_blank");
               console.log("Whatsapp Link:", whatsappWebURL)
+
+              // Audit log for NSA payment instructions message
+              logMessageSend({
+                userName: this.props.userName,
+                module: "Registration And Payment",
+                participantName: participantInfo.name,
+                contactNumber: participantInfo.contactNumber,
+                courseEngName: courseInfo.courseEngName,
+                messageType: "NSA Payment Instructions (PayNow/Cash)"
+              });
             }
               else if (
               participantInfo &&
@@ -2853,6 +2972,16 @@ debugMarriagePrepData = () => {
               const whatsappWebURL = `https://web.whatsapp.com/send?phone=+65${phoneNumber}&text=${encodeURIComponent(message)}`;
               console.log("Whatsapp Link:", whatsappWebURL)
               window.open(whatsappWebURL, "_blank"); // Opens in a new browser tab
+
+              // Audit log for pending/course full notification
+              logMessageSend({
+                userName: this.props.userName,
+                module: "Registration And Payment",
+                participantName: participantInfo.name,
+                contactNumber: participantInfo.contactNumber,
+                courseEngName: courseInfo.courseEngName,
+                messageType: "Course Full Notification"
+              });
             }
             else if (
               participantInfo &&
@@ -2869,6 +2998,16 @@ debugMarriagePrepData = () => {
               const whatsappWebURL = `https://web.whatsapp.com/send?phone=+65${phoneNumber}&text=${encodeURIComponent(message)}`;
               console.log("Whatsapp Link:", whatsappWebURL)
               window.open(whatsappWebURL, "_blank"); // Opens in a new browser tab
+
+              // Audit log for ILP confirmation message
+              logMessageSend({
+                userName: this.props.userName,
+                module: "Registration And Payment",
+                participantName: participantInfo.name,
+                contactNumber: participantInfo.contactNumber,
+                courseEngName: courseInfo.courseEngName,
+                messageType: "ILP Confirmation"
+              });
             }
              else if (
               participantInfo &&
@@ -2885,6 +3024,16 @@ debugMarriagePrepData = () => {
               const whatsappWebURL = `https://web.whatsapp.com/send?phone=+65${phoneNumber}&text=${encodeURIComponent(message)}`;
               console.log("Whatsapp Link:", whatsappWebURL)
               window.open(whatsappWebURL, "_blank"); // Opens in a new browser tab
+
+              // Audit log for Talks And Seminar confirmation message
+              logMessageSend({
+                userName: this.props.userName,
+                module: "Registration And Payment",
+                participantName: participantInfo.name,
+                contactNumber: participantInfo.contactNumber,
+                courseEngName: courseInfo.courseEngName,
+                messageType: "Talks And Seminar Confirmation"
+              });
             }
             console.log("Submitted Id:", id);
              await this.sendDetails(id);
@@ -3350,6 +3499,7 @@ debugMarriagePrepData = () => {
     {
         if (columnName === "Payment Method") 
         {
+          const oldPaymentMethod = event.oldValue;
           this.props.showUpdatePopup("Updating in progress... Please wait ...");
           await axios.post(
             `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
@@ -3359,7 +3509,21 @@ debugMarriagePrepData = () => {
               newUpdatePayment: newValue,
               staff: this.props.userName
             }
-          );          
+          );
+          
+          // Audit log for Payment Method change
+          await logRegistrationUpdate({
+            userName: this.props.userName,
+            module: "Registration And Payment",
+            sn: sn,
+            recordId: id,
+            participantName: participantInfo?.name || 'Unknown',
+            contactNumber: participantInfo?.contactNumber || 'N/A',
+            columnName: "Payment Method",
+            oldValue: oldPaymentMethod,
+            newValue: newValue
+          });
+          
           //Automatically Update Status
           console.log("newPaymentMethod:", newValue);
           if(newValue === "Cash" || newValue === "PayNow")
@@ -3376,6 +3540,19 @@ debugMarriagePrepData = () => {
             
               if (response.data.result === true) 
               {
+                  // Audit log for auto-update of Payment Status to Paid
+                  await logRegistrationUpdate({
+                    userName: this.props.userName,
+                    module: "Registration And Payment",
+                    sn: sn,
+                    recordId: id,
+                    participantName: participantInfo?.name || 'Unknown',
+                    contactNumber: participantInfo?.contactNumber || 'N/A',
+                    columnName: "Payment Status (Auto)",
+                    oldValue: oldPaymentStatus || "Pending",
+                    newValue: "Paid"
+                  });
+                  
                   // Define the parallel tasks function
                   const performParallelTasks = async () => {
                     try {
@@ -3397,6 +3574,7 @@ debugMarriagePrepData = () => {
         }
         else if (columnName === "Confirmation") 
         {
+          const oldConfirmation = event.oldValue;
           this.props.showUpdatePopup("Updating in progress... Please wait ...")
           console.log('Cell clicked', event);
           const response = await axios.post(
@@ -3407,7 +3585,21 @@ debugMarriagePrepData = () => {
               newConfirmation: newValue, 
               staff: this.props.userName 
             }
-          );          
+          );
+          
+          // Audit log for Confirmation change
+          await logRegistrationUpdate({
+            userName: this.props.userName,
+            module: "Registration And Payment",
+            sn: sn,
+            recordId: id,
+            participantName: participantInfo?.name || 'Unknown',
+            contactNumber: participantInfo?.contactNumber || 'N/A',
+            columnName: "Confirmation",
+            oldValue: oldConfirmation ? "Confirmed" : "Not Confirmed",
+            newValue: newValue ? "Confirmed" : "Not Confirmed"
+          });
+          
           console.log(`${columnName}: ${newValue}`);
           if(paymentMethod === "SkillsFuture" && newValue === true)
           {
@@ -3426,6 +3618,19 @@ debugMarriagePrepData = () => {
                 );
                 if (response.data.result === true) 
                   {
+                      // Audit log for auto-update of Payment Status for SkillsFuture
+                      await logRegistrationUpdate({
+                        userName: this.props.userName,
+                        module: "Registration And Payment",
+                        sn: sn,
+                        recordId: id,
+                        participantName: participantInfo?.name || 'Unknown',
+                        contactNumber: participantInfo?.contactNumber || 'N/A',
+                        columnName: "Payment Status (Auto - SkillsFuture)",
+                        oldValue: paymentStatus || "Pending",
+                        newValue: "Generating SkillsFuture Invoice"
+                      });
+                      
                       // Define the parallel tasks function
                       const performParallelTasks = async () => {
                         try {
@@ -3460,6 +3665,19 @@ debugMarriagePrepData = () => {
 
             if (response.data.result === true) 
             {
+              // Audit log for Payment Status change
+              await logRegistrationUpdate({
+                userName: this.props.userName,
+                module: "Registration And Payment",
+                sn: sn,
+                recordId: id,
+                participantName: participantInfo?.name || 'Unknown',
+                contactNumber: participantInfo?.contactNumber || 'N/A',
+                columnName: columnName,
+                oldValue: oldPaymentStatus,
+                newValue: newValue
+              });
+              
               console.log("New Payment Status:", newValue);
               if(paymentMethod === "Cash" || paymentMethod === "PayNow")
               {
@@ -3684,6 +3902,7 @@ debugMarriagePrepData = () => {
         }
         else if (columnName === "Remarks")
         {
+          const oldRemarks = event.oldValue || '';
           console.log("Now editing remarks", newValue);
           if(newValue !== "")
           {
@@ -3694,11 +3913,51 @@ debugMarriagePrepData = () => {
                 id: id,
                 editedValue: newValue
               });
+            
+            // Audit log for Remarks change
+            await logRegistrationUpdate({
+              userName: this.props.userName,
+              module: "Registration And Payment",
+              sn: sn,
+              recordId: id,
+              participantName: participantInfo?.name || 'Unknown',
+              contactNumber: participantInfo?.contactNumber || 'N/A',
+              columnName: "Remarks",
+              oldValue: oldRemarks,
+              newValue: newValue
+            });
           }
           else
           {
             alert("No remarks added");
           }
+        }
+        else if (columnName === "Refunded Date")
+        {
+          const oldRefundedDate = event.oldValue || '';
+          console.log("Editing refunded date", newValue);
+          const response = await axios.post(
+            `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
+            {
+              purpose: 'edit',
+              id: id,
+              field: event.colDef.field,
+              editedValue: newValue
+            }
+          );
+          
+          // Audit log for Refunded Date change
+          await logRegistrationUpdate({
+            userName: this.props.userName,
+            module: "Registration And Payment",
+            sn: sn,
+            recordId: id,
+            participantName: participantInfo?.name || 'Unknown',
+            contactNumber: participantInfo?.contactNumber || 'N/A',
+            columnName: "Refunded Date",
+            oldValue: oldRefundedDate,
+            newValue: newValue
+          });
         }
         else
         {
@@ -4133,6 +4392,32 @@ debugMarriagePrepData = () => {
       {
         this.closeBulkUpdateModal();
         
+        // Audit log for bulk updates with detailed record info
+        const records = selectedRows.map(row => ({
+          sn: row.sn || 'N/A',
+          name: row.participantInfo?.name || row.name || 'Unknown',
+          contactNumber: row.participantInfo?.contactNumber || 'N/A'
+        }));
+        
+        if (bulkUpdateStatus) {
+          await logRegistrationBulkUpdate({
+            userName: this.props.userName,
+            module: "Registration And Payment",
+            columnName: "Payment Status",
+            newValue: bulkUpdateStatus,
+            records: records
+          });
+        }
+        if (bulkUpdateMethod) {
+          await logRegistrationBulkUpdate({
+            userName: this.props.userName,
+            module: "Registration And Payment",
+            columnName: "Payment Method",
+            newValue: bulkUpdateMethod,
+            records: records
+          });
+        }
+        
         if (bulkUpdateStatus) 
         {
           // Update popup message for WooCommerce updates
@@ -4363,6 +4648,21 @@ debugMarriagePrepData = () => {
       const marriagePrepCount = registerationDetails.filter(detail => 
         detail.course?.courseType === 'Marriage Preparation Programme'
       ).length;
+      
+      // Audit log for Archive Data action
+      await logExportAction({
+        userName: this.props.userName,
+        module: "Registration And Payment",
+        actionType: "Archive Data",
+        recordCount: registerationDetails.length,
+        additionalInfo: shouldIncludeMarriagePrepFields ? `Including ${marriagePrepCount} Marriage Prep records` : '',
+        records: registerationDetails.map((row, idx) => ({
+          sn: row.sn || (idx + 1),
+          name: row.participantInfo?.name || 'Unknown',
+          contactNumber: row.participantInfo?.contactNumber || 'N/A',
+          courseName: row.courseInfo?.courseEngName || row.course?.courseEngName || 'N/A'
+        }))
+      });
       
       // Create more detailed alert message based on filter and data
       let alertMessage;
