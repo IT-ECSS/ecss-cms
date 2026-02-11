@@ -82,6 +82,7 @@ class InventoryStore extends Component {
         });
     };
 
+    //ok
     /*setupSSE = () => {
         return new Promise((resolve) => {
             const baseUrl = window.location.hostname === "localhost" 
