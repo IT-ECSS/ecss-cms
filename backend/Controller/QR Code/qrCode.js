@@ -18,7 +18,7 @@ class QRCodeGenerator {
             const buffer = await QRCode.toBuffer(this.text, this.options);
 
             // Save the buffer to a JPG file
-            const filename = `智慧理财基础知识 Basics of Money Management (Pasir Ris West Wellness Centre).jpg`;
+            const filename = `Dementia Awareness Talk – Mandrin (Pasir Ris West Wellness Centre).jpg`;
             fs.writeFileSync(filename, buffer);
             console.log(`QR code generated and saved as ${filename}`);
         } catch (error) {
@@ -28,5 +28,5 @@ class QRCodeGenerator {
 }
 
 // Usage
-const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/%e6%99%ba%e6%85%a7%e7%90%86%e8%b4%a2%e5%9f%ba%e7%a1%80%e7%9f%a5%e8%af%86basics-of-money-managementpasir-ries-west-wellness-centre/`);
+const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/dementia-awareness-talk-mandrin-pasir-ris-west-wellness-centre/`);
 qrCodeGenerator.generate();
