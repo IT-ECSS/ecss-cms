@@ -1,4 +1,4 @@
-var DatabaseConnectivity = require("../../database/databaseConnectivity"); // Import the class
+var DatabaseConnectivity = require("../../database/databaseConnectivity"); // Import the class ok
 
 class LogsController 
 {
