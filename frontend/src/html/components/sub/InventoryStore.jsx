@@ -280,11 +280,11 @@ class InventoryStore extends Component {
                                     )}
                                 </div>
                                 <div className="inventory-card-content">
-                                    <h3 className="inventory-card-title">{product.name}</h3>
+                                    <h1 className="inventory-card-title">{product.name}</h1>
                                     {product.variation_name && (
                                         <div className="inventory-card-variation">
                                             <i className="fas fa-map-marker-alt"></i>
-                                            {product.variation_name}
+                                            <b>{product.variation_name}</b>
                                         </div>
                                     )}
                                     <div className="inventory-card-details">
