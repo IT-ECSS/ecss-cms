@@ -76,7 +76,7 @@ class InventoryRecords extends Component {
                 : "https://ecss-backend-node.azurewebsites.net";
 
             const response = await axios.post(`${backendUrl}/inventory`, {
-                purpose: "generateReceipt",
+                purpose: "downloadReceipt",
                 customerName: record.customerName,
                 paymentMethod: record.paymentMethod,
                 receiptNumber: record.receiptNumber,
@@ -90,18 +90,23 @@ class InventoryRecords extends Component {
                 totalPrice: record.totalPrice
             });
 
-            // Handle PDF download if generated
+            // Download and open PDF in new tab
             if (response.data.result?.pdfGenerated && response.data.result?.pdfData) {
                 const pdfBlob = new Blob(
                     [Uint8Array.from(atob(response.data.result.pdfData), c => c.charCodeAt(0))],
                     { type: 'application/pdf' }
                 );
                 const pdfUrl = URL.createObjectURL(pdfBlob);
+                // Open in new tab
+                window.open(pdfUrl, '_blank');
+                // Also trigger download
                 const link = document.createElement('a');
                 link.href = pdfUrl;
                 link.download = response.data.result.pdfFilename || 'receipt.pdf';
                 link.click();
-                URL.revokeObjectURL(pdfUrl);
+                setTimeout(() => URL.revokeObjectURL(pdfUrl), 5000);
+            } else {
+                alert('Failed to generate receipt PDF.');
             }
         } catch (error) {
             console.error('Error generating receipt:', error);
@@ -132,7 +137,7 @@ class InventoryRecords extends Component {
         { 
             headerName: 'Location', 
             field: 'location', 
-            width: 150,
+            width: 300,
         },
         { 
             headerName: 'Quantity', 
@@ -152,7 +157,7 @@ class InventoryRecords extends Component {
         { 
             headerName: 'Staff Name', 
             field: 'staffName', 
-            width: 150,
+            width: 300,
         },
         { 
             headerName: 'Payment Method', 
@@ -270,8 +275,8 @@ class InventoryRecords extends Component {
                                 onGridReady={this.onGridReady}
                                 rowSelection="single"
                                 enableCellTextSelection={true}
-                                headerHeight={28}
-                                rowHeight={24}
+                                headerHeight={40}
+                                rowHeight={36}
                             />
                         </div>
                     )}

@@ -29,18 +29,20 @@ class InventoryForm extends Component {
         this.locationRef = React.createRef();
     }
 
-    // Get unique product names from inventoryProducts state
+    // Get unique product names from inventoryProducts state (only in-stock)
     getProductSuggestions = () => {
         const { inventoryProducts = [] } = this.state;
-        const productNames = [...new Set(inventoryProducts.map(p => p.name))];
+        const inStockProducts = inventoryProducts.filter(p => (parseInt(p.stock_quantity) || 0) > 0);
+        const productNames = [...new Set(inStockProducts.map(p => p.name))];
         return productNames;
     };
 
-    // Get unique location names from inventoryProducts state
+    // Get unique location names from inventoryProducts state (only in-stock)
     getLocationSuggestions = () => {
         const { inventoryProducts = [] } = this.state;
+        const inStockProducts = inventoryProducts.filter(p => (parseInt(p.stock_quantity) || 0) > 0);
         const locationNames = [...new Set(
-            inventoryProducts
+            inStockProducts
                 .map(p => p.variation_name)
                 .filter(name => name) // Filter out null/undefined
         )];
@@ -82,6 +84,19 @@ class InventoryForm extends Component {
         );
         
         return matchedProduct ? matchedProduct.sku || '' : '';
+    };
+
+    // Get the stock quantity of the currently selected product and location
+    getSelectedProductStock = () => {
+        const { formData, inventoryProducts = [] } = this.state;
+        
+        if (!formData.product || !formData.location) return null;
+        
+        const matchedProduct = inventoryProducts.find(p => 
+            p.name === formData.product && p.variation_name === formData.location
+        );
+        
+        return matchedProduct ? parseInt(matchedProduct.stock_quantity) || 0 : null;
     };
 
     // Calculate total price based on quantity and product price
@@ -351,17 +366,22 @@ class InventoryForm extends Component {
                 });
 
                 // Handle PDF download if generated
-                if (receiptResponse.data.result?.pdfGenerated && receiptResponse.data.result?.pdfData) {
-                    const pdfBlob = new Blob(
-                        [Uint8Array.from(atob(receiptResponse.data.result.pdfData), c => c.charCodeAt(0))],
-                        { type: 'application/pdf' }
-                    );
-                    const pdfUrl = URL.createObjectURL(pdfBlob);
-                    const link = document.createElement('a');
-                    link.href = pdfUrl;
-                    link.download = receiptResponse.data.result.pdfFilename || 'receipt.pdf';
-                    link.click();
-                    URL.revokeObjectURL(pdfUrl);
+                // if (receiptResponse.data.result?.pdfGenerated && receiptResponse.data.result?.pdfData) {
+                //     const pdfBlob = new Blob(
+                //         [Uint8Array.from(atob(receiptResponse.data.result.pdfData), c => c.charCodeAt(0))],
+                //         { type: 'application/pdf' }
+                //     );
+                //     const pdfUrl = URL.createObjectURL(pdfBlob);
+                //     const link = document.createElement('a');
+                //     link.href = pdfUrl;
+                //     link.download = receiptResponse.data.result.pdfFilename || 'receipt.pdf';
+                //     link.click();
+                //     URL.revokeObjectURL(pdfUrl);
+                // }
+
+                // Receipt PDF is uploaded to Google Drive automatically by the backend
+                if (receiptResponse.data.result?.googleDrive?.fileLink) {
+                    console.log('Receipt uploaded to Google Drive:', receiptResponse.data.result.googleDrive.fileLink);
                 }
 
                 this.setState({
@@ -557,7 +577,19 @@ class InventoryForm extends Component {
                                                 onChange={this.handleInputChange}
                                                 placeholder="Qty"
                                                 required
+                                                style={
+                                                    this.getSelectedProductStock() !== null && 
+                                                    (parseInt(formData.quantity) || 0) > this.getSelectedProductStock()
+                                                        ? { borderColor: 'red', color: 'red' }
+                                                        : {}
+                                                }
                                             />
+                                            {this.getSelectedProductStock() !== null && 
+                                             (parseInt(formData.quantity) || 0) > this.getSelectedProductStock() && (
+                                                <span style={{ color: 'red', fontWeight: 'bold', fontSize: '1.2rem', marginTop: '4px', display: 'block' }}>
+                                                    Exceeds stock ({this.getSelectedProductStock()} available)
+                                                </span>
+                                            )}
                                         </div>
                                         <div style={{ flex: 1 }}>
                                             <label htmlFor="unitPrice">

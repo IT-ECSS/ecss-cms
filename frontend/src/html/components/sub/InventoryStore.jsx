@@ -157,13 +157,7 @@ class InventoryStore extends Component {
             console.log('Inventory products fetched:', response.data);
 
             if (response.data.success) {
-                const allProducts = response.data.inventory_products || [];
-                // Filter out products with 0 or no stock
-                const products = allProducts.filter(p => {
-                    const stock = parseInt(p.stock_quantity) || 0;
-                    return stock > 0;
-                });
-                console.log('Products with stock:', products.length, 'out of', allProducts.length);
+                const products = response.data.inventory_products || [];
                 this.setState({
                     inventoryProducts: products,
                     isLoading: false
@@ -214,7 +208,14 @@ class InventoryStore extends Component {
         const { inventoryRecords } = this.state;
         return inventoryRecords
             .filter(record => record.product === productName && record.location === locationName)
-            .reduce((total, record) => total + (parseFloat(record.totalPrice) || 0), 0);
+            .reduce((total, record) => {
+                const totalPrice = parseFloat(record.totalPrice) || 0;
+                if (totalPrice > 0) return total + totalPrice;
+                // Fallback: calculate from unitPrice * quantity
+                const unitPrice = parseFloat(record.unitPrice) || 0;
+                const quantity = parseInt(record.quantity) || 0;
+                return total + (unitPrice * quantity);
+            }, 0);
     };
 
     render() {
@@ -290,15 +291,15 @@ class InventoryStore extends Component {
                                     )}
                                     <div className="inventory-card-details">
                                         <span className={`inventory-stock ${(parseInt(product.stock_quantity) > 0) ? 'in-stock' : 'out-of-stock'}`}>
-                                            <b>Inventory Stock: </b> {product.stock_quantity}
+                                            <b>Inventory Stock:&nbsp;</b> {product.stock_quantity}
                                         </span>
                                         <span className="inventory-sold">
-                                            <b>Unit Sold: </b> {this.getSoldCount(product.name, product.variation_name)}
+                                            <b>Unit Sold:&nbsp;</b> {this.getSoldCount(product.name, product.variation_name)}
                                         </span>                                    
                                     </div>
                                     <div className="inventory-card-details">                                       
                                         <span className="inventory-amount" style={{flex: 0.45}}>
-                                            <b>Sales Revenue: </b> ${this.getSoldAmount(product.name, product.variation_name).toFixed(2)}
+                                            <b>Sales Revenue:&nbsp;</b> ${this.getSoldAmount(product.name, product.variation_name).toFixed(2)}
                                         </span>
                                     </div>
                                 </div>

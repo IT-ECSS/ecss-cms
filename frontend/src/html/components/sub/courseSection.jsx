@@ -33,7 +33,7 @@ class CoursesSection extends Component {
         {
           headerName: "Course ID",
           field: "courseId",
-          width: 100,
+          width: 150,
         },
         {
           headerName: "Course Name",
@@ -48,22 +48,22 @@ class CoursesSection extends Component {
         {
           headerName: "Course Mode",
           field: "courseMode",
-          width: 150,
+          width: 200,
         },
         {
           headerName: "Current",
           field: "current",
-          width: 100,
+          width: 200,
         },
         {
           headerName: "Projected",
           field: "projected",
-          width: 100,
+          width: 200,
         },
         {
           headerName: "Maximum",
           field: "maximum",
-          width: 150,
+          width: 250,
         },
         {
           headerName: "Status",
@@ -108,7 +108,7 @@ class CoursesSection extends Component {
         {
           headerName: "Course Timing",
           field: "courseTiming",
-          width: 180,
+          width: 200,
         }
       ];
       // Only add "SkillsFuture Credit Eligibility" column if courseType is NSA
@@ -116,7 +116,7 @@ class CoursesSection extends Component {
         columns.push({
           headerName: "SkillsFuture Credit Eligibility",
           field: "eligibility",
-          width: 250,
+          width: 350,
           cellRenderer: (params) => {
             const imageSrc = params.value
               ? "https://upload.wikimedia.org/wikipedia/commons/2/29/Tick-green.png" // ✅ Green Tick
