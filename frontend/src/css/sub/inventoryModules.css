@@ -579,8 +579,8 @@
 }
 
 .inventory-card-title {
-    font-size: 1.75rem;
-    font-weight: 600;
+    font-size: 3.5rem;
+    font-weight: bolder;
     color: #2c3e50;
     margin: 0 0 0.5rem 0;
     line-height: 1.3;
