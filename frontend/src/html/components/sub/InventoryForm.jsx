@@ -19,7 +19,8 @@ class InventoryForm extends Component {
                 orderDate: '',
                 orderTime: '',
                 staffName: props.userName || '',
-                paymentMethod: ''
+                paymentMethod: '',
+                totalAmount: ''
             },
             showProductDropdown: false,
             showLocationDropdown: false
@@ -95,23 +96,55 @@ class InventoryForm extends Component {
 
     // Handle dropdown selection
     handleProductSelect = (product) => {
-        this.setState(prevState => ({
-            formData: {
+        this.setState(prevState => {
+            const newFormData = {
                 ...prevState.formData,
                 product: product
-            },
-            showProductDropdown: false
-        }));
+            };
+            
+            // Auto-calculate totalAmount when product changes
+            const quantity = parseInt(newFormData.quantity) || 0;
+            if (quantity > 0 && newFormData.location) {
+                const matchedProduct = prevState.inventoryProducts.find(p => 
+                    p.name === product && p.variation_name === newFormData.location
+                );
+                if (matchedProduct) {
+                    const price = parseFloat(matchedProduct.price) || 0;
+                    newFormData.totalAmount = (price * quantity).toFixed(2);
+                }
+            }
+            
+            return {
+                formData: newFormData,
+                showProductDropdown: false
+            };
+        });
     };
 
     handleLocationSelect = (location) => {
-        this.setState(prevState => ({
-            formData: {
+        this.setState(prevState => {
+            const newFormData = {
                 ...prevState.formData,
                 location: location
-            },
-            showLocationDropdown: false
-        }));
+            };
+            
+            // Auto-calculate totalAmount when location changes
+            const quantity = parseInt(newFormData.quantity) || 0;
+            if (quantity > 0 && newFormData.product) {
+                const matchedProduct = prevState.inventoryProducts.find(p => 
+                    p.name === newFormData.product && p.variation_name === location
+                );
+                if (matchedProduct) {
+                    const price = parseFloat(matchedProduct.price) || 0;
+                    newFormData.totalAmount = (price * quantity).toFixed(2);
+                }
+            }
+            
+            return {
+                formData: newFormData,
+                showLocationDropdown: false
+            };
+        });
     };
 
     // Handle click outside to close dropdowns
@@ -189,12 +222,26 @@ class InventoryForm extends Component {
     handleInputChange = (e) => {
         const { name, value } = e.target;
         
-        this.setState(prevState => ({
-            formData: {
+        this.setState(prevState => {
+            const newFormData = {
                 ...prevState.formData,
                 [name]: value
+            };
+            
+            // Auto-calculate totalAmount when quantity changes
+            if (name === 'quantity') {
+                const quantity = parseInt(value) || 0;
+                const matchedProduct = prevState.inventoryProducts.find(p => 
+                    p.name === newFormData.product && p.variation_name === newFormData.location
+                );
+                if (matchedProduct) {
+                    const price = parseFloat(matchedProduct.price) || 0;
+                    newFormData.totalAmount = (price * quantity).toFixed(2);
+                }
             }
-        }));
+            
+            return { formData: newFormData };
+        });
     };
 
     // Update backend (port 3001)
@@ -240,6 +287,10 @@ class InventoryForm extends Component {
             this.setState({ error: 'Please enter a valid quantity' });
             return;
         }
+        if (!formData.totalAmount || parseFloat(formData.totalAmount) <= 0) {
+            this.setState({ error: 'Please enter a valid total amount' });
+            return;
+        }
 
         this.setState({ isSubmitting: true, error: null, successMessage: null });
 
@@ -253,7 +304,8 @@ class InventoryForm extends Component {
                 orderTime: formData.orderTime,
                 staffName: formData.staffName,
                 sku: this.getSelectedProductSku(),
-                paymentMethod: formData.paymentMethod
+                paymentMethod: formData.paymentMethod,
+                totalPrice: parseFloat(formData.totalAmount) || 0
             };
 
             // Step 1: Update backend (port 3001)
@@ -295,7 +347,7 @@ class InventoryForm extends Component {
                     orderTime: formData.orderTime,
                     staffName: formData.staffName,
                     unitPrice: this.getSelectedProductPrice(),
-                    totalPrice: this.getTotalPrice()
+                    totalPrice: parseFloat(formData.totalAmount) || 0
                 });
 
                 // Handle PDF download if generated
@@ -321,7 +373,8 @@ class InventoryForm extends Component {
                         product: '',
                         location: '',
                         quantity: "",
-                        paymentMethod: ''
+                        paymentMethod: '',
+                        totalAmount: ''
                     }
                 });
             } else {
@@ -559,17 +612,18 @@ class InventoryForm extends Component {
                                 <div className="form-group">
                                     <div style={{ display: 'flex', gap: '10px'}}>
                                         <div style={{ flex: 1 }}>
-                                            <label htmlFor="totalPrice">
+                                            <label htmlFor="totalAmount">
                                                 <i className="fas fa-dollar-sign"></i>
-                                                Total Price
+                                                Total Amount <span className="required">*</span>
                                             </label>
                                             <input
                                                 type="text"
-                                                id="totalPrice"
-                                                name="totalPrice"
-                                                value={`$${this.getTotalPrice() || '0.00'}`}
-                                                readOnly
-                                                placeholder="Quantity × Unit Price"
+                                                id="totalAmount"
+                                                name="totalAmount"
+                                                value={formData.totalAmount ? `$${formData.totalAmount}` : '$0.00'}
+                                                onChange={this.handleInputChange}
+                                                placeholder="Enter total amount"
+                                                required
                                             />
                                         </div>
                                         <div style={{ flex: 1 }}>
@@ -635,7 +689,8 @@ class InventoryForm extends Component {
                                                 product: '',
                                                 location: '',
                                                 quantity: 1,
-                                                paymentMethod: ''
+                                                paymentMethod: '',
+                                                totalAmount: ''
                                             },
                                             error: null,
                                             successMessage: null

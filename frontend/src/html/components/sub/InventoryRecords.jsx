@@ -4,7 +4,6 @@ import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
 import { io } from 'socket.io-client';
 import '../../../css/sub/inventoryModules.css';
-import '../../../css/ag-grid-custom-theme.css';
 
 // Register AG Grid modules
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -117,62 +116,64 @@ class InventoryRecords extends Component {
             valueGetter: (params) => params.node.rowIndex + 1,  
             width: 100, 
             pinned: 'left',
-            cellStyle: { textAlign: 'center' }
         },
         { 
             headerName: 'Customer Name', 
             field: 'customerName', 
             width: 300, 
             pinned: 'left',
-            cellStyle: { textAlign: 'center' }
         },
         { 
             headerName: 'Product', 
             field: 'product', 
             width: 300, 
-            pinned: 'left',
-            cellStyle: { textAlign: 'center' }
+            //pinned: 'left',
         },
         { 
             headerName: 'Location', 
             field: 'location', 
-            width: 200,
-            cellStyle: { textAlign: 'center' }
+            width: 150,
         },
         { 
             headerName: 'Quantity', 
             field: 'quantity', 
-            width: 180, 
-            cellStyle: { textAlign: 'center' }
+            width: 150, 
         },
         { 
             headerName: 'Order Date', 
             field: 'orderDate', 
-            width: 220,
-            cellStyle: { textAlign: 'center' }
+            width: 150,
         },
         { 
             headerName: 'Order Time', 
             field: 'orderTime', 
-            width: 220,
-            cellStyle: { textAlign: 'center' }
+            width: 150,
         },
         { 
             headerName: 'Staff Name', 
             field: 'staffName', 
-            width: 250,
-            cellStyle: { textAlign: 'center' }
+            width: 150,
         },
         { 
             headerName: 'Payment Method', 
             field: 'paymentMethod', 
-            width: 300,
+            width: 200,
             cellStyle: { textAlign: 'center' }
+        },
+        { 
+            headerName: 'Total Price', 
+            field: 'totalPrice', 
+            width: 150,
+            cellStyle: { textAlign: 'center' },
+            valueFormatter: (params) => {
+                const value = parseFloat(params.value) || 0;
+                return `$${value.toFixed(2)}`;
+            }
         },
         { 
             headerName: 'Receipt Number', 
             field: 'receiptNumber', 
-            width: 300,
+            width: 250,
             pinned: 'right',
             cellStyle: { textAlign: 'center' },
             cellRenderer: (params) => {
@@ -258,7 +259,7 @@ class InventoryRecords extends Component {
                             <p>No inventory orders have been recorded yet.</p>
                         </div>
                     ) : (
-                        <div className="inventory-records-grid-container" style={{ height: '500px', width: '100%' }}>
+                        <div className="inventory-records-grid-container ag-theme-inventory" style={{ height: '500px', width: '100%' }}>
                             <AgGridReact
                                 columnDefs={this.columnDefs}
                                 rowData={records}
@@ -267,11 +268,10 @@ class InventoryRecords extends Component {
                                 paginationPageSizeSelector={[25, 50, 100, 200, records.length]}
                                 domLayout="normal"
                                 onGridReady={this.onGridReady}
-                                suppressColumnVirtualisation={true}
-                                animateRows={true}
                                 rowSelection="single"
                                 enableCellTextSelection={true}
-                                headerHeight={60}
+                                headerHeight={28}
+                                rowHeight={24}
                             />
                         </div>
                     )}

@@ -208,6 +208,14 @@ class InventoryStore extends Component {
             .reduce((total, record) => total + (parseInt(record.quantity) || 0), 0);
     };
 
+    // Calculate sold amount (money) for a specific product and location
+    getSoldAmount = (productName, locationName) => {
+        const { inventoryRecords } = this.state;
+        return inventoryRecords
+            .filter(record => record.product === productName && record.location === locationName)
+            .reduce((total, record) => total + (parseFloat(record.totalPrice) || 0), 0);
+    };
+
     render() {
         const { inventoryProducts, isLoading, error } = this.state;
 
@@ -285,6 +293,11 @@ class InventoryStore extends Component {
                                         </span>
                                         <span className="inventory-sold">
                                             Sold: {this.getSoldCount(product.name, product.variation_name)}
+                                        </span>                                    
+                                    </div>
+                                    <div className="inventory-card-details">                                       
+                                        <span className="inventory-amount" style={{flex: 0.5}}>
+                                            Amount Sold: ${this.getSoldAmount(product.name, product.variation_name).toFixed(2)}
                                         </span>
                                     </div>
                                 </div>
