@@ -78,7 +78,7 @@ class InventoryRecords extends Component {
             const response = await axios.post(`${backendUrl}/inventory`, {
                 purpose: "generateReceipt",
                 customerName: record.customerName,
-                paymentMethod: record.paymentMethod || 'Cash',
+                paymentMethod: record.paymentMethod,
                 receiptNumber: record.receiptNumber,
                 product: record.product,
                 location: record.location,
@@ -86,8 +86,8 @@ class InventoryRecords extends Component {
                 orderDate: record.orderDate,
                 orderTime: record.orderTime,
                 staffName: record.staffName,
-                unitPrice: record.unitPrice || 0,
-                totalPrice: record.totalPrice || 0
+                unitPrice: record.unitPrice,
+                totalPrice: record.totalPrice
             });
 
             // Handle PDF download if generated
