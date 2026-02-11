@@ -288,16 +288,16 @@ class InventoryStore extends Component {
                                         </div>
                                     )}
                                     <div className="inventory-card-details">
-                                        <span className={`inventory-stock ${(parseInt(product.stock_quantity) || 0) > 0 ? 'in-stock' : 'out-of-stock'}`}>
-                                            Stock: {product.stock_quantity || 0}
+                                        <span className={`inventory-stock ${(parseInt(product.stock_quantity) > 0) ? 'in-stock' : 'out-of-stock'}`}>
+                                            <b>Stock:</b> {product.stock_quantity}
                                         </span>
                                         <span className="inventory-sold">
-                                            Sold: {this.getSoldCount(product.name, product.variation_name)}
+                                            <b>Sold:</b> {this.getSoldCount(product.name, product.variation_name)}
                                         </span>                                    
                                     </div>
                                     <div className="inventory-card-details">                                       
-                                        <span className="inventory-amount" style={{flex: 0.5}}>
-                                            Amount Sold: ${this.getSoldAmount(product.name, product.variation_name).toFixed(2)}
+                                        <span className="inventory-amount" style={{flex: 0.45}}>
+                                            <b>Amount Sold:</b> ${this.getSoldAmount(product.name, product.variation_name).toFixed(2)}
                                         </span>
                                     </div>
                                 </div>
