@@ -7,7 +7,7 @@ import * as XLSX from 'xlsx';
 import "../../../css/sub/auditLogs.css";
 import "../../../css/homePage.css";
 
-// Register AG Grid modulesok
+// Register AG Grid modules
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 const baseURL = window.location.hostname === "localhost" 
