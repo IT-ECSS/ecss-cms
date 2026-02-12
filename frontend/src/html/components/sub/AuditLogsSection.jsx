@@ -92,7 +92,7 @@ class AuditLogsSection extends Component {
     });
   };
 
-  renderCustomDropdown = (label, filterType, searchField, options, defaultValue, dropdownKey) => {
+  renderCustomDropdown = (label, filterType, searchField, options, defaultValue, dropdownKey, showArrow = true) => {
     const { openDropdown } = this.state;
     const filterValue = this.state[filterType];
     const searchValue = this.state[searchField];
@@ -108,21 +108,23 @@ class AuditLogsSection extends Component {
         <div className="dropdown-container">
           <input
             type="text"
-            className="dropdown-input"
+            className={`dropdown-input${!showArrow ? ' no-arrow' : ''}`}
             value={isOpen ? searchValue : (filterValue === defaultValue ? '' : filterValue)}
             placeholder={defaultValue}
             onChange={(e) => this.handleSearchChange(searchField, e.target.value)}
             onFocus={() => this.setState({ openDropdown: dropdownKey })}
           />
-          <span className="dropdown-arrow" onClick={() => this.toggleDropdown(dropdownKey)}>▼</span>
+          {showArrow && <span className="dropdown-arrow" onClick={() => this.toggleDropdown(dropdownKey)}>▼</span>}
           {isOpen && (
             <ul className="dropdown-list">
-              <li
-                className={filterValue === defaultValue ? 'selected' : ''}
-                onClick={() => this.selectOption(filterType, searchField, '', defaultValue)}
-              >
-                {defaultValue}
-              </li>
+              {defaultValue.toLowerCase().includes(searchValue.toLowerCase()) && (
+                <li
+                  className={filterValue === defaultValue ? 'selected' : ''}
+                  onClick={() => this.selectOption(filterType, searchField, '', defaultValue)}
+                >
+                  {defaultValue}
+                </li>
+              )}
               {filteredOptions.map(option => (
                 <li
                   key={option}
@@ -273,43 +275,64 @@ class AuditLogsSection extends Component {
     let filteredData = [...auditLogsData];
 
     // Filter by date range (DD/MM/YYYY format)
-    if (filterStartDate) {
-      const parts = filterStartDate.split('/');
-      if (parts.length === 3) {
-        const startDateISO = `${parts[2]}-${parts[1]}-${parts[0]}`;
-        filteredData = filteredData.filter(record => {
-          if (!record.timestamp) return false;
-          const recordDate = new Date(record.timestamp).toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' });
-          return recordDate >= startDateISO;
-        });
-      }
-    }
-    if (filterEndDate) {
-      const parts = filterEndDate.split('/');
-      if (parts.length === 3) {
-        const endDateISO = `${parts[2]}-${parts[1]}-${parts[0]}`;
-        filteredData = filteredData.filter(record => {
-          if (!record.timestamp) return false;
-          const recordDate = new Date(record.timestamp).toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' });
-          return recordDate <= endDateISO;
-        });
+    if (filterStartDate || filterEndDate) {
+      const parseDate = (val) => {
+        const parts = val.split('/');
+        if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        return null;
+      };
+
+      if (filterStartDate && filterEndDate) {
+        // Range: show records between start and end date
+        const startISO = parseDate(filterStartDate);
+        const endISO = parseDate(filterEndDate);
+        if (startISO && endISO) {
+          filteredData = filteredData.filter(record => {
+            if (!record.timestamp) return false;
+            const recordDate = new Date(record.timestamp).toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' });
+            return recordDate >= startISO && recordDate <= endISO;
+          });
+        }
+      } else {
+        // Single value: show records matching that date prefix (e.g. "11/02" matches "11/02/2026")
+        const singleDate = filterStartDate || filterEndDate;
+        const fullParsed = parseDate(singleDate);
+        if (fullParsed) {
+          // Full DD/MM/YYYY — exact match
+          filteredData = filteredData.filter(record => {
+            if (!record.timestamp) return false;
+            const recordDate = new Date(record.timestamp).toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' });
+            return recordDate === fullParsed;
+          });
+        } else {
+          // Partial input — prefix match on displayed date (DD/MM/YYYY)
+          filteredData = filteredData.filter(record => {
+            if (!record.timestamp) return false;
+            const recordDate = new Date(record.timestamp).toLocaleDateString('en-SG', { timeZone: 'Asia/Singapore', year: 'numeric', month: '2-digit', day: '2-digit' });
+            return recordDate.startsWith(singleDate);
+          });
+        }
       }
     }
 
     // Filter by time range (HH:MM:SS format)
-    if (filterStartTime) {
-      filteredData = filteredData.filter(record => {
-        if (!record.timestamp) return false;
-        const recordTime = new Date(record.timestamp).toLocaleTimeString('en-GB', { timeZone: 'Asia/Singapore', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-        return recordTime >= filterStartTime;
-      });
-    }
-    if (filterEndTime) {
-      filteredData = filteredData.filter(record => {
-        if (!record.timestamp) return false;
-        const recordTime = new Date(record.timestamp).toLocaleTimeString('en-GB', { timeZone: 'Asia/Singapore', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-        return recordTime <= filterEndTime;
-      });
+    if (filterStartTime || filterEndTime) {
+      if (filterStartTime && filterEndTime) {
+        // Range: show records between start and end time
+        filteredData = filteredData.filter(record => {
+          if (!record.timestamp) return false;
+          const recordTime = new Date(record.timestamp).toLocaleTimeString('en-GB', { timeZone: 'Asia/Singapore', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+          return recordTime >= filterStartTime && recordTime <= filterEndTime;
+        });
+      } else {
+        // Single value: show records matching that time prefix (e.g. "06:30" matches "06:30:xx")
+        const singleTime = filterStartTime || filterEndTime;
+        filteredData = filteredData.filter(record => {
+          if (!record.timestamp) return false;
+          const recordTime = new Date(record.timestamp).toLocaleTimeString('en-GB', { timeZone: 'Asia/Singapore', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+          return recordTime.startsWith(singleTime);
+        });
+      }
     }
 
     // Filter by user
@@ -498,9 +521,9 @@ class AuditLogsSection extends Component {
           
           {/* Filter Row */}
           <div className="audit-logs-filters">
-            {this.renderCustomDropdown('User', 'filterUser', 'searchUser', users, 'All Users', 'user')}
-            {this.renderCustomDropdown('Module', 'filterModule', 'searchModule', modules, 'All Modules', 'module')}
-            {this.renderCustomDropdown('Section', 'filterSection', 'searchSection', sections, 'All Sections', 'section')}
+            {this.renderCustomDropdown('User', 'filterUser', 'searchUser', users, 'All Users', 'user', false)}
+            {this.renderCustomDropdown('Module', 'filterModule', 'searchModule', modules, 'All Modules', 'module', false)}
+            {this.renderCustomDropdown('Section', 'filterSection', 'searchSection', sections, 'All Sections', 'section', false)}
             {this.renderCustomDropdown('Action Type', 'filterActionType', 'searchActionType', actionTypes, 'All Action Types', 'actionType')}
 
             <div className="date-time-filter">

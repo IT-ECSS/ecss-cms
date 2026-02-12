@@ -112,6 +112,10 @@
     cursor: text;
 }
 
+.searchable-dropdown .dropdown-input.no-arrow {
+    padding-right: 12px;
+}
+
 .searchable-dropdown .dropdown-input::placeholder {
     color: #6c757d;
     opacity: 1;
