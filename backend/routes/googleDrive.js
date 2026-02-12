@@ -43,6 +43,61 @@ router.post('/', async (req, res) => {
     }
 });
 
+// POST endpoint to download a single file
+router.post('/downloadFile', async (req, res) => {
+    try {
+        const { fileId } = req.body;
+        
+        if (!fileId) {
+            return res.status(400).json({ success: false, error: 'fileId is required' });
+        }
+
+        const result = await googleDriveController.downloadFile(fileId);
+        
+        if (!result.success) {
+            return res.status(500).json(result);
+        }
+
+        res.set({
+            'Content-Type': result.mimeType || 'application/octet-stream',
+            'Content-Disposition': `attachment; filename="${encodeURIComponent(result.fileName)}"`,
+            'Content-Length': result.fileBuffer.length
+        });
+        res.send(result.fileBuffer);
+    } catch (error) {
+        console.error('Error in POST /downloadFile:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// POST endpoint to download multiple files as ZIP
+router.post('/downloadZip', async (req, res) => {
+    try {
+        const { fileIds } = req.body;
+        
+        if (!fileIds || !Array.isArray(fileIds) || fileIds.length === 0) {
+            return res.status(400).json({ success: false, error: 'fileIds array is required' });
+        }
+
+        console.log(`Bulk download requested for ${fileIds.length} files`);
+        const result = await googleDriveController.downloadMultipleFilesAsZip(fileIds);
+        
+        if (!result.success) {
+            return res.status(500).json(result);
+        }
+
+        res.set({
+            'Content-Type': 'application/zip',
+            'Content-Disposition': `attachment; filename="invoices-receipts-${Date.now()}.zip"`,
+            'Content-Length': result.fileBuffer.length
+        });
+        res.send(result.fileBuffer);
+    } catch (error) {
+        console.error('Error in POST /downloadZip:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // POST endpoint to read spreadsheet data
 router.post('/readSpreadsheet', async (req, res) => {
     try {

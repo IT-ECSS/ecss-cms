@@ -287,6 +287,15 @@ class WelcomeSection extends Component {
                 parentKey: 'Inventory'
             },
             { 
+                key: 'InventoryInvoicesReceipts', 
+                title: 'Inventory Invoices/Receipts', 
+                icon: 'fas fa-file-invoice', 
+                description: 'View inventory invoices and receipts', 
+                action: () => this.props.onNavigate('inventory-invoices'),
+                accessKey: 'InventoryInvoicesReceipts',
+                parentKey: 'Inventory'
+            },
+            { 
                 key: 'AuditLogs', 
                 title: 'Audit Logs', 
                 icon: 'fas fa-clipboard-list', 
@@ -680,6 +689,10 @@ class WelcomeSection extends Component {
             case "InventoryRecords":
             case "Inventory Records":
                 navigationKey = "inventory-records";
+                break;
+            case "InventoryInvoicesReceipts":
+            case "Inventory Invoices/Receipts":
+                navigationKey = "inventory-invoices";
                 break;
             case "AuditLogs":
             case "Audit Logs":

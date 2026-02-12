@@ -839,3 +839,681 @@
     border-bottom: 1px solid #ddd !important;
     height: 36px !important;
 }
+
+/* =============================================
+   Google Drive-Style File Browser
+   ============================================= */
+
+.gdrive-container {
+    width: 100%;
+    height:75vh;
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid #dadce0;
+    overflow: auto;
+    font-family: 'Google Sans', 'Roboto', -apple-system, sans-serif;
+}
+
+/* ---- Toolbar ---- */
+.gdrive-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    gap: 12px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.gdrive-toolbar-left {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+}
+
+.gdrive-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+/* Search */
+.gdrive-search-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+}
+
+.gdrive-search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #5f6368;
+    font-size: 16px;
+    pointer-events: none;
+}
+
+.gdrive-search-input {
+    width: 100%;
+    height: 44px;
+    padding: 0 40px 0 44px;
+    border: none;
+    border-radius: 24px;
+    background: #f1f3f4;
+    font-size: 15px;
+    color: #202124;
+    outline: none;
+    transition: background 0.2s, box-shadow 0.2s;
+}
+
+.gdrive-search-input:focus {
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(60, 64, 67, 0.3), 0 4px 8px rgba(60, 64, 67, 0.15);
+}
+
+.gdrive-search-input::placeholder {
+    color: #5f6368;
+}
+
+.gdrive-search-clear {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #5f6368;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+}
+
+.gdrive-search-clear:hover {
+    background: #e8eaed;
+}
+
+/* File count */
+.gdrive-file-count {
+    font-size: 13px;
+    color: #5f6368;
+    white-space: nowrap;
+    padding: 0 4px;
+}
+
+.gdrive-separator {
+    width: 1px;
+    height: 20px;
+    background: #dadce0;
+}
+
+/* Sort */
+.gdrive-sort-select {
+    height: 32px;
+    padding: 0 28px 0 10px;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #3c4043;
+    background: transparent;
+    cursor: pointer;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235f6368' d='M3 4.5L6 8l3-3.5H3z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+}
+
+.gdrive-sort-select:hover {
+    background-color: #f1f3f4;
+}
+
+/* View Toggle */
+.gdrive-view-toggle {
+    display: flex;
+    gap: 0;
+}
+
+.gdrive-view-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    color: #5f6368;
+    cursor: pointer;
+    font-size: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+}
+
+.gdrive-view-btn:hover {
+    background: #f1f3f4;
+}
+
+.gdrive-view-btn.active {
+    color: #1a73e8;
+    background: #e8f0fe;
+}
+
+/* ---- Body ---- */
+.gdrive-body {
+    min-height: 300px;
+}
+
+/* ---- List View ---- */
+.gdrive-list {
+    width: 100%;
+}
+
+.gdrive-list-header {
+    display: flex;
+    align-items: center;
+    height: 40px;
+    padding: 0 16px;
+    border-bottom: 1px solid #e0e0e0;
+    background: #f8f9fa;
+    font-size: 12px;
+    font-weight: 500;
+    color: #5f6368;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    user-select: none;
+}
+
+.gdrive-list-body {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.gdrive-list-row {
+    display: flex;
+    align-items: center;
+    height: 48px;
+    padding: 0 16px;
+    border-bottom: 1px solid #f1f3f4;
+    cursor: pointer;
+    transition: background 0.1s;
+    font-size: 14px;
+    color: #202124;
+}
+
+.gdrive-list-row:hover {
+    background: #f1f3f4;
+}
+
+.gdrive-list-row.selected {
+    background: #e8f0fe;
+}
+
+.gdrive-list-row.selected:hover {
+    background: #d3e3fd;
+}
+
+.gdrive-list-col {
+    display: flex;
+    align-items: center;
+}
+
+.gdrive-col-name {
+    flex: 1;
+    min-width: 0;
+    gap: 14px;
+}
+
+.gdrive-col-name i {
+    font-size: 20px;
+    width: 24px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.gdrive-file-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+.gdrive-col-date {
+    width: 200px;
+    flex-shrink: 0;
+    font-size: 13px;
+    color: #5f6368;
+}
+
+.gdrive-col-size {
+    width: 100px;
+    flex-shrink: 0;
+    font-size: 13px;
+    color: #5f6368;
+}
+
+.gdrive-col-actions {
+    width: 80px;
+    flex-shrink: 0;
+    justify-content: center;
+    gap: 4px;
+}
+
+.gdrive-action-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: #5f6368;
+    cursor: pointer;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: background 0.15s, color 0.15s;
+    opacity: 0;
+}
+
+.gdrive-list-row:hover .gdrive-action-btn {
+    opacity: 1;
+}
+
+.gdrive-action-btn:hover {
+    background: #e8eaed;
+    color: #202124;
+}
+
+.gdrive-action-btn:disabled {
+    cursor: default;
+    opacity: 0.5 !important;
+}
+
+/* Download All Button */
+.gdrive-download-all-btn {
+    height: 36px;
+    padding: 0 16px;
+    border: 1px solid #dadce0;
+    border-radius: 18px;
+    background: #fff;
+    color: #3c4043;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.15s, box-shadow 0.15s;
+    white-space: nowrap;
+}
+
+.gdrive-download-all-btn:hover:not(:disabled) {
+    background: #f1f3f4;
+    box-shadow: 0 1px 3px rgba(60, 64, 67, 0.15);
+}
+
+.gdrive-download-all-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+/* ---- Grid View ---- */
+.gdrive-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    padding: 20px;
+}
+
+.gdrive-card {
+    border: 1px solid #dadce0;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    background: #fff;
+}
+
+.gdrive-card:hover {
+    border-color: #bdc1c6;
+    box-shadow: 0 1px 3px rgba(60, 64, 67, 0.15), 0 1px 2px rgba(60, 64, 67, 0.1);
+}
+
+.gdrive-card.selected {
+    border-color: #1a73e8;
+    background: #e8f0fe;
+}
+
+.gdrive-card-thumbnail {
+    height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.gdrive-card-thumbnail i {
+    font-size: 52px;
+}
+
+.gdrive-card-footer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    min-width: 0;
+}
+
+.gdrive-card-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: #202124;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+    flex: 1;
+}
+
+.gdrive-card-download {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: #5f6368;
+    cursor: pointer;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: background 0.15s, opacity 0.15s;
+}
+
+.gdrive-card:hover .gdrive-card-download {
+    opacity: 1;
+}
+
+.gdrive-card-download:hover {
+    background: #e8eaed;
+    color: #202124;
+}
+
+.gdrive-card-download:disabled {
+    cursor: default;
+    opacity: 0.5 !important;
+}
+
+/* No Results */
+.gdrive-no-results {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px;
+    color: #5f6368;
+}
+
+.gdrive-no-results i {
+    font-size: 56px;
+    margin-bottom: 20px;
+    color: #dadce0;
+}
+
+.gdrive-no-results p {
+    font-size: 15px;
+    margin: 0;
+}
+
+/* ---- Checkbox ---- */
+.gdrive-col-checkbox {
+    width: 40px;
+    flex-shrink: 0;
+    justify-content: center;
+}
+
+.gdrive-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #1a73e8;
+}
+
+/* ---- Selection Bar ---- */
+.gdrive-selection-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    background: #e8f0fe;
+    border-bottom: 1px solid #c6dafc;
+    animation: gdrive-slide-down 0.15s ease;
+}
+
+@keyframes gdrive-slide-down {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.gdrive-selection-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.gdrive-selection-clear {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: #3c4043;
+    cursor: pointer;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+.gdrive-selection-clear:hover {
+    background: #d3e3fd;
+}
+
+.gdrive-selection-count {
+    font-size: 14px;
+    font-weight: 500;
+    color: #1a73e8;
+}
+
+.gdrive-selection-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.gdrive-selection-action {
+    height: 36px;
+    padding: 0 20px;
+    border: none;
+    border-radius: 18px;
+    background: #1a73e8;
+    color: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.15s, box-shadow 0.15s;
+}
+
+.gdrive-selection-action:hover:not(:disabled) {
+    background: #1557b0;
+    box-shadow: 0 1px 3px rgba(26, 115, 232, 0.3);
+}
+
+.gdrive-selection-action:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+/* ---- Card Checkbox ---- */
+.gdrive-card-checkbox-area {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 2;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.gdrive-card:hover .gdrive-card-checkbox-area,
+.gdrive-card.selected .gdrive-card-checkbox-area {
+    opacity: 1;
+}
+
+.gdrive-card-cb {
+    width: 20px;
+    height: 20px;
+}
+
+.gdrive-card {
+    position: relative;
+}
+
+/* ---- Card Action Menu ---- */
+.gdrive-card-menu-wrapper {
+    position: relative;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.gdrive-card-menu-btn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: #5f6368;
+    cursor: pointer;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    opacity: 0;
+    transition: background 0.15s, opacity 0.15s;
+}
+
+.gdrive-card:hover .gdrive-card-menu-btn {
+    opacity: 1;
+}
+
+.gdrive-card-menu-btn:hover {
+    background: #e8eaed;
+}
+
+.gdrive-card-dropdown {
+    position: absolute;
+    bottom: 100%;
+    right: 0;
+    margin-bottom: 4px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    min-width: 180px;
+    z-index: 100;
+    overflow: hidden;
+    animation: gdrive-menu-pop 0.12s ease;
+}
+
+@keyframes gdrive-menu-pop {
+    from { opacity: 0; transform: scale(0.95) translateY(4px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.gdrive-card-dropdown button {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 10px 16px;
+    border: none;
+    background: transparent;
+    color: #3c4043;
+    font-size: 14px;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.1s;
+}
+
+.gdrive-card-dropdown button:hover {
+    background: #f1f3f4;
+}
+
+.gdrive-card-dropdown button i {
+    width: 18px;
+    text-align: center;
+    color: #5f6368;
+    font-size: 14px;
+}
+
+.gdrive-card-dropdown button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+/* ---- Drag Select Box ---- */
+.gdrive-drag-select-box {
+    position: absolute;
+    border: 2px solid #1a73e8;
+    background: rgba(26, 115, 232, 0.08);
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .gdrive-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 8px 12px;
+    }
+
+    .gdrive-toolbar-right {
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+
+    .gdrive-col-date,
+    .gdrive-col-size {
+        display: none;
+    }
+
+    .gdrive-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 12px;
+        padding: 12px;
+    }
+
+    .gdrive-card-thumbnail {
+        height: 110px;
+    }
+
+    .gdrive-card-thumbnail i {
+        font-size: 40px;
+    }
+
+    .gdrive-selection-bar {
+        flex-direction: column;
+        gap: 8px;
+        align-items: stretch;
+    }
+
+    .gdrive-selection-bar-right {
+        justify-content: flex-end;
+    }
+}

@@ -952,6 +952,60 @@ import React, { Component } from 'react';
       }
     }
 
+    toggleInventoryInvoicesComponent = async() => {
+      console.log("toggleInventoryInvoicesComponent called - showing inventory invoices");
+      try {
+        // Reset search and filters
+        this.setState({ resetSearch: true, }, () => {
+          this.setState({ resetSearch: false });
+        });
+
+        this.setState({
+          // Explicitly set ALL other visibility flags to false
+          courseType: null,
+          accountType: null,
+          createAccount: false,
+          dashboard: false,
+          isRegistrationPaymentVisible: false,
+          isReceiptVisible: false,
+          reportVisibility: false,
+          attendanceVisibility: false,
+          isMembershipVisible: false,
+          isFitnessVisible: false,
+          isFundraisingTableVisible: false,
+          isFundraisingInventoryVisible: false,
+          isCourseFlyersVisible: false,
+          isCourseLinkVisible: false,
+          isInventoryFormVisible: false,
+          isAuditLogsVisible: false,
+          
+          // Set inventory modules mode with invoices tab
+          isInventoryModulesVisible: true,
+          inventoryTab: 'invoices',
+          
+          // Reset other states
+          sidebarVisible: false,
+          section: "inventory-invoices",
+          attendanceType: "",
+          
+          // Reset search state
+          searchQuery: ''
+        }, () => {
+          // Close the loading popup after state is set
+          this.setState({ isPopupOpen: false });
+        });
+      } 
+      catch (error) {
+        console.log("Error in toggleInventoryInvoicesComponent:", error);
+        // Show error message
+        this.setState({
+          isPopupOpen: true,
+          popupMessage: "Error loading inventory invoices",
+          popupType: "error-message"
+        });
+      }
+    }
+
     toggleAuditLogsComponent = async() => {
       console.log("toggleAuditLogsComponent called - showing audit logs");
       try {
@@ -2171,6 +2225,9 @@ import React, { Component } from 'react';
         case 'inventory-records':
           this.toggleInventoryRecordsComponent();
           break;
+        case 'inventory-invoices':
+          this.toggleInventoryInvoicesComponent();
+          break;
         case 'audit-logs':
           this.toggleAuditLogsComponent();
           break;
@@ -2270,6 +2327,7 @@ import React, { Component } from 'react';
                   toggleInventoryModulesComponent = {this.toggleInventoryModulesComponent}
                   toggleInventoryFormComponent = {this.toggleInventoryFormComponent}
                   toggleInventoryRecordsComponent = {this.toggleInventoryRecordsComponent}
+                  toggleInventoryInvoicesComponent = {this.toggleInventoryInvoicesComponent}
                   toggleCourseflyersComponent = {this.toggleCourseFlyersComponent}
                   toggleCourseLinkComponent = {this.toggleCourseLinkComponent}
                   toggleAuditLogsComponent = {this.toggleAuditLogsComponent}

@@ -3,6 +3,7 @@ import '../../../css/sub/inventoryModules.css';
 import InventoryStore from './InventoryStore';
 import InventoryForm from './InventoryForm';
 import InventoryRecords from './InventoryRecords';
+import InventoryInvoices from './InventoryInvoices';
 
 class InventoryModules extends Component {
     render() {
@@ -29,6 +30,14 @@ class InventoryModules extends Component {
                 )}
                 {activeTab === 'records' && (
                     <InventoryRecords 
+                        userName={this.props.userName}
+                        role={this.props.role}
+                        siteIC={this.props.siteIC}
+                        language={this.props.language}
+                    />
+                )}
+                {activeTab === 'invoices' && (
+                    <InventoryInvoices 
                         userName={this.props.userName}
                         role={this.props.role}
                         siteIC={this.props.siteIC}

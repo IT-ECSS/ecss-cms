@@ -212,6 +212,15 @@ class SideBarContent extends Component {
                 console.error("toggleInventoryRecordsComponent function not found in props");
             }
         }
+        else if(subKey === "InventoryInvoicesReceipts" || subKey === "InvoiceInvociesReceipts" || subKey === "Inventory Invoices/Receipts") {
+            console.log("Inventory Invoices/Receipts clicked in sidebar");
+            if (this.props.toggleInventoryInvoicesComponent) {
+                console.log("Calling toggleInventoryInvoicesComponent...");
+                this.props.toggleInventoryInvoicesComponent();
+            } else {
+                console.error("toggleInventoryInvoicesComponent function not found in props");
+            }
+        }
         else if(subKey === "AuditLogs" || subKey === "Audit Logs") {
             console.log("Audit Logs clicked in sidebar");
             console.log("toggleAuditLogsComponent function exists:", !!this.props.toggleAuditLogsComponent);
@@ -297,6 +306,8 @@ class SideBarContent extends Component {
                                                         'InventoryStore': 'Inventory Store',
                                                         'InventoryForm': 'Inventory Form',
                                                         'InventoryRecords': 'Inventory Records',
+                                                        'InventoryInvoicesReceipts': 'Inventory Invoices/Receipts',
+                                                        'InvoiceInvociesReceipts': 'Inventory Invoices/Receipts',
                                                         'AuditLogs': 'Audit Logs'
                                                     };
                                                     const displayName = displayNameMap[subKey] || subKey;
