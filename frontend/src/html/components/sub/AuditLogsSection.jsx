@@ -521,56 +521,60 @@ class AuditLogsSection extends Component {
           
           {/* Filter Row */}
           <div className="audit-logs-filters">
-            {this.renderCustomDropdown('User', 'filterUser', 'searchUser', users, 'All Users', 'user', false)}
-            {this.renderCustomDropdown('Module', 'filterModule', 'searchModule', modules, 'All Modules', 'module', false)}
-            {this.renderCustomDropdown('Section', 'filterSection', 'searchSection', sections, 'All Sections', 'section', false)}
-            {this.renderCustomDropdown('Action Type', 'filterActionType', 'searchActionType', actionTypes, 'All Action Types', 'actionType')}
-
-            <div className="date-time-filter">
-              <label>Date Range:</label>
-              <div className="range-inputs">
-                <input
-                  type="text"
-                  className="filter-date-input"
-                  placeholder="DD/MM/YYYY"
-                  value={this.state.filterStartDate}
-                  onChange={(e) => this.setState({ filterStartDate: e.target.value }, () => this.filterAuditLogsData())}
-                />
-                <span className="range-separator">to</span>
-                <input
-                  type="text"
-                  className="filter-date-input"
-                  placeholder="DD/MM/YYYY"
-                  value={this.state.filterEndDate}
-                  onChange={(e) => this.setState({ filterEndDate: e.target.value }, () => this.filterAuditLogsData())}
-                />
-              </div>
+            <div className="filter-row">
+              {this.renderCustomDropdown('User', 'filterUser', 'searchUser', users, 'All Users', 'user', false)}
+              {this.renderCustomDropdown('Module', 'filterModule', 'searchModule', modules, 'All Modules', 'module', false)}
+              {this.renderCustomDropdown('Section', 'filterSection', 'searchSection', sections, 'All Sections', 'section', false)}
+              {this.renderCustomDropdown('Action Type', 'filterActionType', 'searchActionType', actionTypes, 'All Action Types', 'actionType', false)}
             </div>
 
-            <div className="date-time-filter">
-              <label>Time Range:</label>
-              <div className="range-inputs">
-                <input
-                  type="text"
-                  className="filter-time-input"
-                  placeholder="HH:MM:SS"
-                  value={this.state.filterStartTime}
-                  onChange={(e) => this.setState({ filterStartTime: e.target.value }, () => this.filterAuditLogsData())}
-                />
-                <span className="range-separator">to</span>
-                <input
-                  type="text"
-                  className="filter-time-input"
-                  placeholder="HH:MM:SS"
-                  value={this.state.filterEndTime}
-                  onChange={(e) => this.setState({ filterEndTime: e.target.value }, () => this.filterAuditLogsData())}
-                />
+            <div className="filter-row">
+              <div className="date-time-filter">
+                <label>Date Range:</label>
+                <div className="range-inputs">
+                  <input
+                    type="text"
+                    className="filter-date-input"
+                    placeholder="DD/MM/YYYY"
+                    value={this.state.filterStartDate}
+                    onChange={(e) => this.setState({ filterStartDate: e.target.value }, () => this.filterAuditLogsData())}
+                  />
+                  <span className="range-separator">to</span>
+                  <input
+                    type="text"
+                    className="filter-date-input"
+                    placeholder="DD/MM/YYYY"
+                    value={this.state.filterEndDate}
+                    onChange={(e) => this.setState({ filterEndDate: e.target.value }, () => this.filterAuditLogsData())}
+                  />
+                </div>
               </div>
-            </div>
 
-            <button className="archive-btn" onClick={this.exportToExcel}>
-              Archive Audit Logs
-            </button>
+              <div className="date-time-filter">
+                <label>Time Range:</label>
+                <div className="range-inputs">
+                  <input
+                    type="text"
+                    className="filter-time-input"
+                    placeholder="HH:MM:SS"
+                    value={this.state.filterStartTime}
+                    onChange={(e) => this.setState({ filterStartTime: e.target.value }, () => this.filterAuditLogsData())}
+                  />
+                  <span className="range-separator">to</span>
+                  <input
+                    type="text"
+                    className="filter-time-input"
+                    placeholder="HH:MM:SS"
+                    value={this.state.filterEndTime}
+                    onChange={(e) => this.setState({ filterEndTime: e.target.value }, () => this.filterAuditLogsData())}
+                  />
+                </div>
+              </div>
+
+              <button className="archive-btn" onClick={this.exportToExcel}>
+                Archive Audit Logs
+              </button>
+            </div>
           </div>
 
           <div className="grid-container1">

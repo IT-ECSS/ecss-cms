@@ -26,14 +26,20 @@
 /* Filter Section */
 .audit-logs-filters {
     display: flex;
-    gap: 20px;
+    flex-direction: column;
+    gap: 15px;
     margin-bottom: 20px;
-    flex-wrap: wrap;
-    align-items: center;
     padding: 15px;
     background: #f8f9fa;
     border-radius: 8px;
     border: 1px solid #e9ecef;
+}
+
+.audit-logs-filters .filter-row {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    flex-wrap: wrap;
 }
 
 /* Date/Time Range Filter Styles */
