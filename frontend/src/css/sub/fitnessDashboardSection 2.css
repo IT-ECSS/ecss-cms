@@ -1,0 +1,478 @@
+/* FFT Dashboard Section Styles */
+/* Brand new unique class names for FitnessDashboardSection component */
+
+.fft-dashboard-section-wrapper {
+  padding: 24px;
+  background: #f8fafc;
+  min-height: 400px;
+}
+
+/* Loading State */
+.fft-dashboard-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px;
+  text-align: center;
+}
+
+.fft-dashboard-loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #e2e8f0;
+  border-top-color: #4CAF50;
+  border-radius: 50%;
+  animation: fft-dashboard-spin 1s linear infinite;
+}
+
+@keyframes fft-dashboard-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.fft-dashboard-loading-text {
+  margin-top: 16px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+/* Empty State */
+.fft-dashboard-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px;
+  text-align: center;
+}
+
+.fft-dashboard-empty-icon {
+  font-size: 48px;
+  color: #cbd5e1;
+  margin-bottom: 16px;
+}
+
+.fft-dashboard-empty-text {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.fft-dashboard-empty-hint {
+  color: #94a3b8;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+/* View Mode Indicator */
+.fft-dashboard-view-mode {
+  margin-bottom: 24px;
+}
+
+.fft-dashboard-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.fft-dashboard-mode-single {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.fft-dashboard-mode-range {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+/* Section Titles */
+.fft-dashboard-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.fft-dashboard-section-title i {
+  color: #4CAF50;
+  font-size: 16px;
+}
+
+/* Summary Section */
+.fft-dashboard-summary-section {
+  margin-bottom: 32px;
+}
+
+.fft-dashboard-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.fft-dashboard-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.fft-dashboard-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.fft-dashboard-stat-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  font-size: 20px;
+}
+
+.fft-dashboard-stat-card-total .fft-dashboard-stat-icon {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.fft-dashboard-stat-card-male .fft-dashboard-stat-icon {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.fft-dashboard-stat-card-female .fft-dashboard-stat-icon {
+  background: #fce4ec;
+  color: #c2185b;
+}
+
+.fft-dashboard-stat-card-improved .fft-dashboard-stat-icon {
+  background: #e8f5e9;
+  color: #388e3c;
+}
+
+.fft-dashboard-stat-card-declined .fft-dashboard-stat-icon {
+  background: #ffebee;
+  color: #d32f2f;
+}
+
+.fft-dashboard-stat-card-nochange .fft-dashboard-stat-icon {
+  background: #f5f5f5;
+  color: #757575;
+}
+
+.fft-dashboard-stat-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fft-dashboard-stat-label {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.fft-dashboard-stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.fft-dashboard-stat-card-improved .fft-dashboard-stat-value {
+  color: #388e3c;
+}
+
+.fft-dashboard-stat-card-declined .fft-dashboard-stat-value {
+  color: #d32f2f;
+}
+
+.fft-dashboard-stat-card-nochange .fft-dashboard-stat-value {
+  color: #757575;
+}
+
+/* Centres Section */
+.fft-dashboard-centres-section {
+  margin-bottom: 32px;
+}
+
+.fft-dashboard-centres-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.fft-dashboard-centre-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.fft-dashboard-centre-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.fft-dashboard-centre-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.fft-dashboard-centre-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.fft-dashboard-centre-name {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.fft-dashboard-centre-total {
+  margin-bottom: 16px;
+}
+
+.fft-dashboard-centre-count {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.fft-dashboard-centre-label {
+  font-size: 14px;
+  color: #64748b;
+  margin-left: 8px;
+}
+
+.fft-dashboard-centre-metrics {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 16px;
+}
+
+.fft-dashboard-centre-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fft-dashboard-centre-metric-label {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.fft-dashboard-centre-metric-value {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.fft-dashboard-centre-metric-improved .fft-dashboard-centre-metric-value {
+  color: #388e3c;
+}
+
+.fft-dashboard-centre-metric-declined .fft-dashboard-centre-metric-value {
+  color: #d32f2f;
+}
+
+.fft-dashboard-centre-metric-nochange .fft-dashboard-centre-metric-value {
+  color: #757575;
+}
+
+.fft-dashboard-centre-progress {
+  margin-top: 8px;
+}
+
+.fft-dashboard-centre-progress-bar {
+  display: flex;
+  height: 8px;
+  background: #f1f5f9;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.fft-dashboard-centre-progress-segment {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.fft-dashboard-centre-progress-improved {
+  background: #4CAF50;
+}
+
+.fft-dashboard-centre-progress-declined {
+  background: #f44336;
+}
+
+.fft-dashboard-centre-progress-nochange {
+  background: #9e9e9e;
+}
+
+.fft-dashboard-centre-progress-percentage {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #4CAF50;
+  font-weight: 500;
+}
+
+/* Years Section */
+.fft-dashboard-years-section {
+  margin-bottom: 24px;
+}
+
+.fft-dashboard-years-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.fft-dashboard-year-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
+  padding: 20px 24px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.fft-dashboard-year-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.fft-dashboard-year-label {
+  font-size: 14px;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.fft-dashboard-year-count {
+  font-size: 28px;
+  font-weight: 700;
+  color: #2196F3;
+}
+
+/* Single Year Section */
+.fft-dashboard-single-year-section {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  margin-bottom: 24px;
+}
+
+.fft-dashboard-data-summary {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.fft-dashboard-data-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  background: #f8fafc;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.fft-dashboard-data-item i {
+  font-size: 24px;
+  color: #4CAF50;
+}
+
+.fft-dashboard-data-label {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.fft-dashboard-data-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-left: 8px;
+}
+
+.fft-dashboard-single-year-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+}
+
+.fft-dashboard-single-year-hint i {
+  color: #f59e0b;
+  font-size: 18px;
+  margin-top: 2px;
+}
+
+.fft-dashboard-single-year-hint p {
+  margin: 0;
+  font-size: 13px;
+  color: #92400e;
+  line-height: 1.5;
+}
+
+.fft-dashboard-single-year-hint strong {
+  color: #78350f;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .fft-dashboard-section-wrapper {
+    padding: 16px;
+  }
+
+  .fft-dashboard-summary-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .fft-dashboard-centres-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fft-dashboard-centre-metrics {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .fft-dashboard-years-grid {
+    justify-content: center;
+  }
+
+  .fft-dashboard-data-summary {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .fft-dashboard-summary-cards {
+    grid-template-columns: 1fr;
+  }
+}

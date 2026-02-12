@@ -2170,7 +2170,7 @@ class RegistrationPaymentSection extends Component {
     {
       headerName: "Contact Number",
       field: "contactNo",
-      width: 150,
+      width: 250,
       editable: true,
       pinned: "left",
     },
@@ -2179,11 +2179,11 @@ class RegistrationPaymentSection extends Component {
       field: "course",
       width: 350,
     },
-    { headerName: "Payment Method", field: "payment", width: 200},
+    { headerName: "Payment Method", field: "payment", width: 250},
     {
       headerName: "Course Mode",
       field: "courseMode",
-      width: 150,
+      width: 200,
     },
     {
       headerName: "Course Duration",
@@ -2353,7 +2353,7 @@ class RegistrationPaymentSection extends Component {
         );
       },
       editable: true,
-      width:  350,
+      width:  400,
     },
         {
       headerName: "Sending Message Details",

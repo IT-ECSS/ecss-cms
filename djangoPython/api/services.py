@@ -936,13 +936,11 @@ class WooCommerceAPI:
             dict: Success status and updated product data or error message.
         """
         try:
-            # Build the correct URL based on whether it's a variation or simple product
             if is_variation and parent_id:
                 url = f"{self.base_url}products/{parent_id}/variations/{product_id}"
             else:
                 url = f"{self.base_url}products/{product_id}"
             
-            # First, get current stock
             response = requests.get(url, auth=self.auth)
             response.raise_for_status()
             product_data = response.json()
@@ -950,7 +948,6 @@ class WooCommerceAPI:
             current_stock = int(product_data.get('stock_quantity') or 0)
             new_stock = max(0, current_stock - int(quantity))
             
-            # Update the stock using POST method
             update_data = {
                 "stock_quantity": new_stock,
                 "manage_stock": True
@@ -958,8 +955,6 @@ class WooCommerceAPI:
             
             response = requests.post(url, json=update_data, auth=self.auth)
             response.raise_for_status()
-            
-            updated_product = response.json()
             
             return {
                 "success": True,
@@ -976,5 +971,47 @@ class WooCommerceAPI:
                 "success": False,
                 "error": str(e),
                 "message": f"Failed to decrease stock for product {product_id}"
+            }
+
+    def increase_inventory_stock(self, product_id, quantity, is_variation=False, parent_id=None):
+        """
+        Increases inventory product stock by the specified quantity.
+        """
+        try:
+            if is_variation and parent_id:
+                url = f"{self.base_url}products/{parent_id}/variations/{product_id}"
+            else:
+                url = f"{self.base_url}products/{product_id}"
+            
+            response = requests.get(url, auth=self.auth)
+            response.raise_for_status()
+            product_data = response.json()
+            
+            current_stock = int(product_data.get('stock_quantity') or 0)
+            new_stock = current_stock + int(quantity)
+            
+            update_data = {
+                "stock_quantity": new_stock,
+                "manage_stock": True
+            }
+            
+            response = requests.post(url, json=update_data, auth=self.auth)
+            response.raise_for_status()
+            
+            return {
+                "success": True,
+                "product_id": product_id,
+                "previous_stock": current_stock,
+                "new_stock": new_stock,
+                "quantity_increased": int(quantity),
+                "message": f"Stock increased successfully from {current_stock} to {new_stock}"
+            }
+            
+        except requests.exceptions.RequestException as e:
+            print(f"Error increasing inventory stock for product {product_id}: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "message": f"Failed to increase stock for product {product_id}"
             }
 

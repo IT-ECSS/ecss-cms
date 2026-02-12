@@ -8,6 +8,7 @@ urlpatterns = [
     path('fundraising_product_details/', views.fundraising_product_details, name='fundraising_product_details'),
     path('inventory_product_details/', views.inventory_product_details, name='inventory_product_details'),
     path('inventory_order/', views.inventory_order, name='inventory_order'),
+    path('inventory_incoming/', views.inventory_incoming, name='inventory_incoming'),
     path('course_report_draft/', views.product_stock_dashboard, name='all_product_list'),
     path('course_report/', views.product_stock_dashboard_react, name='all_product_list_react'),
     path('sales_report_draft/', views.sales_report_view, name='working_with_database'),

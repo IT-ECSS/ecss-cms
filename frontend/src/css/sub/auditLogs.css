@@ -36,6 +36,50 @@
     border: 1px solid #e9ecef;
 }
 
+/* Date/Time Range Filter Styles */
+.date-time-filter {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+}
+
+.date-time-filter label {
+    font-weight: 500;
+    color: #495057;
+    white-space: nowrap;
+    font-size: 21px;
+}
+
+.date-time-filter .range-inputs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.date-time-filter .range-separator {
+    font-size: 21px;
+    color: #495057;
+}
+
+.date-time-filter .filter-date-input,
+.date-time-filter .filter-time-input {
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    font-size: 21px;
+    background-color: white;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+}
+
+.date-time-filter .filter-date-input:focus,
+.date-time-filter .filter-time-input:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
 /* Searchable Dropdown Styles */
 .searchable-dropdown {
     display: flex;
@@ -49,7 +93,7 @@
     font-weight: 500;
     color: #495057;
     white-space: nowrap;
-    font-size: 28px;
+    font-size: 21px;
 }
 
 .searchable-dropdown .dropdown-container {
@@ -58,10 +102,10 @@
 }
 
 .searchable-dropdown .dropdown-input {
-    padding: 12px 40px 12px 16px;
+    padding: 8px 36px 8px 12px;
     border: 1px solid #ced4da;
     border-radius: 5px;
-    font-size: 28px;
+    font-size: 21px;
     background-color: white;
     min-width: 200px;
     transition: border-color 0.2s, box-shadow 0.2s;
@@ -71,7 +115,7 @@
 .searchable-dropdown .dropdown-input::placeholder {
     color: #6c757d;
     opacity: 1;
-    font-size: 28px;
+    font-size: 21px;
 }
 
 .searchable-dropdown .dropdown-input:focus {
@@ -110,8 +154,8 @@
 }
 
 .searchable-dropdown .dropdown-list li {
-    padding: 12px 16px;
-    font-size: 28px;
+    padding: 8px 12px;
+    font-size: 21px;
     cursor: pointer;
     transition: background-color 0.2s;
 }
@@ -150,13 +194,13 @@
 }
 
 .audit-logs-filters .archive-btn {
-    padding: 12px 24px;
+    padding: 8px 18px;
     background-color: transparent;
     color: #27ae60;
     border: 2px solid #27ae60;
     border-radius: 5px;
     cursor: pointer;
-    font-size: 28px;
+    font-size: 21px;
     font-weight: 500;
     transition: all 0.2s;
     margin-left: auto;
@@ -188,20 +232,22 @@
 
 /* AG Grid Header and Cell Font Sizes */
 .audit-logs-heading .ag-header-cell-text {
-    font-size: 28px !important;
+    font-size: 21px !important;
     font-weight: 600;
 }
 
 .audit-logs-heading .ag-cell {
-    font-size: 28px !important;
+    font-size: 20px !important;
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
 }
 
 .audit-logs-heading .ag-header-cell {
-    height: 60px !important;
+    height: 54px !important;
 }
 
 .audit-logs-heading .ag-row {
-    min-height: 50px !important;
+    min-height: 48px !important;
 }
 
 /* Summary Section */

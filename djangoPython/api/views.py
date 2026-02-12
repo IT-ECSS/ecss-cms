@@ -243,6 +243,65 @@ def inventory_order(request):
         print("Error processing inventory order:", e)
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
+@csrf_exempt
+def inventory_incoming(request):
+    """Processes an incoming stock entry and increases stock in WooCommerce."""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Invalid method, please use POST'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        print("Inventory incoming data received:", data)
+
+        product_name = data.get('product')
+        location = data.get('location')
+        quantity = int(data.get('quantity', 0))
+
+        if not product_name or not location or quantity <= 0:
+            return JsonResponse({'success': False, 'error': 'Product, location, and valid quantity are required'}, status=400)
+
+        woo_api = WooCommerceAPI()
+        inventory_products = woo_api.get_inventory_products()
+
+        product_info = None
+        for product in inventory_products:
+            if product.get('name') == product_name and product.get('variation_name') == location:
+                product_info = product
+                break
+
+        if not product_info:
+            return JsonResponse({'success': False, 'error': f'Product "{product_name}" with location "{location}" not found'}, status=404)
+
+        result = woo_api.increase_inventory_stock(
+            product_id=product_info.get('id'),
+            quantity=quantity,
+            is_variation=product_info.get('type') == 'variation',
+            parent_id=product_info.get('parent_id')
+        )
+
+        if not result['success']:
+            return JsonResponse({'success': False, 'error': result.get('error', 'Failed to update stock')}, status=500)
+
+        notify_inventory_update(
+            product_name=product_name,
+            location=location,
+            product_id=product_info.get('id'),
+            new_stock=result.get('new_stock')
+        )
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Stock increased by {quantity}.',
+            'previous_stock': result.get('previous_stock'),
+            'new_stock': result.get('new_stock')
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        print("Error processing inventory incoming:", e)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
 import re
 import json
 from django.shortcuts import render

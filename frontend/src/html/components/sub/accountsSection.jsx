@@ -127,12 +127,12 @@ class AccountsSection extends Component {
       {
         headerName: "Date Created",
         field: "dateCreated",
-        width: 150,
+        width: 200,
       },
       {
         headerName: "Time Created",
         field: "timeCreated",
-        width: 150,
+        width: 200,
       },
     ]
   };

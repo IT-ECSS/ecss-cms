@@ -512,6 +512,8 @@ class WelcomeSection extends Component {
             "Inventory Form": "Submit inventory orders and track stock",
             "InventoryRecords": "View inventory order records and history",
             "Inventory Records": "View inventory order records and history",
+            "InventoryInvoicesReceipts": "View inventory invoices and receipts",
+            "Inventory Invoices/Receipts": "View inventory invoices and receipts",
             "AuditLogs": "View system audit logs and user activity",
             "Audit Logs": "View system audit logs and user activity"
         };
@@ -540,6 +542,7 @@ class WelcomeSection extends Component {
                         'InventoryStore': 'Inventory Store',
                         'InventoryForm': 'Inventory Form',
                         'InventoryRecords': 'Inventory Records',
+                        'InventoryInvoicesReceipts': 'Inventory Invoices/Receipts',
                         'AuditLogs': 'Audit Logs'
                     };
                     
@@ -548,6 +551,7 @@ class WelcomeSection extends Component {
                         'InventoryStore': 'fas fa-warehouse',
                         'InventoryForm': 'fas fa-clipboard-list',
                         'InventoryRecords': 'fas fa-file-alt',
+                        'InventoryInvoicesReceipts': 'fas fa-file-invoice',
                         'AuditLogs': 'fas fa-clipboard-list'
                     };
                     

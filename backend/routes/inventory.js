@@ -14,7 +14,7 @@ router.post('/', async function(req, res, next)
             console.log("Insert Inventory Payload:", req.body.payload);
             var controller = new InventoryController();
             var result = await controller.insertInventory(req.body.payload);
-            
+
             // Emit Socket.IO event to update frontend
             if (io && result && result.success) {
                 console.log("Emitting inventory insert event to all connected clients");
@@ -117,6 +117,36 @@ router.post('/', async function(req, res, next)
             console.log("Retrieving Inventory Records");
             var controller = new InventoryController();
             var result = await controller.retrieveInventoryRecords();
+            return res.json(result);
+        }
+        else if(req.body.purpose === "insertStock")
+        {
+            console.log("Inserting Stock Record:", req.body.payload);
+            var controller = new InventoryController();
+            var result = await controller.insertStockRecord(req.body.payload);
+
+            if (io && result && result.success) {
+                console.log("Emitting stock insert event to all connected clients");
+                io.emit('inventory', {
+                    action: 'insertStock',
+                    data: result.data || {}
+                });
+            }
+
+            return res.json(result);
+        }
+        else if(req.body.purpose === "retrieveStock")
+        {
+            console.log("Retrieving Stock Records");
+            var controller = new InventoryController();
+            var result = await controller.retrieveStockRecords();
+            return res.json(result);
+        }
+        else if(req.body.purpose === "clearAllStock")
+        {
+            console.log("Clearing All Stock Records");
+            var controller = new InventoryController();
+            var result = await controller.clearAllStockRecords();
             return res.json(result);
         }
     } catch (error) {

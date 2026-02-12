@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import axios from 'axios';
 import '../../../css/sub/invoiceSection.css';
+import '../../../css/sub/search.css'; // Import custom dropdown styles
 import '../../../css/ag-grid-custom-theme.css'; // Import custom AgGrid theme
 import { AgGridReact } from 'ag-grid-react'; // React Data Grid Component
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
@@ -18,31 +19,31 @@ class ReportSection extends Component {
         { headerName: "Course Name", field: "course.courseEngName", width: 350, sortable: true, pinned: "left" },
         { headerName: "Course Location", field: "course.courseLocation", width: 300, sortable: true },
         { headerName: "Course Duration", field: "course.courseDuration", width: 300, sortable: true },
-        { headerName: "Payment Method", field: "course.payment", width: 200, sortable: true },
+        { headerName: "Payment Method", field: "course.payment", width: 250, sortable: true },
         { headerName: "Price", field: "course.coursePrice", width: 150, sortable: true },
         { headerName: "Payment Status", field: "status", width: 200, sortable: true },
         { headerName: "Receipt Number", field: "official.receiptNo", width: 300, sortable: true },
-        { headerName: "Registration Date", field: "registrationDate", width: 150, sortable: true },
-        { headerName: "Payment Date", field: "official.date", width: 150, sortable: true },
-        { headerName: "Refunded Date", field: "official.refundedDate", width: 150, sortable: true },
+        { headerName: "Registration Date", field: "registrationDate", width: 250, sortable: true },
+        { headerName: "Payment Date", field: "official.date", width: 250, sortable: true },
+        { headerName: "Refunded Date", field: "official.refundedDate", width: 200, sortable: true },
         { headerName: "Misc", field: "misc", width: 250, sortable: true },
-        { headerName: "Remarks", field: "official.remarks", width: 250, sortable: true },
+        { headerName: "Remarks", field: "official.remarks", width: 500, sortable: true },
       ],
       // Course Coordinator Report column definitions (without Payment Date)
       courseCoordinatorColumnDefs: [
         { headerName: "S/N", field: "index", width: 100, sortable: true, pinned: "left" },
         { headerName: "Received From", field: "participant.name", width: 200, sortable: true, pinned: "left" },
-        { headerName: "Course Name", field: "course.courseEngName", width: 350, sortable: true, pinned: "left" },
+        { headerName: "Course Name", field: "course.courseEngName", width: 400, sortable: true, pinned: "left" },
         { headerName: "Course Location", field: "course.courseLocation", width: 300, sortable: true },
         { headerName: "Course Duration", field: "course.courseDuration", width: 300, sortable: true },
-        { headerName: "Payment Method", field: "course.payment", width: 150, sortable: true },
+        { headerName: "Payment Method", field: "course.payment", width: 250, sortable: true },
         { headerName: "Price", field: "course.coursePrice", width: 150, sortable: true },
         { headerName: "Payment Status", field: "status", width: 200, sortable: true },
         { headerName: "Receipt Number", field: "official.receiptNo", width: 300, sortable: true },
-        { headerName: "Registration Date", field: "registrationDate", width: 150, sortable: true },
-        { headerName: "Refunded Date", field: "official.refundedDate", width: 150, sortable: true },
+        { headerName: "Registration Date", field: "registrationDate", width: 250, sortable: true },
+        { headerName: "Refunded Date", field: "official.refundedDate", width: 250, sortable: true },
         { headerName: "Misc", field: "misc", width: 250, sortable: true },
-        { headerName: "Remarks", field: "official.remarks", width: 250, sortable: true },
+        { headerName: "Remarks", field: "official.remarks", width: 500, sortable: true },
       ], 
       rowData: [],  // The actual data for the grid
       monthYearOptions: [], // List of month-year combinations
@@ -87,6 +88,11 @@ class ReportSection extends Component {
       filteredCourseLocationOptions: [],
       showCourseLocationDropdown: false
     };
+
+    // Refs for click-outside handling on Course Coordinator dropdowns
+    this.courseNameDropdownRef = React.createRef();
+    this.courseLocationDropdownRef = React.createRef();
+    this.courseDurationDropdownRef = React.createRef();
   }
 
   handleFromDateChange = (e) => {
@@ -107,9 +113,29 @@ class ReportSection extends Component {
   // Fetch invoice data when the component mounts
   componentDidMount = async () => 
   {
+      document.addEventListener('mousedown', this.handleClickOutsideDropdowns);
       this.props.loadingPopup1();
       await this.fetchInvoiceDetails();
       this.props.closePopup1();
+  };
+
+  componentWillUnmount() {
+    document.removeEventListener('mousedown', this.handleClickOutsideDropdowns);
+  }
+
+  handleClickOutsideDropdowns = (event) => {
+    const isOutsideCourseName = !this.courseNameDropdownRef.current || !this.courseNameDropdownRef.current.contains(event.target);
+    const isOutsideCourseLocation = !this.courseLocationDropdownRef.current || !this.courseLocationDropdownRef.current.contains(event.target);
+    const isOutsideCourseDuration = !this.courseDurationDropdownRef.current || !this.courseDurationDropdownRef.current.contains(event.target);
+
+    const updates = {};
+    if (isOutsideCourseName) updates.showCourseNameDropdown = false;
+    if (isOutsideCourseLocation) updates.showCourseLocationDropdown = false;
+    if (isOutsideCourseDuration) updates.showCourseDurationDropdown = false;
+
+    if (Object.keys(updates).length > 0) {
+      this.setState(updates);
+    }
   };
 
   componentDidUpdate = async (prevProps) => {
@@ -762,12 +788,14 @@ class ReportSection extends Component {
     });
   };
 
-  // Get course durations for selected course name
-  getCourseDurationOptions = (courseName) => {
+  // Get course durations for selected course name and optionally location
+  getCourseDurationOptions = (courseName, courseLocation = '') => {
     const { invoiceData } = this.state;
     const durationSet = new Set();
     invoiceData.forEach(item => {
       if (item.course?.courseEngName === courseName && item.course?.courseDuration) {
+        // If a location is selected, only include durations for that location
+        if (courseLocation && item.course?.courseLocation !== courseLocation) return;
         durationSet.add(item.course.courseDuration);
       }
     });
@@ -813,15 +841,22 @@ class ReportSection extends Component {
     });
     const courseLocationOptions = Array.from(locationSet).sort();
     
-    this.setState({ 
+    // Only set location options when no location is passed (i.e. called from course name change)
+    const stateUpdate = { 
       courseDurationOptions, 
       filteredCourseDurationOptions: courseDurationOptions,
-      selectedCourseDuration: '', // Reset duration when course name changes
-      selectedCourseLocation: '', // Reset location when course name changes
-      courseLocationOptions,
-      filteredCourseLocationOptions: courseLocationOptions,
+      selectedCourseDuration: '', // Reset duration when course name or location changes
       showCourseCoordinatorReport: false // Hide report when selection changes
-    });
+    };
+    
+    // Only reset location options when called from course name selection (no location param)
+    if (!courseLocation) {
+      stateUpdate.selectedCourseLocation = '';
+      stateUpdate.courseLocationOptions = courseLocationOptions;
+      stateUpdate.filteredCourseLocationOptions = courseLocationOptions;
+    }
+    
+    this.setState(stateUpdate);
   };
 
   // Get course locations for selected course name (not dependent on duration)
@@ -898,6 +933,10 @@ class ReportSection extends Component {
       selectedCourseLocation: location, 
       showCourseLocationDropdown: false 
     });
+    // Cascade: update duration options based on course name + selected location
+    if (this.state.selectedCourseName) {
+      this.getCourseDurationOptions(this.state.selectedCourseName, location);
+    }
   };
 
   generateCourseCoordinatorReport = () => {
@@ -1486,20 +1525,20 @@ class ReportSection extends Component {
             
             {/* Course Selection - All 3 fields visible */}
             <div style={{ marginTop: '20px', textAlign: 'center' }}>
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
                 
                 {/* Course Name */}
-                <div style={{ textAlign: 'left', width: 'auto' }}>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Course Name</label>
+                <div className="ss-field-group" style={{ minWidth: '450px' }}>
+                  <label style={{ fontWeight: 'bold', fontSize: '1.125rem' }}>Course Name</label>
                   <div
-                    id="course-name-selector"
-                    className={`dropdown-container1 ${this.state.showCourseNameDropdown ? 'open' : ''}`}
-                    style={{ width: '450px' }}
+                    className={`ss-dropdown-wrap ${this.state.showCourseNameDropdown ? 'open' : ''}`}
+                    ref={this.courseNameDropdownRef}
                   >
                     <input
                       type="text"
                       id="course-name-dropdown"
                       name="selectedCourseName"
+                      className="cc-report-input"
                       value={this.state.selectedCourseName}
                       onChange={this.handleCourseNameChange}
                       onClick={() => {
@@ -1508,14 +1547,13 @@ class ReportSection extends Component {
                       }}
                       placeholder="Click to select or type to search"
                       autoComplete="off"
-                      style={{ width: '100%', padding: '8px', fontSize: '1rem', border: '1px solid #000000', borderRadius: '4px' }}
                     />
                     {this.state.showCourseNameDropdown && (
-                      <ul className="dropdown-list1" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                      <ul className="cc-report-options">
                         {this.state.filteredCourseNameOptions.map((name, index) => (
                           <li
                             key={index}
-                            onClick={() => this.handleCourseNameSelect(name)}
+                            onMouseDown={() => this.handleCourseNameSelect(name)}
                           >
                             {name}
                           </li>
@@ -1526,38 +1564,30 @@ class ReportSection extends Component {
                 </div>
 
                 {/* Centre (Course Location) */}
-                <div style={{ textAlign: 'left', width: 'auto' }}>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Centre</label>
+                <div className="ss-field-group" style={{ minWidth: '375px' }}>
+                  <label style={{ fontWeight: 'bold', fontSize: '1.125rem' }}>Centre</label>
                   <div
-                    id="course-location-selector"
-                    className={`dropdown-container1 ${this.state.showCourseLocationDropdown ? 'open' : ''}`}
-                    style={{ width: '375px' }}
+                    className={`ss-dropdown-wrap ${this.state.showCourseLocationDropdown ? 'open' : ''}`}
+                    ref={this.courseLocationDropdownRef}
                   >
                     <input
                       type="text"
                       id="course-location-dropdown"
                       name="selectedCourseLocation"
+                      className="cc-report-input"
                       value={this.state.selectedCourseLocation}
                       onChange={this.handleCourseLocationChange}
                       onClick={() => this.setState({ showCourseLocationDropdown: true })}
                       placeholder={this.state.selectedCourseName ? "Select centre (optional)" : "Select course name first"}
                       autoComplete="off"
                       disabled={!this.state.selectedCourseName}
-                      style={{ 
-                        width: '100%', 
-                        padding: '8px', 
-                        fontSize: '1rem', 
-                        border: '1px solid #000000', 
-                        borderRadius: '4px',
-                        backgroundColor: this.state.selectedCourseName ? '#fff' : '#f5f5f5'
-                      }}
                     />
                     {this.state.showCourseLocationDropdown && this.state.selectedCourseName && (
-                      <ul className="dropdown-list1" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                      <ul className="cc-report-options">
                         {this.state.filteredCourseLocationOptions.map((location, index) => (
                           <li
                             key={index}
-                            onClick={() => this.handleCourseLocationSelect(location)}
+                            onMouseDown={() => this.handleCourseLocationSelect(location)}
                           >
                             {location}
                           </li>
@@ -1568,38 +1598,30 @@ class ReportSection extends Component {
                 </div>
 
                 {/* Course Duration */}
-                <div style={{ textAlign: 'left', width: 'auto' }}>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Course Duration</label>
+                <div className="ss-field-group" style={{ minWidth: '375px' }}>
+                  <label style={{ fontWeight: 'bold', fontSize: '1.125rem' }}>Course Duration</label>
                   <div
-                    id="course-duration-selector"
-                    className={`dropdown-container1 ${this.state.showCourseDurationDropdown ? 'open' : ''}`}
-                    style={{ width: '375px' }}
+                    className={`ss-dropdown-wrap ${this.state.showCourseDurationDropdown ? 'open' : ''}`}
+                    ref={this.courseDurationDropdownRef}
                   >
                     <input
                       type="text"
                       id="course-duration-dropdown"
                       name="selectedCourseDuration"
+                      className="cc-report-input"
                       value={this.state.selectedCourseDuration}
                       onChange={this.handleCourseDurationChange}
                       onClick={() => this.setState({ showCourseDurationDropdown: true })}
-                      placeholder={this.state.selectedCourseName ? "Select duration (optional)" : "Select centre first"}
+                      placeholder={this.state.selectedCourseLocation ? "Select duration (optional)" : "Select centre first"}
                       autoComplete="off"
-                      disabled={!this.state.selectedCourseName}
-                      style={{ 
-                        width: '100%', 
-                        padding: '8px', 
-                        fontSize: '1rem', 
-                        border: '1px solid #000000', 
-                        borderRadius: '4px',
-                        backgroundColor: this.state.selectedCourseName ? '#fff' : '#f5f5f5'
-                      }}
+                      disabled={!this.state.selectedCourseLocation}
                     />
-                    {this.state.showCourseDurationDropdown && this.state.selectedCourseName && (
-                      <ul className="dropdown-list1" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                    {this.state.showCourseDurationDropdown && this.state.selectedCourseLocation && (
+                      <ul className="cc-report-options">
                         {this.state.filteredCourseDurationOptions.map((duration, index) => (
                           <li
                             key={index}
-                            onClick={() => this.handleCourseDurationSelect(duration)}
+                            onMouseDown={() => this.handleCourseDurationSelect(duration)}
                           >
                             {duration}
                           </li>
@@ -1610,7 +1632,7 @@ class ReportSection extends Component {
                 </div>
 
                 {/* Generate Button */}
-                <div style={{ alignSelf: 'flex-end', marginBottom: '2px' }}>
+                <div style={{ alignSelf: 'flex-end' }}>
                   <button className="generate-btn" onClick={() => this.generateCourseCoordinatorReport()}>Generate</button>
                 </div>
               </div>

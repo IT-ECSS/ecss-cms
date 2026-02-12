@@ -526,7 +526,7 @@ const YearComparisonView = ({ data, yearComparisonData, fitnessMetrics, yearFrom
     {
       headerName: 'Date of Birth',
       field: 'dateOfBirth',
-      width: 200,
+      width: 250,
       headerClass: 'ag-header-cell-bordered',
       cellStyle: { borderRight: '1px solid #ddd', borderBottom: '1px solid #ddd', textAlign: 'center' }
     },
@@ -540,7 +540,7 @@ const YearComparisonView = ({ data, yearComparisonData, fitnessMetrics, yearFrom
     {
       headerName: 'Height',
       field: 'height',
-      width: 100,
+      width: 150,
       headerClass: 'ag-header-cell-bordered',
       cellStyle: { borderRight: '1px solid #ddd', borderBottom: '1px solid #ddd', textAlign: 'center' }
     },
@@ -554,7 +554,7 @@ const YearComparisonView = ({ data, yearComparisonData, fitnessMetrics, yearFrom
     {
       headerName: 'BMI',
       field: 'bmi',
-      width: 100,
+      width: 150,
       headerClass: 'ag-header-cell-bordered',
       cellStyle: { borderRight: '1px solid #ddd', borderBottom: '1px solid #ddd', textAlign: 'center' }
     },

@@ -154,6 +154,113 @@ class InventoryController
             await this.databaseConnectivity.close(); // Ensure the connection is closed
         }
     }
+
+    async insertStockRecord(payload)
+    {
+        try {
+            const result = await this.databaseConnectivity.initialize();
+            console.log("Database Connectivity:", result);
+
+            if (result === "Connected to MongoDB Atlas!") {
+                const databaseName = "Company-Management-System";
+                const collectionName = "Inventory";
+
+                const stockRecord = {
+                    type: payload.type || "Incoming",
+                    product: payload.product,
+                    location: payload.location,
+                    date: payload.date,
+                    time: payload.time,
+                    quantity: parseInt(payload.quantity),
+                    updatedBy: payload.updatedBy,
+                    createdAt: new Date()
+                };
+
+                const insertResult = await this.databaseConnectivity.insertToDatabase(databaseName, collectionName, stockRecord);
+                console.log("Insert Stock Record Result:", insertResult);
+
+                return {
+                    success: true,
+                    message: "Stock record inserted successfully",
+                    result: insertResult,
+                    data: { ...stockRecord, _id: insertResult?.insertedId || null }
+                };
+            } else {
+                return {
+                    success: false,
+                    message: "Failed to connect to database",
+                    error: result || "Database connection failed"
+                };
+            }
+        }
+        catch (error) {
+            console.error("Stock record insert error:", error);
+            return {
+                success: false,
+                message: "Error inserting stock record",
+                error: error.message || String(error)
+            };
+        }
+        finally {
+            await this.databaseConnectivity.close();
+        }
+    }
+
+    async retrieveStockRecords()
+    {
+        try {
+            const result = await this.databaseConnectivity.initialize();
+            console.log("Database Connectivity:", result);
+
+            if (result === "Connected to MongoDB Atlas!") {
+                const databaseName = "Company-Management-System";
+                const collectionName = "Inventory";
+
+                const records = await this.databaseConnectivity.retrieveFromDatabase(databaseName, collectionName);
+                console.log("Retrieved Stock Records:", records?.length || 0, "records");
+
+                return {
+                    success: true,
+                    message: "Stock records retrieved successfully",
+                    records: records || []
+                };
+            } else {
+                return {
+                    success: false,
+                    message: "Failed to connect to database",
+                    error: result || "Database connection failed"
+                };
+            }
+        }
+        catch (error) {
+            console.error("Stock records retrieve error:", error);
+            return {
+                success: false,
+                message: "Error retrieving stock records",
+                error: error.message || String(error)
+            };
+        }
+        finally {
+            await this.databaseConnectivity.close();
+        }
+    }
+
+    async clearAllStockRecords()
+    {
+        try {
+            const result = await this.databaseConnectivity.initialize();
+            if (result === "Connected to MongoDB Atlas!") {
+                const db = this.databaseConnectivity.client.db("Company-Management-System");
+                const deleteResult = await db.collection('Inventory').deleteMany({});
+                return { success: true, message: `Deleted ${deleteResult.deletedCount} stock records` };
+            }
+            return { success: false, message: "Failed to connect to database" };
+        } catch (error) {
+            return { success: false, message: error.message };
+        } finally {
+            await this.databaseConnectivity.close();
+        }
+    }
 }
 
 module.exports = InventoryController;

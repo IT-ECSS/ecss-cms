@@ -32,6 +32,11 @@ class AuditLogsSection extends Component {
       modules: [],
       sections: [],
       actionTypes: [],
+      // Date and time range filters
+      filterStartDate: '',
+      filterEndDate: '',
+      filterStartTime: '',
+      filterEndTime: '',
       // Custom dropdown states
       openDropdown: null,
       searchUser: '',
@@ -259,13 +264,53 @@ class AuditLogsSection extends Component {
 
   // Filter audit logs data based on selected filters
   filterAuditLogsData = () => {
-    const { filterUser, filterModule, filterSection, filterActionType } = this.state;
+    const { filterUser, filterModule, filterSection, filterActionType, filterStartDate, filterEndDate, filterStartTime, filterEndTime } = this.state;
     const { searchQuery } = this.props;
     const { auditLogsData } = this.state;
 
-    console.log('Filtering audit logs data with:', { filterUser, filterModule, filterSection, filterActionType, searchQuery });
+    console.log('Filtering audit logs data with:', { filterUser, filterModule, filterSection, filterActionType, filterStartDate, filterEndDate, filterStartTime, filterEndTime, searchQuery });
 
     let filteredData = [...auditLogsData];
+
+    // Filter by date range (DD/MM/YYYY format)
+    if (filterStartDate) {
+      const parts = filterStartDate.split('/');
+      if (parts.length === 3) {
+        const startDateISO = `${parts[2]}-${parts[1]}-${parts[0]}`;
+        filteredData = filteredData.filter(record => {
+          if (!record.timestamp) return false;
+          const recordDate = new Date(record.timestamp).toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' });
+          return recordDate >= startDateISO;
+        });
+      }
+    }
+    if (filterEndDate) {
+      const parts = filterEndDate.split('/');
+      if (parts.length === 3) {
+        const endDateISO = `${parts[2]}-${parts[1]}-${parts[0]}`;
+        filteredData = filteredData.filter(record => {
+          if (!record.timestamp) return false;
+          const recordDate = new Date(record.timestamp).toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' });
+          return recordDate <= endDateISO;
+        });
+      }
+    }
+
+    // Filter by time range (HH:MM:SS format)
+    if (filterStartTime) {
+      filteredData = filteredData.filter(record => {
+        if (!record.timestamp) return false;
+        const recordTime = new Date(record.timestamp).toLocaleTimeString('en-GB', { timeZone: 'Asia/Singapore', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+        return recordTime >= filterStartTime;
+      });
+    }
+    if (filterEndTime) {
+      filteredData = filteredData.filter(record => {
+        if (!record.timestamp) return false;
+        const recordTime = new Date(record.timestamp).toLocaleTimeString('en-GB', { timeZone: 'Asia/Singapore', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+        return recordTime <= filterEndTime;
+      });
+    }
 
     // Filter by user
     if (filterUser && filterUser !== 'All Users') {
@@ -378,7 +423,11 @@ class AuditLogsSection extends Component {
       filterUser: 'All Users',
       filterModule: 'All Modules',
       filterSection: 'All Sections',
-      filterActionType: 'All Action Types'
+      filterActionType: 'All Action Types',
+      filterStartDate: '',
+      filterEndDate: '',
+      filterStartTime: '',
+      filterEndTime: ''
     }, () => {
       if (this.props.closePopup1) {
         this.props.closePopup1();
@@ -454,6 +503,48 @@ class AuditLogsSection extends Component {
             {this.renderCustomDropdown('Section', 'filterSection', 'searchSection', sections, 'All Sections', 'section')}
             {this.renderCustomDropdown('Action Type', 'filterActionType', 'searchActionType', actionTypes, 'All Action Types', 'actionType')}
 
+            <div className="date-time-filter">
+              <label>Date Range:</label>
+              <div className="range-inputs">
+                <input
+                  type="text"
+                  className="filter-date-input"
+                  placeholder="DD/MM/YYYY"
+                  value={this.state.filterStartDate}
+                  onChange={(e) => this.setState({ filterStartDate: e.target.value }, () => this.filterAuditLogsData())}
+                />
+                <span className="range-separator">to</span>
+                <input
+                  type="text"
+                  className="filter-date-input"
+                  placeholder="DD/MM/YYYY"
+                  value={this.state.filterEndDate}
+                  onChange={(e) => this.setState({ filterEndDate: e.target.value }, () => this.filterAuditLogsData())}
+                />
+              </div>
+            </div>
+
+            <div className="date-time-filter">
+              <label>Time Range:</label>
+              <div className="range-inputs">
+                <input
+                  type="text"
+                  className="filter-time-input"
+                  placeholder="HH:MM:SS"
+                  value={this.state.filterStartTime}
+                  onChange={(e) => this.setState({ filterStartTime: e.target.value }, () => this.filterAuditLogsData())}
+                />
+                <span className="range-separator">to</span>
+                <input
+                  type="text"
+                  className="filter-time-input"
+                  placeholder="HH:MM:SS"
+                  value={this.state.filterEndTime}
+                  onChange={(e) => this.setState({ filterEndTime: e.target.value }, () => this.filterAuditLogsData())}
+                />
+              </div>
+            </div>
+
             <button className="archive-btn" onClick={this.exportToExcel}>
               Archive Audit Logs
             </button>
@@ -464,8 +555,8 @@ class AuditLogsSection extends Component {
               columnDefs={columnDefs}
               rowData={rowData}
               pagination={true}
-              paginationPageSize={50}
-              paginationPageSizeSelector={[25, 50, 100, 200]}
+              paginationPageSize={rowData.length}
+              paginationPageSizeSelector={[Math.ceil(rowData.length/4), Math.ceil(rowData.length/2), Math.ceil(rowData.length*3/4), rowData.length]}
               domLayout="normal"
               defaultColDef={{
                 resizable: true,

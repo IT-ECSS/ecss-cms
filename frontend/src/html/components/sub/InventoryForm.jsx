@@ -311,6 +311,7 @@ class InventoryForm extends Component {
 
         try {
             const payload = {
+                type: 'Outgoing',
                 customerName: formData.customerName,
                 product: formData.product,
                 location: formData.location,
