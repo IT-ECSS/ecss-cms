@@ -302,6 +302,180 @@ def inventory_incoming(request):
         print("Error processing inventory incoming:", e)
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
+@csrf_exempt
+def inventory_allocate(request):
+    """Allocates stock from General to a specific variant — increases variant stock in WooCommerce."""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Invalid method, please use POST'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        print("Inventory allocate data received:", data)
+
+        product_name = data.get('product')
+        location = data.get('location')
+        quantity = int(data.get('quantity', 0))
+
+        if not product_name or not location or quantity <= 0:
+            return JsonResponse({'success': False, 'error': 'Product, location, and valid quantity are required'}, status=400)
+
+        woo_api = WooCommerceAPI()
+        inventory_products = woo_api.get_inventory_products()
+
+        product_info = None
+        for product in inventory_products:
+            if product.get('name') == product_name and product.get('variation_name') == location:
+                product_info = product
+                break
+
+        if not product_info:
+            return JsonResponse({'success': False, 'error': f'Product "{product_name}" with location "{location}" not found'}, status=404)
+
+        result = woo_api.increase_inventory_stock(
+            product_id=product_info.get('id'),
+            quantity=quantity,
+            is_variation=product_info.get('type') == 'variation',
+            parent_id=product_info.get('parent_id')
+        )
+
+        if not result['success']:
+            return JsonResponse({'success': False, 'error': result.get('error', 'Failed to update stock')}, status=500)
+
+        notify_inventory_update(
+            product_name=product_name,
+            location=location,
+            product_id=product_info.get('id'),
+            new_stock=result.get('new_stock')
+        )
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Stock allocated: {quantity} units to {location}.',
+            'previous_stock': result.get('previous_stock'),
+            'new_stock': result.get('new_stock')
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        print("Error processing inventory allocation:", e)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@csrf_exempt
+def inventory_stock_adjustment(request):
+    """Processes a stock adjustment (Stock In increases, Stock Out decreases WooCommerce stock)."""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Invalid method, please use POST'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        print("Inventory stock adjustment data received:", data)
+
+        action = data.get('action', 'Stock In')
+        product_name = data.get('product')
+        quantity = int(data.get('quantity', 0))
+        location = data.get('location', 'Store')
+        reason = data.get('reason', '')
+
+        if not product_name or quantity <= 0:
+            return JsonResponse({'success': False, 'error': 'Product and valid quantity are required'}, status=400)
+
+        woo_api = WooCommerceAPI()
+        inventory_products = woo_api.get_inventory_products()
+
+        # Find the parent product to update main stock
+        # Get any variation of this product to find the parent_id
+        product_info = None
+        parent_id = None
+        for product in inventory_products:
+            if product.get('name') == product_name:
+                product_info = product
+                parent_id = product.get('parent_id')
+                break
+
+        if not product_info:
+            return JsonResponse({'success': False, 'error': f'Product "{product_name}" not found'}, status=404)
+
+        # Update the parent product stock (main stock)
+        if action == 'Stock In':
+            result = woo_api.increase_inventory_stock(
+                product_id=parent_id or product_info.get('id'),
+                quantity=quantity,
+                is_variation=False,
+                parent_id=None
+            )
+
+            # Return of damaged goods: also decrease the variation stock at the source location
+            if result['success'] and reason == 'Return of damaged goods' and location and location != 'Store':
+                variation_info = None
+                for product in inventory_products:
+                    if product.get('name') == product_name and product.get('variation_name') == location:
+                        variation_info = product
+                        break
+
+                if variation_info:
+                    variation_result = woo_api.decrease_inventory_stock(
+                        product_id=variation_info.get('id'),
+                        quantity=quantity,
+                        is_variation=True,
+                        parent_id=parent_id
+                    )
+                    print(f"Return of damaged goods - variation stock decreased for {location}: {variation_result}")
+                else:
+                    print(f"Warning: Could not find variation for {product_name} at {location}")
+        else:
+            # Stock Out - decrease parent product stock
+            result = woo_api.decrease_inventory_stock(
+                product_id=parent_id or product_info.get('id'),
+                quantity=quantity,
+                is_variation=False,
+                parent_id=None
+            )
+
+            # Also increase the specific location variation stock
+            if result['success'] and location and location != 'Store':
+                # Find the variation matching this product + location
+                variation_info = None
+                for product in inventory_products:
+                    if product.get('name') == product_name and product.get('variation_name') == location:
+                        variation_info = product
+                        break
+
+                if variation_info:
+                    variation_result = woo_api.increase_inventory_stock(
+                        product_id=variation_info.get('id'),
+                        quantity=quantity,
+                        is_variation=True,
+                        parent_id=parent_id
+                    )
+                    print(f"Variation stock update for {location}: {variation_result}")
+                else:
+                    print(f"Warning: Could not find variation for {product_name} at {location}")
+
+        if not result['success']:
+            return JsonResponse({'success': False, 'error': result.get('error', 'Failed to update stock')}, status=500)
+
+        notify_inventory_update(
+            product_name=product_name,
+            location='Store',
+            product_id=parent_id or product_info.get('id'),
+            new_stock=result.get('new_stock')
+        )
+
+        return JsonResponse({
+            'success': True,
+            'message': f'{action}: {quantity} units for {product_name}.',
+            'action': action,
+            'previous_stock': result.get('previous_stock'),
+            'new_stock': result.get('new_stock')
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        print("Error processing inventory stock adjustment:", e)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
 import re
 import json
 from django.shortcuts import render

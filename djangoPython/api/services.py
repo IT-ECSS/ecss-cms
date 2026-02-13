@@ -280,6 +280,7 @@ class WooCommerceAPI:
                     if product.get('type') == 'variable':
                         # Fetch variations for this variable product
                         variations = self.get_product_variations(product['id'])
+                        parent_stock = product.get('stock_quantity', 0)
                         if variations:
                             # Add each variation as a separate product entry
                             for variation in variations:
@@ -292,17 +293,24 @@ class WooCommerceAPI:
                                     'regular_price': variation.get('regular_price', ''),
                                     'sale_price': variation.get('sale_price', ''),
                                     'stock_quantity': variation.get('stock_quantity', 0),
+                                    'parent_stock_quantity': parent_stock,
                                     'manage_stock': variation.get('manage_stock', False),
                                     'sku': variation.get('sku', ''),
-                                    'images': variation.get('image', {}).get('src') if variation.get('image') else (product.get('images', [{}])[0].get('src') if product.get('images') else None),
                                     'attributes': variation.get('attributes', []),
                                     'type': 'variation'
                                 }
-                                # Convert images to the expected format
-                                if variation_product['images']:
-                                    variation_product['images'] = [{'src': variation_product['images']}]
+                                # Always use parent product image for consistency across variations
+                                parent_images = product.get('images', [])
+                                if parent_images:
+                                    variation_product['images'] = parent_images
                                 else:
-                                    variation_product['images'] = product.get('images', [])
+                                    # Fall back to variation image if parent has none
+                                    var_image = variation.get('image')
+                                    var_image_src = var_image.get('src', '') if isinstance(var_image, dict) else ''
+                                    if var_image_src and 'placeholder' not in var_image_src and 'woocommerce-placeholder' not in var_image_src:
+                                        variation_product['images'] = [{'src': var_image_src}]
+                                    else:
+                                        variation_product['images'] = []
                                 all_products.append(variation_product)
                         else:
                             # If no variations found, add the parent product

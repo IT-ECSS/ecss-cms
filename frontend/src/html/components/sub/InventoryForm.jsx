@@ -302,8 +302,8 @@ class InventoryForm extends Component {
             this.setState({ error: 'Please enter a valid quantity' });
             return;
         }
-        if (!formData.totalAmount || parseFloat(formData.totalAmount) <= 0) {
-            this.setState({ error: 'Please enter a valid total amount' });
+        if (!formData.totalAmount && formData.totalAmount !== 0 && formData.totalAmount !== '0' && formData.totalAmount !== '0.00') {
+            this.setState({ error: 'Please enter a total amount' });
             return;
         }
 
@@ -311,7 +311,7 @@ class InventoryForm extends Component {
 
         try {
             const payload = {
-                type: 'Outgoing',
+                type: 'Purchases',
                 customerName: formData.customerName,
                 product: formData.product,
                 location: formData.location,
@@ -671,7 +671,8 @@ class InventoryForm extends Component {
                                                         name="paymentMethod"
                                                         value="Cash"
                                                         checked={formData.paymentMethod === 'Cash'}
-                                                        onChange={this.handleInputChange}
+                                                        onClick={() => this.setState(prev => ({ formData: { ...prev.formData, paymentMethod: prev.formData.paymentMethod === 'Cash' ? '' : 'Cash' } }))}
+                                                        readOnly
                                                     />
                                                     <span className="radio-custom"></span>
                                                     Cash
@@ -682,7 +683,8 @@ class InventoryForm extends Component {
                                                         name="paymentMethod"
                                                         value="PayNow"
                                                         checked={formData.paymentMethod === 'PayNow'}
-                                                        onChange={this.handleInputChange}
+                                                        onClick={() => this.setState(prev => ({ formData: { ...prev.formData, paymentMethod: prev.formData.paymentMethod === 'PayNow' ? '' : 'PayNow' } }))}
+                                                        readOnly
                                                     />
                                                     <span className="radio-custom"></span>
                                                     PayNow

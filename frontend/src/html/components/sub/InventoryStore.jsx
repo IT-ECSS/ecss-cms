@@ -9,23 +9,52 @@ class InventoryStore extends Component {
         this.state = {
             inventoryProducts: [],
             inventoryRecords: [],
+            stockRecords: [],
             isLoading: true,
-            error: null
+            error: null,
+            // Tabs - restricted roles only see Sub Products
+            activeTab: ['Site in-charge', 'NSA in-charge', 'Fitness Trainer'].includes(props.role) ? 'variants' : 'store',
+            // Allocation modal
+            showAllocateModal: false,
+            allocateForm: {
+                product: '',
+                location: '',
+                quantity: '',
+                reason: '',
+                updatedBy: ''
+            },
+            allocateStoreStock: 0,
+            allocateVariants: [],
+            allocateLocationDropdownOpen: false,
+            allocateProductDropdownOpen: false,
+            // Filters
+            filterProduct: '',
+            filterLocation: '',
+            filterProductSearch: '',
+            filterLocationSearch: '',
+            filterProductDropdownOpen: false,
+            filterLocationDropdownOpen: false
         };
         this.eventSource = null;
         this.socket = null;
+        this.filterProductDropdownRef = React.createRef();
+        this.filterLocationDropdownRef = React.createRef();
+        this.allocateProductDropdownRef = React.createRef();
     }
 
     async componentDidMount() {
+        document.addEventListener('mousedown', this.handleDocumentClick);
         await Promise.all([
             this.fetchInventoryProducts(),
-            this.fetchInventoryRecords()
+            this.fetchInventoryRecords(),
+            this.fetchStockRecords()
         ]);
         await this.setupSSE();
        //await this.setupSocket();
     }
 
     componentWillUnmount() {
+        document.removeEventListener('mousedown', this.handleDocumentClick);
         if (this.eventSource) {
             this.eventSource.close();
             this.eventSource = null;
@@ -60,6 +89,7 @@ class InventoryStore extends Component {
                         //Promise.all([
                             await this.fetchInventoryProducts();
                             await this.fetchInventoryRecords();
+                            await this.fetchStockRecords();
                        //]);
                     }
                 } catch (error) {
@@ -195,19 +225,19 @@ class InventoryStore extends Component {
         }
     };
 
-    // Calculate sold count for a specific product and location
+    // Calculate sold count for a specific product and location (only Purchases type)
     getSoldCount = (productName, locationName) => {
         const { inventoryRecords } = this.state;
         return inventoryRecords
-            .filter(record => record.product === productName && record.location === locationName)
+            .filter(record => record.product === productName && record.location === locationName && record.type === 'Purchases')
             .reduce((total, record) => total + (parseInt(record.quantity) || 0), 0);
     };
 
-    // Calculate sold amount (money) for a specific product and location
+    // Calculate sold amount (money) for a specific product and location (only Purchases type)
     getSoldAmount = (productName, locationName) => {
         const { inventoryRecords } = this.state;
         return inventoryRecords
-            .filter(record => record.product === productName && record.location === locationName)
+            .filter(record => record.product === productName && record.location === locationName && record.type === 'Purchases')
             .reduce((total, record) => {
                 const totalPrice = parseFloat(record.totalPrice) || 0;
                 if (totalPrice > 0) return total + totalPrice;
@@ -216,6 +246,284 @@ class InventoryStore extends Component {
                 const quantity = parseInt(record.quantity) || 0;
                 return total + (unitPrice * quantity);
             }, 0);
+    };
+
+    fetchStockRecords = async () => {
+        try {
+            const backendUrl = window.location.hostname === "localhost" 
+                ? "http://localhost:3001" 
+                : "https://ecss-backend-node.azurewebsites.net";
+
+            const response = await axios.post(`${backendUrl}/inventory`, { purpose: "retrieveStock" });
+
+            if (response.data.success) {
+                this.setState({
+                    stockRecords: response.data.records || []
+                });
+            }
+        } catch (error) {
+            console.error('Error fetching stock records:', error);
+        }
+    };
+
+    // Get store stock from WooCommerce parent product stock_quantity
+    getStoreStock = (productName) => {
+        const { inventoryProducts } = this.state;
+        // Find any variant of this product to get parent_stock_quantity
+        const variant = inventoryProducts.find(p => (p.name || '').toLowerCase() === productName.toLowerCase());
+        return variant ? (variant.parent_stock_quantity || 0) : 0;
+    };
+
+    // Get grouped products by parent name
+    getGroupedProducts = () => {
+        const { inventoryProducts } = this.state;
+        const groups = {};
+        for (const p of inventoryProducts) {
+            const name = p.name || 'Unknown';
+            if (!groups[name]) {
+                groups[name] = { name, variants: [], images: p.images || [] };
+            }
+            groups[name].variants.push(p);
+        }
+        return Object.values(groups);
+    };
+
+    openAllocateModal = (productName) => {
+        if (productName) {
+            const storeStock = this.getStoreStock(productName);
+            const variants = this.state.inventoryProducts
+                .filter(p => p.name === productName && p.variation_name)
+                .map(p => p.variation_name);
+            this.setState({
+                showAllocateModal: true,
+                allocateForm: {
+                    product: productName,
+                    location: variants.length === 1 ? variants[0] : '',
+                    quantity: '',
+                    reason: '',
+                    updatedBy: this.props.userName || ''
+                },
+                allocateStoreStock: storeStock,
+                allocateVariants: variants,
+                allocateLocationDropdownOpen: false,
+                allocateProductDropdownOpen: false
+            });
+        } else {
+            // No product pre-selected — user picks from dropdown
+            this.setState({
+                showAllocateModal: true,
+                allocateForm: {
+                    product: '',
+                    location: '',
+                    quantity: '',
+                    reason: '',
+                    updatedBy: this.props.userName
+                },
+                allocateStoreStock: 0,
+                allocateVariants: [],
+                allocateLocationDropdownOpen: false,
+                allocateProductDropdownOpen: false
+            });
+        }
+    };
+
+    selectAllocateProduct = (productName) => {
+        const storeStock = this.getStoreStock(productName);
+        // Get locations (variation_name) from WooCommerce products
+        const variants = this.state.inventoryProducts
+            .filter(p => p.name === productName && p.variation_name)
+            .map(p => p.variation_name);
+        this.setState(prev => ({
+            allocateForm: { ...prev.allocateForm, product: productName, location: variants.length === 1 ? variants[0] : '' },
+            allocateStoreStock: storeStock,
+            allocateVariants: variants,
+            allocateProductDropdownOpen: false,
+            allocateLocationDropdownOpen: false
+        }));
+    };
+
+    getAvailableProductsForAllocation = () => {
+        // Source products from WooCommerce (inventoryProducts)
+        const { inventoryProducts } = this.state;
+        const query = this.state.allocateForm.product.toLowerCase();
+        const uniqueNames = [...new Set(inventoryProducts.map(p => p.name).filter(Boolean))];
+        return query ? uniqueNames.filter(n => n.toLowerCase().includes(query)) : uniqueNames;
+    };
+
+    selectAllocateLocation = (loc) => {
+        this.setState(prev => ({
+            allocateForm: { ...prev.allocateForm, location: loc },
+            allocateLocationDropdownOpen: false
+        }));
+    };
+
+    closeAllocateModal = () => {
+        this.setState({ showAllocateModal: false });
+    };
+
+    handleAllocateFormChange = (field, value) => {
+        this.setState(prev => ({
+            allocateForm: { ...prev.allocateForm, [field]: value }
+        }));
+    };
+
+    handleAllocateSubmit = async (e) => {
+        e.preventDefault();
+        const { allocateForm, allocateStoreStock } = this.state;
+        const qty = parseInt(allocateForm.quantity);
+
+        if (!qty || qty <= 0) {
+            alert('Please enter a valid quantity.');
+            return;
+        }
+        if (qty > allocateStoreStock) {
+            alert(`Not enough store stock. Available: ${allocateStoreStock}`);
+            return;
+        }
+
+        try {
+            const now = new Date();
+            const date = now.toISOString().split('T')[0];
+            const time = now.toTimeString().split(' ')[0].substring(0, 5);
+
+            // 1. Insert allocation records in MongoDB (Node backend)
+            const backendUrl = window.location.hostname === "localhost"
+                ? "http://localhost:3001"
+                : "https://ecss-backend-node.azurewebsites.net";
+
+            const response = await axios.post(`${backendUrl}/inventory`, {
+                purpose: "insertStockAllocation",
+                payload: {
+                    product: allocateForm.product,
+                    location: allocateForm.location,
+                    date,
+                    time,
+                    quantity: qty,
+                    reason: allocateForm.reason,
+                    updatedBy: allocateForm.updatedBy
+                }
+            });
+
+            if (!response.data.success) {
+                alert(response.data.error || 'Failed to record allocation.');
+                return;
+            }
+
+            // 2. Increase WooCommerce stock for the variant (Django backend)
+            try {
+                const djangoUrl = window.location.hostname === "localhost"
+                    ? "http://localhost:3002"
+                    : "https://ecss-backend-django.azurewebsites.net";
+
+                await axios.post(`${djangoUrl}/inventory_allocate/`, {
+                    product: allocateForm.product,
+                    location: allocateForm.location,
+                    quantity: qty
+                });
+                console.log('WooCommerce stock allocated successfully');
+            } catch (wooErr) {
+                console.error('Failed to allocate WooCommerce stock:', wooErr);
+                alert('Stock allocation recorded but WooCommerce update failed. Please check.');
+            }
+
+            this.closeAllocateModal();
+            // Refresh data
+            await Promise.all([
+                this.fetchStockRecords(),
+                this.fetchInventoryProducts()
+            ]);
+        } catch (error) {
+            console.error('Error allocating stock:', error);
+            alert('Failed to allocate stock. Please try again.');
+        }
+    };
+
+    handleDocumentClick = (e) => {
+        if (this.filterProductDropdownRef.current && !this.filterProductDropdownRef.current.contains(e.target)) {
+            // If search text is empty when closing, clear the applied filter to show all
+            if (this.state.filterProductDropdownOpen && this.state.filterProductSearch === '') {
+                this.setState({ filterProduct: '', filterProductDropdownOpen: false });
+            } else {
+                this.setState({ filterProductDropdownOpen: false });
+            }
+        }
+        if (this.filterLocationDropdownRef.current && !this.filterLocationDropdownRef.current.contains(e.target)) {
+            if (this.state.filterLocationDropdownOpen && this.state.filterLocationSearch === '') {
+                this.setState({ filterLocation: '', filterLocationDropdownOpen: false });
+            } else {
+                this.setState({ filterLocationDropdownOpen: false });
+            }
+        }
+        if (this.allocateProductDropdownRef.current && !this.allocateProductDropdownRef.current.contains(e.target)) {
+            this.setState({ allocateProductDropdownOpen: false });
+        }
+    };
+
+    getFilterProductOptions = () => {
+        const query = this.state.filterProductSearch.toLowerCase();
+        const unique = [...new Set(this.state.inventoryProducts.map(p => p.name).filter(Boolean))];
+        return query ? unique.filter(n => n.toLowerCase().includes(query)) : unique;
+    };
+
+    getFilterLocationOptions = () => {
+        const query = this.state.filterLocationSearch.toLowerCase();
+        const unique = [...new Set(this.state.inventoryProducts.map(p => p.variation_name).filter(Boolean))];
+        return query ? unique.filter(n => n.toLowerCase().includes(query)) : unique;
+    };
+
+    selectFilterProduct = (name) => {
+        this.setState({ filterProduct: name, filterProductSearch: '', filterProductDropdownOpen: false });
+    };
+
+    selectFilterLocation = (loc) => {
+        this.setState({ filterLocation: loc, filterLocationSearch: '', filterLocationDropdownOpen: false });
+    };
+
+    getFilteredGroupedProducts = () => {
+        const { filterProduct, filterLocation } = this.state;
+        let groups = this.getGroupedProducts();
+        if (filterProduct) {
+            groups = groups.filter(g => g.name.toLowerCase().includes(filterProduct.toLowerCase()));
+        }
+        if (filterLocation) {
+            groups = groups.map(g => ({
+                ...g,
+                variants: g.variants.filter(v => v.variation_name && v.variation_name.toLowerCase().includes(filterLocation.toLowerCase()))
+            })).filter(g => g.variants.length > 0);
+        }
+        return groups;
+    };
+
+    getFilteredVariants = () => {
+        const { inventoryProducts, filterProduct, filterLocation } = this.state;
+        let variants = inventoryProducts;
+        if (filterProduct) {
+            variants = variants.filter(p => p.name && p.name.toLowerCase().includes(filterProduct.toLowerCase()));
+        }
+        if (filterLocation) {
+            variants = variants.filter(p => p.variation_name && p.variation_name.toLowerCase().includes(filterLocation.toLowerCase()));
+        }
+        return variants;
+    };
+
+    // Get allocation count for a product at a location (Stock Out + Allocation records)
+    getAllocationIn = (productName, locationName) => {
+        const { stockRecords } = this.state;
+        const nameLower = productName.toLowerCase();
+        const locLower = locationName.toLowerCase();
+        return stockRecords
+            .filter(r => (r.product || '').toLowerCase() === nameLower && r.type === 'Stock Out' && (r.location || '').toLowerCase() === locLower)
+            .reduce((sum, r) => sum + (parseInt(r.quantity) || 0), 0);
+    };
+
+    // Get sold count for a product at a location from stockRecords (Purchases type)
+    getLocationSold = (productName, locationName) => {
+        const { stockRecords } = this.state;
+        const nameLower = productName.toLowerCase();
+        const locLower = locationName.toLowerCase();
+        return stockRecords
+            .filter(r => (r.product || '').toLowerCase() === nameLower && r.type === 'Purchases' && (r.location || '').toLowerCase() === locLower)
+            .reduce((sum, r) => sum + (parseInt(r.quantity) || 0), 0);
     };
 
     render() {
@@ -261,28 +569,144 @@ class InventoryStore extends Component {
                 <div className="inventory-heading">
                     <h2>Inventory Store</h2>
                 </div>
+
+                {/* Tabs */}
+                {!['Site in-charge', 'NSA in-charge', 'Fitness Trainer'].includes(this.props.role) && (
+                    <div className="records-sub-tabs">
+                        <button
+                            className={`records-sub-tab${this.state.activeTab === 'store' ? ' active' : ''}`}
+                            onClick={() => this.setState({ activeTab: 'store' })}
+                        >
+                            Store Inventory
+                        </button>
+                        <button
+                            className={`records-sub-tab${this.state.activeTab === 'variants' ? ' active' : ''}`}
+                            onClick={() => this.setState({ activeTab: 'variants' })}
+                        >
+                            Sub Products
+                        </button>
+                    </div>
+                )}
+
                 <div className="inventory-content">
+                    {/* Filters */}
+                    <div className="stock-filter-bar">
+                        <div className="stock-filter-row">
+                            <div className="stock-filter-field">
+                                <label>Product</label>
+                                <div className="stock-filter-dropdown" ref={this.filterProductDropdownRef}>
+                                    <input
+                                        type="text"
+                                        placeholder={this.state.filterProduct || "Search product..."}
+                                        value={this.state.filterProductDropdownOpen ? this.state.filterProductSearch : this.state.filterProduct}
+                                        onChange={e => this.setState({ filterProductSearch: e.target.value, filterProductDropdownOpen: true })}
+                                        onFocus={() => this.setState({ filterProductSearch: '', filterProductDropdownOpen: true })}
+                                    />
+                                    {this.state.filterProductDropdownOpen && this.getFilterProductOptions().length > 0 && (
+                                        <ul className="stock-filter-dropdown-list">
+                                            {this.getFilterProductOptions().map((name, idx) => (
+                                                <li key={idx} className="stock-filter-dropdown-item" onClick={() => this.selectFilterProduct(name)}>
+                                                    {name}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
+                            </div>
+                            {this.state.activeTab === 'variants' && (
+                                <div className="stock-filter-field">
+                                    <label>Location</label>
+                                    <div className="stock-filter-dropdown" ref={this.filterLocationDropdownRef}>
+                                        <input
+                                            type="text"
+                                            placeholder={this.state.filterLocation || "Search location..."}
+                                            value={this.state.filterLocationDropdownOpen ? this.state.filterLocationSearch : this.state.filterLocation}
+                                            onChange={e => this.setState({ filterLocationSearch: e.target.value, filterLocationDropdownOpen: true })}
+                                            onFocus={() => this.setState({ filterLocationSearch: '', filterLocationDropdownOpen: true })}
+                                        />
+                                        {this.state.filterLocationDropdownOpen && this.getFilterLocationOptions().length > 0 && (
+                                            <ul className="stock-filter-dropdown-list">
+                                                {this.getFilterLocationOptions().map((loc, idx) => (
+                                                    <li key={idx} className="stock-filter-dropdown-item" onClick={() => this.selectFilterLocation(loc)}>
+                                                        {loc}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
                 {inventoryProducts.length === 0 ? (
                     <div className="inventory-empty-state">
                         <i className="fas fa-boxes"></i>
                         <h3>No Products Found</h3>
                         <p>No products in the Inventory category.</p>
                     </div>
-                ) : (
+                ) : this.state.activeTab === 'store' ? (
+                    /* Store Inventory Tab - One card per product with location badges */
                     <div className="inventory-grid">
-                        {inventoryProducts.map((product) => (
-                            <div key={product.id} className="inventory-card">
-                                <div className="inventory-card-image">
-                                    {product.images && product.images.length > 0 ? (
-                                        <img src={product.images[0].src} alt={product.name} />
-                                    ) : (
-                                        <div className="no-image">
-                                            <i className="fas fa-image"></i>
+                        {this.getFilteredGroupedProducts().map((group) => {
+                            const storeStock = this.getStoreStock(group.name);
+                            return (
+                                <div key={group.name} className="inventory-store-card-wrapper">
+                                    <div className="inventory-card">
+                                        {group.images && group.images.length > 0 ? (
+                                            <div className="inventory-card-image">
+                                                <img src={group.images[0].src} alt={group.name} />
+                                            </div>
+                                        ) : null}
+                                        <div className="inventory-card-content">
+                                            <h3 className="inventory-card-title">{group.name}</h3>
+                                            <div className="inventory-card-details">
+                                                <span className={`inventory-store-stock ${storeStock > 0 ? 'has-stock' : 'no-stock'}`}>
+                                                    <b>Store Stock:&nbsp;</b> {storeStock}
+                                                </span>
+                                            </div>
+                                            {/* Location allocation badges */}
+                                            {group.variants.filter(v => v.variation_name).length > 0 && (
+                                                <div className="inventory-location-badges">
+                                                    {group.variants.filter(v => v.variation_name).map((v, idx) => {
+                                                        const allocated = parseInt(v.stock_quantity) || 0;
+                                                        const sold = this.getLocationSold(group.name, v.variation_name);
+                                                        const total = allocated + sold;
+                                                        return (
+                                                            <div key={idx} className="inventory-location-badge-row">
+                                                                <span className="inventory-location-label">{v.variation_name}</span>
+                                                                <span className={`inventory-location-stock ${allocated > 0 ? 'has-stock' : 'no-stock'}`}>
+                                                                    Stock: {allocated}
+                                                                </span>
+                                                                <span className={`inventory-location-stock ${sold > 0 ? 'has-stock' : 'no-stock'}`}>
+                                                                    Sold: {sold}
+                                                                </span>
+                                                                <span className={`inventory-location-stock ${total > 0 ? 'has-stock' : 'no-stock'}`}>
+                                                                    Total: {total}
+                                                                </span>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
+                                    </div>
                                 </div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    /* Sub Products Tab - Original card layout */
+                    <div className="inventory-grid">
+                        {this.getFilteredVariants().map((product) => (
+                            <div key={product.id} className="inventory-card">
+                                {product.images && product.images.length > 0 ? (
+                                    <div className="inventory-card-image">
+                                        <img src={product.images[0].src} alt={product.name} />
+                                    </div>
+                                ) : null}
                                 <div className="inventory-card-content">
-                                    <h1 className="inventory-card-title">{product.name}</h1>
+                                    <h3 className="inventory-card-title">{product.name}</h3>
                                     {product.variation_name && (
                                         <div className="inventory-card-variation">
                                             <i className="fas fa-map-marker-alt"></i>
@@ -295,11 +719,14 @@ class InventoryStore extends Component {
                                         </span>
                                         <span className="inventory-sold">
                                             <b>Unit Sold:&nbsp;</b> {this.getSoldCount(product.name, product.variation_name)}
-                                        </span>                                    
+                                        </span>
                                     </div>
-                                    <div className="inventory-card-details">                                       
-                                        <span className="inventory-amount" style={{flex: 0.45}}>
+                                    <div className="inventory-card-details">
+                                        <span className="inventory-amount" style={{flex: 0.5}}>
                                             <b>Sales Revenue:&nbsp;</b> ${this.getSoldAmount(product.name, product.variation_name).toFixed(2)}
+                                        </span>
+                                        <span className="inventory-total" style={{flex: 0.5}}>
+                                            <b>Total:&nbsp;</b> {(parseInt(product.stock_quantity) || 0) + this.getSoldCount(product.name, product.variation_name)}
                                         </span>
                                     </div>
                                 </div>
@@ -307,7 +734,106 @@ class InventoryStore extends Component {
                         ))}
                     </div>
                 )}
-            </div>
+                </div>
+
+                {/* Allocation Modal */}
+                {this.state.showAllocateModal && (
+                    <div className="stock-modal-overlay" onClick={this.closeAllocateModal}>
+                        <div className="stock-modal" onClick={(e) => e.stopPropagation()}>
+                            <div className="stock-modal-header">
+                                <h3>Allocate Stock</h3>
+                            </div>
+                            <div className="stock-modal-body">
+                                <form id="allocate-stock-form" className="stock-modal-form" onSubmit={this.handleAllocateSubmit}>
+                                    <div className="stock-modal-field">
+                                        <label>Product</label>
+                                        <div className="incoming-dropdown" ref={this.allocateProductDropdownRef}>
+                                            <input
+                                                type="text"
+                                                className="incoming-dropdown-input"
+                                                value={this.state.allocateForm.product}
+                                                onFocus={() => this.setState({ allocateProductDropdownOpen: true })}
+                                                onChange={(e) => {
+                                                    this.handleAllocateFormChange('product', e.target.value);
+                                                    this.setState({ allocateProductDropdownOpen: true, allocateStoreStock: 0, allocateVariants: [], allocateForm: { ...this.state.allocateForm, product: e.target.value, location: '' } });
+                                                }}
+                                                placeholder="Select product"
+                                                required
+                                            />
+                                            {this.state.allocateProductDropdownOpen && this.getAvailableProductsForAllocation().length > 0 && (
+                                                <ul className="incoming-dropdown-list">
+                                                    {this.getAvailableProductsForAllocation().map((name, idx) => (
+                                                        <li key={idx} className="incoming-dropdown-item" onClick={() => this.selectAllocateProduct(name)}>
+                                                            {name}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="stock-modal-field">
+                                        <label>Allocate To (Location)</label>
+                                        <div className="incoming-dropdown">
+                                            <input
+                                                type="text"
+                                                className="incoming-dropdown-input"
+                                                value={this.state.allocateForm.location}
+                                                onFocus={() => this.setState({ allocateLocationDropdownOpen: true })}
+                                                onChange={(e) => {
+                                                    this.handleAllocateFormChange('location', e.target.value);
+                                                    this.setState({ allocateLocationDropdownOpen: true });
+                                                }}
+                                                placeholder="Select location"
+                                                required
+                                            />
+                                            {this.state.allocateLocationDropdownOpen && this.state.allocateVariants.length > 0 && (
+                                                <ul className="incoming-dropdown-list">
+                                                    {this.state.allocateVariants
+                                                        .filter(v => !this.state.allocateForm.location || v.toLowerCase().includes(this.state.allocateForm.location.toLowerCase()))
+                                                        .map((v, idx) => (
+                                                            <li key={idx} className="incoming-dropdown-item" onClick={() => this.selectAllocateLocation(v)}>
+                                                                {v}
+                                                            </li>
+                                                        ))}
+                                                </ul>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="stock-modal-field">
+                                        <label>Available Store Stock</label>
+                                        <input type="text" value={this.state.allocateStoreStock} readOnly />
+                                    </div>
+                                    <div className="stock-modal-field">
+                                        <label>Quantity to Allocate</label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max={this.state.allocateStoreStock}
+                                            value={this.state.allocateForm.quantity}
+                                            onChange={(e) => this.handleAllocateFormChange('quantity', e.target.value)}
+                                            placeholder="Enter quantity"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="stock-modal-field">
+                                        <label>Updated By</label>
+                                        <input
+                                            type="text"
+                                            value={this.state.allocateForm.updatedBy}
+                                            onChange={(e) => this.handleAllocateFormChange('updatedBy', e.target.value)}
+                                            placeholder="Enter name"
+                                            required
+                                        />
+                                    </div>
+                                </form>
+                            </div>
+                            <div className="stock-modal-footer">
+                                <button type="button" className="stock-modal-cancel" onClick={this.closeAllocateModal}>Cancel</button>
+                                <button type="submit" form="allocate-stock-form" className="stock-modal-submit">Allocate</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </>
         );
     }

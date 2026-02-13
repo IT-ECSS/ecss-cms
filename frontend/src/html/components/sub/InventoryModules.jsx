@@ -11,39 +11,39 @@ class InventoryModules extends Component {
 
         return (
             <>
-                {/* Tab Content */}
-                {activeTab === 'store' && (
+                {/* Tab Content - all tabs stay mounted so SSE connections persist */}
+                <div style={{ display: activeTab === 'store' ? 'block' : 'none' }}>
                     <InventoryStore 
                         userName={this.props.userName}
                         role={this.props.role}
                         siteIC={this.props.siteIC}
                         language={this.props.language}
                     />
-                )}
-                {activeTab === 'form' && (
+                </div>
+                <div style={{ display: activeTab === 'form' ? 'block' : 'none' }}>
                     <InventoryForm 
                         userName={this.props.userName}
                         role={this.props.role}
                         siteIC={this.props.siteIC}
                         language={this.props.language}
                     />
-                )}
-                {activeTab === 'records' && (
+                </div>
+                <div style={{ display: activeTab === 'records' ? 'block' : 'none' }}>
                     <InventoryRecords 
                         userName={this.props.userName}
                         role={this.props.role}
                         siteIC={this.props.siteIC}
                         language={this.props.language}
                     />
-                )}
-                {activeTab === 'invoices' && (
+                </div>
+                <div style={{ display: activeTab === 'invoices' ? 'block' : 'none' }}>
                     <InventoryInvoices 
                         userName={this.props.userName}
                         role={this.props.role}
                         siteIC={this.props.siteIC}
                         language={this.props.language}
                     />
-                )}
+                </div>
             </>
         );
     }

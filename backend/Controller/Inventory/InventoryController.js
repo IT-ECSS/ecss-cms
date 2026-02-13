@@ -166,12 +166,13 @@ class InventoryController
                 const collectionName = "Inventory";
 
                 const stockRecord = {
-                    type: payload.type || "Incoming",
+                    type: payload.type || "Stock In",
                     product: payload.product,
                     location: payload.location,
                     date: payload.date,
                     time: payload.time,
                     quantity: parseInt(payload.quantity),
+                    reason: payload.reason || '',
                     updatedBy: payload.updatedBy,
                     createdAt: new Date()
                 };
@@ -237,6 +238,59 @@ class InventoryController
             return {
                 success: false,
                 message: "Error retrieving stock records",
+                error: error.message || String(error)
+            };
+        }
+        finally {
+            await this.databaseConnectivity.close();
+        }
+    }
+
+    async insertStockAllocation(payload)
+    {
+        try {
+            const result = await this.databaseConnectivity.initialize();
+            console.log("Database Connectivity:", result);
+
+            if (result === "Connected to MongoDB Atlas!") {
+                const databaseName = "Company-Management-System";
+                const collectionName = "Inventory";
+                const now = new Date();
+
+                // Single allocation record
+                const allocationRecord = {
+                    type: "Stock Out",
+                    product: payload.product,
+                    location: payload.location,
+                    date: payload.date,
+                    time: payload.time,
+                    quantity: parseInt(payload.quantity),
+                    reason: payload.reason || '',
+                    updatedBy: payload.updatedBy,
+                    createdAt: now
+                };
+
+                const insertResult = await this.databaseConnectivity.insertToDatabase(databaseName, collectionName, allocationRecord);
+                console.log("Allocation Result:", insertResult);
+
+                return {
+                    success: true,
+                    message: "Stock allocation recorded successfully",
+                    data: { ...allocationRecord, _id: insertResult?.insertedId || null }
+                };
+            } else {
+                return {
+                    success: false,
+                    message: "Failed to connect to database",
+                    error: result || "Database connection failed"
+                };
+            }
+        }
+        catch (error) {
+            console.error("Stock allocation insert error:", error);
+            return {
+                success: false,
+                message: "Error inserting stock allocation",
                 error: error.message || String(error)
             };
         }

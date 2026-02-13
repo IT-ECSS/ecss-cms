@@ -142,6 +142,22 @@ router.post('/', async function(req, res, next)
             var result = await controller.retrieveStockRecords();
             return res.json(result);
         }
+        else if(req.body.purpose === "insertStockAllocation")
+        {
+            console.log("Inserting Stock Allocation:", req.body.payload);
+            var controller = new InventoryController();
+            var result = await controller.insertStockAllocation(req.body.payload);
+
+            if (io && result && result.success) {
+                console.log("Emitting stock allocation event to all connected clients");
+                io.emit('inventory', {
+                    action: 'insertStockAllocation',
+                    data: result.data || {}
+                });
+            }
+
+            return res.json(result);
+        }
         else if(req.body.purpose === "clearAllStock")
         {
             console.log("Clearing All Stock Records");

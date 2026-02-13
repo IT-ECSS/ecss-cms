@@ -12,23 +12,29 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 class InventoryRecords extends Component {
     constructor(props) {
         super(props);
+        const restrictedRoles = ['Site in-charge', 'NSA in-charge', 'Fitness Trainer'];
+        const isRestricted = restrictedRoles.includes(props.role);
         this.state = {
-            activeTab: 'stock', // 'stock' or 'orders'
+            activeTab: isRestricted ? 'orders' : 'stock', // 'stock' or 'orders'
             records: [],
             stockRecords: [],
             isLoading: true,
             error: null,
-            // Incoming modal
+            // Stock Adjustment modal
             showIncomingModal: false,
             inventoryProducts: [],
             productDropdownOpen: false,
             locationDropdownOpen: false,
+            actionDropdownOpen: false,
+            reasonDropdownOpen: false,
             incomingForm: {
+                action: 'Stock In',
                 product: '',
                 location: '',
                 date: '',
                 time: '',
                 quantity: '',
+                reason: '',
                 updatedBy: ''
             },
             selectedProduct: null,
@@ -53,6 +59,8 @@ class InventoryRecords extends Component {
         this.stockGridApi = null;
         this.productDropdownRef = React.createRef();
         this.locationDropdownRef = React.createRef();
+        this.actionDropdownRef = React.createRef();
+        this.reasonDropdownRef = React.createRef();
         this.filterProductDropdownRef = React.createRef();
         this.filterLocationDropdownRef = React.createRef();
         this.orderFilterProductDropdownRef = React.createRef();
@@ -97,8 +105,8 @@ class InventoryRecords extends Component {
 
             if (response.data.success) {
                 const allRecords = response.data.records || [];
-                // Filter out Incoming stock records from order records
-                const orderRecords = allRecords.filter(r => !r.type || r.type !== 'Incoming');
+                // Order records = Purchases entries only
+                const orderRecords = allRecords.filter(r => r.type === 'Purchases');
                 this.setState({
                     records: orderRecords,
                     isLoading: false
@@ -161,18 +169,20 @@ class InventoryRecords extends Component {
         this.setState({
             showIncomingModal: true,
             incomingForm: {
+                action: 'Stock In',
                 product: '',
-                location: '',
+                location: 'Store',
                 date,
                 time,
                 quantity: '',
+                reason: '',
                 updatedBy: this.props.userName || ''
             }
         });
     };
 
     closeIncomingModal = () => {
-        this.setState({ showIncomingModal: false, productDropdownOpen: false, locationDropdownOpen: false });
+        this.setState({ showIncomingModal: false, productDropdownOpen: false, locationDropdownOpen: false, actionDropdownOpen: false, reasonDropdownOpen: false });
     };
 
     handleDocumentClick = (e) => {
@@ -181,6 +191,12 @@ class InventoryRecords extends Component {
         }
         if (this.locationDropdownRef.current && !this.locationDropdownRef.current.contains(e.target)) {
             this.setState({ locationDropdownOpen: false });
+        }
+        if (this.actionDropdownRef.current && !this.actionDropdownRef.current.contains(e.target)) {
+            this.setState({ actionDropdownOpen: false });
+        }
+        if (this.reasonDropdownRef.current && !this.reasonDropdownRef.current.contains(e.target)) {
+            this.setState({ reasonDropdownOpen: false });
         }
         if (this.filterProductDropdownRef.current && !this.filterProductDropdownRef.current.contains(e.target)) {
             this.setState({ filterProductDropdownOpen: false });
@@ -250,25 +266,53 @@ class InventoryRecords extends Component {
             });
         }
 
-        for (const p of inventoryProducts) {
-            if (!p.name) continue;
-            if (!productMap[p.name]) {
-                productMap[p.name] = { name: p.name, locations: [] };
+        // Get unique product names from inventory products
+        const productNames = [...new Set(inventoryProducts.map(p => p.name).filter(Boolean))];
+
+        for (const name of productNames) {
+            productMap[name] = { name, locations: [] };
+
+            // Total Stock In for this product (case-insensitive match)
+            const nameLower = name.toLowerCase();
+            const totalStockIn = filteredStockRecords
+                .filter(r => (r.product || '').toLowerCase() === nameLower && r.type === 'Stock In')
+                .reduce((sum, r) => sum + (parseInt(r.quantity) || 0), 0);
+
+            // Total Stock Out for this product (case-insensitive match)
+            const totalStockOut = filteredStockRecords
+                .filter(r => (r.product || '').toLowerCase() === nameLower && r.type === 'Stock Out')
+                .reduce((sum, r) => sum + (parseInt(r.quantity) || 0), 0);
+
+            // Total Purchases for this product (case-insensitive match)
+            const totalPurchases = filteredStockRecords
+                .filter(r => (r.product || '').toLowerCase() === nameLower && r.type === 'Purchases')
+                .reduce((sum, r) => sum + (parseInt(r.quantity) || 0), 0);
+
+            // Calculate per-variant sold based on Purchases
+            const variants = inventoryProducts.filter(p => p.name === name);
+            for (const p of variants) {
+                const loc = p.variation_name || '';
+                const locLower = loc.toLowerCase();
+                const stockOut = filteredStockRecords
+                    .filter(r => (r.product || '').toLowerCase() === nameLower && (r.location || '').toLowerCase() === locLower && r.type === 'Stock Out')
+                    .reduce((sum, r) => sum + (parseInt(r.quantity) || 0), 0);
+                const purchases = filteredStockRecords
+                    .filter(r => (r.product || '').toLowerCase() === nameLower && (r.location || '').toLowerCase() === locLower && r.type === 'Purchases')
+                    .reduce((sum, r) => sum + (parseInt(r.quantity) || 0), 0);
+                productMap[name].locations.push({ location: loc, inventoryStock: totalStockIn, stockOut, unitsSold: purchases });
             }
-            const loc = p.variation_name || '';
-            const incoming = filteredStockRecords
-                .filter(r => r.product === p.name && r.location === loc && r.type === 'Incoming')
-                .reduce((sum, r) => sum + (parseInt(r.quantity) || 0), 0);
-            const outgoing = filteredStockRecords
-                .filter(r => r.product === p.name && r.location === loc && r.type === 'Outgoing')
-                .reduce((sum, r) => sum + (parseInt(r.quantity) || 0), 0);
-            productMap[p.name].locations.push({ location: loc, inventoryStock: incoming - outgoing, unitsSold: outgoing });
+
+            // Store product-level totals
+            productMap[name].totalStockIn = totalStockIn;
+            productMap[name].totalStockOut = totalStockOut;
+            productMap[name].totalPurchases = totalPurchases;
         }
 
         let results = Object.values(productMap).map(product => ({
             name: product.name,
-            totalStock: product.locations.reduce((s, l) => s + l.inventoryStock, 0),
-            totalSold: product.locations.reduce((s, l) => s + l.unitsSold, 0),
+            totalStock: product.totalStockIn,
+            totalStockOut: product.totalStockOut,
+            totalSold: product.totalPurchases,
             locations: product.locations
         }));
 
@@ -387,7 +431,7 @@ class InventoryRecords extends Component {
         e.preventDefault();
         const { incomingForm } = this.state;
 
-        if (!incomingForm.product || !incomingForm.location || !incomingForm.date || !incomingForm.time || !incomingForm.quantity || !incomingForm.updatedBy) {
+        if (!incomingForm.product || !incomingForm.date || !incomingForm.time || !incomingForm.quantity || !incomingForm.updatedBy) {
             alert('Please fill in all fields.');
             return;
         }
@@ -400,12 +444,13 @@ class InventoryRecords extends Component {
             const response = await axios.post(`${backendUrl}/inventory`, {
                 purpose: "insertStock",
                 payload: {
-                    type: "Incoming",
+                    type: incomingForm.action || 'Stock In',
                     product: incomingForm.product,
                     location: incomingForm.location,
                     date: incomingForm.date,
                     time: incomingForm.time,
                     quantity: incomingForm.quantity,
+                    reason: incomingForm.reason,
                     updatedBy: incomingForm.updatedBy
                 }
             });
@@ -413,24 +458,32 @@ class InventoryRecords extends Component {
             if (response.data.success) {
                 console.log('Stock record inserted:', response.data);
 
-                // Also increase WooCommerce stock
+                // Close modal immediately
+                this.closeIncomingModal();
+                await this.fetchStockRecords();
+
+                // Update WooCommerce stock via Django backend (in background)
                 try {
                     const djangoUrl = window.location.hostname === "localhost"
                         ? "http://localhost:3002"
-                        : "https://ecss-backend.azurewebsites.net";
+                        : "https://ecss-backend-django.azurewebsites.net";
 
-                    await axios.post(`${djangoUrl}/inventory_incoming/`, {
+                    const wooResponse = await axios.post(`${djangoUrl}/inventory_stock_adjustment/`, {
+                        action: incomingForm.action || 'Stock In',
                         product: incomingForm.product,
+                        quantity: incomingForm.quantity,
                         location: incomingForm.location,
-                        quantity: incomingForm.quantity
+                        reason: incomingForm.reason
                     });
-                    console.log('WooCommerce stock increased successfully');
-                } catch (wooErr) {
-                    console.error('Failed to increase WooCommerce stock:', wooErr);
-                }
 
-                this.closeIncomingModal();
-                await this.fetchStockRecords();
+                    if (wooResponse.data.success) {
+                        console.log('WooCommerce stock updated:', wooResponse.data);
+                    } else {
+                        console.error('WooCommerce stock update failed:', wooResponse.data.error);
+                    }
+                } catch (wooError) {
+                    console.error('Error updating WooCommerce stock:', wooError);
+                }
             } else {
                 alert(response.data.error || 'Failed to insert stock record.');
             }
@@ -492,12 +545,13 @@ class InventoryRecords extends Component {
 
         const exportData = stockRecords.map((r, i) => ({
             'S/N': i + 1,
-            'Type': r.type || '',
+            'Action': r.type || '',
             'Product': r.product || '',
             'Location': r.location || '',
             'Date': r.date || r.orderDate || '',
             'Time': r.time || r.orderTime || '',
             'Quantity': r.quantity || '',
+            'Reason': r.reason || '',
             'Updated By': r.updatedBy || r.staffName || ''
         }));
 
@@ -622,7 +676,7 @@ class InventoryRecords extends Component {
             pinned: 'left',
         },
         { 
-            headerName: 'Type', 
+            headerName: 'Action', 
             field: 'type', 
             width: 200,
             pinned: 'left'
@@ -660,6 +714,12 @@ class InventoryRecords extends Component {
             cellStyle: { textAlign: 'center' },
         },
         { 
+            headerName: 'Reason', 
+            field: 'reason', 
+            width: 500,
+            valueGetter: (params) => params.data?.reason || '',
+        },
+        { 
             headerName: 'Updated By', 
             pinned: 'right',
             width: 200,
@@ -690,6 +750,8 @@ class InventoryRecords extends Component {
 
     render() {
         const { activeTab, records, isLoading, error } = this.state;
+        const restrictedRoles = ['Site in-charge', 'NSA in-charge', 'Fitness Trainer'];
+        const isRestricted = restrictedRoles.includes(this.props.role);
 
         return (
             <>
@@ -698,6 +760,7 @@ class InventoryRecords extends Component {
                 </div>
 
                 {/* Sub-tabs */}
+                {!isRestricted && (
                 <div className="records-sub-tabs">
                     <button
                         className={`records-sub-tab${activeTab === 'stock' ? ' active' : ''}`}
@@ -712,6 +775,7 @@ class InventoryRecords extends Component {
                         Order Records
                     </button>
                 </div>
+                )}
 
                 {/* Tab content */}
                 {activeTab === 'stock' && (
@@ -782,16 +846,7 @@ class InventoryRecords extends Component {
                             </div>
                         </div>
 
-                        {/* Toggle Cards Button */}
-                        <div className="stock-toggle-cards-row">
-                            <button className="stock-toggle-cards-btn" onClick={this.toggleCards}>
-                                <i className={`fas fa-chevron-${this.state.showCards ? 'up' : 'down'}`}></i>
-                                {this.state.showCards ? 'Hide' : 'Show'} Product Summary Cards
-                            </button>
-                        </div>
-
-                        {/* Product Summary Cards - Togglable */}
-                        {this.state.showCards && (
+                        {/* Product Summary Cards - Always Visible */}
                         <div className="stock-product-cards">
                             {this.getProductSummaryCards().map((card, idx) => (
                                 <div key={card.name} className={`stock-product-card stock-product-card-${idx % 3}${this.state.selectedProduct === card.name ? ' stock-product-card-active' : ''}`} onClick={() => this.toggleCardExpand(card.name)} style={{ cursor: 'pointer' }}>
@@ -808,21 +863,27 @@ class InventoryRecords extends Component {
                                     <div className="stock-product-card-stats">
                                         <div className="stock-product-stat incoming">
                                             <span className="stat-value">{card.totalStock}</span>
-                                            <span className="stat-label">Inventory Stock</span>
+                                            <span className="stat-label">Stock In</span>
+                                        </div>
+                                        <div className="stock-product-stat stockout">
+                                            <span className="stat-value">{card.totalStockOut}</span>
+                                            <span className="stat-label">Stock Out</span>
                                         </div>
                                         <div className="stock-product-stat outgoing">
                                             <span className="stat-value">{card.totalSold}</span>
-                                            <span className="stat-label">Units Sold</span>
+                                            <span className="stat-label">Purchases</span>
+                                        </div>
+                                        <div className="stock-product-stat balance">
+                                            <span className="stat-value">{card.totalStock - card.totalStockOut - card.totalSold}</span>
+                                            <span className="stat-label">Stock Balance</span>
                                         </div>
                                     </div>
                                 </div>
                             ))}
                         </div>
 
-                        )}
-
                         {/* Drill-down Location Cards */}
-                        {this.state.showCards && this.state.selectedProduct !== null && (
+                        {this.state.selectedProduct !== null && (
                             <div className="stock-drilldown-section">
                                 <div className="stock-drilldown-header">
                                     <h3 className="stock-drilldown-title">
@@ -845,12 +906,16 @@ class InventoryRecords extends Component {
                                                 <div className="stock-product-card-divider"></div>
                                                 <div className="stock-product-card-stats">
                                                     <div className="stock-product-stat incoming">
-                                                        <span className="stat-value">{loc.inventoryStock}</span>
+                                                        <span className="stat-value">{loc.stockOut}</span>
                                                         <span className="stat-label">Inventory Stock</span>
                                                     </div>
                                                     <div className="stock-product-stat outgoing">
                                                         <span className="stat-value">{loc.unitsSold}</span>
-                                                        <span className="stat-label">Units Sold</span>
+                                                        <span className="stat-label">Unit Sold</span>
+                                                    </div>
+                                                    <div className="stock-product-stat balance">
+                                                        <span className="stat-value">{loc.stockOut - loc.unitsSold}</span>
+                                                        <span className="stat-label">Balance</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -860,9 +925,11 @@ class InventoryRecords extends Component {
                         )}
 
                         <div className="stock-records-toolbar">
+                            {!isRestricted && (
                             <button className="stock-incoming-btn" onClick={this.openIncomingModal}>
-                                Incoming
+                                Stock Adjustment
                             </button>
+                            )}
                             {this.state.stockRecords.length > 0 && (
                                 <button className="stock-export-btn" onClick={this.exportStockToExcel}>
                                     Export
@@ -1013,15 +1080,79 @@ class InventoryRecords extends Component {
                         )}
                     </div>
                 )}
-                {/* Incoming Modal */}
+                {/* Stock Adjustment Modal */}
                 {this.state.showIncomingModal && (
                     <div className="stock-modal-overlay" onClick={this.closeIncomingModal}>
                         <div className="stock-modal" onClick={(e) => e.stopPropagation()}>
                             <div className="stock-modal-header">
-                                <h3>Incoming Stock</h3>
+                                <h3>Stock Adjustment</h3>
                             </div>
                             <div className="stock-modal-body">
                                 <form id="incoming-stock-form" className="stock-modal-form" onSubmit={this.handleIncomingSubmit}>
+                                    <div className="stock-modal-field">
+                                        <label>Action</label>
+                                        <div className="incoming-dropdown" ref={this.actionDropdownRef}>
+                                            <input
+                                                type="text"
+                                                className="incoming-dropdown-input"
+                                                value={this.state.incomingForm.action}
+                                                onFocus={() => this.setState({ actionDropdownOpen: true })}
+                                                readOnly
+                                                required
+                                                style={{ cursor: 'pointer' }}
+                                            />
+                                            {this.state.actionDropdownOpen && (
+                                                <ul className="incoming-dropdown-list">
+                                                    {['Stock In', 'Stock Out'].map((opt, idx) => (
+                                                        <li key={idx} className="incoming-dropdown-item" onClick={() => {
+                                                            this.handleIncomingFormChange('action', opt);
+                                                            this.handleIncomingFormChange('reason', '');
+                                                            // Stock In defaults to Store, Stock Out clears location for user to select
+                                                            this.handleIncomingFormChange('location', opt === 'Stock In' ? 'Store' : '');
+                                                            this.setState({ actionDropdownOpen: false });
+                                                        }}>
+                                                            {opt}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="stock-modal-field">
+                                        <label>Reason</label>
+                                        <div className="incoming-dropdown" ref={this.reasonDropdownRef}>
+                                            <input
+                                                type="text"
+                                                className="incoming-dropdown-input"
+                                                value={this.state.incomingForm.reason}
+                                                onFocus={() => this.setState({ reasonDropdownOpen: true })}
+                                                readOnly
+                                                style={{ cursor: 'pointer' }}
+                                                placeholder="Select reason"
+                                            />
+                                            {this.state.reasonDropdownOpen && (
+                                                <ul className="incoming-dropdown-list">
+                                                    {(this.state.incomingForm.action === 'Stock Out'
+                                                        ? ['To different centres', 'Return to supplier']
+                                                        : ['Purchase', 'Return of damaged goods']
+                                                    ).map((opt, idx) => (
+                                                        <li key={idx} className="incoming-dropdown-item" onClick={() => {
+                                                            this.handleIncomingFormChange('reason', opt);
+                                                            // If selecting 'Return of damaged goods', clear location so user must pick one
+                                                            if (opt === 'Return of damaged goods') {
+                                                                this.handleIncomingFormChange('location', '');
+                                                            } else if (this.state.incomingForm.action === 'Stock In') {
+                                                                this.handleIncomingFormChange('location', 'Store');
+                                                            }
+                                                            this.setState({ reasonDropdownOpen: false });
+                                                        }}>
+                                                            {opt}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            )}
+                                        </div>
+                                    </div>
                                     <div className="stock-modal-field">
                                         <label>Product</label>
                                         <div className="incoming-dropdown" ref={this.productDropdownRef}>
@@ -1050,29 +1181,38 @@ class InventoryRecords extends Component {
                                     </div>
                                     <div className="stock-modal-field">
                                         <label>Location</label>
-                                        <div className="incoming-dropdown" ref={this.locationDropdownRef}>
+                                        {this.state.incomingForm.action === 'Stock In' && this.state.incomingForm.reason !== 'Return of damaged goods' ? (
                                             <input
                                                 type="text"
                                                 className="incoming-dropdown-input"
-                                                value={this.state.incomingForm.location}
-                                                onChange={(e) => {
-                                                    this.handleIncomingFormChange('location', e.target.value);
-                                                    this.setState({ locationDropdownOpen: true });
-                                                }}
-                                                onFocus={() => this.setState({ locationDropdownOpen: true })}
-                                                placeholder="Enter location"
-                                                required
+                                                value="Store"
                                             />
-                                            {this.state.locationDropdownOpen && this.getFilteredLocations().length > 0 && (
-                                                <ul className="incoming-dropdown-list">
-                                                    {this.getFilteredLocations().map((loc, idx) => (
-                                                        <li key={idx} className="incoming-dropdown-item" onClick={() => this.selectLocation(loc)}>
-                                                            {loc}
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            )}
-                                        </div>
+                                        ) : (
+                                            <div className="incoming-dropdown" ref={this.locationDropdownRef}>
+                                                <input
+                                                    type="text"
+                                                    className="incoming-dropdown-input"
+                                                    value={this.state.incomingForm.location}
+                                                    onFocus={() => this.setState({ locationDropdownOpen: true })}
+                                                    readOnly
+                                                    required
+                                                    style={{ cursor: 'pointer' }}
+                                                    placeholder="Select location"
+                                                />
+                                                {this.state.locationDropdownOpen && (
+                                                    <ul className="incoming-dropdown-list">
+                                                        {this.getFilteredLocations().map((loc, idx) => (
+                                                            <li key={idx} className="incoming-dropdown-item" onClick={() => {
+                                                                this.handleIncomingFormChange('location', loc);
+                                                                this.setState({ locationDropdownOpen: false });
+                                                            }}>
+                                                                {loc}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="stock-modal-field">
                                         <label>Date</label>
