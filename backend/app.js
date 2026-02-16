@@ -33,34 +33,20 @@ var inventoryRouter = require('./routes/inventory');
 var LogsRouter = require('./routes/logs');
 
 
-app.use(cors()); // Enable CORS
-app.use(logger('dev')); // HTTP request logger
-app.use(express.json()); // For parsing JSON
-app.use(express.urlencoded({ extended: true })); // For parsing URL-encoded data
-app.use(cookieParser()); // For parsing cookies
-
-// Set up views (if you're using templates)okok
+// Set up views
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
 
 // Trust proxy for Azure App Service
 app.set('trust proxy', 1);
 
-// Remove request timeout middleware to allow unlimited operation time
-// This enables multiple users to perform long-running operations without timeout
-
-// Configure middleware in correct order
-app.use(logger('dev'));
-
-// CORS configuration
-const allowedOrigins = process.env.NODE_ENV === 'production' 
-  ? ['https://salmon-wave-09f02b100.6.azurestaticapps.net'] // Production only
-  : [
-      'https://salmon-wave-09f02b100.6.azurestaticapps.net', // Production frontend
-      'http://localhost:3000', // Development frontend
-      'http://localhost:3001', // Alternative dev port
-      'http://127.0.0.1:3000'  // Alternative localhost format
-    ];
+// CORS configuration - allow both production and localhost origins
+const allowedOrigins = [
+  'https://salmon-wave-09f02b100.6.azurestaticapps.net', // Production frontend
+  'http://localhost:3000', // Development frontend
+  'http://localhost:3001', // Alternative dev port
+  'http://127.0.0.1:3000'  // Alternative localhost format
+];
 
 app.use(cors({
   origin: function (origin, callback) {
@@ -71,26 +57,19 @@ app.use(cors({
       callback(null, true);
     } else {
       console.log('CORS blocked origin:', origin);
-      callback(new Error('Not allowed by CORS'));
+      callback(null, false);
     }
   },
-  credentials: true, // Important for SingPass authentication
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Content-Disposition'], 
+  allowedHeaders: ['Content-Type', 'Authorization', 'Content-Disposition'],
   exposedHeaders: ['Content-Disposition']
 }));
 
-// Payload parsing with increased limits for Azure App Service (BEFORE routes)
-app.use(express.json({ 
-  limit: '10mb'
-}));
-
-app.use(express.urlencoded({ 
-  limit: '10mb',
-  extended: true,
-  parameterLimit: 50000
-}));
-
+// Middleware
+app.use(logger('dev'));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true, parameterLimit: 50000 }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 

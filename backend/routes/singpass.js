@@ -9,8 +9,6 @@ const CLIENT_ID = "ZrjDybXZeOFUA70KYMwb1dnfmdEXFfAS"
 const JWTTOKENURL = "https://id.singpass.gov.sg";
 const SPTOKENURL = "https://id.singpass.gov.sg/token";
 
-process.env.NODE_ENV = process.env.NODE_ENV || 'development';
-
 const REDIRECT_URI = "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback";
 
 const USERINFO_URL = "https://id.singpass.gov.sg/userinfo";
@@ -850,9 +848,6 @@ async function invokeUserEndpoint(accessToken, options = {}, dpopKeyPair = null)
 // =============================================================================
 router.post('/par', async (req, res) => {
   try {
-    res.header('Access-Control-Allow-Origin', 'https://salmon-wave-09f02b100.6.azurestaticapps.net');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
     
     await initializeJose();
     
@@ -997,19 +992,11 @@ router.post('/par', async (req, res) => {
 });
 
 // FAPI 2.0: Handle CORS preflight for PAR
-router.options('/par', (req, res) => {
-  res.header('Access-Control-Allow-Origin', 'https://salmon-wave-09f02b100.6.azurestaticapps.net');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.sendStatus(200);
-});
+// CORS preflight for PAR is handled by app-level cors middleware
 
 // Update the main token endpoint to use Step 5: User Endpoint instead of UserInfo
 router.post('/token', async (req, res) => {
   try {
-    res.header('Access-Control-Allow-Origin', 'https://salmon-wave-09f02b100.6.azurestaticapps.net');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Platform');
-    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
     
     // Ensure jose is initialized
     await initializeJose();
@@ -1354,12 +1341,7 @@ router.post('/token', async (req, res) => {
 });
 
 // Handle CORS preflight requests
-router.options('/token', (req, res) => {
-  res.header('Access-Control-Allow-Origin', 'https://salmon-wave-09f02b100.6.azurestaticapps.net');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.sendStatus(200);
-});
+// CORS preflight for token is handled by app-level cors middleware
 
 // Legacy endpoint for backward compatibility
 router.post('/', async (req, res) => {
