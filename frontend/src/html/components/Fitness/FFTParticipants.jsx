@@ -257,14 +257,13 @@ class FFTParticipants extends Component {
 
     return (
       <div className="fft-participants-wrapper">
-        <button className="fft-participants-back-btn" onClick={onBack}>
-          <span className="fft-participants-back-icon"><i className="fas fa-arrow-left"></i></span>
-          Back to Home
-        </button>
-
         <div className="fft-participants-header">
-          <h2 className="fft-participants-title">恩群社区服务乐龄体适能评估表</h2>
-          <p className="fft-participants-subtitle">ECSS Functional Fitness Test for Elderly</p>
+          <button className="fft-participants-back-btn" onClick={onBack}>
+            <span className="fft-participants-back-icon"><i className="fas fa-arrow-left"></i></span>
+            Back
+          </button>
+          <h2 className="fft-participants-title">ECSS Functional Fitness Test for Elderly</h2>
+          <p className="fft-participants-subtitle">恩群社区服务乐龄体适能评估表</p>
         </div>
 
         <form className="fft-participants-form" onSubmit={this.handleSubmit}>
@@ -279,13 +278,6 @@ class FFTParticipants extends Component {
                 Choose how you would like to fill in your information.
               </p>
               <div className="fft-participants-flex-button-container">
-                <button
-                  type="button"
-                  className="fft-participants-next-button"
-                  onClick={this.handleProceedWithoutSingPass}
-                >
-                  Next 下一步
-                </button>
                 <SingPassButton
                   buttonText="Retrieve Myinfo with"
                   onAuthenticationSuccess={this.handleSingPassSuccess}
@@ -297,6 +289,13 @@ class FFTParticipants extends Component {
                     }
                   }}
                 />
+                <button
+                  type="button"
+                  className="fft-participants-next-button"
+                  onClick={this.handleProceedWithoutSingPass}
+                >
+                  Fill in the form manually 手动填写表格
+                </button>
               </div>
             </div>
           )}
