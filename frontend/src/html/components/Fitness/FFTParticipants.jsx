@@ -267,35 +267,60 @@ class FFTParticipants extends Component {
         </div>
 
         <form className="fft-participants-form" onSubmit={this.handleSubmit}>
-          {/* Pre-Section: Login Method — same layout as formPage.jsx */}
+          {/* Pre-Section: App Purpose, MyInfo Consent & Login Method */}
           {!loginMethod && (
             <div className="fft-participants-section fft-participants-presection">
-              <div className="fft-participants-section-header">
-                <span className="fft-participants-section-icon"><i className="fas fa-sign-in-alt"></i></span>
-                <h3 className="fft-participants-section-title">Login Method 登录方式</h3>
+              {/* App Purpose */}
+              <div className="fft-participants-consent-intro">
+                <h3 className="fft-participants-consent-heading">ECSS FFT Participants Form</h3>
+                <p className="fft-participants-consent-heading-cn">恩群社区服务乐龄体适能评估表 — 参与者表格</p>
               </div>
-              <p className="fft-participants-presection-desc">
-                Choose how you would like to fill in your information.
-              </p>
-              <div className="fft-participants-flex-button-container">
-                <SingPassButton
-                  buttonText="Retrieve Myinfo with"
-                  onAuthenticationSuccess={this.handleSingPassSuccess}
-                  onMyInfoError={this.handleMyInfoError}
-                  onError={(error) => {
-                    console.error('SingPass error (FFT):', error);
-                    if (error.message?.includes('MyInfo') || error.message?.includes('unavailable')) {
-                      this.handleMyInfoError(error.message);
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  className="fft-participants-next-button"
-                  onClick={this.handleProceedWithoutSingPass}
-                >
-                  Fill in the form manually 手动填写表格
-                </button>
+
+              {/* MyInfo Consent */}
+              <div className="fft-participants-consent-block">
+                <h4 className="fft-participants-consent-title">
+                  <i className="fas fa-shield-alt"></i> Myinfo Consent 个人资料同意书
+                </h4>
+                <p className="fft-participants-consent-text">
+                  By submitting this form, I consent to En Community Services Society (ECSS) collecting, using, and disclosing my personal data, as provided in this form, for purposes related to the Functional Fitness Test programme administration and communications, in accordance with the Personal Data Protection Act 2012 (PDPA).
+                </p>
+                <p className="fft-participants-consent-text fft-participants-consent-text--cn">
+                  提交此表格即表示我同意恩群社区服务（ECSS）根据《个人资料保护法》（PDPA）收集、使用和披露我在此表格中提供的个人资料，用于乐龄体适能评估活动的管理和通讯目的。
+                </p>
+                <p className="fft-participants-consent-text fft-participants-consent-text--note">
+                  <i className="fas fa-camera"></i> Photographs and videos may be taken during the session for publicity purposes.
+                </p>
+                <p className="fft-participants-consent-text fft-participants-consent-text--note">
+                  活动期间可能会拍摄照片和视频用于宣传目的。
+                </p>
+              </div>
+
+              {/* Login Method */}
+              <div className="fft-participants-consent-action">
+                <p className="fft-participants-presection-desc">
+                  Choose how you would like to fill in your information.<br />
+                  请选择您希望如何填写信息。
+                </p>
+                <div className="fft-participants-flex-button-container">
+                  <SingPassButton
+                    buttonText="Retrieve Myinfo with"
+                    onAuthenticationSuccess={this.handleSingPassSuccess}
+                    onMyInfoError={this.handleMyInfoError}
+                    onError={(error) => {
+                      console.error('SingPass error (FFT):', error);
+                      if (error.message?.includes('MyInfo') || error.message?.includes('unavailable')) {
+                        this.handleMyInfoError(error.message);
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="fft-participants-next-button"
+                    onClick={this.handleProceedWithoutSingPass}
+                  >
+                    Fill in the form manually 手动填写表格
+                  </button>
+                </div>
               </div>
             </div>
           )}

@@ -20,6 +20,32 @@ const REDIRECT_URI = "https://salmon-wave-09f02b100.6.azurestaticapps.net/callba
 //const USERINFO_URL = "https://stg-id.singpass.gov.sg/userinfo";
 const USERINFO_URL = "https://id.singpass.gov.sg/userinfo";
 
+// FAPI 2.0: DPoP (Demonstrating Proof of Possession) support
+const { generateDPoPKeyPair, generateDPoPProof, computeAccessTokenHash, storeDPoPKeyPair, getDPoPKeyPair, removeDPoPKeyPair } = require('../Others/SingPass/dpop');
+
+// FAPI 2.0: OpenID Discovery configuration cache
+let openidConfigCache = null;
+let openidConfigCacheTime = 0;
+const OPENID_CONFIG_CACHE_TTL = 3600000; // 1 hour in ms
+
+async function fetchOpenIDConfiguration() {
+  const now = Date.now();
+  if (openidConfigCache && (now - openidConfigCacheTime) < OPENID_CONFIG_CACHE_TTL) {
+    return openidConfigCache;
+  }
+  try {
+    const response = await axios.get(`${JWTTOKENURL}/.well-known/openid-configuration`, { timeout: 10000 });
+    openidConfigCache = response.data;
+    openidConfigCacheTime = now;
+    console.log('FAPI 2.0: OpenID Configuration fetched and cached');
+    return openidConfigCache;
+  } catch (error) {
+    console.error('Failed to fetch OpenID configuration:', error.message);
+    if (openidConfigCache) return openidConfigCache;
+    throw error;
+  }
+}
+
 // Initialize jose as null and import it dynamically
 let jose = null;
 
@@ -214,25 +240,38 @@ async function signJwtAsJws(payload, signingJwk, kid) {
 }
 
 // Enhanced UserInfo function with better debugging and error handling
-async function fetchUserInfo(accessToken, options = {}) {
-  const { retries = 2, timeout = 15000 } = options; // Increased timeout for Azure SWA
+// FAPI 2.0: Added dpopKeyPair parameter for DPoP support
+async function fetchUserInfo(accessToken, options = {}, dpopKeyPair = null) {
+  const { retries = 2, timeout = 15000 } = options;
   let attempt = 0;
   
   console.log('=== USERINFO DEBUG START ===');
   console.log('Access Token (first 20 chars):', accessToken?.substring(0, 20) + '...');
   console.log('UserInfo URL:', USERINFO_URL);
+  console.log('FAPI 2.0 DPoP:', dpopKeyPair ? 'enabled' : 'disabled');
   
   while (attempt <= retries) {
     try {
       console.log(`UserInfo request attempt ${attempt + 1}/${retries + 1}`);
       
+      // FAPI 2.0: Generate fresh DPoP proof for each attempt
+      const requestHeaders = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'SingPass-Integration-AzureSWA/1.0'
+      };
+      if (dpopKeyPair) {
+        const ath = computeAccessTokenHash(accessToken);
+        const dpopProof = await generateDPoPProof(dpopKeyPair.privateKey, dpopKeyPair.publicJwk, 'GET', USERINFO_URL, ath);
+        requestHeaders['Authorization'] = `DPoP ${accessToken}`;
+        requestHeaders['DPoP'] = dpopProof;
+        console.log('FAPI 2.0: DPoP proof generated for UserInfo request');
+      } else {
+        requestHeaders['Authorization'] = `Bearer ${accessToken}`;
+      }
+      
       const response = await axios.get(USERINFO_URL, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'User-Agent': 'SingPass-Integration-AzureSWA/1.0'
-        },
+        headers: requestHeaders,
         timeout,
         validateStatus: status => status < 600 // Accept all responses for debugging
       });
@@ -313,6 +352,12 @@ async function fetchUserInfo(accessToken, options = {}) {
             
             console.log("Decrypted UserInfo fields:", Object.keys(decryptedUserInfo));
             
+            // FAPI 2.0: Check for person_info wrapper in response
+            if (decryptedUserInfo.person_info) {
+              console.log("FAPI 2.0: Extracting data from person_info wrapper");
+              decryptedUserInfo = { ...decryptedUserInfo, ...decryptedUserInfo.person_info };
+            }
+            
             // Extract and process user data
             const rawExtractedData = {
               sub: decryptedUserInfo.sub,
@@ -374,6 +419,12 @@ async function fetchUserInfo(accessToken, options = {}) {
           
           console.log("Parsed UserInfo fields:", Object.keys(parsedUserInfo));
           console.log("UserInfo sample data:", JSON.stringify(parsedUserInfo, null, 2).substring(0, 500));
+          
+          // FAPI 2.0: Check for person_info wrapper in response
+          if (parsedUserInfo.person_info) {
+            console.log("FAPI 2.0: Extracting data from person_info wrapper");
+            parsedUserInfo = { ...parsedUserInfo, ...parsedUserInfo.person_info };
+          }
           
           const rawExtractedData = {
             sub: parsedUserInfo.sub,
@@ -484,7 +535,8 @@ async function fetchUserInfo(accessToken, options = {}) {
 }
 
 // Enhanced Step 5: Invoke the User Endpoint following SingPass specification exactly
-async function invokeUserEndpoint(accessToken, options = {}) {
+// FAPI 2.0: Added dpopKeyPair parameter for DPoP support
+async function invokeUserEndpoint(accessToken, options = {}, dpopKeyPair = null) {
   const { retries = 2, timeout = 15000 } = options;
   let attempt = 0;
   
@@ -495,19 +547,31 @@ async function invokeUserEndpoint(accessToken, options = {}) {
   console.log('=== STEP 5: USER ENDPOINT DEBUG START ===');
   console.log('User Endpoint URL:', USER_ENDPOINT_URL);
   console.log('Access Token (first 20 chars):', accessToken?.substring(0, 20) + '...');
+  console.log('FAPI 2.0 DPoP:', dpopKeyPair ? 'enabled' : 'disabled');
   
   while (attempt <= retries) {
     try {
       console.log(`Step 5 User endpoint request attempt ${attempt + 1}/${retries + 1}`);
       
-      // Step 5: Make request to User endpoint with proper headers as per SingPass spec
+      // FAPI 2.0: Generate fresh DPoP proof for each attempt
+      const requestHeaders = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'SingPass-Integration-AzureSWA/1.0'
+      };
+      if (dpopKeyPair) {
+        const ath = computeAccessTokenHash(accessToken);
+        const dpopProof = await generateDPoPProof(dpopKeyPair.privateKey, dpopKeyPair.publicJwk, 'GET', USER_ENDPOINT_URL, ath);
+        requestHeaders['Authorization'] = `DPoP ${accessToken}`;
+        requestHeaders['DPoP'] = dpopProof;
+        console.log('FAPI 2.0: DPoP proof generated for User endpoint request');
+      } else {
+        requestHeaders['Authorization'] = `Bearer ${accessToken}`;
+      }
+      
+      // Step 5: Make request to User endpoint with proper headers
       const response = await axios.get(USER_ENDPOINT_URL, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'User-Agent': 'SingPass-Integration-AzureSWA/1.0'
-        },
+        headers: requestHeaders,
         timeout,
         validateStatus: status => status < 600 // Accept all responses for debugging
       });
@@ -588,6 +652,12 @@ async function invokeUserEndpoint(accessToken, options = {}) {
             
             console.log("Step 5 decrypted user data fields:", Object.keys(decryptedUserData));
             
+            // FAPI 2.0: Check for person_info wrapper in response
+            if (decryptedUserData.person_info) {
+              console.log("FAPI 2.0: Extracting data from person_info wrapper");
+              decryptedUserData = { ...decryptedUserData, ...decryptedUserData.person_info };
+            }
+            
             // Extract and process Step 5 user data following SingPass specification
             const rawExtractedData = {
               sub: decryptedUserData.sub,
@@ -661,6 +731,12 @@ async function invokeUserEndpoint(accessToken, options = {}) {
           
           console.log("Step 5 parsed user data fields:", Object.keys(parsedUserData));
           console.log("Step 5 user data sample:", JSON.stringify(parsedUserData, null, 2).substring(0, 500));
+          
+          // FAPI 2.0: Check for person_info wrapper in response
+          if (parsedUserData.person_info) {
+            console.log("FAPI 2.0: Extracting data from person_info wrapper");
+            parsedUserData = { ...parsedUserData, ...parsedUserData.person_info };
+          }
           
           const rawExtractedData = {
             sub: parsedUserData.sub,
@@ -775,6 +851,167 @@ async function invokeUserEndpoint(accessToken, options = {}) {
   };
 }
 
+// =============================================================================
+// FAPI 2.0: Pushed Authorization Request (PAR) endpoint
+// =============================================================================
+router.post('/par', async (req, res) => {
+  try {
+    res.header('Access-Control-Allow-Origin', 'https://salmon-wave-09f02b100.6.azurestaticapps.net');
+    //res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    
+    await initializeJose();
+    
+    const { scope, redirect_uri, state, nonce, code_challenge, code_challenge_method } = req.body;
+    
+    console.log('FAPI 2.0 PAR request received:', { 
+      scope: scope?.substring(0, 30) + '...', 
+      redirect_uri, 
+      state: state?.substring(0, 8) + '...', 
+      nonce: nonce?.substring(0, 8) + '...' 
+    });
+    
+    // Validate required parameters
+    if (!scope || !redirect_uri || !state || !nonce || !code_challenge || !code_challenge_method) {
+      return res.status(400).json({ 
+        error: 'invalid_request', 
+        error_description: 'Missing required PAR parameters' 
+      });
+    }
+    
+    // Step 1: Generate ephemeral DPoP key pair for this authentication flow
+    const dpopKeyPair = await generateDPoPKeyPair();
+    console.log('FAPI 2.0: DPoP key pair generated');
+    
+    // Store DPoP key pair associated with state for later token exchange
+    storeDPoPKeyPair(state, dpopKeyPair);
+    
+    // Step 2: Fetch OpenID configuration to get PAR endpoint
+    const openidConfig = await fetchOpenIDConfiguration();
+    const parEndpoint = openidConfig.pushed_authorization_request_endpoint;
+    
+    if (!parEndpoint) {
+      console.error('PAR endpoint not found in OpenID configuration');
+      removeDPoPKeyPair(state);
+      return res.status(500).json({ 
+        error: 'server_error', 
+        error_description: 'PAR endpoint not available in OpenID configuration' 
+      });
+    }
+    
+    console.log('FAPI 2.0 PAR endpoint:', parEndpoint);
+    
+    // Step 3: Generate client assertion JWT for PAR request
+    const SIGNATURE_PRIVATE_KEY = require("../Others/SingPass/Keys/private-signing-key.jwk.json");
+    const KID = SIGNATURE_PRIVATE_KEY.kid;
+    
+    const nowTime = moment().unix();
+    const futureTime = moment().add(2, "minutes").unix();
+    
+    const jwtPayload = {
+      sub: CLIENT_ID,
+      iss: CLIENT_ID,
+      aud: JWTTOKENURL,
+      iat: nowTime,
+      exp: futureTime,
+      jti: `${CLIENT_ID}_par_${nowTime}`
+    };
+    
+    const clientAssertion = await signJwtAsJws(jwtPayload, SIGNATURE_PRIVATE_KEY, KID);
+    console.log('FAPI 2.0: Client assertion generated for PAR');
+    
+    // Step 4: Generate DPoP proof for PAR endpoint
+    const dpopProof = await generateDPoPProof(dpopKeyPair.privateKey, dpopKeyPair.publicJwk, 'POST', parEndpoint);
+    console.log('FAPI 2.0: DPoP proof generated for PAR');
+    
+    // Step 5: Send PAR request to SingPass
+    const parRequestBody = {
+      client_id: CLIENT_ID,
+      response_type: 'code',
+      scope: scope,
+      redirect_uri: redirect_uri,
+      state: state,
+      nonce: nonce,
+      code_challenge: code_challenge,
+      code_challenge_method: code_challenge_method,
+      client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+      client_assertion: clientAssertion
+    };
+    
+    console.log('FAPI 2.0: Sending PAR request to SingPass...');
+    
+    const parResponse = await axios.post(
+      parEndpoint,
+      new URLSearchParams(parRequestBody),
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
+          'DPoP': dpopProof
+        },
+        timeout: 15000,
+        validateStatus: status => status < 600
+      }
+    );
+    
+    console.log('FAPI 2.0 PAR response status:', parResponse.status);
+    console.log('FAPI 2.0 PAR response data:', JSON.stringify(parResponse.data).substring(0, 200));
+    
+    if (parResponse.status !== 201 && parResponse.status !== 200) {
+      // Clean up DPoP key pair on failure
+      removeDPoPKeyPair(state);
+      
+      return res.status(parResponse.status).json({
+        error: parResponse.data?.error || 'par_request_failed',
+        error_description: parResponse.data?.error_description || 'Pushed Authorization Request failed',
+        details: parResponse.data
+      });
+    }
+    
+    const { request_uri, expires_in } = parResponse.data;
+    
+    if (!request_uri) {
+      removeDPoPKeyPair(state);
+      return res.status(500).json({
+        error: 'invalid_par_response',
+        error_description: 'No request_uri in PAR response'
+      });
+    }
+    
+    console.log('FAPI 2.0: PAR successful, request_uri:', request_uri);
+    
+    // Return request_uri and authorization endpoint to frontend
+    return res.status(200).json({
+      request_uri: request_uri,
+      expires_in: expires_in,
+      authorization_endpoint: openidConfig.authorization_endpoint || 'https://id.singpass.gov.sg/auth'
+    });
+    
+  } catch (error) {
+    console.error('FAPI 2.0 PAR error:', error.message);
+    
+    // Clean up DPoP key pair on error
+    const { state } = req.body || {};
+    if (state) removeDPoPKeyPair(state);
+    
+    return res.status(500).json({
+      error: 'server_error',
+      error_description: 'PAR request processing failed',
+      message: error.message
+    });
+  }
+});
+
+// FAPI 2.0: Handle CORS preflight for PAR
+router.options('/par', (req, res) => {
+  //res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+  res.header('Access-Control-Allow-Origin', 'https://salmon-wave-09f02b100.6.azurestaticapps.net');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.sendStatus(200);
+});
+
 // Update the main token endpoint to use Step 5: User Endpoint instead of UserInfo
 router.post('/token', async (req, res) => {
   try {
@@ -789,6 +1026,15 @@ router.post('/token', async (req, res) => {
     // Extract parameters from request body (following SingPass Step 4 exactly)
     const { code, code_verifier, state, platform, href } = req.body;
     console.log("Request body parameters:", req)
+    
+    // FAPI 2.0: Retrieve DPoP key pair for this authentication flow
+    const dpopKeyPair = state ? getDPoPKeyPair(state) : null;
+    const isFAPI2 = !!dpopKeyPair;
+    if (isFAPI2) {
+      console.log('FAPI 2.0: DPoP key pair found for state, using FAPI 2.0 flow');
+    } else {
+      console.log('Legacy flow: No DPoP key pair found, using legacy Bearer flow');
+    }
     
     // Validate required parameters
     if (!code) {
@@ -861,17 +1107,25 @@ router.post('/token', async (req, res) => {
         client_assertion: clientAssertion
       };
 
+      // FAPI 2.0: Generate DPoP proof for token exchange
+      let tokenExchangeHeaders = { 
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Accept": "application/json",
+        "User-Agent": "SingPass-Integration-AzureSWA/1.0",
+        "Cache-Control": "no-cache"
+      };
+      if (isFAPI2) {
+        const tokenDPoPProof = await generateDPoPProof(dpopKeyPair.privateKey, dpopKeyPair.publicJwk, 'POST', SPTOKENURL);
+        tokenExchangeHeaders['DPoP'] = tokenDPoPProof;
+        console.log('FAPI 2.0: DPoP proof added to token exchange request');
+      }
+
       // Make the token exchange request with proper headers
       const response = await axios.post(
         SPTOKENURL,
         new URLSearchParams(tokenRequest),
         {
-          headers: { 
-            "Content-Type": "application/x-www-form-urlencoded",
-            "Accept": "application/json",
-            "User-Agent": "SingPass-Integration-AzureSWA/1.0",
-            "Cache-Control": "no-cache"
-          },
+          headers: tokenExchangeHeaders,
           timeout: 30000, // Increased timeout for Azure SWA
           validateStatus: function (status) {
             return status < 600; // Don't throw for any status code less than 600
@@ -982,7 +1236,7 @@ router.post('/token', async (req, res) => {
         const userEndpointResult = await invokeUserEndpoint(tokenData.access_token, { 
           retries: 2, 
           timeout: 15000 
-        });
+        }, dpopKeyPair);
         
         userEndpointDebug = userEndpointResult.debug || {};
         
@@ -1003,7 +1257,7 @@ router.post('/token', async (req, res) => {
           const userInfoResult = await fetchUserInfo(tokenData.access_token, { 
             retries: 2, 
             timeout: 15000 
-          });
+          }, dpopKeyPair);
           
           if (userInfoResult.success) {
             userProfile = userInfoResult.extractedData;
@@ -1077,6 +1331,12 @@ router.post('/token', async (req, res) => {
       console.log("Final response has userProfile:", !!userProfile);
       console.log("Individual fields extracted:", Object.keys(extractedFields).filter(key => extractedFields[key] !== null));
       console.log("Response data keys:", response.data);
+      
+      // FAPI 2.0: Clean up DPoP key pair after successful authentication
+      if (state && isFAPI2) {
+        removeDPoPKeyPair(state);
+        console.log('FAPI 2.0: DPoP key pair cleaned up');
+      }
       
       return res.status(200).json(response);
       

@@ -20,8 +20,7 @@ const oidcConfig = {
   // SingPass specific settings
   response_mode: "query",
   prompt: "login",
-  // Additional SingPass required parameters
-  acr_values: "2", // Authentication Context Class Reference
+  // FAPI 2.0: acr_values removed (replaced by authentication_context_type for Login apps; not needed for Myinfo)
   nonce: true, // Enable nonce for security
   state: true, // Enable state parameter
   // Disable features not supported by SingPass

@@ -1,4 +1,5 @@
 import React, { Component } from "react";
+import axios from 'axios';
 
 class SingPassButton extends Component {
   constructor(props) {
@@ -220,38 +221,41 @@ class SingPassButton extends Component {
       const state = window.crypto.randomUUID();
       const nonce = window.crypto.randomUUID();
 
-      // SingPass Authorization Endpoint - exact URL from documentation
-      const authorizationEndpoint = "https://id.singpass.gov.sg/auth";
-      //const authorizationEndpoint = "https://stg-id.singpass.gov.sg/auth"
-      
-      // Required parameters with EXACT SingPass scopes as approved
-      const authParams = new URLSearchParams({
-        //client_id: "mHlUcRS43LOQAjkYJ22MNvSpE8vzPmfo",
-        client_id: "ZrjDybXZeOFUA70KYMwb1dnfmdEXFfAS", // Exact client ID as per SingPass documentation
-        response_type: "code",
-        // EXACT SingPass scope format - space-separated as approved by SingPass
-        scope: "openid dob email mobileno name race regadd residentialstatus sex uinfin",
-        //redirect_uri:"http://localhost:3000/callback",
-        redirect_uri:"https://salmon-wave-09f02b100.6.azurestaticapps.net/callback",
-        state: state,
-        nonce: nonce,
-        code_challenge: codeChallenge,
-        code_challenge_method: "S256",
-        response_mode: "query",
-        prompt: "login",
-        acr_values: "2"
-      });
-
       // Store PKCE parameters for token exchange
       sessionStorage.setItem('singpass_state', state);
       sessionStorage.setItem('singpass_nonce', nonce);
       sessionStorage.setItem('singpass_code_verifier', codeVerifier);
+
+      // FAPI 2.0: Use Pushed Authorization Request (PAR)
+      //const backendParUrl = "http://localhost:3001/singpass/par";
+      const backendParUrl = "https://ecss-backend-node.azurewebsites.net/singpass/par";
       
-      // Build authorization URL exactly as per specification
-      const authorizationUrl = `${authorizationEndpoint}?${authParams.toString()}`;
+      console.log('FAPI 2.0: Sending Pushed Authorization Request via backend...');
       
-      console.log('SingPass Authorization URL with exact approved scopes:', authorizationUrl);
-      console.log('Azure SWA redirect URI:', authParams.get('redirect_uri'));
+      const parResponse = await axios.post(backendParUrl, {
+        scope: "openid dob email mobileno name race regadd residentialstatus sex uinfin",
+        //redirect_uri: "http://localhost:3000/callback",
+        redirect_uri: "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback",
+        state: state,
+        nonce: nonce,
+        code_challenge: codeChallenge,
+        code_challenge_method: "S256"
+      }, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 15000
+      });
+      
+      if (!parResponse.data || !parResponse.data.request_uri) {
+        throw new Error('PAR request failed: No request_uri received');
+      }
+      
+      const { request_uri, authorization_endpoint } = parResponse.data;
+      const authEndpoint = authorization_endpoint || "https://id.singpass.gov.sg/auth";
+      
+      // FAPI 2.0: Redirect with only client_id and request_uri
+      const authorizationUrl = `${authEndpoint}?client_id=ZrjDybXZeOFUA70KYMwb1dnfmdEXFfAS&request_uri=${encodeURIComponent(request_uri)}`;
+      
+      console.log('FAPI 2.0 Authorization URL:', authorizationUrl);
       
       // Call optional pre-redirect callback
       if (this.props.onBeforeRedirect) {

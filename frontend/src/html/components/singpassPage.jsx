@@ -78,27 +78,36 @@ class SingpassPage extends Component {
       const codeChallenge = await this.generateCodeChallenge(codeVerifier);
       const state = window.crypto.randomUUID();
       const nonce = window.crypto.randomUUID();
-      //const authorizationEndpoint = "https://stg-id.singpass.gov.sg/auth";
-      const authorizationEndpoint = "https://id.singpass.gov.sg/auth";
-      const authParams = new URLSearchParams({
-        //client_id: "mHlUcRS43LOQAjkYJ22MNvSpE8vzPmfo",
-        client_id: "ZrjDybXZeOFUA70KYMwb1dnfmdEXFfAS",
-        response_type: "code",
+      // Store PKCE parameters for token exchange
+      sessionStorage.setItem('singpass_state', state);
+      sessionStorage.setItem('singpass_nonce', nonce);
+      sessionStorage.setItem('singpass_code_verifier', codeVerifier);
+
+      // FAPI 2.0: Use Pushed Authorization Request (PAR)
+      //const backendParUrl = "http://localhost:3001/singpass/par";
+      const backendParUrl = "https://ecss-backend-node.azurewebsites.net/singpass/par";
+      
+      const parResponse = await axios.post(backendParUrl, {
         scope: "openid dob email mobileno name race regadd residentialstatus sex uinfin",
         //redirect_uri: "http://localhost:3000/callback",
         redirect_uri: "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback",
         state: state,
         nonce: nonce,
         code_challenge: codeChallenge,
-        code_challenge_method: "S256",
-        response_mode: "query",
-        prompt: "login",
-        acr_values: "2"
+        code_challenge_method: "S256"
+      }, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 15000
       });
-      sessionStorage.setItem('singpass_state', state);
-      sessionStorage.setItem('singpass_nonce', nonce);
-      sessionStorage.setItem('singpass_code_verifier', codeVerifier);
-      const authorizationUrl = `${authorizationEndpoint}?${authParams.toString()}`;
+      
+      if (!parResponse.data || !parResponse.data.request_uri) {
+        throw new Error('PAR request failed: No request_uri received');
+      }
+      
+      const { request_uri, authorization_endpoint } = parResponse.data;
+      const authEndpoint = authorization_endpoint || "https://id.singpass.gov.sg/auth";
+      const authorizationUrl = `${authEndpoint}?client_id=ZrjDybXZeOFUA70KYMwb1dnfmdEXFfAS&request_uri=${encodeURIComponent(request_uri)}`;
+      
       this.setState({ redirecting: true });
       window.location.href = authorizationUrl;
     } catch (error) {
