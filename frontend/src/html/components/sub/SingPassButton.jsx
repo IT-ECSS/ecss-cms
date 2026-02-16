@@ -227,14 +227,12 @@ class SingPassButton extends Component {
       sessionStorage.setItem('singpass_code_verifier', codeVerifier);
 
       // FAPI 2.0: Use Pushed Authorization Request (PAR)
-      //const backendParUrl = "http://localhost:3001/singpass/par";
       const backendParUrl = "https://ecss-backend-node.azurewebsites.net/singpass/par";
       
       console.log('FAPI 2.0: Sending Pushed Authorization Request via backend...');
       
       const parResponse = await axios.post(backendParUrl, {
         scope: "openid dob email mobileno name race regadd residentialstatus sex uinfin",
-        //redirect_uri: "http://localhost:3000/callback",
         redirect_uri: "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback",
         state: state,
         nonce: nonce,

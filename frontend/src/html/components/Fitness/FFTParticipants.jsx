@@ -22,7 +22,7 @@ class FFTParticipants extends Component {
       healthQ4: '',
       // Programme Indemnity
       indemnityAgreed: false,
-      signatureDate: '',
+      signatureDate: new Date().toISOString().split('T')[0],
       // SingPass tracking (matches formPage.jsx pattern)
       singPassPopulatedFields: {},
     };
@@ -40,7 +40,7 @@ class FFTParticipants extends Component {
       }
       return false;
     } catch (error) {
-      console.error('Error checking SingPass authentication:', error);
+      // Error checking SingPass authentication
       return false;
     }
   };
@@ -50,7 +50,7 @@ class FFTParticipants extends Component {
       const userDataJson = sessionStorage.getItem('singpass_user_data_json');
       return userDataJson ? JSON.parse(userDataJson) : null;
     } catch (error) {
-      console.error('Error getting SingPass user data:', error);
+      // Error getting SingPass user data
       return null;
     }
   };
@@ -85,11 +85,8 @@ class FFTParticipants extends Component {
     try {
       const userData = this.getSingPassUserData();
       if (!userData) {
-        console.log('No SingPass user data available');
         return;
       }
-
-      console.log('SingPass user data:', userData);
 
       const genderCode = this.formatGender(userData.sex);
       const phoneNumber = this.extractMobileNumber(userData.mobileno);
@@ -146,9 +143,8 @@ class FFTParticipants extends Component {
         singPassPopulatedFields,
       });
 
-      console.log('FFT form populated with SingPass data successfully');
     } catch (error) {
-      console.error('Error populating FFT form with SingPass data:', error);
+      // Error populating FFT form with SingPass data
     }
   };
 
@@ -163,7 +159,7 @@ class FFTParticipants extends Component {
       singPassPopulatedFields: {},
       loginMethod: 'manual',
     });
-    console.log('SingPass data cleared, switched to manual entry');
+
   };
 
   // ── Handlers ──
@@ -201,7 +197,7 @@ class FFTParticipants extends Component {
 
   // Handler for SingPassButton success callback (same pattern as formPage.jsx)
   handleSingPassSuccess = () => {
-    console.log('SingPass authentication successful (FFT)');
+
     this.setState({ loginMethod: 'singpass' }, () => {
       this.populateFormWithSingPassData();
     });
@@ -209,7 +205,7 @@ class FFTParticipants extends Component {
 
   // Handler for MyInfo error from SingPassButton
   handleMyInfoError = (errorMessage = 'MyInfo is currently unavailable.') => {
-    console.error('MyInfo error occurred (FFT):', errorMessage);
+
     // Fall back to manual entry
     this.setState({
       loginMethod: 'manual',
@@ -224,12 +220,7 @@ class FFTParticipants extends Component {
   handleSubmit = (e) => {
     e.preventDefault();
     const { loginMethod, name, dob, phoneNo, gender, age, icNumber, healthQ1, healthQ2, healthQ3, healthQ4, indemnityAgreed, signatureDate } = this.state;
-    console.log('FFT Participant Form:', {
-      loginMethod,
-      particulars: { name, dob, phoneNo, gender, age, icNumber },
-      healthDeclaration: { healthQ1, healthQ2, healthQ3, healthQ4 },
-      indemnity: { indemnityAgreed, signatureDate },
-    });
+
   };
 
   // ── Lifecycle ──
@@ -307,7 +298,6 @@ class FFTParticipants extends Component {
                     onAuthenticationSuccess={this.handleSingPassSuccess}
                     onMyInfoError={this.handleMyInfoError}
                     onError={(error) => {
-                      console.error('SingPass error (FFT):', error);
                       if (error.message?.includes('MyInfo') || error.message?.includes('unavailable')) {
                         this.handleMyInfoError(error.message);
                       }
@@ -335,29 +325,13 @@ class FFTParticipants extends Component {
               <h3 className="fft-participants-section-title">Particulars 个人资料</h3>
             </div>
 
-            {/* SingPass data banner */}
-            {hasSingPassData && (
-              <div className="fft-participants-singpass-banner">
-                <div className="fft-participants-singpass-banner-info">
-                  <i className="fas fa-lock"></i>
-                  <span>Fields filled by Singpass are locked. 由Singpass填入的字段已被锁定。</span>
-                </div>
-                <button
-                  type="button"
-                  className="fft-participants-clear-singpass-btn"
-                  onClick={this.clearSingPassData}
-                >
-                  <i className="fas fa-trash-alt"></i> Clear Singpass Data
-                </button>
-              </div>
-            )}
+
 
             <div className="fft-participants-form-grid">
-              {/* Name — locked by SingPass */}
+              {/* Name */}
               <div className="fft-participants-field fft-participants-field--full">
                 <label className="fft-participants-label" htmlFor="fft-name">
                   姓名 Name
-                  {this.isFieldLocked('name') && <span className="fft-participants-lock-icon"><i className="fas fa-lock"></i></span>}
                 </label>
                 <input
                   id="fft-name"
@@ -372,11 +346,10 @@ class FFTParticipants extends Component {
                 />
               </div>
 
-              {/* DOB — locked by SingPass */}
+              {/* DOB */}
               <div className="fft-participants-field">
                 <label className="fft-participants-label" htmlFor="fft-dob">
                   生日 DOB
-                  {this.isFieldLocked('dob') && <span className="fft-participants-lock-icon"><i className="fas fa-lock"></i></span>}
                 </label>
                 <input
                   id="fft-dob"
@@ -408,11 +381,10 @@ class FFTParticipants extends Component {
                 />
               </div>
 
-              {/* IC Number — locked by SingPass */}
+              {/* IC Number */}
               <div className="fft-participants-field fft-participants-field--full">
                 <label className="fft-participants-label" htmlFor="fft-ic">
                   身份证号 IC Number
-                  {this.isFieldLocked('icNumber') && <span className="fft-participants-lock-icon"><i className="fas fa-lock"></i></span>}
                 </label>
                 <input
                   id="fft-ic"
@@ -444,11 +416,10 @@ class FFTParticipants extends Component {
                 />
               </div>
 
-              {/* Gender — locked by SingPass */}
+              {/* Gender */}
               <div className="fft-participants-field">
                 <label className="fft-participants-label" htmlFor="fft-gender">
                   性别 Gender
-                  {this.isFieldLocked('gender') && <span className="fft-participants-lock-icon"><i className="fas fa-lock"></i></span>}
                 </label>
                 <div className="fft-participants-gender-group">
                   <button

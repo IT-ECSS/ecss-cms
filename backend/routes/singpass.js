@@ -4,20 +4,15 @@ const moment = require('moment');
 const axios = require('axios');
 const path = require('path');
 
-// Constants defined at top level - Azure SWA environment handling
-//const CLIENT_ID = "mHlUcRS43LOQAjkYJ22MNvSpE8vzPmfo";
+// Constants defined at top level
 const CLIENT_ID = "ZrjDybXZeOFUA70KYMwb1dnfmdEXFfAS"
-//const JWTTOKENURL = "https://stg-id.singpass.gov.sg";
 const JWTTOKENURL = "https://id.singpass.gov.sg";
-//const SPTOKENURL = "https://stg-id.singpass.gov.sg/token";
 const SPTOKENURL = "https://id.singpass.gov.sg/token";
 
 process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 
-//const REDIRECT_URI = "http://localhost:3000/callback";
 const REDIRECT_URI = "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback";
 
-//const USERINFO_URL = "https://stg-id.singpass.gov.sg/userinfo";
 const USERINFO_URL = "https://id.singpass.gov.sg/userinfo";
 
 // FAPI 2.0: DPoP (Demonstrating Proof of Possession) support
@@ -540,8 +535,7 @@ async function invokeUserEndpoint(accessToken, options = {}, dpopKeyPair = null)
   const { retries = 2, timeout = 15000 } = options;
   let attempt = 0;
   
-  // Step 5: SingPass User Endpoint - exact URL from documentation
-  //const USER_ENDPOINT_URL = "https://stg-id.singpass.gov.sg/user";
+  // Step 5: SingPass User Endpoint
   const USER_ENDPOINT_URL = "https://id.singpass.gov.sg/user";
   
   console.log('=== STEP 5: USER ENDPOINT DEBUG START ===');
@@ -857,7 +851,6 @@ async function invokeUserEndpoint(accessToken, options = {}, dpopKeyPair = null)
 router.post('/par', async (req, res) => {
   try {
     res.header('Access-Control-Allow-Origin', 'https://salmon-wave-09f02b100.6.azurestaticapps.net');
-    //res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
     
@@ -1005,7 +998,6 @@ router.post('/par', async (req, res) => {
 
 // FAPI 2.0: Handle CORS preflight for PAR
 router.options('/par', (req, res) => {
-  //res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
   res.header('Access-Control-Allow-Origin', 'https://salmon-wave-09f02b100.6.azurestaticapps.net');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -1016,7 +1008,6 @@ router.options('/par', (req, res) => {
 router.post('/token', async (req, res) => {
   try {
     res.header('Access-Control-Allow-Origin', 'https://salmon-wave-09f02b100.6.azurestaticapps.net');
-    //res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Platform');
     res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
     
@@ -1083,7 +1074,6 @@ router.post('/token', async (req, res) => {
     }
 
       const getRedirectUriFromHref = (href) => {
-        //return "http://localhost:3000/callback";
         return "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback";
       };
 
@@ -1365,10 +1355,6 @@ router.post('/token', async (req, res) => {
 
 // Handle CORS preflight requests
 router.options('/token', (req, res) => {
-  /*res.header('Access-Control-Allow-Origin', process.env.NODE_ENV === 'production' 
-    ? 'https://salmon-wave-09f02b100.6.azurestaticapps.net' 
-    : 'http://localhost:3000');*/
-  //res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
   res.header('Access-Control-Allow-Origin', 'https://salmon-wave-09f02b100.6.azurestaticapps.net');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
