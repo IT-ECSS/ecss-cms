@@ -6,12 +6,13 @@ const path = require('path');
 
 // Constants defined at top level
 const CLIENT_ID = "ZrjDybXZeOFUA70KYMwb1dnfmdEXFfAS"
-const JWTTOKENURL = "https://id.singpass.gov.sg";
-const SPTOKENURL = "https://id.singpass.gov.sg/token";
+// New API: Use /fapi base URL for FAPI 2.0 endpoints (per official demo-app)
+const JWTTOKENURL = "https://id.singpass.gov.sg/fapi";
+const SPTOKENURL = "https://id.singpass.gov.sg/fapi/token";
 
 const REDIRECT_URI = "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback";
 
-const USERINFO_URL = "https://id.singpass.gov.sg/userinfo";
+const USERINFO_URL = "https://id.singpass.gov.sg/fapi/userinfo";
 
 // FAPI 2.0: DPoP (Demonstrating Proof of Possession) support
 const { generateDPoPKeyPair, generateDPoPProof, computeAccessTokenHash, storeDPoPKeyPair, getDPoPKeyPair, removeDPoPKeyPair } = require('../Others/SingPass/dpop');
@@ -533,8 +534,8 @@ async function invokeUserEndpoint(accessToken, options = {}, dpopKeyPair = null)
   const { retries = 2, timeout = 15000 } = options;
   let attempt = 0;
   
-  // Step 5: SingPass User Endpoint
-  const USER_ENDPOINT_URL = "https://id.singpass.gov.sg/user";
+  // Step 5: SingPass User Endpoint (Note: demo app uses /fapi/userinfo, not /user)
+  const USER_ENDPOINT_URL = "https://id.singpass.gov.sg/fapi/userinfo";
   
   console.log('=== STEP 5: USER ENDPOINT DEBUG START ===');
   console.log('User Endpoint URL:', USER_ENDPOINT_URL);
@@ -877,16 +878,9 @@ router.post('/par', async (req, res) => {
     
     // Step 2: Fetch OpenID configuration to get PAR endpoint
     const openidConfig = await fetchOpenIDConfiguration();
-    const parEndpoint = openidConfig.pushed_authorization_request_endpoint;
-    
-    if (!parEndpoint) {
-      console.error('PAR endpoint not found in OpenID configuration');
-      removeDPoPKeyPair(state);
-      return res.status(500).json({ 
-        error: 'server_error', 
-        error_description: 'PAR endpoint not available in OpenID configuration' 
-      });
-    }
+    // SingPass does not expose pushed_authorization_request_endpoint in OpenID config
+    // Use the known PAR endpoint directly
+    const parEndpoint = openidConfig.pushed_authorization_request_endpoint || 'https://id.singpass.gov.sg/fapi/par';
     
     console.log('FAPI 2.0 PAR endpoint:', parEndpoint);
     
@@ -923,6 +917,8 @@ router.post('/par', async (req, res) => {
       nonce: nonce,
       code_challenge: code_challenge,
       code_challenge_method: code_challenge_method,
+      // New API: Required for Login apps
+      authentication_context_type: 'national',
       client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
       client_assertion: clientAssertion
     };
@@ -973,7 +969,7 @@ router.post('/par', async (req, res) => {
     return res.status(200).json({
       request_uri: request_uri,
       expires_in: expires_in,
-      authorization_endpoint: openidConfig.authorization_endpoint || 'https://id.singpass.gov.sg/auth'
+      authorization_endpoint: openidConfig.authorization_endpoint || 'https://id.singpass.gov.sg/fapi/auth'
     });
     
   } catch (error) {
@@ -1192,16 +1188,43 @@ router.post('/token', async (req, res) => {
           error_description: "Missing id_token in token response" 
         });
       } 
-      const idToken = tokenData.id_token;
+      let idToken = tokenData.id_token;
       console.log("Processing ID token...");
       
-      // Decode JWT ID token
       const joseLib = await initializeJose();
+      
+      // New API: ID tokens are always encrypted (JWE). Decrypt first if needed.
+      // A JWE has 5 Base64URL parts separated by dots.
+      if (typeof idToken === 'string' && idToken.split('.').length === 5) {
+        console.log("ID token is JWE (encrypted), decrypting...");
+        try {
+          const ENCRYPTION_PRIVATE_KEY = require("../Others/SingPass/Keys/private-ec-encryption-key.jwk.json");
+          const encPrivateKey = await joseLib.importJWK(ENCRYPTION_PRIVATE_KEY, "ECDH-ES+A256KW");
+          const { plaintext } = await joseLib.compactDecrypt(idToken, encPrivateKey);
+          idToken = new TextDecoder().decode(plaintext);
+          console.log("ID token JWE decrypted successfully");
+        } catch (decryptErr) {
+          console.error("ID token JWE decryption failed:", decryptErr.message);
+          // Fall through — try to decode as plain JWT anyway
+        }
+      }
+      
+      // Decode JWT ID token (either the original or the decrypted inner JWT)
       const idTokenClaims = joseLib.decodeJwt(idToken);
       console.log("ID token decoded successfully");
+      console.log("ID token claims:", Object.keys(idTokenClaims));
       
       // Extract user identifier
+      // New API: sub claim now contains only the UUID (no more comma-separated s=...,u=...)
       const userUuid = idTokenClaims.sub;
+      
+      // New API: Extract sub_attributes claim (contains NRIC/FIN when user.identity scope is granted)
+      const subAttributes = idTokenClaims.sub_attributes || null;
+      if (subAttributes) {
+        console.log("sub_attributes found in ID token:", JSON.stringify(subAttributes));
+      } else {
+        console.log("No sub_attributes in ID token (user.identity scope may not be approved)");
+      }
       
       // Step 5: Invoke the User Endpoint (replacing UserInfo endpoint)
       let userProfile = null;
@@ -1287,8 +1310,12 @@ router.post('/token', async (req, res) => {
           expires_in: tokenData.expires_in,
           scope: tokenData.scope,
           userProfile: userProfile,
+          // New API: sub_attributes from ID token (NRIC/FIN when user.identity scope is granted)
+          sub_attributes: subAttributes,
           // Extract individual fields for frontend compatibility
           ...extractedFields,
+          // If sub_attributes has NRIC/FIN, use it as fallback for uinfin
+          ...(subAttributes?.nric_fin && !extractedFields.uinfin ? { uinfin: subAttributes.nric_fin } : {}),
           // Add metadata about what worked
           endpointUsed: endpointUsed,
           // Include debug info in development

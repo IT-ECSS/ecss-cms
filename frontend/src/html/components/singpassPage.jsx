@@ -105,7 +105,7 @@ class SingpassPage extends Component {
       }
       
       const { request_uri, authorization_endpoint } = parResponse.data;
-      const authEndpoint = authorization_endpoint || "https://id.singpass.gov.sg/auth";
+      const authEndpoint = authorization_endpoint || "https://id.singpass.gov.sg/fapi/auth";
       const authorizationUrl = `${authEndpoint}?client_id=ZrjDybXZeOFUA70KYMwb1dnfmdEXFfAS&request_uri=${encodeURIComponent(request_uri)}`;
       
       this.setState({ redirecting: true });
