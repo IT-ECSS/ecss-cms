@@ -197,25 +197,41 @@ class FFTVolunteers extends Component {
       return;
     }
     const station = STATIONS.find((s) => s.id === stationId);
-    this.stopScanner();
-    this.setState({
-      selectedStation: station,
-      scannerActive: true,
-      formData: {},
-      entryNumber: null,
-      participantData: null,
-      submitSuccess: false,
-      submitError: null,
-      scanError: null,
-    }, () => {
-      setTimeout(() => this.startScanner(), 300);
+    // Fully stop previous scanner before starting new one
+    this.stopScanner().then(() => {
+      this.setState({
+        selectedStation: station,
+        scannerActive: true,
+        formData: {},
+        entryNumber: null,
+        participantData: null,
+        submitSuccess: false,
+        submitError: null,
+        scanError: null,
+      }, () => {
+        const tryStart = (attempts = 0) => {
+          const el = document.getElementById('fft-vol-qr-reader');
+          if (el) {
+            this.startScanner();
+          } else if (attempts < 15) {
+            setTimeout(() => tryStart(attempts + 1), 200);
+          }
+        };
+        setTimeout(() => tryStart(), 100);
+      });
     });
   };
 
   // ── QR Scanner ──
   startScanner = () => {
-    const scannerElement = document.getElementById('fft-vol-qr-reader');
-    if (!scannerElement) return;
+    if (this._scannerStarting) return;          // guard against double-start
+    this._scannerStarting = true;
+
+    const el = document.getElementById('fft-vol-qr-reader');
+    if (!el) { this._scannerStarting = false; return; }
+
+    // Make sure the container is empty so Html5Qrcode doesn't choke on leftover nodes
+    el.innerHTML = '';
 
     this.html5QrCode = new Html5Qrcode('fft-vol-qr-reader');
     this.html5QrCode.start(
@@ -226,22 +242,25 @@ class FFTVolunteers extends Component {
       },
       () => { /* ignore errors during scanning */ }
     ).then(() => {
+      this._scannerStarting = false;
       this.setState({ scannerReady: true, scanError: null });
     }).catch((err) => {
+      this._scannerStarting = false;
       console.error('Scanner start error:', err);
       this.setState({ scanError: 'Could not access camera. Please allow camera permissions.' });
     });
   };
 
+  // Returns a Promise that resolves once the camera is fully released
   stopScanner = () => {
     if (this.html5QrCode) {
-      this.html5QrCode.stop().then(() => {
-        this.html5QrCode.clear();
-        this.html5QrCode = null;
-      }).catch(() => {
-        this.html5QrCode = null;
-      });
+      const qr = this.html5QrCode;
+      this.html5QrCode = null;
+      return qr.stop().then(() => {
+        try { qr.clear(); } catch (_) { /* already cleared */ }
+      }).catch(() => {});
     }
+    return Promise.resolve();
   };
 
   handleQRScan = (decodedText) => {
@@ -252,7 +271,7 @@ class FFTVolunteers extends Component {
       return;
     }
 
-    this.stopScanner();
+    this.stopScanner(); // fire-and-forget is fine here — we're not restarting
     this.setState({ entryNumber, loadingParticipant: true, scanError: null });
 
     // Fetch participant data
@@ -341,26 +360,28 @@ class FFTVolunteers extends Component {
   };
 
   handleScanAnother = () => {
-    this.stopScanner();
-    this.setState({
-      scannerActive: true,
-      entryNumber: null,
-      participantData: null,
-      formData: {},
-      submitSuccess: false,
-      submitError: null,
-      scanError: null,
-    }, () => {
-      // Wait for DOM to render the scanner container before starting
-      const tryStart = (attempts = 0) => {
-        const el = document.getElementById('fft-vol-qr-reader');
-        if (el) {
-          this.startScanner();
-        } else if (attempts < 10) {
-          setTimeout(() => tryStart(attempts + 1), 200);
-        }
-      };
-      setTimeout(() => tryStart(), 300);
+    // Fully stop & release camera before restarting
+    this.stopScanner().then(() => {
+      this.setState({
+        scannerActive: true,
+        entryNumber: null,
+        participantData: null,
+        formData: {},
+        submitSuccess: false,
+        submitError: null,
+        scanError: null,
+      }, () => {
+        // Wait for DOM to render the scanner container before starting
+        const tryStart = (attempts = 0) => {
+          const el = document.getElementById('fft-vol-qr-reader');
+          if (el) {
+            this.startScanner();
+          } else if (attempts < 15) {
+            setTimeout(() => tryStart(attempts + 1), 200);
+          }
+        };
+        setTimeout(() => tryStart(), 100);
+      });
     });
   };
 

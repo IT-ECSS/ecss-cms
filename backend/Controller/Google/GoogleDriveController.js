@@ -607,7 +607,7 @@ class GoogleDriveController {
             const targetSheet = sheetName || sheetNames[0];
             const sheetId = spreadsheet.data.sheets.find(s => s.properties.title === targetSheet)?.properties?.sheetId || 0;
 
-            const range = `'${targetSheet}'!A:U`;
+            const range = `'${targetSheet}'!A:AB`;
             const response = await sheets.spreadsheets.values.append({
                 spreadsheetId: fileId,
                 range: range,
@@ -639,7 +639,7 @@ class GoogleDriveController {
                                         startRowIndex: rowNumber - 1, // 0-based
                                         endRowIndex: rowNumber,
                                         startColumnIndex: 0,
-                                        endColumnIndex: 21 // columns A–U
+                                        endColumnIndex: 28 // columns A–AB
                                     },
                                     cell: {
                                         userEnteredFormat: {
@@ -690,7 +690,10 @@ class GoogleDriveController {
                 height: 'I', weight: 'J', bmi: 'K', testDate: 'L',
                 sitStand: 'M', armCurl: 'N', march: 'O', sitReach: 'P',
                 backStretch: 'Q', speedWalk: 'R', gripTest: 'S',
-                improvements: 'T', remarks: 'U'
+                improvements: 'T', remarks: 'U',
+                sitStandRemarks: 'V', armCurlRemarks: 'W', marchRemarks: 'X',
+                sitReachRemarks: 'Y', backStretchRemarks: 'Z',
+                speedWalkRemarks: 'AA', gripTestRemarks: 'AB'
             };
 
             const spreadsheet = await sheets.spreadsheets.get({
@@ -742,14 +745,14 @@ class GoogleDriveController {
             });
             const targetSheet = spreadsheet.data.sheets[0].properties.title;
 
-            const range = `'${targetSheet}'!A${rowNumber}:U${rowNumber}`;
+            const range = `'${targetSheet}'!A${rowNumber}:AB${rowNumber}`;
             const response = await sheets.spreadsheets.values.get({
                 spreadsheetId: fileId,
                 range: range
             });
 
             const row = response.data.values && response.data.values[0] ? response.data.values[0] : [];
-            // Map to column names (A=0 to U=20)
+            // Map to column names (A=0 to AB=27)
             return {
                 success: true,
                 data: {
@@ -773,7 +776,14 @@ class GoogleDriveController {
                     speedWalk: row[17] || '',
                     gripTest: row[18] || '',
                     improvements: row[19] || '',
-                    remarks: row[20] || ''
+                    remarks: row[20] || '',
+                    sitStandRemarks: row[21] || '',
+                    armCurlRemarks: row[22] || '',
+                    marchRemarks: row[23] || '',
+                    sitReachRemarks: row[24] || '',
+                    backStretchRemarks: row[25] || '',
+                    speedWalkRemarks: row[26] || '',
+                    gripTestRemarks: row[27] || ''
                 }
             };
         } catch (error) {
