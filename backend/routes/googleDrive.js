@@ -145,6 +145,12 @@ router.post('/appendRow', async (req, res) => {
             return res.status(500).json(result);
         }
 
+        // Emit Socket.IO event for live FFT updates
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('fftUpdate', { type: 'rowAdded', fileId });
+        }
+
         res.json(result);
     } catch (error) {
         console.error('Error in POST /appendRow:', error.message);
@@ -229,6 +235,13 @@ router.post('/activeFile', (req, res) => {
     }
     activeFFTFile = { id: file.id, name: file.name };
     console.log(`[FFT] Active file set to: ${file.name} (${file.id})`);
+
+    // Emit Socket.IO event so all clients know the active file changed
+    const io = req.app.get('io');
+    if (io) {
+        io.emit('fftActiveFile', { file: activeFFTFile });
+    }
+
     res.json({ success: true, file: activeFFTFile });
 });
 
@@ -261,6 +274,13 @@ router.post('/updateRow', async (req, res) => {
         if (!result.success) {
             return res.status(500).json(result);
         }
+
+        // Emit Socket.IO event for live FFT updates
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('fftUpdate', { type: 'rowUpdated', fileId, entryNumber });
+        }
+
         res.json(result);
     } catch (error) {
         console.error('Error in POST /updateRow:', error.message);

@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import axios from 'axios';
+import { io } from 'socket.io-client';
 import { Html5Qrcode } from 'html5-qrcode';
 import '../../../css/fftVolunteers.css';
 
@@ -146,10 +147,35 @@ class FFTVolunteers extends Component {
         }
       })
       .catch((err) => console.error('Failed to fetch active file:', err.message));
+
+    // Socket.IO: live updates
+    this.socket = io(BACKEND_URL);
+    this.socket.on('fftActiveFile', (data) => {
+      if (data && data.file) {
+        this.setState({ activeFile: data.file });
+      }
+    });
+    this.socket.on('fftUpdate', (data) => {
+      // If a row was updated by another volunteer, refresh participant data if currently viewing
+      const { activeFile, entryNumber, participantData } = this.state;
+      if (participantData && activeFile && activeFile.id && data.fileId === activeFile.id) {
+        // Re-fetch the current participant row to get latest values
+        axios.get(`${BACKEND_URL}/googleDrive/getRow`, {
+          params: { fileId: activeFile.id, entryNumber }
+        }).then((res) => {
+          if (res.data.success) {
+            this.setState({ participantData: res.data.row });
+          }
+        }).catch(() => {});
+      }
+    });
   }
 
   componentWillUnmount() {
     this.stopScanner();
+    if (this.socket) {
+      this.socket.disconnect();
+    }
   }
 
   // ── Station Selection (dropdown) ──

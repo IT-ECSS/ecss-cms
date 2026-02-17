@@ -347,21 +347,9 @@
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
 }
 
-/* Suppress horizontal scroll */
+/* Allow horizontal scroll */
 .fft-trainers-grid-container .ag-body-horizontal-scroll {
-  display: none !important;
-}
-
-.fft-trainers-grid-container .ag-body-horizontal-scroll-viewport {
-  overflow-x: hidden !important;
-}
-
-.fft-trainers-grid-container .ag-center-cols-container {
-  min-width: 0 !important;
-}
-
-.fft-trainers-grid-container .ag-center-cols-viewport {
-  overflow-x: hidden !important;
+  display: block !important;
 }
 
 /* ── AG Grid Header (matching registrationPayment #E7B8B0) ── */

@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import axios from 'axios';
+import { io } from 'socket.io-client';
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
 import '../../../css/fftTrainers.css';
@@ -14,7 +15,7 @@ const BACKEND_URL = window.location.hostname === 'localhost'
 const COLUMN_MAP = [
   { key: 'name', label: 'Name', labelZh: '姓名' },
   { key: 'chineseName', label: 'Chinese Name', labelZh: '中文名' },
-  { key: 'phoneNo', label: 'Phone', labelZh: '电话' },
+  { key: 'phoneNo', label: 'Phone Number', labelZh: '电话号码' },
   { key: 'gender', label: 'Gender', labelZh: '性别' },
   { key: 'dd', label: 'DD', labelZh: '日' },
   { key: 'mm', label: 'MM', labelZh: '月' },
@@ -52,32 +53,67 @@ class FFTTrainers extends Component {
 
     // AG Grid column definitions — matches Google Sheets columns only
     this.columnDefs = [
-      { headerName: 'Name', field: 'name', width: 350, sortable: true, pinned: 'left'},
-      { headerName: 'Chinese Name', field: 'chineseName', width: 350, sortable: true, pinned: 'left'},
-      { headerName: 'Phone', field: 'phoneNo', width: 100, sortable: true},
-      { headerName: 'Gender', field: 'gender', width: 100, sortable: true },
-      { headerName: 'DD', field: 'dd', width: 100, sortable: true },
-      { headerName: 'MM', field: 'mm', width: 100, sortable: true },
-      { headerName: 'YYYY', field: 'yyyy', width: 100, sortable: true },
-      { headerName: 'Age', field: 'age', width: 100, sortable: true },
-      { headerName: 'Height (cm)', field: 'height', width: 100, sortable: true },
-      { headerName: 'Weight (kg)', field: 'weight', width: 100, sortable: true },
-      { headerName: 'BMI', field: 'bmi', width: 100, sortable: true },
-      { headerName: 'Test Date', field: 'testDate', width: 100, sortable: true },
-      { headerName: 'Sit & Stand', field: 'sitStand', width: 100, sortable: true },
-      { headerName: 'Arm Curl', field: 'armCurl', width: 100, sortable: true },
-      { headerName: 'March', field: 'march', width: 100, sortable: true },
-      { headerName: 'Sit & Reach', field: 'sitReach', width: 100, sortable: true },
-      { headerName: 'Back Stretch', field: 'backStretch', width: 100, sortable: true },
-      { headerName: 'Speed Walk', field: 'speedWalk', width: 100, sortable: true },
-      { headerName: 'Grip Test', field: 'gripTest', width: 100, sortable: true },
-      { headerName: 'Improvements', field: 'improvements', width: 100, sortable: true },
-      { headerName: 'Remarks', field: 'remarks', width: 100, sortable: true },
+      { headerName: 'Name', field: 'name', width: 350, sortable: true, pinned: 'left',
+        cellRenderer: (params) => {
+          const name = params.data.name || '';
+          const cn = params.data.chineseName || '';
+          if (!cn) return name;
+          return `<div style="line-height:1.3">${name}<br/><span style="color:#888;font-size:0.85em">${cn}</span></div>`;
+        },
+        valueGetter: (params) => {
+          const name = params.data.name || '';
+          const cn = params.data.chineseName || '';
+          return cn ? `${name} ${cn}` : name;
+        },
+        autoHeight: true,
+      },
+      { headerName: 'Phone Number', field: 'phoneNo', width: 250},
+      { headerName: 'Gender', field: 'gender', width: 150},
+      { headerName: 'DD', field: 'dd', width: 100},
+      { headerName: 'MM', field: 'mm', width: 100},
+      { headerName: 'YYYY', field: 'yyyy', width: 100},
+      { headerName: 'Age', field: 'age', width: 100},
+      { headerName: 'Height (cm)', field: 'height', width: 200},
+      { headerName: 'Weight (kg)', field: 'weight', width: 200},
+      { headerName: 'BMI', field: 'bmi', width: 150},
+      { headerName: 'Test Date', field: 'testDate', width: 200 },
+      { headerName: '30 secs Sit & Stand', field: 'sitStand', width: 300},
+      { headerName: '30 secs Arm Curl', field: 'armCurl', width: 300},
+      { headerName: '2 min March on the spot', field: 'march', width: 300},
+      { headerName: 'Sit & Reach', field: 'sitReach', width: 300},
+      { headerName: 'Back Stretch', field: 'backStretch', width: 300},
+      { headerName: '2.44m speed walk', field: 'speedWalk', width: 300},
+      { headerName: 'Grip Test', field: 'gripTest', width: 300},
+      { headerName: 'Improvements', field: 'improvements', width: 500},
+      { headerName: 'Remarks', field: 'remarks', width: 500 },
     ];
   }
 
   componentDidMount() {
     this.fetchData();
+
+    // Socket.IO: live updates
+    this.socket = io(BACKEND_URL);
+    this.socket.on('fftUpdate', (data) => {
+      // Re-fetch spreadsheet data when any row is added/updated
+      const { activeFile } = this.state;
+      if (activeFile && activeFile.id) {
+        this.loadSpreadsheet(activeFile.id);
+      }
+    });
+    this.socket.on('fftActiveFile', (data) => {
+      // Active file changed — update and reload
+      if (data && data.file) {
+        this.setState({ activeFile: data.file });
+        this.loadSpreadsheet(data.file.id);
+      }
+    });
+  }
+
+  componentWillUnmount() {
+    if (this.socket) {
+      this.socket.disconnect();
+    }
   }
 
   fetchData = () => {
@@ -132,11 +168,11 @@ class FFTTrainers extends Component {
   applySearch = (rows) => {
     const query = this.state.searchQuery.toLowerCase().trim();
     if (!query) return rows;
-    return rows.filter((r) =>
-      (r.name && r.name.toLowerCase().includes(query)) ||
-      (r.chineseName && r.chineseName.toLowerCase().includes(query)) ||
-      (r.phoneNo && r.phoneNo.includes(query))
-    );
+    return rows.filter((r) => {
+      const combined = `${r.name || ''} ${r.chineseName || ''}`.toLowerCase();
+      return combined.includes(query) ||
+        (r.phoneNo && r.phoneNo.includes(query));
+    });
   };
 
   onGridReady = (params) => {
@@ -258,7 +294,7 @@ class FFTTrainers extends Component {
                   pagination={true}
                   paginationPageSize={filtered.length}
                   domLayout="normal"
-                  suppressHorizontalScroll={true}
+                  suppressHorizontalScroll={false}
                   getRowStyle={this.getRowStyle}
                   overlayNoRowsTemplate='<span style="padding: 16px; font-size: 1.15rem; color: #888;">No participants found.</span>'
                 />

@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import axios from 'axios';
+import { io } from 'socket.io-client';
 import '../../../css/fftAdmin.css';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
@@ -53,6 +54,21 @@ class FFTAdmin extends Component {
 
   componentDidMount() {
     this.loadYearFolders();
+
+    // Socket.IO: live updates
+    this.socket = io(BACKEND_URL);
+    this.socket.on('fftActiveFile', (data) => {
+      // Another admin changed the active file — refresh folder data
+      if (data && data.file) {
+        this.loadYearFolders();
+      }
+    });
+  }
+
+  componentWillUnmount() {
+    if (this.socket) {
+      this.socket.disconnect();
+    }
   }
 
   // ── Year folders ──

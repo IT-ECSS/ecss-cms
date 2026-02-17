@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import axios from 'axios';
+import { io } from 'socket.io-client';
 import { QRCodeCanvas } from 'qrcode.react';
 import '../../../css/fftParticipants.css';
 import SingPassButton from '../sub/SingPassButton';
@@ -569,6 +570,14 @@ class FFTParticipants extends Component {
     // Initialise signature pad canvas
     this.initSignatureCanvas();
     window.addEventListener('resize', this.initSignatureCanvas);
+
+    // Socket.IO: live updates
+    this.socket = io(BACKEND_URL);
+    this.socket.on('fftActiveFile', (data) => {
+      if (data && data.file) {
+        this.setState({ activeFile: data.file });
+      }
+    });
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -579,6 +588,9 @@ class FFTParticipants extends Component {
 
   componentWillUnmount() {
     window.removeEventListener('resize', this.initSignatureCanvas);
+    if (this.socket) {
+      this.socket.disconnect();
+    }
   }
 
   // ── Render helpers ──
@@ -704,7 +716,7 @@ class FFTParticipants extends Component {
                               {rd.chineseName && rd.name && <div style={{ fontSize: '0.9rem', color: '#555' }}>{rd.chineseName}</div>}
                             </div>
                           </div>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: '0.9rem' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '6px', fontSize: '0.9rem' }}>
                             <div><span style={{ color: '#888' }}>DOB:</span> <strong>{dob}</strong></div>
                             <div><span style={{ color: '#888' }}>Gender:</span> <strong>{rd.gender || '—'}</strong></div>
                             <div><span style={{ color: '#888' }}>Age:</span> <strong>{rd.age || '—'}</strong></div>
@@ -718,7 +730,8 @@ class FFTParticipants extends Component {
                       );
                     })()}
 
-                    {/* Station Cards */}
+                    {/* Station Cards — 2 columns per row */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                     {(() => {
                       const rd = this.state.rowData || {};
                       const stations = [
@@ -733,53 +746,57 @@ class FFTParticipants extends Component {
                       return stations.map((station) => {
                         const score = rd[station.scoreKey] || '';
                         const hasScore = score !== '';
+                        if (!hasScore) return null;
                         return (
                           <div key={station.num} style={{
                             background: '#fff', borderRadius: '12px', padding: '16px',
                             boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
                             border: hasScore ? '1px solid #bbf7d0' : '1px solid #e5e7eb',
-                            display: 'flex', alignItems: 'flex-start', gap: '14px'
+                            display: 'flex', flexDirection: 'column', gap: '8px'
                           }}>
-                            <div style={{
-                              width: '48px', height: '48px', borderRadius: '50%',
-                              background: hasScore ? '#f0fdf4' : '#eff6ff',
-                              color: hasScore ? '#16a34a' : '#2563eb',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              flexShrink: 0, fontSize: '1.2rem'
-                            }}>
-                              {hasScore ? <i className="fas fa-check"></i> : <i className={`fas ${station.icon}`}></i>}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <div style={{
+                                width: '40px', height: '40px', borderRadius: '50%',
+                                background: hasScore ? '#f0fdf4' : '#eff6ff',
+                                color: hasScore ? '#16a34a' : '#2563eb',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                flexShrink: 0, fontSize: '1rem'
+                              }}>
+                                {hasScore ? <i className="fas fa-check"></i> : <i className={`fas ${station.icon}`}></i>}
+                              </div>
+                              <div style={{ fontSize: '0.8rem', color: '#888' }}>Station {station.num}</div>
                             </div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: '0.85rem', color: '#888' }}>Station {station.num}</div>
-                              <div style={{ fontWeight: 700, fontSize: '1.05rem', color: '#1a1a1a' }}>{station.en}</div>
-                              <div style={{ fontSize: '0.9rem', color: '#555' }}>{station.zh}</div>
-                              {station.note && (
-                                <div style={{ fontSize: '0.8rem', color: '#2563eb', marginTop: '4px' }}>
-                                  <i className="fas fa-info-circle" style={{ marginRight: '4px' }}></i>{station.note}
-                                </div>
-                              )}
-                              {hasScore && (
-                                <div style={{
-                                  marginTop: '8px', padding: '8px 12px', background: '#f0fdf4',
-                                  borderRadius: '8px', fontSize: '0.95rem'
-                                }}>
-                                  <span style={{ color: '#888' }}>Result:</span>{' '}
-                                  <strong style={{ color: '#16a34a' }}>{score}</strong>
-                                </div>
-                              )}
-                              {!hasScore && (
-                                <div style={{
-                                  marginTop: '8px', padding: '8px 12px', background: '#f9fafb',
-                                  borderRadius: '8px', fontSize: '0.9rem', color: '#aaa'
-                                }}>
-                                  Pending
-                                </div>
-                              )}
+                            <div>
+                              <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#1a1a1a' }}>{station.en}</div>
+                              <div style={{ fontSize: '0.85rem', color: '#555' }}>{station.zh}</div>
                             </div>
+                            {station.note && (
+                              <div style={{ fontSize: '0.75rem', color: '#2563eb' }}>
+                                <i className="fas fa-info-circle" style={{ marginRight: '4px' }}></i>{station.note}
+                              </div>
+                            )}
+                            {hasScore && (
+                              <div style={{
+                                padding: '8px 12px', background: '#f0fdf4',
+                                borderRadius: '8px', fontSize: '0.9rem'
+                              }}>
+                                <span style={{ color: '#888' }}>Result:</span>{' '}
+                                <strong style={{ color: '#16a34a' }}>{score}</strong>
+                              </div>
+                            )}
+                            {!hasScore && (
+                              <div style={{
+                                padding: '8px 12px', background: '#f9fafb',
+                                borderRadius: '8px', fontSize: '0.85rem', color: '#aaa'
+                              }}>
+                                Pending
+                              </div>
+                            )}
                           </div>
                         );
                       });
                     })()}
+                    </div>
 
                     {/* Improvements & Remarks */}
                     {(() => {
@@ -805,18 +822,6 @@ class FFTParticipants extends Component {
                       ) : null;
                     })()}
 
-                    {/* Refresh button */}
-                    <button
-                      type="button"
-                      onClick={this.fetchRowData}
-                      style={{
-                        width: '100%', padding: '12px', background: '#2563eb', color: '#fff',
-                        border: 'none', borderRadius: '10px', fontSize: '1rem', fontWeight: 600,
-                        cursor: 'pointer', marginTop: '4px'
-                      }}
-                    >
-                      <i className="fas fa-sync-alt" style={{ marginRight: '6px' }}></i> Refresh Results
-                    </button>
                   </div>
                 )}
               </div>
