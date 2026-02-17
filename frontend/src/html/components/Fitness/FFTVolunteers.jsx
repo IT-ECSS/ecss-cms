@@ -72,8 +72,10 @@ const STATIONS = [
     color: '#2563eb',
     bg: '#eff6ff',
     fields: [
-      { key: 'sitReach', label: 'Distance (cm)', labelZh: '距离', type: 'text', placeholder: 'e.g. L+5 / R+3' },
+      { key: 'sitReachAtt1', label: 'Attempt 1 (cm)', labelZh: '第一次', type: 'number', placeholder: 'e.g. 5', required: true },
+      { key: 'sitReachAtt2', label: 'Attempt 2 (cm)', labelZh: '第二次', type: 'number', placeholder: 'e.g. 6', required: false },
     ],
+    resultKey: 'sitReach',
     note: '左 L / 右 R (直腿 Straight leg)',
     remarksKey: 'sitReachRemarks',
   },
@@ -86,8 +88,10 @@ const STATIONS = [
     color: '#2563eb',
     bg: '#eff6ff',
     fields: [
-      { key: 'backStretch', label: 'Distance (cm)', labelZh: '距离', type: 'text', placeholder: 'e.g. L-2 / R+1' },
+      { key: 'backStretchAtt1', label: 'Attempt 1 (cm)', labelZh: '第一次', type: 'number', placeholder: 'e.g. -2', required: true },
+      { key: 'backStretchAtt2', label: 'Attempt 2 (cm)', labelZh: '第二次', type: 'number', placeholder: 'e.g. -1', required: false },
     ],
+    resultKey: 'backStretch',
     note: '左 L / 右 R (上面 Hand on top)',
     remarksKey: 'backStretchRemarks',
   },
@@ -100,8 +104,10 @@ const STATIONS = [
     color: '#2563eb',
     bg: '#eff6ff',
     fields: [
-      { key: 'speedWalk', label: 'Time (seconds)', labelZh: '时间（秒）', type: 'number', placeholder: 'e.g. 5.2' },
+      { key: 'speedWalkAtt1', label: 'Attempt 1 (seconds)', labelZh: '第一次（秒）', type: 'number', placeholder: 'e.g. 5.2', required: true },
+      { key: 'speedWalkAtt2', label: 'Attempt 2 (seconds)', labelZh: '第二次（秒）', type: 'number', placeholder: 'e.g. 4.8', required: false },
     ],
+    resultKey: 'speedWalk',
     remarksKey: 'speedWalkRemarks',
   },
   {
@@ -113,8 +119,10 @@ const STATIONS = [
     color: '#2563eb',
     bg: '#eff6ff',
     fields: [
-      { key: 'gripTest', label: 'Grip strength (kg)', labelZh: '握力', type: 'text', placeholder: 'e.g. L25 / R28' },
+      { key: 'gripTestAtt1', label: 'Attempt 1 (kg)', labelZh: '第一次', type: 'number', placeholder: 'e.g. 25', required: true },
+      { key: 'gripTestAtt2', label: 'Attempt 2 (kg)', labelZh: '第二次', type: 'number', placeholder: 'e.g. 27', required: false },
     ],
+    resultKey: 'gripTest',
     note: '左 L / 右 R (手 Hand)',
     remarksKey: 'gripTestRemarks',
   },
@@ -328,10 +336,45 @@ class FFTVolunteers extends Component {
 
     if (!fileId || entryNumber == null) return;
 
-    // Build updates — include remarks key if the station has one
-    const updates = { ...formData };
-    if (selectedStation.remarksKey && formData[selectedStation.remarksKey]) {
-      updates[selectedStation.remarksKey] = formData[selectedStation.remarksKey];
+    // Build updates based on station type
+    const updates = {};
+
+    if (selectedStation.resultKey) {
+      // ── Multi-attempt station (4-7): 2 attempts → pick best result ──
+      const att1 = formData[selectedStation.fields[0].key] || '';
+      const att2 = formData[selectedStation.fields[1].key] || '';
+
+      let bestResult;
+      if (selectedStation.resultKey === 'speedWalk') {
+        // Numeric — lower time is better
+        const n1 = parseFloat(att1);
+        const n2 = parseFloat(att2);
+        if (att2 && !isNaN(n1) && !isNaN(n2)) {
+          bestResult = n1 <= n2 ? att1 : att2;
+        } else {
+          bestResult = att1;
+        }
+      } else {
+        // Text fields (sitReach, backStretch, gripTest) — store latest attempt
+        bestResult = att2 || att1;
+      }
+      updates[selectedStation.resultKey] = bestResult;
+
+      // Build remarks: record both attempts + any volunteer notes
+      const parts = [];
+      if (att2) parts.push(`Att 1: ${att1}, Att 2: ${att2}`);
+      if (formData[selectedStation.remarksKey]) parts.push(formData[selectedStation.remarksKey]);
+      if (parts.length && selectedStation.remarksKey) {
+        updates[selectedStation.remarksKey] = parts.join('. ');
+      }
+    } else {
+      // ── Single-attempt station (measurement, 1-3) ──
+      selectedStation.fields.forEach((f) => {
+        if (formData[f.key] !== undefined) updates[f.key] = formData[f.key];
+      });
+      if (selectedStation.remarksKey && formData[selectedStation.remarksKey]) {
+        updates[selectedStation.remarksKey] = formData[selectedStation.remarksKey];
+      }
     }
 
     this.setState({ submitting: true, submitError: null });
@@ -340,10 +383,7 @@ class FFTVolunteers extends Component {
       .then((res) => {
         if (res.data.success) {
           this.setState({ submitting: false, submitSuccess: true });
-          // Auto-restart QR scanner after a brief success message
-          setTimeout(() => {
-            this.handleScanAnother();
-          }, 1500);
+          // User manually taps "Scan Next Participant" — no auto-advance
         } else {
           this.setState({ submitting: false, submitError: res.data.error || 'Failed to update.' });
         }
@@ -634,7 +674,7 @@ class FFTVolunteers extends Component {
                     <button
                       className="fft-volunteers-submit-btn"
                       onClick={this.handleSubmit}
-                      disabled={submitting || selectedStation.fields.some((f) => !formData[f.key])}
+                      disabled={submitting || selectedStation.fields.filter((f) => f.required !== false).some((f) => !formData[f.key])}
                       style={{ marginTop: '20px' }}
                     >
                       {submitting ? (

@@ -304,18 +304,44 @@ router.get('/getRow', async (req, res) => {
 });
 
 // ── Best-result comparison helpers ──
-const HIGHER_IS_BETTER = ['sitStand', 'armCurl', 'march'];  // more reps / steps = better
-const LOWER_IS_BETTER  = ['speedWalk'];                     // lower time = better
+const HIGHER_IS_BETTER = ['sitStand', 'armCurl', 'march', 'gripTest'];  // more reps / strength = better
+const LOWER_IS_BETTER  = ['speedWalk'];                                  // lower time = better
+// sitReach & backStretch: higher (more positive) = better flexibility
+const HIGHER_FLEX = ['sitReach', 'backStretch'];
+
+// Extract all numbers from a string like "L-3 R+5", "L 3 R 5", "-3", "5.2"
+function extractNumbers(val) {
+    if (val == null || val === '') return [];
+    const str = String(val);
+    // Match optional sign followed by digits (with optional decimal)
+    const matches = str.match(/-?\d+\.?\d*/g);
+    return matches ? matches.map(Number) : [];
+}
 
 function isBetterResult(field, newVal, oldVal) {
     if (!oldVal || oldVal === '') return true;   // no existing value → always accept
     if (!newVal || newVal === '') return false;  // no new value → keep existing
-    const n = parseFloat(newVal);
-    const o = parseFloat(oldVal);
-    if (isNaN(n) || isNaN(o)) return true;       // non-numeric (text fields) → always accept
+
+    // Try direct numeric parse first
+    let n = parseFloat(newVal);
+    let o = parseFloat(oldVal);
+
+    // If direct parse fails, extract numbers and sum them for comparison
+    if (isNaN(n) || isNaN(o)) {
+        const newNums = extractNumbers(newVal);
+        const oldNums = extractNumbers(oldVal);
+        if (newNums.length === 0 && oldNums.length === 0) return true; // both non-numeric → accept new
+        if (newNums.length === 0) return false; // new has no numbers → keep old
+        if (oldNums.length === 0) return true;  // old has no numbers → accept new
+        // Sum all extracted numbers for comparison
+        n = newNums.reduce((a, b) => a + b, 0);
+        o = oldNums.reduce((a, b) => a + b, 0);
+    }
+
     if (HIGHER_IS_BETTER.includes(field)) return n > o;
     if (LOWER_IS_BETTER.includes(field))  return n < o;
-    return true; // default (height, weight, bmi, text) → always accept
+    if (HIGHER_FLEX.includes(field))      return n > o;  // more positive = better flexibility
+    return true; // default (height, weight, bmi) → always accept
 }
 
 // Map each station score field to its remarks column key
