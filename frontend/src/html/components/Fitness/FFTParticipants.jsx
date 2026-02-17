@@ -484,6 +484,13 @@ class FFTParticipants extends Component {
       '',               // Grip Test
       '',               // Improvements
       '',               // Remarks
+      '',               // Sit & Stand Remarks (V)
+      '',               // Arm Curl Remarks (W)
+      '',               // March Remarks (X)
+      '',               // Sit & Reach Remarks (Y)
+      '',               // Back Stretch Remarks (Z)
+      '',               // Speed Walk Remarks (AA)
+      '',               // Grip Test Remarks (AB)
     ];
 
     // Use prop or fallback to fetched active file
@@ -513,7 +520,9 @@ class FFTParticipants extends Component {
           name: nameCol, chineseName: chineseNameCol, phoneNo, gender,
           dd, mm, yyyy, age, height: '', weight: '', bmi: '', testDate,
           sitStand: '', armCurl: '', march: '', sitReach: '',
-          backStretch: '', speedWalk: '', gripTest: '', improvements: '', remarks: ''
+          backStretch: '', speedWalk: '', gripTest: '', improvements: '', remarks: '',
+          sitStandRemarks: '', armCurlRemarks: '', marchRemarks: '',
+          sitReachRemarks: '', backStretchRemarks: '', speedWalkRemarks: '', gripTestRemarks: ''
         };
         this.setState({ submitting: false, submitted: true, entryNumber: entry, rowData: initialRowData });
       } else {
@@ -747,13 +756,13 @@ class FFTParticipants extends Component {
                     {(() => {
                       const rd = this.state.rowData || {};
                       const stations = [
-                        { num: '1', zh: '30 秒坐立测验', en: '30-Sec Sit and Stand', icon: 'fa-chair', scoreKey: 'sitStand', note: '' },
-                        { num: '2', zh: '30 秒手臂卷起', en: '30-Sec Arm Banding', icon: 'fa-dumbbell', scoreKey: 'armCurl', note: '' },
-                        { num: '3', zh: '2 分钟抬膝测验', en: '2-Min On-the-spot Marching', icon: 'fa-walking', scoreKey: 'march', note: '' },
-                        { num: '4', zh: '坐椅体前弯', en: 'Sit- and Reach Test', icon: 'fa-arrows-alt-h', scoreKey: 'sitReach', note: '左 L / 右 R (直腿 Straight leg)' },
-                        { num: '5', zh: '抓背测验', en: 'Back Stretching Test', icon: 'fa-hand-paper', scoreKey: 'backStretch', note: '左 L / 右 R (上面 Hand on top)' },
-                        { num: '6', zh: '2.44 公尺起身绕物测验', en: '2.44-Meter Speed Walking', icon: 'fa-stopwatch', scoreKey: 'speedWalk', note: '' },
-                        { num: '7', zh: '握力测试', en: 'Hand Griping Test', icon: 'fa-fist-raised', scoreKey: 'gripTest', note: '左 L / 右 R (手 Hand)' },
+                        { num: '1', zh: '30 秒坐立测验', en: '30-Sec Sit and Stand', icon: 'fa-chair', scoreKey: 'sitStand', remarksKey: 'sitStandRemarks', note: '' },
+                        { num: '2', zh: '30 秒手臂卷起', en: '30-Sec Arm Banding', icon: 'fa-dumbbell', scoreKey: 'armCurl', remarksKey: 'armCurlRemarks', note: '' },
+                        { num: '3', zh: '2 分钟抬膝测验', en: '2-Min On-the-spot Marching', icon: 'fa-walking', scoreKey: 'march', remarksKey: 'marchRemarks', note: '' },
+                        { num: '4', zh: '坐椅体前弯', en: 'Sit- and Reach Test', icon: 'fa-arrows-alt-h', scoreKey: 'sitReach', remarksKey: 'sitReachRemarks', note: '左 L / 右 R (直腿 Straight leg)' },
+                        { num: '5', zh: '抓背测验', en: 'Back Stretching Test', icon: 'fa-hand-paper', scoreKey: 'backStretch', remarksKey: 'backStretchRemarks', note: '左 L / 右 R (上面 Hand on top)' },
+                        { num: '6', zh: '2.44 公尺起身绕物测验', en: '2.44-Meter Speed Walking', icon: 'fa-stopwatch', scoreKey: 'speedWalk', remarksKey: 'speedWalkRemarks', note: '' },
+                        { num: '7', zh: '握力测试', en: 'Hand Griping Test', icon: 'fa-fist-raised', scoreKey: 'gripTest', remarksKey: 'gripTestRemarks', note: '左 L / 右 R (手 Hand)' },
                       ];
                       return stations.map((station) => {
                         const score = rd[station.scoreKey] || '';
@@ -793,6 +802,12 @@ class FFTParticipants extends Component {
                               <span style={{ color: '#888' }}>Result:</span>{' '}
                               <strong style={{ color: '#16a34a' }}>{score}</strong>
                             </div>
+                            {station.remarksKey && rd[station.remarksKey] && (
+                              <div style={{ fontSize: '0.8rem', color: '#666', fontStyle: 'italic', marginTop: '2px' }}>
+                                <i className="fas fa-comment" style={{ marginRight: '4px', color: '#aaa' }}></i>
+                                {rd[station.remarksKey]}
+                              </div>
+                            )}
                           </div>
                         );
                       });

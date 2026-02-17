@@ -35,6 +35,7 @@ const STATIONS = [
     fields: [
       { key: 'sitStand', label: 'Number of reps', labelZh: '次数', type: 'number', placeholder: 'e.g. 12' },
     ],
+    remarksKey: 'sitStandRemarks',
   },
   {
     id: 'station2',
@@ -47,6 +48,7 @@ const STATIONS = [
     fields: [
       { key: 'armCurl', label: 'Number of reps', labelZh: '次数', type: 'number', placeholder: 'e.g. 15' },
     ],
+    remarksKey: 'armCurlRemarks',
   },
   {
     id: 'station3',
@@ -59,6 +61,7 @@ const STATIONS = [
     fields: [
       { key: 'march', label: 'Number of steps', labelZh: '步数', type: 'number', placeholder: 'e.g. 80' },
     ],
+    remarksKey: 'marchRemarks',
   },
   {
     id: 'station4',
@@ -72,6 +75,7 @@ const STATIONS = [
       { key: 'sitReach', label: 'Distance (cm)', labelZh: '距离', type: 'text', placeholder: 'e.g. L+5 / R+3' },
     ],
     note: '左 L / 右 R (直腿 Straight leg)',
+    remarksKey: 'sitReachRemarks',
   },
   {
     id: 'station5',
@@ -85,6 +89,7 @@ const STATIONS = [
       { key: 'backStretch', label: 'Distance (cm)', labelZh: '距离', type: 'text', placeholder: 'e.g. L-2 / R+1' },
     ],
     note: '左 L / 右 R (上面 Hand on top)',
+    remarksKey: 'backStretchRemarks',
   },
   {
     id: 'station6',
@@ -97,6 +102,7 @@ const STATIONS = [
     fields: [
       { key: 'speedWalk', label: 'Time (seconds)', labelZh: '时间（秒）', type: 'number', placeholder: 'e.g. 5.2' },
     ],
+    remarksKey: 'speedWalkRemarks',
   },
   {
     id: 'station7',
@@ -110,6 +116,7 @@ const STATIONS = [
       { key: 'gripTest', label: 'Grip strength (kg)', labelZh: '握力', type: 'text', placeholder: 'e.g. L25 / R28' },
     ],
     note: '左 L / 右 R (手 Hand)',
+    remarksKey: 'gripTestRemarks',
   },
 ];
 
@@ -321,8 +328,11 @@ class FFTVolunteers extends Component {
 
     if (!fileId || entryNumber == null) return;
 
-    // Build updates
+    // Build updates — include remarks key if the station has one
     const updates = { ...formData };
+    if (selectedStation.remarksKey && formData[selectedStation.remarksKey]) {
+      updates[selectedStation.remarksKey] = formData[selectedStation.remarksKey];
+    }
 
     this.setState({ submitting: true, submitError: null });
 
@@ -595,6 +605,23 @@ class FFTVolunteers extends Component {
                           />
                         </div>
                       ))}
+
+                      {/* Per-station remarks (stations 1-7 only) */}
+                      {selectedStation.remarksKey && (
+                        <div className="fft-volunteers-field fft-volunteers-field--full">
+                          <label className="fft-volunteers-label">
+                            Remarks <span style={{ color: '#9e9e9e', fontWeight: 400 }}>(备注)</span>
+                          </label>
+                          <textarea
+                            value={formData[selectedStation.remarksKey] || ''}
+                            placeholder="Optional remarks for this station"
+                            onChange={(e) => this.handleFieldChange(selectedStation.remarksKey, e.target.value)}
+                            className="fft-volunteers-input"
+                            rows={2}
+                            style={{ resize: 'vertical', minHeight: '48px' }}
+                          />
+                        </div>
+                      )}
                     </div>
 
                     {submitError && (

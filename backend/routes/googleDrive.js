@@ -152,7 +152,9 @@ router.post('/appendRow', async (req, res) => {
                 'name', 'chineseName', 'phoneNo', 'gender', 'dd', 'mm', 'yyyy', 'age',
                 'height', 'weight', 'bmi', 'testDate',
                 'sitStand', 'armCurl', 'march', 'sitReach', 'backStretch', 'speedWalk', 'gripTest',
-                'improvements', 'remarks'
+                'improvements', 'remarks',
+                'sitStandRemarks', 'armCurlRemarks', 'marchRemarks',
+                'sitReachRemarks', 'backStretchRemarks', 'speedWalkRemarks', 'gripTestRemarks'
             ];
             const cached = {};
             colKeys.forEach((key, idx) => {
@@ -301,24 +303,104 @@ router.get('/getRow', async (req, res) => {
     }
 });
 
-// POST update specific columns in a row
+// ── Best-result comparison helpers ──
+const HIGHER_IS_BETTER = ['sitStand', 'armCurl', 'march'];  // more reps / steps = better
+const LOWER_IS_BETTER  = ['speedWalk'];                     // lower time = better
+
+function isBetterResult(field, newVal, oldVal) {
+    if (!oldVal || oldVal === '') return true;   // no existing value → always accept
+    if (!newVal || newVal === '') return false;  // no new value → keep existing
+    const n = parseFloat(newVal);
+    const o = parseFloat(oldVal);
+    if (isNaN(n) || isNaN(o)) return true;       // non-numeric (text fields) → always accept
+    if (HIGHER_IS_BETTER.includes(field)) return n > o;
+    if (LOWER_IS_BETTER.includes(field))  return n < o;
+    return true; // default (height, weight, bmi, text) → always accept
+}
+
+// Map each station score field to its remarks column key
+const STATION_REMARKS_MAP = {
+    sitStand: 'sitStandRemarks',
+    armCurl: 'armCurlRemarks',
+    march: 'marchRemarks',
+    sitReach: 'sitReachRemarks',
+    backStretch: 'backStretchRemarks',
+    speedWalk: 'speedWalkRemarks',
+    gripTest: 'gripTestRemarks'
+};
+
+// POST update specific columns in a row (with best-result logic)
 router.post('/updateRow', async (req, res) => {
     try {
         const { fileId, entryNumber, updates } = req.body;
         if (!fileId || entryNumber == null || !updates) {
             return res.status(400).json({ success: false, error: 'fileId, entryNumber, and updates are required' });
         }
-        const result = await googleDriveController.updateRow(fileId, parseInt(entryNumber, 10), updates);
+
+        const en = parseInt(entryNumber, 10);
+
+        // Read current row to compare results
+        let currentRow = fftResultsCache[en] || {};
+        // If cache is empty for this entry, fetch from Google Sheets
+        if (Object.keys(currentRow).length === 0) {
+            try {
+                const rowResult = await googleDriveController.getRow(fileId, en);
+                if (rowResult.success) {
+                    currentRow = rowResult.data;
+                    fftResultsCache[en] = { ...currentRow };
+                }
+            } catch (_) { /* proceed with empty */ }
+        }
+
+        // Build the final updates keeping only best results
+        const finalUpdates = {};
+        const stationScoreFields = Object.keys(STATION_REMARKS_MAP);
+
+        for (const [field, value] of Object.entries(updates)) {
+            // Remarks fields always pass through
+            if (field.endsWith('Remarks')) {
+                finalUpdates[field] = value;
+                continue;
+            }
+            // Station score fields → apply best-result logic
+            if (stationScoreFields.includes(field)) {
+                if (isBetterResult(field, value, currentRow[field])) {
+                    finalUpdates[field] = value;
+                    // Also include the matching remarks if provided
+                    const rk = STATION_REMARKS_MAP[field];
+                    if (rk && updates[rk] !== undefined) {
+                        finalUpdates[rk] = updates[rk];
+                    }
+                } else {
+                    console.log(`[FFT] Keeping existing better result for entry ${en} ${field}: ${currentRow[field]} (new was ${value})`);
+                    // Keep existing remarks too — don't overwrite with new attempt's remarks
+                    const rk = STATION_REMARKS_MAP[field];
+                    if (rk && updates[rk] !== undefined) {
+                        // Don't include — keep old remarks that match old best result
+                    }
+                }
+                continue;
+            }
+            // All other fields (height, weight, bmi, improvements, remarks) → always update
+            finalUpdates[field] = value;
+        }
+
+        if (Object.keys(finalUpdates).length === 0) {
+            // Nothing to update (all new results were worse)
+            if (!fftResultsCache[en]) fftResultsCache[en] = {};
+            return res.json({ success: true, updatedFields: [], message: 'Existing results are better; no changes made.' });
+        }
+
+        const result = await googleDriveController.updateRow(fileId, en, finalUpdates);
         if (!result.success) {
             return res.status(500).json(result);
         }
 
-        // Cache the volunteer's submitted results
-        const en = parseInt(entryNumber, 10);
+        // Cache the final results
         if (!fftResultsCache[en]) {
             fftResultsCache[en] = {};
         }
-        Object.assign(fftResultsCache[en], updates);
+        Object.assign(fftResultsCache[en], finalUpdates);
         console.log(`[FFT] Cached results for entry ${en}:`, fftResultsCache[en]);
 
         // Emit Socket.IO event with actual data for live updates
@@ -328,7 +410,7 @@ router.post('/updateRow', async (req, res) => {
                 type: 'rowUpdated',
                 fileId,
                 entryNumber: en,
-                updates,
+                updates: finalUpdates,
                 cached: fftResultsCache[en]
             });
         }

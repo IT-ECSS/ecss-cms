@@ -34,6 +34,13 @@ const COLUMN_MAP = [
   { key: 'gripTest', label: 'Grip Test', labelZh: '握力' },
   { key: 'improvements', label: 'Improvements', labelZh: '改进' },
   { key: 'remarks', label: 'Remarks', labelZh: '备注' },
+  { key: 'sitStandRemarks', label: 'Sit & Stand Remarks', labelZh: '坐立备注' },
+  { key: 'armCurlRemarks', label: 'Arm Curl Remarks', labelZh: '手臂卷起备注' },
+  { key: 'marchRemarks', label: 'March Remarks', labelZh: '抬膝备注' },
+  { key: 'sitReachRemarks', label: 'Sit & Reach Remarks', labelZh: '坐姿前伸备注' },
+  { key: 'backStretchRemarks', label: 'Back Stretch Remarks', labelZh: '背部伸展备注' },
+  { key: 'speedWalkRemarks', label: 'Speed Walk Remarks', labelZh: '速走备注' },
+  { key: 'gripTestRemarks', label: 'Grip Test Remarks', labelZh: '握力备注' },
 ];
 
 
@@ -86,6 +93,13 @@ class FFTTrainers extends Component {
       { headerName: 'Grip Test', field: 'gripTest', width: 300},
       { headerName: 'Improvements', field: 'improvements', width: 500},
       { headerName: 'Remarks', field: 'remarks', width: 500 },
+      { headerName: 'Sit & Stand Remarks', field: 'sitStandRemarks', width: 300 },
+      { headerName: 'Arm Curl Remarks', field: 'armCurlRemarks', width: 300 },
+      { headerName: 'March Remarks', field: 'marchRemarks', width: 300 },
+      { headerName: 'Sit & Reach Remarks', field: 'sitReachRemarks', width: 300 },
+      { headerName: 'Back Stretch Remarks', field: 'backStretchRemarks', width: 300 },
+      { headerName: 'Speed Walk Remarks', field: 'speedWalkRemarks', width: 300 },
+      { headerName: 'Grip Test Remarks', field: 'gripTestRemarks', width: 300 },
     ];
   }
 
