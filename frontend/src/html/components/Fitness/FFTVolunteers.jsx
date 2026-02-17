@@ -317,6 +317,10 @@ class FFTVolunteers extends Component {
       .then((res) => {
         if (res.data.success) {
           this.setState({ submitting: false, submitSuccess: true });
+          // Auto-restart QR scanner after a brief success message
+          setTimeout(() => {
+            this.handleScanAnother();
+          }, 1500);
         } else {
           this.setState({ submitting: false, submitError: res.data.error || 'Failed to update.' });
         }
