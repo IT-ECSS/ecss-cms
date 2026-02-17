@@ -1,91 +1,694 @@
+/* =====================================================
+   FFT Volunteers — Styles (same design as Participants/Admin,
+   but with unique fft-volunteers-* class names)
+   ===================================================== */
+
+/* ── Page wrapper ── */
 .fft-volunteers-wrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 40px 20px;
-  animation: fftVolunteersFadeIn 0.4s ease-out;
+  width: 100%;
+  max-width: 800px;
+  height: fit-content;
+  padding: 0;
+  margin: 0 auto;
+  background: #f5f6fa;
+  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  animation: fftVolFadeIn 0.5s ease-out;
+  box-sizing: border-box;
 }
 
-@keyframes fftVolunteersFadeIn {
-  from {
-    opacity: 0;
-    transform: translateX(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+@keyframes fftVolFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-.fft-volunteers-back-btn {
-  align-self: flex-start;
+/* ── Header ── */
+.fft-volunteers-header {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 16px 20px 0;
+  background: transparent;
+  color: #1a1a1a;
+  margin-bottom: 0;
+  border-bottom: none;
+}
+
+.fft-volunteers-header::after {
+  display: none;
+}
+
+/* ── Header top row ── */
+.fft-volunteers-header-top-row {
+  width: 100%;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 16px 24px;
-  border: 2px solid #cbd5e1;
-  background-color: #ffffff;
-  border-radius: 12px;
+  justify-content: flex-start;
+  margin-bottom: 12px;
+}
+
+/* ── Icon button (home) ── */
+.fft-volunteers-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
   cursor: pointer;
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #475569;
-  margin-bottom: 32px;
-  transition: all 0.25s ease;
+  font-size: 2.7rem;
+  color: #2c7be5;
+  margin: 0;
+  padding: 0;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
-.fft-volunteers-back-btn:hover {
-  background-color: #f1f5f9;
-  border-color: #94a3b8;
-  color: #1e293b;
-  transform: translateX(-4px);
+.fft-volunteers-icon-btn:hover {
+  background: transparent;
+  color: #1a6fd4;
 }
 
-.fft-volunteers-back-icon {
-  font-size: 1.5rem;
-  transition: transform 0.25s ease;
+/* ── Form container ── */
+.fft-volunteers-form {
+  width: 100%;
+  height: fit-content;
+  padding: 28px 20px 60px;
 }
 
-.fft-volunteers-back-btn:hover .fft-volunteers-back-icon {
-  transform: translateX(-4px);
+/* ── Section cards ── */
+.fft-volunteers-section {
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 28px 28px 32px;
+  margin-bottom: 20px;
+  border: 1px solid #e2e6ed;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.3s ease;
 }
 
-.fft-volunteers-header {
-  text-align: center;
-  margin-bottom: 40px;
+.fft-volunteers-section:hover {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
 }
 
-.fft-volunteers-title {
-  font-size: 4rem;
-  font-weight: 800;
-  color: #16a34a;
-  margin: 0 0 16px 0;
-  letter-spacing: -1px;
+.fft-volunteers-section-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
+  padding-bottom: 14px;
+  border-bottom: 2px solid #eef0f4;
 }
 
-.fft-volunteers-description {
-  font-size: 1.5rem;
-  color: #64748b;
+.fft-volunteers-section-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #2c7be5;
+  color: #ffffff;
+  font-size: 1.65rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.fft-volunteers-section-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #212121;
   margin: 0;
 }
 
-.fft-volunteers-content {
+/* ── Form grid ── */
+.fft-volunteers-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+/* ── Field ── */
+.fft-volunteers-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.fft-volunteers-field--full {
+  grid-column: 1 / -1;
+}
+
+/* ── Label ── */
+.fft-volunteers-label {
+  font-size: 1.43rem;
+  font-weight: 700;
+  color: #424242;
+  letter-spacing: 0.2px;
+}
+
+/* ── Input ── */
+.fft-volunteers-input {
+  padding: 12px 14px;
+  border: 1.5px solid #d0d0d0;
+  border-radius: 8px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #212121;
+  background: #fafafa;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  outline: none;
   width: 100%;
-  max-width: 600px;
-  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-  border-radius: 16px;
-  padding: 40px;
+  box-sizing: border-box;
+}
+
+.fft-volunteers-input:focus {
+  border-color: #d32f2f;
+  box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.1);
+  background: #ffffff;
+}
+
+.fft-volunteers-input::placeholder {
+  color: #9e9e9e;
+}
+
+/* ── Submit button ── */
+.fft-volunteers-submit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 10px;
+  font-size: 1.73rem;
+  font-weight: 700;
+  color: #ffffff;
+  background: #d32f2f;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 3px 10px rgba(211, 47, 47, 0.3);
+  letter-spacing: 0.3px;
+}
+
+.fft-volunteers-submit-btn:hover {
+  background: #b71c1c;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 16px rgba(211, 47, 47, 0.35);
+}
+
+.fft-volunteers-submit-btn:active {
+  transform: translateY(0);
+}
+
+.fft-volunteers-submit-btn:disabled {
+  background: #bdbdbd;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+/* ── No-file warning banner ── */
+.fft-vol-no-file-banner {
   text-align: center;
+  padding: 40px 28px;
+}
+
+.fft-vol-no-file-icon {
+  font-size: 3rem;
+  color: #d97706;
+  margin-bottom: 14px;
+}
+
+.fft-vol-no-file-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #92400e;
+  margin: 0 0 8px;
+}
+
+.fft-vol-no-file-text {
+  font-size: 1.25rem;
+  color: #78716c;
+  margin: 0 0 16px;
+  line-height: 1.5;
+}
+
+/* ── Active file bar ── */
+.fft-vol-active-file-bar {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 1.15rem;
+  color: #166534;
+  font-weight: 600;
+}
+
+.fft-vol-active-file-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Select dropdown ── */
+.fft-vol-select {
+  cursor: pointer;
+  appearance: auto;
+}
+
+/* ── Station badge ── */
+.fft-vol-station-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 1.2rem;
+  margin-bottom: 14px;
+}
+
+/* ── Scan hint ── */
+.fft-vol-scan-hint {
+  color: #888;
+  font-size: 1.2rem;
+  margin: 0 0 14px 0;
+}
+
+/* ── QR container ── */
+.fft-vol-qr-container {
+  background: #000;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 14px;
+  position: relative;
+  min-height: 280px;
+}
+
+.fft-vol-qr-loading {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  border-radius: 10px;
+}
+
+/* ── Error message ── */
+.fft-vol-error-msg {
+  padding: 12px 16px;
+  background: #fef2f2;
+  color: #dc2626;
+  border-radius: 8px;
+  font-size: 1.2rem;
+  margin-bottom: 12px;
+  text-align: left;
+}
+
+/* ── Manual entry ── */
+.fft-vol-manual-entry {
+  padding: 14px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e2e6ed;
+  margin-top: 8px;
+}
+
+.fft-vol-manual-label {
+  font-size: 1.13rem;
+  color: #888;
+  margin: 0 0 8px 0;
+}
+
+.fft-vol-manual-row {
+  display: flex;
+  gap: 8px;
+}
+
+.fft-vol-manual-input {
+  text-align: center;
+}
+
+.fft-vol-go-btn {
+  padding: 12px 24px;
+  background: #d32f2f;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 1.35rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fft-vol-go-btn:hover {
+  background: #b71c1c;
+}
+
+/* ── Participant card ── */
+.fft-vol-participant-card {
+  padding: 20px 24px;
+}
+
+.fft-vol-participant-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.fft-vol-participant-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: #f0fdf4;
+  color: #16a34a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.fft-vol-participant-info {
+  flex: 1;
+}
+
+.fft-vol-participant-name {
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: #1a1a1a;
+}
+
+.fft-vol-participant-chinese {
+  font-size: 1.2rem;
+  color: #555;
+}
+
+.fft-vol-participant-meta {
+  font-size: 1.13rem;
+  color: #888;
+  margin-top: 4px;
+}
+
+/* ── Success card ── */
+.fft-vol-success-card {
+  text-align: center;
+  padding: 32px 24px;
+}
+
+.fft-vol-success-icon {
+  font-size: 3.5rem;
+  margin-bottom: 12px;
+  color: #16a34a;
+}
+
+.fft-vol-success-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #16a34a;
+  margin: 0 0 8px;
+}
+
+.fft-vol-success-text {
+  color: #555;
+  font-size: 1.28rem;
+  margin: 0 0 20px;
+}
+
+/* ── Note banner ── */
+.fft-vol-note-banner {
+  padding: 10px 14px;
+  background: #eff6ff;
+  border-radius: 8px;
+  font-size: 1.13rem;
+  color: #2563eb;
+  margin-bottom: 20px;
+  border: 1px solid #bfdbfe;
+}
+
+/* ── BMI display ── */
+.fft-vol-bmi-display {
+  padding: 12px 16px;
+  background: #f0fdf4;
+  border-radius: 8px;
+  margin-top: 16px;
+  font-size: 1.35rem;
   border: 1px solid #bbf7d0;
 }
 
-.fft-volunteers-placeholder-icon {
-  font-size: 5rem;
-  margin-bottom: 16px;
+/* =====================================================
+   Responsive
+   ===================================================== */
+@media (max-width: 768px) {
+  .fft-volunteers-wrapper {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .fft-volunteers-header {
+    padding: 14px 16px 0;
+  }
+
+  .fft-volunteers-icon-btn {
+    width: 48px;
+    height: 48px;
+    font-size: 2.2rem;
+  }
+
+  .fft-volunteers-form {
+    padding: 20px 14px 48px;
+  }
+
+  .fft-volunteers-section {
+    padding: 20px 16px 24px;
+    border-radius: 10px;
+  }
+
+  .fft-volunteers-section-title {
+    font-size: 1.6rem;
+  }
+
+  .fft-volunteers-section-number {
+    width: 32px;
+    height: 32px;
+    font-size: 1.4rem;
+  }
+
+  .fft-volunteers-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fft-volunteers-label {
+    font-size: 1.25rem;
+  }
+
+  .fft-volunteers-input {
+    font-size: 1.3rem;
+    padding: 11px 12px;
+  }
+
+  .fft-volunteers-submit-btn {
+    font-size: 1.5rem;
+    padding: 14px;
+  }
+
+  .fft-vol-qr-container {
+    min-height: 240px;
+  }
+
+  .fft-vol-participant-card {
+    padding: 16px 14px;
+  }
+
+  .fft-vol-participant-name {
+    font-size: 1.3rem;
+  }
+
+  .fft-vol-participant-meta {
+    font-size: 1rem;
+  }
+
+  .fft-vol-station-badge {
+    font-size: 1.1rem;
+    padding: 5px 12px;
+  }
+
+  .fft-vol-success-card {
+    padding: 24px 16px;
+  }
+
+  .fft-vol-success-icon {
+    font-size: 2.8rem;
+  }
+
+  .fft-vol-success-title {
+    font-size: 1.5rem;
+  }
 }
 
-.fft-volunteers-placeholder-text {
-  font-size: 1.5rem;
-  color: #22c55e;
-  font-weight: 500;
+@media (max-width: 480px) {
+  .fft-volunteers-header {
+    padding: 12px 10px 0;
+  }
+
+  .fft-volunteers-icon-btn {
+    width: 42px;
+    height: 42px;
+    font-size: 1.9rem;
+  }
+
+  .fft-volunteers-form {
+    padding: 16px 10px 40px;
+  }
+
+  .fft-volunteers-section {
+    padding: 16px 14px 20px;
+    border-radius: 8px;
+    margin-bottom: 14px;
+  }
+
+  .fft-volunteers-section-header {
+    gap: 10px;
+    margin-bottom: 18px;
+    padding-bottom: 10px;
+  }
+
+  .fft-volunteers-section-title {
+    font-size: 1.35rem;
+  }
+
+  .fft-volunteers-section-number {
+    width: 28px;
+    height: 28px;
+    font-size: 1.2rem;
+  }
+
+  .fft-volunteers-label {
+    font-size: 1.15rem;
+  }
+
+  .fft-volunteers-input {
+    font-size: 1.15rem;
+    padding: 10px 11px;
+  }
+
+  .fft-volunteers-submit-btn {
+    font-size: 1.35rem;
+    padding: 13px;
+  }
+
+  .fft-vol-qr-container {
+    min-height: 220px;
+    border-radius: 8px;
+  }
+
+  .fft-vol-manual-row {
+    flex-direction: column;
+  }
+
+  .fft-vol-go-btn {
+    width: 100%;
+  }
+
+  .fft-vol-manual-entry {
+    padding: 12px;
+  }
+
+  .fft-vol-participant-avatar {
+    width: 42px;
+    height: 42px;
+    font-size: 1.2rem;
+  }
+
+  .fft-vol-participant-name {
+    font-size: 1.2rem;
+  }
+
+  .fft-vol-participant-chinese {
+    font-size: 1.05rem;
+  }
+
+  .fft-vol-participant-meta {
+    font-size: 0.95rem;
+  }
+
+  .fft-vol-scan-hint {
+    font-size: 1.05rem;
+  }
+
+  .fft-vol-error-msg {
+    font-size: 1.05rem;
+    padding: 10px 14px;
+  }
+
+  .fft-vol-note-banner {
+    font-size: 1rem;
+    padding: 8px 12px;
+  }
+
+  .fft-vol-bmi-display {
+    font-size: 1.15rem;
+    padding: 10px 14px;
+  }
+
+  .fft-vol-success-card {
+    padding: 20px 14px;
+  }
+
+  .fft-vol-success-icon {
+    font-size: 2.5rem;
+  }
+
+  .fft-vol-success-title {
+    font-size: 1.35rem;
+  }
+
+  .fft-vol-success-text {
+    font-size: 1.1rem;
+  }
+
+  .fft-vol-station-badge {
+    font-size: 1rem;
+    padding: 4px 10px;
+  }
+}
+
+@media (max-width: 360px) {
+  .fft-volunteers-form {
+    padding: 12px 8px 36px;
+  }
+
+  .fft-volunteers-section {
+    padding: 14px 12px 18px;
+  }
+
+  .fft-volunteers-section-title {
+    font-size: 1.2rem;
+  }
+
+  .fft-volunteers-input {
+    font-size: 1rem;
+    padding: 9px 10px;
+  }
+
+  .fft-volunteers-label {
+    font-size: 1.05rem;
+  }
+
+  .fft-volunteers-submit-btn {
+    font-size: 1.2rem;
+    padding: 12px;
+  }
 }

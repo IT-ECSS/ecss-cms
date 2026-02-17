@@ -2,17 +2,30 @@
    FFT Participants — Full Page Redesign
    ===================================================== */
 
+/* ── Field validation error ── */
+.fft-participants-field-error {
+  display: block;
+  color: #d32f2f;
+  font-size: 0.95rem;
+  font-weight: 500;
+  margin-top: 4px;
+  padding-left: 2px;
+}
+
 /* Page wrapper */
 .fft-participants-wrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-height: 100vh;
+  width: 100%;
+  max-width: 800px;
+  height: fit-content;
   padding: 0;
-  margin: 0;
-  background: #f0f2f5;
+  margin: 0 auto;
+  background: #f5f6fa;
   font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
   animation: fftFadeIn 0.5s ease-out;
+  box-sizing: border-box;
 }
 
 @keyframes fftFadeIn {
@@ -20,94 +33,176 @@
   to { opacity: 1; }
 }
 
-/* ── Back button ── */
-.fft-participants-back-btn {
-  align-self: flex-start;
+/* ── Language Selection Page ── */
+.fft-participants-lang-page-label {
+  font-size: 1.6rem;
+  color: #555;
+  margin: 0 0 32px 0;
+  font-weight: 600;
+}
+
+.fft-participants-lang-page-options {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.fft-participants-lang-page-btn {
+  display: block;
+  width: 100%;
+  padding: 18px 24px;
+  border: 2px solid #e2e6ed;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #22304a;
+}
+
+.fft-participants-lang-page-btn:hover {
+  border-color: #2c7be5;
+  background: #f0f6ff;
+}
+
+.fft-participants-lang-page-btn--active {
+  background: #2c7be5;
+  border-color: #2c7be5;
+  color: #fff;
+}
+
+/* ── Header top row ── */
+.fft-participants-header-top-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-bottom: 12px;
+}
+
+.fft-participants-header-top-row .fft-participants-icon-btn {
+}
+
+/* ── Icon buttons (home, admin) ── */
+.fft-participants-icon-btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
   border: none;
+  border-radius: 50%;
   background: transparent;
   cursor: pointer;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #ffffff;
+  font-size: 2.7rem;
+  color: #2c7be5;
   margin: 0;
-  transition: opacity 0.2s ease;
+  padding: 0;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
-.fft-participants-back-btn:hover {
-  opacity: 0.8;
+.fft-participants-icon-btn:hover {
+  background: transparent;
+  color: #1a6fd4;
 }
 
-.fft-participants-back-icon {
-  font-size: 1.1rem;
-}
-
-/* ── Header banner ── */
+/* ── Header ── */
 .fft-participants-header {
   width: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 36px 20px 32px;
-  background: linear-gradient(135deg, #b71c1c 0%, #d32f2f 50%, #e53935 100%);
-  color: #ffffff;
+  align-items: flex-start;
+  padding: 16px 20px 0;
+  background: transparent;
+  color: #1a1a1a;
   margin-bottom: 0;
-  position: relative;
+  border-bottom: none;
 }
 
 .fft-participants-header::after {
-  content: '';
-  position: absolute;
-  bottom: -20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 24px solid transparent;
-  border-right: 24px solid transparent;
-  border-top: 20px solid #e53935;
+  display: none;
 }
 
 .fft-participants-title {
-  font-size: 2rem;
+  font-size: 3.5rem;
   font-weight: 700;
-  color: #ffffff;
-  margin: 0 0 6px 0;
-  letter-spacing: 0.5px;
+  color: #1a1a1a;
+  margin: 0 0 4px 0;
+  letter-spacing: 0;
+  text-align: center;
+  white-space: normal;
+  word-wrap: break-word;
+}
+
+/* ── Language selector ── */
+.fft-participants-lang-selector {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+}
+
+.fft-participants-lang-btn {
+  padding: 10px 22px;
+  border: 2px solid #d0d5dd;
+  border-radius: 24px;
+  background: #fff;
+  color: #555;
+  font-size: 1.28rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 64px;
+  text-align: center;
+}
+
+.fft-participants-lang-btn:hover {
+  border-color: #2c7be5;
+  color: #2c7be5;
+}
+
+.fft-participants-lang-btn--active {
+  background: #2c7be5;
+  color: #fff;
+  border-color: #2c7be5;
+}
+
+.fft-participants-lang-btn--active:hover {
+  background: #1a6fd4;
+  border-color: #1a6fd4;
+  color: #fff;
 }
 
 .fft-participants-subtitle {
-  font-size: 1.1rem;
-  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.43rem;
+  color: #888;
   margin: 0;
   font-weight: 400;
-  letter-spacing: 0.3px;
+  letter-spacing: 0;
 }
 
 /* ── Form container ── */
 .fft-participants-form {
   width: 100%;
-  max-width: 700px;
-  padding: 40px 20px 60px;
+  height: fit-content;
+  padding: 28px 20px 60px;
 }
 
 /* ── Section cards ── */
 .fft-participants-section {
   background: #ffffff;
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 28px 28px 32px;
   margin-bottom: 20px;
-  border: none;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e6ed;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
   transition: box-shadow 0.3s ease;
 }
 
 .fft-participants-section:hover {
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
 }
 
 .fft-participants-section-header {
@@ -116,7 +211,7 @@
   gap: 14px;
   margin-bottom: 24px;
   padding-bottom: 14px;
-  border-bottom: 2px solid #f0f0f0;
+  border-bottom: 2px solid #eef0f4;
 }
 
 .fft-participants-section-number {
@@ -126,15 +221,15 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #d32f2f;
+  background: #2c7be5;
   color: #ffffff;
-  font-size: 1.1rem;
+  font-size: 1.65rem;
   font-weight: 700;
   flex-shrink: 0;
 }
 
 .fft-participants-section-title {
-  font-size: 1.35rem;
+  font-size: 2rem;
   font-weight: 700;
   color: #212121;
   margin: 0;
@@ -158,8 +253,8 @@
 }
 
 .fft-participants-label {
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: 1.43rem;
+  font-weight: 700;
   color: #424242;
   letter-spacing: 0.2px;
 }
@@ -168,7 +263,8 @@
   padding: 12px 14px;
   border: 1.5px solid #d0d0d0;
   border-radius: 8px;
-  font-size: 1rem;
+  font-size: 1.5rem;
+  font-weight: 700;
   color: #212121;
   background: #fafafa;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
@@ -212,7 +308,7 @@
 
 .fft-participants-lock-icon {
   margin-left: 6px;
-  font-size: 0.75rem;
+  font-size: 1.13rem;
   color: #a1887f;
 }
 
@@ -234,13 +330,13 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 0.9rem;
+  font-size: 1.35rem;
   color: #e65100;
   font-weight: 500;
 }
 
 .fft-participants-singpass-banner-info i {
-  font-size: 0.95rem;
+  font-size: 1.43rem;
   color: #ff8f00;
 }
 
@@ -253,7 +349,7 @@
   border-radius: 6px;
   background: #ffebee;
   color: #c62828;
-  font-size: 0.8rem;
+  font-size: 1.2rem;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
@@ -272,29 +368,29 @@
 }
 
 .fft-participants-gender-btn {
-  flex: 1;
-  padding: 12px 14px;
-  border: 1.5px solid #d0d0d0;
-  border-radius: 8px;
-  font-size: 1rem;
+  width: 64px;
+  height: 64px;
+  border: 1.5px solid transparent;
+  border-radius: 50%;
+  font-size: 1.28rem;
   font-weight: 600;
   color: #757575;
-  background: #fafafa;
+  background: transparent;
   cursor: pointer;
   transition: all 0.2s ease;
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .fft-participants-gender-btn:hover {
-  border-color: #9e9e9e;
-  background: #f5f5f5;
+  color: #424242;
 }
 
 .fft-participants-gender-btn--active {
   border-color: #d32f2f;
-  background: #ffebee;
   color: #c62828;
-  box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.1);
 }
 
 .fft-participants-gender-btn--locked {
@@ -303,13 +399,74 @@
 }
 
 .fft-participants-gender-btn--locked:hover {
-  border-color: #d0d0d0;
-  background: #fafafa;
+  color: #757575;
 }
 
 .fft-participants-gender-btn--locked.fft-participants-gender-btn--active:hover {
   border-color: #d32f2f;
-  background: #ffebee;
+  color: #c62828;
+}
+
+/* ── Signature pad ── */
+.fft-participants-signature-field {
+  margin-top: 16px;
+}
+
+.fft-participants-signature-pad {
+  position: relative;
+  width: 100%;
+  height: 180px;
+  border: 1.5px solid #d0d0d0;
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.fft-participants-signature-canvas {
+  position: relative;
+  z-index: 2;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.fft-participants-signature-placeholder {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #bdbdbd;
+  font-size: 1.5rem;
+  pointer-events: none;
+  user-select: none;
+}
+
+.fft-participants-signature-clear-x {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 21px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+}
+
+.fft-participants-signature-clear-x:hover {
+  background: rgba(211, 47, 47, 0.8);
 }
 
 /* ── Submit button ── */
@@ -322,7 +479,7 @@
   padding: 16px;
   border: none;
   border-radius: 10px;
-  font-size: 1.15rem;
+  font-size: 1.73rem;
   font-weight: 700;
   color: #ffffff;
   background: #d32f2f;
@@ -367,7 +524,7 @@
   border-radius: 50%;
   background: #d32f2f;
   color: #ffffff;
-  font-size: 1rem;
+  font-size: 1.5rem;
   flex-shrink: 0;
 }
 
@@ -378,14 +535,14 @@
 }
 
 .fft-participants-consent-heading {
-  font-size: 1.35rem;
+  font-size: 2rem;
   font-weight: 700;
   color: #212121;
   margin: 0 0 4px 0;
 }
 
 .fft-participants-consent-heading-cn {
-  font-size: 1rem;
+  font-size: 1.5rem;
   font-weight: 500;
   color: #757575;
   margin: 0;
@@ -402,7 +559,7 @@
 }
 
 .fft-participants-consent-title {
-  font-size: 1.05rem;
+  font-size: 1.58rem;
   font-weight: 700;
   color: #d32f2f;
   margin: 0 0 14px 0;
@@ -412,11 +569,11 @@
 }
 
 .fft-participants-consent-title i {
-  font-size: 1rem;
+  font-size: 1.5rem;
 }
 
 .fft-participants-consent-text {
-  font-size: 0.9rem;
+  font-size: 1.35rem;
   color: #424242;
   line-height: 1.65;
   margin: 0 0 12px 0;
@@ -431,7 +588,7 @@
 }
 
 .fft-participants-consent-text--note {
-  font-size: 0.85rem;
+  font-size: 1.28rem;
   color: #757575;
   font-style: italic;
   margin-bottom: 6px;
@@ -441,7 +598,7 @@
 }
 
 .fft-participants-consent-text--note i {
-  font-size: 0.8rem;
+  font-size: 1.2rem;
   color: #9e9e9e;
   flex-shrink: 0;
 }
@@ -452,7 +609,7 @@
 }
 
 .fft-participants-presection-desc {
-  font-size: 0.95rem;
+  font-size: 1.43rem;
   color: #616161;
   margin: 0 0 20px 0;
   line-height: 1.6;
@@ -472,8 +629,10 @@
 }
 
 .fft-participants-flex-button-container > * {
-  width: 300px !important;
-  height: 50px !important;
+  width: 100% !important;
+  max-width: 400px !important;
+  min-height: 56px !important;
+  height: auto !important;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -482,8 +641,9 @@
 }
 
 .fft-participants-next-button {
-  font-size: 1rem;
-  padding: 0;
+  font-size: 16px;
+  padding: 12px 20px;
+  line-height: 1.4;
   border-radius: 8px;
   background-color: #1565c0;
   color: #ffffff;
@@ -510,7 +670,7 @@
 
 /* ── Section subtitle ── */
 .fft-participants-section-subtitle {
-  font-size: 1.05rem;
+  font-size: 1.58rem;
   color: #d32f2f;
   font-weight: 600;
   margin: -12px 0 22px 0;
@@ -525,7 +685,7 @@
 }
 
 .fft-participants-subsection-title {
-  font-size: 1.15rem;
+  font-size: 1.73rem;
   font-weight: 700;
   color: #212121;
   margin: 0 0 18px 0;
@@ -558,7 +718,7 @@
 }
 
 .fft-participants-health-cn {
-  font-size: 0.95rem;
+  font-size: 1.43rem;
   color: #212121;
   margin: 0 0 3px 0;
   font-weight: 500;
@@ -566,9 +726,17 @@
 }
 
 .fft-participants-health-en {
-  font-size: 0.85rem;
+  font-size: 1.28rem;
   color: #757575;
   margin: 0;
+  line-height: 1.5;
+}
+
+.fft-participants-health-text {
+  font-size: 1.43rem;
+  color: #212121;
+  margin: 0;
+  font-weight: bold;
   line-height: 1.5;
 }
 
@@ -580,36 +748,34 @@
 }
 
 .fft-participants-health-btn {
-  padding: 7px 18px;
-  border: 1.5px solid #e0e0e0;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  font-weight: 600;
+  width: 56px;
+  height: 56px;
+  border: 1.5px solid transparent;
+  border-radius: 50%;
+  font-size: 1.35rem;
+  font-weight: bold;
   color: #757575;
-  background: #ffffff;
+  background: transparent;
   cursor: pointer;
   transition: all 0.2s ease;
-  min-width: 56px;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
 }
 
 .fft-participants-health-btn:hover {
-  border-color: #bdbdbd;
-  background: #f5f5f5;
+  color: #424242;
 }
 
 .fft-participants-health-btn--yes {
   border-color: #e53935;
-  background: #ffebee;
   color: #c62828;
-  box-shadow: 0 0 0 2px rgba(229, 57, 53, 0.08);
 }
 
 .fft-participants-health-btn--no {
   border-color: #43a047;
-  background: #e8f5e9;
   color: #2e7d32;
-  box-shadow: 0 0 0 2px rgba(67, 160, 71, 0.08);
 }
 
 /* ── Programme Indemnity ── */
@@ -631,7 +797,7 @@
 }
 
 .fft-participants-indemnity-num {
-  font-size: 1rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: #d32f2f;
   flex-shrink: 0;
@@ -639,15 +805,23 @@
 }
 
 .fft-participants-indemnity-cn {
-  font-size: 0.95rem;
+  font-size: 1.43rem;
   color: #212121;
   margin: 0 0 4px 0;
   line-height: 1.55;
 }
 
 .fft-participants-indemnity-en {
-  font-size: 0.85rem;
+  font-size: 1.28rem;
   color: #757575;
+  margin: 0;
+  line-height: 1.55;
+}
+
+.fft-participants-indemnity-text {
+  font-size: 1.43rem;
+  font-weight: 700;
+  color: #212121;
   margin: 0;
   line-height: 1.55;
 }
@@ -661,8 +835,8 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 1.5rem;
+  font-weight: 700;
   color: #212121;
   cursor: pointer;
   padding: 14px 16px;
@@ -693,29 +867,72 @@
    Responsive
    ===================================================== */
 @media (max-width: 768px) {
+  .fft-participants-wrapper {
+    width: 100%;
+    max-width: 100%;
+  }
+
   .fft-participants-header {
-    padding: 28px 16px 26px;
+    padding: 22px 16px 16px;
+  }
+
+  .fft-participants-icon-btn {
+    width: 48px;
+    height: 48px;
+    font-size: 2.2rem;
+  }
+
+  .fft-participants-lang-btn {
+    padding: 8px 16px;
+    font-size: 1rem;
+    min-width: 52px;
   }
 
   .fft-participants-title {
-    font-size: 1.6rem;
+    font-size: 2.4rem;
+    white-space: normal;
+    text-align: center;
   }
 
   .fft-participants-subtitle {
-    font-size: 0.95rem;
+    font-size: 0.88rem;
   }
 
   .fft-participants-form {
-    padding: 32px 16px 48px;
+    padding: 20px 14px 48px;
   }
 
   .fft-participants-section {
-    padding: 22px 20px 26px;
+    padding: 20px 16px 24px;
     border-radius: 10px;
+  }
+
+  .fft-participants-section-title {
+    font-size: 1.6rem;
+  }
+
+  .fft-participants-section-number {
+    width: 32px;
+    height: 32px;
+    font-size: 1.4rem;
   }
 
   .fft-participants-form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .fft-participants-label {
+    font-size: 1.25rem;
+  }
+
+  .fft-participants-input {
+    font-size: 1.3rem;
+    padding: 11px 12px;
+  }
+
+  .fft-participants-submit-btn {
+    font-size: 1.5rem;
+    padding: 14px;
   }
 
   .fft-participants-flex-button-container > * {
@@ -740,27 +957,313 @@
     border-left: none;
     border-top: 3px solid #ffa000;
   }
+
+  .fft-participants-gender-btn {
+    width: 54px;
+    height: 54px;
+    font-size: 1.1rem;
+  }
+
+  .fft-participants-signature-pad {
+    height: 150px;
+  }
 }
 
-@media (max-width: 400px) {
+@media (max-width: 480px) {
   .fft-participants-header {
-    padding: 22px 12px 20px;
+    padding: 16px 10px 12px;
+  }
+
+  .fft-participants-icon-btn {
+    width: 42px;
+    height: 42px;
+    font-size: 1.9rem;
   }
 
   .fft-participants-title {
-    font-size: 1.35rem;
+    font-size: 1.8rem;
+    white-space: normal;
+    text-align: center;
+  }
+
+  .fft-participants-form {
+    padding: 16px 10px 40px;
   }
 
   .fft-participants-section {
-    padding: 18px 16px 22px;
+    padding: 16px 14px 20px;
+    border-radius: 8px;
+    margin-bottom: 14px;
+  }
+
+  .fft-participants-section-header {
+    gap: 10px;
+    margin-bottom: 18px;
+    padding-bottom: 10px;
   }
 
   .fft-participants-section-title {
+    font-size: 1.35rem;
+  }
+
+  .fft-participants-section-number {
+    width: 28px;
+    height: 28px;
+    font-size: 1.2rem;
+  }
+
+  .fft-participants-label {
+    font-size: 1.15rem;
+  }
+
+  .fft-participants-input {
+    font-size: 1.15rem;
+    padding: 10px 11px;
+  }
+
+  .fft-participants-submit-btn {
+    font-size: 1.35rem;
+    padding: 13px;
+  }
+
+  .fft-participants-lang-btn {
+    padding: 7px 12px;
+    font-size: 0.9rem;
+    min-width: 44px;
+  }
+
+  .fft-participants-consent-heading {
+    font-size: 1.5rem;
+  }
+
+  .fft-participants-consent-heading-cn {
+    font-size: 1.2rem;
+  }
+
+  .fft-participants-consent-block {
+    margin: 18px 16px 0;
+    padding: 16px;
+  }
+
+  .fft-participants-consent-title {
+    font-size: 1.3rem;
+  }
+
+  .fft-participants-consent-text {
+    font-size: 1.15rem;
+  }
+
+  .fft-participants-consent-action {
+    padding: 20px 16px 24px;
+  }
+
+  .fft-participants-health-question {
+    padding: 12px 14px;
+  }
+
+  .fft-participants-health-cn {
+    font-size: 1.25rem;
+  }
+
+  .fft-participants-health-en {
+    font-size: 1.1rem;
+  }
+
+  .fft-participants-health-btn {
+    width: 48px;
+    height: 48px;
     font-size: 1.15rem;
   }
 
   .fft-participants-flex-button-container > * {
     height: 44px !important;
     font-size: 0.9rem;
+  }
+
+  .fft-participants-gender-btn {
+    width: 48px;
+    height: 48px;
+    font-size: 1rem;
+  }
+
+  .fft-participants-signature-pad {
+    height: 130px;
+  }
+
+  .fft-participants-checkbox-label {
+    font-size: 1.25rem;
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .fft-participants-indemnity-item {
+    padding: 12px 14px;
+  }
+
+  .fft-participants-indemnity-cn {
+    font-size: 1.25rem;
+  }
+
+  .fft-participants-indemnity-en {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .fft-participants-header {
+    padding: 12px 8px 10px;
+  }
+
+  .fft-participants-title {
+    font-size: 1.5rem;
+  }
+
+  .fft-participants-form {
+    padding: 12px 8px 36px;
+  }
+
+  .fft-participants-section {
+    padding: 14px 12px 18px;
+  }
+
+  .fft-participants-section-title {
+    font-size: 1.2rem;
+  }
+
+  .fft-participants-input {
+    font-size: 1rem;
+    padding: 9px 10px;
+  }
+
+  .fft-participants-label {
+    font-size: 1.05rem;
+  }
+
+  .fft-participants-submit-btn {
+    font-size: 1.2rem;
+    padding: 12px;
+  }
+}
+
+/* ── Step Navigation Buttons ── */
+.fft-participants-nav-buttons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-top: 24px;
+  padding: 0 4px;
+}
+
+.fft-participants-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  border: none;
+  border-radius: 10px;
+  font-size: 1.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+}
+
+.fft-participants-nav-btn:active {
+  transform: scale(0.97);
+}
+
+.fft-participants-nav-btn--prev {
+  background: #f5f5f5;
+  color: #555;
+  border: 1.5px solid #ddd;
+}
+
+.fft-participants-nav-btn--prev:hover {
+  background: #ececec;
+}
+
+.fft-participants-nav-btn--next {
+  background: #2c7be5;
+  color: #fff;
+  margin-left: auto;
+}
+
+.fft-participants-nav-btn--next:hover {
+  background: #2269c9;
+  box-shadow: 0 2px 8px rgba(44, 123, 229, 0.25);
+}
+
+.fft-participants-nav-btn--submit {
+  background: #d32f2f;
+  color: #fff;
+  margin-left: auto;
+}
+
+.fft-participants-nav-btn--submit:hover:not(:disabled) {
+  background: #c62828;
+  box-shadow: 0 2px 8px rgba(211, 47, 47, 0.25);
+}
+
+.fft-participants-nav-btn--submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Agreement Side-by-Side Layout ── */
+.fft-participants-agreement-layout {
+  display: flex;
+  gap: 24px;
+  margin-top: 24px;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.fft-participants-agreement-left {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 16px;
+}
+
+.fft-participants-agreement-left .fft-participants-indemnity-agree {
+  margin-bottom: 0;
+}
+
+.fft-participants-agreement-right {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+}
+
+.fft-participants-agreement-right .fft-participants-signature-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.fft-participants-agreement-right .fft-participants-signature-pad {
+  flex: 1;
+  min-height: 150px;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .fft-participants-agreement-layout {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .fft-participants-nav-buttons {
+    gap: 12px;
+  }
+
+  .fft-participants-nav-btn {
+    padding: 10px 18px;
+    font-size: 1.3rem;
   }
 }

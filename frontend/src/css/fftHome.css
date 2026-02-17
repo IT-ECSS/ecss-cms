@@ -127,6 +127,20 @@
   box-shadow: none;
 }
 
+.fft-home-nav-card--trainers {
+  background: transparent;
+}
+
+.fft-home-nav-card--trainers .fft-home-nav-icon,
+.fft-home-nav-card--trainers .fft-home-nav-text {
+  color: #7c3aed;
+}
+
+.fft-home-nav-card--trainers:hover {
+  background: transparent;
+  box-shadow: none;
+}
+
 .fft-home-nav-icon {
   font-size: 3.5rem;
   margin-bottom: 16px;
@@ -146,4 +160,94 @@
   text-align: center;
   line-height: 1.3;
   letter-spacing: 0.3px;
+}
+
+/* =====================================================
+   Responsive
+   ===================================================== */
+@media (max-width: 768px) {
+  .fft-home-wrapper {
+    padding: 40px 16px;
+  }
+
+  .fft-home-title {
+    font-size: 3.5rem;
+  }
+
+  .fft-home-header {
+    margin-bottom: 32px;
+  }
+
+  .fft-home-navigation {
+    flex-direction: column;
+    gap: 14px;
+    padding: 0 8px;
+  }
+
+  .fft-home-nav-card {
+    padding: 32px 20px;
+    flex: none;
+    width: 100%;
+  }
+
+  .fft-home-nav-icon {
+    font-size: 2.8rem;
+    margin-bottom: 12px;
+  }
+
+  .fft-home-nav-text {
+    font-size: 1.3rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .fft-home-wrapper {
+    padding: 28px 12px;
+  }
+
+  .fft-home-title {
+    font-size: 2.5rem;
+  }
+
+  .fft-home-header {
+    margin-bottom: 24px;
+  }
+
+  .fft-home-navigation {
+    gap: 12px;
+    padding: 0;
+  }
+
+  .fft-home-nav-card {
+    padding: 24px 16px;
+    border-radius: 18px;
+  }
+
+  .fft-home-nav-icon {
+    font-size: 2.2rem;
+    margin-bottom: 10px;
+  }
+
+  .fft-home-nav-text {
+    font-size: 1.15rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .fft-home-title {
+    font-size: 2rem;
+  }
+
+  .fft-home-nav-card {
+    padding: 20px 14px;
+    border-radius: 14px;
+  }
+
+  .fft-home-nav-icon {
+    font-size: 1.8rem;
+  }
+
+  .fft-home-nav-text {
+    font-size: 1rem;
+  }
 }

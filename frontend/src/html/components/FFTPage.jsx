@@ -1,44 +1,90 @@
 import React, { Component } from 'react';
 import { withRouter } from 'react-router-dom';
+import axios from 'axios';
 import '../../css/fftPage.css';
 import FFTHome from './Fitness/FFTHome';
 import FFTParticipants from './Fitness/FFTParticipants';
 import FFTVolunteers from './Fitness/FFTVolunteers';
 import FFTAdmin from './Fitness/FFTAdmin';
+import FFTTrainers from './Fitness/FFTTrainers';
+
+const BACKEND_URL = window.location.hostname === 'localhost'
+  ? 'http://localhost:3001'
+  : 'https://ecss-backend-node.azurewebsites.net';
 
 class FFTPage extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      activeSection: 'home' // 'home', 'participants', 'volunteers', or 'admin'
+      activeSection: 'home',
+      selectedFile: null,
     };
+  }
+
+  componentDidMount() {
+    document.title = 'ECSS FFT Test';
+
+    // Fetch the active file from the backend (shared across all devices)
+    axios.get(`${BACKEND_URL}/googleDrive/activeFile`)
+      .then((res) => {
+        if (res.data.success && res.data.file) {
+          this.setState({ selectedFile: res.data.file });
+        }
+      })
+      .catch((err) => console.error('Failed to fetch active file:', err.message));
   }
 
   handleSectionChange = (section) => {
     this.setState({ activeSection: section });
   };
 
+  handleFileSelected = (file) => {
+    // Admin chose a file → store it on the backend so all devices share it
+    axios.post(`${BACKEND_URL}/googleDrive/activeFile`, { file })
+      .then(() => {
+        this.setState({ selectedFile: file, activeSection: 'participants' });
+      })
+      .catch((err) => {
+        console.error('Failed to set active file:', err.message);
+        // Still set locally as fallback
+        this.setState({ selectedFile: file, activeSection: 'participants' });
+      });
+  };
+
   render() {
-    const { activeSection } = this.state;
+    const { activeSection, selectedFile } = this.state;
 
     return (
       <div className="fft-page-container">
-        <div className="fft-page-main">
-          <div className="fft-page-body">
             {activeSection === 'home' && (
               <FFTHome onNavigate={this.handleSectionChange} />
             )}
             {activeSection === 'participants' && (
-              <FFTParticipants onBack={() => this.handleSectionChange('home')} />
+              <FFTParticipants
+                onBack={() => this.handleSectionChange('home')}
+                onAdmin={() => this.handleSectionChange('admin')}
+                selectedFile={selectedFile}
+              />
             )}
             {activeSection === 'volunteers' && (
-              <FFTVolunteers onBack={() => this.handleSectionChange('home')} />
+              <FFTVolunteers
+                onBack={() => this.handleSectionChange('home')}
+                selectedFile={selectedFile}
+              />
             )}
             {activeSection === 'admin' && (
-              <FFTAdmin onBack={() => this.handleSectionChange('home')} />
+              <FFTAdmin
+                onBack={() => this.handleSectionChange('home')}
+                onFileSelected={this.handleFileSelected}
+                selectedFile={selectedFile}
+              />
             )}
-          </div>
-        </div>
+            {activeSection === 'trainers' && (
+              <FFTTrainers
+                onBack={() => this.handleSectionChange('home')}
+                selectedFile={selectedFile}
+              />
+            )}
       </div>
     );
   }

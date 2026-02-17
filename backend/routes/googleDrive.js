@@ -26,10 +26,13 @@ router.post('/', async (req, res) => {
             case 'checkFolder':
                 result = await googleDriveController.checkFolderExists(folderId);
                 break;
+            case 'listSubfolders':
+                result = await googleDriveController.listSubfolders(folderId);
+                break;
             default:
                 return res.status(400).json({
                     success: false,
-                    error: 'Invalid purpose. Supported values: listFiles, checkFolder'
+                    error: 'Invalid purpose. Supported values: listFiles, checkFolder, listSubfolders'
                 });
         }
 
@@ -120,6 +123,148 @@ router.post('/readSpreadsheet', async (req, res) => {
             success: false,
             error: error.message
         });
+    }
+});
+
+// POST endpoint to append a row to a spreadsheet
+router.post('/appendRow', async (req, res) => {
+    try {
+        const { fileId, rowData, sheetName } = req.body;
+
+        if (!fileId || !rowData || !Array.isArray(rowData)) {
+            return res.status(400).json({
+                success: false,
+                error: 'fileId and rowData (array) are required'
+            });
+        }
+
+        console.log(`Appending row to spreadsheet: ${fileId}`);
+        const result = await googleDriveController.appendRow(fileId, rowData, sheetName);
+
+        if (!result.success) {
+            return res.status(500).json(result);
+        }
+
+        res.json(result);
+    } catch (error) {
+        console.error('Error in POST /appendRow:', error.message);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// POST endpoint to create a folder inside a parent folder
+router.post('/createFolder', async (req, res) => {
+    try {
+        const { folderName, parentFolderId } = req.body;
+
+        if (!folderName || !parentFolderId) {
+            return res.status(400).json({
+                success: false,
+                error: 'folderName and parentFolderId are required'
+            });
+        }
+
+        console.log(`Creating folder "${folderName}" in parent ${parentFolderId}`);
+        const result = await googleDriveController.createFolder(folderName, parentFolderId);
+
+        if (!result.success) {
+            return res.status(500).json(result);
+        }
+
+        res.json(result);
+    } catch (error) {
+        console.error('Error in POST /createFolder:', error.message);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// POST endpoint to copy a spreadsheet to a folder with a new name
+router.post('/copySpreadsheet', async (req, res) => {
+    try {
+        const { sourceFileId, newFileName, destinationFolderId } = req.body;
+
+        if (!sourceFileId || !newFileName) {
+            return res.status(400).json({
+                success: false,
+                error: 'sourceFileId and newFileName are required'
+            });
+        }
+
+        console.log(`Copying spreadsheet ${sourceFileId} as "${newFileName}" to folder ${destinationFolderId || 'root'}`);
+        const result = await googleDriveController.copySpreadsheet(sourceFileId, newFileName, destinationFolderId);
+
+        if (!result.success) {
+            return res.status(500).json(result);
+        }
+
+        res.json(result);
+    } catch (error) {
+        console.error('Error in POST /copySpreadsheet:', error.message);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// ── In-memory store for the active FFT file (shared across all users/devices) ──
+let activeFFTFile = null;
+
+// GET the currently active FFT file
+router.get('/activeFile', (req, res) => {
+    res.json({ success: true, file: activeFFTFile });
+});
+
+// SET the active FFT file
+router.post('/activeFile', (req, res) => {
+    const { file } = req.body;
+    if (!file || !file.id || !file.name) {
+        return res.status(400).json({ success: false, error: 'file with id and name is required' });
+    }
+    activeFFTFile = { id: file.id, name: file.name };
+    console.log(`[FFT] Active file set to: ${file.name} (${file.id})`);
+    res.json({ success: true, file: activeFFTFile });
+});
+
+// GET a specific row by entry number
+router.get('/getRow', async (req, res) => {
+    try {
+        const { fileId, entryNumber } = req.query;
+        if (!fileId || !entryNumber) {
+            return res.status(400).json({ success: false, error: 'fileId and entryNumber are required' });
+        }
+        const result = await googleDriveController.getRow(fileId, parseInt(entryNumber, 10));
+        if (!result.success) {
+            return res.status(500).json(result);
+        }
+        res.json(result);
+    } catch (error) {
+        console.error('Error in GET /getRow:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// POST update specific columns in a row
+router.post('/updateRow', async (req, res) => {
+    try {
+        const { fileId, entryNumber, updates } = req.body;
+        if (!fileId || entryNumber == null || !updates) {
+            return res.status(400).json({ success: false, error: 'fileId, entryNumber, and updates are required' });
+        }
+        const result = await googleDriveController.updateRow(fileId, parseInt(entryNumber, 10), updates);
+        if (!result.success) {
+            return res.status(500).json(result);
+        }
+        res.json(result);
+    } catch (error) {
+        console.error('Error in POST /updateRow:', error.message);
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 

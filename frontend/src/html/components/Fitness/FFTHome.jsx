@@ -38,6 +38,13 @@ class FFTHome extends Component {
             <span className="fft-home-nav-icon">🤝</span>
             <span className="fft-home-nav-text">Volunteers</span>
           </button>
+          <button
+            className="fft-home-nav-card fft-home-nav-card--trainers"
+            onClick={() => onNavigate('trainers')}
+          >
+            <span className="fft-home-nav-icon">🏋️</span>
+            <span className="fft-home-nav-text">Trainers</span>
+          </button>
         </div>
       </div>
     );

@@ -519,7 +519,7 @@ class GoogleDriveController {
             credentials: credentials,
             scopes: [
                 'https://www.googleapis.com/auth/drive',
-                'https://www.googleapis.com/auth/spreadsheets.readonly'
+                'https://www.googleapis.com/auth/spreadsheets'
             ]
         });
 
@@ -588,6 +588,197 @@ class GoogleDriveController {
                 success: false,
                 error: error.message
             };
+        }
+    }
+
+    async appendRow(fileId, rowData, sheetName = null) {
+        try {
+            const sheets = await this.initializeSheetsAuth();
+
+            console.log(`[SHEETS] Appending row to spreadsheet: ${fileId}`);
+
+            // Get spreadsheet metadata to determine sheet name
+            const spreadsheet = await sheets.spreadsheets.get({
+                spreadsheetId: fileId,
+                fields: 'sheets.properties'
+            });
+
+            const sheetNames = spreadsheet.data.sheets.map(s => s.properties.title);
+            const targetSheet = sheetName || sheetNames[0];
+            const sheetId = spreadsheet.data.sheets.find(s => s.properties.title === targetSheet)?.properties?.sheetId || 0;
+
+            const range = `'${targetSheet}'!A:U`;
+            const response = await sheets.spreadsheets.values.append({
+                spreadsheetId: fileId,
+                range: range,
+                valueInputOption: 'RAW',
+                insertDataOption: 'INSERT_ROWS',
+                resource: {
+                    values: [rowData]
+                }
+            });
+
+            const updatedRange = response.data.updates.updatedRange;
+            console.log(`[SHEETS] Appended row to '${targetSheet}': ${updatedRange}`);
+
+            // Extract row number from updatedRange (e.g. "'Sheet1'!A5:U5" → row 5, entry = row - 1)
+            const rowMatch = updatedRange.match(/!A(\d+):/);
+            const rowNumber = rowMatch ? parseInt(rowMatch[1], 10) : null;
+            const entryNumber = rowNumber ? rowNumber - 1 : null; // subtract 1 for header row
+
+            // Clear bold formatting on the newly appended row (it inherits from header)
+            if (rowNumber) {
+                try {
+                    await sheets.spreadsheets.batchUpdate({
+                        spreadsheetId: fileId,
+                        resource: {
+                            requests: [{
+                                repeatCell: {
+                                    range: {
+                                        sheetId: sheetId,
+                                        startRowIndex: rowNumber - 1, // 0-based
+                                        endRowIndex: rowNumber,
+                                        startColumnIndex: 0,
+                                        endColumnIndex: 21 // columns A–U
+                                    },
+                                    cell: {
+                                        userEnteredFormat: {
+                                            textFormat: { bold: false }
+                                        }
+                                    },
+                                    fields: 'userEnteredFormat.textFormat.bold'
+                                }
+                            }]
+                        }
+                    });
+                    console.log(`[SHEETS] Cleared bold formatting on row ${rowNumber}`);
+                } catch (fmtErr) {
+                    console.warn(`[SHEETS] Could not clear bold formatting: ${fmtErr.message}`);
+                }
+            }
+
+            return {
+                success: true,
+                updatedRange: updatedRange,
+                updatedRows: response.data.updates.updatedRows,
+                entryNumber: entryNumber
+            };
+        } catch (error) {
+            console.error('[SHEETS] Error appending row:', error.message);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Update specific columns in a row by entry number.
+     * @param {string} fileId - Spreadsheet ID
+     * @param {number} entryNumber - Entry number (row - 1 because of header)
+     * @param {Object} updates - Key-value pairs where keys are column names
+     */
+    async updateRow(fileId, entryNumber, updates) {
+        try {
+            const sheets = await this.initializeSheetsAuth();
+            const rowNumber = entryNumber + 1; // +1 for header row
+
+            // Column mapping: field name → column letter
+            const columnMap = {
+                name: 'A', chineseName: 'B', phoneNo: 'C', gender: 'D',
+                dd: 'E', mm: 'F', yyyy: 'G', age: 'H',
+                height: 'I', weight: 'J', bmi: 'K', testDate: 'L',
+                sitStand: 'M', armCurl: 'N', march: 'O', sitReach: 'P',
+                backStretch: 'Q', speedWalk: 'R', gripTest: 'S',
+                improvements: 'T', remarks: 'U'
+            };
+
+            const spreadsheet = await sheets.spreadsheets.get({
+                spreadsheetId: fileId,
+                fields: 'sheets.properties'
+            });
+            const targetSheet = spreadsheet.data.sheets[0].properties.title;
+
+            // Build batch value updates
+            const data = [];
+            for (const [field, value] of Object.entries(updates)) {
+                const col = columnMap[field];
+                if (col) {
+                    data.push({
+                        range: `'${targetSheet}'!${col}${rowNumber}`,
+                        values: [[value]]
+                    });
+                }
+            }
+
+            if (data.length === 0) {
+                return { success: false, error: 'No valid fields to update' };
+            }
+
+            await sheets.spreadsheets.values.batchUpdate({
+                spreadsheetId: fileId,
+                resource: {
+                    valueInputOption: 'RAW',
+                    data: data
+                }
+            });
+
+            console.log(`[SHEETS] Updated row ${rowNumber} (entry ${entryNumber}): ${Object.keys(updates).join(', ')}`);
+            return { success: true, updatedFields: Object.keys(updates) };
+        } catch (error) {
+            console.error('[SHEETS] Error updating row:', error.message);
+            return { success: false, error: error.message };
+        }
+    }
+
+    async getRow(fileId, entryNumber) {
+        try {
+            const sheets = await this.initializeSheetsAuth();
+            const rowNumber = entryNumber + 1; // +1 for header row
+
+            const spreadsheet = await sheets.spreadsheets.get({
+                spreadsheetId: fileId,
+                fields: 'sheets.properties'
+            });
+            const targetSheet = spreadsheet.data.sheets[0].properties.title;
+
+            const range = `'${targetSheet}'!A${rowNumber}:U${rowNumber}`;
+            const response = await sheets.spreadsheets.values.get({
+                spreadsheetId: fileId,
+                range: range
+            });
+
+            const row = response.data.values && response.data.values[0] ? response.data.values[0] : [];
+            // Map to column names (A=0 to U=20)
+            return {
+                success: true,
+                data: {
+                    name: row[0] || '',
+                    chineseName: row[1] || '',
+                    phoneNo: row[2] || '',
+                    gender: row[3] || '',
+                    dd: row[4] || '',
+                    mm: row[5] || '',
+                    yyyy: row[6] || '',
+                    age: row[7] || '',
+                    height: row[8] || '',
+                    weight: row[9] || '',
+                    bmi: row[10] || '',
+                    testDate: row[11] || '',
+                    sitStand: row[12] || '',
+                    armCurl: row[13] || '',
+                    march: row[14] || '',
+                    sitReach: row[15] || '',
+                    backStretch: row[16] || '',
+                    speedWalk: row[17] || '',
+                    gripTest: row[18] || '',
+                    improvements: row[19] || '',
+                    remarks: row[20] || ''
+                }
+            };
+        } catch (error) {
+            console.error('[SHEETS] Error getting row:', error.message);
+            return { success: false, error: error.message };
         }
     }
 
@@ -746,6 +937,113 @@ class GoogleDriveController {
         }
     }
 
+    /**
+     * Copy a Google Spreadsheet to a specified folder with a new name.
+     * @param {string} sourceFileId - The ID of the spreadsheet to copy
+     * @param {string} newFileName - The name for the copied file
+     * @param {string} destinationFolderId - The folder ID to place the copy in
+     * @returns {Object} { success, fileId, fileName, fileUrl }
+     */
+    async copySpreadsheet(sourceFileId, newFileName, destinationFolderId) {
+        try {
+            const drive = await this.initializeAuth();
+
+            // Copy the file
+            const copyResponse = await drive.files.copy({
+                fileId: sourceFileId,
+                requestBody: {
+                    name: newFileName,
+                    parents: destinationFolderId ? [destinationFolderId] : undefined,
+                },
+                supportsAllDrives: true,
+            });
+
+            const copiedFile = copyResponse.data;
+            console.log(`Spreadsheet copied: ${copiedFile.name} (${copiedFile.id})`);
+
+            return {
+                success: true,
+                fileId: copiedFile.id,
+                fileName: copiedFile.name,
+                fileUrl: `https://docs.google.com/spreadsheets/d/${copiedFile.id}/edit`,
+            };
+        } catch (error) {
+            console.error('Error copying spreadsheet:', error.message);
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    }
+
+    /**
+     * List only subfolders inside a given folder.
+     * @param {string} folderId - The parent folder ID
+     * @returns {Object} { success, folders: [{id, name}] }
+     */
+    async listSubfolders(folderId) {
+        try {
+            const drive = await this.initializeAuth();
+
+            console.log(`\n📁 Listing subfolders in folder: ${folderId}`);
+
+            const query = await drive.files.list({
+                q: `'${folderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+                spaces: 'drive',
+                fields: 'files(id, name)',
+                supportsAllDrives: true,
+                includeItemsFromAllDrives: true,
+                pageSize: 100,
+                orderBy: 'name',
+                corpora: 'allDrives',
+            });
+
+            const folders = query.data.files || [];
+            console.log(`✓ Found ${folders.length} subfolders`);
+            folders.forEach((f, i) => console.log(`  ${i + 1}. ${f.name} (ID: ${f.id})`));
+
+            return { success: true, folders };
+        } catch (error) {
+            console.error('Error listing subfolders:', error.message);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * Create a new folder inside a parent folder.
+     * @param {string} folderName - The name of the new folder
+     * @param {string} parentFolderId - The parent folder ID
+     * @returns {Object} { success, folderId, folderName }
+     */
+    async createFolder(folderName, parentFolderId) {
+        try {
+            const drive = await this.initializeAuth();
+
+            console.log(`\n📁 Creating folder "${folderName}" in parent: ${parentFolderId}`);
+
+            const response = await drive.files.create({
+                requestBody: {
+                    name: folderName,
+                    mimeType: 'application/vnd.google-apps.folder',
+                    parents: parentFolderId ? [parentFolderId] : undefined,
+                },
+                fields: 'id, name, webViewLink',
+                supportsAllDrives: true,
+            });
+
+            console.log(`✓ Folder created: ${response.data.name} (${response.data.id})`);
+
+            return {
+                success: true,
+                folderId: response.data.id,
+                folderName: response.data.name,
+                folderUrl: response.data.webViewLink,
+            };
+        } catch (error) {
+            console.error('Error creating folder:', error.message);
+            return { success: false, error: error.message };
+        }
+    }
 }
 
 module.exports = GoogleDriveController;

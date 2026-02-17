@@ -1,14 +1,28 @@
 import React, { Component } from 'react';
+import axios from 'axios';
+import { QRCodeCanvas } from 'qrcode.react';
 import '../../../css/fftParticipants.css';
 import SingPassButton from '../sub/SingPassButton';
+import fftTranslations from './fftTranslations';
+
+const BACKEND_URL = window.location.hostname === 'localhost'
+  ? 'http://localhost:3001'
+  : 'https://ecss-backend-node.azurewebsites.net';
 
 class FFTParticipants extends Component {
   constructor(props) {
     super(props);
+    const now = new Date();
+    const todayDDMMYYYY = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
     this.state = {
+      // Language
+      language: 'en', // 'en', 'zh', 'ms'
+      languageSelected: false,
       // Pre-section
       loginMethod: '', // 'singpass' or 'manual'
+      currentStep: 1,
       // Section 1: Particulars
+      testDate: todayDDMMYYYY,
       name: '',
       dob: '',
       phoneNo: '',
@@ -22,11 +36,108 @@ class FFTParticipants extends Component {
       healthQ4: '',
       // Programme Indemnity
       indemnityAgreed: false,
-      signatureDate: new Date().toISOString().split('T')[0],
+      signatureDate: todayDDMMYYYY,
+      // Signature
+      isDrawing: false,
+      hasSignature: false,
+      // Validation
+      errors: {},
       // SingPass tracking (matches formPage.jsx pattern)
       singPassPopulatedFields: {},
+      // Submission
+      submitting: false,
+      submitted: false,
+      submitError: null,
+      entryNumber: null,
+      successTab: 'qr',
+      activeFile: null, // fetched from backend as fallback
+      rowData: null,    // fetched row data from spreadsheet
+      loadingRow: false,
     };
+    this.signatureCanvasRef = React.createRef();
+    this.signatureCtxRef = React.createRef();
   }
+
+  // ── Signature pad helpers ──
+
+  initSignatureCanvas = () => {
+    const canvas = this.signatureCanvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2.5;
+    this.signatureCtxRef.current = ctx;
+  };
+
+  ensureCanvasReady = () => {
+    if (!this.signatureCtxRef.current) {
+      this.initSignatureCanvas();
+    }
+  };
+
+  getPointerPos = (e) => {
+    const canvas = this.signatureCanvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    if (e.touches && e.touches.length > 0) {
+      return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
+    }
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  };
+
+  startDrawing = (e) => {
+    e.preventDefault();
+    this.ensureCanvasReady();
+    const ctx = this.signatureCtxRef.current;
+    if (!ctx) return;
+    const pos = this.getPointerPos(e);
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+    this.setState({ isDrawing: true });
+  };
+
+  draw = (e) => {
+    e.preventDefault();
+    if (!this.state.isDrawing) return;
+    const ctx = this.signatureCtxRef.current;
+    if (!ctx) return;
+    const pos = this.getPointerPos(e);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+  };
+
+  stopDrawing = (e) => {
+    if (e) e.preventDefault();
+    if (this.state.isDrawing) {
+      this.setState(prev => {
+        const errors = { ...prev.errors };
+        delete errors.signature;
+        return { isDrawing: false, hasSignature: true, errors };
+      });
+    }
+  };
+
+  clearSignature = () => {
+    const canvas = this.signatureCanvasRef.current;
+    if (!canvas) return;
+    const ctx = this.signatureCtxRef.current;
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    this.setState({ hasSignature: false });
+  };
+
+  getSignatureDataUrl = () => {
+    const canvas = this.signatureCanvasRef.current;
+    if (!canvas || !this.state.hasSignature) return null;
+    return canvas.toDataURL('image/png');
+  };
 
   // ── SingPass helpers (same pattern as formPage.jsx) ──
 
@@ -164,6 +275,44 @@ class FFTParticipants extends Component {
 
   // ── Handlers ──
 
+  handleDateInput = (e) => {
+    const { name, value } = e.target;
+    // Allow only digits and slashes
+    let cleaned = value.replace(/[^\d/]/g, '');
+    // Auto-insert slashes after DD and MM
+    const digits = cleaned.replace(/\//g, '');
+    let formatted = '';
+    for (let i = 0; i < digits.length && i < 8; i++) {
+      if (i === 2 || i === 4) formatted += '/';
+      formatted += digits[i];
+    }
+    this.setState({ [name]: formatted }, () => {
+      // Clear field error on input
+      if (this.state.errors[name]) {
+        this.setState(prev => { const errors = { ...prev.errors }; delete errors[name]; return { errors }; });
+      }
+      // Auto-calculate age when DOB is complete (dd/mm/yyyy)
+      if (name === 'dob' && formatted.length === 10) {
+        const parts = formatted.split('/');
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const year = parseInt(parts[2], 10);
+        const birthDate = new Date(year, month, day);
+        if (!isNaN(birthDate.getTime())) {
+          const today = new Date();
+          let calculatedAge = today.getFullYear() - birthDate.getFullYear();
+          const monthDiff = today.getMonth() - birthDate.getMonth();
+          if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            calculatedAge--;
+          }
+          if (calculatedAge >= 0) {
+            this.setState({ age: calculatedAge.toString() });
+          }
+        }
+      }
+    });
+  };
+
   handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -171,18 +320,9 @@ class FFTParticipants extends Component {
     if (this.state.singPassPopulatedFields[name]) return;
 
     this.setState({ [name]: value }, () => {
-      // Auto-calculate age when DOB changes
-      if (name === 'dob' && value) {
-        const today = new Date();
-        const birthDate = new Date(value);
-        let calculatedAge = today.getFullYear() - birthDate.getFullYear();
-        const monthDiff = today.getMonth() - birthDate.getMonth();
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-          calculatedAge--;
-        }
-        if (calculatedAge >= 0) {
-          this.setState({ age: calculatedAge.toString() });
-        }
+      // Clear field error on input
+      if (this.state.errors[name]) {
+        this.setState(prev => { const errors = { ...prev.errors }; delete errors[name]; return { errors }; });
       }
     });
   };
@@ -214,24 +354,231 @@ class FFTParticipants extends Component {
   };
 
   handleHealthAnswer = (question, answer) => {
-    this.setState({ [question]: answer });
+    this.setState(prev => {
+      const errors = { ...prev.errors };
+      delete errors[question];
+      return { [question]: answer, errors };
+    });
+  };
+
+  validateStep = (step) => {
+    const errors = {};
+    const { name, dob, gender, phoneNo, testDate, healthQ1, healthQ2, healthQ3, healthQ4, indemnityAgreed, signatureDate, hasSignature } = this.state;
+
+    if (step === 1) {
+      if (!name || !name.trim()) errors.name = this.t('errNameRequired');
+      if (!dob || dob.length < 10) errors.dob = this.t('errDobRequired');
+      if (!gender) errors.gender = this.t('errGenderRequired');
+      if (!phoneNo || !phoneNo.trim()) errors.phoneNo = this.t('errPhoneRequired');
+      if (!testDate || testDate.length < 10) errors.testDate = this.t('errTestDateRequired');
+    }
+
+    if (step === 2) {
+      if (!healthQ1) errors.healthQ1 = this.t('errHealthRequired');
+      if (!healthQ2) errors.healthQ2 = this.t('errHealthRequired');
+      if (!healthQ3) errors.healthQ3 = this.t('errHealthRequired');
+      if (!healthQ4) errors.healthQ4 = this.t('errHealthRequired');
+    }
+
+    if (step === 3) {
+      if (!indemnityAgreed) errors.indemnityAgreed = this.t('errAgreeRequired');
+      if (!signatureDate || signatureDate.length < 10) errors.signatureDate = this.t('errDateRequired');
+      if (!hasSignature) errors.signature = this.t('errSignatureRequired');
+    }
+
+    return errors;
+  };
+
+  goToNextStep = () => {
+    const errors = this.validateStep(this.state.currentStep);
+    if (Object.keys(errors).length > 0) {
+      this.setState({ errors });
+      return;
+    }
+    this.setState(prev => ({ currentStep: prev.currentStep + 1, errors: {} }));
+  };
+
+  goToPrevStep = () => {
+    if (this.state.currentStep === 1) {
+      this.setState({ loginMethod: '', currentStep: 1 });
+    } else {
+      this.setState(prev => ({ currentStep: prev.currentStep - 1 }));
+    }
+  };
+
+  handleBackToLanguage = () => {
+    this.setState({ languageSelected: false, loginMethod: '', currentStep: 1 });
+  };
+
+  // ── Chinese name detection ──
+  isChinese = (text) => {
+    // Returns true if the text contains CJK characters
+    return /[\u4e00-\u9fff\u3400-\u4dbf]/.test(text);
   };
 
   handleSubmit = (e) => {
     e.preventDefault();
-    const { loginMethod, name, dob, phoneNo, gender, age, icNumber, healthQ1, healthQ2, healthQ3, healthQ4, indemnityAgreed, signatureDate } = this.state;
+    const errors = this.validateStep(3);
+    if (Object.keys(errors).length > 0) {
+      this.setState({ errors });
+      return;
+    }
 
+    const { selectedFile } = this.props;
+    const { name, dob, phoneNo, gender, age, testDate } = this.state;
+
+    // Determine Name vs Chinese Name
+    const isChineseName = this.isChinese(name);
+    const nameCol = isChineseName ? '' : name;          // Name
+    const chineseNameCol = isChineseName ? name : '';    // Chinese Name
+
+    // Split DOB into DD, MM, YYYY
+    // DOB can be dd/mm/yyyy (manual) or yyyy-MM-dd (SingPass)
+    let dd = '', mm = '', yyyy = '';
+    if (dob) {
+      if (dob.includes('/')) {
+        // dd/mm/yyyy format
+        const parts = dob.split('/');
+        if (parts.length === 3) {
+          dd = parts[0];
+          mm = parts[1];
+          yyyy = parts[2];
+        }
+      } else if (dob.includes('-')) {
+        // yyyy-MM-dd format (SingPass)
+        const parts = dob.split('-');
+        if (parts.length === 3) {
+          yyyy = parts[0];
+          mm = parts[1];
+          dd = parts[2];
+        }
+      }
+    }
+
+    // Map form data to spreadsheet columns:
+    // Name | Chinese Name | Phone Number | Gender | DD | MM | YYYY | Age |
+    // Height | Weight | BMI | Date of test |
+    // 30 secs Sit & Stand | 30 secs Arm Curl | 2 min March on the spot |
+    // Sit & Reach | Back Stretch | 2.44m speed walk | Grip Test |
+    // Improvements | Remarks
+    const rowData = [
+      nameCol,          // Name
+      chineseNameCol,   // Chinese Name
+      phoneNo,          // Phone Number
+      gender,           // Gender
+      dd,               // DD
+      mm,               // MM
+      yyyy,             // YYYY
+      age,              // Age
+      '',               // Height (volunteer fills)
+      '',               // Weight (volunteer fills)
+      '',               // BMI (volunteer fills)
+      testDate,         // Date of test
+      '',               // 30 secs Sit & Stand
+      '',               // 30 secs Arm Curl
+      '',               // 2 min March on the spot
+      '',               // Sit & Reach
+      '',               // Back Stretch
+      '',               // 2.44m speed walk
+      '',               // Grip Test
+      '',               // Improvements
+      '',               // Remarks
+    ];
+
+    // Use prop or fallback to fetched active file
+    const file = selectedFile || this.state.activeFile;
+
+    if (!file || !file.id) {
+      this.setState({ submitError: 'No file selected. Please go to Admin → Choose File first.' });
+      return;
+    }
+
+    this.setState({ submitting: true, submitError: null });
+
+    axios.post(`${BACKEND_URL}/googleDrive/appendRow`, {
+      fileId: file.id,
+      rowData: rowData,
+    })
+    .then((res) => {
+      if (res.data.success) {
+        const entry = res.data.entryNumber || null;
+        // Store in cookie so QR code persists across refresh
+        if (entry != null) {
+          const expires = new Date(Date.now() + 24 * 60 * 60 * 1000).toUTCString();
+          document.cookie = `fft_submission=${encodeURIComponent(JSON.stringify({ entryNumber: entry }))}; expires=${expires}; path=/`;
+        }
+        this.setState({ submitting: false, submitted: true, entryNumber: entry });
+      } else {
+        this.setState({ submitting: false, submitError: res.data.error || 'Failed to submit' });
+      }
+    })
+    .catch((err) => {
+      this.setState({ submitting: false, submitError: err.response?.data?.error || err.message });
+    });
+  };
+
+  fetchRowData = () => {
+    const { entryNumber, activeFile } = this.state;
+    const file = this.props.selectedFile || activeFile;
+    if (!file || !file.id || entryNumber == null) return;
+
+    this.setState({ loadingRow: true });
+    axios.get(`${BACKEND_URL}/googleDrive/getRow`, {
+      params: { fileId: file.id, entryNumber: entryNumber }
+    })
+    .then((res) => {
+      if (res.data.success) {
+        this.setState({ rowData: res.data.data, loadingRow: false });
+      } else {
+        this.setState({ loadingRow: false });
+      }
+    })
+    .catch(() => this.setState({ loadingRow: false }));
   };
 
   // ── Lifecycle ──
 
   componentDidMount() {
+    // Restore submission state from cookie if present
+    try {
+      const match = document.cookie.match(/(?:^|;\s*)fft_submission=([^;]*)/);
+      if (match) {
+        const data = JSON.parse(decodeURIComponent(match[1]));
+        if (data && data.entryNumber != null) {
+          this.setState({ submitted: true, entryNumber: data.entryNumber });
+          return; // Don't init form if showing QR code
+        }
+      }
+    } catch (e) { /* ignore */ }
+
+    // Fetch active file from backend (shared across all devices)
+    axios.get(`${BACKEND_URL}/googleDrive/activeFile`)
+      .then((res) => {
+        if (res.data.success && res.data.file) {
+          this.setState({ activeFile: res.data.file });
+        }
+      })
+      .catch(() => {});
+
     // If user is returning from SingPass login, auto-populate
     const isAuthenticated = this.checkSingPassAuthentication();
     if (isAuthenticated) {
       // SingPass data is in session — populate directly (same as formPage.jsx handleSingPassSuccess)
       this.handleSingPassSuccess();
     }
+    // Initialise signature pad canvas
+    this.initSignatureCanvas();
+    window.addEventListener('resize', this.initSignatureCanvas);
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    if (this.state.currentStep === 3 && prevState.currentStep !== 3) {
+      setTimeout(() => this.initSignatureCanvas(), 100);
+    }
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('resize', this.initSignatureCanvas);
   }
 
   // ── Render helpers ──
@@ -240,21 +587,287 @@ class FFTParticipants extends Component {
     return !!this.state.singPassPopulatedFields[fieldName];
   };
 
+  // Helper: get translated string
+  t = (key) => {
+    const { language } = this.state;
+    const entry = fftTranslations[key];
+    if (!entry) return key;
+    return entry[language] || entry['en'] || key;
+  };
+
   render() {
-    const { onBack } = this.props;
-    const { loginMethod, name, dob, phoneNo, gender, age, icNumber, healthQ1, healthQ2, healthQ3, healthQ4, indemnityAgreed, signatureDate, singPassPopulatedFields } = this.state;
+    const { onBack, onAdmin, selectedFile } = this.props;
+    const { language, languageSelected, loginMethod, currentStep, testDate, name, dob, phoneNo, gender, age, icNumber, healthQ1, healthQ2, healthQ3, healthQ4, indemnityAgreed, signatureDate, singPassPopulatedFields, errors, submitting, submitted, submitError } = this.state;
 
     const hasSingPassData = singPassPopulatedFields && Object.values(singPassPopulatedFields).some(v => v === true);
+
+    // ── Success screen after submission (checked FIRST, before language selection) ──
+    if (submitted) {
+      const { entryNumber, successTab } = this.state;
+      const currentTab = successTab || 'qr';
+
+      return (
+        <div className="fft-participants-wrapper">
+          <div className="fft-participants-header">
+            <div className="fft-participants-header-top-row">
+              <button
+                className="fft-participants-icon-btn"
+                onClick={() => {
+                  // Clear cookie and go home
+                  document.cookie = 'fft_submission=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                  this.setState({ submitted: false, entryNumber: null, successTab: 'qr' });
+                  if (this.props.onBack) this.props.onBack();
+                }}
+                title="Home"
+              >
+                <i className="fas fa-home"></i>
+              </button>
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="fft-participants-form">
+            <div style={{ display: 'flex', borderBottom: '2px solid #e5e7eb', marginBottom: '20px' }}>
+              <button
+                type="button"
+                onClick={() => this.setState({ successTab: 'qr' })}
+                style={{
+                  flex: 1, padding: '12px 0', fontSize: '1.1rem', fontWeight: currentTab === 'qr' ? 700 : 400,
+                  color: currentTab === 'qr' ? '#2563eb' : '#757575', background: 'none', border: 'none',
+                  borderBottom: currentTab === 'qr' ? '3px solid #2563eb' : '3px solid transparent', cursor: 'pointer'
+                }}
+              >
+                <i className="fas fa-qrcode" style={{ marginRight: '6px' }}></i> QR Code
+              </button>
+              <button
+                type="button"
+                onClick={() => { this.setState({ successTab: 'stations' }); this.fetchRowData(); }}
+                style={{
+                  flex: 1, padding: '12px 0', fontSize: '1.1rem', fontWeight: currentTab === 'stations' ? 700 : 400,
+                  color: currentTab === 'stations' ? '#2563eb' : '#757575', background: 'none', border: 'none',
+                  borderBottom: currentTab === 'stations' ? '3px solid #2563eb' : '3px solid transparent', cursor: 'pointer'
+                }}
+              >
+                <i className="fas fa-clipboard-list" style={{ marginRight: '6px' }}></i> Test Stations
+              </button>
+            </div>
+
+            {/* QR Code Tab */}
+            {currentTab === 'qr' && (
+              <div className="fft-participants-section" style={{ textAlign: 'center', padding: '48px 20px' }}>
+                {entryNumber != null && (
+                  <div style={{ marginBottom: '28px' }}>
+                    <p style={{ fontSize: '1.35rem', color: '#555', marginBottom: '16px' }}>
+                      Please show this QR code to the station in-charge to scan
+                    </p>
+                    <QRCodeCanvas
+                      value={String(entryNumber)}
+                      size={200}
+                      level="H"
+                      style={{ margin: '0 auto', display: 'block' }}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Test Stations Tab */}
+            {currentTab === 'stations' && (
+              <div className="fft-participants-section" style={{ padding: '12px 16px' }}>
+                {this.state.loadingRow ? (
+                  <div style={{ textAlign: 'center', padding: '32px', color: '#888' }}>
+                    <i className="fas fa-spinner fa-spin" style={{ fontSize: '1.5rem' }}></i>
+                    <p style={{ marginTop: '8px' }}>Loading data...</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {/* Personal Info Card */}
+                    {(() => {
+                      const rd = this.state.rowData || {};
+                      const displayName = rd.name || rd.chineseName || '—';
+                      const dob = (rd.dd && rd.mm && rd.yyyy) ? `${rd.dd}/${rd.mm}/${rd.yyyy}` : '—';
+                      return (
+                        <div style={{
+                          background: '#fff', borderRadius: '12px', padding: '18px',
+                          boxShadow: '0 1px 4px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
+                            <div style={{
+                              width: '48px', height: '48px', borderRadius: '50%',
+                              background: '#f0fdf4', color: '#16a34a', display: 'flex',
+                              alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem', flexShrink: 0
+                            }}>
+                              <i className="fas fa-user"></i>
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: 700, fontSize: '1.15rem', color: '#1a1a1a' }}>{displayName}</div>
+                              {rd.chineseName && rd.name && <div style={{ fontSize: '0.9rem', color: '#555' }}>{rd.chineseName}</div>}
+                            </div>
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: '0.9rem' }}>
+                            <div><span style={{ color: '#888' }}>DOB:</span> <strong>{dob}</strong></div>
+                            <div><span style={{ color: '#888' }}>Gender:</span> <strong>{rd.gender || '—'}</strong></div>
+                            <div><span style={{ color: '#888' }}>Age:</span> <strong>{rd.age || '—'}</strong></div>
+                            <div><span style={{ color: '#888' }}>Phone:</span> <strong>{rd.phoneNo || '—'}</strong></div>
+                            <div><span style={{ color: '#888' }}>Height:</span> <strong>{rd.height || '—'}</strong></div>
+                            <div><span style={{ color: '#888' }}>Weight:</span> <strong>{rd.weight || '—'}</strong></div>
+                            <div><span style={{ color: '#888' }}>BMI:</span> <strong>{rd.bmi || '—'}</strong></div>
+                            <div><span style={{ color: '#888' }}>Test Date:</span> <strong>{rd.testDate || '—'}</strong></div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Station Cards */}
+                    {(() => {
+                      const rd = this.state.rowData || {};
+                      const stations = [
+                        { num: '1', zh: '30 秒坐立测验', en: '30-Sec Sit and Stand', icon: 'fa-chair', scoreKey: 'sitStand', note: '' },
+                        { num: '2', zh: '30 秒手臂卷起', en: '30-Sec Arm Banding', icon: 'fa-dumbbell', scoreKey: 'armCurl', note: '' },
+                        { num: '3', zh: '2 分钟抬膝测验', en: '2-Min On-the-spot Marching', icon: 'fa-walking', scoreKey: 'march', note: '' },
+                        { num: '4', zh: '坐椅体前弯', en: 'Sit- and Reach Test', icon: 'fa-arrows-alt-h', scoreKey: 'sitReach', note: '左 L / 右 R (直腿 Straight leg)' },
+                        { num: '5', zh: '抓背测验', en: 'Back Stretching Test', icon: 'fa-hand-paper', scoreKey: 'backStretch', note: '左 L / 右 R (上面 Hand on top)' },
+                        { num: '6', zh: '2.44 公尺起身绕物测验', en: '2.44-Meter Speed Walking', icon: 'fa-stopwatch', scoreKey: 'speedWalk', note: '' },
+                        { num: '7', zh: '握力测试', en: 'Hand Griping Test', icon: 'fa-fist-raised', scoreKey: 'gripTest', note: '左 L / 右 R (手 Hand)' },
+                      ];
+                      return stations.map((station) => {
+                        const score = rd[station.scoreKey] || '';
+                        const hasScore = score !== '';
+                        return (
+                          <div key={station.num} style={{
+                            background: '#fff', borderRadius: '12px', padding: '16px',
+                            boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                            border: hasScore ? '1px solid #bbf7d0' : '1px solid #e5e7eb',
+                            display: 'flex', alignItems: 'flex-start', gap: '14px'
+                          }}>
+                            <div style={{
+                              width: '48px', height: '48px', borderRadius: '50%',
+                              background: hasScore ? '#f0fdf4' : '#eff6ff',
+                              color: hasScore ? '#16a34a' : '#2563eb',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              flexShrink: 0, fontSize: '1.2rem'
+                            }}>
+                              {hasScore ? <i className="fas fa-check"></i> : <i className={`fas ${station.icon}`}></i>}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: '0.85rem', color: '#888' }}>Station {station.num}</div>
+                              <div style={{ fontWeight: 700, fontSize: '1.05rem', color: '#1a1a1a' }}>{station.en}</div>
+                              <div style={{ fontSize: '0.9rem', color: '#555' }}>{station.zh}</div>
+                              {station.note && (
+                                <div style={{ fontSize: '0.8rem', color: '#2563eb', marginTop: '4px' }}>
+                                  <i className="fas fa-info-circle" style={{ marginRight: '4px' }}></i>{station.note}
+                                </div>
+                              )}
+                              {hasScore && (
+                                <div style={{
+                                  marginTop: '8px', padding: '8px 12px', background: '#f0fdf4',
+                                  borderRadius: '8px', fontSize: '0.95rem'
+                                }}>
+                                  <span style={{ color: '#888' }}>Result:</span>{' '}
+                                  <strong style={{ color: '#16a34a' }}>{score}</strong>
+                                </div>
+                              )}
+                              {!hasScore && (
+                                <div style={{
+                                  marginTop: '8px', padding: '8px 12px', background: '#f9fafb',
+                                  borderRadius: '8px', fontSize: '0.9rem', color: '#aaa'
+                                }}>
+                                  Pending
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
+
+                    {/* Improvements & Remarks */}
+                    {(() => {
+                      const rd = this.state.rowData || {};
+                      return (rd.improvements || rd.remarks) ? (
+                        <div style={{
+                          background: '#fff', borderRadius: '12px', padding: '16px',
+                          boxShadow: '0 1px 4px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                            <div style={{
+                              width: '48px', height: '48px', borderRadius: '50%',
+                              background: '#fefce8', color: '#ca8a04', display: 'flex',
+                              alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0
+                            }}>
+                              <i className="fas fa-comment-alt"></i>
+                            </div>
+                            <div style={{ fontWeight: 700, fontSize: '1.05rem', color: '#1a1a1a' }}>Improvements & Remarks</div>
+                          </div>
+                          {rd.improvements && <div style={{ fontSize: '0.95rem', color: '#555', marginBottom: '4px' }}><span style={{ color: '#888' }}>Improvements:</span> {rd.improvements}</div>}
+                          {rd.remarks && <div style={{ fontSize: '0.95rem', color: '#555' }}><span style={{ color: '#888' }}>Remarks:</span> {rd.remarks}</div>}
+                        </div>
+                      ) : null;
+                    })()}
+
+                    {/* Refresh button */}
+                    <button
+                      type="button"
+                      onClick={this.fetchRowData}
+                      style={{
+                        width: '100%', padding: '12px', background: '#2563eb', color: '#fff',
+                        border: 'none', borderRadius: '10px', fontSize: '1rem', fontWeight: 600,
+                        cursor: 'pointer', marginTop: '4px'
+                      }}
+                    >
+                      <i className="fas fa-sync-alt" style={{ marginRight: '6px' }}></i> Refresh Results
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // ── Language selection page ──
+    if (!languageSelected) {
+      return (
+        <div className="fft-participants-wrapper">
+          <div className="fft-participants-form">
+              <div style={{ textAlign: 'left', marginBottom: '16px' }}>
+                <button className="fft-participants-icon-btn" onClick={onBack} title="Home">
+                  <i className="fas fa-home"></i>
+                </button>
+              </div>
+              <div className="fft-participants-lang-page-options">
+                {[
+                  { code: 'en', label: 'English' },
+                  { code: 'zh', label: '中文' },
+                  { code: 'ms', label: 'Bahasa Melayu' },
+                ].map((lang) => (
+                  <button
+                    key={lang.code}
+                    type="button"
+                    className={`fft-participants-lang-page-btn ${language === lang.code ? 'fft-participants-lang-page-btn--active' : ''}`}
+                    onClick={() => this.setState({ language: lang.code, languageSelected: true })}
+                  >
+                    {lang.label}
+                  </button>
+                ))}
+              </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Main form ──
 
     return (
       <div className="fft-participants-wrapper">
         <div className="fft-participants-header">
-          <button className="fft-participants-back-btn" onClick={onBack}>
-            <span className="fft-participants-back-icon"><i className="fas fa-arrow-left"></i></span>
-            Back
-          </button>
-          <h2 className="fft-participants-title">ECSS Functional Fitness Test for Elderly</h2>
-          <p className="fft-participants-subtitle">恩群社区服务乐龄体适能评估表</p>
+          <div className="fft-participants-header-top-row">
+            <button className="fft-participants-icon-btn" onClick={() => this.setState({ languageSelected: false, loginMethod: '', currentStep: 1 })} title="Home">
+              <i className="fas fa-home"></i>
+            </button>
+          </div>
+          <h2 className="fft-participants-title">{this.t('headerTitle')}</h2>
         </div>
 
         <form className="fft-participants-form" onSubmit={this.handleSubmit}>
@@ -263,38 +876,17 @@ class FFTParticipants extends Component {
             <div className="fft-participants-section fft-participants-presection">
               {/* App Purpose */}
               <div className="fft-participants-consent-intro">
-                <h3 className="fft-participants-consent-heading">ECSS FFT Participants Form</h3>
-                <p className="fft-participants-consent-heading-cn">恩群社区服务乐龄体适能评估表 — 参与者表格</p>
-              </div>
-
-              {/* MyInfo Consent */}
-              <div className="fft-participants-consent-block">
-                <h4 className="fft-participants-consent-title">
-                  <i className="fas fa-shield-alt"></i> Myinfo Consent 个人资料同意书
-                </h4>
-                <p className="fft-participants-consent-text">
-                  By submitting this form, I consent to En Community Services Society (ECSS) collecting, using, and disclosing my personal data, as provided in this form, for purposes related to the Functional Fitness Test programme administration and communications, in accordance with the Personal Data Protection Act 2012 (PDPA).
-                </p>
-                <p className="fft-participants-consent-text fft-participants-consent-text--cn">
-                  提交此表格即表示我同意恩群社区服务（ECSS）根据《个人资料保护法》（PDPA）收集、使用和披露我在此表格中提供的个人资料，用于乐龄体适能评估活动的管理和通讯目的。
-                </p>
-                <p className="fft-participants-consent-text fft-participants-consent-text--note">
-                  <i className="fas fa-camera"></i> Photographs and videos may be taken during the session for publicity purposes.
-                </p>
-                <p className="fft-participants-consent-text fft-participants-consent-text--note">
-                  活动期间可能会拍摄照片和视频用于宣传目的。
-                </p>
+                <h3 className="fft-participants-consent-heading">{this.t('preSectionHeading')}</h3>
               </div>
 
               {/* Login Method */}
               <div className="fft-participants-consent-action">
                 <p className="fft-participants-presection-desc">
-                  Choose how you would like to fill in your information.<br />
-                  请选择您希望如何填写信息。
+                  {this.t('preSectionDesc')}
                 </p>
                 <div className="fft-participants-flex-button-container">
                   <SingPassButton
-                    buttonText="Retrieve Myinfo with"
+                    buttonText={this.t('singPassButtonText')}
                     onAuthenticationSuccess={this.handleSingPassSuccess}
                     onMyInfoError={this.handleMyInfoError}
                     onError={(error) => {
@@ -308,7 +900,7 @@ class FFTParticipants extends Component {
                     className="fft-participants-next-button"
                     onClick={this.handleProceedWithoutSingPass}
                   >
-                    Fill in the form manually 手动填写表格
+                    {this.t('manualButtonLine1')}
                   </button>
                 </div>
               </div>
@@ -318,11 +910,13 @@ class FFTParticipants extends Component {
           {/* Only show form sections after login method is selected */}
           {loginMethod && (
             <>
+          {currentStep === 1 && (
+            <>
           {/* Section 1: Particulars */}
           <div className="fft-participants-section">
             <div className="fft-participants-section-header">
               <span className="fft-participants-section-number">1</span>
-              <h3 className="fft-participants-section-title">Particulars 个人资料</h3>
+              <h3 className="fft-participants-section-title">{this.t('sectionParticulars')}</h3>
             </div>
 
 
@@ -331,7 +925,7 @@ class FFTParticipants extends Component {
               {/* Name */}
               <div className="fft-participants-field fft-participants-field--full">
                 <label className="fft-participants-label" htmlFor="fft-name">
-                  姓名 Name
+                  {this.t('labelName')}
                 </label>
                 <input
                   id="fft-name"
@@ -340,69 +934,81 @@ class FFTParticipants extends Component {
                   name="name"
                   value={name}
                   onChange={this.handleChange}
-                  placeholder="Enter full name"
+                  placeholder={this.t('placeholderName')}
                   required
                   disabled={this.isFieldLocked('name')}
                 />
+                {errors.name && <span className="fft-participants-field-error">{errors.name}</span>}
               </div>
 
               {/* DOB */}
               <div className="fft-participants-field">
                 <label className="fft-participants-label" htmlFor="fft-dob">
-                  生日 DOB
+                  {this.t('labelDob')}
                 </label>
                 <input
                   id="fft-dob"
                   className={`fft-participants-input ${this.isFieldLocked('dob') ? 'fft-participants-input--locked' : ''}`}
-                  type="date"
+                  type="text"
                   name="dob"
                   value={dob}
-                  onChange={this.handleChange}
+                  onChange={this.handleDateInput}
+                  placeholder="dd/mm/yyyy"
+                  maxLength={10}
                   required
                   disabled={this.isFieldLocked('dob')}
                 />
+                {errors.dob && <span className="fft-participants-field-error">{errors.dob}</span>}
               </div>
 
-              {/* Age (always auto-calculated, always read-only) */}
+              {/* Gender */}
+              <div className="fft-participants-field">
+                <label className="fft-participants-label" htmlFor="fft-gender">
+                  {this.t('labelGender')}
+                </label>
+                <div className="fft-participants-gender-group">
+                  <button
+                    type="button"
+                    className={`fft-participants-gender-btn ${gender === 'M' ? 'fft-participants-gender-btn--active' : ''} ${this.isFieldLocked('gender') ? 'fft-participants-gender-btn--locked' : ''}`}
+                    onClick={() => !this.isFieldLocked('gender') && this.setState(prev => { const errors = { ...prev.errors }; delete errors.gender; return { gender: 'M', errors }; })}
+                    disabled={this.isFieldLocked('gender')}
+                  >
+                    M
+                  </button>
+                  <button
+                    type="button"
+                    className={`fft-participants-gender-btn ${gender === 'F' ? 'fft-participants-gender-btn--active' : ''} ${this.isFieldLocked('gender') ? 'fft-participants-gender-btn--locked' : ''}`}
+                    onClick={() => !this.isFieldLocked('gender') && this.setState(prev => { const errors = { ...prev.errors }; delete errors.gender; return { gender: 'F', errors }; })}
+                    disabled={this.isFieldLocked('gender')}
+                  >
+                    F
+                  </button>
+                </div>
+                {errors.gender && <span className="fft-participants-field-error">{errors.gender}</span>}
+              </div>
+
+              {/* Age */}
               <div className="fft-participants-field">
                 <label className="fft-participants-label" htmlFor="fft-age">
-                  年龄 Age
+                  {this.t('labelAge')}
                 </label>
                 <input
                   id="fft-age"
-                  className="fft-participants-input fft-participants-input--locked"
+                  className="fft-participants-input"
                   type="number"
                   name="age"
                   value={age}
-                  placeholder="Auto-calculated"
+                  onChange={this.handleChange}
+                  placeholder={this.t('placeholderAge')}
                   min="0"
                   max="150"
-                  readOnly
                 />
               </div>
 
-              {/* IC Number */}
-              <div className="fft-participants-field fft-participants-field--full">
-                <label className="fft-participants-label" htmlFor="fft-ic">
-                  身份证号 IC Number
-                </label>
-                <input
-                  id="fft-ic"
-                  className={`fft-participants-input ${this.isFieldLocked('icNumber') ? 'fft-participants-input--locked' : ''}`}
-                  type="text"
-                  name="icNumber"
-                  value={icNumber}
-                  onChange={this.handleChange}
-                  placeholder="e.g. S1234567A"
-                  required
-                  disabled={this.isFieldLocked('icNumber')}
-                />
-              </div>
-
-              {/* Phone No — always editable (same as formPage.jsx) */}
+              {/* Phone No */}
               <div className="fft-participants-field">
                 <label className="fft-participants-label" htmlFor="fft-phone">
-                  电话号码 Phone Number
+                  {this.t('labelPhone')}
                 </label>
                 <input
                   id="fft-phone"
@@ -411,160 +1017,219 @@ class FFTParticipants extends Component {
                   name="phoneNo"
                   value={phoneNo}
                   onChange={this.handleChange}
-                  placeholder="e.g. 91234567"
+                  placeholder={this.t('placeholderPhone')}
                   required
                 />
+                {errors.phoneNo && <span className="fft-participants-field-error">{errors.phoneNo}</span>}
               </div>
 
-              {/* Gender */}
+              {/* Test Date */}
               <div className="fft-participants-field">
-                <label className="fft-participants-label" htmlFor="fft-gender">
-                  性别 Gender
+                <label className="fft-participants-label" htmlFor="fft-test-date">
+                  {this.t('labelTestDate')}
                 </label>
-                <div className="fft-participants-gender-group">
-                  <button
-                    type="button"
-                    className={`fft-participants-gender-btn ${gender === 'M' ? 'fft-participants-gender-btn--active' : ''} ${this.isFieldLocked('gender') ? 'fft-participants-gender-btn--locked' : ''}`}
-                    onClick={() => !this.isFieldLocked('gender') && this.setState({ gender: 'M' })}
-                    disabled={this.isFieldLocked('gender')}
-                  >
-                    M 男
-                  </button>
-                  <button
-                    type="button"
-                    className={`fft-participants-gender-btn ${gender === 'F' ? 'fft-participants-gender-btn--active' : ''} ${this.isFieldLocked('gender') ? 'fft-participants-gender-btn--locked' : ''}`}
-                    onClick={() => !this.isFieldLocked('gender') && this.setState({ gender: 'F' })}
-                    disabled={this.isFieldLocked('gender')}
-                  >
-                    F 女
-                  </button>
-                </div>
+                <input
+                  id="fft-test-date"
+                  className="fft-participants-input"
+                  type="text"
+                  name="testDate"
+                  value={testDate}
+                  onChange={this.handleDateInput}
+                  placeholder="dd/mm/yyyy"
+                  maxLength={10}
+                  required
+                />
+                {errors.testDate && <span className="fft-participants-field-error">{errors.testDate}</span>}
               </div>
             </div>
           </div>
 
-          {/* Section 2: Health Declaration & Programme Indemnity */}
+          {/* Step 1 navigation */}
+          <div className="fft-participants-nav-buttons">
+            <button type="button" className="fft-participants-nav-btn fft-participants-nav-btn--prev" onClick={this.goToPrevStep}>
+              <i className="fas fa-arrow-left"></i> {this.t('previous')}
+            </button>
+            <button type="button" className="fft-participants-nav-btn fft-participants-nav-btn--next" onClick={this.goToNextStep}>
+              {this.t('next')} <i className="fas fa-arrow-right"></i>
+            </button>
+          </div>
+            </>
+          )}
+
+          {currentStep === 2 && (
+            <>
+          {/* Section 2: Health Declaration */}
           <div className="fft-participants-section">
             <div className="fft-participants-section-header">
               <span className="fft-participants-section-number">2</span>
-              <h3 className="fft-participants-section-title">健康申报与活动免责同意书</h3>
+              <h3 className="fft-participants-section-title">{this.t('sectionHealth')}</h3>
             </div>
-            <p className="fft-participants-section-subtitle">Health Declaration & Programme Indemnity Form</p>
 
             {/* Health Declaration */}
             <div className="fft-participants-subsection">
-              <h4 className="fft-participants-subsection-title">健康申报 Health Declaration</h4>
-
-              {[
-                {
-                  key: 'healthQ1',
-                  cn: '1. 因为您的健康因素，医生已建议您不要做任何运动。',
-                  en: 'You have been advised by a doctor not to exercise due to health reasons.',
-                },
-                {
-                  key: 'healthQ2',
-                  cn: '2. 您曾在运动时发生过心绞痛（胸闷、压力、疼痛）。',
-                  en: 'You have experienced heart pain (tightness, pressure, aching) during exercise.',
-                },
-                {
-                  key: 'healthQ3',
-                  cn: '3. 您现在有关节疼痛、胸痛或晕眩。',
-                  en: 'You are experiencing pain in the joints, chest pain or giddiness now.',
-                },
-                {
-                  key: 'healthQ4',
-                  cn: '4. 您有无法控制的高血压问题 (160/100或以上)。',
-                  en: 'You have uncontrollable high blood pressure (≥160/100).',
-                },
-              ].map((q) => (
-                <div className="fft-participants-health-question" key={q.key}>
+              {['healthQ1', 'healthQ2', 'healthQ3', 'healthQ4'].map((qKey) => (
+                <div className="fft-participants-health-question" key={qKey}>
                   <div className="fft-participants-health-question-text">
-                    <p className="fft-participants-health-cn">{q.cn}</p>
-                    <p className="fft-participants-health-en">{q.en}</p>
+                    <p className="fft-participants-health-text">{this.t(qKey)}</p>
                   </div>
                   <div className="fft-participants-health-answers">
                     <button
                       type="button"
-                      className={`fft-participants-health-btn ${this.state[q.key] === 'Yes' ? 'fft-participants-health-btn--yes' : ''}`}
-                      onClick={() => this.handleHealthAnswer(q.key, 'Yes')}
+                      className={`fft-participants-health-btn ${this.state[qKey] === 'Yes' ? 'fft-participants-health-btn--yes' : ''}`}
+                      onClick={() => this.handleHealthAnswer(qKey, 'Yes')}
                     >
-                      Yes
+                      {this.t('yes')}
                     </button>
                     <button
                       type="button"
-                      className={`fft-participants-health-btn ${this.state[q.key] === 'No' ? 'fft-participants-health-btn--no' : ''}`}
-                      onClick={() => this.handleHealthAnswer(q.key, 'No')}
+                      className={`fft-participants-health-btn ${this.state[qKey] === 'No' ? 'fft-participants-health-btn--no' : ''}`}
+                      onClick={() => this.handleHealthAnswer(qKey, 'No')}
                     >
-                      No
+                      {this.t('no')}
                     </button>
                   </div>
+                  {errors[qKey] && <span className="fft-participants-field-error">{errors[qKey]}</span>}
                 </div>
               ))}
             </div>
+          </div>
 
-            {/* Programme Indemnity */}
+          {/* Step 2 navigation */}
+          <div className="fft-participants-nav-buttons">
+            <button type="button" className="fft-participants-nav-btn fft-participants-nav-btn--prev" onClick={this.goToPrevStep}>
+              <i className="fas fa-arrow-left"></i> {this.t('previous')}
+            </button>
+            <button type="button" className="fft-participants-nav-btn fft-participants-nav-btn--next" onClick={this.goToNextStep}>
+              {this.t('next')} <i className="fas fa-arrow-right"></i>
+            </button>
+          </div>
+            </>
+          )}
+
+          {currentStep === 3 && (
+            <>
+          {/* Section 3: Programme Indemnity */}
+          <div className="fft-participants-section">
+            <div className="fft-participants-section-header">
+              <span className="fft-participants-section-number">3</span>
+              <h3 className="fft-participants-section-title">{this.t('sectionIndemnity')}</h3>
+            </div>
+
             <div className="fft-participants-subsection">
-              <h4 className="fft-participants-subsection-title">(1) 活动免责同意 Programme Indemnity</h4>
-
               <div className="fft-participants-indemnity-list">
-                <div className="fft-participants-indemnity-item">
-                  <span className="fft-participants-indemnity-num">1.</span>
-                  <div>
-                    <p className="fft-participants-indemnity-cn">我是自愿参加，并被告知检测的目的和可能面临的身体不适与风险。</p>
-                    <p className="fft-participants-indemnity-en">I voluntarily participate, and have been told the test objectives and possible physical discomfort and risks.</p>
+                {['indemnity1', 'indemnity2', 'indemnity3'].map((key, idx) => (
+                  <div className="fft-participants-indemnity-item" key={key}>
+                    <span className="fft-participants-indemnity-num">{idx + 1}.</span>
+                    <div>
+                      <p className="fft-participants-indemnity-text">{this.t(key)}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="fft-participants-indemnity-item">
-                  <span className="fft-participants-indemnity-num">2.</span>
-                  <div>
-                    <p className="fft-participants-indemnity-cn">我同意在执行检测中监控自己的身体状况，也同意当我感到不舒服或有任何不寻常症状时，告知检测员并停止检测。</p>
-                    <p className="fft-participants-indemnity-en">I agree to monitor my body condition, and agree to inform the tester and stop the test when I feel ill or have abnormal symptoms.</p>
-                  </div>
-                </div>
-                <div className="fft-participants-indemnity-item">
-                  <span className="fft-participants-indemnity-num">3.</span>
-                  <div>
-                    <p className="fft-participants-indemnity-cn">我对于参与此检测可能造成身体不适、意外等风险，愿意自己承担完全的责任，对主办方不追究任何责任。</p>
-                    <p className="fft-participants-indemnity-en">I take full responsibility for any risks of illness and accidents that may arise from this test, and will not hold the organizer responsible.</p>
-                  </div>
-                </div>
+                ))}
               </div>
 
-              <div className="fft-participants-indemnity-agree">
-                <label className="fft-participants-checkbox-label">
-                  <input
-                    type="checkbox"
-                    className="fft-participants-checkbox"
-                    checked={indemnityAgreed}
-                    onChange={(e) => this.setState({ indemnityAgreed: e.target.checked })}
-                  />
-                  <span>I agree to the above terms / 我同意以上条款</span>
-                </label>
-              </div>
-
-              {/* Signature & Date */}
-              <div className="fft-participants-form-grid fft-participants-signature-row">
-                <div className="fft-participants-field">
-                  <label className="fft-participants-label" htmlFor="fft-sig-date">
-                    日期 Date
-                  </label>
-                  <input
-                    id="fft-sig-date"
-                    className="fft-participants-input"
-                    type="date"
-                    name="signatureDate"
-                    value={signatureDate}
-                    onChange={this.handleChange}
-                    required
-                  />
+              {/* Agreement section */}
+              <div className="fft-participants-agreement-layout">
+                <div className="fft-participants-agreement-left">
+                  <div className="fft-participants-indemnity-agree">
+                    <label className="fft-participants-checkbox-label">
+                      <input
+                        type="checkbox"
+                        className="fft-participants-checkbox"
+                        checked={indemnityAgreed}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          this.setState(prev => {
+                            const errors = { ...prev.errors };
+                            if (checked) delete errors.indemnityAgreed;
+                            return { indemnityAgreed: checked, errors };
+                          });
+                        }}
+                      />
+                      <span>{this.t('agreeTerms')}</span>
+                    </label>
+                    {errors.indemnityAgreed && <span className="fft-participants-field-error">{errors.indemnityAgreed}</span>}
+                  </div>
+                  <div className="fft-participants-field">
+                    <label className="fft-participants-label" htmlFor="fft-sig-date">
+                      {this.t('labelDate')}
+                    </label>
+                    <input
+                      id="fft-sig-date"
+                      className="fft-participants-input"
+                      type="text"
+                      name="signatureDate"
+                      value={signatureDate}
+                      onChange={this.handleDateInput}
+                      placeholder="dd/mm/yyyy"
+                      maxLength={10}
+                      required
+                    />
+                    {errors.signatureDate && <span className="fft-participants-field-error">{errors.signatureDate}</span>}
+                  </div>
+                </div>
+                <div className="fft-participants-agreement-right">
+                  <div className="fft-participants-field fft-participants-signature-field">
+                    <label className="fft-participants-label">
+                      {this.t('labelSignature')} <span style={{ color: '#d32f2f' }}>*</span>
+                    </label>
+                    <div className="fft-participants-signature-pad">
+                      <canvas
+                        ref={this.signatureCanvasRef}
+                        className="fft-participants-signature-canvas"
+                        onMouseDown={this.startDrawing}
+                        onMouseMove={this.draw}
+                        onMouseUp={this.stopDrawing}
+                        onMouseLeave={this.stopDrawing}
+                        onTouchStart={this.startDrawing}
+                        onTouchMove={this.draw}
+                        onTouchEnd={this.stopDrawing}
+                      />
+                      {!this.state.hasSignature && (
+                        <div className="fft-participants-signature-placeholder">
+                          {this.t('signHere')}
+                        </div>
+                      )}
+                      {this.state.hasSignature && (
+                        <button
+                          type="button"
+                          className="fft-participants-signature-clear-x"
+                          onClick={this.clearSignature}
+                          aria-label="Clear signature"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                    {errors.signature && <span className="fft-participants-field-error">{errors.signature}</span>}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <button type="submit" className="fft-participants-submit-btn" disabled={!indemnityAgreed}>
-            <i className="fas fa-check"></i> Submit
-          </button>
+          {/* Step 3 navigation */}
+          <div className="fft-participants-nav-buttons">
+            <button type="button" className="fft-participants-nav-btn fft-participants-nav-btn--prev" onClick={this.goToPrevStep}>
+              <i className="fas fa-arrow-left"></i> {this.t('previous')}
+            </button>
+            <button type="submit" className="fft-participants-nav-btn fft-participants-nav-btn--submit" disabled={!indemnityAgreed || !this.state.hasSignature || submitting}>
+              {submitting ? (
+                <><i className="fas fa-spinner fa-spin"></i> {this.t('submitting') || 'Submitting...'}</>
+              ) : (
+                <><i className="fas fa-check"></i> {this.t('submit')}</>
+              )}
+            </button>
+          </div>
+
+          {/* Submit error */}
+          {submitError && (
+            <div style={{ marginTop: '12px', padding: '14px 18px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#dc2626', fontSize: '1.25rem', fontWeight: 600 }}>
+              <i className="fas fa-exclamation-circle" style={{ marginRight: '8px' }}></i>
+              {submitError}
+            </div>
+          )}
+            </>
+          )}
             </>
           )}
         </form>
