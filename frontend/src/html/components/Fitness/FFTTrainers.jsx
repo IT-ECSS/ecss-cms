@@ -58,7 +58,7 @@ class FFTTrainers extends Component {
     };
     this.gridRef = React.createRef();
 
-    // AG Grid column definitions — matches Google Sheets columns only
+    // AG Grid column definitions — matches Google Sheets columns only ok
     this.columnDefs = [
       { headerName: 'Name', field: 'name', width: 350, sortable: true, pinned: 'left',
         cellRenderer: (params) => {
