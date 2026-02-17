@@ -508,7 +508,14 @@ class FFTParticipants extends Component {
           const expires = new Date(Date.now() + 24 * 60 * 60 * 1000).toUTCString();
           document.cookie = `fft_submission=${encodeURIComponent(JSON.stringify({ entryNumber: entry }))}; expires=${expires}; path=/`;
         }
-        this.setState({ submitting: false, submitted: true, entryNumber: entry });
+        // Build rowData from form state so personal info card shows immediately
+        const initialRowData = {
+          name: nameCol, chineseName: chineseNameCol, phoneNo, gender,
+          dd, mm, yyyy, age, height: '', weight: '', bmi: '', testDate,
+          sitStand: '', armCurl: '', march: '', sitReach: '',
+          backStretch: '', speedWalk: '', gripTest: '', improvements: '', remarks: ''
+        };
+        this.setState({ submitting: false, submitted: true, entryNumber: entry, rowData: initialRowData });
       } else {
         this.setState({ submitting: false, submitError: res.data.error || 'Failed to submit' });
       }

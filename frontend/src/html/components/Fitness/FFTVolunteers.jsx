@@ -21,6 +21,7 @@ const STATIONS = [
     fields: [
       { key: 'height', label: 'Height (cm)', labelZh: '身高', type: 'number', placeholder: 'e.g. 165' },
       { key: 'weight', label: 'Weight (kg)', labelZh: '体重', type: 'number', placeholder: 'e.g. 60' },
+      { key: 'bmi', label: 'BMI', labelZh: 'BMI', type: 'number', placeholder: 'e.g. 22.5' },
     ],
   },
   {
@@ -301,15 +302,8 @@ class FFTVolunteers extends Component {
 
     if (!fileId || entryNumber == null) return;
 
-    // Build updates — for measurement station, also compute BMI
+    // Build updates
     const updates = { ...formData };
-    if (selectedStation.id === 'measurement' && updates.height && updates.weight) {
-      const h = parseFloat(updates.height) / 100; // cm → m
-      const w = parseFloat(updates.weight);
-      if (h > 0 && w > 0) {
-        updates.bmi = (w / (h * h)).toFixed(1);
-      }
-    }
 
     this.setState({ submitting: true, submitError: null });
 
@@ -347,6 +341,7 @@ class FFTVolunteers extends Component {
   };
 
   handleScanAnother = () => {
+    this.stopScanner();
     this.setState({
       scannerActive: true,
       entryNumber: null,
@@ -356,7 +351,16 @@ class FFTVolunteers extends Component {
       submitError: null,
       scanError: null,
     }, () => {
-      setTimeout(() => this.startScanner(), 300);
+      // Wait for DOM to render the scanner container before starting
+      const tryStart = (attempts = 0) => {
+        const el = document.getElementById('fft-vol-qr-reader');
+        if (el) {
+          this.startScanner();
+        } else if (attempts < 10) {
+          setTimeout(() => tryStart(attempts + 1), 200);
+        }
+      };
+      setTimeout(() => tryStart(), 300);
     });
   };
 
@@ -571,20 +575,6 @@ class FFTVolunteers extends Component {
                         </div>
                       ))}
                     </div>
-
-                    {/* Auto-computed BMI for measurement station */}
-                    {selectedStation.id === 'measurement' && formData.height && formData.weight && (
-                      <div className="fft-vol-bmi-display">
-                        <span style={{ color: '#888' }}>BMI (auto):</span>{' '}
-                        <strong style={{ color: '#16a34a' }}>
-                          {(() => {
-                            const h = parseFloat(formData.height) / 100;
-                            const w = parseFloat(formData.weight);
-                            return (h > 0 && w > 0) ? (w / (h * h)).toFixed(1) : '—';
-                          })()}
-                        </strong>
-                      </div>
-                    )}
 
                     {submitError && (
                       <div className="fft-vol-error-msg" style={{ marginTop: '16px' }}>

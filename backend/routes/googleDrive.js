@@ -145,10 +145,27 @@ router.post('/appendRow', async (req, res) => {
             return res.status(500).json(result);
         }
 
+        // Cache the participant's registration data keyed by entryNumber
+        const en = result.entryNumber;
+        if (en != null && Array.isArray(rowData)) {
+            const colKeys = [
+                'name', 'chineseName', 'phoneNo', 'gender', 'dd', 'mm', 'yyyy', 'age',
+                'height', 'weight', 'bmi', 'testDate',
+                'sitStand', 'armCurl', 'march', 'sitReach', 'backStretch', 'speedWalk', 'gripTest',
+                'improvements', 'remarks'
+            ];
+            const cached = {};
+            colKeys.forEach((key, idx) => {
+                if (rowData[idx]) cached[key] = rowData[idx];
+            });
+            fftResultsCache[en] = cached;
+            console.log(`[FFT] Cached registration data for entry ${en}`);
+        }
+
         // Emit Socket.IO event for live FFT updates
         const io = req.app.get('io');
         if (io) {
-            io.emit('fftUpdate', { type: 'rowAdded', fileId });
+            io.emit('fftUpdate', { type: 'rowAdded', fileId, entryNumber: en });
         }
 
         res.json(result);
