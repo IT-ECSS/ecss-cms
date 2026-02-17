@@ -222,9 +222,28 @@ router.post('/copySpreadsheet', async (req, res) => {
 // ── In-memory store for the active FFT file (shared across all users/devices) ──
 let activeFFTFile = null;
 
+// ── In-memory cache for FFT station results (keyed by entryNumber) ──
+// Structure: { [entryNumber]: { sitStand: '30', armCurl: '25', ... } }
+let fftResultsCache = {};
+
 // GET the currently active FFT file
 router.get('/activeFile', (req, res) => {
     res.json({ success: true, file: activeFFTFile });
+});
+
+// GET cached results for a specific participant entry
+router.get('/cachedResults', (req, res) => {
+    const { entryNumber } = req.query;
+    if (entryNumber == null) {
+        return res.status(400).json({ success: false, error: 'entryNumber is required' });
+    }
+    const cached = fftResultsCache[entryNumber] || {};
+    res.json({ success: true, data: cached });
+});
+
+// GET all cached results (for trainers view)
+router.get('/cachedResultsAll', (req, res) => {
+    res.json({ success: true, data: fftResultsCache });
 });
 
 // SET the active FFT file
@@ -234,7 +253,9 @@ router.post('/activeFile', (req, res) => {
         return res.status(400).json({ success: false, error: 'file with id and name is required' });
     }
     activeFFTFile = { id: file.id, name: file.name };
-    console.log(`[FFT] Active file set to: ${file.name} (${file.id})`);
+    // Clear results cache when active file changes
+    fftResultsCache = {};
+    console.log(`[FFT] Active file set to: ${file.name} (${file.id}). Cache cleared.`);
 
     // Emit Socket.IO event so all clients know the active file changed
     const io = req.app.get('io');
@@ -275,10 +296,24 @@ router.post('/updateRow', async (req, res) => {
             return res.status(500).json(result);
         }
 
-        // Emit Socket.IO event for live FFT updates
+        // Cache the volunteer's submitted results
+        const en = parseInt(entryNumber, 10);
+        if (!fftResultsCache[en]) {
+            fftResultsCache[en] = {};
+        }
+        Object.assign(fftResultsCache[en], updates);
+        console.log(`[FFT] Cached results for entry ${en}:`, fftResultsCache[en]);
+
+        // Emit Socket.IO event with actual data for live updates
         const io = req.app.get('io');
         if (io) {
-            io.emit('fftUpdate', { type: 'rowUpdated', fileId, entryNumber });
+            io.emit('fftUpdate', {
+                type: 'rowUpdated',
+                fileId,
+                entryNumber: en,
+                updates,
+                cached: fftResultsCache[en]
+            });
         }
 
         res.json(result);

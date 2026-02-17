@@ -519,17 +519,19 @@ class FFTParticipants extends Component {
   };
 
   fetchRowData = () => {
-    const { entryNumber, activeFile } = this.state;
-    const file = this.props.selectedFile || activeFile;
-    if (!file || !file.id || entryNumber == null) return;
+    const { entryNumber } = this.state;
+    if (entryNumber == null) return;
 
-    this.setState({ loadingRow: true });
-    axios.get(`${BACKEND_URL}/googleDrive/getRow`, {
-      params: { fileId: file.id, entryNumber: entryNumber }
+    // Fetch cached volunteer-submitted results (not from Google Sheets)
+    axios.get(`${BACKEND_URL}/googleDrive/cachedResults`, {
+      params: { entryNumber }
     })
     .then((res) => {
       if (res.data.success) {
-        this.setState({ rowData: res.data.data, loadingRow: false });
+        this.setState((prev) => ({
+          rowData: { ...prev.rowData, ...res.data.data },
+          loadingRow: false
+        }));
       } else {
         this.setState({ loadingRow: false });
       }
@@ -546,8 +548,10 @@ class FFTParticipants extends Component {
       if (match) {
         const data = JSON.parse(decodeURIComponent(match[1]));
         if (data && data.entryNumber != null) {
-          this.setState({ submitted: true, entryNumber: data.entryNumber });
-          return; // Don't init form if showing QR code
+          this.setState({ submitted: true, entryNumber: data.entryNumber }, () => {
+            // Fetch cached results for this participant
+            this.fetchRowData();
+          });
         }
       }
     } catch (e) { /* ignore */ }
@@ -576,6 +580,14 @@ class FFTParticipants extends Component {
     this.socket.on('fftActiveFile', (data) => {
       if (data && data.file) {
         this.setState({ activeFile: data.file });
+      }
+    });
+    this.socket.on('fftUpdate', (data) => {
+      // Live update station results when a volunteer submits for this participant
+      if (data && data.type === 'rowUpdated' && data.entryNumber === this.state.entryNumber && data.cached) {
+        this.setState((prev) => ({
+          rowData: { ...prev.rowData, ...data.cached }
+        }));
       }
     });
   }
