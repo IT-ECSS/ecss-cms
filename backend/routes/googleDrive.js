@@ -265,6 +265,14 @@ router.get('/cachedResultsAll', (req, res) => {
     res.json({ success: true, data: fftResultsCache });
 });
 
+// DELETE clear the in-memory results cache
+router.delete('/clearCache', (req, res) => {
+    const count = Object.keys(fftResultsCache).length;
+    fftResultsCache = {};
+    console.log(`[FFT] Cache cleared by admin. ${count} entries removed.`);
+    res.json({ success: true, message: `Cache cleared. ${count} entries removed.` });
+});
+
 // SET the active FFT file
 router.post('/activeFile', (req, res) => {
     const { file } = req.body;

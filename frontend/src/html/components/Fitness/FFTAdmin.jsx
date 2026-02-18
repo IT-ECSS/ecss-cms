@@ -343,7 +343,24 @@ class FFTAdmin extends Component {
       chooseYearFiles: [],
       chooseSelectedFile: null,
       loadingChooseFiles: false,
+      // Reset cache state
+      clearingCache: false,
+      cacheMessage: null,
     });
+  };
+
+  handleClearCache = async () => {
+    this.setState({ clearingCache: true, cacheMessage: null });
+    try {
+      const res = await axios.delete(`${BACKEND_URL}/googleDrive/clearCache`);
+      if (res.data.success) {
+        this.setState({ clearingCache: false, cacheMessage: res.data.message });
+      } else {
+        this.setState({ clearingCache: false, cacheMessage: 'Failed to clear cache.' });
+      }
+    } catch (err) {
+      this.setState({ clearingCache: false, cacheMessage: err.message || 'Error clearing cache.' });
+    }
   };
 
   handleBackToMenu = () => {
@@ -457,7 +474,28 @@ class FFTAdmin extends Component {
                 </div>
                 <span className="fft-admin-menu-btn-label">Choose File</span>
               </button>
+              <button
+                type="button"
+                className="fft-admin-menu-btn"
+                onClick={this.handleClearCache}
+                disabled={this.state.clearingCache}
+                style={{ borderColor: '#ef4444' }}
+              >
+                <div className="fft-admin-menu-btn-icon" style={{ color: '#ef4444' }}>
+                  <i className={this.state.clearingCache ? 'fas fa-spinner fa-spin' : 'fas fa-trash-alt'}></i>
+                </div>
+                <span className="fft-admin-menu-btn-label">{this.state.clearingCache ? 'Clearing...' : 'Clear Cache'}</span>
+              </button>
             </div>
+            {this.state.cacheMessage && (
+              <div className="fft-admin-result fft-admin-result--success" style={{ marginTop: '16px' }}>
+                <i className="fas fa-check-circle"></i>
+                <div>
+                  <p className="fft-admin-result-title">Cache Cleared</p>
+                  <p className="fft-admin-result-detail">{this.state.cacheMessage}</p>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

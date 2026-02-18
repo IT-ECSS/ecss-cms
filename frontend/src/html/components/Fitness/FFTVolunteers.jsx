@@ -212,7 +212,28 @@ class FFTVolunteers extends Component {
       return;
     }
     const station = STATIONS.find((s) => s.id === stationId);
-    // Fully stop previous scanner before starting new one
+    const { participantData, entryNumber } = this.state;
+
+    // If participant already scanned, keep them and switch station (no re-scan)
+    if (participantData && entryNumber != null) {
+      this.stopScanner();
+      // Pre-fill form with existing data for the new station's fields
+      const existingData = {};
+      station.fields.forEach((f) => {
+        existingData[f.key] = participantData[f.key] || '';
+      });
+      this.setState({
+        selectedStation: station,
+        scannerActive: false,
+        formData: existingData,
+        submitSuccess: false,
+        submitError: null,
+        scanError: null,
+      });
+      return;
+    }
+
+    // No participant yet — open QR scanner
     this.stopScanner().then(() => {
       this.setState({
         selectedStation: station,
@@ -606,6 +627,10 @@ class FFTVolunteers extends Component {
                         DOB: {participantData.dd && participantData.mm && participantData.yyyy ? `${participantData.dd}/${participantData.mm}/${participantData.yyyy}` : '—'}
                         &nbsp;·&nbsp; Age: {participantData.age || '—'}
                       </div>
+                      <div className="fft-vol-participant-meta">
+                        <i className="fas fa-venus-mars" style={{ marginRight: '4px', fontSize: '0.85em' }}></i>
+                        Gender: {participantData.gender || '—'}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -650,7 +675,7 @@ class FFTVolunteers extends Component {
                           </label>
                           <input
                             type="text"
-                            inputMode="decimal"
+                            inputMode="text"
                             value={formData[field.key] || ''}
                             placeholder={field.placeholder}
                             onChange={(e) => this.handleFieldChange(field.key, e.target.value)}

@@ -672,7 +672,7 @@ class FFTParticipants extends Component {
                 type="button"
                 onClick={() => this.setState({ successTab: 'qr' })}
                 style={{
-                  flex: 1, padding: '12px 0', fontSize: '2.2rem', fontWeight: 700,
+                  flex: 1, padding: '12px 0', fontSize: '3.6rem', fontWeight: 700,
                   color: currentTab === 'qr' ? '#2563eb' : '#757575', background: 'none', border: 'none',
                   borderBottom: currentTab === 'qr' ? '3px solid #2563eb' : '3px solid transparent', cursor: 'pointer'
                 }}
@@ -683,7 +683,7 @@ class FFTParticipants extends Component {
                 type="button"
                 onClick={() => { this.setState({ successTab: 'stations' }); this.fetchRowData(); }}
                 style={{
-                  flex: 1, padding: '12px 0', fontSize: '2.2rem', fontWeight: 700,
+                  flex: 1, padding: '12px 0', fontSize: '3.6rem', fontWeight: 700,
                   color: currentTab === 'stations' ? '#2563eb' : '#757575', background: 'none', border: 'none',
                   borderBottom: currentTab === 'stations' ? '3px solid #2563eb' : '3px solid transparent', cursor: 'pointer'
                 }}
@@ -734,11 +734,11 @@ class FFTParticipants extends Component {
                               <i className="fas fa-user"></i>
                             </div>
                             <div>
-                              <div style={{ fontWeight: 700, fontSize: '1.8rem', color: '#1a1a1a' }}>{displayName}</div>
-                              {rd.chineseName && rd.name && <div style={{ fontSize: '1.6rem', color: '#555', fontWeight: 700 }}>{rd.chineseName}</div>}
+                              <div style={{ fontWeight: 700, fontSize: '3.2rem', color: '#1a1a1a' }}>{displayName}</div>
+                              {rd.chineseName && rd.name && <div style={{ fontSize: '2.8rem', color: '#555', fontWeight: 700 }}>{rd.chineseName}</div>}
                             </div>
                           </div>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px', fontSize: '1.6rem' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px', fontSize: '2.8rem' }}>
                             <div><span style={{ color: '#888' }}>DOB:</span> <strong>{dob}</strong></div>
                             <div><span style={{ color: '#888' }}>Gender:</span> <strong>{rd.gender || '—'}</strong></div>
                             <div><span style={{ color: '#888' }}>Age:</span> <strong>{rd.age || '—'}</strong></div>
@@ -786,63 +786,75 @@ class FFTParticipants extends Component {
                         const { att1, att2, extraRemarks } = parseRemarks(remarksRaw);
                         return (
                           <div key={station.num} style={{
-                            background: '#fff', borderRadius: '12px', padding: '18px',
-                            boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
-                            border: '1px solid #bbf7d0',
-                            display: 'flex', flexDirection: 'column', gap: '12px'
+                            background: '#fff', borderRadius: '16px', padding: '24px',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+                            border: '2px solid #bbf7d0',
+                            display: 'flex', flexDirection: 'column', gap: '16px'
                           }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                              <div style={{
-                                width: '48px', height: '48px', borderRadius: '50%',
-                                background: '#f0fdf4', color: '#16a34a',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                flexShrink: 0, fontSize: '1.4rem'
-                              }}>
-                                <i className="fas fa-check"></i>
-                              </div>
-                              <div style={{ fontSize: '1.6rem', color: '#888', fontWeight: 700 }}>Station {station.num}</div>
+                            {/* Station badge */}
+                            <div style={{
+                              display: 'inline-flex', alignItems: 'center', gap: '10px',
+                              background: '#f0fdf4', border: '2px solid #86efac',
+                              borderRadius: '50px', padding: '8px 20px', alignSelf: 'flex-start'
+                            }}>
+                              <i className="fa fa-clipboard" style={{ color: '#16a34a', fontSize: '2.4rem' }}></i>
+                              <span style={{ fontSize: '2.8rem', color: '#16a34a', fontWeight: 700 }}>Station {station.num}</span>
                             </div>
                             <div>
-                              <div style={{ fontWeight: 700, fontSize: '1.9rem', color: '#1a1a1a' }}>{station.en}</div>
-                              <div style={{ fontSize: '1.7rem', color: '#555', fontWeight: 700 }}>{station.zh}</div>
+                              <div style={{ fontWeight: 700, fontSize: '3.2rem', color: '#1a1a1a' }}>{station.en}</div>
+                              <div style={{ fontSize: '2.8rem', color: '#555', fontWeight: 700 }}>{station.zh}</div>
                             </div>
                             {station.note && (
-                              <div style={{ fontSize: '1.5rem', color: '#2563eb', fontWeight: 700 }}>
-                                <i className="fas fa-info-circle" style={{ marginRight: '4px' }}></i>{station.note}
+                              <div style={{ fontSize: '2.6rem', color: '#2563eb', fontWeight: 700 }}>
+                                <i className="fas fa-info-circle" style={{ marginRight: '6px' }}></i>{station.note}
                               </div>
                             )}
+                            {/* Result badge */}
                             <div style={{
-                              padding: '10px 14px', background: '#f0fdf4',
-                              borderRadius: '8px', fontSize: '1.8rem', fontWeight: 700
+                              padding: '14px 20px', background: '#f0fdf4',
+                              borderRadius: '12px', fontSize: '3.2rem', fontWeight: 700,
+                              border: '2px solid #86efac'
                             }}>
                               <span style={{ color: '#888' }}>Result:</span>{' '}
                               <strong style={{ color: '#16a34a' }}>{score}</strong>
                             </div>
-                            {/* Attempts side by side */}
+                            {/* Attempts — row by row badges */}
                             {att1 != null && (
-                              <div style={{ display: 'flex', gap: '10px' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                 <div style={{
-                                  flex: 1, padding: '10px 14px', background: '#f8fafc',
-                                  borderRadius: '8px', fontSize: '1.6rem', textAlign: 'center',
-                                  border: '1px solid #e2e8f0', fontWeight: 700
+                                  padding: '12px 20px', background: '#f8fafc',
+                                  borderRadius: '12px', fontSize: '2.8rem',
+                                  border: '2px solid #e2e8f0', fontWeight: 700,
+                                  display: 'flex', alignItems: 'center', gap: '12px'
                                 }}>
-                                  <div style={{ color: '#888', fontSize: '1.2rem', marginBottom: '4px', fontWeight: 700 }}>Att 1</div>
+                                  <span style={{
+                                    background: '#e2e8f0', borderRadius: '8px', padding: '4px 14px',
+                                    fontSize: '2.2rem', fontWeight: 700, color: '#64748b'
+                                  }}>Att 1</span>
                                   <strong style={{ color: '#1a1a1a' }}>{att1}</strong>
                                 </div>
                                 <div style={{
-                                  flex: 1, padding: '10px 14px', background: '#f8fafc',
-                                  borderRadius: '8px', fontSize: '1.6rem', textAlign: 'center',
-                                  border: '1px solid #e2e8f0', fontWeight: 700
+                                  padding: '12px 20px', background: '#f8fafc',
+                                  borderRadius: '12px', fontSize: '2.8rem',
+                                  border: '2px solid #e2e8f0', fontWeight: 700,
+                                  display: 'flex', alignItems: 'center', gap: '12px'
                                 }}>
-                                  <div style={{ color: '#888', fontSize: '1.2rem', marginBottom: '4px', fontWeight: 700 }}>Att 2</div>
+                                  <span style={{
+                                    background: '#e2e8f0', borderRadius: '8px', padding: '4px 14px',
+                                    fontSize: '2.2rem', fontWeight: 700, color: '#64748b'
+                                  }}>Att 2</span>
                                   <strong style={{ color: '#1a1a1a' }}>{att2}</strong>
                                 </div>
                               </div>
                             )}
                             {/* Remarks section below */}
                             {extraRemarks && (
-                              <div style={{ fontSize: '1.6rem', color: '#666', fontWeight: 700, marginTop: '2px' }}>
-                                <i className="fas fa-comment" style={{ marginRight: '6px', color: '#aaa' }}></i>
+                              <div style={{
+                                fontSize: '2.6rem', color: '#555', fontWeight: 700, marginTop: '4px',
+                                padding: '12px 20px', background: '#fffbeb', borderRadius: '12px',
+                                border: '2px solid #fde68a'
+                              }}>
+                                <i className="fas fa-comment" style={{ marginRight: '8px', color: '#ca8a04' }}></i>
                                 {extraRemarks}
                               </div>
                             )}
@@ -868,10 +880,10 @@ class FFTParticipants extends Component {
                             }}>
                               <i className="fas fa-comment-alt"></i>
                             </div>
-                            <div style={{ fontWeight: 700, fontSize: '1.8rem', color: '#1a1a1a' }}>Improvements & Remarks</div>
+                            <div style={{ fontWeight: 700, fontSize: '3.2rem', color: '#1a1a1a' }}>Improvements & Remarks</div>
                           </div>
-                          {rd.improvements && <div style={{ fontSize: '1.6rem', color: '#555', marginBottom: '4px', fontWeight: 700 }}><span style={{ color: '#888' }}>Improvements:</span> {rd.improvements}</div>}
-                          {rd.remarks && <div style={{ fontSize: '1.6rem', color: '#555', fontWeight: 700 }}><span style={{ color: '#888' }}>Remarks:</span> {rd.remarks}</div>}
+                          {rd.improvements && <div style={{ fontSize: '2.8rem', color: '#555', marginBottom: '4px', fontWeight: 700 }}><span style={{ color: '#888' }}>Improvements:</span> {rd.improvements}</div>}
+                          {rd.remarks && <div style={{ fontSize: '2.8rem', color: '#555', fontWeight: 700 }}><span style={{ color: '#888' }}>Remarks:</span> {rd.remarks}</div>}
                         </div>
                       ) : null;
                     })()}
