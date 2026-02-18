@@ -179,8 +179,8 @@ class FFTVolunteers extends Component {
         axios.get(`${BACKEND_URL}/googleDrive/getRow`, {
           params: { fileId: activeFile.id, entryNumber }
         }).then((res) => {
-          if (res.data.success) {
-            this.setState({ participantData: res.data.row });
+          if (res.data.success && res.data.data) {
+            this.setState({ participantData: res.data.data });
           }
         }).catch(() => {});
       }
