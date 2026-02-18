@@ -58,6 +58,36 @@ class FFTTrainers extends Component {
     };
     this.gridRef = React.createRef();
 
+    // Helper to render the consolidated Remarks column — show only volunteer-typed remarks (not attempt data)
+    const remarksListRenderer = (params) => {
+      const d = params.data;
+      const stationEntries = [
+        { label: 'Sit & Stand', value: d.sitStandRemarks },
+        { label: 'Arm Curl', value: d.armCurlRemarks },
+        { label: 'March', value: d.marchRemarks },
+        { label: 'Sit & Reach', value: d.sitReachRemarks },
+        { label: 'Back Stretch', value: d.backStretchRemarks },
+        { label: 'Speed Walk', value: d.speedWalkRemarks },
+        { label: 'Grip Test', value: d.gripTestRemarks },
+      ];
+      // Strip out the auto-generated "Att 1: ..., Att 2: ..." prefix, keep only volunteer remarks
+      const stationRemarks = stationEntries.map((s) => {
+        if (!s.value) return null;
+        // Remove "Att 1: ..., Att 2: ..." portion (with optional trailing ". ")
+        const cleaned = s.value.replace(/^Att 1:\s*[^,]+,\s*Att 2:\s*[^.]*\.?\s*/, '').trim();
+        return cleaned ? { label: s.label, value: cleaned } : null;
+      }).filter(Boolean);
+      const general = d.remarks || '';
+      if (!stationRemarks.length && !general) return '';
+      let html = '<div style="line-height:1.6">';
+      if (general) html += `<div>${general}</div>`;
+      stationRemarks.forEach((s) => {
+        html += `<div><strong>${s.label}:</strong> ${s.value}</div>`;
+      });
+      html += '</div>';
+      return html;
+    };
+
     // AG Grid column definitions — matches Google Sheets columns only ok
     this.columnDefs = [
       { headerName: 'Name', field: 'name', width: 350, sortable: true, pinned: 'left',
@@ -84,22 +114,15 @@ class FFTTrainers extends Component {
       { headerName: 'Weight (kg)', field: 'weight', width: 200},
       { headerName: 'BMI', field: 'bmi', width: 150},
       { headerName: 'Test Date', field: 'testDate', width: 200 },
-      { headerName: '30 secs Sit & Stand', field: 'sitStand', width: 300},
-      { headerName: '30 secs Arm Curl', field: 'armCurl', width: 300},
-      { headerName: '2 min March on the spot', field: 'march', width: 300},
-      { headerName: 'Sit & Reach', field: 'sitReach', width: 300},
-      { headerName: 'Back Stretch', field: 'backStretch', width: 300},
-      { headerName: '2.44m speed walk', field: 'speedWalk', width: 300},
-      { headerName: 'Grip Test', field: 'gripTest', width: 300},
+      { headerName: '30 secs Sit & Stand', field: 'sitStand', width: 200 },
+      { headerName: '30 secs Arm Curl', field: 'armCurl', width: 200 },
+      { headerName: '2 min March on the spot', field: 'march', width: 200 },
+      { headerName: 'Sit & Reach', field: 'sitReach', width: 200 },
+      { headerName: 'Back Stretch', field: 'backStretch', width: 200 },
+      { headerName: '2.44m speed walk', field: 'speedWalk', width: 200 },
+      { headerName: 'Grip Test', field: 'gripTest', width: 200 },
       { headerName: 'Improvements', field: 'improvements', width: 500},
-      { headerName: 'Remarks', field: 'remarks', width: 500 },
-      { headerName: 'Sit & Stand Remarks', field: 'sitStandRemarks', width: 300 },
-      { headerName: 'Arm Curl Remarks', field: 'armCurlRemarks', width: 300 },
-      { headerName: 'March Remarks', field: 'marchRemarks', width: 300 },
-      { headerName: 'Sit & Reach Remarks', field: 'sitReachRemarks', width: 300 },
-      { headerName: 'Back Stretch Remarks', field: 'backStretchRemarks', width: 300 },
-      { headerName: 'Speed Walk Remarks', field: 'speedWalkRemarks', width: 300 },
-      { headerName: 'Grip Test Remarks', field: 'gripTestRemarks', width: 300 },
+      { headerName: 'Remarks', field: 'remarks', width: 500, cellRenderer: remarksListRenderer, autoHeight: true },
     ];
   }
 

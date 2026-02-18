@@ -672,7 +672,7 @@ class FFTParticipants extends Component {
                 type="button"
                 onClick={() => this.setState({ successTab: 'qr' })}
                 style={{
-                  flex: 1, padding: '12px 0', fontSize: '1.1rem', fontWeight: currentTab === 'qr' ? 700 : 400,
+                  flex: 1, padding: '12px 0', fontSize: '2.2rem', fontWeight: 700,
                   color: currentTab === 'qr' ? '#2563eb' : '#757575', background: 'none', border: 'none',
                   borderBottom: currentTab === 'qr' ? '3px solid #2563eb' : '3px solid transparent', cursor: 'pointer'
                 }}
@@ -683,7 +683,7 @@ class FFTParticipants extends Component {
                 type="button"
                 onClick={() => { this.setState({ successTab: 'stations' }); this.fetchRowData(); }}
                 style={{
-                  flex: 1, padding: '12px 0', fontSize: '1.1rem', fontWeight: currentTab === 'stations' ? 700 : 400,
+                  flex: 1, padding: '12px 0', fontSize: '2.2rem', fontWeight: 700,
                   color: currentTab === 'stations' ? '#2563eb' : '#757575', background: 'none', border: 'none',
                   borderBottom: currentTab === 'stations' ? '3px solid #2563eb' : '3px solid transparent', cursor: 'pointer'
                 }}
@@ -713,7 +713,7 @@ class FFTParticipants extends Component {
 
             {/* Test Stations Tab */}
             {currentTab === 'stations' && (
-              <div className="fft-participants-section" style={{ padding: '12px 16px' }}>
+              <div className="fft-participants-section" style={{ padding: '12px 16px', fontWeight: 700 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', alignItems: 'start' }}>
                     {/* Personal Info Card — column 1 */}
                     {(() => {
@@ -729,16 +729,16 @@ class FFTParticipants extends Component {
                             <div style={{
                               width: '48px', height: '48px', borderRadius: '50%',
                               background: '#f0fdf4', color: '#16a34a', display: 'flex',
-                              alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem', flexShrink: 0
+                              alignItems: 'center', justifyContent: 'center', fontSize: '1.6rem', flexShrink: 0
                             }}>
                               <i className="fas fa-user"></i>
                             </div>
                             <div>
-                              <div style={{ fontWeight: 700, fontSize: '1.15rem', color: '#1a1a1a' }}>{displayName}</div>
-                              {rd.chineseName && rd.name && <div style={{ fontSize: '0.9rem', color: '#555' }}>{rd.chineseName}</div>}
+                              <div style={{ fontWeight: 700, fontSize: '1.8rem', color: '#1a1a1a' }}>{displayName}</div>
+                              {rd.chineseName && rd.name && <div style={{ fontSize: '1.6rem', color: '#555', fontWeight: 700 }}>{rd.chineseName}</div>}
                             </div>
                           </div>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '6px', fontSize: '0.9rem' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px', fontSize: '1.6rem' }}>
                             <div><span style={{ color: '#888' }}>DOB:</span> <strong>{dob}</strong></div>
                             <div><span style={{ color: '#888' }}>Gender:</span> <strong>{rd.gender || '—'}</strong></div>
                             <div><span style={{ color: '#888' }}>Age:</span> <strong>{rd.age || '—'}</strong></div>
@@ -764,48 +764,86 @@ class FFTParticipants extends Component {
                         { num: '6', zh: '2.44 公尺起身绕物测验', en: '2.44-Meter Speed Walking', icon: 'fa-stopwatch', scoreKey: 'speedWalk', remarksKey: 'speedWalkRemarks', note: '' },
                         { num: '7', zh: '握力测试', en: 'Hand Griping Test', icon: 'fa-fist-raised', scoreKey: 'gripTest', remarksKey: 'gripTestRemarks', note: '左 L / 右 R (手 Hand)' },
                       ];
+
+                      // Helper: parse remarks for attempt data
+                      const parseRemarks = (remarksStr) => {
+                        if (!remarksStr) return { att1: null, att2: null, extraRemarks: '' };
+                        const attMatch = remarksStr.match(/Att 1:\s*([^,]+),\s*Att 2:\s*([^.]*?)\s*$|Att 1:\s*([^,]+),\s*Att 2:\s*([^.]*)\.\s*(.*)/);
+                        if (attMatch) {
+                          if (attMatch[1] !== undefined) {
+                            return { att1: attMatch[1].trim(), att2: attMatch[2].trim(), extraRemarks: '' };
+                          }
+                          return { att1: attMatch[3].trim(), att2: attMatch[4].trim(), extraRemarks: (attMatch[5] || '').trim() };
+                        }
+                        return { att1: null, att2: null, extraRemarks: remarksStr };
+                      };
+
                       return stations.map((station) => {
                         const score = rd[station.scoreKey] || '';
                         const hasScore = score !== '';
                         if (!hasScore) return null;
+                        const remarksRaw = station.remarksKey ? rd[station.remarksKey] || '' : '';
+                        const { att1, att2, extraRemarks } = parseRemarks(remarksRaw);
                         return (
                           <div key={station.num} style={{
-                            background: '#fff', borderRadius: '12px', padding: '16px',
+                            background: '#fff', borderRadius: '12px', padding: '18px',
                             boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
                             border: '1px solid #bbf7d0',
-                            display: 'flex', flexDirection: 'column', gap: '8px'
+                            display: 'flex', flexDirection: 'column', gap: '12px'
                           }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                               <div style={{
-                                width: '40px', height: '40px', borderRadius: '50%',
+                                width: '48px', height: '48px', borderRadius: '50%',
                                 background: '#f0fdf4', color: '#16a34a',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                flexShrink: 0, fontSize: '1rem'
+                                flexShrink: 0, fontSize: '1.4rem'
                               }}>
                                 <i className="fas fa-check"></i>
                               </div>
-                              <div style={{ fontSize: '0.8rem', color: '#888' }}>Station {station.num}</div>
+                              <div style={{ fontSize: '1.6rem', color: '#888', fontWeight: 700 }}>Station {station.num}</div>
                             </div>
                             <div>
-                              <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#1a1a1a' }}>{station.en}</div>
-                              <div style={{ fontSize: '0.85rem', color: '#555' }}>{station.zh}</div>
+                              <div style={{ fontWeight: 700, fontSize: '1.9rem', color: '#1a1a1a' }}>{station.en}</div>
+                              <div style={{ fontSize: '1.7rem', color: '#555', fontWeight: 700 }}>{station.zh}</div>
                             </div>
                             {station.note && (
-                              <div style={{ fontSize: '0.75rem', color: '#2563eb' }}>
+                              <div style={{ fontSize: '1.5rem', color: '#2563eb', fontWeight: 700 }}>
                                 <i className="fas fa-info-circle" style={{ marginRight: '4px' }}></i>{station.note}
                               </div>
                             )}
                             <div style={{
-                              padding: '8px 12px', background: '#f0fdf4',
-                              borderRadius: '8px', fontSize: '0.9rem'
+                              padding: '10px 14px', background: '#f0fdf4',
+                              borderRadius: '8px', fontSize: '1.8rem', fontWeight: 700
                             }}>
                               <span style={{ color: '#888' }}>Result:</span>{' '}
                               <strong style={{ color: '#16a34a' }}>{score}</strong>
                             </div>
-                            {station.remarksKey && rd[station.remarksKey] && (
-                              <div style={{ fontSize: '0.8rem', color: '#666', fontStyle: 'italic', marginTop: '2px' }}>
-                                <i className="fas fa-comment" style={{ marginRight: '4px', color: '#aaa' }}></i>
-                                {rd[station.remarksKey]}
+                            {/* Attempts side by side */}
+                            {att1 != null && (
+                              <div style={{ display: 'flex', gap: '10px' }}>
+                                <div style={{
+                                  flex: 1, padding: '10px 14px', background: '#f8fafc',
+                                  borderRadius: '8px', fontSize: '1.6rem', textAlign: 'center',
+                                  border: '1px solid #e2e8f0', fontWeight: 700
+                                }}>
+                                  <div style={{ color: '#888', fontSize: '1.2rem', marginBottom: '4px', fontWeight: 700 }}>Att 1</div>
+                                  <strong style={{ color: '#1a1a1a' }}>{att1}</strong>
+                                </div>
+                                <div style={{
+                                  flex: 1, padding: '10px 14px', background: '#f8fafc',
+                                  borderRadius: '8px', fontSize: '1.6rem', textAlign: 'center',
+                                  border: '1px solid #e2e8f0', fontWeight: 700
+                                }}>
+                                  <div style={{ color: '#888', fontSize: '1.2rem', marginBottom: '4px', fontWeight: 700 }}>Att 2</div>
+                                  <strong style={{ color: '#1a1a1a' }}>{att2}</strong>
+                                </div>
+                              </div>
+                            )}
+                            {/* Remarks section below */}
+                            {extraRemarks && (
+                              <div style={{ fontSize: '1.6rem', color: '#666', fontWeight: 700, marginTop: '2px' }}>
+                                <i className="fas fa-comment" style={{ marginRight: '6px', color: '#aaa' }}></i>
+                                {extraRemarks}
                               </div>
                             )}
                           </div>
@@ -826,14 +864,14 @@ class FFTParticipants extends Component {
                             <div style={{
                               width: '48px', height: '48px', borderRadius: '50%',
                               background: '#fefce8', color: '#ca8a04', display: 'flex',
-                              alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0
+                              alignItems: 'center', justifyContent: 'center', fontSize: '1.6rem', flexShrink: 0
                             }}>
                               <i className="fas fa-comment-alt"></i>
                             </div>
-                            <div style={{ fontWeight: 700, fontSize: '1.05rem', color: '#1a1a1a' }}>Improvements & Remarks</div>
+                            <div style={{ fontWeight: 700, fontSize: '1.8rem', color: '#1a1a1a' }}>Improvements & Remarks</div>
                           </div>
-                          {rd.improvements && <div style={{ fontSize: '0.95rem', color: '#555', marginBottom: '4px' }}><span style={{ color: '#888' }}>Improvements:</span> {rd.improvements}</div>}
-                          {rd.remarks && <div style={{ fontSize: '0.95rem', color: '#555' }}><span style={{ color: '#888' }}>Remarks:</span> {rd.remarks}</div>}
+                          {rd.improvements && <div style={{ fontSize: '1.6rem', color: '#555', marginBottom: '4px', fontWeight: 700 }}><span style={{ color: '#888' }}>Improvements:</span> {rd.improvements}</div>}
+                          {rd.remarks && <div style={{ fontSize: '1.6rem', color: '#555', fontWeight: 700 }}><span style={{ color: '#888' }}>Remarks:</span> {rd.remarks}</div>}
                         </div>
                       ) : null;
                     })()}

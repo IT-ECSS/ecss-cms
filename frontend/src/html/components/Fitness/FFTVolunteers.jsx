@@ -345,27 +345,31 @@ class FFTVolunteers extends Component {
       const att2 = formData[selectedStation.fields[1].key] || '';
 
       let bestResult;
+      const n1 = parseFloat(att1);
+      const n2 = parseFloat(att2);
+
       if (selectedStation.resultKey === 'speedWalk') {
-        // Numeric — lower time is better
-        const n1 = parseFloat(att1);
-        const n2 = parseFloat(att2);
+        // Lower time is better
         if (att2 && !isNaN(n1) && !isNaN(n2)) {
           bestResult = n1 <= n2 ? att1 : att2;
         } else {
           bestResult = att1;
         }
       } else {
-        // Text fields (sitReach, backStretch, gripTest) — store latest attempt
-        bestResult = att2 || att1;
+        // sitReach, backStretch, gripTest — higher number is better
+        if (att2 && !isNaN(n1) && !isNaN(n2)) {
+          bestResult = n1 >= n2 ? att1 : att2;
+        } else if (att2 && !isNaN(n2)) {
+          bestResult = att2;
+        } else {
+          bestResult = att1;
+        }
       }
       updates[selectedStation.resultKey] = bestResult;
 
-      // Build remarks: record both attempts + any volunteer notes
-      const parts = [];
-      if (att2) parts.push(`Att 1: ${att1}, Att 2: ${att2}`);
-      if (formData[selectedStation.remarksKey]) parts.push(formData[selectedStation.remarksKey]);
-      if (parts.length && selectedStation.remarksKey) {
-        updates[selectedStation.remarksKey] = parts.join('. ');
+      // Save only volunteer-typed remarks (no attempt data)
+      if (selectedStation.remarksKey && formData[selectedStation.remarksKey]) {
+        updates[selectedStation.remarksKey] = formData[selectedStation.remarksKey];
       }
     } else {
       // ── Single-attempt station (measurement, 1-3) ──
@@ -591,7 +595,16 @@ class FFTVolunteers extends Component {
                         <div className="fft-vol-participant-chinese">{participantData.chineseName}</div>
                       )}
                       <div className="fft-vol-participant-meta">
-                        Entry #{entryNumber} &nbsp;·&nbsp; {participantData.gender || '—'} &nbsp;·&nbsp; Age: {participantData.age || '—'}
+                        Entry #{entryNumber}
+                      </div>
+                      <div className="fft-vol-participant-meta">
+                        <i className="fas fa-phone" style={{ marginRight: '4px', fontSize: '0.85em' }}></i>
+                        {participantData.phoneNo || '—'}
+                      </div>
+                      <div className="fft-vol-participant-meta">
+                        <i className="fas fa-birthday-cake" style={{ marginRight: '4px', fontSize: '0.85em' }}></i>
+                        DOB: {participantData.dd && participantData.mm && participantData.yyyy ? `${participantData.dd}/${participantData.mm}/${participantData.yyyy}` : '—'}
+                        &nbsp;·&nbsp; Age: {participantData.age || '—'}
                       </div>
                     </div>
                   </div>
@@ -636,8 +649,8 @@ class FFTVolunteers extends Component {
                             {field.label} <span style={{ color: '#9e9e9e', fontWeight: 400 }}>({field.labelZh})</span>
                           </label>
                           <input
-                            type={field.type}
-                            step={field.type === 'number' ? 'any' : undefined}
+                            type="text"
+                            inputMode="decimal"
                             value={formData[field.key] || ''}
                             placeholder={field.placeholder}
                             onChange={(e) => this.handleFieldChange(field.key, e.target.value)}
