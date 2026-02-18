@@ -95,7 +95,7 @@ class FFTTrainers extends Component {
           const name = params.data.name || '';
           const cn = params.data.chineseName || '';
           if (!cn) return name;
-          return `<div style="line-height:1.3">${name}<br/><span style="color:#888;font-size:0.85em">${cn}</span></div>`;
+          return <div style="line-height:1.3">${name}<br/><span style="color:#888;font-size:0.85em">${cn}</span></div>;
         },
         valueGetter: (params) => {
           const name = params.data.name || '';

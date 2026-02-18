@@ -672,7 +672,7 @@ class FFTParticipants extends Component {
                 type="button"
                 onClick={() => this.setState({ successTab: 'qr' })}
                 style={{
-                  flex: 1, padding: '12px 0', fontSize: '3.6rem', fontWeight: 700,
+                  flex: 1, padding: '12px 0', fontSize: '1.7rem', fontWeight: 700,
                   color: currentTab === 'qr' ? '#2563eb' : '#757575', background: 'none', border: 'none',
                   borderBottom: currentTab === 'qr' ? '3px solid #2563eb' : '3px solid transparent', cursor: 'pointer'
                 }}
@@ -683,7 +683,7 @@ class FFTParticipants extends Component {
                 type="button"
                 onClick={() => { this.setState({ successTab: 'stations' }); this.fetchRowData(); }}
                 style={{
-                  flex: 1, padding: '12px 0', fontSize: '3.6rem', fontWeight: 700,
+                  flex: 1, padding: '12px 0', fontSize: '1.7rem', fontWeight: 700,
                   color: currentTab === 'stations' ? '#2563eb' : '#757575', background: 'none', border: 'none',
                   borderBottom: currentTab === 'stations' ? '3px solid #2563eb' : '3px solid transparent', cursor: 'pointer'
                 }}
@@ -734,11 +734,11 @@ class FFTParticipants extends Component {
                               <i className="fas fa-user"></i>
                             </div>
                             <div>
-                              <div style={{ fontWeight: 700, fontSize: '3.2rem', color: '#1a1a1a' }}>{displayName}</div>
-                              {rd.chineseName && rd.name && <div style={{ fontSize: '2.8rem', color: '#555', fontWeight: 700 }}>{rd.chineseName}</div>}
+                              <div style={{ fontWeight: 700, fontSize: '2.7rem', color: '#1a1a1a' }}>{displayName}</div>
+                              {rd.chineseName && rd.name && <div style={{ fontSize: '2.4rem', color: '#555', fontWeight: 700 }}>{rd.chineseName}</div>}
                             </div>
                           </div>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px', fontSize: '2.8rem' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px', fontSize: '2.4rem' }}>
                             <div><span style={{ color: '#888' }}>DOB:</span> <strong>{dob}</strong></div>
                             <div><span style={{ color: '#888' }}>Gender:</span> <strong>{rd.gender || '—'}</strong></div>
                             <div><span style={{ color: '#888' }}>Age:</span> <strong>{rd.age || '—'}</strong></div>
@@ -756,26 +756,26 @@ class FFTParticipants extends Component {
                     {(() => {
                       const rd = this.state.rowData || {};
                       const stations = [
-                        { num: '1', zh: '30 秒坐立测验', en: '30-Sec Sit and Stand', icon: 'fa-chair', scoreKey: 'sitStand', remarksKey: 'sitStandRemarks', note: '' },
-                        { num: '2', zh: '30 秒手臂卷起', en: '30-Sec Arm Banding', icon: 'fa-dumbbell', scoreKey: 'armCurl', remarksKey: 'armCurlRemarks', note: '' },
-                        { num: '3', zh: '2 分钟抬膝测验', en: '2-Min On-the-spot Marching', icon: 'fa-walking', scoreKey: 'march', remarksKey: 'marchRemarks', note: '' },
-                        { num: '4', zh: '坐椅体前弯', en: 'Sit- and Reach Test', icon: 'fa-arrows-alt-h', scoreKey: 'sitReach', remarksKey: 'sitReachRemarks', note: '左 L / 右 R (直腿 Straight leg)' },
-                        { num: '5', zh: '抓背测验', en: 'Back Stretching Test', icon: 'fa-hand-paper', scoreKey: 'backStretch', remarksKey: 'backStretchRemarks', note: '左 L / 右 R (上面 Hand on top)' },
-                        { num: '6', zh: '2.44 公尺起身绕物测验', en: '2.44-Meter Speed Walking', icon: 'fa-stopwatch', scoreKey: 'speedWalk', remarksKey: 'speedWalkRemarks', note: '' },
-                        { num: '7', zh: '握力测试', en: 'Hand Griping Test', icon: 'fa-fist-raised', scoreKey: 'gripTest', remarksKey: 'gripTestRemarks', note: '左 L / 右 R (手 Hand)' },
+                        { num: '1', zh: '30 秒坐立测验', en: '30-Sec Sit and Stand', icon: 'fa-chair', scoreKey: 'sitStand', remarksKey: 'sitStandRemarks', note: '', attempts: 1 },
+                        { num: '2', zh: '30 秒手臂卷起', en: '30-Sec Arm Banding', icon: 'fa-dumbbell', scoreKey: 'armCurl', remarksKey: 'armCurlRemarks', note: '', attempts: 1 },
+                        { num: '3', zh: '2 分钟抬膝测验', en: '2-Min On-the-spot Marching', icon: 'fa-walking', scoreKey: 'march', remarksKey: 'marchRemarks', note: '', attempts: 1 },
+                        { num: '4', zh: '坐椅体前弯', en: 'Sit- and Reach Test', icon: 'fa-arrows-alt-h', scoreKey: 'sitReach', remarksKey: 'sitReachRemarks', note: '左 L / 右 R (直腿 Straight leg)', attempts: 2, att1Key: 'sitReachAtt1', att2Key: 'sitReachAtt2' },
+                        { num: '5', zh: '抓背测验', en: 'Back Stretching Test', icon: 'fa-hand-paper', scoreKey: 'backStretch', remarksKey: 'backStretchRemarks', note: '左 L / 右 R (上面 Hand on top)', attempts: 2, att1Key: 'backStretchAtt1', att2Key: 'backStretchAtt2' },
+                        { num: '6', zh: '2.44 公尺起身绕物测验', en: '2.44-Meter Speed Walking', icon: 'fa-stopwatch', scoreKey: 'speedWalk', remarksKey: 'speedWalkRemarks', note: '', attempts: 2, att1Key: 'speedWalkAtt1', att2Key: 'speedWalkAtt2' },
+                        { num: '7', zh: '握力测试', en: 'Hand Griping Test', icon: 'fa-fist-raised', scoreKey: 'gripTest', remarksKey: 'gripTestRemarks', note: '左 L / 右 R (手 Hand)', attempts: 2, att1Key: 'gripTestAtt1', att2Key: 'gripTestAtt2' },
                       ];
 
-                      // Helper: parse remarks for attempt data
-                      const parseRemarks = (remarksStr) => {
-                        if (!remarksStr) return { att1: null, att2: null, extraRemarks: '' };
-                        const attMatch = remarksStr.match(/Att 1:\s*([^,]+),\s*Att 2:\s*([^.]*?)\s*$|Att 1:\s*([^,]+),\s*Att 2:\s*([^.]*)\.\s*(.*)/);
-                        if (attMatch) {
-                          if (attMatch[1] !== undefined) {
-                            return { att1: attMatch[1].trim(), att2: attMatch[2].trim(), extraRemarks: '' };
-                          }
-                          return { att1: attMatch[3].trim(), att2: attMatch[4].trim(), extraRemarks: (attMatch[5] || '').trim() };
+                      // Helper: get attempt data from cache
+                      const getAttemptInfo = (station) => {
+                        if (station.attempts === 2) {
+                          const att1 = rd[station.att1Key] || null;
+                          const att2 = rd[station.att2Key] || null;
+                          const count = att2 ? 2 : (att1 ? 1 : 0);
+                          return { att1, att2, count };
                         }
-                        return { att1: null, att2: null, extraRemarks: remarksStr };
+                        // Single-attempt station: the result itself is the only attempt
+                        const val = rd[station.scoreKey] || null;
+                        return { att1: val, att2: null, count: val ? 1 : 0 };
                       };
 
                       return stations.map((station) => {
@@ -783,7 +783,7 @@ class FFTParticipants extends Component {
                         const hasScore = score !== '';
                         if (!hasScore) return null;
                         const remarksRaw = station.remarksKey ? rd[station.remarksKey] || '' : '';
-                        const { att1, att2, extraRemarks } = parseRemarks(remarksRaw);
+                        const { att1, att2, count: attCount } = getAttemptInfo(station);
                         return (
                           <div key={station.num} style={{
                             background: '#fff', borderRadius: '16px', padding: '24px',
@@ -797,65 +797,67 @@ class FFTParticipants extends Component {
                               background: '#f0fdf4', border: '2px solid #86efac',
                               borderRadius: '50px', padding: '8px 20px', alignSelf: 'flex-start'
                             }}>
-                              <i className="fa fa-clipboard" style={{ color: '#16a34a', fontSize: '2.4rem' }}></i>
-                              <span style={{ fontSize: '2.8rem', color: '#16a34a', fontWeight: 700 }}>Station {station.num}</span>
+                              <i className="fa fa-clipboard" style={{ color: '#16a34a', fontSize: '1.8rem' }}></i>
+                              <span style={{ fontSize: '2.1rem', color: '#16a34a', fontWeight: 700 }}>Station {station.num}</span>
                             </div>
                             <div>
-                              <div style={{ fontWeight: 700, fontSize: '3.2rem', color: '#1a1a1a' }}>{station.en}</div>
-                              <div style={{ fontSize: '2.8rem', color: '#555', fontWeight: 700 }}>{station.zh}</div>
+                              <div style={{ fontWeight: 700, fontSize: '2.4rem', color: '#1a1a1a' }}>{station.en}</div>
+                              <div style={{ fontSize: '2.1rem', color: '#555', fontWeight: 700 }}>{station.zh}</div>
                             </div>
                             {station.note && (
-                              <div style={{ fontSize: '2.6rem', color: '#2563eb', fontWeight: 700 }}>
+                              <div style={{ fontSize: '2.0rem', color: '#2563eb', fontWeight: 700 }}>
                                 <i className="fas fa-info-circle" style={{ marginRight: '6px' }}></i>{station.note}
                               </div>
                             )}
                             {/* Result badge */}
                             <div style={{
                               padding: '14px 20px', background: '#f0fdf4',
-                              borderRadius: '12px', fontSize: '3.2rem', fontWeight: 700,
+                              borderRadius: '12px', fontSize: '2.4rem', fontWeight: 700,
                               border: '2px solid #86efac'
                             }}>
                               <span style={{ color: '#888' }}>Result:</span>{' '}
                               <strong style={{ color: '#16a34a' }}>{score}</strong>
                             </div>
-                            {/* Attempts — row by row badges */}
-                            {att1 != null && (
+                            {/* Attempts section */}
+                            {station.attempts === 2 && att1 != null && (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                 <div style={{
                                   padding: '12px 20px', background: '#f8fafc',
-                                  borderRadius: '12px', fontSize: '2.8rem',
+                                  borderRadius: '12px', fontSize: '2.1rem',
                                   border: '2px solid #e2e8f0', fontWeight: 700,
                                   display: 'flex', alignItems: 'center', gap: '12px'
                                 }}>
                                   <span style={{
                                     background: '#e2e8f0', borderRadius: '8px', padding: '4px 14px',
-                                    fontSize: '2.2rem', fontWeight: 700, color: '#64748b'
-                                  }}>Att 1</span>
+                                    fontSize: '1.7rem', fontWeight: 700, color: '#64748b'
+                                  }}>Attempt 1</span>
                                   <strong style={{ color: '#1a1a1a' }}>{att1}</strong>
                                 </div>
-                                <div style={{
-                                  padding: '12px 20px', background: '#f8fafc',
-                                  borderRadius: '12px', fontSize: '2.8rem',
-                                  border: '2px solid #e2e8f0', fontWeight: 700,
-                                  display: 'flex', alignItems: 'center', gap: '12px'
-                                }}>
-                                  <span style={{
-                                    background: '#e2e8f0', borderRadius: '8px', padding: '4px 14px',
-                                    fontSize: '2.2rem', fontWeight: 700, color: '#64748b'
-                                  }}>Att 2</span>
-                                  <strong style={{ color: '#1a1a1a' }}>{att2}</strong>
-                                </div>
+                                {att2 != null && (
+                                  <div style={{
+                                    padding: '12px 20px', background: '#f8fafc',
+                                    borderRadius: '12px', fontSize: '2.1rem',
+                                    border: '2px solid #e2e8f0', fontWeight: 700,
+                                    display: 'flex', alignItems: 'center', gap: '12px'
+                                  }}>
+                                    <span style={{
+                                      background: '#e2e8f0', borderRadius: '8px', padding: '4px 14px',
+                                      fontSize: '1.7rem', fontWeight: 700, color: '#64748b'
+                                    }}>Attempt 2</span>
+                                    <strong style={{ color: '#1a1a1a' }}>{att2}</strong>
+                                  </div>
+                                )}
                               </div>
                             )}
                             {/* Remarks section below */}
-                            {extraRemarks && (
+                            {remarksRaw && (
                               <div style={{
-                                fontSize: '2.6rem', color: '#555', fontWeight: 700, marginTop: '4px',
+                                fontSize: '2.0rem', color: '#555', fontWeight: 700, marginTop: '4px',
                                 padding: '12px 20px', background: '#fffbeb', borderRadius: '12px',
                                 border: '2px solid #fde68a'
                               }}>
                                 <i className="fas fa-comment" style={{ marginRight: '8px', color: '#ca8a04' }}></i>
-                                {extraRemarks}
+                                {remarksRaw}
                               </div>
                             )}
                           </div>
@@ -880,10 +882,10 @@ class FFTParticipants extends Component {
                             }}>
                               <i className="fas fa-comment-alt"></i>
                             </div>
-                            <div style={{ fontWeight: 700, fontSize: '3.2rem', color: '#1a1a1a' }}>Improvements & Remarks</div>
+                            <div style={{ fontWeight: 700, fontSize: '2.4rem', color: '#1a1a1a' }}>Improvements & Remarks</div>
                           </div>
-                          {rd.improvements && <div style={{ fontSize: '2.8rem', color: '#555', marginBottom: '4px', fontWeight: 700 }}><span style={{ color: '#888' }}>Improvements:</span> {rd.improvements}</div>}
-                          {rd.remarks && <div style={{ fontSize: '2.8rem', color: '#555', fontWeight: 700 }}><span style={{ color: '#888' }}>Remarks:</span> {rd.remarks}</div>}
+                          {rd.improvements && <div style={{ fontSize: '2.1rem', color: '#555', marginBottom: '4px', fontWeight: 700 }}><span style={{ color: '#888' }}>Improvements:</span> {rd.improvements}</div>}
+                          {rd.remarks && <div style={{ fontSize: '2.1rem', color: '#555', fontWeight: 700 }}><span style={{ color: '#888' }}>Remarks:</span> {rd.remarks}</div>}
                         </div>
                       ) : null;
                     })()}

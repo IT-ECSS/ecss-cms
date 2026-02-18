@@ -386,11 +386,23 @@ router.post('/updateRow', async (req, res) => {
             } catch (_) { /* proceed with empty */ }
         }
 
+        // Separate attempt metadata fields (e.g. sitReachAtt1, sitReachAtt2) — cache only, not written to Google Sheets
+        const attMeta = {};
+        const updatesClean = {};
+        for (const [field, value] of Object.entries(updates)) {
+            if (/Att[12]$/.test(field)) {
+                attMeta[field] = value;
+            } else {
+                updatesClean[field] = value;
+            }
+        }
+
         // Build the final updates keeping only best results
         const finalUpdates = {};
         const stationScoreFields = Object.keys(STATION_REMARKS_MAP);
+        const updatedScoreFields = new Set();
 
-        for (const [field, value] of Object.entries(updates)) {
+        for (const [field, value] of Object.entries(updatesClean)) {
             // Remarks fields always pass through
             if (field.endsWith('Remarks')) {
                 finalUpdates[field] = value;
@@ -400,16 +412,17 @@ router.post('/updateRow', async (req, res) => {
             if (stationScoreFields.includes(field)) {
                 if (isBetterResult(field, value, currentRow[field])) {
                     finalUpdates[field] = value;
+                    updatedScoreFields.add(field);
                     // Also include the matching remarks if provided
                     const rk = STATION_REMARKS_MAP[field];
-                    if (rk && updates[rk] !== undefined) {
-                        finalUpdates[rk] = updates[rk];
+                    if (rk && updatesClean[rk] !== undefined) {
+                        finalUpdates[rk] = updatesClean[rk];
                     }
                 } else {
                     console.log(`[FFT] Keeping existing better result for entry ${en} ${field}: ${currentRow[field]} (new was ${value})`);
                     // Keep existing remarks too — don't overwrite with new attempt's remarks
                     const rk = STATION_REMARKS_MAP[field];
-                    if (rk && updates[rk] !== undefined) {
+                    if (rk && updatesClean[rk] !== undefined) {
                         // Don't include — keep old remarks that match old best result
                     }
                 }
@@ -417,6 +430,15 @@ router.post('/updateRow', async (req, res) => {
             }
             // All other fields (height, weight, bmi, improvements, remarks) → always update
             finalUpdates[field] = value;
+        }
+
+        // Determine which att metadata to cache (only for updated score fields)
+        const attToCache = {};
+        for (const [attKey, attVal] of Object.entries(attMeta)) {
+            const baseField = attKey.replace(/Att[12]$/, '');
+            if (updatedScoreFields.has(baseField)) {
+                attToCache[attKey] = attVal;
+            }
         }
 
         if (Object.keys(finalUpdates).length === 0) {
@@ -430,11 +452,11 @@ router.post('/updateRow', async (req, res) => {
             return res.status(500).json(result);
         }
 
-        // Cache the final results
+        // Cache the final results + attempt metadata
         if (!fftResultsCache[en]) {
             fftResultsCache[en] = {};
         }
-        Object.assign(fftResultsCache[en], finalUpdates);
+        Object.assign(fftResultsCache[en], finalUpdates, attToCache);
         console.log(`[FFT] Cached results for entry ${en}:`, fftResultsCache[en]);
 
         // Emit Socket.IO event with actual data for live updates

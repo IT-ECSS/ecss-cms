@@ -212,28 +212,8 @@ class FFTVolunteers extends Component {
       return;
     }
     const station = STATIONS.find((s) => s.id === stationId);
-    const { participantData, entryNumber } = this.state;
 
-    // If participant already scanned, keep them and switch station (no re-scan)
-    if (participantData && entryNumber != null) {
-      this.stopScanner();
-      // Pre-fill form with existing data for the new station's fields
-      const existingData = {};
-      station.fields.forEach((f) => {
-        existingData[f.key] = participantData[f.key] || '';
-      });
-      this.setState({
-        selectedStation: station,
-        scannerActive: false,
-        formData: existingData,
-        submitSuccess: false,
-        submitError: null,
-        scanError: null,
-      });
-      return;
-    }
-
-    // No participant yet — open QR scanner
+    // Always require a fresh QR scan when changing station
     this.stopScanner().then(() => {
       this.setState({
         selectedStation: station,
@@ -321,14 +301,30 @@ class FFTVolunteers extends Component {
     axios.get(`${BACKEND_URL}/googleDrive/getRow`, { params: { fileId, entryNumber } })
       .then((res) => {
         if (res.data.success) {
-          // Pre-fill formData with existing values for this station's fields
+          const data = res.data.data;
           const station = this.state.selectedStation;
+
+          // Enforce: Measurement Station must be completed first before any other station
+          if (station.id !== 'measurement') {
+            const hasHeight = data.height && String(data.height).trim() !== '';
+            const hasWeight = data.weight && String(data.weight).trim() !== '';
+            const hasBmi = data.bmi && String(data.bmi).trim() !== '';
+            if (!hasHeight || !hasWeight || !hasBmi) {
+              this.setState({
+                loadingParticipant: false,
+                scanError: 'Measurement Station (Height, Weight, BMI) must be completed first before recording results for this station.',
+              });
+              return;
+            }
+          }
+
+          // Pre-fill formData with existing values for this station's fields
           const existingData = {};
           station.fields.forEach((f) => {
-            existingData[f.key] = res.data.data[f.key] || '';
+            existingData[f.key] = data[f.key] || '';
           });
           this.setState({
-            participantData: res.data.data,
+            participantData: data,
             formData: existingData,
             loadingParticipant: false,
             scannerActive: false,
@@ -387,6 +383,10 @@ class FFTVolunteers extends Component {
         }
       }
       updates[selectedStation.resultKey] = bestResult;
+
+      // Include individual attempt values for caching (displayed on participant cards)
+      updates[selectedStation.fields[0].key] = att1;
+      if (att2) updates[selectedStation.fields[1].key] = att2;
 
       // Save only volunteer-typed remarks (no attempt data)
       if (selectedStation.remarksKey && formData[selectedStation.remarksKey]) {
