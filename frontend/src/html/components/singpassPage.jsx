@@ -88,7 +88,7 @@ class SingpassPage extends Component {
       const backendParUrl = "https://ecss-backend-node.azurewebsites.net/singpass/par";
       
       const parResponse = await axios.post(backendParUrl, {
-        scope: "openid user.identity dob email mobileno name race regadd residentialstatus sex uinfin",
+        scope: "openid dob email mobileno name race regadd residentialstatus sex uinfin",
         //redirect_uri: "http://localhost:3000/callback",
         redirect_uri: "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback",
         state: state,
