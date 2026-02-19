@@ -27,18 +27,25 @@ setInterval(() => {
  */
 async function generateDPoPKeyPair() {
   const jose = await import('jose');
-  const { publicKey, privateKey } = await jose.generateKeyPair('ES256');
-  const publicJwk = await jose.exportJWK(publicKey);
+  
+  // Use the registered signing key instead of an ephemeral key
+  // SingPass verifies DPoP proofs against the client's JWKS endpoint
+  const signingKeyJwk = require('./Keys/private-signing-key.jwk.json');
+  const privateKey = await jose.importJWK(signingKeyJwk, 'ES256');
+  
+  // Public JWK for the header (without the private 'd' parameter)
+  const publicJwk = {
+    kty: signingKeyJwk.kty,
+    crv: signingKeyJwk.crv,
+    x: signingKeyJwk.x,
+    y: signingKeyJwk.y
+  };
   
   return {
-    publicKey,
+    publicKey: null, // not needed
     privateKey,
-    publicJwk: {
-      kty: publicJwk.kty,
-      crv: publicJwk.crv,
-      x: publicJwk.x,
-      y: publicJwk.y
-    }
+    publicJwk,
+    kid: signingKeyJwk.kid
   };
 }
 

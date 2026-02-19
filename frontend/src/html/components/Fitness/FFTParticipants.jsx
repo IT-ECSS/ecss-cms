@@ -693,7 +693,7 @@ class FFTParticipants extends Component {
             {/* QR Code Tab */}
             {currentTab === 'qr' && (
               <div className="fft-participants-section" style={{ textAlign: 'center', padding: '48px 20px' }}>
-                {entryNumber != null && (
+                {entryNumber != null ? (
                   <div style={{ marginBottom: '28px' }}>
                     <p style={{ fontSize: '1.35rem', color: '#555', marginBottom: '16px' }}>
                       Please show this QR code to the station in-charge to scan
@@ -704,8 +704,40 @@ class FFTParticipants extends Component {
                       level="H"
                       style={{ margin: '0 auto', display: 'block' }}
                     />
+                    <p style={{ fontSize: '1.1rem', color: '#888', marginTop: '16px' }}>
+                      Entry #{entryNumber}
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ marginBottom: '28px' }}>
+                    <p style={{ fontSize: '1.35rem', color: '#888', marginBottom: '20px' }}>
+                      No QR code found. Please register to get your QR code.
+                    </p>
                   </div>
                 )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Clear the stale cookie and reset to registration form
+                    document.cookie = 'fft_submission=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                    this.setState({
+                      submitted: false, entryNumber: null, rowData: null,
+                      currentStep: 1, loginMethod: '', languageSelected: false,
+                      name: '', dob: '', phoneNo: '', gender: '', age: '', icNumber: '',
+                      healthQ1: '', healthQ2: '', healthQ3: '', healthQ4: '',
+                      indemnityAgreed: false, hasSignature: false, errors: {},
+                      singPassPopulatedFields: {}
+                    });
+                  }}
+                  style={{
+                    marginTop: '12px', padding: '12px 32px', fontSize: '1.2rem', fontWeight: 600,
+                    color: '#dc2626', background: 'none', border: '2px solid #dc2626',
+                    borderRadius: '8px', cursor: 'pointer'
+                  }}
+                >
+                  <i className="fas fa-redo" style={{ marginRight: '8px' }}></i>
+                  New Registration
+                </button>
               </div>
             )}
 
