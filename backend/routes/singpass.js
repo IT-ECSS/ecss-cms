@@ -917,8 +917,6 @@ router.post('/par', async (req, res) => {
       nonce: nonce,
       code_challenge: code_challenge,
       code_challenge_method: code_challenge_method,
-      // New API: Required for Login apps
-      authentication_context_type: 'national',
       client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
       client_assertion: clientAssertion
     };
