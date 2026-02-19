@@ -1314,8 +1314,8 @@ router.post('/token', async (req, res) => {
           sub_attributes: subAttributes,
           // Extract individual fields for frontend compatibility
           ...extractedFields,
-          // If sub_attributes has NRIC/FIN, use it as fallback for uinfin
-          ...(subAttributes?.nric_fin && !extractedFields.uinfin ? { uinfin: subAttributes.nric_fin } : {}),
+          // If sub_attributes has identity_number (NRIC/FIN), use it as fallback for uinfin
+          ...(subAttributes?.identity_number && !extractedFields.uinfin ? { uinfin: subAttributes.identity_number } : {}),
           // Add metadata about what worked
           endpointUsed: endpointUsed,
           // Include debug info in development

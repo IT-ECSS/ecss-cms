@@ -653,9 +653,7 @@ class FFTParticipants extends Component {
               <button
                 className="fft-participants-icon-btn"
                 onClick={() => {
-                  // Clear cookie and go home
-                  document.cookie = 'fft_submission=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-                  this.setState({ submitted: false, entryNumber: null, successTab: 'qr' });
+                  // Navigate home but keep the cookie so QR code persists when returning
                   if (this.props.onBack) this.props.onBack();
                 }}
                 title="Home"
