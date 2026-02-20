@@ -200,23 +200,36 @@ class FFTParticipants extends Component {
         return;
       }
 
+      // Convert name to title case (e.g., "LEE XUAN YAO MOSES" → "Lee Xuan Yao Moses")
+      const toTitleCase = (str) => {
+        if (!str) return '';
+        return str.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+      };
+
       const genderCode = this.formatGender(userData.sex);
       const phoneNumber = this.extractMobileNumber(userData.mobileno);
 
-      // Parse DOB into yyyy-MM-dd for date input
+      // Parse DOB into dd/mm/yyyy for display
       let dobValue = '';
+      let dobForAge = ''; // yyyy-MM-dd for age calculation
       if (userData.dob) {
         const rawDob = userData.dob.formattedDate1 || userData.dob;
-        // Attempt to normalise to yyyy-MM-dd
         if (typeof rawDob === 'string') {
-          // If already yyyy-MM-dd
           if (/^\d{4}-\d{2}-\d{2}$/.test(rawDob)) {
+            // yyyy-MM-dd → dd/mm/yyyy
+            const [y, m, d] = rawDob.split('-');
+            dobValue = `${d}/${m}/${y}`;
+            dobForAge = rawDob;
+          } else if (/^\d{2}\/\d{2}\/\d{4}$/.test(rawDob)) {
+            // Already dd/mm/yyyy
             dobValue = rawDob;
+            const parts = rawDob.split('/');
+            dobForAge = `${parts[2]}-${parts[1]}-${parts[0]}`;
           } else {
-            // Try dd/mm/yyyy
             const parts = rawDob.split('/');
             if (parts.length === 3) {
-              dobValue = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+              dobValue = `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[2]}`;
+              dobForAge = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
             }
           }
         }
@@ -224,9 +237,9 @@ class FFTParticipants extends Component {
 
       // Calculate age from DOB
       let calculatedAge = '';
-      if (dobValue) {
+      if (dobForAge) {
         const today = new Date();
-        const birthDate = new Date(dobValue);
+        const birthDate = new Date(dobForAge);
         let ageNum = today.getFullYear() - birthDate.getFullYear();
         const monthDiff = today.getMonth() - birthDate.getMonth();
         if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
@@ -584,8 +597,10 @@ class FFTParticipants extends Component {
     // If user is returning from SingPass login, auto-populate
     const isAuthenticated = this.checkSingPassAuthentication();
     if (isAuthenticated) {
-      // SingPass data is in session — populate directly (same as formPage.jsx handleSingPassSuccess)
-      this.handleSingPassSuccess();
+      // Skip language selection and go straight to the form
+      this.setState({ languageSelected: true }, () => {
+        this.handleSingPassSuccess();
+      });
     }
     // Initialise signature pad canvas
     this.initSignatureCanvas();
