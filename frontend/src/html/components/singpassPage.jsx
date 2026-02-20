@@ -61,7 +61,13 @@ class SingpassPage extends Component {
       if (redirectLink) {
         var decodedLink = this.decodeUrlSafely(redirectLink);
         //redirectLink = `http://localhost:3000/form`;
-        redirectLink = `https://salmon-wave-09f02b100.6.azurestaticapps.net/form`;
+        if (decodedLink && decodedLink.includes('/fft')) {
+          redirectLink = `https://salmon-wave-09f02b100.6.azurestaticapps.net/fft?section=participants`;
+          sessionStorage.setItem('singpass_return_path', '/fft?section=participants');
+        } else {
+          redirectLink = `https://salmon-wave-09f02b100.6.azurestaticapps.net/form`;
+          sessionStorage.setItem('singpass_return_path', '/form');
+        }
       }
      /* if (redirectLink) {
         sessionStorage.setItem('course_link', decodedLink);

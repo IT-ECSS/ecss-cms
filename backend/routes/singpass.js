@@ -173,6 +173,34 @@ function extractSingPassValue(data) {
   if (typeof data === 'object' && data.value !== undefined) {
     return data.value;
   }
+
+  // Handle mobileno: {prefix: {value: "+"}, areacode: {value: "65"}, nbr: {value: "83227136"}}
+  if (typeof data === 'object' && data.nbr !== undefined) {
+    const nbr = data.nbr?.value || data.nbr;
+    const areacode = data.areacode?.value || data.areacode || '';
+    const prefix = data.prefix?.value || data.prefix || '';
+    // Return just the number for local SG numbers, or full international format
+    if (areacode === '65') return nbr;
+    return `${prefix}${areacode}${nbr}`;
+  }
+
+  // Handle regadd: {block: {value}, street: {value}, floor: {value}, unit: {value}, postal: {value}, ...}
+  if (typeof data === 'object' && data.block !== undefined && data.street !== undefined) {
+    const block = data.block?.value || data.block || '';
+    const street = data.street?.value || data.street || '';
+    const floor = data.floor?.value || data.floor || '';
+    const unit = data.unit?.value || data.unit || '';
+    const building = data.building?.value || data.building || '';
+    const postal = data.postal?.value || data.postal || '';
+    // Format: BLK 48 CARPMAEL ROAD #05-06 SINGAPORE 429974
+    const parts = [];
+    if (block) parts.push(`BLK ${block}`);
+    if (street) parts.push(street);
+    if (building) parts.push(building);
+    if (floor && unit) parts.push(`#${floor}-${unit}`);
+    if (postal) parts.push(`SINGAPORE ${postal}`);
+    return parts.filter(p => p.trim()).join(' ');
+  }
   
   // Return the data as-is if it's not structured
   return data;

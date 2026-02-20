@@ -24,6 +24,13 @@ class FFTPage extends Component {
   componentDidMount() {
     document.title = 'ECSS FFT Test';
 
+    // Check if redirected from SingPass with section parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const section = urlParams.get('section');
+    if (section) {
+      this.setState({ activeSection: section });
+    }
+
     // Fetch the active file from the backend (shared across all devices)
     axios.get(`${BACKEND_URL}/googleDrive/activeFile`)
       .then((res) => {

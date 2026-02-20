@@ -277,18 +277,21 @@ class CallbackPage extends Component {
       sessionStorage.removeItem('singpass_nonce');
       sessionStorage.removeItem('singpass_code_verifier');
       
-      // Build redirect URL with link parameter
-      let redirectUrl = '/form';
+      // Build redirect URL - use stored return path or default to /form
+      const returnPath = sessionStorage.getItem('singpass_return_path') || '/form';
+      let redirectUrl = returnPath;
       
       if (redirectLink) {
-        // Add the link as a query parameter to the form URL
-        const formParams = new URLSearchParams();
-        formParams.set('link', redirectLink);
-        redirectUrl = `/form?${formParams.toString()}`;
-        console.log('Redirecting to form with link parameter:', redirectUrl);
+        // Add the link as a query parameter, handling existing query params in returnPath
+        const separator = returnPath.includes('?') ? '&' : '?';
+        redirectUrl = `${returnPath}${separator}link=${encodeURIComponent(redirectLink)}`;
+        console.log('Redirecting to', returnPath, 'with link parameter:', redirectUrl);
       } else {
-        console.log('Redirecting to form without link parameter');
+        console.log('Redirecting to', returnPath, 'without link parameter');
       }
+      
+      // Clean up return path
+      sessionStorage.removeItem('singpass_return_path');
 
       console.log('Final user data summary:', {
         name: !!name, 

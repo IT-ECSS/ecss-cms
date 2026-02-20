@@ -226,6 +226,12 @@ class SingPassButton extends Component {
       sessionStorage.setItem('singpass_nonce', nonce);
       sessionStorage.setItem('singpass_code_verifier', codeVerifier);
 
+      // Store current page path so CallbackPage knows where to redirect back
+      // For FFT page, include section=participants so it opens the form directly
+      const currentPath = window.location.pathname;
+      const returnPath = currentPath === '/fft' ? '/fft?section=participants' : currentPath;
+      sessionStorage.setItem('singpass_return_path', returnPath);
+
       // FAPI 2.0: Use Pushed Authorization Request (PAR)
       //const backendParUrl = "http://localhost:3001/singpass/par";
       const backendParUrl = "https://ecss-backend-node.azurewebsites.net/singpass/par";
