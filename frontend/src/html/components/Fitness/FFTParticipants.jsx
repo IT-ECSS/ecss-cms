@@ -497,13 +497,6 @@ class FFTParticipants extends Component {
       '',               // Grip Test
       '',               // Improvements
       '',               // Remarks
-      '',               // Sit & Stand Remarks (V)
-      '',               // Arm Curl Remarks (W)
-      '',               // March Remarks (X)
-      '',               // Sit & Reach Remarks (Y)
-      '',               // Back Stretch Remarks (Z)
-      '',               // Speed Walk Remarks (AA)
-      '',               // Grip Test Remarks (AB)
     ];
 
     // Use prop or fallback to fetched active file
@@ -533,9 +526,7 @@ class FFTParticipants extends Component {
           name: nameCol, chineseName: chineseNameCol, phoneNo, gender,
           dd, mm, yyyy, age, height: '', weight: '', bmi: '', testDate,
           sitStand: '', armCurl: '', march: '', sitReach: '',
-          backStretch: '', speedWalk: '', gripTest: '', improvements: '', remarks: '',
-          sitStandRemarks: '', armCurlRemarks: '', marchRemarks: '',
-          sitReachRemarks: '', backStretchRemarks: '', speedWalkRemarks: '', gripTestRemarks: ''
+          backStretch: '', speedWalk: '', gripTest: '', improvements: '', remarks: ''
         };
         this.setState({ submitting: false, submitted: true, entryNumber: entry, rowData: initialRowData });
       } else {

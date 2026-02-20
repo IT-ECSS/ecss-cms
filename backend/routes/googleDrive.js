@@ -152,9 +152,7 @@ router.post('/appendRow', async (req, res) => {
                 'name', 'chineseName', 'phoneNo', 'gender', 'dd', 'mm', 'yyyy', 'age',
                 'height', 'weight', 'bmi', 'testDate',
                 'sitStand', 'armCurl', 'march', 'sitReach', 'backStretch', 'speedWalk', 'gripTest',
-                'improvements', 'remarks',
-                'sitStandRemarks', 'armCurlRemarks', 'marchRemarks',
-                'sitReachRemarks', 'backStretchRemarks', 'speedWalkRemarks', 'gripTestRemarks'
+                'improvements', 'remarks'
             ];
             const cached = {};
             colKeys.forEach((key, idx) => {
