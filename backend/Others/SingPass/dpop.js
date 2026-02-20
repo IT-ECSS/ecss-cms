@@ -22,7 +22,7 @@ setInterval(() => {
 
 /**
  * Generate an ephemeral EC P-256 key pair for DPoP
- * Per RFC 9449, DPoP uses ephemeral keys (not the registered signing key).
+ * Per RFC 9449, DPoP uses ephemeral keys (not the registered signing key). //ok
  * SingPass verifies the DPoP proof signature against the public key
  * embedded in the JWT header's 'jwk' field.
  * The same key pair is reused across PAR, Token Exchange, and Userinfo requests.
