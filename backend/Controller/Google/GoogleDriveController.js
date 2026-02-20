@@ -605,7 +605,6 @@ class GoogleDriveController {
 
             const sheetNames = spreadsheet.data.sheets.map(s => s.properties.title);
             const targetSheet = sheetName || sheetNames[0];
-            const sheetId = spreadsheet.data.sheets.find(s => s.properties.title === targetSheet)?.properties?.sheetId || 0;
 
             // Find the next empty row by checking existing data
             const existingData = await sheets.spreadsheets.values.get({
@@ -630,41 +629,10 @@ class GoogleDriveController {
             const rowNumber = nextRow;
             const entryNumber = rowNumber - 1; // subtract 1 for header row
 
-            // Clear bold formatting on the newly appended row (it inherits from header)
-            if (rowNumber) {
-                try {
-                    await sheets.spreadsheets.batchUpdate({
-                        spreadsheetId: fileId,
-                        resource: {
-                            requests: [{
-                                repeatCell: {
-                                    range: {
-                                        sheetId: sheetId,
-                                        startRowIndex: rowNumber - 1, // 0-based
-                                        endRowIndex: rowNumber,
-                                        startColumnIndex: 0,
-                                        endColumnIndex: 21 // columns A–U
-                                    },
-                                    cell: {
-                                        userEnteredFormat: {
-                                            textFormat: { bold: false }
-                                        }
-                                    },
-                                    fields: 'userEnteredFormat.textFormat.bold'
-                                }
-                            }]
-                        }
-                    });
-                    console.log(`[SHEETS] Cleared bold formatting on row ${rowNumber}`);
-                } catch (fmtErr) {
-                    console.warn(`[SHEETS] Could not clear bold formatting: ${fmtErr.message}`);
-                }
-            }
-
             return {
                 success: true,
                 updatedRange: updatedRange,
-                updatedRows: response.data.updates.updatedRows,
+                updatedRows: response.data.updatedRows || 1,
                 entryNumber: entryNumber
             };
         } catch (error) {
