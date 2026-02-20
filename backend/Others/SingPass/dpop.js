@@ -22,30 +22,27 @@ setInterval(() => {
 
 /**
  * Generate an ephemeral EC P-256 key pair for DPoP
- * A new key pair MUST be generated for each authentication flow
- * The same key pair is used across PAR, Token Exchange, and Userinfo requests
+ * Per RFC 9449, DPoP uses ephemeral keys (not the registered signing key).
+ * SingPass verifies the DPoP proof signature against the public key
+ * embedded in the JWT header's 'jwk' field.
+ * The same key pair is reused across PAR, Token Exchange, and Userinfo requests.
  */
 async function generateDPoPKeyPair() {
   const jose = await import('jose');
-  
-  // Use the registered signing key instead of an ephemeral key
-  // SingPass verifies DPoP proofs against the client's JWKS endpoint
-  const signingKeyJwk = require('./Keys/private-signing-key.jwk.json');
-  const privateKey = await jose.importJWK(signingKeyJwk, 'ES256');
-  
-  // Public JWK for the header (without the private 'd' parameter)
-  const publicJwk = {
-    kty: signingKeyJwk.kty,
-    crv: signingKeyJwk.crv,
-    x: signingKeyJwk.x,
-    y: signingKeyJwk.y
-  };
+  const { publicKey, privateKey } = await jose.generateKeyPair('ES256');
+  const publicJwk = await jose.exportJWK(publicKey);
   
   return {
-    publicKey: null, // not needed
+    publicKey,
     privateKey,
-    publicJwk,
-    kid: signingKeyJwk.kid
+    publicJwk: {
+      alg: 'ES256',
+      kty: publicJwk.kty,
+      crv: publicJwk.crv,
+      use: 'sig',
+      x: publicJwk.x,
+      y: publicJwk.y
+    }
   };
 }
 
@@ -62,11 +59,13 @@ async function generateDPoPKeyPair() {
 async function generateDPoPProof(privateKey, publicJwk, htm, htu, ath = null) {
   const jose = await import('jose');
   
+  const iat = Math.floor(Date.now() / 1000);
   const payload = {
     jti: crypto.randomUUID(),
     htm: htm,
     htu: htu,
-    iat: Math.floor(Date.now() / 1000)
+    iat: iat,
+    exp: iat + 120  // 120 seconds validity (matches SingPass sample)
   };
   
   // Include access token hash when making resource requests (e.g., userinfo)
