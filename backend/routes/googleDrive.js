@@ -1,8 +1,33 @@
 var express = require('express');
 var router = express.Router();
 var GoogleDriveController = require('../Controller/Google/GoogleDriveController');
+var fs = require('fs');
+var path = require('path');
 
 const googleDriveController = new GoogleDriveController();
+
+// ── Persistent active file storage ──
+const ACTIVE_FILE_PATH = path.join(__dirname, '..', 'fft-active-file.json');
+
+function loadActiveFile() {
+    try {
+        if (fs.existsSync(ACTIVE_FILE_PATH)) {
+            const data = JSON.parse(fs.readFileSync(ACTIVE_FILE_PATH, 'utf8'));
+            if (data && data.id && data.name) return data;
+        }
+    } catch (e) {
+        console.warn('[FFT] Could not load active file from disk:', e.message);
+    }
+    return null;
+}
+
+function saveActiveFile(file) {
+    try {
+        fs.writeFileSync(ACTIVE_FILE_PATH, JSON.stringify(file), 'utf8');
+    } catch (e) {
+        console.warn('[FFT] Could not save active file to disk:', e.message);
+    }
+}
 
 // POST endpoint to handle different Google Drive operations based on purpose
 router.post('/', async (req, res) => {
@@ -237,7 +262,8 @@ router.post('/copySpreadsheet', async (req, res) => {
 });
 
 // ── In-memory store for the active FFT file (shared across all users/devices) ──
-let activeFFTFile = null;
+let activeFFTFile = loadActiveFile();
+console.log('[FFT] Loaded active file:', activeFFTFile ? `${activeFFTFile.name} (${activeFFTFile.id})` : 'none');
 
 // ── In-memory cache for FFT station results (keyed by entryNumber) ──
 // Structure: { [entryNumber]: { sitStand: '30', armCurl: '25', ... } }
@@ -278,6 +304,7 @@ router.post('/activeFile', (req, res) => {
         return res.status(400).json({ success: false, error: 'file with id and name is required' });
     }
     activeFFTFile = { id: file.id, name: file.name };
+    saveActiveFile(activeFFTFile);
     // Clear results cache when active file changes
     fftResultsCache = {};
     console.log(`[FFT] Active file set to: ${file.name} (${file.id}). Cache cleared.`);
@@ -359,6 +386,17 @@ const STATION_REMARKS_MAP = {
     backStretch: 'backStretchRemarks',
     speedWalk: 'speedWalkRemarks',
     gripTest: 'gripTestRemarks'
+};
+
+// Human-readable station names for remarks aggregation
+const STATION_NAMES = {
+    sitStand: 'Sit & Stand',
+    armCurl: 'Arm Curl',
+    march: 'March',
+    sitReach: 'Sit & Reach',
+    backStretch: 'Back Stretch',
+    speedWalk: 'Speed Walk',
+    gripTest: 'Grip Test'
 };
 
 // POST update specific columns in a row (with best-result logic)
@@ -443,6 +481,46 @@ router.post('/updateRow', async (req, res) => {
             // Nothing to update (all new results were worse)
             if (!fftResultsCache[en]) fftResultsCache[en] = {};
             return res.json({ success: true, updatedFields: [], message: 'Existing results are better; no changes made.' });
+        }
+
+        // Aggregate per-station remarks into the single 'remarks' column (U)
+        const stationRemarksKeys = Object.values(STATION_REMARKS_MAP);
+        const newStationRemarks = {};
+        for (const rk of stationRemarksKeys) {
+            if (finalUpdates[rk] !== undefined) {
+                // Find station name from remarks key (e.g. 'gripTestRemarks' → 'gripTest' → 'Grip Test')
+                const scoreField = Object.keys(STATION_REMARKS_MAP).find(k => STATION_REMARKS_MAP[k] === rk);
+                const stationName = STATION_NAMES[scoreField] || scoreField;
+                newStationRemarks[stationName] = finalUpdates[rk];
+                // Remove per-station remarks from finalUpdates (not a real sheet column)
+                delete finalUpdates[rk];
+            }
+        }
+        if (Object.keys(newStationRemarks).length > 0) {
+            // Read existing remarks from cache or sheet
+            const existingRemarks = currentRow.remarks || '';
+            // Parse existing remarks into a map: "Grip Test: Ok | Arm Curl: Good" → { 'Grip Test': 'Ok', ... }
+            const remarksMap = {};
+            if (existingRemarks) {
+                existingRemarks.split(' | ').forEach(part => {
+                    const idx = part.indexOf(': ');
+                    if (idx > -1) {
+                        remarksMap[part.substring(0, idx).trim()] = part.substring(idx + 2).trim();
+                    } else {
+                        remarksMap['_general'] = part.trim();
+                    }
+                });
+            }
+            // Merge new station remarks
+            Object.assign(remarksMap, newStationRemarks);
+            // Rebuild combined string
+            const parts = [];
+            if (remarksMap['_general']) parts.push(remarksMap['_general']);
+            delete remarksMap['_general'];
+            for (const [stn, val] of Object.entries(remarksMap)) {
+                parts.push(`${stn}: ${val}`);
+            }
+            finalUpdates.remarks = parts.join(' | ');
         }
 
         const result = await googleDriveController.updateRow(fileId, en, finalUpdates);

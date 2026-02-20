@@ -519,7 +519,7 @@ class FFTParticipants extends Component {
         // Store in cookie so QR code persists across refresh
         if (entry != null) {
           const expires = new Date(Date.now() + 24 * 60 * 60 * 1000).toUTCString();
-          document.cookie = `fft_submission=${encodeURIComponent(JSON.stringify({ entryNumber: entry }))}; expires=${expires}; path=/`;
+          document.cookie = `fft_submission=${encodeURIComponent(JSON.stringify({ entryNumber: entry, language: this.state.language }))}; expires=${expires}; path=/`;
         }
         // Build rowData from form state so personal info card shows immediately
         const initialRowData = {
@@ -568,7 +568,7 @@ class FFTParticipants extends Component {
       if (match) {
         const data = JSON.parse(decodeURIComponent(match[1]));
         if (data && data.entryNumber != null) {
-          this.setState({ submitted: true, entryNumber: data.entryNumber }, () => {
+          this.setState({ submitted: true, entryNumber: data.entryNumber, language: data.language || 'en' }, () => {
             // Fetch cached results for this participant
             this.fetchRowData();
           });
@@ -844,15 +844,6 @@ class FFTParticipants extends Component {
                                 <i className="fas fa-info-circle" style={{ marginRight: '6px' }}></i>{station.note}
                               </div>
                             )}
-                            {/* Result badge */}
-                            <div style={{
-                              padding: '14px 20px', background: '#f0fdf4',
-                              borderRadius: '12px', fontSize: '2.4rem', fontWeight: 700,
-                              border: '2px solid #86efac'
-                            }}>
-                              <span style={{ color: '#888' }}>{this.t('result')}:</span>{' '}
-                              <strong style={{ color: '#16a34a' }}>{score}</strong>
-                            </div>
                             {/* Attempts section */}
                             {station.attempts === 2 && att1 != null && (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -891,7 +882,7 @@ class FFTParticipants extends Component {
                                 padding: '12px 20px', background: '#fffbeb', borderRadius: '12px',
                                 border: '2px solid #fde68a'
                               }}>
-                                <i className="fas fa-comment" style={{ marginRight: '8px', color: '#ca8a04' }}></i>
+                                <span style={{ color: '#888' }}>{this.t('remarks')}:</span>{' '}
                                 {remarksRaw}
                               </div>
                             )}
