@@ -486,12 +486,14 @@ router.post('/updateRow', async (req, res) => {
         // Aggregate per-station remarks into the single 'remarks' column (U)
         const stationRemarksKeys = Object.values(STATION_REMARKS_MAP);
         const newStationRemarks = {};
+        const perStationRemarksForCache = {}; // Keep per-station keys for frontend cache
         for (const rk of stationRemarksKeys) {
             if (finalUpdates[rk] !== undefined) {
                 // Find station name from remarks key (e.g. 'gripTestRemarks' → 'gripTest' → 'Grip Test')
                 const scoreField = Object.keys(STATION_REMARKS_MAP).find(k => STATION_REMARKS_MAP[k] === rk);
                 const stationName = STATION_NAMES[scoreField] || scoreField;
                 newStationRemarks[stationName] = finalUpdates[rk];
+                perStationRemarksForCache[rk] = finalUpdates[rk];
                 // Remove per-station remarks from finalUpdates (not a real sheet column)
                 delete finalUpdates[rk];
             }
@@ -528,11 +530,11 @@ router.post('/updateRow', async (req, res) => {
             return res.status(500).json(result);
         }
 
-        // Cache the final results + attempt metadata
+        // Cache the final results + attempt metadata + per-station remarks (for frontend cards)
         if (!fftResultsCache[en]) {
             fftResultsCache[en] = {};
         }
-        Object.assign(fftResultsCache[en], finalUpdates, attToCache);
+        Object.assign(fftResultsCache[en], finalUpdates, attToCache, perStationRemarksForCache);
         console.log(`[FFT] Cached results for entry ${en}:`, fftResultsCache[en]);
 
         // Emit Socket.IO event with actual data for live updates

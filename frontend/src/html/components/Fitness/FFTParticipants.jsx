@@ -5,6 +5,7 @@ import { QRCodeCanvas } from 'qrcode.react';
 import '../../../css/fftParticipants.css';
 import SingPassButton from '../sub/SingPassButton';
 import fftTranslations from './fftTranslations';
+import { getRating, getStationRange } from './fftScoringHelper';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
@@ -813,12 +814,41 @@ class FFTParticipants extends Component {
                         return { att1: val, att2: null, count: val ? 1 : 0 };
                       };
 
+                      // Determine gender for scoring: 'male' or 'female'
+                      const participantGender = (rd.gender === 'M' || rd.gender === 'male') ? 'male' : 'female';
+                      const participantAge = parseInt(rd.age, 10) || 0;
+
                       return stations.map((station) => {
                         const score = rd[station.scoreKey] || '';
                         const hasScore = score !== '';
                         if (!hasScore) return null;
                         const remarksRaw = station.remarksKey ? rd[station.remarksKey] || '' : '';
                         const { att1, att2, count: attCount } = getAttemptInfo(station);
+
+                        // Rating for best result
+                        const bestRating = getRating(station.scoreKey, participantAge, score, participantGender);
+                        // Rating for each attempt
+                        const att1Rating = att1 != null ? getRating(station.scoreKey, participantAge, att1, participantGender) : null;
+                        const att2Rating = att2 != null ? getRating(station.scoreKey, participantAge, att2, participantGender) : null;
+                        // Age-group range for this station
+                        const rangeInfo = getStationRange(station.scoreKey, participantAge, participantGender);
+
+                        // Helper to render a rating badge
+                        const ratingBadge = (ratingObj) => {
+                          if (!ratingObj) return null;
+                          return (
+                            <span style={{
+                              display: 'inline-block', padding: '3px 12px',
+                              borderRadius: '8px', fontSize: '1.6rem', fontWeight: 700,
+                              background: ratingObj.color.bg, color: ratingObj.color.text,
+                              border: `1.5px solid ${ratingObj.color.border}`,
+                              marginLeft: '8px', whiteSpace: 'nowrap'
+                            }}>
+                              {ratingObj.rating}
+                            </span>
+                          );
+                        };
+
                         return (
                           <div key={station.num} style={{
                             background: '#fff', borderRadius: '16px', padding: '24px',
@@ -844,6 +874,30 @@ class FFTParticipants extends Component {
                                 <i className="fas fa-info-circle" style={{ marginRight: '6px' }}></i>{station.note}
                               </div>
                             )}
+                            {/* Age-group range bar */}
+                            {rangeInfo && (
+                              <div style={{
+                                padding: '8px 16px', background: '#f1f5f9',
+                                borderRadius: '10px', fontSize: '1.7rem', fontWeight: 600,
+                                color: '#475569', display: 'flex', alignItems: 'center', gap: '8px',
+                                border: '1px solid #e2e8f0'
+                              }}>
+                                <i className="fas fa-chart-bar" style={{ color: '#64748b', fontSize: '1.5rem' }}></i>
+                                <span>{rangeInfo.ageGroup} range:</span>
+                                <strong style={{ color: '#1e293b' }}>{rangeInfo.rangeLabel}</strong>
+                              </div>
+                            )}
+                            {/* Best result with rating */}
+                            <div style={{
+                              padding: '14px 20px', background: bestRating ? bestRating.color.bg : '#f0fdf4',
+                              borderRadius: '12px', fontSize: '2.4rem', fontWeight: 700,
+                              border: `2px solid ${bestRating ? bestRating.color.border : '#86efac'}`,
+                              display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px'
+                            }}>
+                              <span style={{ color: '#888' }}>{this.t('result')}:</span>{' '}
+                              <strong style={{ color: bestRating ? bestRating.color.text : '#16a34a' }}>{score}</strong>
+                              {ratingBadge(bestRating)}
+                            </div>
                             {/* Attempts section */}
                             {station.attempts === 2 && att1 != null && (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -851,26 +905,28 @@ class FFTParticipants extends Component {
                                   padding: '12px 20px', background: '#f8fafc',
                                   borderRadius: '12px', fontSize: '2.1rem',
                                   border: '2px solid #e2e8f0', fontWeight: 700,
-                                  display: 'flex', alignItems: 'center', gap: '12px'
+                                  display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '12px'
                                 }}>
                                   <span style={{
                                     background: '#e2e8f0', borderRadius: '8px', padding: '4px 14px',
                                     fontSize: '1.7rem', fontWeight: 700, color: '#64748b'
                                   }}>{this.t('attempt1')}</span>
                                   <strong style={{ color: '#1a1a1a' }}>{att1}</strong>
+                                  {ratingBadge(att1Rating)}
                                 </div>
                                 {att2 != null && (
                                   <div style={{
                                     padding: '12px 20px', background: '#f8fafc',
                                     borderRadius: '12px', fontSize: '2.1rem',
                                     border: '2px solid #e2e8f0', fontWeight: 700,
-                                    display: 'flex', alignItems: 'center', gap: '12px'
+                                    display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '12px'
                                   }}>
                                     <span style={{
                                       background: '#e2e8f0', borderRadius: '8px', padding: '4px 14px',
                                       fontSize: '1.7rem', fontWeight: 700, color: '#64748b'
                                     }}>{this.t('attempt2')}</span>
                                     <strong style={{ color: '#1a1a1a' }}>{att2}</strong>
+                                    {ratingBadge(att2Rating)}
                                   </div>
                                 )}
                               </div>
@@ -889,31 +945,6 @@ class FFTParticipants extends Component {
                           </div>
                         );
                       });
-                    })()}
-
-                    {/* Improvements & Remarks — spans full width */}
-                    {(() => {
-                      const rd = this.state.rowData || {};
-                      return (rd.improvements || rd.remarks) ? (
-                        <div style={{
-                          gridColumn: '1 / -1',
-                          background: '#fff', borderRadius: '12px', padding: '16px',
-                          boxShadow: '0 1px 4px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb'
-                        }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                            <div style={{
-                              width: '48px', height: '48px', borderRadius: '50%',
-                              background: '#fefce8', color: '#ca8a04', display: 'flex',
-                              alignItems: 'center', justifyContent: 'center', fontSize: '1.6rem', flexShrink: 0
-                            }}>
-                              <i className="fas fa-comment-alt"></i>
-                            </div>
-                            <div style={{ fontWeight: 700, fontSize: '2.4rem', color: '#1a1a1a' }}>{this.t('improvementsRemarks')}</div>
-                          </div>
-                          {rd.improvements && <div style={{ fontSize: '2.1rem', color: '#555', marginBottom: '4px', fontWeight: 700 }}><span style={{ color: '#888' }}>{this.t('improvements')}:</span> {rd.improvements}</div>}
-                          {rd.remarks && <div style={{ fontSize: '2.1rem', color: '#555', fontWeight: 700 }}><span style={{ color: '#888' }}>{this.t('remarks')}:</span> {rd.remarks}</div>}
-                        </div>
-                      ) : null;
                     })()}
 
                   </div>
