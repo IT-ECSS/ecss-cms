@@ -874,30 +874,8 @@ class FFTParticipants extends Component {
                                 <i className="fas fa-info-circle" style={{ marginRight: '6px' }}></i>{station.note}
                               </div>
                             )}
-                            {/* Age-group range bar */}
-                            {rangeInfo && (
-                              <div style={{
-                                padding: '8px 16px', background: '#f1f5f9',
-                                borderRadius: '10px', fontSize: '1.7rem', fontWeight: 600,
-                                color: '#475569', display: 'flex', alignItems: 'center', gap: '8px',
-                                border: '1px solid #e2e8f0'
-                              }}>
-                                <i className="fas fa-chart-bar" style={{ color: '#64748b', fontSize: '1.5rem' }}></i>
-                                <span>{rangeInfo.ageGroup} range:</span>
-                                <strong style={{ color: '#1e293b' }}>{rangeInfo.rangeLabel}</strong>
-                              </div>
-                            )}
-                            {/* Best result with rating */}
-                            <div style={{
-                              padding: '14px 20px', background: bestRating ? bestRating.color.bg : '#f0fdf4',
-                              borderRadius: '12px', fontSize: '2.4rem', fontWeight: 700,
-                              border: `2px solid ${bestRating ? bestRating.color.border : '#86efac'}`,
-                              display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px'
-                            }}>
-                              <span style={{ color: '#888' }}>{this.t('result')}:</span>{' '}
-                              <strong style={{ color: bestRating ? bestRating.color.text : '#16a34a' }}>{score}</strong>
-                              {ratingBadge(bestRating)}
-                            </div>
+
+
                             {/* Attempts section */}
                             {station.attempts === 2 && att1 != null && (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
