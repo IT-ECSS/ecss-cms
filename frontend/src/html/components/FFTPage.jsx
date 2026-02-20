@@ -15,8 +15,11 @@ const BACKEND_URL = window.location.hostname === 'localhost'
 class FFTPage extends Component {
   constructor(props) {
     super(props);
+    // Check for section parameter immediately in constructor
+    const urlParams = new URLSearchParams(window.location.search);
+    const section = urlParams.get('section');
     this.state = {
-      activeSection: 'home',
+      activeSection: section || 'home',
       selectedFile: null,
     };
   }
