@@ -938,12 +938,34 @@ class FormPage extends Component {
         return;
       }
   
-      // Build address string and remove any ', ,'
+      // Build address string - handle both flat string and structured object
       let address = '';
+      let postalCode = '';
       if (userData.regadd) {
-        address = `${userData.regadd.block.value} ${userData.regadd.street.value} #${userData.regadd.floor.value}-${userData.regadd.unit.value}, ${userData.regadd.building.value}, ${userData.regadd.country.desc} ${userData.regadd.postal.value}`;
-        address = address.replace(/, ,/g, ',').replace(/ ,/g, ',').replace(/,,/g, ','); // Remove double commas and extra spaces before commas
-        address = address.replace(/(,\s*)+/g, ', ').replace(/,\s*$/, ''); // Clean up trailing commas
+        if (typeof userData.regadd === 'string') {
+          // Backend already formatted it as a flat string
+          address = userData.regadd;
+          // Try to extract postal from the string (e.g. "SINGAPORE 429974")
+          const postalMatch = userData.regadd.match(/SINGAPORE\s+(\d{6})/);
+          if (postalMatch) postalCode = postalMatch[1];
+        } else if (typeof userData.regadd === 'object') {
+          // Raw structured object from SingPass
+          const getVal = (field) => {
+            if (!field) return '';
+            if (typeof field === 'string') return field;
+            return field.value || field.desc || '';
+          };
+          const block = getVal(userData.regadd.block);
+          const street = getVal(userData.regadd.street);
+          const floor = getVal(userData.regadd.floor);
+          const unit = getVal(userData.regadd.unit);
+          const building = getVal(userData.regadd.building);
+          const country = userData.regadd.country ? (userData.regadd.country.desc || userData.regadd.country.value || '') : '';
+          postalCode = getVal(userData.regadd.postal);
+          address = `${block} ${street} #${floor}-${unit}, ${building}, ${country} ${postalCode}`;
+          address = address.replace(/, ,/g, ',').replace(/ ,/g, ',').replace(/,,/g, ',');
+          address = address.replace(/(,\s*)+/g, ', ').replace(/,\s*$/, '');
+        }
       }
 
       console.log('SingPass user data:', userData);
@@ -958,7 +980,7 @@ class FormPage extends Component {
         cNO: this.extractMobileNumber(userData.mobileno),
         eMAIL: userData.email ? userData.email.replace(/^([^@]*)@/, (match, p1) => p1.toLowerCase() + '@'): "",
         address: address,
-        postalCode: userData.regadd && userData.regadd.postal ? userData.regadd.postal.value : '',
+        postalCode: postalCode,
       };
   
       // ...rest of your code (no changes needed)
@@ -970,7 +992,7 @@ class FormPage extends Component {
         gENDER: !!userData.sex,
         dOB: !!userData.dob,
         address: !!(userData.regadd),
-        postalCode: !!(userData.regadd && userData.regadd.postal),
+        postalCode: !!postalCode,
         cNO: false,
         eMAIL: false
       };
