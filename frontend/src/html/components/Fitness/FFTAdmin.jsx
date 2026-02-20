@@ -429,13 +429,22 @@ class FFTAdmin extends Component {
     return (
       <div className="fft-participants-wrapper">
         <div className="fft-participants-header">
-          <div className="fft-participants-header-top-row">
+          <div className="fft-participants-header-top-row" style={{ display: 'flex', gap: '12px' }}>
+            {activeView && (
+              <button
+                className="fft-participants-icon-btn"
+                onClick={this.handleBackToMenu}
+                title="Back"
+              >
+                <i className="fas fa-arrow-left"></i>
+              </button>
+            )}
             <button
               className="fft-participants-icon-btn"
-              onClick={activeView ? this.handleBackToMenu : onBack}
-              title={activeView ? 'Back' : 'Home'}
+              onClick={onBack}
+              title="Home"
             >
-              <i className={activeView ? 'fas fa-arrow-left' : 'fas fa-home'}></i>
+              <i className="fas fa-home"></i>
             </button>
           </div>
         </div>

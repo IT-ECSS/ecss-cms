@@ -252,7 +252,7 @@ class FFTTrainers extends Component {
               </div>
               <h3 className="fft-trainers-no-file-title">No Active File Selected</h3>
               <p className="fft-trainers-no-file-text">
-                An admin needs to select a file first before trainers can view data.
+                An admin needs to select a file first before staff can view data.
               </p>
               <button className="fft-trainers-submit-btn" onClick={onBack} style={{ marginTop: '8px' }}>
                 <i className="fas fa-arrow-left"></i>
