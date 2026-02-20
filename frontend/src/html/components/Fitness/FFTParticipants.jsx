@@ -259,7 +259,7 @@ class FFTParticipants extends Component {
       };
 
       this.setState({
-        name: userData.name || '',
+        name: toTitleCase(userData.name) || '',
         icNumber: userData.uinfin || '',
         gender: genderCode,
         dob: dobValue,
@@ -585,13 +585,12 @@ class FFTParticipants extends Component {
       })
       .catch(() => {});
 
-    // If user is returning from SingPass login, auto-populate
+    // If user is returning from SingPass login, mark it so we auto-populate after language selection
     const isAuthenticated = this.checkSingPassAuthentication();
     if (isAuthenticated) {
-      // Skip language selection and go straight to the form
-      this.setState({ languageSelected: true }, () => {
-        this.handleSingPassSuccess();
-      });
+      // Don't skip language selection — let user pick language first,
+      // then auto-populate SingPass data when they select a language
+      this.setState({ singPassReady: true });
     }
     // Initialise signature pad canvas
     this.initSignatureCanvas();
@@ -681,7 +680,7 @@ class FFTParticipants extends Component {
                   borderBottom: currentTab === 'qr' ? '3px solid #2563eb' : '3px solid transparent', cursor: 'pointer'
                 }}
               >
-                <i className="fas fa-qrcode" style={{ marginRight: '6px' }}></i> QR Code
+                <i className="fas fa-qrcode" style={{ marginRight: '6px' }}></i> {this.t('successQrTab')}
               </button>
               <button
                 type="button"
@@ -692,7 +691,7 @@ class FFTParticipants extends Component {
                   borderBottom: currentTab === 'stations' ? '3px solid #2563eb' : '3px solid transparent', cursor: 'pointer'
                 }}
               >
-                <i className="fas fa-clipboard-list" style={{ marginRight: '6px' }}></i> Test Stations
+                <i className="fas fa-clipboard-list" style={{ marginRight: '6px' }}></i> {this.t('successStationsTab')}
               </button>
             </div>
 
@@ -702,7 +701,7 @@ class FFTParticipants extends Component {
                 {entryNumber != null ? (
                   <div style={{ marginBottom: '28px' }}>
                     <p style={{ fontSize: '1.35rem', color: '#555', marginBottom: '16px' }}>
-                      Please show this QR code to the station in-charge to scan
+                      {this.t('successQrInstruction')}
                     </p>
                     <QRCodeCanvas
                       value={String(entryNumber)}
@@ -711,13 +710,13 @@ class FFTParticipants extends Component {
                       style={{ margin: '0 auto', display: 'block' }}
                     />
                     <p style={{ fontSize: '1.1rem', color: '#888', marginTop: '16px' }}>
-                      Entry #{entryNumber}
+                      {this.t('successEntry')} #{entryNumber}
                     </p>
                   </div>
                 ) : (
                   <div style={{ marginBottom: '28px' }}>
                     <p style={{ fontSize: '1.35rem', color: '#888', marginBottom: '20px' }}>
-                      No QR code found. Please register to get your QR code.
+                      {this.t('successNoQr')}
                     </p>
                   </div>
                 )}
@@ -742,7 +741,7 @@ class FFTParticipants extends Component {
                   }}
                 >
                   <i className="fas fa-redo" style={{ marginRight: '8px' }}></i>
-                  New Registration
+                  {this.t('newRegistration')}
                 </button>
               </div>
             )}
@@ -775,14 +774,14 @@ class FFTParticipants extends Component {
                             </div>
                           </div>
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px', fontSize: '2.4rem' }}>
-                            <div><span style={{ color: '#888' }}>DOB:</span> <strong>{dob}</strong></div>
-                            <div><span style={{ color: '#888' }}>Gender:</span> <strong>{rd.gender || '—'}</strong></div>
-                            <div><span style={{ color: '#888' }}>Age:</span> <strong>{rd.age || '—'}</strong></div>
-                            <div><span style={{ color: '#888' }}>Phone:</span> <strong>{rd.phoneNo || '—'}</strong></div>
-                            <div><span style={{ color: '#888' }}>Height:</span> <strong>{rd.height || '—'}</strong></div>
-                            <div><span style={{ color: '#888' }}>Weight:</span> <strong>{rd.weight || '—'}</strong></div>
-                            <div><span style={{ color: '#888' }}>BMI:</span> <strong>{rd.bmi || '—'}</strong></div>
-                            <div><span style={{ color: '#888' }}>Test Date:</span> <strong>{rd.testDate || '—'}</strong></div>
+                            <div><span style={{ color: '#888' }}>{this.t('labelDobShort')}:</span> <strong>{dob}</strong></div>
+                            <div><span style={{ color: '#888' }}>{this.t('labelGender')}:</span> <strong>{rd.gender || '—'}</strong></div>
+                            <div><span style={{ color: '#888' }}>{this.t('labelAge')}:</span> <strong>{rd.age || '—'}</strong></div>
+                            <div><span style={{ color: '#888' }}>{this.t('labelPhone')}:</span> <strong>{rd.phoneNo || '—'}</strong></div>
+                            <div><span style={{ color: '#888' }}>{this.t('labelHeight')}:</span> <strong>{rd.height || '—'}</strong></div>
+                            <div><span style={{ color: '#888' }}>{this.t('labelWeight')}:</span> <strong>{rd.weight || '—'}</strong></div>
+                            <div><span style={{ color: '#888' }}>{this.t('labelBmi')}:</span> <strong>{rd.bmi || '—'}</strong></div>
+                            <div><span style={{ color: '#888' }}>{this.t('labelTestDate')}:</span> <strong>{rd.testDate || '—'}</strong></div>
                           </div>
                         </div>
                       );
@@ -834,7 +833,7 @@ class FFTParticipants extends Component {
                               borderRadius: '50px', padding: '8px 20px', alignSelf: 'flex-start'
                             }}>
                               <i className="fa fa-clipboard" style={{ color: '#16a34a', fontSize: '1.8rem' }}></i>
-                              <span style={{ fontSize: '2.1rem', color: '#16a34a', fontWeight: 700 }}>Station {station.num}</span>
+                              <span style={{ fontSize: '2.1rem', color: '#16a34a', fontWeight: 700 }}>{this.t('station')} {station.num}</span>
                             </div>
                             <div>
                               <div style={{ fontWeight: 700, fontSize: '2.4rem', color: '#1a1a1a' }}>{station.en}</div>
@@ -851,7 +850,7 @@ class FFTParticipants extends Component {
                               borderRadius: '12px', fontSize: '2.4rem', fontWeight: 700,
                               border: '2px solid #86efac'
                             }}>
-                              <span style={{ color: '#888' }}>Result:</span>{' '}
+                              <span style={{ color: '#888' }}>{this.t('result')}:</span>{' '}
                               <strong style={{ color: '#16a34a' }}>{score}</strong>
                             </div>
                             {/* Attempts section */}
@@ -866,7 +865,7 @@ class FFTParticipants extends Component {
                                   <span style={{
                                     background: '#e2e8f0', borderRadius: '8px', padding: '4px 14px',
                                     fontSize: '1.7rem', fontWeight: 700, color: '#64748b'
-                                  }}>Attempt 1</span>
+                                  }}>{this.t('attempt1')}</span>
                                   <strong style={{ color: '#1a1a1a' }}>{att1}</strong>
                                 </div>
                                 {att2 != null && (
@@ -879,7 +878,7 @@ class FFTParticipants extends Component {
                                     <span style={{
                                       background: '#e2e8f0', borderRadius: '8px', padding: '4px 14px',
                                       fontSize: '1.7rem', fontWeight: 700, color: '#64748b'
-                                    }}>Attempt 2</span>
+                                    }}>{this.t('attempt2')}</span>
                                     <strong style={{ color: '#1a1a1a' }}>{att2}</strong>
                                   </div>
                                 )}
@@ -918,10 +917,10 @@ class FFTParticipants extends Component {
                             }}>
                               <i className="fas fa-comment-alt"></i>
                             </div>
-                            <div style={{ fontWeight: 700, fontSize: '2.4rem', color: '#1a1a1a' }}>Improvements & Remarks</div>
+                            <div style={{ fontWeight: 700, fontSize: '2.4rem', color: '#1a1a1a' }}>{this.t('improvementsRemarks')}</div>
                           </div>
-                          {rd.improvements && <div style={{ fontSize: '2.1rem', color: '#555', marginBottom: '4px', fontWeight: 700 }}><span style={{ color: '#888' }}>Improvements:</span> {rd.improvements}</div>}
-                          {rd.remarks && <div style={{ fontSize: '2.1rem', color: '#555', fontWeight: 700 }}><span style={{ color: '#888' }}>Remarks:</span> {rd.remarks}</div>}
+                          {rd.improvements && <div style={{ fontSize: '2.1rem', color: '#555', marginBottom: '4px', fontWeight: 700 }}><span style={{ color: '#888' }}>{this.t('improvements')}:</span> {rd.improvements}</div>}
+                          {rd.remarks && <div style={{ fontSize: '2.1rem', color: '#555', fontWeight: 700 }}><span style={{ color: '#888' }}>{this.t('remarks')}:</span> {rd.remarks}</div>}
                         </div>
                       ) : null;
                     })()}
@@ -954,7 +953,14 @@ class FFTParticipants extends Component {
                     key={lang.code}
                     type="button"
                     className={`fft-participants-lang-page-btn ${language === lang.code ? 'fft-participants-lang-page-btn--active' : ''}`}
-                    onClick={() => this.setState({ language: lang.code, languageSelected: true })}
+                    onClick={() => {
+                      this.setState({ language: lang.code, languageSelected: true }, () => {
+                        // If SingPass auth is ready, auto-populate and skip login method selection
+                        if (this.state.singPassReady) {
+                          this.handleSingPassSuccess();
+                        }
+                      });
+                    }}
                   >
                     {lang.label}
                   </button>

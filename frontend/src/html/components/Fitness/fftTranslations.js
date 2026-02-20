@@ -235,6 +235,102 @@ const fftTranslations = {
     zh: '请提供您的签名',
     ms: 'Sila berikan tandatangan anda',
   },
+
+  // ── Success screen ──
+  successQrTab: {
+    en: 'QR Code',
+    zh: '二维码',
+    ms: 'Kod QR',
+  },
+  successStationsTab: {
+    en: 'Test Stations',
+    zh: '测试站',
+    ms: 'Stesen Ujian',
+  },
+  successQrInstruction: {
+    en: 'Please show this QR code to the station in-charge to scan',
+    zh: '请向站点负责人出示此二维码以供扫描',
+    ms: 'Sila tunjukkan kod QR ini kepada pegawai stesen untuk diimbas',
+  },
+  successEntry: {
+    en: 'Entry',
+    zh: '编号',
+    ms: 'Entri',
+  },
+  successNoQr: {
+    en: 'No QR code found. Please register to get your QR code.',
+    zh: '未找到二维码。请注册以获取您的二维码。',
+    ms: 'Kod QR tidak dijumpai. Sila daftar untuk mendapatkan kod QR anda.',
+  },
+  newRegistration: {
+    en: 'New Registration',
+    zh: '新注册',
+    ms: 'Pendaftaran Baharu',
+  },
+  submitting: {
+    en: 'Submitting...',
+    zh: '提交中...',
+    ms: 'Menghantar...',
+  },
+
+  // ── Station results ──
+  station: {
+    en: 'Station',
+    zh: '站',
+    ms: 'Stesen',
+  },
+  result: {
+    en: 'Result',
+    zh: '结果',
+    ms: 'Keputusan',
+  },
+  attempt1: {
+    en: 'Attempt 1',
+    zh: '第一次',
+    ms: 'Percubaan 1',
+  },
+  attempt2: {
+    en: 'Attempt 2',
+    zh: '第二次',
+    ms: 'Percubaan 2',
+  },
+  improvementsRemarks: {
+    en: 'Improvements & Remarks',
+    zh: '改善与备注',
+    ms: 'Penambahbaikan & Catatan',
+  },
+  improvements: {
+    en: 'Improvements',
+    zh: '改善',
+    ms: 'Penambahbaikan',
+  },
+  remarks: {
+    en: 'Remarks',
+    zh: '备注',
+    ms: 'Catatan',
+  },
+
+  // ── Personal info card ──
+  labelDobShort: {
+    en: 'DOB',
+    zh: '生日',
+    ms: 'Tarikh Lahir',
+  },
+  labelHeight: {
+    en: 'Height',
+    zh: '身高',
+    ms: 'Tinggi',
+  },
+  labelWeight: {
+    en: 'Weight',
+    zh: '体重',
+    ms: 'Berat',
+  },
+  labelBmi: {
+    en: 'BMI',
+    zh: 'BMI',
+    ms: 'BMI',
+  },
 };
 
 export default fftTranslations;
