@@ -977,6 +977,30 @@ class AccountsSection extends Component {
                           <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
                         )}
                       </p>
+                      <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
+                        <strong>Inventory Form: </strong>
+                        {this.state.accessRightsRowData[this.state.expandedRowIndex]?.inventory?.["InventoryForm"] ? (
+                          <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
+                        ) : (
+                          <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
+                        )}
+                      </p>
+                      <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
+                        <strong>Inventory Records: </strong>
+                        {this.state.accessRightsRowData[this.state.expandedRowIndex]?.inventory?.["InventoryRecords"] ? (
+                          <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
+                        ) : (
+                          <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
+                        )}
+                      </p>
+                      <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
+                        <strong>Inventory Invoices/Receipts: </strong>
+                        {this.state.accessRightsRowData[this.state.expandedRowIndex]?.inventory?.["InventoryInvoicesReceipts"] ? (
+                          <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
+                        ) : (
+                          <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
+                        )}
+                      </p>
                     </div>
                   </>
                   ) : (
