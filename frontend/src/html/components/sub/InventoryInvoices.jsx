@@ -6,8 +6,11 @@ class InventoryInvoices extends Component {
     constructor(props) {
         super(props);
         this.state = {
+            folders: [],
+            activeFolder: null,
             files: [],
-            isLoading: true,
+            isLoadingFolders: true,
+            isLoading: false,
             error: null,
             viewMode: 'list',
             searchQuery: '',
@@ -22,10 +25,11 @@ class InventoryInvoices extends Component {
         };
         this.gridRef = createRef();
         this.cardRefs = {};
+        this.parentFolderId = '1eaWb0DqxKJDj2_z6NxIv-vd03W0HUV1p';
     }
 
     async componentDidMount() {
-        await this.fetchInvoices();
+        await this.fetchFolders();
         document.addEventListener('click', this.handleDocumentClick);
     }
 
@@ -45,16 +49,49 @@ class InventoryInvoices extends Component {
             : "https://ecss-backend-node.azurewebsites.net";
     };
 
-    fetchInvoices = async () => {
+    fetchFolders = async () => {
         try {
-            this.setState({ isLoading: true, error: null });
+            this.setState({ isLoadingFolders: true, error: null });
             const response = await axios.post(`${this.getBackendUrl()}/googleDrive`, {
-                folderId: '1eaWb0DqxKJDj2_z6NxIv-vd03W0HUV1p',
+                folderId: this.parentFolderId,
                 purpose: 'listFiles'
             });
 
             if (response.data.success) {
-                const files = (response.data.files || []).map((file, index) => ({
+                const allItems = response.data.files || [];
+                const folders = allItems.filter(f => f.mimeType === 'application/vnd.google-apps.folder');
+                
+                this.setState({ 
+                    folders, 
+                    isLoadingFolders: false,
+                    activeFolder: folders.length > 0 ? folders[0].id : null
+                });
+
+                // Auto-fetch files for the first folder
+                if (folders.length > 0) {
+                    await this.fetchFilesForFolder(folders[0].id);
+                }
+            } else {
+                this.setState({ error: response.data.error || 'Failed to fetch folders', isLoadingFolders: false });
+            }
+        } catch (error) {
+            console.error('Error fetching folders:', error);
+            this.setState({ error: error.message || 'An error occurred', isLoadingFolders: false });
+        }
+    };
+
+    fetchFilesForFolder = async (folderId) => {
+        try {
+            this.setState({ isLoading: true, error: null, files: [], selectedIds: new Set(), searchQuery: '' });
+            const response = await axios.post(`${this.getBackendUrl()}/googleDrive`, {
+                folderId: folderId,
+                purpose: 'listFiles'
+            });
+
+            if (response.data.success) {
+                const files = (response.data.files || [])
+                    .filter(f => f.mimeType !== 'application/vnd.google-apps.folder')
+                    .map((file, index) => ({
                     ...file,
                     sn: index + 1,
                     formattedDate: file.createdTime 
@@ -74,12 +111,18 @@ class InventoryInvoices extends Component {
                 }));
                 this.setState({ files, isLoading: false });
             } else {
-                this.setState({ error: response.data.error || 'Failed to fetch invoices', isLoading: false });
+                this.setState({ error: response.data.error || 'Failed to fetch files', isLoading: false });
             }
         } catch (error) {
-            console.error('Error fetching invoices:', error);
+            console.error('Error fetching files:', error);
             this.setState({ error: error.message || 'An error occurred', isLoading: false });
         }
+    };
+
+    handleTabClick = async (folderId) => {
+        if (folderId === this.state.activeFolder) return;
+        this.setState({ activeFolder: folderId });
+        await this.fetchFilesForFolder(folderId);
     };
 
     formatFileSize = (bytes) => {
@@ -410,10 +453,10 @@ class InventoryInvoices extends Component {
                                 className={`gdrive-list-row ${isSelected ? 'selected' : ''}`}
                                 onClick={(e) => {
                                     if (!e.target.closest('input') && !e.target.closest('button')) {
-                                        this.toggleSelect(file.id, e);
+                                        window.open(file.webViewLink, '_blank');
                                     }
                                 }}
-                                onDoubleClick={() => window.open(file.webViewLink, '_blank')}
+                                style={{ cursor: 'pointer' }}
                             >
                                 <div className="gdrive-list-col gdrive-col-checkbox">
                                     <input type="checkbox" checked={isSelected}
@@ -486,14 +529,10 @@ class InventoryInvoices extends Component {
                             className={`gdrive-card ${isSelected ? 'selected' : ''}`}
                             onClick={(e) => {
                                 if (!e.target.closest('.gdrive-card-menu-wrapper') && !e.target.closest('input')) {
-                                    if (e.ctrlKey || e.metaKey) {
-                                        this.toggleSelect(file.id, e);
-                                    } else {
-                                        this.setState({ selectedIds: new Set([file.id]) });
-                                    }
+                                    window.open(file.webViewLink, '_blank');
                                 }
                             }}
-                            onDoubleClick={() => window.open(file.webViewLink, '_blank')}
+                            style={{ cursor: 'pointer' }}
                         >
                             <div className="gdrive-card-checkbox-area">
                                 <input type="checkbox" checked={isSelected}
@@ -550,23 +589,23 @@ class InventoryInvoices extends Component {
     };
 
     render() {
-        const { files, isLoading, error, viewMode } = this.state;
+        const { files, isLoading, isLoadingFolders, error, viewMode, folders, activeFolder } = this.state;
 
-        if (isLoading) {
+        if (isLoadingFolders) {
             return (
                 <>
                     <div className="inventory-heading"><h2>Inventory Invoices / Receipts</h2></div>
                     <div className="inventory-content">
                         <div className="inventory-loading">
                             <i className="fas fa-spinner fa-spin"></i>
-                            <p>Loading invoices...</p>
+                            <p>Loading folders...</p>
                         </div>
                     </div>
                 </>
             );
         }
 
-        if (error) {
+        if (error && folders.length === 0) {
             return (
                 <>
                     <div className="inventory-heading"><h2>Inventory Invoices / Receipts</h2></div>
@@ -574,7 +613,7 @@ class InventoryInvoices extends Component {
                         <div className="inventory-error">
                             <i className="fas fa-exclamation-circle"></i>
                             <p>{error}</p>
-                            <button onClick={this.fetchInvoices} className="retry-btn">
+                            <button onClick={this.fetchFolders} className="retry-btn">
                                 <i className="fas fa-redo"></i> Retry
                             </button>
                         </div>
@@ -587,11 +626,39 @@ class InventoryInvoices extends Component {
             <>
                 <div className="inventory-heading"><h2>Inventory Invoices / Receipts</h2></div>
                 <div className="inventory-content">
-                    {files.length === 0 ? (
+                    {folders.length > 0 && (
+                        <div className="records-sub-tabs">
+                            {folders.map(folder => (
+                                <button
+                                    key={folder.id}
+                                    className={`records-sub-tab ${activeFolder === folder.id ? 'active' : ''}`}
+                                    onClick={() => this.handleTabClick(folder.id)}
+                                >
+                                    <i className="fas fa-folder" style={{ marginRight: '8px' }}></i>
+                                    {folder.name}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    {isLoading ? (
+                        <div className="inventory-loading">
+                            <i className="fas fa-spinner fa-spin"></i>
+                            <p>Loading files...</p>
+                        </div>
+                    ) : error ? (
+                        <div className="inventory-error">
+                            <i className="fas fa-exclamation-circle"></i>
+                            <p>{error}</p>
+                            <button onClick={() => this.fetchFilesForFolder(activeFolder)} className="retry-btn">
+                                <i className="fas fa-redo"></i> Retry
+                            </button>
+                        </div>
+                    ) : files.length === 0 ? (
                         <div className="inventory-empty-state">
                             <i className="fas fa-file-invoice"></i>
-                            <h3>No Invoices / Receipts Found</h3>
-                            <p>No inventory invoices or receipts have been uploaded yet.</p>
+                            <h3>No Files Found</h3>
+                            <p>No files have been uploaded to this folder yet.</p>
                         </div>
                     ) : (
                         <div className="gdrive-container">

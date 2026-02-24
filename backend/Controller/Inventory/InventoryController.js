@@ -166,13 +166,15 @@ class InventoryController
                 const collectionName = "Inventory";
 
                 const stockRecord = {
-                    type: payload.type || "Stock In",
+                    action: payload.action || '',
                     product: payload.product,
-                    location: payload.location,
+                    locationFrom: payload.locationFrom || '',
+                    locationTo: payload.locationTo || '',
                     date: payload.date,
                     time: payload.time,
                     quantity: parseInt(payload.quantity),
                     reason: payload.reason || '',
+                    variant: payload.variant || '',
                     updatedBy: payload.updatedBy,
                     createdAt: new Date()
                 };
@@ -259,7 +261,6 @@ class InventoryController
 
                 // Single allocation record
                 const allocationRecord = {
-                    type: "Stock Out",
                     product: payload.product,
                     location: payload.location,
                     date: payload.date,

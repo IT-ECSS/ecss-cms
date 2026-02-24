@@ -961,7 +961,7 @@ class WooCommerceAPI:
                 "manage_stock": True
             }
             
-            response = requests.post(url, json=update_data, auth=self.auth)
+            response = requests.put(url, json=update_data, auth=self.auth)
             response.raise_for_status()
             
             return {
@@ -1003,7 +1003,7 @@ class WooCommerceAPI:
                 "manage_stock": True
             }
             
-            response = requests.post(url, json=update_data, auth=self.auth)
+            response = requests.put(url, json=update_data, auth=self.auth)
             response.raise_for_status()
             
             return {

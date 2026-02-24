@@ -675,6 +675,16 @@
     background-color: #1558b0;
 }
 
+.stock-modal-submit:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
 /* Incoming Custom Dropdown */
 .incoming-dropdown {
     position: relative;
@@ -702,7 +712,7 @@
     top: 100%;
     left: 0;
     right: 0;
-    max-height: 200px;
+    max-height: 350px;
     overflow-y: auto;
     background: #fff;
     border: 1px solid #ddd;
@@ -725,6 +735,14 @@
 .incoming-dropdown-item:hover {
     background-color: #e8f0fe;
     color: #1a73e8;
+}
+
+.incoming-dropdown-divider {
+    height: 1px;
+    background-color: #e0e0e0;
+    margin: 6px 12px;
+    list-style: none;
+    pointer-events: none;
 }
 
 /* Store Header Section */
@@ -1945,6 +1963,11 @@
 
 @keyframes gdrive-slide-down {
     from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
 }
 

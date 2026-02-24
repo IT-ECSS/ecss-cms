@@ -225,25 +225,28 @@ class InventoryStore extends Component {
         }
     };
 
-    // Calculate sold count for a specific product and location (only Purchases type)
+    // Calculate sold count for a specific product and location (Sales action from stock records)
     getSoldCount = (productName, locationName) => {
-        const { inventoryRecords } = this.state;
-        return inventoryRecords
-            .filter(record => record.product === productName && record.location === locationName && record.type === 'Purchases')
-            .reduce((total, record) => total + (parseInt(record.quantity) || 0), 0);
+        const { stockRecords } = this.state;
+        const nameLower = productName.toLowerCase();
+        const locLower = locationName.toLowerCase();
+        return stockRecords
+            .filter(r => (r.product || '').toLowerCase() === nameLower && r.action === 'Sales' && (r.locationFrom || '').toLowerCase() === locLower)
+            .reduce((total, r) => total + (parseInt(r.quantity) || 0), 0);
     };
 
-    // Calculate sold amount (money) for a specific product and location (only Purchases type)
+    // Calculate sold amount (money) for a specific product and location (Sales action from stock records)
     getSoldAmount = (productName, locationName) => {
-        const { inventoryRecords } = this.state;
-        return inventoryRecords
-            .filter(record => record.product === productName && record.location === locationName && record.type === 'Purchases')
-            .reduce((total, record) => {
-                const totalPrice = parseFloat(record.totalPrice) || 0;
+        const { stockRecords } = this.state;
+        const nameLower = productName.toLowerCase();
+        const locLower = locationName.toLowerCase();
+        return stockRecords
+            .filter(r => (r.product || '').toLowerCase() === nameLower && r.action === 'Sales' && (r.locationFrom || '').toLowerCase() === locLower)
+            .reduce((total, r) => {
+                const totalPrice = parseFloat(r.totalPrice) || 0;
                 if (totalPrice > 0) return total + totalPrice;
-                // Fallback: calculate from unitPrice * quantity
-                const unitPrice = parseFloat(record.unitPrice) || 0;
-                const quantity = parseInt(record.quantity) || 0;
+                const unitPrice = parseFloat(r.unitPrice) || 0;
+                const quantity = parseInt(r.quantity) || 0;
                 return total + (unitPrice * quantity);
             }, 0);
     };
@@ -512,17 +515,17 @@ class InventoryStore extends Component {
         const nameLower = productName.toLowerCase();
         const locLower = locationName.toLowerCase();
         return stockRecords
-            .filter(r => (r.product || '').toLowerCase() === nameLower && r.type === 'Stock Out' && (r.location || '').toLowerCase() === locLower)
+            .filter(r => (r.product || '').toLowerCase() === nameLower && !r.action && r.type !== 'Purchases' && r.action !== 'Sales' && (r.location || '').toLowerCase() === locLower)
             .reduce((sum, r) => sum + (parseInt(r.quantity) || 0), 0);
     };
 
-    // Get sold count for a product at a location from stockRecords (Purchases type)
+    // Get sold count for a product at a location from stockRecords (Sales action)
     getLocationSold = (productName, locationName) => {
         const { stockRecords } = this.state;
         const nameLower = productName.toLowerCase();
         const locLower = locationName.toLowerCase();
         return stockRecords
-            .filter(r => (r.product || '').toLowerCase() === nameLower && r.type === 'Purchases' && (r.location || '').toLowerCase() === locLower)
+            .filter(r => (r.product || '').toLowerCase() === nameLower && r.action === 'Sales' && (r.locationFrom || '').toLowerCase() === locLower)
             .reduce((sum, r) => sum + (parseInt(r.quantity) || 0), 0);
     };
 
@@ -615,11 +618,11 @@ class InventoryStore extends Component {
                             </div>
                             {this.state.activeTab === 'variants' && (
                                 <div className="stock-filter-field">
-                                    <label>Location</label>
+                                    <label>Variant</label>
                                     <div className="stock-filter-dropdown" ref={this.filterLocationDropdownRef}>
                                         <input
                                             type="text"
-                                            placeholder={this.state.filterLocation || "Search location..."}
+                                            placeholder={this.state.filterLocation || "Search variant..."}
                                             value={this.state.filterLocationDropdownOpen ? this.state.filterLocationSearch : this.state.filterLocation}
                                             onChange={e => this.setState({ filterLocationSearch: e.target.value, filterLocationDropdownOpen: true })}
                                             onFocus={() => this.setState({ filterLocationSearch: '', filterLocationDropdownOpen: true })}
@@ -681,9 +684,6 @@ class InventoryStore extends Component {
                                                                 <span className={`inventory-location-stock ${sold > 0 ? 'has-stock' : 'no-stock'}`}>
                                                                     Sold: {sold}
                                                                 </span>
-                                                                <span className={`inventory-location-stock ${total > 0 ? 'has-stock' : 'no-stock'}`}>
-                                                                    Total: {total}
-                                                                </span>
                                                             </div>
                                                         );
                                                     })}
@@ -709,7 +709,11 @@ class InventoryStore extends Component {
                                     <h3 className="inventory-card-title">{product.name}</h3>
                                     {product.variation_name && (
                                         <div className="inventory-card-variation">
-                                            <i className="fas fa-map-marker-alt"></i>
+                                            {product.attributes && product.attributes.length > 0 && product.attributes[0].name && product.attributes[0].name.toLowerCase() !== 'location' ? (
+                                                <i className="fas fa-palette"></i>
+                                            ) : (
+                                                <i className="fas fa-map-marker-alt"></i>
+                                            )}
                                             <b>{product.variation_name}</b>
                                         </div>
                                     )}
@@ -719,14 +723,6 @@ class InventoryStore extends Component {
                                         </span>
                                         <span className="inventory-sold">
                                             <b>Unit Sold:&nbsp;</b> {this.getSoldCount(product.name, product.variation_name)}
-                                        </span>
-                                    </div>
-                                    <div className="inventory-card-details">
-                                        <span className="inventory-amount" style={{flex: 0.5}}>
-                                            <b>Sales Revenue:&nbsp;</b> ${this.getSoldAmount(product.name, product.variation_name).toFixed(2)}
-                                        </span>
-                                        <span className="inventory-total" style={{flex: 0.5}}>
-                                            <b>Total:&nbsp;</b> {(parseInt(product.stock_quantity) || 0) + this.getSoldCount(product.name, product.variation_name)}
                                         </span>
                                     </div>
                                 </div>

@@ -3,6 +3,48 @@ var router = express.Router();
 var InventoryController = require('../Controller/Inventory/InventoryController'); 
 var InventoryGenerator = require('../Others/Pdf/inventoryGenerator');
 var GoogleDriveController = require('../Controller/Google/GoogleDriveController');
+var multer = require('multer');
+
+// Configure multer for file uploads (memory storage)
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
+});
+
+// Upload stock adjustment file to Google Drive
+router.post('/uploadStockFile', upload.single('file'), async function(req, res) {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, error: 'No file provided' });
+        }
+
+        const googleDriveController = new GoogleDriveController();
+        const folderId = '1XRqapiSPspkiA4S8_YTRuY_JyqfVz9nv';
+        const filename = req.body.filename || req.file.originalname;
+
+        console.log(`Uploading stock adjustment file: ${filename} to Google Drive folder: ${folderId}`);
+
+        const uploadResult = await googleDriveController.uploadPdfToGoogleDrive(
+            req.file.buffer, filename, folderId, req.file.mimetype
+        );
+
+        if (uploadResult.success) {
+            console.log(`✅ Stock adjustment file uploaded: ${filename}`);
+            return res.json({
+                success: true,
+                message: 'File uploaded to Google Drive',
+                fileId: uploadResult.fileId,
+                fileLink: uploadResult.fileLink
+            });
+        } else {
+            console.error('❌ Google Drive upload failed:', uploadResult.error);
+            return res.status(500).json({ success: false, error: uploadResult.error || 'Upload failed' });
+        }
+    } catch (error) {
+        console.error('Error uploading stock file to Google Drive:', error);
+        return res.status(500).json({ success: false, error: error.message });
+    }
+});
 
 router.post('/', async function(req, res, next) 
 {
@@ -47,7 +89,7 @@ router.post('/', async function(req, res, next)
                 
                 // Upload PDF to Google Drive inventory receipts folder
                 const googleDriveController = new GoogleDriveController();
-                const inventoryReceiptsFolderId = '1eaWb0DqxKJDj2_z6NxIv-vd03W0HUV1p';
+                const inventoryReceiptsFolderId = '1ZTlyDTXuoMHVo92RUndr_4LFQEhnezoi';
                 const uploadResult = await googleDriveController.uploadPdfToGoogleDrive(
                     pdfBuffer, filename, inventoryReceiptsFolderId
                 );

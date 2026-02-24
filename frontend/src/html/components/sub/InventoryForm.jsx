@@ -56,8 +56,21 @@ class InventoryForm extends Component {
     };
 
     getFilteredLocations = () => {
-        const allLocations = this.getLocationSuggestions();
-        return allLocations;
+        const { formData, inventoryProducts = [] } = this.state;
+        if (!formData.product) return [];
+        const matchingProducts = inventoryProducts.filter(p => 
+            p.name === formData.product && p.variation_name
+        );
+        const seen = new Set();
+        const locations = [];
+        for (const p of matchingProducts) {
+            const stock = parseInt(p.stock_quantity) || 0;
+            if (!seen.has(p.variation_name) && stock > 0) {
+                seen.add(p.variation_name);
+                locations.push({ name: p.variation_name, stock });
+            }
+        }
+        return locations;
     };
 
     // Get the price of the currently selected product and location
@@ -114,7 +127,9 @@ class InventoryForm extends Component {
         this.setState(prevState => {
             const newFormData = {
                 ...prevState.formData,
-                product: product
+                product: product,
+                location: '',
+                totalAmount: ''
             };
             
             // Auto-calculate totalAmount when product changes
@@ -162,6 +177,19 @@ class InventoryForm extends Component {
         });
     };
 
+    // Get default location based on staff name
+    getDefaultLocationForStaff = (staffName) => {
+        const staffLocationMap = {
+            'Yeo Lih Yong': 'CT Hub',
+            'Chua Bee Bee': 'CT Hub',
+            'Rebekah Wang': 'Pasir Ris West Wellness Centre',
+            'Jennifer Lim': 'Pasir Ris West Wellness Centre',
+            'Allison Teo': 'Tampines North Community Centre',
+            'He Xiu Xiang': 'Tampines North Community Centre',
+        };
+        return staffLocationMap[staffName] || '';
+    };
+
     // Handle click outside to close dropdowns
     handleClickOutside = (e) => {
         if (this.productRef.current && !this.productRef.current.contains(e.target)) {
@@ -175,6 +203,17 @@ class InventoryForm extends Component {
     async componentDidMount() {
         document.addEventListener('mousedown', this.handleClickOutside);
         this.setCurrentDateTime();
+
+        // Auto-populate location based on staff name
+        const defaultLocation = this.getDefaultLocationForStaff(this.state.formData.staffName);
+        if (defaultLocation) {
+            this.setState(prevState => ({
+                formData: {
+                    ...prevState.formData,
+                    location: defaultLocation
+                }
+            }));
+        }
         
         // Fetch inventory products on mount
         await this.fetchInventoryProducts();
@@ -311,17 +350,18 @@ class InventoryForm extends Component {
 
         try {
             const payload = {
-                type: 'Purchases',
+                action: 'Sales',
                 customerName: formData.customerName,
                 product: formData.product,
-                location: formData.location,
+                locationFrom: formData.location,
+                locationTo: formData.customerName,
                 quantity: parseInt(formData.quantity),
                 orderDate: formData.orderDate,
                 orderTime: formData.orderTime,
                 staffName: formData.staffName,
                 sku: this.getSelectedProductSku(),
                 paymentMethod: formData.paymentMethod,
-                totalPrice: parseFloat(formData.totalAmount) || 0
+                totalPrice: parseFloat(parseFloat(formData.totalAmount || 0).toFixed(2))
             };
 
             // Step 1: Update backend (port 3001)
@@ -392,7 +432,7 @@ class InventoryForm extends Component {
                         ...this.state.formData,
                         customerName: '',
                         product: '',
-                        location: '',
+                        location: this.getDefaultLocationForStaff(this.state.formData.staffName),
                         quantity: "",
                         paymentMethod: '',
                         totalAmount: ''
@@ -428,6 +468,7 @@ class InventoryForm extends Component {
         const { isSubmitting, isLoading, error, successMessage, formData, showProductDropdown, showLocationDropdown } = this.state;
         const filteredProducts = this.getFilteredProducts();
         const filteredLocations = this.getFilteredLocations();
+        const hasDefaultLocation = !!this.getDefaultLocationForStaff(formData.staffName);
 
         if (isLoading) {
             return (
@@ -442,7 +483,7 @@ class InventoryForm extends Component {
             <>
                 {/* Header Section */}
                 <div className="inventory-heading">
-                    <h2>Inventory Form</h2>
+                    <h2>Inventory Order Form</h2>
                 </div>
                 {/* Form Section */}
                 <div className="inventory-form-content">
@@ -540,20 +581,24 @@ class InventoryForm extends Component {
                                             name="location"
                                             value={formData.location}
                                             onChange={this.handleInputChange}
-                                            onFocus={() => this.setState({ showLocationDropdown: true })}
-                                            placeholder="Type or select location"
+                                            onFocus={() => !hasDefaultLocation && formData.product && this.setState({ showLocationDropdown: true })}
+                                            placeholder={!formData.product ? "Select a product first" : "Type or select location"}
                                             required
                                             autoComplete="off"
+                                            disabled={hasDefaultLocation || !formData.product}
+                                            style={(hasDefaultLocation || !formData.product) ? { backgroundColor: '#e9ecef', cursor: 'not-allowed' } : {}}
                                         />
-                                        {showLocationDropdown && filteredLocations.length > 0 && (
+                                        {!hasDefaultLocation && showLocationDropdown && filteredLocations.length > 0 && (
                                             <div className="custom-dropdown-list">
-                                                {filteredLocations.map((location, index) => (
+                                                {filteredLocations.map((loc, index) => (
                                                     <div 
                                                         key={index} 
                                                         className="custom-dropdown-item"
-                                                        onClick={() => this.handleLocationSelect(location)}
+                                                        onClick={() => this.handleLocationSelect(loc.name)}
+                                                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                                                     >
-                                                        {location}
+                                                        <span>{loc.name}</span>
+                                                        <span style={{ fontSize: '0.85em', color: '#27ae60', fontWeight: '600' }}>Stock: {loc.stock}</span>
                                                     </div>
                                                 ))}
                                             </div>
@@ -564,9 +609,9 @@ class InventoryForm extends Component {
 
                             <div className="form-row">
                                 <div className="form-group">
-                                    <div style={{ display: 'flex', gap: '10px' }}>
+                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
                                         <div style={{ flex: 1 }}>
-                                            <label htmlFor="quantity">
+                                            <label htmlFor="quantity" style={{ whiteSpace: 'nowrap' }}>
                                                 <i className="fas fa-sort-numeric-up"></i>
                                                 Quantity <span className="required">*</span>
                                             </label>
@@ -593,7 +638,7 @@ class InventoryForm extends Component {
                                             )}
                                         </div>
                                         <div style={{ flex: 1 }}>
-                                            <label htmlFor="unitPrice">
+                                            <label htmlFor="unitPrice" style={{ whiteSpace: 'nowrap' }}>
                                                 <i className="fas fa-tag"></i>
                                                 Unit Price
                                             </label>
@@ -606,13 +651,28 @@ class InventoryForm extends Component {
                                                 placeholder="Price"
                                             />
                                         </div>
+                                        <div style={{ flex: 1 }}>
+                                            <label htmlFor="totalAmount" style={{ whiteSpace: 'nowrap' }}>
+                                                <i className="fas fa-dollar-sign"></i>
+                                                Total Sales Amount <span className="required">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                id="totalAmount"
+                                                name="totalAmount"
+                                                value={formData.totalAmount ? `$${formData.totalAmount}` : '$0.00'}
+                                                onChange={this.handleInputChange}
+                                                placeholder="Enter total amount"
+                                                required
+                                            />
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div className="form-group">
-                                    <div style={{ display: 'flex', gap: '10px' }}>
+                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
                                         <div style={{ flex: 1 }}>
-                                            <label htmlFor="orderDate">
+                                            <label htmlFor="orderDate" style={{ whiteSpace: 'nowrap' }}>
                                                 <i className="fas fa-calendar-alt"></i>
                                                 Order Date
                                             </label>
@@ -626,7 +686,7 @@ class InventoryForm extends Component {
                                             />
                                         </div>
                                         <div style={{ flex: 1 }}>
-                                            <label htmlFor="orderTime">
+                                            <label htmlFor="orderTime" style={{ whiteSpace: 'nowrap' }}>
                                                 <i className="fas fa-clock"></i>
                                                 Order Time
                                             </label>
@@ -641,24 +701,11 @@ class InventoryForm extends Component {
                                         </div>
                                     </div>
                                 </div>
+                            </div>
 
-                                <div className="form-group">
+                            <div className="form-row">
+                                <div className="form-group" style={{ maxWidth: '300px' }}>
                                     <div style={{ display: 'flex', gap: '10px'}}>
-                                        <div style={{ flex: 1 }}>
-                                            <label htmlFor="totalAmount">
-                                                <i className="fas fa-dollar-sign"></i>
-                                                Total Amount <span className="required">*</span>
-                                            </label>
-                                            <input
-                                                type="text"
-                                                id="totalAmount"
-                                                name="totalAmount"
-                                                value={formData.totalAmount ? `$${formData.totalAmount}` : '$0.00'}
-                                                onChange={this.handleInputChange}
-                                                placeholder="Enter total amount"
-                                                required
-                                            />
-                                        </div>
                                         <div style={{ flex: 1 }}>
                                             <label>
                                                 <i className="fas fa-credit-card"></i>
@@ -722,7 +769,7 @@ class InventoryForm extends Component {
                                                 ...this.state.formData,
                                                 customerName: '',
                                                 product: '',
-                                                location: '',
+                                                location: this.getDefaultLocationForStaff(this.state.formData.staffName),
                                                 quantity: 1,
                                                 paymentMethod: '',
                                                 totalAmount: ''
