@@ -219,6 +219,13 @@ class InventoryForm extends Component {
         await this.fetchInventoryProducts();
     }
 
+    async componentDidUpdate(prevProps) {
+        if (this.props.activeTab === 'form' && this.props.inventoryRefreshCounter !== prevProps.inventoryRefreshCounter) {
+            this.setCurrentDateTime();
+            await this.fetchInventoryProducts();
+        }
+    }
+
     fetchInventoryProducts = async () => {
         try {
             this.setState({ isLoading: true, error: null });

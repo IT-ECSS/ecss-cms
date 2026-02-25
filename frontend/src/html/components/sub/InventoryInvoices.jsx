@@ -33,6 +33,12 @@ class InventoryInvoices extends Component {
         document.addEventListener('click', this.handleDocumentClick);
     }
 
+    async componentDidUpdate(prevProps) {
+        if (this.props.activeTab === 'invoices' && this.props.inventoryRefreshCounter !== prevProps.inventoryRefreshCounter) {
+            await this.fetchFolders();
+        }
+    }
+
     componentWillUnmount() {
         document.removeEventListener('click', this.handleDocumentClick);
     }

@@ -117,6 +117,16 @@ class InventoryRecords extends Component {
         });
     }
 
+    async componentDidUpdate(prevProps) {
+        if (this.props.activeTab === 'records' && this.props.inventoryRefreshCounter !== prevProps.inventoryRefreshCounter) {
+            await Promise.all([
+                this.fetchInventoryRecords(),
+                this.fetchStockRecords(),
+                this.fetchInventoryProducts()
+            ]);
+        }
+    }
+
     fetchInventoryRecords = async () => {
         try {
             this.setState({ isLoading: true, error: null });

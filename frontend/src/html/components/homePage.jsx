@@ -115,6 +115,7 @@ import React, { Component } from 'react';
         isInventoryFormVisible: false,
         isAuditLogsVisible: false,
         inventoryTab: 'store',
+        inventoryRefreshCounter: 0,
         fundraisingSearchQuery: '',
         fundraisingPaymentMethod: 'All Payment Methods',
         // fundraisingCollectionMode: 'All Collection Modes',
@@ -820,6 +821,7 @@ import React, { Component } from 'react';
           // Set inventory modules mode
           isInventoryModulesVisible: true,
           inventoryTab: 'store',
+          inventoryRefreshCounter: this.state.inventoryRefreshCounter + 1,
           
           // Reset other states
           sidebarVisible: false,
@@ -874,6 +876,7 @@ import React, { Component } from 'react';
           // Set inventory modules mode with form tab
           isInventoryModulesVisible: true,
           inventoryTab: 'form',
+          inventoryRefreshCounter: this.state.inventoryRefreshCounter + 1,
           
           // Reset other states
           sidebarVisible: false,
@@ -928,6 +931,7 @@ import React, { Component } from 'react';
           // Set inventory modules mode with records tab
           isInventoryModulesVisible: true,
           inventoryTab: 'records',
+          inventoryRefreshCounter: this.state.inventoryRefreshCounter + 1,
           
           // Reset other states
           sidebarVisible: false,
@@ -982,6 +986,7 @@ import React, { Component } from 'react';
           // Set inventory modules mode with invoices tab
           isInventoryModulesVisible: true,
           inventoryTab: 'invoices',
+          inventoryRefreshCounter: this.state.inventoryRefreshCounter + 1,
           
           // Reset other states
           sidebarVisible: false,
@@ -2630,6 +2635,7 @@ import React, { Component } from 'react';
                         refreshChild={this.refreshChild}
                         onDataLoaded={this.closePopup}
                         initialTab={inventoryTab}
+                        inventoryRefreshCounter={this.state.inventoryRefreshCounter}
                       />
                     </div>
                   </>

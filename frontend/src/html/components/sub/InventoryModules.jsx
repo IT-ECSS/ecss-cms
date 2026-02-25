@@ -18,6 +18,8 @@ class InventoryModules extends Component {
                         role={this.props.role}
                         siteIC={this.props.siteIC}
                         language={this.props.language}
+                        activeTab={activeTab}
+                        inventoryRefreshCounter={this.props.inventoryRefreshCounter}
                     />
                 </div>
                 <div style={{ display: activeTab === 'form' ? 'block' : 'none' }}>
@@ -26,6 +28,8 @@ class InventoryModules extends Component {
                         role={this.props.role}
                         siteIC={this.props.siteIC}
                         language={this.props.language}
+                        activeTab={activeTab}
+                        inventoryRefreshCounter={this.props.inventoryRefreshCounter}
                     />
                 </div>
                 <div style={{ display: activeTab === 'records' ? 'block' : 'none' }}>
@@ -34,6 +38,8 @@ class InventoryModules extends Component {
                         role={this.props.role}
                         siteIC={this.props.siteIC}
                         language={this.props.language}
+                        activeTab={activeTab}
+                        inventoryRefreshCounter={this.props.inventoryRefreshCounter}
                     />
                 </div>
                 <div style={{ display: activeTab === 'invoices' ? 'block' : 'none' }}>
@@ -42,6 +48,8 @@ class InventoryModules extends Component {
                         role={this.props.role}
                         siteIC={this.props.siteIC}
                         language={this.props.language}
+                        activeTab={activeTab}
+                        inventoryRefreshCounter={this.props.inventoryRefreshCounter}
                     />
                 </div>
             </>

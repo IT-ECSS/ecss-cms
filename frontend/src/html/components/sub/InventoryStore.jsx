@@ -53,6 +53,16 @@ class InventoryStore extends Component {
        //await this.setupSocket();
     }
 
+    async componentDidUpdate(prevProps) {
+        if (this.props.activeTab === 'store' && this.props.inventoryRefreshCounter !== prevProps.inventoryRefreshCounter) {
+            await Promise.all([
+                this.fetchInventoryProducts(),
+                this.fetchInventoryRecords(),
+                this.fetchStockRecords()
+            ]);
+        }
+    }
+
     componentWillUnmount() {
         document.removeEventListener('mousedown', this.handleDocumentClick);
         if (this.eventSource) {
