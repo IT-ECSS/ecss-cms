@@ -4,6 +4,7 @@ from . import views
 urlpatterns = [
     path('inventory_sse/', views.inventory_sse, name='inventory_sse'),  # SSE for live inventory updates
     path('courses/', views.product_list, name='product_list'),
+    path('course_by_link/', views.product_by_link, name='product_by_link'),
     path('fundraising/', views.fundraising_list, name='fundraising_list'),
     path('fundraising_product_details/', views.fundraising_product_details, name='fundraising_product_details'),
     path('inventory_product_details/', views.inventory_product_details, name='inventory_product_details'),

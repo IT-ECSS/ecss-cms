@@ -359,21 +359,34 @@ class FormPage extends Component {
     }
   };
 
-  // Update loadCourseData to handle both encoded and decoded links
+  // Fast method: fetch a single course directly by its permalink (1 API call instead of paginating all products)
+  async fetchCourseByLink(link) {
+    try {
+      const baseUrl = window.location.hostname === "localhost" ? "http://localhost:3002" : "https://ecss-backend-django.azurewebsites.net";
+      const response = await axios.post(`${baseUrl}/course_by_link/`, { link });
+      const course = response.data.course;
+      console.log("Fetched course by link:", course);
+      return course || null;
+    } catch (error) {
+      console.error("Error fetching course by link:", error);
+      return null;
+    }
+  }
+
+  // Optimised loadCourseData — fetches a single course by link/slug instead of loading ALL courses
   loadCourseData = async (link, hasSectionParam = false) => {
     // Use provided link or try to get from sessionStorage
     if (!link) {
       link = sessionStorage.getItem("courseLink");
     }
-    
+
     console.log('Loading course data with link:', link);
     console.log('Has section param:', hasSectionParam);
 
     if (link) {
-      // Ensure the link is properly decoded for comparison
+      // Ensure the link is properly decoded
       let decodedLink = link;
       try {
-        // Try to decode if it appears to be encoded
         if (link.includes('%')) {
           decodedLink = decodeURIComponent(link);
         }
@@ -381,34 +394,273 @@ class FormPage extends Component {
         console.warn('Could not decode link, using original:', error);
         decodedLink = link;
       }
-      
+
       console.log('Decoded course link for processing:', decodedLink);
-      
-      // Fetching courses
-      var courseType = "";
-      var allCourses = await this.fetchCourses(courseType);
-      console.log("All Courses:", allCourses);
 
-      if (!Array.isArray(allCourses)) {
-        console.error("Failed to fetch courses or received invalid data");
-        allCourses = [];
+      // Directly fetch only the matching course by its link (fast — single API call)
+      const matchedCourse = await this.fetchCourseByLink(decodedLink);
+      console.log("Matched Course:", matchedCourse);
+
+      if (matchedCourse) {
+        // Robust extraction of course type - search ALL categories for known type patterns
+        let type = '';
+        if (
+          matchedCourse.categories &&
+          Array.isArray(matchedCourse.categories) &&
+          matchedCourse.categories.length > 0
+        ) {
+          for (const cat of matchedCourse.categories) {
+            if (cat && typeof cat.name === 'string') {
+              const catName = cat.name.trim();
+              if (catName === 'Talks And Seminar') {
+                type = 'Talks And Seminar';
+                break;
+              }
+              if (catName === 'Marriage Preparation Programme') {
+                type = 'Marriage Preparation Programme';
+                break;
+              }
+              if (catName.includes(':')) {
+                const nameParts = catName.split(':');
+                if (nameParts.length > 1) {
+                  const extracted = nameParts[1].trim();
+                  if (extracted === 'NSA' || extracted === 'ILP') {
+                    type = extracted;
+                    break;
+                  }
+                }
+              }
+            }
+          }
+        }
+        console.log("Course Type:", type);
+
+        // Prepare background color based on course type
+        let bgColor = '';
+        let formContainerBg = '';
+        if (type === 'ILP') {
+          bgColor = '#006400';
+        } else if (type === 'NSA') {
+          bgColor = '#003366';
+        } else if (type === 'Talks And Seminar') {
+          bgColor = '#DAA520';
+        } else if (type === 'Marriage Preparation Programme') {
+          bgColor = '#800000';
+          formContainerBg = '#40E0D0';
+        }
+
+        let selectedLocation = matchedCourse.attributes[1].options[0];
+        selectedLocation = selectedLocation === 'CT Hub' ? 'CT Hub' :
+                          selectedLocation === '恩 Project@253' ? 'Tampines 253 Centre' :
+                          selectedLocation === 'Pasir Ris West' ? 'Pasir Ris West Wellness Centre' :
+                          selectedLocation === 'Tampines North CC' ? 'Tampines North Community Centre' :
+                          selectedLocation;
+
+        console.log("Selected Course Details:", matchedCourse.name.split(/<br\s*\/?>/));
+        console.log("Selected Course Price:", matchedCourse.price);
+        const shortDescription = matchedCourse.short_description;
+        console.log("Short Description:", shortDescription);
+
+        let courseMode = '';
+        if (
+          matchedCourse &&
+          Array.isArray(matchedCourse.attributes) &&
+          matchedCourse.attributes[2] &&
+          Array.isArray(matchedCourse.attributes[2].options) &&
+          matchedCourse.attributes[2].options.length > 0
+        ) {
+          courseMode = matchedCourse.attributes[2].options[0];
+        }
+        console.log("Course Mode:", courseMode);
+
+        // Parse course duration
+        const paragraphs = shortDescription.split("<p>");
+        const startDateParagraph = paragraphs[paragraphs.length - 2];
+        const endDateParagraph = paragraphs[paragraphs.length - 1];
+
+        // Extract course timing
+        let courseTime = '';
+        try {
+          if (paragraphs && paragraphs.length >= 3) {
+            let timingParagraph = paragraphs[paragraphs.length - 3];
+            console.log("Timing Paragraph", timingParagraph);
+            if (!timingParagraph.includes("–")) {
+              timingParagraph = this.decodeHtmlEntities(timingParagraph);
+            }
+            const timePattern = /(\d{1,2}[:.]\d{2}[ap]m\s*[–-]\s*\d{1,2}[:.]\d{2}[ap]m)/i;
+            const timeMatch = timingParagraph.match(timePattern);
+            if (timeMatch && timeMatch[0]) {
+              courseTime = timeMatch[0];
+              console.log("Successfully extracted timing:", courseTime);
+            } else {
+              const altPattern = /(\d{1,2}[:.]\d{2}[ap]m).+?(\d{1,2}[:.]\d{2}[ap]m)/i;
+              const altMatch = timingParagraph.match(altPattern);
+              if (altMatch) {
+                courseTime = `${altMatch[1]} – ${altMatch[2]}`;
+                console.log("Found time with alternative pattern:", courseTime);
+              } else {
+                console.log("Could not extract timing from paragraph:", timingParagraph);
+              }
+            }
+          } else {
+            console.warn("Not enough paragraphs to extract timing information");
+          }
+        } catch (error) {
+          console.error("Error extracting course time:", error);
+        }
+
+        // Extract course location from short_description
+        let courseLocation = '';
+        try {
+          const fullDescription = this.decodeHtmlEntities(shortDescription);
+          const lines = fullDescription.split(/[<>]/g).filter(line => line.trim().length > 0);
+
+          for (let line of lines) {
+            const cleanLine = line.replace(/<[^>]*>/g, '').trim();
+            if (cleanLine.match(/(?:Lokasi|Location):\s*(.+)/i)) {
+              const locationMatch = cleanLine.match(/(?:Lokasi|Location):\s*(.+)/i);
+              if (locationMatch && locationMatch[1]) {
+                courseLocation = locationMatch[1].trim();
+                break;
+              }
+            }
+            if (cleanLine.includes('Singapore') ||
+                cleanLine.match(/\d+[A-Z]?\s+[A-Za-z\s]+(?:Road|Street|Avenue|Drive|Lane|Walk|Close|Crescent|Place|Way|Boulevard|Circuit|Park|View|Gardens?|Centre|Building|Tower|Plaza|Square|Mall|Hub)/i) ||
+                cleanLine.match(/^\d+[A-Z]?\s+.+\s+Singapore\s+\d{6}$/i) ||
+                cleanLine.match(/Block\s+\d+/i) ||
+                cleanLine.match(/\d{6}$/i) ||
+                (cleanLine.includes('Level') || cleanLine.includes('Floor')) && cleanLine.length > 20) {
+              courseLocation = cleanLine;
+              break;
+            }
+          }
+
+          if (!courseLocation && type === 'Talks And Seminar') {
+            for (let line of lines) {
+              const cleanLine = line.replace(/<[^>]*>/g, '').trim();
+              if (cleanLine.length > 15 &&
+                  !cleanLine.match(/^\d{1,2}[:.]\d{2}[ap]m/i) &&
+                  !cleanLine.match(/^\d{1,2}\/\d{1,2}\/\d{4}/) &&
+                  !cleanLine.includes('http') &&
+                  !cleanLine.includes('Contact Number') &&
+                  !cleanLine.includes('Fee') &&
+                  !cleanLine.includes('$') &&
+                  (cleanLine.includes('Centre') || cleanLine.includes('Building') ||
+                   cleanLine.includes('Hall') || cleanLine.includes('Room') ||
+                   cleanLine.includes('Level') || cleanLine.includes('Floor') ||
+                   cleanLine.includes('Block') || cleanLine.includes('Unit') ||
+                   cleanLine.includes('Community') || cleanLine.includes('Club') ||
+                   cleanLine.match(/\d{6}/))) {
+                courseLocation = cleanLine;
+                break;
+              }
+            }
+          }
+
+          if (courseLocation && !courseLocation.match(/\d{6}/)) {
+            for (let line of lines) {
+              const cleanLine = line.replace(/<[^>]*>/g, '').trim();
+              const postalCodeMatch = cleanLine.match(/\b(\d{6})\b/);
+              if (postalCodeMatch && postalCodeMatch[1]) {
+                if (cleanLine.length < 50 && !cleanLine.includes('Contact') && !cleanLine.includes('Fee') && !cleanLine.includes('$')) {
+                  courseLocation += ` Singapore ${postalCodeMatch[1]}`;
+                  break;
+                }
+              }
+            }
+          }
+
+          if (courseLocation) {
+            courseLocation = this.standardizeLocationAddress(courseLocation, selectedLocation);
+          }
+        } catch (error) {
+          console.error("Error extracting course location:", error);
+        }
+
+        const cleanedStartDate = startDateParagraph.replace("<strong>", "").replace("</strong>", "").replace("</p>", "").split("<br />")[2];
+        const cleanedEndDate = endDateParagraph.replace("<strong>", "").replace("</strong>", "").replace("</p>", "").split("<br />")[2];
+        const courseDuration = `${cleanedStartDate.replace(/\n/g, "")} - ${cleanedEndDate.replace(/\n/g, "")}`;
+
+        // Parse course name parts
+        const courseParts = matchedCourse.name.split(/<br\s*\/?>/).map(part => part.trim());
+        const formattedPrice = matchedCourse.price ? `$${parseFloat(matchedCourse.price).toFixed(2)}` : "$0.00";
+
+        // Check language attribute
+        let languageOptions = [];
+        if (matchedCourse.attributes &&
+            matchedCourse.attributes[0] &&
+            matchedCourse.attributes[0].slug === 'pa_language' &&
+            matchedCourse.attributes[0].options &&
+            matchedCourse.attributes[0].options.length > 0) {
+          languageOptions = matchedCourse.attributes[0].options;
+        }
+
+        const isChineseLanguage = languageOptions.some(option => option.includes('Mandarin'));
+        const isMalayLanguage = languageOptions.some(option => option.includes('Malay'));
+
+        // Build courseData based on name parts and language
+        let courseData = {};
+
+        if (courseParts.length === 3) {
+          if (isChineseLanguage) {
+            courseData = { chineseName: courseParts[0], englishName: courseParts[1], location: selectedLocation, price: formattedPrice, type, courseDuration, courseTime, courseMode, courseLocation };
+          } else if (isMalayLanguage) {
+            courseData = { englishName: courseParts[1], chineseName: courseParts[0], isMalayLanguage: true, location: selectedLocation, price: formattedPrice, type, courseDuration, courseTime, courseMode, courseLocation };
+          } else {
+            courseData = { chineseName: courseParts[0], englishName: courseParts[1], location: selectedLocation, price: formattedPrice, type, courseDuration, courseTime, courseMode, courseLocation };
+          }
+        } else if (courseParts.length === 2) {
+          if (isChineseLanguage) {
+            courseData = { englishName: courseParts[0] || '', chineseName: courseParts[1] || '', location: selectedLocation, price: formattedPrice, type, courseDuration, courseTime, courseMode, courseLocation };
+          } else if (isMalayLanguage) {
+            courseData = { englishName: courseParts[0] || '', chineseName: courseParts[1] || '', isMalayLanguage: true, location: selectedLocation, price: formattedPrice, type, courseDuration, courseTime, courseMode, courseLocation };
+          } else {
+            const processedNames = this.processCourseName(courseParts);
+            courseData = { englishName: processedNames.englishName, chineseName: processedNames.chineseName || '', location: selectedLocation, price: formattedPrice, type, courseDuration, courseTime, courseMode, courseLocation };
+          }
+        } else if (courseParts.length === 1) {
+          courseData = { englishName: courseParts[0], chineseName: '', location: selectedLocation, price: formattedPrice, type, courseDuration, courseTime, courseMode, courseLocation };
+        }
+
+        const shouldStartAtSection1 = type === 'Marriage Preparation Programme' && !hasSectionParam;
+
+        if (this._isMounted) {
+          this.setState((prevState) => ({
+            formData: { ...prevState.formData, ...courseData },
+            loading: true,
+            bgColor: bgColor,
+            formContainerBg: formContainerBg,
+            currentSection: shouldStartAtSection1 ? 1 : prevState.currentSection
+          }));
+        } else {
+          this.state = {
+            ...this.state,
+            formData: { ...this.state.formData, ...courseData },
+            loading: true,
+            bgColor: bgColor,
+            formContainerBg: formContainerBg,
+            currentSection: shouldStartAtSection1 ? 1 : this.state.currentSection
+          };
+        }
+
+        if (shouldStartAtSection1) {
+          console.log('Marriage Preparation Programme detected, starting from section 1');
+        }
+      } else {
+        console.log("No matching course found for link:", decodedLink);
+        this.setState({ loading: true });
       }
+    } else {
+      console.log("No course link provided, loading form without course data");
+      this.setState({ loading: true });
+    }
+  };
 
-      // Function to find the course by name
-      function findCourseByName(courseList) {
-        return courseList.find(course => {
-          // Decode both the input link and the course permalink for comparison
-          const coursePermalink = decodeURIComponent(course.permalink);
-          console.log("Comparing:");
-          console.log("Input Link:", decodedLink);
-          console.log("Course Permalink:", coursePermalink);
-          
-          return decodedLink === coursePermalink;
-        });
-      }
-
-      // Find the matching course
-      var matchedCourse = findCourseByName(allCourses);
+  /* ===================== OLD loadCourseData (commented out) =====================
+   * This version fetched ALL courses then searched for the matching one by permalink.
+   * Replaced with the optimised version above that fetches a single course by slug.
+   *
+  loadCourseData_old = async (link, hasSectionParam = false) => {
       console.log("Matched Course:", matchedCourse);
 
       if (matchedCourse) {
@@ -816,6 +1068,7 @@ class FormPage extends Component {
       this.setState({ loading: true });
     }
   };
+  ===================== END OLD loadCourseData ===================== */
 
   // Add helper method to get SingPass user data safely
   getSingPassUserData = () => {

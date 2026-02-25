@@ -11,6 +11,27 @@ class WooCommerceAPI:
             'Accept': 'application/json'
         }
 
+    def get_product_by_slug(self, slug):
+        """Fetch a single product by its slug. Much faster than fetching all products.
+        The slug is the last part of the permalink URL, e.g. 'crafting-connectionsyu-ming-primary-school'
+        from 'https://ecss.org.sg/product/crafting-connectionsyu-ming-primary-school/'
+        """
+        try:
+            url = f"{self.base_url}products"
+            params = {
+                'slug': slug,
+                'per_page': 1
+            }
+            response = requests.get(url, params=params, auth=self.auth)
+            response.raise_for_status()
+            products = response.json()
+            if products and len(products) > 0:
+                return products[0]
+            return None
+        except requests.exceptions.RequestException as e:
+            print(f"Error while fetching product by slug '{slug}': {e}")
+            return None
+
     def get_nsa_products(self):
         all_products = []
         page = 1

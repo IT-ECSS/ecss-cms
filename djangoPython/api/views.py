@@ -83,8 +83,7 @@ def product_list(request):
             products = woo_api.get_talks_and_seminar_products()
         else:
             # Handle cases where no valid courseType is provided - fetch all published products
-            products = woo_api.get_talks_and_seminar_products()
-
+            products = woo_api.get_all_published_products()
 
         #print(products)
 
@@ -97,6 +96,44 @@ def product_list(request):
     except Exception as e:
         # Catch and log unexpected errors
         print("Error:", e)
+        return JsonResponse({"error": "An error occurred while processing the request."}, status=500)
+
+@csrf_exempt
+def product_by_link(request):
+    """Fetches a single product by its permalink/slug. Much faster than fetching all products."""
+    try:
+        data = json.loads(request.body)
+        link = data.get('link', '')
+        print("Looking up product by link:", link)
+
+        if not link:
+            return JsonResponse({"error": "No link provided."}, status=400)
+
+        # Extract slug from the permalink URL
+        # e.g. 'https://ecss.org.sg/product/crafting-connectionsyu-ming-primary-school/' -> 'crafting-connectionsyu-ming-primary-school'
+        from urllib.parse import urlparse, unquote
+        parsed = urlparse(unquote(link))
+        path_parts = [p for p in parsed.path.strip('/').split('/') if p]
+        # The slug is typically the last segment after 'product/'
+        slug = path_parts[-1] if path_parts else ''
+
+        if not slug:
+            return JsonResponse({"error": "Could not extract slug from link."}, status=400)
+
+        print("Extracted slug:", slug)
+
+        woo_api = WooCommerceAPI()
+        product = woo_api.get_product_by_slug(slug)
+
+        if product:
+            return JsonResponse({"course": product})
+        else:
+            return JsonResponse({"course": None, "message": "No product found for this link."})
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON input."}, status=400)
+    except Exception as e:
+        print("Error in product_by_link:", e)
         return JsonResponse({"error": "An error occurred while processing the request."}, status=500)
     
 @csrf_exempt  # Temporarily disable CSRF validation for this view
