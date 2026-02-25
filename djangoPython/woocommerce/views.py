@@ -29,8 +29,8 @@ def product_list(request):
             print("Hello, fetching Marriage Preparation Programme products...")
             #products = woo_api.get_marriage_prep_products()
         else:
-            # Handle cases where no valid courseType is provided
-            products = woo_api.get_nsa_products() + woo_api.get_ilp_products() + woo_api.get_marriage_prep_products()
+            # Handle cases where no valid courseType is provided - fetch all published products
+            products = woo_api.get_all_published_products()
 
         #print(products)
 

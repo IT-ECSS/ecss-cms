@@ -263,6 +263,35 @@ class WooCommerceAPI:
             print(f"Error updating product stock: {e}")
             return False
 
+    def get_all_published_products(self):
+        """Fetch all published products from WooCommerce without category filtering."""
+        print("Fetching all published products from WooCommerce...")
+        all_products = []
+        page = 1
+        per_page = 100
+
+        while True:
+            try:
+                url = f"{self.base_url}products"
+                params = {
+                    'per_page': per_page,
+                    'page': page,
+                    'status': 'publish'
+                }
+                response = requests.get(url, params=params, auth=self.auth)
+                response.raise_for_status()
+
+                products = response.json()
+                if not products:
+                    break
+
+                all_products.extend(products)
+                page += 1
+            except requests.exceptions.RequestException as e:
+                print(f"Error while fetching products: {e}")
+                break
+        return all_products
+
     def get_marriage_prep_products(self):
         print("Fetching Marriage Preparation Programme products from WooCommerce...")
         all_products = []
@@ -299,6 +328,41 @@ class WooCommerceAPI:
                 page += 1
             except requests.exceptions.RequestException as e:
                 # Handle any errors during the request
+                print(f"Error while fetching products: {e}")
+                break
+        return all_products
+
+    def get_talks_and_seminar_products(self):
+        """Fetch and filter Talks And Seminar products from WooCommerce."""
+        print("Fetching Talks And Seminar products from WooCommerce...")
+        all_products = []
+        page = 1
+        per_page = 100
+
+        while True:
+            try:
+                url = f"{self.base_url}products"
+                params = {
+                    'per_page': per_page,
+                    'page': page
+                }
+                response = requests.get(url, params=params, auth=self.auth)
+                response.raise_for_status()
+
+                products = response.json()
+                if not products:
+                    break
+                # Filter products where first category is 'Talks And Seminar'
+                filtered_products = [
+                    product for product in products
+                    if product.get('status') == 'publish'
+                    and 'categories' in product
+                    and len(product['categories']) >= 1
+                    and product['categories'][0].get('name') == 'Talks And Seminar'
+                ]
+                all_products.extend(filtered_products)
+                page += 1
+            except requests.exceptions.RequestException as e:
                 print(f"Error while fetching products: {e}")
                 break
         return all_products

@@ -82,8 +82,9 @@ def product_list(request):
         elif courseType == "Talks And Seminar":
             products = woo_api.get_talks_and_seminar_products()
         else:
-            # Handle cases where no valid courseType is provided
-            products = woo_api.get_nsa_products() + woo_api.get_ilp_products() + woo_api.get_marriage_prep_products() + woo_api.get_talks_and_seminar_products()
+            # Handle cases where no valid courseType is provided - fetch all published products
+            products = woo_api.get_talks_and_seminar_products()
+
 
         #print(products)
 

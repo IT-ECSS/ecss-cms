@@ -389,6 +389,11 @@ class FormPage extends Component {
       var allCourses = await this.fetchCourses(courseType);
       console.log("All Courses:", allCourses);
 
+      if (!Array.isArray(allCourses)) {
+        console.error("Failed to fetch courses or received invalid data");
+        allCourses = [];
+      }
+
       // Function to find the course by name
       function findCourseByName(courseList) {
         return courseList.find(course => {
@@ -407,53 +412,40 @@ class FormPage extends Component {
       console.log("Matched Course:", matchedCourse);
 
       if (matchedCourse) {
-        // Robust extraction of course type
+        // Robust extraction of course type - search ALL categories for known type patterns
         let type = '';
         if (
           matchedCourse.categories &&
           Array.isArray(matchedCourse.categories) &&
-          matchedCourse.categories.length === 2
+          matchedCourse.categories.length > 0
         ) {
-          // Handle the case where there are exactly 2 categories
-          // Check if first category is "Talks And Seminar"
-          if (matchedCourse.categories[0] && 
-              typeof matchedCourse.categories[0].name === 'string' &&
-              matchedCourse.categories[0].name === 'Talks And Seminar') {
-            type = 'Talks And Seminar';
-          }
-          // Check second category for other course types (NSA, ILP, Marriage Preparation Programme)
-          else if (matchedCourse.categories[1] && 
-                   typeof matchedCourse.categories[1].name === 'string') {
-            const nameParts = matchedCourse.categories[1].name.split(":");
-            if (nameParts.length > 1 && typeof nameParts[1] === 'string') {
-              type = nameParts[1].trim();
-            } else {
-              type = nameParts[0].trim();
+          // Search through all categories for a known course type
+          for (const cat of matchedCourse.categories) {
+            if (cat && typeof cat.name === 'string') {
+              const catName = cat.name.trim();
+              // Check for "Talks And Seminar"
+              if (catName === 'Talks And Seminar') {
+                type = 'Talks And Seminar';
+                break;
+              }
+              // Check for "Marriage Preparation Programme"
+              if (catName === 'Marriage Preparation Programme') {
+                type = 'Marriage Preparation Programme';
+                break;
+              }
+              // Check for "Tri-Love Elderly: NSA" or "Tri-Love Elderly: ILP"
+              if (catName.includes(':')) {
+                const nameParts = catName.split(':');
+                if (nameParts.length > 1) {
+                  const extracted = nameParts[1].trim();
+                  if (extracted === 'NSA' || extracted === 'ILP') {
+                    type = extracted;
+                    break;
+                  }
+                }
+              }
             }
           }
-        } else if (
-          matchedCourse.categories &&
-          Array.isArray(matchedCourse.categories) &&
-          matchedCourse.categories[1] &&
-          typeof matchedCourse.categories[1].name === 'string'
-        ) {
-          // Original logic for backward compatibility
-          const nameParts = matchedCourse.categories[1].name.split(":");
-          if (nameParts.length > 1 && typeof nameParts[1] === 'string') {
-            type = nameParts[1].trim();
-          } else {
-            type = nameParts[0].trim();
-          }
-        } else if (
-          matchedCourse.categories &&
-          Array.isArray(matchedCourse.categories) &&
-          matchedCourse.categories[0] &&
-          typeof matchedCourse.categories[0].name === 'string'
-        ) {
-          // Fallback to first category name if second is missing
-          type = matchedCourse.categories[0].name.trim();
-        } else {
-          type = '';
         }
         console.log("Course Type:", type);
         
@@ -846,6 +838,7 @@ class FormPage extends Component {
     }
     catch(error) {
       console.error("Error:", error)
+      return [];
     }
   }
 
