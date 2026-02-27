@@ -261,38 +261,38 @@ class WelcomeSection extends Component {
             },
             { 
                 key: 'InventoryStore', 
-                title: 'Inventory Store', 
-                icon: 'fas fa-warehouse', 
-                description: 'View and manage inventory stock levels', 
+                title: 'Inventory Overview', 
+                icon: 'fas fa-chart-bar', 
+                description: 'View inventory dashboard and overview', 
                 action: () => this.props.onNavigate('inventory-modules'),
-                accessKey: 'InventoryStore',
+                accessKey: 'Inventory Overview',
                 parentKey: 'Inventory'
             },
             { 
                 key: 'InventoryForm', 
-                title: 'Inventory Form', 
-                icon: 'fas fa-clipboard-list', 
-                description: 'Submit inventory orders and track stock', 
+                title: 'Inventory Sales Order', 
+                icon: 'fas fa-file-invoice', 
+                description: 'Create and manage inventory sales orders', 
                 action: () => this.props.onNavigate('inventory-form'),
-                accessKey: 'InventoryForm',
+                accessKey: 'Inventory Sales Order',
                 parentKey: 'Inventory'
             },
             { 
                 key: 'InventoryRecords', 
-                title: 'Inventory Records', 
-                icon: 'fas fa-file-alt', 
-                description: 'View inventory order records and history', 
+                title: 'Inventory Movement Log', 
+                icon: 'fas fa-warehouse', 
+                description: 'Track inventory movements and stock levels', 
                 action: () => this.props.onNavigate('inventory-records'),
-                accessKey: 'InventoryRecords',
+                accessKey: 'Inventory Movement Log',
                 parentKey: 'Inventory'
             },
             { 
                 key: 'InventoryInvoicesReceipts', 
-                title: 'Inventory Invoices/Receipts', 
-                icon: 'fas fa-file-invoice', 
-                description: 'View inventory invoices and receipts', 
+                title: 'Inventory Billing Management', 
+                icon: 'fas fa-clipboard-list', 
+                description: 'Manage inventory invoices and billing', 
                 action: () => this.props.onNavigate('inventory-invoices'),
-                accessKey: 'InventoryInvoicesReceipts',
+                accessKey: 'Inventory Billing Management',
                 parentKey: 'Inventory'
             },
             { 
@@ -506,14 +506,18 @@ class WelcomeSection extends Component {
             "FFT Results": "View fitness assessment results and tracking",
             "Fundraising Orders": "Manage fundraising orders",
             "Fundraising Inventory": "Manage fundraising inventory and stock",
-            "InventoryStore": "View and manage inventory stock levels",
-            "Inventory Store": "View and manage inventory stock levels",
-            "InventoryForm": "Submit inventory orders and track stock",
-            "Inventory Form": "Submit inventory orders and track stock",
-            "InventoryRecords": "View inventory order records and history",
-            "Inventory Records": "View inventory order records and history",
-            "InventoryInvoicesReceipts": "View inventory invoices and receipts",
-            "Inventory Invoices/Receipts": "View inventory invoices and receipts",
+            "InventoryStore": "Track inventory movements and stock levels",
+            "Inventory Store": "Track inventory movements and stock levels",
+            "Inventory Movement Log": "Track inventory movements and stock levels",
+            "InventoryForm": "Manage inventory billing and charges",
+            "Inventory Form": "Manage inventory billing and charges",
+            "Inventory Billing Management": "Manage inventory billing and charges",
+            "InventoryRecords": "View inventory overview and records",
+            "Inventory Records": "View inventory overview and records",
+            "Inventory Overview": "View inventory overview and records",
+            "InventoryInvoicesReceipts": "Manage inventory sales orders",
+            "Inventory Invoices/Receipts": "Manage inventory sales orders",
+            "Inventory Sales Order": "Manage inventory sales orders",
             "AuditLogs": "View system audit logs and user activity",
             "Audit Logs": "View system audit logs and user activity"
         };
@@ -535,7 +539,24 @@ class WelcomeSection extends Component {
                 });
             } else if (typeof value === 'object' && value !== null) {
                 // Multi-item navigation with sub-keys
-                const subKeys = Object.keys(value).filter(subKey => value[subKey] === true);
+                let subKeys = Object.keys(value).filter(subKey => value[subKey] === true);
+                
+                // Sort Inventory module keys in the desired order
+                if (mainKey === 'Inventory') {
+                    const orderMap = {
+                        'Inventory Overview': 1,
+                        'Inventory Sales Order': 2,
+                        'Inventory Movement Log': 3,
+                        'Inventory Billing Management': 4
+                    };
+                    
+                    subKeys = subKeys.sort((a, b) => {
+                        const orderA = orderMap[a] ?? 999;
+                        const orderB = orderMap[b] ?? 999;
+                        return orderA - orderB;
+                    });
+                }
+                
                 if (subKeys.length > 0) {
                     // Display name mapping for sub-keys
                     const subKeyDisplayNames = {
@@ -684,19 +705,25 @@ class WelcomeSection extends Component {
                 break;
             case "InventoryStore":
             case "Inventory Store":
+            case "Inventory Overview":
                 navigationKey = "inventory-modules";
                 break;
             case "InventoryForm":
             case "Inventory Form":
                 navigationKey = "inventory-form";
                 break;
+            case "Inventory Movement Log":
             case "InventoryRecords":
             case "Inventory Records":
                 navigationKey = "inventory-records";
                 break;
+            case "Inventory Billing Management":
+                navigationKey = "inventory-invoices";
+                break;
             case "InventoryInvoicesReceipts":
             case "Inventory Invoices/Receipts":
-                navigationKey = "inventory-invoices";
+            case "Inventory Sales Order":
+                navigationKey = "inventory-form";
                 break;
             case "AuditLogs":
             case "Audit Logs":
@@ -710,7 +737,7 @@ class WelcomeSection extends Component {
   };
 
     render() {
-        const { userName, role, onNavigate } = this.props;
+        const { userName, role, onNavigate, accessRights = {} } = this.props;
         const roleBasedActions = this.getRoleBasedActions();
         const navigationCards = this.getNavigationCards();
         const { expandedCard } = this.state;
@@ -791,26 +818,39 @@ class WelcomeSection extends Component {
                 )}
 
                 {/* Personalized Quick Actions */}
-                <div className="quick-actions-section">
-                    <h2>Your Quick Actions</h2>
-                    <div className="action-cards-grid">
-                        {roleBasedActions.map((action, index) => (
-                            <div key={action.key} className="action-card" onClick={action.action}>
-                                <div className="card-icon">
-                                    <i className={action.icon}></i>
-                                </div>
-                                <div className="card-content">
-                                    <h3>{action.title}</h3>
-                                    <p>{action.description}</p>
-                                    <div className="card-footer">
-                                        <span className="action-text">Access</span>
-                                        <i className="fas fa-arrow-right"></i>
+                {roleBasedActions.filter(action => {
+                    const { parentKey, accessKey } = action;
+                    // Only show actions where user has access
+                    return accessRights[parentKey] && 
+                           typeof accessRights[parentKey] === 'object' && 
+                           accessRights[parentKey][accessKey] === true;
+                }).length > 0 && (
+                    <div className="quick-actions-section">
+                        <h2>Your Quick Actions</h2>
+                        <div className="action-cards-grid">
+                            {roleBasedActions.filter(action => {
+                                const { parentKey, accessKey } = action;
+                                return accessRights[parentKey] && 
+                                       typeof accessRights[parentKey] === 'object' && 
+                                       accessRights[parentKey][accessKey] === true;
+                            }).map((action, index) => (
+                                <div key={action.key} className="action-card" onClick={action.action}>
+                                    <div className="card-icon">
+                                        <i className={action.icon}></i>
+                                    </div>
+                                    <div className="card-content">
+                                        <h3>{action.title}</h3>
+                                        <p>{action.description}</p>
+                                        <div className="card-footer">
+                                            <span className="action-text">Access</span>
+                                            <i className="fas fa-arrow-right"></i>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
         );
     }

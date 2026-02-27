@@ -600,7 +600,7 @@ class InventoryInvoices extends Component {
         if (isLoadingFolders) {
             return (
                 <>
-                    <div className="inventory-heading"><h2>Inventory Invoices / Receipts</h2></div>
+                    <div className="inventory-heading"><h2>Inventory Billing Management</h2></div>
                     <div className="inventory-content">
                         <div className="inventory-loading">
                             <i className="fas fa-spinner fa-spin"></i>
@@ -614,7 +614,7 @@ class InventoryInvoices extends Component {
         if (error && folders.length === 0) {
             return (
                 <>
-                    <div className="inventory-heading"><h2>Inventory Invoices / Receipts</h2></div>
+                    <div className="inventory-heading"><h2>Inventory Billing Management</h2></div>
                     <div className="inventory-content">
                         <div className="inventory-error">
                             <i className="fas fa-exclamation-circle"></i>
@@ -630,7 +630,7 @@ class InventoryInvoices extends Component {
 
         return (
             <>
-                <div className="inventory-heading"><h2>Inventory Invoices / Receipts</h2></div>
+                <div className="inventory-heading"><h2>Inventory Billing Management</h2></div>
                 <div className="inventory-content">
                     {folders.length > 0 && (
                         <div className="records-sub-tabs">

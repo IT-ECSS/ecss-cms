@@ -7,7 +7,7 @@ class InventoryForm extends Component {
         super(props);
         this.state = {
             inventoryProducts: [],
-            isLoading: true,
+            isLoading: false,
             isSubmitting: false,
             error: null,
             successMessage: null,
@@ -215,7 +215,7 @@ class InventoryForm extends Component {
             }));
         }
         
-        // Fetch inventory products on mount
+        // Fetch inventory products on mount (in background, non-blocking)
         await this.fetchInventoryProducts();
     }
 
@@ -228,7 +228,7 @@ class InventoryForm extends Component {
 
     fetchInventoryProducts = async () => {
         try {
-            this.setState({ isLoading: true, error: null });
+            this.setState({ error: null });
 
             const baseUrl = window.location.hostname === "localhost" 
                 ? "http://localhost:3002" 
@@ -241,20 +241,17 @@ class InventoryForm extends Component {
             if (response.data.success) {
                 const products = response.data.inventory_products || [];
                 this.setState({
-                    inventoryProducts: products,
-                    isLoading: false
+                    inventoryProducts: products
                 });
             } else {
                 this.setState({
-                    error: 'Failed to fetch inventory products',
-                    isLoading: false
+                    error: 'Failed to fetch inventory products'
                 });
             }
         } catch (error) {
             console.error('Error fetching inventory products:', error);
             this.setState({
-                error: error.message || 'An error occurred while fetching inventory products',
-                isLoading: false
+                error: error.message || 'An error occurred while fetching inventory products'
             });
         }
     };
@@ -386,7 +383,12 @@ class InventoryForm extends Component {
             }
 
             // Step 2: If backend successful, update WooCommerce (port 3002)
+            console.log("[DEBUG] Updating WooCommerce inventory...");
             const woocommerceResponse = await this.updateWooCommerce(payload);
+
+            // Wait a moment for WooCommerce to fully propagate the changes
+            console.log("[DEBUG] WooCommerce updated, waiting for confirmation...");
+            await new Promise(resolve => setTimeout(resolve, 800));
 
             // Both updates complete, now show result
             if (woocommerceResponse.data.success) {
@@ -432,6 +434,7 @@ class InventoryForm extends Component {
                     console.log('Receipt uploaded to Google Drive:', receiptResponse.data.result.googleDrive.fileLink);
                 }
 
+                console.log("[SUCCESS] Order submitted and WooCommerce inventory updated");
                 this.setState({
                     successMessage: 'Order submitted successfully!',
                     isSubmitting: false,
@@ -481,7 +484,7 @@ class InventoryForm extends Component {
             return (
                 <div className="inventory-loading">
                     <i className="fas fa-spinner fa-spin"></i>
-                    <p>Loading inventory form...</p>
+                    <p>Loading Inventory Sales Order</p>
                 </div>
             );
         }
@@ -490,7 +493,7 @@ class InventoryForm extends Component {
             <>
                 {/* Header Section */}
                 <div className="inventory-heading">
-                    <h2>Inventory Order Form</h2>
+                    <h2>Inventory Sales Order</h2>
                 </div>
                 {/* Form Section */}
                 <div className="inventory-form-content">
@@ -758,7 +761,7 @@ class InventoryForm extends Component {
                                     {isSubmitting ? (
                                         <>
                                             <i className="fas fa-spinner fa-spin"></i>
-                                            Submitting...
+                                            Updating inventory...
                                         </>
                                     ) : (
                                         <>

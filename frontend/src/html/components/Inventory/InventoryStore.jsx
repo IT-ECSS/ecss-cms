@@ -546,7 +546,7 @@ class InventoryStore extends Component {
             return (
                 <>
                     <div className="inventory-heading">
-                        <h2>Inventory Store</h2>
+                        <h2>Inventory Overview</h2>
                     </div>
                     <div className="inventory-content">
                         <div className="inventory-loading">
@@ -562,7 +562,7 @@ class InventoryStore extends Component {
             return (
                 <>
                     <div className="inventory-heading">
-                        <h2>Inventory Store</h2>
+                        <h2>Inventory Overview</h2>
                     </div>
                     <div className="inventory-content">
                         <div className="inventory-error">
@@ -580,7 +580,7 @@ class InventoryStore extends Component {
         return (
             <>
                 <div className="inventory-heading">
-                    <h2>Inventory Store</h2>
+                    <h2>Inventory Overview</h2>
                 </div>
 
                 {/* Tabs */}

@@ -431,7 +431,7 @@ class StockAdjustmentModal extends Component {
                                     animation: 'spin 0.8s linear infinite',
                                     marginRight: '8px',
                                     verticalAlign: 'middle'
-                                }} /> Submitting...</>
+                                }} /> Updating inventory...</>
                             ) : 'Submit'}
                         </button>
                     </div>

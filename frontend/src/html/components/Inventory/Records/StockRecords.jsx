@@ -22,7 +22,6 @@ class StockRecords extends Component {
             // Stock Adjustment modal
             showIncomingModal: false,
             isSubmitting: false,
-            uploadedFile: null,
             incomingForm: {
                 action: '',
                 product: '',
@@ -90,7 +89,6 @@ class StockRecords extends Component {
         const time = now.toTimeString().split(' ')[0].substring(0, 5);
         this.setState({
             showIncomingModal: true,
-            uploadedFile: null,
             incomingForm: {
                 action: '',
                 product: '',
@@ -108,8 +106,7 @@ class StockRecords extends Component {
 
     closeIncomingModal = () => {
         this.setState({ 
-            showIncomingModal: false,
-            uploadedFile: null
+            showIncomingModal: false
         });
     };
 
@@ -135,8 +132,6 @@ class StockRecords extends Component {
     };
 
     handleFileSelected = (file) => {
-        // Store the file for upload
-        this.setState({ uploadedFile: file });
         this.extractPdfData(file);
     };
 
@@ -356,16 +351,19 @@ class StockRecords extends Component {
         this.setState({ isSubmitting: true });
 
         const onSuccess = async () => {
-            // Trigger parent fetch and wait for it to complete
+            // Wait for parent to refresh data before closing modal
+            console.log("[DEBUG] Stock adjustment successful, refreshing dashboard...");
             if (this.props.onStockAdjustmentSubmit) {
                 await this.props.onStockAdjustmentSubmit();
+                console.log("[DEBUG] Dashboard refresh complete, closing modal...");
             }
-            // Only close modal AFTER data is updated
+            // Close modal only after data refresh is complete
             this.closeIncomingModal();
             this.setState({ isSubmitting: false });
         };
 
-        const onError = () => {
+        const onError = (error) => {
+            console.error("[ERROR] Stock adjustment failed:", error);
             this.setState({ isSubmitting: false });
         };
 
@@ -409,7 +407,7 @@ class StockRecords extends Component {
                     />
 
                     {toolbarReadyState && (
-                        <div className="stock-records-toolbar" style={{ animation: 'fadeIn 0.3s ease-in', marginTop: '30px' }}>
+                        <div className="stock-records-toolbar" style={{ animation: 'fadeIn 0.3s ease-in', marginTop: '24px' }}>
                             {!isRestricted && (
                                 <button className="stock-incoming-btn" onClick={this.openIncomingModal}>
                                     Stock Adjustment
@@ -423,13 +421,18 @@ class StockRecords extends Component {
                         </div>
                     )}
 
-                    {stockRecords.length === 0 && !isLoading ? (
+                    {isLoading ? (
+                        <div className="inventory-loading">
+                            <i className="fas fa-spinner fa-spin"></i>
+                            <p>Loading records...</p>
+                        </div>
+                    ) : stockRecords.length === 0 ? (
                         <div className="inventory-empty-state">
                             <i className="fas fa-clipboard-list"></i>
                             <h3>No Records Found</h3>
                             <p>No stock records have been recorded yet.</p>
                         </div>
-                    ) : !isLoading && (
+                    ) : (
                         <div className="inventory-records-grid-container ag-theme-inventory" style={{ height: '500px', width: '100%' }}>
                             <AgGridReact
                                 columnDefs={this.columnDefs}
@@ -445,48 +448,6 @@ class StockRecords extends Component {
                         </div>
                     )}
                 </div>
-
-                {/* Loading Popup Modal */}
-                {isLoading && (
-                    <div style={{
-                        position: 'fixed',
-                        top: '0',
-                        left: '0',
-                        right: '0',
-                        bottom: '0',
-                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        zIndex: 9999
-                    }}>
-                        <div style={{
-                            backgroundColor: '#fff',
-                            borderRadius: '12px',
-                            padding: '40px',
-                            textAlign: 'center',
-                            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
-                            minWidth: '300px'
-                        }}>
-                            <i className="fas fa-spinner fa-spin" style={{
-                                fontSize: '48px',
-                                color: '#2c3e50',
-                                marginBottom: '20px',
-                                display: 'block'
-                            }}></i>
-                            <h2 style={{
-                                margin: '0 0 10px 0',
-                                color: '#2c3e50',
-                                fontSize: '1.5rem'
-                            }}>Loading Inventory</h2>
-                            <p style={{
-                                margin: '0',
-                                color: '#666',
-                                fontSize: '1rem'
-                            }}>Please wait while we load your records...</p>
-                        </div>
-                    </div>
-                )}
 
                 {/* Stock Adjustment Modal */}
                 <StockAdjustmentModal

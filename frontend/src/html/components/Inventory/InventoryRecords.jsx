@@ -22,7 +22,7 @@ class InventoryRecords extends Component {
             activeTab: isRestricted ? 'orders' : 'stock', // 'stock' or 'orders'
             records: [],
             stockRecords: [],
-            isLoading: true,
+            isLoading: false,
             error: null,
             inventoryProducts: []
         };
@@ -32,11 +32,13 @@ class InventoryRecords extends Component {
 
     async componentDidMount() {
         console.log("InventoryRecords - componentDidMount called");
+        this.setState({ isLoading: true, error: null });
         await Promise.all([
             this.fetchInventoryRecords(),
             this.fetchStockRecords(),
             this.fetchInventoryProducts()
         ]);
+        this.setState({ isLoading: false });
         
         // --- Live update via Socket.IO ---
         this.socket = io(
@@ -66,12 +68,10 @@ class InventoryRecords extends Component {
     }
 
     fetchInventoryRecords = async () => {
-        this.setState({ isLoading: true, error: null });
         const result = await fetchInventoryRecordsApi();
         this.setState({
             records: result.records,
-            error: result.error,
-            isLoading: false
+            error: result.error
         });
     };
 
@@ -91,10 +91,12 @@ class InventoryRecords extends Component {
 
     // Stock adjustment callback from StockRecords
     handleStockAdjustmentSubmit = async () => {
+        console.log("[DEBUG] Stock adjustment submitted, refreshing data...");
         await Promise.all([
             this.fetchStockRecords(),
             this.fetchInventoryProducts()
         ]);
+        console.log("[DEBUG] Data refresh complete");
     };
 
     componentWillUnmount() {
@@ -116,8 +118,45 @@ class InventoryRecords extends Component {
 
         return (
             <>
+                {/* Loading Popup */}
+                {isLoading && (
+                    <div style={{
+                        position: 'fixed',
+                        top: '0',
+                        left: '0',
+                        right: '0',
+                        bottom: '0',
+                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        zIndex: '9999'
+                    }}>
+                        <div style={{
+                            backgroundColor: 'white',
+                            padding: '40px',
+                            borderRadius: '8px',
+                            textAlign: 'center',
+                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)'
+                        }}>
+                            <i className="fas fa-spinner fa-spin" style={{
+                                fontSize: '48px',
+                                color: '#007bff',
+                                marginBottom: '16px',
+                                display: 'block'
+                            }}></i>
+                            <p style={{
+                                fontSize: '16px',
+                                color: '#333',
+                                margin: '0',
+                                fontWeight: '500'
+                            }}>Loading Inventory Movement Log...</p>
+                        </div>
+                    </div>
+                )}
+
                 <div className="inventory-heading">
-                    <h2>Inventory Records</h2>
+                    <h2>Inventory Movement Log</h2>
                 </div>
 
                 {/* Sub-tabs */}

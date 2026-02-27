@@ -182,8 +182,8 @@ class SideBarContent extends Component {
                 console.error("toggleCourseLinkComponent function not found in props");
             }
         }
-        else if(subKey === "InventoryStore" || subKey === "Inventory Store") {
-            console.log("Inventory Store clicked in sidebar");
+        else if(subKey === "InventoryStore" || subKey === "Inventory Store" || subKey === "Inventory Overview") {
+            console.log("Inventory Overview clicked in sidebar");
             console.log("toggleInventoryModulesComponent function exists:", !!this.props.toggleInventoryModulesComponent);
             if (this.props.toggleInventoryModulesComponent) {
                 console.log("Calling toggleInventoryModulesComponent...");
@@ -192,14 +192,24 @@ class SideBarContent extends Component {
                 console.error("toggleInventoryModulesComponent function not found in props");
             }
         }
-        else if(subKey === "InventoryForm" || subKey === "Inventory Form") {
-            console.log("Inventory Form clicked in sidebar");
+        else if(subKey === "InventoryForm" || subKey === "Inventory Form" || subKey === "Inventory Sales Order") {
+            console.log("Inventory Sales Order clicked in sidebar");
             console.log("toggleInventoryFormComponent function exists:", !!this.props.toggleInventoryFormComponent);
             if (this.props.toggleInventoryFormComponent) {
                 console.log("Calling toggleInventoryFormComponent...");
                 this.props.toggleInventoryFormComponent();
             } else {
                 console.error("toggleInventoryFormComponent function not found in props");
+            }
+        }
+        else if(subKey === "Inventory Movement Log") {
+            console.log("Inventory Movement Log clicked in sidebar");
+            console.log("toggleInventoryRecordsComponent function exists:", !!this.props.toggleInventoryRecordsComponent);
+            if (this.props.toggleInventoryRecordsComponent) {
+                console.log("Calling toggleInventoryRecordsComponent...");
+                this.props.toggleInventoryRecordsComponent();
+            } else {
+                console.error("toggleInventoryRecordsComponent function not found in props");
             }
         }
         else if(subKey === "InventoryRecords" || subKey === "Inventory Records") {
@@ -210,6 +220,16 @@ class SideBarContent extends Component {
                 this.props.toggleInventoryRecordsComponent();
             } else {
                 console.error("toggleInventoryRecordsComponent function not found in props");
+            }
+        }
+        else if(subKey === "Inventory Billing Management") {
+            console.log("Inventory Billing Management clicked in sidebar");
+            console.log("toggleInventoryInvoicesComponent function exists:", !!this.props.toggleInventoryInvoicesComponent);
+            if (this.props.toggleInventoryInvoicesComponent) {
+                console.log("Calling toggleInventoryInvoicesComponent...");
+                this.props.toggleInventoryInvoicesComponent();
+            } else {
+                console.error("toggleInventoryInvoicesComponent function not found in props");
             }
         }
         else if(subKey === "InventoryInvoicesReceipts" || subKey === "InvoiceInvociesReceipts" || subKey === "Inventory Invoices/Receipts") {
@@ -290,8 +310,22 @@ class SideBarContent extends Component {
                             // Object with sub-keys - only show if at least one sub-key is true
                             const enabledSubKeys = Object.keys(value).filter(subKey => value[subKey] === true);
                             
+                            // Sort Inventory module keys in the desired order
+                            const orderMap = {
+                                'Inventory Overview': 1,
+                                'Inventory Sales Order': 2,
+                                'Inventory Movement Log': 3,
+                                'Inventory Billing Management': 4
+                            };
+                            
+                            const sortedSubKeys = enabledSubKeys.sort((a, b) => {
+                                const orderA = orderMap[a] ?? 999;
+                                const orderB = orderMap[b] ?? 999;
+                                return orderA - orderB;
+                            });
+                            
                             // Only render the main menu if there are enabled sub-keys
-                            if (enabledSubKeys.length > 0) {
+                            if (sortedSubKeys.length > 0) {
                                 return (
                                     <li key={key}>
                                         <div onClick={() => this.toggleMainMenu(key)}>
@@ -300,7 +334,7 @@ class SideBarContent extends Component {
                                         </div>
                                         {openKey === key && (
                                             <ul>
-                                                {enabledSubKeys.map(subKey => {
+                                                {sortedSubKeys.map(subKey => {
                                                     // Display name mapping for better readability
                                                     const displayNameMap = {
                                                         'InventoryStore': 'Inventory Store',
@@ -308,6 +342,10 @@ class SideBarContent extends Component {
                                                         'InventoryRecords': 'Inventory Records',
                                                         'InventoryInvoicesReceipts': 'Inventory Invoices/Receipts',
                                                         'InvoiceInvociesReceipts': 'Inventory Invoices/Receipts',
+                                                        'Inventory Movement Log': 'Inventory Movement Log',
+                                                        'Inventory Billing Management': 'Inventory Billing Management',
+                                                        'Inventory Overview': 'Inventory Overview',
+                                                        'Inventory Sales Order': 'Inventory Sales Order',
                                                         'AuditLogs': 'Audit Logs'
                                                     };
                                                     const displayName = displayNameMap[subKey] || subKey;

@@ -970,32 +970,32 @@ class AccountsSection extends Component {
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                       <strong>Inventory Module | </strong>
                       <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
-                        <strong>Inventory Store: </strong>
-                        {this.state.accessRightsRowData[this.state.expandedRowIndex]?.inventory?.["InventoryStore"] ? (
+                        <strong>Inventory Movement Log: </strong>
+                        {this.state.accessRightsRowData[this.state.expandedRowIndex]?.inventory?.["Inventory Movement Log"] ? (
                           <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
                         ) : (
                           <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
                         )}
                       </p>
                       <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
-                        <strong>Inventory Form: </strong>
-                        {this.state.accessRightsRowData[this.state.expandedRowIndex]?.inventory?.["InventoryForm"] ? (
+                        <strong>Inventory Billing Management: </strong>
+                        {this.state.accessRightsRowData[this.state.expandedRowIndex]?.inventory?.["Inventory Billing Management"] ? (
                           <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
                         ) : (
                           <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
                         )}
                       </p>
                       <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
-                        <strong>Inventory Records: </strong>
-                        {this.state.accessRightsRowData[this.state.expandedRowIndex]?.inventory?.["InventoryRecords"] ? (
+                        <strong>Inventory Overview: </strong>
+                        {this.state.accessRightsRowData[this.state.expandedRowIndex]?.inventory?.["Inventory Overview"] ? (
                           <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
                         ) : (
                           <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
                         )}
                       </p>
                       <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
-                        <strong>Inventory Invoices/Receipts: </strong>
-                        {this.state.accessRightsRowData[this.state.expandedRowIndex]?.inventory?.["InventoryInvoicesReceipts"] ? (
+                        <strong>Inventory Sales Order: </strong>
+                        {this.state.accessRightsRowData[this.state.expandedRowIndex]?.inventory?.["Inventory Sales Order"] ? (
                           <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
                         ) : (
                           <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>

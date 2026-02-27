@@ -71,7 +71,7 @@ export const orderColumnDefs = [
     { 
         headerName: 'Receipt Number', 
         field: 'receiptNumber', 
-        width: 250,
+        width: 400,
         pinned: 'right',
         cellRenderer: (params) => {
             return (
@@ -116,13 +116,13 @@ export const stockColumnDefs = [
     { 
         headerName: 'Location From', 
         field: 'locationFrom', 
-        width: 250,
+        width: 400,
         valueGetter: (params) => params.data?.locationFrom || '',
     },
     { 
         headerName: 'Location To', 
         field: 'locationTo', 
-        width: 250,
+        width: 400,
         valueGetter: (params) => params.data?.locationTo || params.data?.location || '',
     },
     { 

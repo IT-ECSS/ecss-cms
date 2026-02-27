@@ -1,23 +1,6 @@
 import React, { Component } from 'react';
 
 class ProductSummaryCards extends Component {
-    constructor(props) {
-        super(props);
-        this.state = {
-            expandedSections: {} // Track which sections are expanded: { "cardName-sectionName": true/false }
-        };
-    }
-
-    toggleSection = (cardName, sectionName) => {
-        const key = `${cardName}-${sectionName}`;
-        this.setState(prevState => ({
-            expandedSections: {
-                ...prevState.expandedSections,
-                [key]: !prevState.expandedSections[key]
-            }
-        }));
-    };
-
     /**
      * Return stock quantity from WooCommerce (not calculated from records)
      */
@@ -33,31 +16,17 @@ class ProductSummaryCards extends Component {
                 {/* All Cards */}
                 <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: '20px' }}>
                     {cards.map((card, idx) => (
-                        <div 
-                            key={card.name} 
-                            className="stock-product-card" 
-                            style={{ 
-                                display: 'flex', 
-                                flexDirection: 'column',
-                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                                borderRadius: '8px',
-                                overflow: 'hidden',
-                                flex: '1 1 calc(33.333% - 20px)',
-                                minWidth: '300px',
-                                transition: 'all 0.3s ease',
-                                cursor: 'pointer'
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.15)';
-                                e.currentTarget.style.transform = 'translateY(-4px)';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
-                                e.currentTarget.style.transform = 'translateY(0)';
-                            }}
-                        >
+                        <div key={card.name} className="stock-product-card" style={{ 
+                            display: 'flex', 
+                            flexDirection: 'column',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                            borderRadius: '8px',
+                            overflow: 'hidden',
+                            flex: '1 1 calc(33.333% - 20px)',
+                            minWidth: '300px'
+                        }}>
                             <div className="stock-product-card-header" style={{ 
-                                padding: '18px 24px',
+                                padding: '12px 16px',
                                 backgroundColor: '#f9f9f9',
                                 borderBottom: '1px solid #e0e0e0'
                             }}>
@@ -68,10 +37,10 @@ class ProductSummaryCards extends Component {
 
                             {/* Body - Store and Locations in 2-Column Grid */}
                             <div style={{ 
-                                padding: '24px', 
+                                padding: '16px', 
                                 display: 'flex', 
                                 flexWrap: 'wrap', 
-                                gap: '27px', 
+                                gap: '18px', 
                                 flex: 1 
                             }}>
                                 {/* Store Section */}
@@ -98,38 +67,18 @@ class ProductSummaryCards extends Component {
                                     
                                     return (
                                         <div style={{ flex: '1 1 calc(50% - 18px)', minWidth: '260px' }}>
-                                            <div 
-                                                onClick={() => this.toggleSection(card.name, 'Store')}
-                                                style={{ 
-                                                    fontWeight: '700', 
-                                                    color: '#2c3e50', 
-                                                    marginBottom: '15px', 
-                                                    fontSize: '1.65rem',
-                                                    cursor: 'pointer',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    transition: 'color 0.2s ease'
-                                                }}
-                                                onMouseEnter={(e) => e.target.style.color = '#0066cc'}
-                                                onMouseLeave={(e) => e.target.style.color = '#2c3e50'}
-                                            >
-                                                <span style={{ marginRight: '8px' }}>
-                                                    {this.state.expandedSections[`${card.name}-Store`] !== false ? '▼' : '▶'}
-                                                </span>
+                                            <div style={{ fontWeight: '700', color: '#2c3e50', marginBottom: '10px', fontSize: '1.65rem' }}>
                                                 Store
                                             </div>
                                             
-                                            {this.state.expandedSections[`${card.name}-Store`] !== false && (
-                                                <div style={{ display: 'flex', flexWrap: 'nowrap', gap: '10px' }}>
-                                                    {filteredColors.map((color, cIdx) => (
-                                                    <div key={cIdx} style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '15px 9px', borderRadius: '6px', minWidth: '90px' }}>
-                                                        {!(color.name === 'Standard' && filteredColors.length === 1) && (
-                                                            <div style={{ fontSize: '1.425rem', color: '#333', fontWeight: '700', marginBottom: '9px' }}>
-                                                                {color.name}
-                                                            </div>
-                                                        )}
+                                            <div style={{ display: 'flex', flexWrap: 'nowrap', gap: '10px' }}>
+                                                {filteredColors.map((color, cIdx) => (
+                                                    <div key={cIdx} style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '10px 6px', borderRadius: '6px', minWidth: '90px' }}>
+                                                        <div style={{ fontSize: '1.425rem', color: '#333', fontWeight: '700', marginBottom: '6px' }}>
+                                                            {color.name}
+                                                        </div>
                                                         
-                                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', width: '100%' }}>
+                                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', width: '100%' }}>
                                                             <div style={{ color: '#27ae60', fontWeight: '700', fontSize: '1.95rem' }}>
                                                                 {this.getBalance(color.parentStockQuantity || 0)}
                                                             </div>
@@ -138,55 +87,39 @@ class ProductSummaryCards extends Component {
                                                     </div>
                                                 ))}
                                             </div>
-                                            )}
                                         </div>
                                     );
                                 })()}
                                 
                                 {/* Locations Grid */}
-                                {card.variations && card.variations.map((variation, vIdx) => (
+                                {card.variations && card.variations.map((variation, vIdx) => {
+                                    // Filter out 'Standard' if there are multiple colors
+                                    const filteredLocColors = variation.colors && variation.colors.length > 1 
+                                        ? variation.colors.filter(color => color.name !== 'Standard') 
+                                        : (variation.colors || []);
+                                    
+                                    return (
                                     <div key={vIdx} style={{ flex: '1 1 calc(50% - 18px)', minWidth: '260px' }}>
-                                        <div 
-                                            onClick={() => this.toggleSection(card.name, variation.name)}
-                                            style={{ 
-                                                fontWeight: '700', 
-                                                color: '#2c3e50', 
-                                                marginBottom: '15px', 
-                                                fontSize: '1.65rem',
-                                                cursor: 'pointer',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                transition: 'color 0.2s ease'
-                                            }}
-                                            onMouseEnter={(e) => e.target.style.color = '#0066cc'}
-                                            onMouseLeave={(e) => e.target.style.color = '#2c3e50'}
-                                        >
-                                            <span style={{ marginRight: '8px' }}>
-                                                {this.state.expandedSections[`${card.name}-${variation.name}`] !== false ? '▼' : '▶'}
-                                            </span>
+                                        <div style={{ fontWeight: '700', color: '#2c3e50', marginBottom: '10px', fontSize: '1.65rem' }}>
                                             {variation.name}
                                         </div>
                                         
-                                        {this.state.expandedSections[`${card.name}-${variation.name}`] !== false && (
                                         <div style={{ display: 'flex', flexWrap: 'nowrap', gap: '10px' }}>
-                                            {variation.colors && (() => {
-                                                const filteredLocColors = variation.colors.length > 1 ? variation.colors.filter(color => color.name !== 'Standard') : variation.colors;
-                                                return filteredLocColors.map((color, cIdx) => (
-                                                    <div key={cIdx} style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '15px 9px', borderRadius: '6px', minWidth: '90px' }}>
-                                                        {!(color.name === 'Standard' && filteredLocColors.length === 1) && (
-                                                            <div style={{ fontSize: '1.425rem', color: '#333', fontWeight: '700', marginBottom: '9px' }}>
-                                                                {color.name}
-                                                            </div>
-                                                        )}
+                                            {filteredLocColors && filteredLocColors.length > 0 ? (
+                                                filteredLocColors.map((color, cIdx) => (
+                                                    <div key={cIdx} style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '10px 6px', borderRadius: '6px', minWidth: '90px' }}>
+                                                        <div style={{ fontSize: '1.425rem', color: '#333', fontWeight: '700', marginBottom: '6px' }}>
+                                                            {color.name}
+                                                        </div>
                                                         
-                                                        <div style={{ display: 'flex', flexDirection: 'row', gap: '15px', width: '100%', justifyContent: 'center' }}>
-                                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+                                                        <div style={{ display: 'flex', flexDirection: 'row', gap: '10px', width: '100%', justifyContent: 'center' }}>
+                                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
                                                                 <div style={{ color: '#27ae60', fontWeight: '700', fontSize: '1.95rem' }}>
                                                                     {this.getBalance(color.variationStockQuantity || 0)}
                                                                 </div>
                                                                 <div style={{ color: '#666', fontWeight: '600', fontSize: '1.2rem' }}>Balance</div>
                                                             </div>
-                                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+                                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
                                                                 <div style={{ color: '#8e44ad', fontWeight: '700', fontSize: '1.95rem' }}>
                                                                     {color.sales || 0}
                                                                 </div>
@@ -194,18 +127,28 @@ class ProductSummaryCards extends Component {
                                                             </div>
                                                         </div>
                                                     </div>
-                                                ));
-                                            })()}
+                                                ))
+                                            ) : (
+                                                // If no colors, show variation's stock balance
+                                                <div style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '10px 6px', borderRadius: '6px', minWidth: '90px' }}>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                                                        <div style={{ color: '#27ae60', fontWeight: '700', fontSize: '1.95rem' }}>
+                                                            {this.getBalance(variation.variationStockQuantity || 0)}
+                                                        </div>
+                                                        <div style={{ color: '#666', fontWeight: '600', fontSize: '1.2rem' }}>Balance</div>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
-                                        )}
                                     </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                             
                             {/* Footer - Total Sales */}
                             <div style={{ borderTop: '1px solid #e0e0e0' }}></div>
-                            <div style={{ padding: '15px 24px', textAlign: 'center', backgroundColor: '#f9f9f9' }}>
-                                <div style={{ color: '#666', fontWeight: '600', fontSize: '1.2rem', marginBottom: '6px' }}>Total Sales</div>
+                            <div style={{ padding: '10px 16px', textAlign: 'center', backgroundColor: '#f9f9f9' }}>
+                                <div style={{ color: '#666', fontWeight: '600', fontSize: '1.2rem', marginBottom: '4px' }}>Total Sales</div>
                                 <div style={{ color: '#8e44ad', fontWeight: '700', fontSize: '1.95rem' }}>{card.totalSold || 0}</div>
                             </div>
                         </div>

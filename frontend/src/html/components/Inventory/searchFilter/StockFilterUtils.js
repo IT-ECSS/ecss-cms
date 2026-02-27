@@ -263,7 +263,10 @@ export const generateProductSummaryCards = (inventoryProducts, stockRecords, fil
             name: trueParentName,
             totalStock: totalStockIn,
             totalStockOut: totalStockOut,
-            totalSold: totalSales,
+            totalSold: variations.reduce((sum, variation) => {
+                // Sum all sold quantities from all colors in all locations
+                return sum + (variation.colors ? variation.colors.reduce((colorSum, color) => colorSum + (color.sales || 0), 0) : 0);
+            }, 0),
             variations: variations.sort((a, b) => a.name.localeCompare(b.name))
         };
     });
