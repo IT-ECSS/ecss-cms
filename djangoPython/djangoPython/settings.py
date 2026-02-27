@@ -208,3 +208,22 @@ CORS_ALLOW_METHODS = [
     'DELETE',
     'OPTIONS',
 ]
+
+# Suppress BrokenPipeError and other harmless client disconnection errors
+import logging
+
+class IgnoreBrokenPipeFilter(logging.Filter):
+    """Filter to ignore BrokenPipeError exceptions"""
+    def filter(self, record):
+        if 'Broken pipe' in str(record.getMessage()):
+            return False
+        # Also filter by exception type if available
+        if hasattr(record, 'exc_info') and record.exc_info:
+            exc_type = record.exc_info[0]
+            if exc_type and issubclass(exc_type, BrokenPipeError):
+                return False
+        return True
+
+# Add the filter to Django loggers
+logging.getLogger('django.request').addFilter(IgnoreBrokenPipeFilter())
+logging.getLogger('django').addFilter(IgnoreBrokenPipeFilter())

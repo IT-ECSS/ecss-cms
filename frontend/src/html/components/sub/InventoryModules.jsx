@@ -1,9 +1,9 @@
 import React, { Component } from 'react';
 import '../../../css/sub/inventoryModules.css';
-import InventoryStore from './InventoryStore';
-import InventoryForm from './InventoryForm';
-import InventoryRecords from './InventoryRecords';
-import InventoryInvoices from './InventoryInvoices';
+import InventoryStore from '../Inventory/InventoryStore';
+import InventoryForm from '../Inventory/InventoryForm';
+import InventoryRecords from '../Inventory/InventoryRecords';
+import InventoryInvoices from '../Inventory/InventoryInvoices';
 
 class InventoryModules extends Component {
     render() {
