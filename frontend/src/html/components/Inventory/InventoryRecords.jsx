@@ -91,7 +91,10 @@ class InventoryRecords extends Component {
 
     // Stock adjustment callback from StockRecords
     handleStockAdjustmentSubmit = async () => {
-        await this.fetchStockRecords();
+        await Promise.all([
+            this.fetchStockRecords(),
+            this.fetchInventoryProducts()
+        ]);
     };
 
     componentWillUnmount() {

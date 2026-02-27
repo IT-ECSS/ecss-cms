@@ -174,6 +174,8 @@ export const generateProductSummaryCards = (inventoryProducts, stockRecords, fil
     let results = Object.values(trueParentMap).map(trueParentData => {
         const { name: trueParentName, locationVariants } = trueParentData;
         const trueParentLower = trueParentName.toLowerCase();
+        
+        console.log(`\n=== Processing card: ${trueParentName} ===`);
 
         // Calculate totals for the true parent
         const storeInActions = ['purchase from supplier', 'return stock to store'];
@@ -195,32 +197,64 @@ export const generateProductSummaryCards = (inventoryProducts, stockRecords, fil
         const variations = Object.entries(locationVariants).map(([location, locData]) => {
             const { colorMap } = locData;
             
+            console.log(`\n  Location: ${location}`);
+            
+            // Collect all product IDs and product names for this location
+            const productIdsForLocation = [...new Set(
+                Object.values(colorMap).flatMap(colorData => 
+                    colorData.products.map(p => p.id).filter(Boolean)
+                )
+            )];
+            
+            // Collect all product names for this location (for stock record matching)
+            const productNamesForLocation = [...new Set(
+                Object.values(colorMap).flatMap(colorData => 
+                    colorData.products.map(p => p.name).filter(Boolean)
+                )
+            )];
+            
+            console.log(`    Product IDs: [${productIdsForLocation.join(', ')}]`);
+            console.log(`    Product Names: [${productNamesForLocation.join(', ')}]`);
+            
             // For each location, create colors array
             const colors = Object.entries(colorMap).map(([colorKey, colorData]) => {
-                const colorProductsLower = colorData.products.map(p => (p.parent_name || '').toLowerCase());
+                // Use the actual product names from this specific location
+                const colorProductNames = colorData.products.map(p => p.name).filter(Boolean);
+                
+                // Get the actual stock_quantity from the variation products (not parent)
+                const variationStockQuantity = colorData.products.length > 0 ? (colorData.products[0].stock_quantity || 0) : 0;
+                
+                // Get the parent product stock quantity
+                const parentStockQuantity = colorData.products.length > 0 ? (colorData.products[0].parent_stock_quantity || 0) : 0;
                 
                 const colorStockIn = filteredStockRecords
-                    .filter(r => colorProductsLower.some(p => (r.product || '').toLowerCase() === p) && storeInActions.includes((r.action || '').toLowerCase()) && (r.locationTo || '').toLowerCase() === 'store')
+                    .filter(r => colorProductNames.some(p => (r.product || '').toLowerCase() === p.toLowerCase()) && storeInActions.includes((r.action || '').toLowerCase()) && (r.locationTo || '').toLowerCase() === 'store')
                     .reduce((sum, r) => sum + (parseInt(r.quantity) || 0), 0);
 
                 const colorStockOut = filteredStockRecords
-                    .filter(r => colorProductsLower.some(p => (r.product || '').toLowerCase() === p) && storeOutActions.includes((r.action || '').toLowerCase()) && (r.locationFrom || '').toLowerCase() === 'store')
+                    .filter(r => colorProductNames.some(p => (r.product || '').toLowerCase() === p.toLowerCase()) && storeOutActions.includes((r.action || '').toLowerCase()) && (r.locationFrom || '').toLowerCase() === 'store')
                     .reduce((sum, r) => sum + (parseInt(r.quantity) || 0), 0);
 
                 const colorSales = filteredStockRecords
-                    .filter(r => colorProductsLower.some(p => (r.product || '').toLowerCase() === p) && r.action === 'Sales')
+                    .filter(r => colorProductNames.some(p => (r.product || '').toLowerCase() === p.toLowerCase()) && r.action === 'Sales')
                     .reduce((sum, r) => sum + (parseInt(r.quantity) || 0), 0);
+
+                console.log(`      Stock In: ${colorStockIn}, Stock Out: ${colorStockOut}, Sales: ${colorSales}`);
+                console.log(`      Calculated Balance: ${colorStockIn - colorStockOut}`);
 
                 return {
                     name: colorKey,
                     stockIn: colorStockIn,
                     stockOut: colorStockOut,
-                    sales: colorSales
+                    sales: colorSales,
+                    variationStockQuantity: variationStockQuantity,
+                    parentStockQuantity: parentStockQuantity
                 };
             });
 
             return {
                 name: location,  // Variation is now the location
+                productIds: productIdsForLocation,  // Include product IDs for this location
                 colors: colors   // Colors are subsections within location
             };
         });

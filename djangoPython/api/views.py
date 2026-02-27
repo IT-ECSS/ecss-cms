@@ -459,62 +459,54 @@ def inventory_stock_adjustment(request):
             )
 
         elif action == 'Allocation To Site':
-            # Allocation To Site: decrease parent stock AND decrease variation based on variant or locationTo
+            # Allocation To Site: decrease variation ONLY (location-specific product)
+            # locationTo should be the location/variant like "CT Hub"
             variation_match = variant if variant else location_to
-            print(f"Allocation To Site: decreasing parent stock by {quantity}, increasing {variation_match} variation")
-            result = woo_api.decrease_inventory_stock(
-                product_id=parent_id or product_info.get('id'),
-                quantity=quantity,
-                is_variation=False,
-                parent_id=None
-            )
+            print(f"Allocation To Site: decreasing {variation_match} variation stock by {quantity} (location-specific product only)")
+            
+            # Find the specific variation product for this location
+            variation_info = None
+            for product in inventory_products:
+                if product.get('name') == product_name and product.get('variation_name') == variation_match:
+                    variation_info = product
+                    break
 
-            if result and result['success'] and variation_match and variation_match not in ['Supplier', 'Store']:
-                variation_info = None
-                for product in inventory_products:
-                    if product.get('name') == product_name and product.get('variation_name') == variation_match:
-                        variation_info = product
-                        break
-
-                if variation_info:
-                    variation_result = woo_api.increase_inventory_stock(
-                        product_id=variation_info.get('id'),
-                        quantity=quantity,
-                        is_variation=True,
-                        parent_id=parent_id
-                    )
-                    print(f"Allocation To Site - variation stock increased for {variation_match}: {variation_result}")
-                else:
-                    print(f"Warning: Could not find variation for {product_name} at {variation_match}")
+            if variation_info:
+                # Update ONLY the variation product, not the parent
+                result = woo_api.decrease_inventory_stock(
+                    product_id=variation_info.get('id'),
+                    quantity=quantity,
+                    is_variation=True,
+                    parent_id=parent_id
+                )
+                print(f"Allocation To Site - variation stock decreased for {variation_match} (ID: {variation_info.get('id')}): {result}")
+            else:
+                return JsonResponse({'success': False, 'error': f'Variation not found for {product_name} at {variation_match}'}, status=404)
 
         elif action == 'Return Stock to Store':
-            # Return Stock to Store: increase parent stock, increase variant variation (returned back to Store)
+            # Return Stock to Store: increase variation ONLY (location-specific product)
+            # locationFrom should be the location/variant like "CT Hub"
             variation_match = variant if variant else location_from
-            print(f"Return Stock to Store: increasing parent stock by {quantity}, decreasing {variation_match} variation")
-            result = woo_api.increase_inventory_stock(
-                product_id=parent_id or product_info.get('id'),
-                quantity=quantity,
-                is_variation=False,
-                parent_id=None
-            )
+            print(f"Return Stock to Store: increasing {variation_match} variation stock by {quantity} (location-specific product only)")
+            
+            # Find the specific variation product for this location
+            variation_info = None
+            for product in inventory_products:
+                if product.get('name') == product_name and product.get('variation_name') == variation_match:
+                    variation_info = product
+                    break
 
-            if result and result['success'] and variation_match and variation_match not in ['Supplier', 'Store']:
-                variation_info = None
-                for product in inventory_products:
-                    if product.get('name') == product_name and product.get('variation_name') == variation_match:
-                        variation_info = product
-                        break
-
-                if variation_info:
-                    variation_result = woo_api.decrease_inventory_stock(
-                        product_id=variation_info.get('id'),
-                        quantity=quantity,
-                        is_variation=True,
-                        parent_id=parent_id
-                    )
-                    print(f"Return Stock to Store - variation stock decreased for {variation_match}: {variation_result}")
-                else:
-                    print(f"Warning: Could not find variation for {product_name} at {variation_match}")
+            if variation_info:
+                # Update ONLY the variation product, not the parent
+                result = woo_api.increase_inventory_stock(
+                    product_id=variation_info.get('id'),
+                    quantity=quantity,
+                    is_variation=True,
+                    parent_id=parent_id
+                )
+                print(f"Return Stock to Store - variation stock increased for {variation_match} (ID: {variation_info.get('id')}): {result}")
+            else:
+                return JsonResponse({'success': False, 'error': f'Variation not found for {product_name} at {variation_match}'}, status=404)
 
         else:
             return JsonResponse({'success': False, 'error': f'Unknown action: {action}'}, status=400)

@@ -1,150 +1,216 @@
 import React, { Component } from 'react';
 
 class ProductSummaryCards extends Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            expandedSections: {} // Track which sections are expanded: { "cardName-sectionName": true/false }
+        };
+    }
+
+    toggleSection = (cardName, sectionName) => {
+        const key = `${cardName}-${sectionName}`;
+        this.setState(prevState => ({
+            expandedSections: {
+                ...prevState.expandedSections,
+                [key]: !prevState.expandedSections[key]
+            }
+        }));
+    };
+
     /**
-     * Calculate balance: stock in - stock out
+     * Return stock quantity from WooCommerce (not calculated from records)
      */
-    calculateBalance = (stockIn, stockOut) => {
-        return (stockIn || 0) - (stockOut || 0);
+    getBalance = (variationStockQuantity) => {
+        return variationStockQuantity || 0;
     };
 
     render() {
         const { cards } = this.props;
-        console.log('Cards to render:', cards);
+
         return (
-            <div className="stock-product-cards" style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
-                {cards.map((card, idx) => (
-                    <div key={card.name} className={`stock-product-card stock-product-card-${idx % 3}`} style={{ width: 'calc(50% - 10px)', minWidth: '300px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
-                        <div className="stock-product-card-header">
-                            <div>
-                                <h4>{card.name}</h4>
+            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* All Cards */}
+                <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: '20px' }}>
+                    {cards.map((card, idx) => (
+                        <div 
+                            key={card.name} 
+                            className="stock-product-card" 
+                            style={{ 
+                                display: 'flex', 
+                                flexDirection: 'column',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                                borderRadius: '8px',
+                                overflow: 'hidden',
+                                flex: '1 1 calc(33.333% - 20px)',
+                                minWidth: '300px',
+                                transition: 'all 0.3s ease',
+                                cursor: 'pointer'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.15)';
+                                e.currentTarget.style.transform = 'translateY(-4px)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                                e.currentTarget.style.transform = 'translateY(0)';
+                            }}
+                        >
+                            <div className="stock-product-card-header" style={{ 
+                                padding: '18px 24px',
+                                backgroundColor: '#f9f9f9',
+                                borderBottom: '1px solid #e0e0e0'
+                            }}>
+                                <h2 style={{ margin: '0', color: '#2c3e50', fontSize: '1.95rem' }}>
+                                    {card.name}
+                                </h2>
                             </div>
-                        </div>
-                        <div className="stock-product-card-divider"></div>
-                        
-                        {/* Body - Store and Locations in 2-Column Grid */}
-                        <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
-                            {/* Main Sections Grid - 2 Columns (Store + Locations) */}
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
-                                {/* Store Section - Aggregate Colors from All Locations */}
+
+                            {/* Body - Store and Locations in 2-Column Grid */}
+                            <div style={{ 
+                                padding: '24px', 
+                                display: 'flex', 
+                                flexWrap: 'wrap', 
+                                gap: '27px', 
+                                flex: 1 
+                            }}>
+                                {/* Store Section */}
                                 {(() => {
-                                    const aggregatedColors = {};
+                                    const aggregatedData = {};
+                                    
                                     if (card.variations && card.variations.length > 0) {
                                         card.variations.forEach(variation => {
                                             if (variation.colors && variation.colors.length > 0) {
                                                 variation.colors.forEach(color => {
-                                                    if (!aggregatedColors[color.name]) {
-                                                        aggregatedColors[color.name] = { stockIn: 0, stockOut: 0, sales: 0 };
+                                                    if (!aggregatedData[color.name]) {
+                                                        aggregatedData[color.name] = { 
+                                                            sales: 0,
+                                                            parentStockQuantity: color.parentStockQuantity || 0
+                                                        };
                                                     }
-                                                    aggregatedColors[color.name].stockIn += (color.stockIn || 0);
-                                                    aggregatedColors[color.name].stockOut += (color.stockOut || 0);
-                                                    aggregatedColors[color.name].sales += (color.sales || 0);
+                                                    aggregatedData[color.name].sales += (color.sales || 0);
                                                 });
                                             }
                                         });
                                     }
-                                    const colorArray = Object.entries(aggregatedColors).map(([name, data]) => ({ name, ...data }));
+                                    const colorArray = Object.entries(aggregatedData).map(([name, data]) => ({ name, ...data }));
+                                    const filteredColors = colorArray.length > 1 ? colorArray.filter(color => color.name !== 'Standard') : colorArray;
                                     
                                     return (
-                                        <div style={{ flex: '0 0 calc(50% - 10px)' }}>
-                                            <div style={{ fontWeight: '600', color: '#333', marginBottom: '12px', fontSize: '1.8rem' }}>
+                                        <div style={{ flex: '1 1 calc(50% - 18px)', minWidth: '260px' }}>
+                                            <div 
+                                                onClick={() => this.toggleSection(card.name, 'Store')}
+                                                style={{ 
+                                                    fontWeight: '700', 
+                                                    color: '#2c3e50', 
+                                                    marginBottom: '15px', 
+                                                    fontSize: '1.65rem',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    transition: 'color 0.2s ease'
+                                                }}
+                                                onMouseEnter={(e) => e.target.style.color = '#0066cc'}
+                                                onMouseLeave={(e) => e.target.style.color = '#2c3e50'}
+                                            >
+                                                <span style={{ marginRight: '8px' }}>
+                                                    {this.state.expandedSections[`${card.name}-Store`] !== false ? '▼' : '▶'}
+                                                </span>
                                                 Store
                                             </div>
                                             
-                                            {colorArray.length === 0 ? (
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
-                                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', textAlign: 'center' }}>
-                                                        <div style={{ color: '#27ae60', fontWeight: '700', fontSize: '1.8rem' }}>
-                                                            {this.calculateBalance(card.totalStock || 0, card.totalStockOut || 0)}
-                                                        </div>
-                                                        <div style={{ color: '#666', fontWeight: '600', fontSize: '1.4rem' }}>Balance</div>
-                                                    </div>
-                                                    {(card.name !== 'ECSS Picnic Mat' && card.name !== 'ECSS En Ball') && (
-                                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', textAlign: 'center' }}>
-                                                            <div style={{ color: '#8e44ad', fontWeight: '700', fontSize: '1.8rem' }}>
-                                                                {card.totalSold || 0}
-                                                            </div>
-                                                            <div style={{ color: '#666', fontWeight: '600', fontSize: '1.4rem' }}>Sold</div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ) : (
-                                                <div style={{ display: 'flex', flexWrap: 'nowrap', gap: '12px', overflowX: 'auto' }}>
-                                                    {colorArray.map((color, cIdx) => (
-                                                        <div key={cIdx} style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', backgroundColor: '#f8f9fa', padding: '12px 16px', borderRadius: '6px', border: '1px solid #eee', minWidth: '130px' }}>
-                                                            <div style={{ fontSize: '1.4rem', color: '#333', fontWeight: '600', marginBottom: '12px' }}>
+                                            {this.state.expandedSections[`${card.name}-Store`] !== false && (
+                                                <div style={{ display: 'flex', flexWrap: 'nowrap', gap: '10px' }}>
+                                                    {filteredColors.map((color, cIdx) => (
+                                                    <div key={cIdx} style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '15px 9px', borderRadius: '6px', minWidth: '90px' }}>
+                                                        {!(color.name === 'Standard' && filteredColors.length === 1) && (
+                                                            <div style={{ fontSize: '1.425rem', color: '#333', fontWeight: '700', marginBottom: '9px' }}>
                                                                 {color.name}
                                                             </div>
-                                                            
-                                                            <div style={{ display: 'flex', flexDirection: 'row', gap: '16px', width: '100%', justifyContent: 'center' }}>
-                                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                                                                    <div style={{ color: '#27ae60', fontWeight: '700', fontSize: '1.6rem' }}>
-                                                                        {this.calculateBalance(color.stockIn || 0, color.stockOut || 0)}
-                                                                    </div>
-                                                                    <div style={{ color: '#666', fontWeight: '600', fontSize: '1.2rem' }}>Balance</div>
-                                                                </div>
-                                                                {(card.name !== 'ECSS Picnic Mat' && card.name !== 'ECSS En Ball') && (
-                                                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                                                                        <div style={{ color: '#8e44ad', fontWeight: '700', fontSize: '1.6rem' }}>
-                                                                            {color.sales || 0}
-                                                                        </div>
-                                                                        <div style={{ color: '#666', fontWeight: '600', fontSize: '1.2rem' }}>Sold</div>
-                                                                    </div>
-                                                                )}
+                                                        )}
+                                                        
+                                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', width: '100%' }}>
+                                                            <div style={{ color: '#27ae60', fontWeight: '700', fontSize: '1.95rem' }}>
+                                                                {this.getBalance(color.parentStockQuantity || 0)}
                                                             </div>
+                                                            <div style={{ color: '#666', fontWeight: '600', fontSize: '1.2rem' }}>Balance</div>
                                                         </div>
-                                                    ))}
-                                                </div>
+                                                    </div>
+                                                ))}
+                                            </div>
                                             )}
                                         </div>
                                     );
                                 })()}
                                 
-                                {/* Locations with Colors */}
+                                {/* Locations Grid */}
                                 {card.variations && card.variations.map((variation, vIdx) => (
-                                    <div key={vIdx} style={{ flex: '0 0 calc(50% - 10px)' }}>
-                                        <div style={{ fontWeight: '600', color: '#333', marginBottom: '12px', fontSize: '1.8rem' }}>
+                                    <div key={vIdx} style={{ flex: '1 1 calc(50% - 18px)', minWidth: '260px' }}>
+                                        <div 
+                                            onClick={() => this.toggleSection(card.name, variation.name)}
+                                            style={{ 
+                                                fontWeight: '700', 
+                                                color: '#2c3e50', 
+                                                marginBottom: '15px', 
+                                                fontSize: '1.65rem',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                transition: 'color 0.2s ease'
+                                            }}
+                                            onMouseEnter={(e) => e.target.style.color = '#0066cc'}
+                                            onMouseLeave={(e) => e.target.style.color = '#2c3e50'}
+                                        >
+                                            <span style={{ marginRight: '8px' }}>
+                                                {this.state.expandedSections[`${card.name}-${variation.name}`] !== false ? '▼' : '▶'}
+                                            </span>
                                             {variation.name}
                                         </div>
                                         
-                                        {/* Show all colors with color names */}
-                                        <div style={{ display: 'flex', flexWrap: 'nowrap', gap: '12px', overflowX: 'auto' }}>
-                                            {variation.colors && variation.colors.map((color, cIdx) => (
-                                                <div key={cIdx} style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', backgroundColor: '#f8f9fa', padding: '12px 16px', borderRadius: '6px', border: '1px solid #eee', minWidth: '130px' }}>
-                                                    <div style={{ fontSize: '1.4rem', color: '#333', fontWeight: '600', marginBottom: '12px' }}>
-                                                        {color.name}
-                                                    </div>
-                                                    
-                                                    <div style={{ display: 'flex', flexDirection: 'row', gap: '16px', width: '100%', justifyContent: 'center' }}>
-                                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                                                            <div style={{ color: '#27ae60', fontWeight: '700', fontSize: '1.6rem' }}>
-                                                                {this.calculateBalance(color.stockIn || 0, color.stockOut || 0)}
+                                        {this.state.expandedSections[`${card.name}-${variation.name}`] !== false && (
+                                        <div style={{ display: 'flex', flexWrap: 'nowrap', gap: '10px' }}>
+                                            {variation.colors && (() => {
+                                                const filteredLocColors = variation.colors.length > 1 ? variation.colors.filter(color => color.name !== 'Standard') : variation.colors;
+                                                return filteredLocColors.map((color, cIdx) => (
+                                                    <div key={cIdx} style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '15px 9px', borderRadius: '6px', minWidth: '90px' }}>
+                                                        {!(color.name === 'Standard' && filteredLocColors.length === 1) && (
+                                                            <div style={{ fontSize: '1.425rem', color: '#333', fontWeight: '700', marginBottom: '9px' }}>
+                                                                {color.name}
                                                             </div>
-                                                            <div style={{ color: '#666', fontWeight: '600', fontSize: '1.2rem' }}>Balance</div>
-                                                        </div>
-                                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                                                            <div style={{ color: '#8e44ad', fontWeight: '700', fontSize: '1.6rem' }}>
-                                                                {color.sales || 0}
+                                                        )}
+                                                        
+                                                        <div style={{ display: 'flex', flexDirection: 'row', gap: '15px', width: '100%', justifyContent: 'center' }}>
+                                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+                                                                <div style={{ color: '#27ae60', fontWeight: '700', fontSize: '1.95rem' }}>
+                                                                    {this.getBalance(color.variationStockQuantity || 0)}
+                                                                </div>
+                                                                <div style={{ color: '#666', fontWeight: '600', fontSize: '1.2rem' }}>Balance</div>
                                                             </div>
-                                                            <div style={{ color: '#666', fontWeight: '600', fontSize: '1.2rem' }}>Sold</div>
+                                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+                                                                <div style={{ color: '#8e44ad', fontWeight: '700', fontSize: '1.95rem' }}>
+                                                                    {color.sales || 0}
+                                                                </div>
+                                                                <div style={{ color: '#666', fontWeight: '600', fontSize: '1.2rem' }}>Sold</div>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            ))}
+                                                ));
+                                            })()}
                                         </div>
+                                        )}
                                     </div>
                                 ))}
                             </div>
+                            
+                            {/* Footer - Total Sales */}
+                            <div style={{ borderTop: '1px solid #e0e0e0' }}></div>
+                            <div style={{ padding: '15px 24px', textAlign: 'center', backgroundColor: '#f9f9f9' }}>
+                                <div style={{ color: '#666', fontWeight: '600', fontSize: '1.2rem', marginBottom: '6px' }}>Total Sales</div>
+                                <div style={{ color: '#8e44ad', fontWeight: '700', fontSize: '1.95rem' }}>{card.totalSold || 0}</div>
+                            </div>
                         </div>
-                        
-                        {/* Footer - Total Sales */}
-                        <div className="stock-product-card-divider"></div>
-                        <div style={{ padding: '12px 16px', textAlign: 'center' }}>
-                            <div style={{ color: '#666', fontWeight: '600', fontSize: '0.9rem', marginBottom: '8px' }}>Total Sales</div>
-                            <div style={{ color: '#8e44ad', fontWeight: '700', fontSize: '2rem' }}>{card.totalSold || 0}</div>
-                        </div>
-                    </div>
-                ))}
+                    ))}
+                </div>
             </div>
         );
     }
