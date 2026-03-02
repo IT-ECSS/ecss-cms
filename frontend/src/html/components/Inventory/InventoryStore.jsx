@@ -10,6 +10,17 @@ class InventoryStore extends Component {
         const canViewSubProducts = restrictedRoles.includes(props.role);
         this.canViewSubProducts = canViewSubProducts; // helper flag used in render
 
+        // calculate allowedSites array (lowercased) from props.siteIC
+        let allowedSites = [];
+        if (props.siteIC) {
+            if (Array.isArray(props.siteIC)) {
+                allowedSites = props.siteIC.map(s => s.trim()).filter(Boolean);
+            } else if (typeof props.siteIC === 'string') {
+                allowedSites = props.siteIC.split(',').map(s => s.trim()).filter(Boolean);
+            }
+        }
+        this.allowedSites = allowedSites.map(s => s.toLowerCase());
+
         this.state = {
             inventoryProducts: [],
             inventoryRecords: [],
@@ -33,17 +44,19 @@ class InventoryStore extends Component {
             allocateProductDropdownOpen: false,
             // Filters
             filterProduct: '',
-            filterLocation: '',
             filterProductSearch: '',
-            filterLocationSearch: '',
-            filterProductDropdownOpen: false,
-            filterLocationDropdownOpen: false
+            filterProductDropdownOpen: false
         };
         this.eventSource = null;
         this.socket = null;
         this.filterProductDropdownRef = React.createRef();
-        this.filterLocationDropdownRef = React.createRef();
         this.allocateProductDropdownRef = React.createRef();
+
+        // product fetch control flags
+        this.productsFetchedOnce = false;
+        this.initialFetchDone = false; // marks that we attempted initial load
+        this.isFetchingProducts = false;
+        this.lastProductsFetch = 0; // timestamp of last successful fetch
     }
 
     async componentDidMount() {
@@ -90,8 +103,21 @@ class InventoryStore extends Component {
 
             this.eventSource = new EventSource(`${baseUrl}/inventory_sse/`);
 
-            this.eventSource.onopen = () => {
+            this.eventSource.onopen = async () => {
                 console.log('SSE connection opened');
+                // only refetch products if we haven't got any yet – avoids the
+                // duplicate call that happens immediately after the initial load
+                try {
+                    if (!this.productsFetchedOnce || this.state.inventoryProducts.length === 0) {
+                        await this.fetchInventoryProducts(true);
+                    }
+                    await this.fetchStockRecords();
+                    if (this.state.activeTab === 'records') {
+                        await this.fetchInventoryRecords();
+                    }
+                } catch (err) {
+                    console.error('Error fetching on SSE reconnect', err);
+                }
                 resolve();
             };
 
@@ -103,12 +129,50 @@ class InventoryStore extends Component {
                     if (data.type === 'connected') {
                         console.log('SSE connected to inventory updates');
                     } else if (data.type === 'inventory_updated') {
-                        // Refetch both products and records instantly
-                        //Promise.all([
-                            await this.fetchInventoryProducts();
+                        // Only refresh the minimal data needed.
+                        // stockRecords change every update so refetch them.
+                        await this.fetchStockRecords();
+
+                        // if we already have products loaded, attempt to patch the relevant product
+                        if (this.state.inventoryProducts.length && data.product_name && data.location) {
+                            const nameLower = data.product_name.toLowerCase();
+                            const locLower = data.location.toLowerCase();
+                            this.setState(prev => {
+                                const prods = prev.inventoryProducts.map(p => {
+                                    if (p.name && p.variation_name && p.name.toLowerCase() === nameLower && p.variation_name.toLowerCase() === locLower) {
+                                        // event doesn't include new stock qty; leave unchanged
+                                    }
+                                    return p;
+                                });
+                                return { inventoryProducts: prods };
+                            });
+                        }
+
+                        // if there's a product in the event that we don't yet have, it's
+                        // probably a new item – fetch the full list immediately.
+                        let needFetch = false;
+                        if (data.product_id) {
+                            needFetch = !this.state.inventoryProducts.some(p => p.id === data.product_id);
+                        } else if (data.product_name && data.location) {
+                            const nameLower = data.product_name.toLowerCase();
+                            const locLower = data.location.toLowerCase();
+                            needFetch = !this.state.inventoryProducts.some(p =>
+                                p.name && p.variation_name &&
+                                p.name.toLowerCase() === nameLower &&
+                                p.variation_name.toLowerCase() === locLower
+                            );
+                        }
+
+                        // fetch full product list when we haven't before, if we're empty, or
+                        // if event indicates a new product
+                        if (needFetch || !this.productsFetchedOnce || this.state.inventoryProducts.length === 0) {
+                            await this.fetchInventoryProducts(true); // force bypass throttle
+                            this.productsFetchedOnce = true;
+                        }
+                        // records are rarely needed; fetch only if user is on records tab
+                        if (this.state.activeTab === 'records') {
                             await this.fetchInventoryRecords();
-                            await this.fetchStockRecords();
-                       //]);
+                        }
                     }
                 } catch (error) {
                     console.error('Error parsing SSE data:', error);
@@ -194,7 +258,20 @@ class InventoryStore extends Component {
         });
     };*/
 
-    fetchInventoryProducts = async () => {
+    // fetchInventoryProducts optionally accepts a `force` flag to bypass throttling
+    fetchInventoryProducts = async (force = false) => {
+        // avoid overlapping requests
+        if (this.isFetchingProducts) {
+            return;
+        }
+        const now = Date.now();
+        // throttle repeated fetches within 30 seconds unless forced
+        if (!force && this.productsFetchedOnce && now - this.lastProductsFetch < 30000) {
+            return;
+        }
+        // if we already have products but list is empty, allow force fetch later
+
+        this.isFetchingProducts = true;
         try {
             const baseUrl = window.location.hostname === "localhost" 
                 ? "http://localhost:3002" 
@@ -206,9 +283,13 @@ class InventoryStore extends Component {
 
             if (response.data.success) {
                 const products = response.data.inventory_products || [];
+                // no site-based restriction here; everyone sees the full list
+                if (!this.initialFetchDone) this.initialFetchDone = true;
                 this.setState({
                     inventoryProducts: products
                 });
+                this.productsFetchedOnce = true;
+                this.lastProductsFetch = Date.now();
             } else {
                 this.setState({
                     error: 'Failed to fetch inventory products'
@@ -219,6 +300,8 @@ class InventoryStore extends Component {
             this.setState({
                 error: error.message || 'An error occurred while fetching inventory products'
             });
+        } finally {
+            this.isFetchingProducts = false;
         }
     };
 
@@ -275,8 +358,16 @@ class InventoryStore extends Component {
             const response = await axios.post(`${backendUrl}/inventory`, { purpose: "retrieveStock" });
 
             if (response.data.success) {
+                let records = response.data.records || [];
+                if (this.props.role === 'Site in-charge' && this.allowedSites.length > 0) {
+                    records = records.filter(r => {
+                        const loc = (r.location || '').toLowerCase();
+                        const locFrom = (r.locationFrom || '').toLowerCase();
+                        return this.allowedSites.some(site => loc.includes(site) || locFrom.includes(site));
+                    });
+                }
                 this.setState({
-                    stockRecords: response.data.records || []
+                    stockRecords: records
                 });
             }
         } catch (error) {
@@ -465,13 +556,6 @@ class InventoryStore extends Component {
                 this.setState({ filterProductDropdownOpen: false });
             }
         }
-        if (this.filterLocationDropdownRef.current && !this.filterLocationDropdownRef.current.contains(e.target)) {
-            if (this.state.filterLocationDropdownOpen && this.state.filterLocationSearch === '') {
-                this.setState({ filterLocation: '', filterLocationDropdownOpen: false });
-            } else {
-                this.setState({ filterLocationDropdownOpen: false });
-            }
-        }
         if (this.allocateProductDropdownRef.current && !this.allocateProductDropdownRef.current.contains(e.target)) {
             this.setState({ allocateProductDropdownOpen: false });
         }
@@ -483,43 +567,26 @@ class InventoryStore extends Component {
         return query ? unique.filter(n => n.toLowerCase().includes(query)) : unique;
     };
 
-    getFilterLocationOptions = () => {
-        const query = this.state.filterLocationSearch.toLowerCase();
-        const unique = [...new Set(this.state.inventoryProducts.map(p => p.variation_name).filter(Boolean))];
-        return query ? unique.filter(n => n.toLowerCase().includes(query)) : unique;
-    };
 
     selectFilterProduct = (name) => {
         this.setState({ filterProduct: name, filterProductSearch: '', filterProductDropdownOpen: false });
     };
 
-    selectFilterLocation = (loc) => {
-        this.setState({ filterLocation: loc, filterLocationSearch: '', filterLocationDropdownOpen: false });
-    };
 
     getFilteredGroupedProducts = () => {
-        const { filterProduct, filterLocation } = this.state;
+        const { filterProduct } = this.state;
         let groups = this.getGroupedProducts();
         if (filterProduct) {
             groups = groups.filter(g => g.name.toLowerCase().includes(filterProduct.toLowerCase()));
-        }
-        if (filterLocation) {
-            groups = groups.map(g => ({
-                ...g,
-                variants: g.variants.filter(v => v.variation_name && v.variation_name.toLowerCase().includes(filterLocation.toLowerCase()))
-            })).filter(g => g.variants.length > 0);
         }
         return groups;
     };
 
     getFilteredVariants = () => {
-        const { inventoryProducts, filterProduct, filterLocation } = this.state;
+        const { inventoryProducts, filterProduct } = this.state;
         let variants = inventoryProducts;
         if (filterProduct) {
             variants = variants.filter(p => p.name && p.name.toLowerCase().includes(filterProduct.toLowerCase()));
-        }
-        if (filterLocation) {
-            variants = variants.filter(p => p.variation_name && p.variation_name.toLowerCase().includes(filterLocation.toLowerCase()));
         }
         return variants;
     };
@@ -544,25 +611,12 @@ class InventoryStore extends Component {
             .reduce((sum, r) => sum + (parseInt(r.quantity) || 0), 0);
     };
 
+
+
     render() {
         const { inventoryProducts, isLoading, error } = this.state;
 
-        if (isLoading) {
-            return (
-                <>
-                    <div className="inventory-heading">
-                        <h2>Inventory Overview</h2>
-                    </div>
-                    <div className="inventory-content">
-                        <div className="inventory-loading">
-                            <i className="fas fa-spinner fa-spin"></i>
-                            <p>Loading inventory...</p>
-                        </div>
-                    </div>
-                </>
-            );
-        }
-
+        // show early error state if something went wrong
         if (error) {
             return (
                 <>
@@ -631,33 +685,10 @@ class InventoryStore extends Component {
                                     )}
                                 </div>
                             </div>
-                            {this.state.activeTab === 'variants' && (
-                                <div className="stock-filter-field">
-                                    <label>Variant</label>
-                                    <div className="stock-filter-dropdown" ref={this.filterLocationDropdownRef}>
-                                        <input
-                                            type="text"
-                                            placeholder={this.state.filterLocation || "Search variant..."}
-                                            value={this.state.filterLocationDropdownOpen ? this.state.filterLocationSearch : this.state.filterLocation}
-                                            onChange={e => this.setState({ filterLocationSearch: e.target.value, filterLocationDropdownOpen: true })}
-                                            onFocus={() => this.setState({ filterLocationSearch: '', filterLocationDropdownOpen: true })}
-                                        />
-                                        {this.state.filterLocationDropdownOpen && this.getFilterLocationOptions().length > 0 && (
-                                            <ul className="stock-filter-dropdown-list">
-                                                {this.getFilterLocationOptions().map((loc, idx) => (
-                                                    <li key={idx} className="stock-filter-dropdown-item" onClick={() => this.selectFilterLocation(loc)}>
-                                                        {loc}
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     </div>
 
-                {inventoryProducts.length === 0 ? (
+                {(inventoryProducts.length === 0 && !isLoading && this.initialFetchDone) ? (
                     <div className="inventory-empty-state">
                         <i className="fas fa-boxes"></i>
                         <h3>No Products Found</h3>
@@ -665,7 +696,7 @@ class InventoryStore extends Component {
                     </div>
                 ) : this.state.activeTab === 'store' ? (
                     /* Store Inventory Tab - One card per product with location badges */
-                    <div className="inventory-grid">
+                    <div className="inventory-cards-grid">
                         {this.getFilteredGroupedProducts().map((group) => {
                             const storeStock = this.getStoreStock(group.name);
                             return (
@@ -712,7 +743,7 @@ class InventoryStore extends Component {
                     </div>
                 ) : (
                     /* Sub Products Tab - Original card layout */
-                    <div className="inventory-grid">
+                    <div className="inventory-cards-grid">
                         {this.getFilteredVariants().map((product) => (
                             <div key={product.id} className="inventory-card">
                                 {product.images && product.images.length > 0 ? (
@@ -748,6 +779,14 @@ class InventoryStore extends Component {
                 </div>
 
                 {/* Allocation Modal */}
+
+                {/* loading overlay popup */}
+                {isLoading && (
+                    <div className="inventory-loading-overlay">
+                        <i className="fas fa-spinner fa-spin"></i>
+                        <p>Loading inventory...</p>
+                    </div>
+                )}
                 {this.state.showAllocateModal && (
                     <div className="stock-modal-overlay" onClick={this.closeAllocateModal}>
                         <div className="stock-modal" onClick={(e) => e.stopPropagation()}>

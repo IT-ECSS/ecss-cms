@@ -53,7 +53,8 @@ class OrderRecords extends Component {
 
     getLocationStockRecords = () => {
         const { stockRecords } = this.props;
-        const siteLocations = ['ct hub', 'tampines north community club', 'pasir ris west wellness centre'];
+        // match both club and centre variants for Tampines North
+        const siteLocations = ['ct hub', 'tampines north community club', 'tampines north community centre', 'pasir ris west wellness centre'];
         return stockRecords.filter(r => {
             const locTo = (r.locationTo || '').toLowerCase();
             const locFrom = (r.locationFrom || r.location || '').toLowerCase();
@@ -64,7 +65,8 @@ class OrderRecords extends Component {
     getFilteredOrderRecords = () => {
         const { stockRecords } = this.props;
         const { orderFilterProduct, orderFilterLocation, orderFilterDateFrom, orderFilterDateTo } = this.state;
-        const siteLocations = ['ct hub', 'tampines north community club', 'pasir ris west wellness centre'];
+        // include both spellings so filters catch our Tampines North records
+        const siteLocations = ['ct hub', 'tampines north community club', 'tampines north community centre', 'pasir ris west wellness centre'];
 
         // Get all stock records relevant to site locations and relabel action from location's POV
         let filtered = stockRecords.filter(r => {
@@ -152,7 +154,7 @@ class OrderRecords extends Component {
     getOrderFilterLocationOptions = () => {
         const { orderFilterLocation } = this.state;
         const query = orderFilterLocation.toLowerCase();
-        const locations = ['CT Hub', 'Tampines North Community Club', 'Pasir Ris West Wellness Centre'];
+        const locations = ['CT Hub', 'Tampines North Community Club', 'Tampines North Community Centre', 'Pasir Ris West Wellness Centre'];
         return query ? locations.filter(n => n.toLowerCase().includes(query)) : locations;
     };
 

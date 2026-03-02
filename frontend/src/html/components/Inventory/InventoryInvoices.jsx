@@ -9,6 +9,17 @@ const restrictedRoles = ['Site in-charge', 'NSA in-charge', 'Fitness Trainer'];
 class InventoryInvoices extends Component {
     constructor(props) {
         super(props);
+        // compute allowed sites array from prop
+        let allowedSites = [];
+        if (props.siteIC) {
+            if (Array.isArray(props.siteIC)) {
+                allowedSites = props.siteIC.map(s => s.trim()).filter(Boolean);
+            } else if (typeof props.siteIC === 'string') {
+                allowedSites = props.siteIC.split(',').map(s => s.trim()).filter(Boolean);
+            }
+        }
+        this.allowedSites = allowedSites.map(s => s.toLowerCase());
+
         this.state = {
             folders: [],
             activeFolder: null,
@@ -79,6 +90,13 @@ class InventoryInvoices extends Component {
                         const name = f.name.toLowerCase();
                         return name.includes('company') && name.includes('receipt');
                     });
+                    // further narrow to allowed sites if provided
+                    if (this.allowedSites.length > 0) {
+                        folders = folders.filter(f => {
+                            const name = (f.name || '').toLowerCase();
+                            return this.allowedSites.some(site => name.includes(site));
+                        });
+                    }
                 }
                 
                 this.setState({ 

@@ -39,13 +39,27 @@ def inventory_sse(request):
         with _sse_lock:
             _sse_clients.append(client_q)
         try:
-            yield 'data: {"type":"connected"}\n\n'
+            # initial connection message
+            try:
+                yield 'data: {"type":"connected"}\n\n'
+            except BrokenPipeError:
+                # client disconnected immediately
+                return
+
             while True:
                 try:
                     data = client_q.get(timeout=25)
-                    yield f'data: {data}\n\n'
+                    try:
+                        yield f'data: {data}\n\n'
+                    except BrokenPipeError:
+                        # client closed connection; exit loop
+                        break
                 except queue.Empty:
-                    yield ': ping\n\n'  # Keep-alive
+                    # send a heartbeat ping; handle pipe errors as well
+                    try:
+                        yield ': ping\n\n'  # Keep-alive
+                    except BrokenPipeError:
+                        break
         finally:
             with _sse_lock:
                 if client_q in _sse_clients:
@@ -56,6 +70,7 @@ def inventory_sse(request):
     resp['X-Accel-Buffering'] = 'no'
     resp['Access-Control-Allow-Origin'] = '*'
     return resp
+
 import plotly.express as px
 import pandas as pd
 from django.shortcuts import render
@@ -196,18 +211,51 @@ def fundraising_product_details(request):
 
 @csrf_exempt
 def inventory_product_details(request):
-    """Fetches inventory products from WooCommerce filtered by 'Inventory' category."""
+    """Fetches inventory products from WooCommerce filtered by 'Inventory' category.
+
+    Uses a stale‑while‑revalidate cache strategy: callers always see a response
+    immediately (even if it’s stale) while a background thread refreshes the
+    cache when the fresh copy expires.  This prevents the UI from blocking on a
+    slow WooCommerce pagination loop.
+    """
     try:
-        # Initialize WooCommerce API instance
-        woo_api = WooCommerceAPI()
-        
-        # Get all inventory products
-        print("Fetching inventory products from all pages...")
-        products = woo_api.get_inventory_products()
-        print(f"Total inventory products found: {len(products)}")
+        from django.core.cache import cache
 
+        cache_key = 'inventory_products_cache'
+        stale_key = 'inventory_products_cache_stale'
+        timeout = getattr(settings, 'INVENTORY_CACHE_TIMEOUT', 60)
 
-        # Return inventory products as a JSON response
+        products = cache.get(cache_key)
+        if products is not None:
+            # fresh hit
+            print("Returning cached inventory products ({} items)".format(len(products)))
+        else:
+            # no fresh value -> check for stale copy
+            products = cache.get(stale_key)
+            if products is not None:
+                print("Returning stale inventory products ({} items) while refreshing".format(len(products)))
+
+                # refresh in background
+                def refresh():
+                    try:
+                        woo_api = WooCommerceAPI()
+                        print("[background] fetching inventory products from all pages...")
+                        newprods = woo_api.get_inventory_products()
+                        print(f"[background] fetched {len(newprods)} items")
+                        cache.set(cache_key, newprods, timeout=timeout)
+                        cache.set(stale_key, newprods)
+                    except Exception as ex:
+                        print("[background] error refreshing inventory cache:", ex)
+                threading.Thread(target=refresh, daemon=True).start()
+            else:
+                # first ever request – must wait for WooCommerce
+                woo_api = WooCommerceAPI()
+                print("Fetching inventory products from all pages... (initial)")
+                products = woo_api.get_inventory_products()
+                print(f"Total inventory products found: {len(products)}")
+                cache.set(cache_key, products, timeout=timeout)
+                cache.set(stale_key, products)
+
         return JsonResponse({
             "success": True,
             "inventory_products": products

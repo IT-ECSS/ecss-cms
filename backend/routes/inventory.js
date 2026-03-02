@@ -84,12 +84,34 @@ router.post('/', async function(req, res, next)
                 const customerName = (req.body.customerName || 'customer').replace(/[^a-zA-Z0-9_]/g, '_').trim();
                 const paymentMethod = (req.body.paymentMethod || 'payment').replace(/[^a-zA-Z0-9_]/g, '');
                 const receiptNumber = (req.body.receiptNumber || 'receipt').replace(/[^a-zA-Z0-9_/]/g, '_');
-                const location = (req.body.location || 'location').replace(/[^a-zA-Z0-9_]/g, '_').trim();
+
+                // determine location string: prefer explicit field, otherwise derive from items
+                let location = req.body.location;
+                if (!location && Array.isArray(req.body.items) && req.body.items.length > 0) {
+                    const locs = [...new Set(req.body.items
+                        .map(i => i.location)
+                        .filter(l => l && l.toString().trim()))];
+                    location = locs.join(',');
+                }
+                location = (location || 'location').replace(/[^a-zA-Z0-9_]/g, '_').trim();
                 const filename = `${customerName}_${location}_${paymentMethod}_${receiptNumber}.pdf`;
                 
                 // Upload PDF to Google Drive inventory receipts folder
                 const googleDriveController = new GoogleDriveController();
-                const inventoryReceiptsFolderId = '1ZTlyDTXuoMHVo92RUndr_4LFQEhnezoi';
+                // determine folder by site keyword in location
+                let inventoryReceiptsFolderId = '1ZTlyDTXuoMHVo92RUndr_4LFQEhnezoi'; // default shared folder
+                const locKey = location.toLowerCase();
+                const siteFolderMap = {
+                    'ct hub': 'FOLDER_ID_CT_HUB',
+                    'tampines north': 'FOLDER_ID_TAMPINES',
+                    'pasir ris west': 'FOLDER_ID_PASIR_RIS'
+                };
+                for (const key in siteFolderMap) {
+                    if (locKey.includes(key)) {
+                        inventoryReceiptsFolderId = siteFolderMap[key];
+                        break;
+                    }
+                }
                 const uploadResult = await googleDriveController.uploadPdfToGoogleDrive(
                     pdfBuffer, filename, inventoryReceiptsFolderId
                 );

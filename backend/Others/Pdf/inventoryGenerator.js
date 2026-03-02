@@ -75,15 +75,18 @@ class InventoryGenerator {
     //   receiptNumber: string,
     //   customerName: string,
     //   paymentMethod: string,
-    //   product: string,
-    //   location: string,
-    //   quantity: number,
     //   orderDate: string (DD/MM/YYYY),
     //   orderTime: string (HH:MM),
     //   staffName: string,
-    //   unitPrice: number,
-    //   totalPrice: string or number
+    //   items: [ {
+    //      product: string,
+    //      location: string,
+    //      quantity: number,
+    //      unitPrice: number,
+    //      totalPrice: number|string
+    //   }, ... ]
     // }
+    // if "items" is not provided, it will fall back to the older single-item fields
     async generateInventoryReceipt(orderData) {
         try {
             console.log('Inventory Generator - Generating receipt with data:', orderData);
@@ -221,41 +224,60 @@ class InventoryGenerator {
         let currentY = tableTop + headerHeight;
         doc.font(fontPathRegular).fontSize(11);
 
-        // Build description text
-        const quantity = orderData.quantity || 1;
-        const unitPrice = parseFloat(orderData.unitPrice) || 0;
-        const totalPrice = parseFloat(orderData.totalPrice) || (quantity * unitPrice);
-        
-        let descriptionText = orderData.product || 'Product';
-        descriptionText += `\nLocation: ${orderData.location || 'N/A'}`;
-        descriptionText += `\nQty: ${quantity} x $${unitPrice.toFixed(2)}`;
+        // Support multiple items if provided
+        const items = Array.isArray(orderData.items) && orderData.items.length > 0
+            ? orderData.items
+            : [{
+                product: orderData.product || '',
+                // prefer explicit location field, then locationFrom (inventory data uses that),
+                // default to empty string if neither exists
+                location: orderData.location || orderData.locationFrom || '',
+                quantity: orderData.quantity || 1,
+                unitPrice: orderData.unitPrice || 0,
+                totalPrice: orderData.totalPrice || (orderData.quantity * orderData.unitPrice)
+            }];
 
-        // Add row content
-        doc.text('1', columnPositions.serial + 20, currentY + 15);
-        doc.text(descriptionText, columnPositions.description + 10, currentY + 10, {
-            width: columnWidths.description - 20,
-            align: 'left'
-        });
-        doc.text(`$${totalPrice.toFixed(2)}`, columnPositions.amount + 15, currentY + 15);
+        let grandTotal = 0;
+        let serial = 1;
 
-        // Draw vertical borders for item row
-        doc.lineWidth(borderThickness)
-            .moveTo(columnPositions.serial + columnWidths.serial, currentY)
-            .lineTo(columnPositions.serial + columnWidths.serial, currentY + rowHeight)
-            .stroke('black');
+        for (const itm of items) {
+            const quantity = parseFloat(itm.quantity) || 0;
+            const unitPrice = parseFloat(itm.unitPrice) || 0;
+            const totalPrice = parseFloat(itm.totalPrice) || (quantity * unitPrice);
+            grandTotal += totalPrice;
 
-        doc.lineWidth(borderThickness)
-            .moveTo(columnPositions.description + columnWidths.description, currentY)
-            .lineTo(columnPositions.description + columnWidths.description, currentY + rowHeight)
-            .stroke('black');
+            let descriptionText = itm.product || 'Product';
+            descriptionText += `\nLocation: ${itm.location || 'N/A'}`;
+            descriptionText += `\nQty: ${quantity} x $${unitPrice.toFixed(2)}`;
 
-        currentY += rowHeight;
+            // Add row content
+            doc.text(`${serial}`, columnPositions.serial + 20, currentY + 15);
+            doc.text(descriptionText, columnPositions.description + 10, currentY + 10, {
+                width: columnWidths.description - 20,
+                align: 'left'
+            });
+            doc.text(`$${totalPrice.toFixed(2)}`, columnPositions.amount + 15, currentY + 15);
+
+            // Draw vertical borders for item row
+            doc.lineWidth(borderThickness)
+                .moveTo(columnPositions.serial + columnWidths.serial, currentY)
+                .lineTo(columnPositions.serial + columnWidths.serial, currentY + rowHeight)
+                .stroke('black');
+
+            doc.lineWidth(borderThickness)
+                .moveTo(columnPositions.description + columnWidths.description, currentY)
+                .lineTo(columnPositions.description + columnWidths.description, currentY + rowHeight)
+                .stroke('black');
+
+            currentY += rowHeight;
+            serial += 1;
+        }
 
         // Add total row
         const totalRowHeight = 40;
         doc.font(fontPathBold).fontSize(12);
         doc.text('Total:', columnPositions.description + 10, currentY + 12);
-        doc.text(`$${totalPrice.toFixed(2)}`, columnPositions.amount + 15, currentY + 12);
+        doc.text(`$${grandTotal.toFixed(2)}`, columnPositions.amount + 15, currentY + 12);
 
         // Draw borders for total row
         doc.lineWidth(borderThickness)

@@ -19,6 +19,18 @@ class InventoryRecords extends Component {
     constructor(props) {
         super(props);
         const isRestricted = restrictedRoles.includes(props.role);
+
+        // derive allowedSites from prop similar to InventoryStore
+        let allowedSites = [];
+        if (props.siteIC) {
+            if (Array.isArray(props.siteIC)) {
+                allowedSites = props.siteIC.map(s => s.trim()).filter(Boolean);
+            } else if (typeof props.siteIC === 'string') {
+                allowedSites = props.siteIC.split(',').map(s => s.trim()).filter(Boolean);
+            }
+        }
+        this.allowedSites = allowedSites.map(s => s.toLowerCase());
+
         this.state = {
             activeTab: isRestricted ? 'orders' : 'stock', // 'stock' or 'orders'
             records: [],
@@ -48,12 +60,18 @@ class InventoryRecords extends Component {
                 : "https://ecss-backend-node.azurewebsites.net"
         );
         this.socket.on('inventory', (data) => {
-            // Debounce socket updates - only fetch after 500ms of no new events
+            // Debounce socket updates - refresh both records and product details
             if (this.socketFetchTimer) clearTimeout(this.socketFetchTimer);
             this.socketFetchTimer = setTimeout(() => {
-                this.fetchInventoryRecords();
+                // always update stock records
                 this.fetchStockRecords();
+                // also update the product list so balances are current
                 this.fetchInventoryProducts();
+
+                // refresh records only when user is viewing them
+                if (this.props.activeTab === 'records') {
+                    this.fetchInventoryRecords();
+                }
             }, 500);
         });
     }
@@ -72,24 +90,52 @@ class InventoryRecords extends Component {
 
     fetchInventoryRecords = async () => {
         const result = await fetchInventoryRecordsApi();
+        let recs = result.records;
+        if (this.props.role === 'Site in-charge' && this.allowedSites.length > 0 && Array.isArray(recs)) {
+            recs = recs.filter(r => {
+                const loc = (r.location || '').toLowerCase();
+                const locFrom = (r.locationFrom || '').toLowerCase();
+                return this.allowedSites.some(site => loc.includes(site) || locFrom.includes(site));
+            });
+        }
         this.setState({
-            records: result.records,
+            records: recs,
             error: result.error
         });
     };
 
     fetchInventoryProducts = async () => {
         const result = await fetchInventoryProductsApi();
+        let products = result.inventoryProducts;
+        if (this.props.role === 'Site in-charge' && this.allowedSites.length > 0 && Array.isArray(products)) {
+            products = products.filter(p => {
+                const loc = (p.variation_name || '').toLowerCase();
+                return this.allowedSites.some(site => loc.includes(site));
+            });
+        }
         this.setState({
-            inventoryProducts: result.inventoryProducts
+            inventoryProducts: products
         });
     };
 
     fetchStockRecords = async () => {
         const result = await fetchStockRecordsApi();
+        console.log("Fetched stock records:", result.stockRecords);
+        let records = result.stockRecords;
+        if (this.props.role === 'Site in-charge' && this.allowedSites.length > 0 && Array.isArray(records)) {
+            records = records.filter(r => {
+                const loc = (r.location || '').toLowerCase();
+                const locFrom = (r.locationFrom || '').toLowerCase();
+                return this.allowedSites.some(site => loc.includes(site) || locFrom.includes(site));
+            });
+        }
         this.setState({
-            stockRecords: result.stockRecords
+            stockRecords: records
         });
+
+        // keep the product cache up to date each time we reload records
+        // this ensures the card balances always reflect the latest WooCommerce values
+        this.fetchInventoryProducts();
     };
 
     // Stock adjustment callback from StockRecords
@@ -113,6 +159,17 @@ class InventoryRecords extends Component {
             this.socket.disconnect();
         }
     }
+
+    handleManualRefresh = async () => {
+        // user clicked refresh button - reload everything
+        this.setState({ isLoading: true, error: null });
+        await Promise.all([
+            this.fetchInventoryRecords(),
+            this.fetchStockRecords(),
+            this.fetchInventoryProducts()
+        ]);
+        this.setState({ isLoading: false });
+    };
 
     render() {
         const { activeTab, isLoading } = this.state;

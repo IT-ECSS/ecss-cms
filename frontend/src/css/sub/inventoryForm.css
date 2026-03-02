@@ -417,6 +417,46 @@
 }
 
 /* Responsive Design */
+/* generic field wrapper uses relative positioning so error text can float without pushing fields */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    position: relative;
+    overflow: visible;
+}
+
+/* general class that can be applied to any field-specific error message */
+.field-error {
+    position: absolute;
+    top: 100%; /* float directly underneath input */
+    left: 0;
+    color: #e53e3e;
+    font-weight: bold;
+    font-size: 1.2rem;
+    white-space: nowrap;
+    margin-top: 2px;
+    z-index: 1000; /* stay above neighboring elements */
+}
+
+/* wrapper for quantity input to absolutely position error text in overlay */
+.qty-container {
+    position: relative;
+    /* no padding; message will not affect layout */
+}
+
+.qty-container .qty-error {
+    position: absolute;
+    top: 100%; /* place below the input */
+    left: 0;
+    color: #e53e3e;
+    font-weight: bold;
+    font-size: 1.2rem;
+    white-space: nowrap;
+    margin-top: 2px;
+    z-index: 1000; /* ensure visibility over neighbouring cells */
+}
+
 @media (max-width: 768px) {
     .inventory-form-container {
         padding: 1rem;

@@ -8,6 +8,11 @@ export const orderColumnDefs = [
         pinned: 'left',
     },
     { 
+        headerName: 'Status',
+        width: 120,
+        valueGetter: (params) => params.data?.receiptNumber ? 'Sold' : 'Balance'
+    },
+    { 
         headerName: 'Customer Name', 
         field: 'customerName', 
         width: 200,
@@ -30,7 +35,7 @@ export const orderColumnDefs = [
     { 
         headerName: 'Location', 
         field: 'location', 
-        width: 280,
+        width: 400,
     },
     { 
         headerName: 'Quantity', 
@@ -51,6 +56,7 @@ export const orderColumnDefs = [
     },
     { 
         headerName: 'Time', 
+        valueGetter: (params) => params.data?.time || params.data?.orderTime || '',
         width: 100,
     },
     { 
@@ -67,6 +73,7 @@ export const orderColumnDefs = [
     { 
         headerName: 'Updated By', 
         width: 200,
+        valueGetter: (params) => params.data?.updatedBy || params.data?.staffName || '',
     },
     { 
         headerName: 'Receipt Number', 

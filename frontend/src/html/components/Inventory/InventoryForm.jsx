@@ -125,6 +125,25 @@ class InventoryForm extends Component {
     // Handle dropdown selection
     handleProductSelect = (product) => {
         this.setState(prevState => {
+            // if user clicks the already-selected product, clear entire form except date/time/staff
+            if (prevState.formData.product === product) {
+                return {
+                    formData: {
+                        customerName: '',
+                        product: '',
+                        location: '',
+                        quantity: '',
+                        orderDate: prevState.formData.orderDate,
+                        orderTime: prevState.formData.orderTime,
+                        staffName: prevState.formData.staffName,
+                        paymentMethod: '',
+                        totalAmount: ''
+                    },
+                    showProductDropdown: false,
+                    showLocationDropdown: false
+                };
+            }
+
             const newFormData = {
                 ...prevState.formData,
                 product: product,
@@ -153,6 +172,19 @@ class InventoryForm extends Component {
 
     handleLocationSelect = (location) => {
         this.setState(prevState => {
+            // if same location selected again, clear location/quantity/total
+            if (prevState.formData.location === location) {
+                return {
+                    formData: {
+                        ...prevState.formData,
+                        location: '',
+                        quantity: '',
+                        totalAmount: ''
+                    },
+                    showLocationDropdown: false
+                };
+            }
+
             const newFormData = {
                 ...prevState.formData,
                 location: location
@@ -633,27 +665,30 @@ class InventoryForm extends Component {
                                                 <i className="fas fa-sort-numeric-up"></i>
                                                 Quantity <span className="required">*</span>
                                             </label>
-                                            <input
-                                                type="text"
-                                                id="quantity"
-                                                name="quantity"
-                                                value={formData.quantity}
-                                                onChange={this.handleInputChange}
-                                                placeholder="Qty"
-                                                required
-                                                style={
-                                                    this.getSelectedProductStock() !== null && 
-                                                    (parseInt(formData.quantity) || 0) > this.getSelectedProductStock()
-                                                        ? { borderColor: 'red', color: 'red' }
-                                                        : {}
-                                                }
-                                            />
-                                            {this.getSelectedProductStock() !== null && 
-                                             (parseInt(formData.quantity) || 0) > this.getSelectedProductStock() && (
-                                                <span style={{ color: 'red', fontWeight: 'bold', fontSize: '1.2rem', marginTop: '4px', display: 'block' }}>
-                                                    Exceeds stock ({this.getSelectedProductStock()} available)
-                                                </span>
-                                            )}
+                                            {/* wrapper ensures the error message can be positioned absolutely */}
+                                            <div className="qty-container">
+                                                <input
+                                                    type="text"
+                                                    id="quantity"
+                                                    name="quantity"
+                                                    value={formData.quantity}
+                                                    onChange={this.handleInputChange}
+                                                    placeholder="Qty"
+                                                    required
+                                                    style={
+                                                        this.getSelectedProductStock() !== null && 
+                                                        (parseInt(formData.quantity) || 0) > this.getSelectedProductStock()
+                                                            ? { borderColor: 'red', color: 'red' }
+                                                            : {}
+                                                    }
+                                                />
+                                                {this.getSelectedProductStock() !== null && 
+                                                 (parseInt(formData.quantity) || 0) > this.getSelectedProductStock() && (
+                                                    <span className="qty-error">
+                                                        Exceeds stock ({this.getSelectedProductStock()} available)
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                         <div style={{ flex: 1 }}>
                                             <label htmlFor="unitPrice" style={{ whiteSpace: 'nowrap' }}>

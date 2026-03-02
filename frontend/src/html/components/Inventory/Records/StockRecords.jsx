@@ -13,6 +13,8 @@ import {
 // Set PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
 
+import { parseDateFilter } from '../searchFilter/StockFilterUtils';
+
 class StockRecords extends Component {
     constructor(props) {
         super(props);
@@ -51,6 +53,51 @@ class StockRecords extends Component {
             this.setState({ toolbarReady: true });
         }, 300);
     }
+
+    /**
+     * Return a filtered subset of stockRecords based on the card filter state.
+     * This mirrors the behaviour used for the summary cards so that the table
+     * and export button respect the same criteria.
+     */
+    getFilteredStockRecords = () => {
+        const { stockRecords = [] } = this.props;
+        const {
+            cardFilterProduct,
+            cardFilterLocation,
+            cardFilterDateFrom,
+            cardFilterDateTo
+        } = this.state;
+
+        let filtered = stockRecords;
+
+        if (cardFilterProduct) {
+            const prodLower = cardFilterProduct.toLowerCase();
+            filtered = filtered.filter(r => (r.product || '').toLowerCase().includes(prodLower));
+        }
+        if (cardFilterLocation) {
+            const locLower = cardFilterLocation.toLowerCase();
+            filtered = filtered.filter(r => {
+                const from = (r.locationFrom || r.location || '').toLowerCase();
+                const to = (r.locationTo || '').toLowerCase();
+                return from.includes(locLower) || to.includes(locLower);
+            });
+        }
+        if (cardFilterDateFrom) {
+            const fromDate = parseDateFilter(cardFilterDateFrom);
+            filtered = filtered.filter(r => {
+                const d = r.date || r.orderDate || '';
+                return !d || d >= fromDate;
+            });
+        }
+        if (cardFilterDateTo) {
+            const toDate = parseDateFilter(cardFilterDateTo);
+            filtered = filtered.filter(r => {
+                const d = r.date || r.orderDate || '';
+                return !d || d <= toDate;
+            });
+        }
+        return filtered;
+    };
 
     componentWillUnmount() {
         // Cleanup if needed
@@ -413,8 +460,8 @@ class StockRecords extends Component {
                                     Stock Adjustment
                                 </button>
                             )}
-                            {stockRecords.length > 0 && (
-                                <button className="stock-export-btn" onClick={() => exportStockToExcel(stockRecords)}>
+                            {this.getFilteredStockRecords().length > 0 && (
+                                <button className="stock-export-btn" onClick={() => exportStockToExcel(this.getFilteredStockRecords())}>
                                     Export
                                 </button>
                             )}
@@ -436,7 +483,7 @@ class StockRecords extends Component {
                         <div className="inventory-records-grid-container ag-theme-inventory" style={{ height: '500px', width: '100%' }}>
                             <AgGridReact
                                 columnDefs={this.columnDefs}
-                                rowData={stockRecords}
+                                rowData={this.getFilteredStockRecords()}
                                 pagination={true}
                                 paginationPageSize={50}
                                 paginationPageSizeSelector={[25, 50, 100, 200]}

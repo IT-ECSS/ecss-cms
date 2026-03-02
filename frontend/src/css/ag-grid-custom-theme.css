@@ -87,7 +87,8 @@
 .ag-cell input[type="text"],
 .ag-cell select {
   background-color: transparent !important;
-  border: 1px solid #ccc;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .ag-cell input[type="text"]:focus,
@@ -112,7 +113,8 @@
 :where(.ag-cell-editor) .ag-input-field-input, 
 :where(.ag-cell-editor) .ag-wrapper {
   background-color: transparent !important;
-  border: 1px solid #ccc;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 /* Custom styles for the select box */

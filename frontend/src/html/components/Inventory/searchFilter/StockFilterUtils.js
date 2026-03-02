@@ -122,6 +122,9 @@ export const extractColorVariant = (parentName) => {
 export const generateProductSummaryCards = (inventoryProducts, stockRecords, filterOptions = {}) => {
     const { cardFilterProduct = '', cardFilterLocation = '', cardFilterDateFrom = '', cardFilterDateTo = '' } = filterOptions;
     const trueParentMap = {};
+    // when the user types a full variant name like "ECSS Picnic Mat - Yellow",
+    // keep the colour portion so we can remove the other colour cards later
+    const colourFilter = extractColorVariant(cardFilterProduct).toLowerCase();
 
     // Filter stock records by date range if set
     let filteredStockRecords = stockRecords;
@@ -181,23 +184,36 @@ export const generateProductSummaryCards = (inventoryProducts, stockRecords, fil
         const storeInActions = ['purchase from supplier', 'return stock to store'];
         const storeOutActions = ['allocation to site', 'return to supplier'];
 
+        // gather every actual product name that belongs to this parent (including color/variant names)
+        const variationNames = [];
+        Object.values(locationVariants).forEach(locData => {
+            Object.values(locData.colorMap).forEach(colorData => {
+                colorData.products.forEach(p => {
+                    if (p.name) variationNames.push(p.name.toLowerCase());
+                });
+            });
+        });
+        // include parent name as fallback
+        if (!variationNames.includes(trueParentLower)) {
+            variationNames.push(trueParentLower);
+        }
+
         const totalStockIn = filteredStockRecords
-            .filter(r => (r.product || '').toLowerCase() === trueParentLower && storeInActions.includes((r.action || '').toLowerCase()) && (r.locationTo || '').toLowerCase() === 'store')
+            .filter(r => variationNames.includes((r.product || '').toLowerCase()) && storeInActions.includes((r.action || '').toLowerCase()) && (r.locationTo || '').toLowerCase() === 'store')
             .reduce((sum, r) => sum + (parseInt(r.quantity) || 0), 0);
 
         const totalStockOut = filteredStockRecords
-            .filter(r => (r.product || '').toLowerCase() === trueParentLower && storeOutActions.includes((r.action || '').toLowerCase()) && (r.locationFrom || '').toLowerCase() === 'store')
+            .filter(r => variationNames.includes((r.product || '').toLowerCase()) && storeOutActions.includes((r.action || '').toLowerCase()) && (r.locationFrom || '').toLowerCase() === 'store')
             .reduce((sum, r) => sum + (parseInt(r.quantity) || 0), 0);
 
+        // compute overall sales for the parent product (sum of all variations)
         const totalSales = filteredStockRecords
-            .filter(r => (r.product || '').toLowerCase() === trueParentLower && r.action === 'Sales')
+            .filter(r => variationNames.includes((r.product || '').toLowerCase()) && (r.action || '').toLowerCase() === 'sales')
             .reduce((sum, r) => sum + (parseInt(r.quantity) || 0), 0);
 
         // Create variations for each location (with colors as subsections)
-        const variations = Object.entries(locationVariants).map(([location, locData]) => {
+        let variations = Object.entries(locationVariants).map(([location, locData]) => {
             const { colorMap } = locData;
-            
-            console.log(`\n  Location: ${location}`);
             
             // Collect all product IDs and product names for this location
             const productIdsForLocation = [...new Set(
@@ -213,11 +229,8 @@ export const generateProductSummaryCards = (inventoryProducts, stockRecords, fil
                 )
             )];
             
-            console.log(`    Product IDs: [${productIdsForLocation.join(', ')}]`);
-            console.log(`    Product Names: [${productNamesForLocation.join(', ')}]`);
-            
             // For each location, create colors array
-            const colors = Object.entries(colorMap).map(([colorKey, colorData]) => {
+            let colors = Object.entries(colorMap).map(([colorKey, colorData]) => {
                 // Use the actual product names from this specific location
                 const colorProductNames = colorData.products.map(p => p.name).filter(Boolean);
                 
@@ -235,12 +248,22 @@ export const generateProductSummaryCards = (inventoryProducts, stockRecords, fil
                     .filter(r => colorProductNames.some(p => (r.product || '').toLowerCase() === p.toLowerCase()) && storeOutActions.includes((r.action || '').toLowerCase()) && (r.locationFrom || '').toLowerCase() === 'store')
                     .reduce((sum, r) => sum + (parseInt(r.quantity) || 0), 0);
 
+                // sales for this color/location – records only include parent name, so match on parent as fallback
+                // restrict sales by the current location as well
+                const locationLower = location.toLowerCase();
+                // compute sales attributable to this specific colour/variation
                 const colorSales = filteredStockRecords
-                    .filter(r => colorProductNames.some(p => (r.product || '').toLowerCase() === p.toLowerCase()) && r.action === 'Sales')
+                    .filter(r => {
+                        const actionMatch = (r.action || '').toLowerCase() === 'sales';
+                        const locFromMatch = (r.locationFrom || r.location || '').toLowerCase() === locationLower;
+                        const locToMatch = (r.locationTo || '').toLowerCase() === locationLower;
+                        // match either the parent product or the actual variation name(s)
+                        const prodLower = (r.product || '').toLowerCase();
+                        const matchesColor = colorProductNames.some(p => prodLower === p.toLowerCase());
+                        const matchesParent = prodLower === trueParentLower;
+                        return actionMatch && (locFromMatch || locToMatch) && (matchesColor || matchesParent);
+                    })
                     .reduce((sum, r) => sum + (parseInt(r.quantity) || 0), 0);
-
-                console.log(`      Stock In: ${colorStockIn}, Stock Out: ${colorStockOut}, Sales: ${colorSales}`);
-                console.log(`      Calculated Balance: ${colorStockIn - colorStockOut}`);
 
                 return {
                     name: colorKey,
@@ -252,28 +275,42 @@ export const generateProductSummaryCards = (inventoryProducts, stockRecords, fil
                 };
             });
 
+            // if a colour filter is active, remove colours that don't match
+            if (colourFilter) {
+                colors = colors.filter(c => c.name.toLowerCase() === colourFilter);
+            }
+
+            // if there are no colours left after filtering, skip this location entirely
+            if (colors.length === 0) {
+                return null;
+            }
+
             return {
                 name: location,  // Variation is now the location
                 productIds: productIdsForLocation,  // Include product IDs for this location
                 colors: colors   // Colors are subsections within location
             };
         });
+        // remove any null entries caused by empty locations
+        variations = variations.filter(v => v !== null);
+
 
         return {
             name: trueParentName,
             totalStock: totalStockIn,
             totalStockOut: totalStockOut,
-            totalSold: variations.reduce((sum, variation) => {
-                // Sum all sold quantities from all colors in all locations
-                return sum + (variation.colors ? variation.colors.reduce((colorSum, color) => colorSum + (color.sales || 0), 0) : 0);
-            }, 0),
+            // use precomputed totalSales directly (matches backend table)
+            totalSold: totalSales,
             variations: variations.sort((a, b) => a.name.localeCompare(b.name))
         };
     });
 
-    // Apply product name filter
+    // Apply product name filter.  The cards use true parent names (no colour suffix),
+    // so strip any '- color' part from the user query before matching.  This ensures a
+    // search for "ECSS Picnic Mat - Yellow" still returns the "ECSS Picnic Mat" card.
     if (cardFilterProduct) {
-        results = results.filter(c => c.name.toLowerCase().includes(cardFilterProduct.toLowerCase()));
+        const normalizedFilter = extractTrueParent(cardFilterProduct).toLowerCase();
+        results = results.filter(c => c.name.toLowerCase().includes(normalizedFilter));
     }
 
     // Apply location filter
