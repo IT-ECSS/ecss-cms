@@ -6,14 +6,18 @@ import '../../../css/sub/inventoryModules.css';
 class InventoryStore extends Component {
     constructor(props) {
         super(props);
+        const restrictedRoles = ['Site in-charge', 'NSA in-charge', 'Fitness Trainer'];
+        const canViewSubProducts = restrictedRoles.includes(props.role);
+        this.canViewSubProducts = canViewSubProducts; // helper flag used in render
+
         this.state = {
             inventoryProducts: [],
             inventoryRecords: [],
             stockRecords: [],
             isLoading: true,
             error: null,
-            // Tabs - restricted roles only see Sub Products
-            activeTab: ['Site in-charge', 'NSA in-charge', 'Fitness Trainer'].includes(props.role) ? 'variants' : 'store',
+            // Tabs - restricted roles only see Sub Products (variants) and no tab navigation
+            activeTab: canViewSubProducts ? 'variants' : 'store',
             // Allocation modal
             showAllocateModal: false,
             allocateForm: {
@@ -584,8 +588,8 @@ class InventoryStore extends Component {
                     <h2>Inventory Overview</h2>
                 </div>
 
-                {/* Tabs */}
-                {!['Site in-charge', 'NSA in-charge', 'Fitness Trainer'].includes(this.props.role) && (
+                {/* Tabs - only show navigation for users who are _not_ in the restricted roles list */}
+                {!this.canViewSubProducts && (
                     <div className="records-sub-tabs">
                         <button
                             className={`records-sub-tab${this.state.activeTab === 'store' ? ' active' : ''}`}
