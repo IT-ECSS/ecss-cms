@@ -13,10 +13,11 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs
 // Register AG Grid modules
 ModuleRegistry.registerModules([AllCommunityModule]);
 
+const restrictedRoles = ['Site in-charge', 'NSA in-charge', 'Fitness Trainer'];
+
 class InventoryRecords extends Component {
     constructor(props) {
         super(props);
-        const restrictedRoles = ['Site in-charge', 'NSA in-charge', 'Fitness Trainer'];
         const isRestricted = restrictedRoles.includes(props.role);
         this.state = {
             activeTab: isRestricted ? 'orders' : 'stock', // 'stock' or 'orders'
@@ -115,7 +116,6 @@ class InventoryRecords extends Component {
 
     render() {
         const { activeTab, isLoading } = this.state;
-        const restrictedRoles = ['Site in-charge', 'NSA in-charge', 'Fitness Trainer'];
         const isRestricted = restrictedRoles.includes(this.props.role);
 
         return (
