@@ -60,9 +60,13 @@ export const getFilteredLocations = (inventoryProducts = []) => {
  * @param {array} inventoryProducts - All inventory products
  * @returns {object} - Form field updates {locationFrom, locationTo}
  */
+// locations that represent the three current site destinations
+export const SITE_LOCATIONS = ['CT Hub', 'Tampines North Community Club', 'Pasir Ris West Wellness Centre'];
+
 export const getActionLocationConfig = (action, currentProduct, inventoryProducts = []) => {
-    const isColorProduct = hasColorVariations(currentProduct, inventoryProducts);
-    
+    // note: for site-related actions the dropdown will later be restricted
+    // to the values in SITE_LOCATIONS; we no longer auto‑populate based on
+    // colour variants.
     switch (action) {
         case 'Purchase From Supplier':
             return { locationFrom: 'Supplier', locationTo: 'Store' };
@@ -71,12 +75,12 @@ export const getActionLocationConfig = (action, currentProduct, inventoryProduct
         case 'Allocation To Site':
             return {
                 locationFrom: 'Store',
-                locationTo: isColorProduct ? 'CT Hub' : ''
+                locationTo: '' // user picks one of SITE_LOCATIONS
             };
         case 'Return Stock to Store':
             return {
                 locationTo: 'Store',
-                locationFrom: isColorProduct ? 'CT Hub' : ''
+                locationFrom: '' // user picks one of SITE_LOCATIONS
             };
         default:
             return { locationFrom: '', locationTo: '' };
@@ -92,18 +96,14 @@ export const getActionLocationConfig = (action, currentProduct, inventoryProduct
  */
 export const getProductLocationConfig = (productName, currentAction, inventoryProducts = []) => {
     const updates = {};
-    
+
     if (currentAction === 'Allocation To Site') {
         updates.locationFrom = 'Store';
-        if (hasColorVariations(productName, inventoryProducts)) {
-            updates.locationTo = 'CT Hub';
-        }
+        // leave locationTo blank so user can choose one of SITE_LOCATIONS
     } else if (currentAction === 'Return Stock to Store') {
         updates.locationTo = 'Store';
-        if (hasColorVariations(productName, inventoryProducts)) {
-            updates.locationFrom = 'CT Hub';
-        }
+        // leave locationFrom blank for the same reason
     }
-    
+
     return updates;
 };

@@ -6,7 +6,8 @@ import {
     getProductVariants,
     getFilteredLocations,
     getActionLocationConfig,
-    getProductLocationConfig
+    getProductLocationConfig,
+    SITE_LOCATIONS
 } from '../searchFilter/StockAdjustmentUtils';
 
 class StockAdjustmentModal extends Component {
@@ -321,7 +322,11 @@ class StockAdjustmentModal extends Component {
                                     />
                                     {locationFromDropdownOpen && (
                                         <ul className="incoming-dropdown-list">
-                                            {['Supplier', 'Store', ...getFilteredLocations(inventoryProducts).filter(l => l !== 'Supplier' && l !== 'Store')].map((loc, idx) => (
+                                            {(
+                                                formData.action === 'Return Stock to Store'
+                                                    ? SITE_LOCATIONS
+                                                    : ['Supplier', 'Store', ...getFilteredLocations(inventoryProducts).filter(l => l !== 'Supplier' && l !== 'Store')]
+                                            ).map((loc, idx) => (
                                                 <li key={idx} className="incoming-dropdown-item" onClick={() => {
                                                     onFormChange('locationFrom', loc);
                                                     this.setState({ locationFromDropdownOpen: false });
@@ -349,7 +354,11 @@ class StockAdjustmentModal extends Component {
                                     />
                                     {locationToDropdownOpen && (
                                         <ul className="incoming-dropdown-list">
-                                            {['Supplier', 'Store', ...getFilteredLocations(inventoryProducts).filter(l => l !== 'Supplier' && l !== 'Store')].map((loc, idx) => (
+                                            {(
+                                                formData.action === 'Allocation To Site'
+                                                    ? SITE_LOCATIONS
+                                                    : ['Supplier', 'Store', ...getFilteredLocations(inventoryProducts).filter(l => l !== 'Supplier' && l !== 'Store')]
+                                            ).map((loc, idx) => (
                                                 <li key={idx} className="incoming-dropdown-item" onClick={() => {
                                                     onFormChange('locationTo', loc);
                                                     this.setState({ locationToDropdownOpen: false });

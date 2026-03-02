@@ -18,7 +18,7 @@ class QRCodeGenerator {
             const buffer = await QRCode.toBuffer(this.text, this.options);
 
             // Save the buffer to a JPG file
-            const filename = `Crafting Connections (Pasir Ris West Wellness Centre).jpg`;
+            const filename = `汉语拼音中级班 – 中文 Hanyu Pinyin – Intermediate (CT Hub).jpg`;
             fs.writeFileSync(filename, buffer);
             console.log(`QR code generated and saved as ${filename}`);
         } catch (error) {
@@ -28,5 +28,5 @@ class QRCodeGenerator {
 }
 
 // Usage const filename = `https://ecss.org.sg/product/crafting-connectionspasir-ris-west-wellness-centre/`;
-const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/crafting-connectionspasir-ris-west-wellness-centre/`);
+const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/%e6%b1%89%e8%af%ad%e6%8b%bc%e9%9f%b3%e4%b8%ad%e7%ba%a7%e7%8f%ad-%e4%b8%ad%e6%96%87hanyu-pinyin-for-intermediate-mandarinct-hub/`);
 qrCodeGenerator.generate();
