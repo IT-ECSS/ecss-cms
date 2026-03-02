@@ -59,11 +59,13 @@ class InventoryRecords extends Component {
 
     async componentDidUpdate(prevProps) {
         if (this.props.activeTab === 'records' && this.props.inventoryRefreshCounter !== prevProps.inventoryRefreshCounter) {
+            this.setState({ isLoading: true, error: null });
             await Promise.all([
                 this.fetchInventoryRecords(),
                 this.fetchStockRecords(),
                 this.fetchInventoryProducts()
             ]);
+            this.setState({ isLoading: false });
         }
     }
 

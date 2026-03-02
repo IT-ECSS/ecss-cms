@@ -44,22 +44,26 @@ class InventoryStore extends Component {
 
     async componentDidMount() {
         document.addEventListener('mousedown', this.handleDocumentClick);
+        this.setState({ isLoading: true });
         await Promise.all([
             this.fetchInventoryProducts(),
             this.fetchInventoryRecords(),
             this.fetchStockRecords()
         ]);
+        this.setState({ isLoading: false });
         await this.setupSSE();
        //await this.setupSocket();
     }
 
     async componentDidUpdate(prevProps) {
         if (this.props.activeTab === 'store' && this.props.inventoryRefreshCounter !== prevProps.inventoryRefreshCounter) {
+            this.setState({ isLoading: true });
             await Promise.all([
                 this.fetchInventoryProducts(),
                 this.fetchInventoryRecords(),
                 this.fetchStockRecords()
             ]);
+            this.setState({ isLoading: false });
         }
     }
 
@@ -199,20 +203,17 @@ class InventoryStore extends Component {
             if (response.data.success) {
                 const products = response.data.inventory_products || [];
                 this.setState({
-                    inventoryProducts: products,
-                    isLoading: false
+                    inventoryProducts: products
                 });
             } else {
                 this.setState({
-                    error: 'Failed to fetch inventory products',
-                    isLoading: false
+                    error: 'Failed to fetch inventory products'
                 });
             }
         } catch (error) {
             console.error('Error fetching inventory products:', error);
             this.setState({
-                error: error.message || 'An error occurred while fetching inventory products',
-                isLoading: false
+                error: error.message || 'An error occurred while fetching inventory products'
             });
         }
     };

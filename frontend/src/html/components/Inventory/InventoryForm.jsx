@@ -215,13 +215,18 @@ class InventoryForm extends Component {
             }));
         }
         
-        // Fetch inventory products on mount (in background, non-blocking)
+        // Set loading state before fetching
+        this.setState({ isLoading: true });
+        
+        // Fetch inventory products on mount
         await this.fetchInventoryProducts();
     }
 
     async componentDidUpdate(prevProps) {
         if (this.props.activeTab === 'form' && this.props.inventoryRefreshCounter !== prevProps.inventoryRefreshCounter) {
             this.setCurrentDateTime();
+            // Show loading state when tab reloads
+            this.setState({ isLoading: true });
             await this.fetchInventoryProducts();
         }
     }
@@ -241,17 +246,20 @@ class InventoryForm extends Component {
             if (response.data.success) {
                 const products = response.data.inventory_products || [];
                 this.setState({
-                    inventoryProducts: products
+                    inventoryProducts: products,
+                    isLoading: false
                 });
             } else {
                 this.setState({
-                    error: 'Failed to fetch inventory products'
+                    error: 'Failed to fetch inventory products',
+                    isLoading: false
                 });
             }
         } catch (error) {
             console.error('Error fetching inventory products:', error);
             this.setState({
-                error: error.message || 'An error occurred while fetching inventory products'
+                error: error.message || 'An error occurred while fetching inventory products',
+                isLoading: false
             });
         }
     };
