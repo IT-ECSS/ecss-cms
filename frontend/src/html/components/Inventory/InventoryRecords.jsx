@@ -7,7 +7,7 @@ import OrderRecords from './Records/OrderRecords';
 import { fetchInventoryRecords as fetchInventoryRecordsApi, fetchInventoryProducts as fetchInventoryProductsApi, fetchStockRecords as fetchStockRecordsApi } from './inventoryApiHelpers';
 import '../../../css/sub/inventoryModules.css';
 
-// Set PDF.js worker
+// Set PDF.js worker ok
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
 
 // Register AG Grid modules
