@@ -187,10 +187,13 @@ class CourseDetailsSection extends Component {
               {/* NSA: Conditionally render SkillsFuture. Marriage Prep: always show. Paid Talks: exclude SkillsFuture. */}
               {(
                 isNSA && (
-                  courseEnglishName === 'Community Ukulele – Mandarin L2A' ||
-                  courseEnglishName === 'Community Ukulele – Mandarin L2B' ||
-                  (courseEnglishName !== 'My Story – Mandarin' &&
-                  courseEnglishName !== 'Community Ukulele – Mandarin L1' && courseChineseName !== "音乐祝福社区四弦琴班")
+                  // SkillsFuture not available for Community Ukulele Level 2 per request
+                  // so we remove the explicit equality check and only exclude the
+                  // mandarin variants and the forbidden chinese name.
+                  !(courseEnglishName === 'Community Ukulele Level 2') &&
+                  courseEnglishName !== 'My Story – Mandarin' &&
+                  courseEnglishName !== 'Community Ukulele – Mandarin L1' &&
+                  courseChineseName !== "音乐祝福社区四弦琴班"
                 )
               ) && !isMarriagePrep && !isPaidTalks ? (
                 <label>
