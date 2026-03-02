@@ -2,6 +2,10 @@ import React, { Component, createRef } from 'react';
 import axios from 'axios';
 import '../../../css/sub/inventoryModules.css';
 
+
+// roles that should be restricted to only viewing company receipts
+const restrictedRoles = ['Site in-charge', 'NSA in-charge', 'Fitness Trainer'];
+
 class InventoryInvoices extends Component {
     constructor(props) {
         super(props);
@@ -64,8 +68,18 @@ class InventoryInvoices extends Component {
             });
 
             if (response.data.success) {
-                const allItems = response.data.files || [];
-                const folders = allItems.filter(f => f.mimeType === 'application/vnd.google-apps.folder');
+                let allItems = response.data.files || [];
+                let folders = allItems.filter(f => f.mimeType === 'application/vnd.google-apps.folder');
+
+                const isRestricted = restrictedRoles.includes(this.props.role);
+                if (isRestricted) {
+                    // only keep folders whose name contains both 'company' and 'receipt' (covers receipts/receipt)
+                    folders = folders.filter(f => {
+                        if (!f.name) return false;
+                        const name = f.name.toLowerCase();
+                        return name.includes('company') && name.includes('receipt');
+                    });
+                }
                 
                 this.setState({ 
                     folders, 
@@ -596,6 +610,7 @@ class InventoryInvoices extends Component {
 
     render() {
         const { files, isLoading, isLoadingFolders, error, viewMode, folders, activeFolder } = this.state;
+        const isRestricted = restrictedRoles.includes(this.props.role);
 
         if (isLoadingFolders) {
             return (
@@ -632,7 +647,8 @@ class InventoryInvoices extends Component {
             <>
                 <div className="inventory-heading"><h2>Inventory Billing Management</h2></div>
                 <div className="inventory-content">
-                    {folders.length > 0 && (
+                    {/* only display tab row when there are multiple folders to switch between */}
+                    {folders.length > 1 && (
                         <div className="records-sub-tabs">
                             {folders.map(folder => (
                                 <button
