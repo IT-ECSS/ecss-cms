@@ -144,13 +144,15 @@ class InventoryForm extends Component {
                 };
             }
 
+            // Set location to staff's default location if available
+            const defaultLocation = this.getDefaultLocationForStaff(prevState.formData.staffName);
             const newFormData = {
                 ...prevState.formData,
                 product: product,
-                location: '',
+                location: defaultLocation || '',
                 totalAmount: ''
             };
-            
+
             // Auto-calculate totalAmount when product changes
             const quantity = parseInt(newFormData.quantity) || 0;
             if (quantity > 0 && newFormData.location) {
@@ -162,7 +164,7 @@ class InventoryForm extends Component {
                     newFormData.totalAmount = (price * quantity).toFixed(2);
                 }
             }
-            
+
             return {
                 formData: newFormData,
                 showProductDropdown: false
@@ -319,13 +321,20 @@ class InventoryForm extends Component {
 
     handleInputChange = (e) => {
         const { name, value } = e.target;
-        
         this.setState(prevState => {
-            const newFormData = {
+            let newFormData = {
                 ...prevState.formData,
                 [name]: value
             };
-            
+
+            // Auto-populate location after staffName and product are set
+            if ((name === 'product' || name === 'staffName') && newFormData.product && newFormData.staffName) {
+                const defaultLocation = this.getDefaultLocationForStaff(newFormData.staffName);
+                if (defaultLocation) {
+                    newFormData.location = defaultLocation;
+                }
+            }
+
             // Auto-calculate totalAmount when quantity changes
             if (name === 'quantity') {
                 const quantity = parseInt(value) || 0;
@@ -337,7 +346,7 @@ class InventoryForm extends Component {
                     newFormData.totalAmount = (price * quantity).toFixed(2);
                 }
             }
-            
+
             return { formData: newFormData };
         });
     };
@@ -519,6 +528,16 @@ class InventoryForm extends Component {
         const filteredProducts = this.getFilteredProducts();
         const filteredLocations = this.getFilteredLocations();
         const hasDefaultLocation = !!this.getDefaultLocationForStaff(formData.staffName);
+        // Determine if out of stock for default location
+        let outOfStockMessage = '';
+        if (hasDefaultLocation && formData.product && formData.location) {
+            const matchedProduct = this.state.inventoryProducts.find(p => 
+                p.name === formData.product && p.variation_name === formData.location
+            );
+            if (!matchedProduct || (parseInt(matchedProduct.stock_quantity) || 0) === 0) {
+                outOfStockMessage = `No stock at ${formData.location}.`;
+            }
+        }
 
         if (isLoading) {
             return (
@@ -579,7 +598,9 @@ class InventoryForm extends Component {
                                         id="staffName"
                                         name="staffName"
                                         value={formData.staffName}
-                                        onChange={this.handleInputChange}
+                                        readOnly
+                                        disabled
+                                        style={{ backgroundColor: '#e9ecef', color: '#6c757d', cursor: 'not-allowed' }}
                                         placeholder="Enter staff name"
                                     />
                                 </div>
@@ -620,40 +641,50 @@ class InventoryForm extends Component {
                                 </div>
 
                                 <div className="form-group" ref={this.locationRef}>
-                                    <label htmlFor="location">
-                                        <i className="fas fa-map-marker-alt"></i>
-                                        Location <span className="required">*</span>
-                                    </label>
-                                    <div className="custom-dropdown-container">
-                                        <input
-                                            type="text"
-                                            id="location"
-                                            name="location"
-                                            value={formData.location}
-                                            onChange={this.handleInputChange}
-                                            onFocus={() => !hasDefaultLocation && formData.product && this.setState({ showLocationDropdown: true })}
-                                            placeholder={!formData.product ? "Select a product first" : "Type or select location"}
-                                            required
-                                            autoComplete="off"
-                                            disabled={hasDefaultLocation || !formData.product}
-                                            style={(hasDefaultLocation || !formData.product) ? { backgroundColor: '#e9ecef', cursor: 'not-allowed' } : {}}
-                                        />
-                                        {!hasDefaultLocation && showLocationDropdown && filteredLocations.length > 0 && (
-                                            <div className="custom-dropdown-list">
-                                                {filteredLocations.map((loc, index) => (
-                                                    <div 
-                                                        key={index} 
-                                                        className="custom-dropdown-item"
-                                                        onClick={() => this.handleLocationSelect(loc.name)}
-                                                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                                                    >
-                                                        <span>{loc.name}</span>
-                                                        <span style={{ fontSize: '0.85em', color: '#27ae60', fontWeight: '600' }}>Stock: {loc.stock}</span>
-                                                    </div>
-                                                ))}
+                                    {hasDefaultLocation && outOfStockMessage ? (
+                                        <div className="custom-dropdown-container">
+                                            <div className="out-of-stock-message" style={{ color: 'red', marginTop: '5px', fontWeight: 'bold', fontSize: '2em' }}>
+                                                {outOfStockMessage}
                                             </div>
-                                        )}
-                                    </div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <label htmlFor="location">
+                                                <i className="fas fa-map-marker-alt"></i>
+                                                Location <span className="required">*</span>
+                                            </label>
+                                            <div className="custom-dropdown-container">
+                                                <input
+                                                    type="text"
+                                                    id="location"
+                                                    name="location"
+                                                    value={formData.location}
+                                                    onChange={this.handleInputChange}
+                                                    onFocus={() => !hasDefaultLocation && formData.product && this.setState({ showLocationDropdown: true })}
+                                                    placeholder={!formData.product ? "Select a product first" : "Type or select location"}
+                                                    required
+                                                    autoComplete="off"
+                                                    disabled={hasDefaultLocation || !formData.product}
+                                                    style={(hasDefaultLocation || !formData.product) ? { backgroundColor: '#e9ecef', cursor: 'not-allowed' } : {}}
+                                                />
+                                                {!hasDefaultLocation && showLocationDropdown && filteredLocations.length > 0 && (
+                                                    <div className="custom-dropdown-list">
+                                                        {filteredLocations.map((loc, index) => (
+                                                            <div 
+                                                                key={index} 
+                                                                className="custom-dropdown-item"
+                                                                onClick={() => this.handleLocationSelect(loc.name)}
+                                                                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                                                            >
+                                                                <span>{loc.name}</span>
+                                                                <span style={{ fontSize: '0.85em', color: '#27ae60', fontWeight: '600' }}>Stock: {loc.stock}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             </div>
 
@@ -701,20 +732,24 @@ class InventoryForm extends Component {
                                                 name="unitPrice"
                                                 value={this.getSelectedProductPrice() !== null ? `$${this.getSelectedProductPrice().toFixed(2)}` : '$0.00'}
                                                 readOnly
+                                                disabled
+                                                style={{ backgroundColor: '#e9ecef', color: '#6c757d', cursor: 'not-allowed' }}
                                                 placeholder="Price"
                                             />
                                         </div>
                                         <div style={{ flex: 1 }}>
                                             <label htmlFor="totalAmount" style={{ whiteSpace: 'nowrap' }}>
                                                 <i className="fas fa-dollar-sign"></i>
-                                                Total Sales Amount <span className="required">*</span>
+                                                Total Sales Amount
                                             </label>
                                             <input
                                                 type="text"
                                                 id="totalAmount"
                                                 name="totalAmount"
                                                 value={formData.totalAmount ? `$${formData.totalAmount}` : '$0.00'}
-                                                onChange={this.handleInputChange}
+                                                readOnly
+                                                disabled
+                                                style={{ backgroundColor: '#e9ecef', color: '#6c757d', cursor: 'not-allowed' }}
                                                 placeholder="Enter total amount"
                                                 required
                                             />
@@ -727,7 +762,7 @@ class InventoryForm extends Component {
                                         <div style={{ flex: 1 }}>
                                             <label htmlFor="orderDate" style={{ whiteSpace: 'nowrap' }}>
                                                 <i className="fas fa-calendar-alt"></i>
-                                                Order Date
+                                                Order Date <span className="required">*</span>
                                             </label>
                                             <input
                                                 type="text"
@@ -741,7 +776,7 @@ class InventoryForm extends Component {
                                         <div style={{ flex: 1 }}>
                                             <label htmlFor="orderTime" style={{ whiteSpace: 'nowrap' }}>
                                                 <i className="fas fa-clock"></i>
-                                                Order Time
+                                                Order Time <span className="required">*</span>
                                             </label>
                                             <input
                                                 type="text"

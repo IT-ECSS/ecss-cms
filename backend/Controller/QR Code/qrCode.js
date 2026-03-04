@@ -18,7 +18,7 @@ class QRCodeGenerator {
             const buffer = await QRCode.toBuffer(this.text, this.options);
 
             // Save the buffer to a JPG file
-            const filename = `汉语拼音中级班 – 中文 Hanyu Pinyin – Intermediate (CT Hub).jpg`;
+            const filename = `智能手机摄影 Smartphone Photography (CT Hub).jpg`;
             fs.writeFileSync(filename, buffer);
             console.log(`QR code generated and saved as ${filename}`);
         } catch (error) {
@@ -28,5 +28,5 @@ class QRCodeGenerator {
 }
 
 // Usage const filename = `https://ecss.org.sg/product/crafting-connectionspasir-ris-west-wellness-centre/`;
-const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/%e6%b1%89%e8%af%ad%e6%8b%bc%e9%9f%b3%e4%b8%ad%e7%ba%a7%e7%8f%ad-%e4%b8%ad%e6%96%87hanyu-pinyin-for-intermediate-mandarinct-hub/`);
+const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/%e6%99%ba%e8%83%bd%e6%89%8b%e6%9c%ba%e6%91%84%e5%bd%b1%e7%8f%adsmartphone-photographyct-hub/`);
 qrCodeGenerator.generate();
