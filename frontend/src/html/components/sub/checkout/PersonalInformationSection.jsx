@@ -132,7 +132,7 @@ class PersonalInformationSection extends Component {
               <label htmlFor="location">{this.getTranslation('location')}</label>
               <div className="location-buttons-container">
                 <div className="location-buttons">
-                  {['Tampines North Community Club', 'Pasir Ris West Wellness Centre', 'CT Hub'].map((location) => (
+                  {['Tampines North Community Centre', 'Pasir Ris West Wellness Centre', 'CT Hub'].map((location) => (
                     <button
                       key={location}
                       type="button"

@@ -15,7 +15,9 @@ const getDjangoUrl = () => {
 export const fetchInventoryRecords = async () => {
     try {
         const backendUrl = getBackendUrl();
-        const response = await axios.post(`${backendUrl}/inventory`, { purpose: "retrieve" });
+        // Add cache-busting parameter to prevent stale data on page reload
+        const timestamp = new Date().getTime();
+        const response = await axios.post(`${backendUrl}/inventory?t=${timestamp}`, { purpose: "retrieve" });
 
         console.log('Inventory records fetched:', response.data);
 
@@ -48,7 +50,9 @@ export const fetchInventoryRecords = async () => {
 export const fetchInventoryProducts = async () => {
     try {
         const baseUrl = getDjangoUrl();
-        const url = `${baseUrl}/inventory_product_details/`;
+        // Add cache-busting parameter
+        const timestamp = new Date().getTime();
+        const url = `${baseUrl}/inventory_product_details/?t=${timestamp}`;
         
         const response = await axios.get(url);
 
@@ -100,7 +104,9 @@ export const fetchInventoryProducts = async () => {
 export const fetchStockRecords = async () => {
     try {
         const backendUrl = getBackendUrl();
-        const response = await axios.post(`${backendUrl}/inventory`, { purpose: "retrieveStock" });
+        // Add cache-busting parameter to prevent stale data on page reload
+        const timestamp = new Date().getTime();
+        const response = await axios.post(`${backendUrl}/inventory?t=${timestamp}`, { purpose: "retrieveStock" });
 
         if (response.data.success) {
             const records = response.data.records || [];

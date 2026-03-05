@@ -6,11 +6,13 @@ export const ALL_STOCK_ACTIONS = [
     { label: 'Purchase From Supplier', group: 'Supplier' },
     { label: 'Return to Supplier', group: 'Supplier' },
     { type: 'divider' },
+    { label: 'Initial Stock', group: 'Stock' },
+    { type: 'divider' },
     { label: 'Allocation To Site', group: 'Stock' },
     { label: 'Return Stock to Store', group: 'Stock' },
 ];
 
-export const STOCK_IN_ACTIONS = ['Purchase From Supplier', 'Return Stock to Store'];
+export const STOCK_IN_ACTIONS = ['Purchase From Supplier', 'Return Stock to Store', 'Initial Stock'];
 export const STOCK_OUT_ACTIONS = ['Allocation To Site', 'Return to Supplier'];
 
 /**

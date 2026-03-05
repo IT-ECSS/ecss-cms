@@ -145,7 +145,9 @@ class InventoryRecords extends Component {
             this.fetchStockRecords(),
             this.fetchInventoryProducts()
         ]);
-        console.log("[DEBUG] Data refresh complete");
+        // Give React time to render the updated data
+        await new Promise(resolve => setTimeout(resolve, 300));
+        console.log("[DEBUG] Data refresh and UI render complete");
     };
 
     componentWillUnmount() {

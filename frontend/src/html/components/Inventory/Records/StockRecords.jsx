@@ -402,9 +402,11 @@ class StockRecords extends Component {
             console.log("[DEBUG] Stock adjustment successful, refreshing dashboard...");
             if (this.props.onStockAdjustmentSubmit) {
                 await this.props.onStockAdjustmentSubmit();
-                console.log("[DEBUG] Dashboard refresh complete, closing modal...");
+                console.log("[DEBUG] Dashboard refresh complete, waiting for UI update...");
+                // Additional wait to ensure UI has time to render the updated data
+                await new Promise(resolve => setTimeout(resolve, 500));
             }
-            // Close modal only after data refresh is complete
+            // Close modal only after data refresh is complete and UI is updated
             this.closeIncomingModal();
             this.setState({ isSubmitting: false });
         };

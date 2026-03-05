@@ -61,7 +61,7 @@ export const getFilteredLocations = (inventoryProducts = []) => {
  * @returns {object} - Form field updates {locationFrom, locationTo}
  */
 // locations that represent the three current site destinations
-export const SITE_LOCATIONS = ['CT Hub', 'Tampines North Community Club', 'Pasir Ris West Wellness Centre'];
+export const SITE_LOCATIONS = ['CT Hub', 'Tampines North Community Centre', 'Pasir Ris West Wellness Centre'];
 
 export const getActionLocationConfig = (action, currentProduct, inventoryProducts = []) => {
     // note: for site-related actions the dropdown will later be restricted
@@ -81,6 +81,11 @@ export const getActionLocationConfig = (action, currentProduct, inventoryProduct
             return {
                 locationTo: 'Store',
                 locationFrom: '' // user picks one of SITE_LOCATIONS
+            };
+        case 'Initial Stock':
+            return {
+                locationFrom: '',
+                locationTo: '' // user picks either Store or one of SITE_LOCATIONS
             };
         default:
             return { locationFrom: '', locationTo: '' };

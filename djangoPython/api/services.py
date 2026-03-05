@@ -1065,6 +1065,69 @@ class WooCommerceAPI:
                 "message": f"Failed to increase stock for product {product_id}"
             }
 
+    def set_inventory_stock(self, product_id, quantity, is_variation=False, parent_id=None):
+        """
+        Sets inventory product stock to the specified quantity (Initial Stock).
+        
+        Args:
+            product_id: The ID of the product or variation to update.
+            quantity: The quantity to set stock to.
+            is_variation: Whether this is a variation (True) or simple product (False).
+            parent_id: The parent product ID if this is a variation.
+        
+        Returns:
+            dict: Success status and updated product data or error message.
+        """
+        try:
+            if is_variation and parent_id:
+                url = f"{self.base_url}products/{parent_id}/variations/{product_id}"
+            else:
+                url = f"{self.base_url}products/{product_id}"
+            
+            response = requests.get(url, auth=self.auth)
+            response.raise_for_status()
+            product_data = response.json()
+            
+            # Check if stock is managed at parent level
+            manage_stock = product_data.get('manage_stock')
+            print(f"Product {product_id} manage_stock setting: {manage_stock}")
+            
+            # If variation has manage_stock: "parent", update the parent instead
+            if is_variation and manage_stock == "parent" and parent_id:
+                print(f"Stock managed at parent level, updating parent product {parent_id} instead")
+                url = f"{self.base_url}products/{parent_id}"
+                response = requests.get(url, auth=self.auth)
+                response.raise_for_status()
+                product_data = response.json()
+            
+            current_stock = int(product_data.get('stock_quantity') or 0)
+            new_stock = int(quantity)
+            
+            update_data = {
+                "stock_quantity": new_stock,
+                "manage_stock": True
+            }
+            
+            response = requests.put(url, json=update_data, auth=self.auth)
+            response.raise_for_status()
+            
+            return {
+                "success": True,
+                "product_id": product_id,
+                "previous_stock": current_stock,
+                "new_stock": new_stock,
+                "quantity_set": int(quantity),
+                "message": f"Stock set successfully from {current_stock} to {new_stock}"
+            }
+            
+        except requests.exceptions.RequestException as e:
+            print(f"Error setting inventory stock for product {product_id}: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "message": f"Failed to set stock for product {product_id}"
+            }
+
     def get_all_published_products(self):
         """Fetch all published products from WooCommerce without category filtering."""
         print("Fetching all published products from WooCommerce...")

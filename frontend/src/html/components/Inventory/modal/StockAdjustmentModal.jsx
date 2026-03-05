@@ -316,7 +316,7 @@ class StockAdjustmentModal extends Component {
                                         value={formData.locationFrom}
                                         onFocus={() => this.setState({ locationFromDropdownOpen: true })}
                                         readOnly
-                                        required
+                                        required={formData.action !== 'Initial Stock'}
                                         style={{ cursor: 'pointer' }}
                                         placeholder="Select location"
                                     />
@@ -325,6 +325,8 @@ class StockAdjustmentModal extends Component {
                                             {(
                                                 formData.action === 'Return Stock to Store'
                                                     ? SITE_LOCATIONS
+                                                    : formData.action === 'Initial Stock'
+                                                    ? ['Store', ...SITE_LOCATIONS]
                                                     : ['Supplier', 'Store', ...getFilteredLocations(inventoryProducts).filter(l => l !== 'Supplier' && l !== 'Store')]
                                             ).map((loc, idx) => (
                                                 <li key={idx} className="incoming-dropdown-item" onClick={() => {
@@ -357,6 +359,8 @@ class StockAdjustmentModal extends Component {
                                             {(
                                                 formData.action === 'Allocation To Site'
                                                     ? SITE_LOCATIONS
+                                                    : formData.action === 'Initial Stock'
+                                                    ? ['Store', ...SITE_LOCATIONS]
                                                     : ['Supplier', 'Store', ...getFilteredLocations(inventoryProducts).filter(l => l !== 'Supplier' && l !== 'Store')]
                                             ).map((loc, idx) => (
                                                 <li key={idx} className="incoming-dropdown-item" onClick={() => {

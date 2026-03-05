@@ -126,6 +126,17 @@ export const handleIncomingSubmit = async (incomingForm, uploadedFile, onSuccess
             return false;
         }
 
+        // For Initial Stock, locationFrom is not required; for others it is
+        if (incomingForm.action !== 'Initial Stock' && !incomingForm.locationFrom) {
+            alert('Please select Location From.');
+            return false;
+        }
+
+        if (!incomingForm.locationTo) {
+            alert('Please select Location To.');
+            return false;
+        }
+
         const backendUrl = window.location.hostname === "localhost" 
             ? "http://localhost:3001" 
             : "https://ecss-backend-node.azurewebsites.net";
@@ -186,6 +197,10 @@ export const handleIncomingSubmit = async (incomingForm, uploadedFile, onSuccess
 
                 if (wooResponse.data.success) {
                     console.log('WooCommerce stock updated:', wooResponse.data);
+                    // Wait for WooCommerce to fully propagate changes before refreshing frontend
+                    console.log('[DEBUG] Waiting for WooCommerce to propagate changes (2 seconds)...');
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    console.log('[DEBUG] WooCommerce propagation complete');
                 } else {
                     console.error('WooCommerce stock update failed:', wooResponse.data.error);
                 }
@@ -193,7 +208,7 @@ export const handleIncomingSubmit = async (incomingForm, uploadedFile, onSuccess
                 console.error('Error updating WooCommerce stock:', wooError);
             }
 
-            // Call success callback
+            // Call success callback to refresh frontend data
             if (onSuccess) {
                 await onSuccess();
             }

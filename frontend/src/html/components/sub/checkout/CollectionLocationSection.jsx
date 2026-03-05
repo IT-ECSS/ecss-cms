@@ -62,7 +62,7 @@ class CollectionLocationSection extends Component {
     } = this.props;
 
     const allLocations = [
-      'Tampines North Community Club',
+      'Tampines North Community Centre',
       'Pasir Ris West Wellness Centre',
       'CT Hub'
     ];

@@ -154,7 +154,7 @@ class OrderRecords extends Component {
     getOrderFilterLocationOptions = () => {
         const { orderFilterLocation } = this.state;
         const query = orderFilterLocation.toLowerCase();
-        const locations = ['CT Hub', 'Tampines North Community Club', 'Tampines North Community Centre', 'Pasir Ris West Wellness Centre'];
+        const locations = ['CT Hub', 'Tampines North Community Centre', 'Pasir Ris West Wellness Centre'];
         return query ? locations.filter(n => n.toLowerCase().includes(query)) : locations;
     };
 

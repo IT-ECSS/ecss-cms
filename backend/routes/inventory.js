@@ -181,6 +181,10 @@ router.post('/', async function(req, res, next)
             console.log("Retrieving Inventory Records");
             var controller = new InventoryController();
             var result = await controller.retrieveInventoryRecords();
+            // Prevent browser caching - always fetch fresh data
+            res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+            res.set('Pragma', 'no-cache');
+            res.set('Expires', '0');
             return res.json(result);
         }
         else if(req.body.purpose === "insertStock")
@@ -204,6 +208,10 @@ router.post('/', async function(req, res, next)
             console.log("Retrieving Stock Records");
             var controller = new InventoryController();
             var result = await controller.retrieveStockRecords();
+            // Prevent browser caching - always fetch fresh data
+            res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+            res.set('Pragma', 'no-cache');
+            res.set('Expires', '0');
             return res.json(result);
         }
         else if(req.body.purpose === "insertStockAllocation")

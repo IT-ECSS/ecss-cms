@@ -256,15 +256,24 @@ def inventory_product_details(request):
                 cache.set(cache_key, products, timeout=timeout)
                 cache.set(stale_key, products)
 
-        return JsonResponse({
+        response = JsonResponse({
             "success": True,
             "inventory_products": products
         })
+        # Prevent browser-level caching - always check for fresh data
+        response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response['Pragma'] = 'no-cache'
+        response['Expires'] = '0'
+        return response
 
     except Exception as e:
         # Catch and log unexpected errors
         print("Error:", e)
-        return JsonResponse({"error": "An error occurred while processing the request."}, status=500)
+        response = JsonResponse({"error": "An error occurred while processing the request."}, status=500)
+        response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response['Pragma'] = 'no-cache'
+        response['Expires'] = '0'
+        return response
 
 @csrf_exempt
 def inventory_order(request):
@@ -643,6 +652,71 @@ def inventory_stock_adjustment(request):
                 print(f"[ERROR] {error_msg}")
                 return JsonResponse({'success': False, 'error': error_msg}, status=404)
 
+        elif action == 'Initial Stock':
+            # Initial Stock: ADD stock for a product based on location
+            # If location_to = 'Store': ADD to parent product stock
+            # If location_to = Site location: ADD to variation (location) stock
+            print(f"[DEBUG] Initial Stock: Adding {quantity} units to {product_name} at location {location_to}")
+            
+            if location_to == 'Store':
+                # ADD stock to parent product
+                product_id_to_update = parent_id if parent_id else product_info.get('id')
+                print(f"[DEBUG] Initial Stock - Store: Adding {quantity} to parent product ID {product_id_to_update}")
+                result = woo_api.increase_inventory_stock(
+                    product_id=product_id_to_update,
+                    quantity=quantity,
+                    is_variation=False,
+                    parent_id=None
+                )
+                print(f"[DEBUG] Result: {result}")
+                if result.get('success'):
+                    result['message'] = f'Added {quantity} units to {product_name} at Store (Initial Stock)'
+            else:
+                # ADD stock to variation (site location)
+                variation_match = variant if variant else location_to
+                variation_info = None
+                
+                # Debug: List all available variations for this product
+                available_variations = [p.get('variation_name') for p in inventory_products if p.get('name') == product_name]
+                print(f"[DEBUG] Available variations for {product_name}: {available_variations}")
+                
+                for product in inventory_products:
+                    if product.get('name') == product_name and product.get('variation_name') == variation_match:
+                        variation_info = product
+                        parent_id_found = product.get('parent_id')
+                        print(f"[DEBUG] Found variation: {variation_match}")
+                        print(f"[DEBUG] Variation ID: {variation_info.get('id')}, Parent ID: {parent_id_found}")
+                        break
+
+                if variation_info and parent_id:
+                    print(f"[DEBUG] Initial Stock - Site: Adding {quantity} to variation {variation_match}")
+                    result = woo_api.increase_inventory_stock(
+                        product_id=variation_info.get('id'),
+                        quantity=quantity,
+                        is_variation=True,
+                        parent_id=parent_id
+                    )
+                    print(f"[DEBUG] Result: {result}")
+                    if result.get('success'):
+                        result['message'] = f'Added {quantity} units to {product_name} ({variation_match}) - Initial Stock'
+                else:
+                    # Fallback: If variation not found, add stock to parent product
+                    print(f"[FALLBACK] Variation '{variation_match}' not found. Adding stock to parent product instead.")
+                    product_id_to_update = parent_id if parent_id else product_info.get('id')
+                    result = woo_api.increase_inventory_stock(
+                        product_id=product_id_to_update,
+                        quantity=quantity,
+                        is_variation=False,
+                        parent_id=None
+                    )
+                    print(f"[DEBUG] Fallback Result: {result}")
+                    if result.get('success'):
+                        result['message'] = f'Added {quantity} units to {product_name} at {location_to} (via parent) - Initial Stock'
+                    else:
+                        error_msg = f'Failed to add initial stock for {product_name} at {location_to}'
+                        print(f"[ERROR] {error_msg}")
+                        return JsonResponse({'success': False, 'error': error_msg}, status=500)
+
         else:
             return JsonResponse({'success': False, 'error': f'Unknown action: {action}'}, status=400)
 
@@ -656,6 +730,12 @@ def inventory_stock_adjustment(request):
             product_id=parent_id or product_info.get('id'),
             new_stock=result.get('new_stock')
         )
+
+        # Clear cache to force frontend refresh
+        from django.core.cache import cache
+        cache.delete('inventory_products_cache')
+        cache.delete('inventory_products_cache_stale')
+        print("[DEBUG] Cache cleared for inventory products")
 
         print(f"[SUCCESS] Stock updated for {product_name}")
         print(f"[SUCCESS] Previous stock: {result.get('previous_stock')}, New stock: {result.get('new_stock')}")
