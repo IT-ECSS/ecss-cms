@@ -200,8 +200,15 @@ class FitnessSection extends Component {
       locationYearMap[loc].sort();
     });
 
+    // Extract available locations from hardcoded list
+    const availableLocations = hardcodedLocations.map(loc => loc.name);
+
     console.log('Location-Year Map:', locationYearMap);
-    this.setState({ locationYearMap });
+    console.log('Available Locations:', availableLocations);
+    this.setState({ 
+      locationYearMap,
+      availableLocations 
+    });
   }
 
   fetchSpreadsheetFiles = async (yearFolderId) => {

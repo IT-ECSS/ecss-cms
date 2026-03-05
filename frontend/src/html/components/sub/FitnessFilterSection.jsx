@@ -8,8 +8,23 @@ class FitnessFilterSection extends Component {
       selectedLocation: props.selectedLocation || '',
       yearFrom: props.yearFrom || '',
       yearTo: props.yearTo || '',
-      selectedYear: props.selectedYear || ''
+      selectedYear: props.selectedYear || '',
+      openDropdown: null // 'location', 'yearFrom', 'yearTo', or null
     };
+  }
+
+  componentDidMount() {
+    document.addEventListener('click', this.handleClickOutside);
+  }
+
+  componentWillUnmount() {
+    document.removeEventListener('click', this.handleClickOutside);
+  }
+
+  handleClickOutside = (e) => {
+    if (!e.target.closest('.fft-custom-dropdown')) {
+      this.setState({ openDropdown: null });
+    }
   }
 
   componentDidUpdate(prevProps) {
@@ -26,36 +41,31 @@ class FitnessFilterSection extends Component {
     }
   }
 
-  handleLocationChange = (e) => {
-    const value = e.target.value;
-    this.setState({ selectedLocation: value });
+  handleLocationChange = (value) => {
+    this.setState({ selectedLocation: value, openDropdown: null });
     if (this.props.onLocationChange) {
       this.props.onLocationChange(value);
     }
   }
 
-  handleYearFromChange = (e) => {
-    const value = e.target.value;
-    this.setState({ yearFrom: value });
+  handleYearFromChange = (value) => {
+    this.setState({ yearFrom: value, openDropdown: null });
     if (this.props.onYearFromChange) {
       this.props.onYearFromChange(value);
     }
   }
 
-  handleYearToChange = (e) => {
-    const value = e.target.value;
-    this.setState({ yearTo: value });
+  handleYearToChange = (value) => {
+    this.setState({ yearTo: value, openDropdown: null });
     if (this.props.onYearToChange) {
       this.props.onYearToChange(value);
     }
   }
 
-  handleSingleYearChange = (e) => {
-    const value = e.target.value;
-    this.setState({ selectedYear: value });
-    if (this.props.onSingleYearChange) {
-      this.props.onSingleYearChange(value);
-    }
+  toggleDropdown = (dropdownName) => {
+    this.setState(prevState => ({
+      openDropdown: prevState.openDropdown === dropdownName ? null : dropdownName
+    }));
   }
 
   handleClearFilters = () => {
@@ -81,7 +91,7 @@ class FitnessFilterSection extends Component {
       title = 'Filter Options'
     } = this.props;
     
-    const { selectedLocation, yearFrom, yearTo, selectedYear } = this.state;
+    const { selectedLocation, yearFrom, yearTo, selectedYear, openDropdown } = this.state;
 
     return (
       <div className="fft-filter-section-wrapper">
@@ -97,16 +107,34 @@ class FitnessFilterSection extends Component {
                   <i className="fas fa-building"></i>
                   Centre
                 </label>
-                <select 
-                  className="fft-filter-section-select"
-                  value={selectedLocation} 
-                  onChange={this.handleLocationChange}
-                >
-                  <option value="">Select Centre</option>
-                  <option value="CT Hub">CT Hub</option>
-                  <option value="Pasir Ris">Pasir Ris</option>
-                  <option value="Tampines">Tampines</option>
-                </select>
+                <div className="fft-custom-dropdown">
+                  <button 
+                    className="fft-dropdown-button"
+                    onClick={() => this.toggleDropdown('location')}
+                  >
+                    <span>{selectedLocation || 'Select Centre'}</span>
+                    <i className={`fas fa-chevron-down ${openDropdown === 'location' ? 'open' : ''}`}></i>
+                  </button>
+                  {openDropdown === 'location' && (
+                    <div className="fft-dropdown-menu">
+                      <div 
+                        className="fft-dropdown-item"
+                        onClick={() => this.handleLocationChange('')}
+                      >
+                        Select Centre
+                      </div>
+                      {availableLocations.map(location => (
+                        <div
+                          key={location}
+                          className={`fft-dropdown-item ${selectedLocation === location ? 'active' : ''}`}
+                          onClick={() => this.handleLocationChange(location)}
+                        >
+                          {location}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
             
@@ -117,17 +145,35 @@ class FitnessFilterSection extends Component {
                     <i className="fas fa-calendar-alt"></i>
                     Year From
                   </label>
-                  <select 
-                    className="fft-filter-section-select"
-                    value={yearFrom} 
-                    onChange={this.handleYearFromChange}
-                    disabled={!selectedLocation}
-                  >
-                    <option value="">{selectedLocation ? 'Select Year' : 'Select Centre First'}</option>
-                    {availableYears.map(year => (
-                      <option key={year} value={year}>{year}</option>
-                    ))}
-                  </select>
+                  <div className="fft-custom-dropdown">
+                    <button 
+                      className="fft-dropdown-button"
+                      onClick={() => selectedLocation && this.toggleDropdown('yearFrom')}
+                      disabled={!selectedLocation}
+                    >
+                      <span>{yearFrom || (selectedLocation ? 'Select Year' : 'Select Centre First')}</span>
+                      <i className={`fas fa-chevron-down ${openDropdown === 'yearFrom' ? 'open' : ''}`}></i>
+                    </button>
+                    {openDropdown === 'yearFrom' && selectedLocation && (
+                      <div className="fft-dropdown-menu">
+                        <div 
+                          className="fft-dropdown-item"
+                          onClick={() => this.handleYearFromChange('')}
+                        >
+                          Select Year
+                        </div>
+                        {availableYears.map(year => (
+                          <div
+                            key={`from-${year}`}
+                            className={`fft-dropdown-item ${yearFrom === year ? 'active' : ''}`}
+                            onClick={() => this.handleYearFromChange(year)}
+                          >
+                            {year}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="fft-filter-section-group">
@@ -135,17 +181,35 @@ class FitnessFilterSection extends Component {
                     <i className="fas fa-calendar-check"></i>
                     Year To
                   </label>
-                  <select 
-                    className="fft-filter-section-select"
-                    value={yearTo} 
-                    onChange={this.handleYearToChange}
-                    disabled={!selectedLocation}
-                  >
-                    <option value="">{selectedLocation ? 'Select Year' : 'Select Centre First'}</option>
-                    {availableYears.map(year => (
-                      <option key={year} value={year}>{year}</option>
-                    ))}
-                  </select>
+                  <div className="fft-custom-dropdown">
+                    <button 
+                      className="fft-dropdown-button"
+                      onClick={() => selectedLocation && this.toggleDropdown('yearTo')}
+                      disabled={!selectedLocation}
+                    >
+                      <span>{yearTo || (selectedLocation ? 'Select Year' : 'Select Centre First')}</span>
+                      <i className={`fas fa-chevron-down ${openDropdown === 'yearTo' ? 'open' : ''}`}></i>
+                    </button>
+                    {openDropdown === 'yearTo' && selectedLocation && (
+                      <div className="fft-dropdown-menu">
+                        <div 
+                          className="fft-dropdown-item"
+                          onClick={() => this.handleYearToChange('')}
+                        >
+                          Select Year
+                        </div>
+                        {availableYears.map(year => (
+                          <div
+                            key={`to-${year}`}
+                            className={`fft-dropdown-item ${yearTo === year ? 'active' : ''}`}
+                            onClick={() => this.handleYearToChange(year)}
+                          >
+                            {year}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </>
             )}

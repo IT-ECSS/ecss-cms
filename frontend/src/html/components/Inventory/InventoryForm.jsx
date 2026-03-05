@@ -598,9 +598,10 @@ class InventoryForm extends Component {
                                         id="staffName"
                                         name="staffName"
                                         value={formData.staffName}
-                                        readOnly
-                                        disabled
-                                        style={{ backgroundColor: '#e9ecef', color: '#6c757d', cursor: 'not-allowed' }}
+                                        onChange={this.handleInputChange}
+                                       // readOnly
+                                        //disabled
+                                        //style={{ backgroundColor: '#e9ecef', color: '#6c757d', cursor: 'not-allowed' }}
                                         placeholder="Enter staff name"
                                     />
                                 </div>
