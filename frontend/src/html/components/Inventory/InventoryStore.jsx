@@ -54,10 +54,7 @@ class InventoryStore extends Component {
         this.allocateProductDropdownRef = React.createRef();
 
         // product fetch control flags
-        this.productsFetchedOnce = false;
-        this.initialFetchDone = false; // marks that we attempted initial load
-        this.isFetchingProducts = false;
-        this.lastProductsFetch = 0; // timestamp of last successful fetch
+        // Removed all caching/throttling flags for inventory products
     }
 
     async componentDidMount() {
@@ -267,38 +264,14 @@ class InventoryStore extends Component {
 
     // fetchInventoryProducts optionally accepts a `force` flag to bypass throttling
     fetchInventoryProducts = async (force = false) => {
-        // avoid overlapping requests
-        if (this.isFetchingProducts) {
-            return;
-        }
-        const now = Date.now();
-        // throttle repeated fetches within 30 seconds unless forced
-        if (!force && this.productsFetchedOnce && now - this.lastProductsFetch < 30000) {
-            return;
-        }
-        // if we already have products but list is empty, allow force fetch later
-
-        this.isFetchingProducts = true;
-        
-        // Update loading message to show that we're fetching inventory products
-        const isInitialLoad = !this.productsFetchedOnce;
-        this.setState({ 
-            loadingMessage: isInitialLoad 
-                ? 'Fetching inventory products (initial load - one time only)...' 
-                : 'Fetching inventory products...' 
-        });
-        
+        // Always fetch fresh inventory products, no cache/throttle
         try {
             const { fetchInventoryProducts } = await import('./inventoryApiHelpers');
             const result = await fetchInventoryProducts();
             const products = result.inventoryProducts || [];
-            // no site-based restriction here; everyone sees the full list
-            if (!this.initialFetchDone) this.initialFetchDone = true;
             this.setState({
                 inventoryProducts: products
             });
-            this.productsFetchedOnce = true;
-            this.lastProductsFetch = Date.now();
             if (!result.success) {
                 this.setState({
                     error: result.error || 'Failed to fetch inventory products'
@@ -309,8 +282,6 @@ class InventoryStore extends Component {
             this.setState({
                 error: error.message || 'An error occurred while fetching inventory products'
             });
-        } finally {
-            this.isFetchingProducts = false;
         }
     };
 
