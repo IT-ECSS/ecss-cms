@@ -487,8 +487,8 @@ class StockRecords extends Component {
                                 columnDefs={this.columnDefs}
                                 rowData={this.getFilteredStockRecords()}
                                 pagination={true}
-                                paginationPageSize={50}
-                                paginationPageSizeSelector={[25, 50, 100, 200]}
+                                paginationPageSize={this.getFilteredStockRecords().length}
+                                paginationPageSizeSelector={[25, 50, 100, 200, this.getFilteredStockRecords().length]}
                                 domLayout="normal"
                                 onGridReady={this.onStockGridReady}
                                 headerHeight={40}

@@ -1,0 +1,6 @@
+.incoming-dropdown-input:disabled {
+  background-color: #f0f0f0 !important;
+  color: #888 !important;
+  cursor: not-allowed !important;
+  opacity: 1 !important;
+}

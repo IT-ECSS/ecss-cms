@@ -120,16 +120,14 @@ class InventoryRecords extends Component {
 
     fetchInventoryProducts = async () => {
         try {
-            const baseUrl = window.location.hostname === "localhost" 
-                ? "http://localhost:3002" 
-                : "https://ecss-backend-django.azurewebsites.net";
-
-            const response = await axios.get(`${baseUrl}/inventory_product_details/`);
-
-            if (response.data.success) {
-                this.setState({
-                    inventoryProducts: response.data.inventory_products || []
-                });
+            const { fetchInventoryProducts } = await import('../Inventory/inventoryApiHelpers');
+            const result = await fetchInventoryProducts();
+            const products = result.inventoryProducts || [];
+            this.setState({
+                inventoryProducts: products
+            });
+            if (!result.success) {
+                console.error('Error fetching inventory products:', result.error);
             }
         } catch (error) {
             console.error('Error fetching inventory products:', error);

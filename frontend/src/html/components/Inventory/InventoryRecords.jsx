@@ -105,6 +105,7 @@ class InventoryRecords extends Component {
     };
 
     fetchInventoryProducts = async () => {
+        // Always use the cache-busting helper for fresh data
         const result = await fetchInventoryProductsApi();
         let products = result.inventoryProducts;
         if (this.props.role === 'Site in-charge' && this.allowedSites.length > 0 && Array.isArray(products)) {

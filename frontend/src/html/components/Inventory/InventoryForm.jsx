@@ -268,24 +268,16 @@ class InventoryForm extends Component {
     fetchInventoryProducts = async () => {
         try {
             this.setState({ error: null });
-
-            const baseUrl = window.location.hostname === "localhost" 
-                ? "http://localhost:3002" 
-                : "https://ecss-backend-django.azurewebsites.net";
-
-            const response = await axios.get(`${baseUrl}/inventory_product_details/`);
-
-            console.log('Inventory products fetched:', response.data);
-
-            if (response.data.success) {
-                const products = response.data.inventory_products || [];
+            const { fetchInventoryProducts } = await import('./inventoryApiHelpers');
+            const result = await fetchInventoryProducts();
+            const products = result.inventoryProducts || [];
+            this.setState({
+                inventoryProducts: products,
+                isLoading: false
+            });
+            if (!result.success) {
                 this.setState({
-                    inventoryProducts: products,
-                    isLoading: false
-                });
-            } else {
-                this.setState({
-                    error: 'Failed to fetch inventory products',
+                    error: result.error || 'Failed to fetch inventory products',
                     isLoading: false
                 });
             }

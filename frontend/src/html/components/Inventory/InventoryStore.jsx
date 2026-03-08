@@ -26,6 +26,7 @@ class InventoryStore extends Component {
             inventoryRecords: [],
             stockRecords: [],
             isLoading: true,
+            loadingMessage: 'Loading...',
             error: null,
             // Tabs - restricted roles only see Sub Products (variants) and no tab navigation
             activeTab: canViewSubProducts ? 'variants' : 'store',
@@ -61,7 +62,10 @@ class InventoryStore extends Component {
 
     async componentDidMount() {
         document.addEventListener('mousedown', this.handleDocumentClick);
-        this.setState({ isLoading: true });
+        this.setState({ 
+            isLoading: true,
+            loadingMessage: 'Loading inventory data...'
+        });
         await Promise.all([
             this.fetchInventoryProducts(),
             this.fetchInventoryRecords(),
@@ -74,7 +78,10 @@ class InventoryStore extends Component {
 
     async componentDidUpdate(prevProps) {
         if (this.props.activeTab === 'store' && this.props.inventoryRefreshCounter !== prevProps.inventoryRefreshCounter) {
-            this.setState({ isLoading: true });
+            this.setState({ 
+                isLoading: true,
+                loadingMessage: 'Refreshing inventory data...'
+            });
             await Promise.all([
                 this.fetchInventoryProducts(),
                 this.fetchInventoryRecords(),
@@ -272,27 +279,29 @@ class InventoryStore extends Component {
         // if we already have products but list is empty, allow force fetch later
 
         this.isFetchingProducts = true;
+        
+        // Update loading message to show that we're fetching inventory products
+        const isInitialLoad = !this.productsFetchedOnce;
+        this.setState({ 
+            loadingMessage: isInitialLoad 
+                ? 'Fetching inventory products (initial load - one time only)...' 
+                : 'Fetching inventory products...' 
+        });
+        
         try {
-            const baseUrl = window.location.hostname === "localhost" 
-                ? "http://localhost:3002" 
-                : "https://ecss-backend-django.azurewebsites.net";
-
-            const response = await axios.get(`${baseUrl}/inventory_product_details/`);
-
-            console.log('Inventory products fetched:', response.data);
-
-            if (response.data.success) {
-                const products = response.data.inventory_products || [];
-                // no site-based restriction here; everyone sees the full list
-                if (!this.initialFetchDone) this.initialFetchDone = true;
+            const { fetchInventoryProducts } = await import('./inventoryApiHelpers');
+            const result = await fetchInventoryProducts();
+            const products = result.inventoryProducts || [];
+            // no site-based restriction here; everyone sees the full list
+            if (!this.initialFetchDone) this.initialFetchDone = true;
+            this.setState({
+                inventoryProducts: products
+            });
+            this.productsFetchedOnce = true;
+            this.lastProductsFetch = Date.now();
+            if (!result.success) {
                 this.setState({
-                    inventoryProducts: products
-                });
-                this.productsFetchedOnce = true;
-                this.lastProductsFetch = Date.now();
-            } else {
-                this.setState({
-                    error: 'Failed to fetch inventory products'
+                    error: result.error || 'Failed to fetch inventory products'
                 });
             }
         } catch (error) {
@@ -784,7 +793,7 @@ class InventoryStore extends Component {
                 {isLoading && (
                     <div className="inventory-loading-overlay">
                         <i className="fas fa-spinner fa-spin"></i>
-                        <p>Loading inventory...</p>
+                        <p>{this.state.loadingMessage}</p>
                     </div>
                 )}
                 {this.state.showAllocateModal && (

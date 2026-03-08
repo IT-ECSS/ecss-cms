@@ -656,6 +656,13 @@
     box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.15);
 }
 
+.stock-modal-field input:disabled,
+.stock-modal-field select:disabled {
+    background-color: #fff;
+    color: #333;
+    opacity: 1;
+}
+
 .stock-modal-actions {
     display: flex;
     justify-content: flex-end;

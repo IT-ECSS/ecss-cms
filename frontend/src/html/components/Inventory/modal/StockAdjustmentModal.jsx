@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import './StockAdjustmentModal.css';
 import { ALL_STOCK_ACTIONS } from '../inventoryUtils';
 import { hasColorVariations } from '../searchFilter/StockFilterUtils';
 import {
@@ -43,6 +44,7 @@ class StockAdjustmentModal extends Component {
         const { inventoryProducts = [] } = this.props;
 
         // Check required fields
+        // Check required fields, but skip validation for disabled fields
         if (!formData.action || formData.action.trim() === '') {
             errors.action = 'Action is required';
         }
@@ -52,12 +54,21 @@ class StockAdjustmentModal extends Component {
         if (hasColorVariations(formData.product, inventoryProducts) && (!formData.variant || formData.variant.trim() === '')) {
             errors.variant = 'Variant is required';
         }
-        if (!formData.locationFrom || formData.locationFrom.trim() === '') {
-            errors.locationFrom = 'Location From is required';
+
+        // Skip validation for Location From if disabled
+        if (!this.isLocationFromFixed || typeof this.isLocationFromFixed !== 'function' || !this.isLocationFromFixed(formData.action)) {
+            if (!formData.locationFrom || formData.locationFrom.trim() === '') {
+                errors.locationFrom = 'Location From is required';
+            }
         }
-        if (!formData.locationTo || formData.locationTo.trim() === '') {
-            errors.locationTo = 'Location To is required';
+
+        // Skip validation for Location To if disabled
+        if (!this.isLocationToFixed || typeof this.isLocationToFixed !== 'function' || !this.isLocationToFixed(formData.action)) {
+            if (!formData.locationTo || formData.locationTo.trim() === '') {
+                errors.locationTo = 'Location To is required';
+            }
         }
+
         if (!formData.date || formData.date.trim() === '') {
             errors.date = 'Date is required';
         }
@@ -180,17 +191,43 @@ class StockAdjustmentModal extends Component {
             if (onSubmit) {
                 onSubmit(e);
             }
+        } else {
+            // Scroll to the first field with an error
+            setTimeout(() => {
+                const fieldOrder = ['action', 'product', 'variant', 'locationFrom', 'locationTo', 'date', 'time', 'quantity', 'updatedBy'];
+                const firstErrorField = fieldOrder.find(field => this.state.validationErrors[field]);
+                
+                if (firstErrorField) {
+                    // Find the label element for the field and scroll to it
+                    const labels = Array.from(document.querySelectorAll('.stock-modal-field label'));
+                    const label = labels.find(l => l.textContent.includes(
+                        firstErrorField === 'action' ? 'Action' :
+                        firstErrorField === 'product' ? 'Product' :
+                        firstErrorField === 'variant' ? 'Variant' :
+                        firstErrorField === 'locationFrom' ? 'Location From' :
+                        firstErrorField === 'locationTo' ? 'Location To' :
+                        firstErrorField === 'date' ? 'Date' :
+                        firstErrorField === 'time' ? 'Time' :
+                        firstErrorField === 'quantity' ? 'Quantity' :
+                        firstErrorField === 'updatedBy' ? 'Updated By' : ''
+                    ));
+                    
+                    if (label) {
+                        label.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            }, 100);
         }
     };
 
     isLocationFromFixed = (action) => {
         // Determine if Location From has a fixed value based on action
-        return action === 'Return Stock to Store' || action === 'Initial Stock';
+        return action === 'Initial Stock' || action === 'Purchase From Supplier' || action === 'Return to Supplier' || action === 'Allocation To Site';
     };
 
     isLocationToFixed = (action) => {
         // Determine if Location To has a fixed value based on action
-        return action === 'Allocation To Site' || action === 'Initial Stock';
+        return action === 'Purchase From Supplier' || action === 'Return to Supplier' || action === 'Return Stock to Store';
     };
 
     render() {
@@ -223,24 +260,7 @@ class StockAdjustmentModal extends Component {
                         <h3>Stock Adjustment</h3>
                     </div>
                     <div className="stock-modal-body">
-                        <form id="incoming-stock-form" className="stock-modal-form" onSubmit={this.handleFormSubmit}>
-                            {Object.keys(this.state.validationErrors).length > 0 && (
-                                <div style={{
-                                    backgroundColor: '#fee',
-                                    border: '1px solid #fcc',
-                                    borderRadius: '4px',
-                                    padding: '12px',
-                                    marginBottom: '16px',
-                                    color: '#c33'
-                                }}>
-                                    <strong>Please fix the following errors:</strong>
-                                    <ul style={{ margin: '8px 0 0', paddingLeft: '20px' }}>
-                                        {Object.entries(this.state.validationErrors).map(([field, error]) => (
-                                            <li key={field} style={{ fontSize: '0.9rem' }}>{error}</li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
+                        <form id="incoming-stock-form" className="stock-modal-form" onSubmit={this.handleFormSubmit} noValidate>
                             <div className="stock-modal-field">
                                 <label>Action <span style={{ color: '#e74c3c' }}>*</span></label>
                                 <div className="incoming-dropdown" ref={this.actionDropdownRef}>
@@ -250,7 +270,6 @@ class StockAdjustmentModal extends Component {
                                         value={formData.action}
                                         onFocus={() => this.setState({ actionDropdownOpen: true })}
                                         readOnly
-                                        required
                                         style={{ cursor: 'pointer', borderColor: this.state.validationErrors.action ? '#e74c3c' : '' }}
                                         placeholder="Please select one"
                                     />
@@ -271,7 +290,7 @@ class StockAdjustmentModal extends Component {
                                     )}
                                 </div>
                                 {this.state.validationErrors.action && (
-                                    <div style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '4px' }}>
+                                    <div style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '4px', fontWeight: 'bold' }}>
                                         {this.state.validationErrors.action}
                                     </div>
                                 )}
@@ -350,7 +369,6 @@ class StockAdjustmentModal extends Component {
                                         }}
                                         onFocus={() => this.setState({ productDropdownOpen: true })}
                                         placeholder="Enter product"
-                                        required
                                         style={{ borderColor: this.state.validationErrors.product ? '#e74c3c' : '' }}
                                     />
                                     {productDropdownOpen && getFilteredProducts(formData.product, inventoryProducts).length > 0 && (
@@ -364,7 +382,7 @@ class StockAdjustmentModal extends Component {
                                     )}
                                 </div>
                                 {this.state.validationErrors.product && (
-                                    <div style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '4px' }}>
+                                    <div style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '4px', fontWeight: 'bold' }}>
                                         {this.state.validationErrors.product}
                                     </div>
                                 )}
@@ -380,7 +398,6 @@ class StockAdjustmentModal extends Component {
                                             value={formData.variant}
                                             onFocus={() => this.setState({ variantDropdownOpen: true })}
                                             readOnly
-                                            required
                                             style={{ cursor: 'pointer', borderColor: this.state.validationErrors.variant ? '#e74c3c' : '' }}
                                             placeholder="Select variant"
                                         />
@@ -398,7 +415,7 @@ class StockAdjustmentModal extends Component {
                                         )}
                                     </div>
                                     {this.state.validationErrors.variant && (
-                                        <div style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '4px' }}>
+                                        <div style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '4px', fontWeight: 'bold' }}>
                                             {this.state.validationErrors.variant}
                                         </div>
                                     )}
@@ -415,7 +432,6 @@ class StockAdjustmentModal extends Component {
                                         onFocus={() => !this.isLocationFromFixed(formData.action) && this.setState({ locationFromDropdownOpen: true })}
                                         readOnly
                                         disabled={this.isLocationFromFixed(formData.action)}
-                                        required={formData.action !== 'Initial Stock'}
                                         style={{ cursor: this.isLocationFromFixed(formData.action) ? 'default' : 'pointer', borderColor: this.state.validationErrors.locationFrom ? '#e74c3c' : '' }}
                                         placeholder="Select location"
                                     />
@@ -439,7 +455,7 @@ class StockAdjustmentModal extends Component {
                                     )}
                                 </div>
                                 {this.state.validationErrors.locationFrom && (
-                                    <div style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '4px' }}>
+                                    <div style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '4px', fontWeight: 'bold' }}>
                                         {this.state.validationErrors.locationFrom}
                                     </div>
                                 )}
@@ -455,7 +471,6 @@ class StockAdjustmentModal extends Component {
                                         onFocus={() => !this.isLocationToFixed(formData.action) && this.setState({ locationToDropdownOpen: true })}
                                         readOnly
                                         disabled={this.isLocationToFixed(formData.action)}
-                                        required
                                         style={{ cursor: this.isLocationToFixed(formData.action) ? 'default' : 'pointer', borderColor: this.state.validationErrors.locationTo ? '#e74c3c' : '' }}
                                         placeholder="Select location"
                                     />
@@ -479,7 +494,7 @@ class StockAdjustmentModal extends Component {
                                     )}
                                 </div>
                                 {this.state.validationErrors.locationTo && (
-                                    <div style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '4px' }}>
+                                    <div style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '4px', fontWeight: 'bold' }}>
                                         {this.state.validationErrors.locationTo}
                                     </div>
                                 )}
@@ -491,11 +506,10 @@ class StockAdjustmentModal extends Component {
                                     type="date"
                                     value={formData.date}
                                     onChange={(e) => onFormChange('date', e.target.value)}
-                                    required
                                     style={{ borderColor: this.state.validationErrors.date ? '#e74c3c' : '' }}
                                 />
                                 {this.state.validationErrors.date && (
-                                    <div style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '4px' }}>
+                                    <div style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '4px', fontWeight: 'bold' }}>
                                         {this.state.validationErrors.date}
                                     </div>
                                 )}
@@ -507,11 +521,10 @@ class StockAdjustmentModal extends Component {
                                     type="time"
                                     value={formData.time}
                                     onChange={(e) => onFormChange('time', e.target.value)}
-                                    required
                                     style={{ borderColor: this.state.validationErrors.time ? '#e74c3c' : '' }}
                                 />
                                 {this.state.validationErrors.time && (
-                                    <div style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '4px' }}>
+                                    <div style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '4px', fontWeight: 'bold' }}>
                                         {this.state.validationErrors.time}
                                     </div>
                                 )}
@@ -524,11 +537,10 @@ class StockAdjustmentModal extends Component {
                                     value={formData.quantity}
                                     onChange={(e) => onFormChange('quantity', e.target.value)}
                                     placeholder="Enter quantity"
-                                    required
                                     style={{ borderColor: this.state.validationErrors.quantity ? '#e74c3c' : '' }}
                                 />
                                 {this.state.validationErrors.quantity && (
-                                    <div style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '4px' }}>
+                                    <div style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '4px', fontWeight: 'bold' }}>
                                         {this.state.validationErrors.quantity}
                                     </div>
                                 )}
@@ -540,21 +552,11 @@ class StockAdjustmentModal extends Component {
                                     type="text"
                                     value={formData.updatedBy}
                                     placeholder="Enter name"
-                                    required
                                     readOnly
-                                    style={{
-                                        width: '100%',
-                                        padding: '8px 12px',
-                                        border: `1px solid ${this.state.validationErrors.updatedBy ? '#e74c3c' : '#ddd'}`,
-                                        borderRadius: '4px',
-                                        fontSize: '0.95rem',
-                                        backgroundColor: '#fff',
-                                        color: '#333',
-                                        cursor: 'default'
-                                    }}
+                                    style={{ borderColor: this.state.validationErrors.updatedBy ? '#e74c3c' : '' }}
                                 />
                                 {this.state.validationErrors.updatedBy && (
-                                    <div style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '4px' }}>
+                                    <div style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '4px', fontWeight: 'bold' }}>
                                         {this.state.validationErrors.updatedBy}
                                     </div>
                                 )}

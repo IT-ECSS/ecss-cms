@@ -10,7 +10,8 @@ export const orderColumnDefs = [
     { 
         headerName: 'Status',
         width: 120,
-        valueGetter: (params) => params.data?.receiptNumber ? 'Sold' : 'Balance'
+        valueGetter: (params) => params.data?.receiptNumber ? 'Sold' : 'Balance',
+        pinned: 'left'
     },
     { 
         headerName: 'Customer Name', 
