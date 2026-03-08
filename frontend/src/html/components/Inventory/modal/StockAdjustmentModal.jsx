@@ -29,13 +29,53 @@ class StockAdjustmentModal extends Component {
             locationFromDropdownOpen: false,
             locationToDropdownOpen: false,
             isDragging: false,
-            uploadedFile: null
+            uploadedFile: null,
+            validationErrors: {}
         };
     }
 
     componentDidMount() {
         document.addEventListener('mousedown', this.handleDocumentClick);
     }
+
+    validateForm = (formData) => {
+        const errors = {};
+        const { inventoryProducts = [] } = this.props;
+
+        // Check required fields
+        if (!formData.action || formData.action.trim() === '') {
+            errors.action = 'Action is required';
+        }
+        if (!formData.product || formData.product.trim() === '') {
+            errors.product = 'Product is required';
+        }
+        if (hasColorVariations(formData.product, inventoryProducts) && (!formData.variant || formData.variant.trim() === '')) {
+            errors.variant = 'Variant is required';
+        }
+        if (!formData.locationFrom || formData.locationFrom.trim() === '') {
+            errors.locationFrom = 'Location From is required';
+        }
+        if (!formData.locationTo || formData.locationTo.trim() === '') {
+            errors.locationTo = 'Location To is required';
+        }
+        if (!formData.date || formData.date.trim() === '') {
+            errors.date = 'Date is required';
+        }
+        if (!formData.time || formData.time.trim() === '') {
+            errors.time = 'Time is required';
+        }
+        if (!formData.quantity || formData.quantity.trim() === '') {
+            errors.quantity = 'Quantity is required';
+        }
+        if (!formData.updatedBy || formData.updatedBy.trim() === '') {
+            errors.updatedBy = 'Updated By is required';
+        }
+        // Reason is optional, so no validation needed
+
+        this.setState({ validationErrors: errors });
+        return Object.keys(errors).length === 0;
+    };
+
 
     componentWillUnmount() {
         document.removeEventListener('mousedown', this.handleDocumentClick);
@@ -128,6 +168,31 @@ class StockAdjustmentModal extends Component {
         this.setState({ productDropdownOpen: false });
     };
 
+    handleFormSubmit = (e) => {
+        const { formData, onSubmit } = this.props;
+        
+        e.preventDefault();
+        
+        // Validate form before submitting
+        if (this.validateForm(formData)) {
+            // Clear validation errors and proceed with submission
+            this.setState({ validationErrors: {} });
+            if (onSubmit) {
+                onSubmit(e);
+            }
+        }
+    };
+
+    isLocationFromFixed = (action) => {
+        // Determine if Location From has a fixed value based on action
+        return action === 'Return Stock to Store' || action === 'Initial Stock';
+    };
+
+    isLocationToFixed = (action) => {
+        // Determine if Location To has a fixed value based on action
+        return action === 'Allocation To Site' || action === 'Initial Stock';
+    };
+
     render() {
         const {
             isOpen,
@@ -158,9 +223,26 @@ class StockAdjustmentModal extends Component {
                         <h3>Stock Adjustment</h3>
                     </div>
                     <div className="stock-modal-body">
-                        <form id="incoming-stock-form" className="stock-modal-form" onSubmit={onSubmit}>
+                        <form id="incoming-stock-form" className="stock-modal-form" onSubmit={this.handleFormSubmit}>
+                            {Object.keys(this.state.validationErrors).length > 0 && (
+                                <div style={{
+                                    backgroundColor: '#fee',
+                                    border: '1px solid #fcc',
+                                    borderRadius: '4px',
+                                    padding: '12px',
+                                    marginBottom: '16px',
+                                    color: '#c33'
+                                }}>
+                                    <strong>Please fix the following errors:</strong>
+                                    <ul style={{ margin: '8px 0 0', paddingLeft: '20px' }}>
+                                        {Object.entries(this.state.validationErrors).map(([field, error]) => (
+                                            <li key={field} style={{ fontSize: '0.9rem' }}>{error}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
                             <div className="stock-modal-field">
-                                <label>Action</label>
+                                <label>Action <span style={{ color: '#e74c3c' }}>*</span></label>
                                 <div className="incoming-dropdown" ref={this.actionDropdownRef}>
                                     <input
                                         type="text"
@@ -169,7 +251,7 @@ class StockAdjustmentModal extends Component {
                                         onFocus={() => this.setState({ actionDropdownOpen: true })}
                                         readOnly
                                         required
-                                        style={{ cursor: 'pointer' }}
+                                        style={{ cursor: 'pointer', borderColor: this.state.validationErrors.action ? '#e74c3c' : '' }}
                                         placeholder="Please select one"
                                     />
                                     {actionDropdownOpen && (
@@ -188,6 +270,11 @@ class StockAdjustmentModal extends Component {
                                         </ul>
                                     )}
                                 </div>
+                                {this.state.validationErrors.action && (
+                                    <div style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '4px' }}>
+                                        {this.state.validationErrors.action}
+                                    </div>
+                                )}
                             </div>
 
                             {formData.action === 'Purchase From Supplier' && (
@@ -251,7 +338,7 @@ class StockAdjustmentModal extends Component {
                             )}
 
                             <div className="stock-modal-field">
-                                <label>Product</label>
+                                <label>Product <span style={{ color: '#e74c3c' }}>*</span></label>
                                 <div className="incoming-dropdown" ref={this.productDropdownRef}>
                                     <input
                                         type="text"
@@ -264,6 +351,7 @@ class StockAdjustmentModal extends Component {
                                         onFocus={() => this.setState({ productDropdownOpen: true })}
                                         placeholder="Enter product"
                                         required
+                                        style={{ borderColor: this.state.validationErrors.product ? '#e74c3c' : '' }}
                                     />
                                     {productDropdownOpen && getFilteredProducts(formData.product, inventoryProducts).length > 0 && (
                                         <ul className="incoming-dropdown-list">
@@ -275,11 +363,16 @@ class StockAdjustmentModal extends Component {
                                         </ul>
                                     )}
                                 </div>
+                                {this.state.validationErrors.product && (
+                                    <div style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '4px' }}>
+                                        {this.state.validationErrors.product}
+                                    </div>
+                                )}
                             </div>
 
                             {hasColorVariations(formData.product, inventoryProducts) && (
                                 <div className="stock-modal-field">
-                                    <label>Variant</label>
+                                    <label>Variant <span style={{ color: '#e74c3c' }}>*</span></label>
                                     <div className="incoming-dropdown" ref={this.variantDropdownRef}>
                                         <input
                                             type="text"
@@ -288,7 +381,7 @@ class StockAdjustmentModal extends Component {
                                             onFocus={() => this.setState({ variantDropdownOpen: true })}
                                             readOnly
                                             required
-                                            style={{ cursor: 'pointer' }}
+                                            style={{ cursor: 'pointer', borderColor: this.state.validationErrors.variant ? '#e74c3c' : '' }}
                                             placeholder="Select variant"
                                         />
                                         {variantDropdownOpen && (
@@ -304,20 +397,26 @@ class StockAdjustmentModal extends Component {
                                             </ul>
                                         )}
                                     </div>
+                                    {this.state.validationErrors.variant && (
+                                        <div style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '4px' }}>
+                                            {this.state.validationErrors.variant}
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
                             <div className="stock-modal-field">
-                                <label>Location From</label>
+                                <label>Location From <span style={{ color: '#e74c3c' }}>*</span></label>
                                 <div className="incoming-dropdown" ref={this.locationFromDropdownRef}>
                                     <input
                                         type="text"
                                         className="incoming-dropdown-input"
                                         value={formData.locationFrom}
-                                        onFocus={() => this.setState({ locationFromDropdownOpen: true })}
+                                        onFocus={() => !this.isLocationFromFixed(formData.action) && this.setState({ locationFromDropdownOpen: true })}
                                         readOnly
+                                        disabled={this.isLocationFromFixed(formData.action)}
                                         required={formData.action !== 'Initial Stock'}
-                                        style={{ cursor: 'pointer' }}
+                                        style={{ cursor: this.isLocationFromFixed(formData.action) ? 'default' : 'pointer', borderColor: this.state.validationErrors.locationFrom ? '#e74c3c' : '' }}
                                         placeholder="Select location"
                                     />
                                     {locationFromDropdownOpen && (
@@ -339,19 +438,25 @@ class StockAdjustmentModal extends Component {
                                         </ul>
                                     )}
                                 </div>
+                                {this.state.validationErrors.locationFrom && (
+                                    <div style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '4px' }}>
+                                        {this.state.validationErrors.locationFrom}
+                                    </div>
+                                )}
                             </div>
                             
                             <div className="stock-modal-field">
-                                <label>Location To</label>
+                                <label>Location To <span style={{ color: '#e74c3c' }}>*</span></label>
                                 <div className="incoming-dropdown" ref={this.locationToDropdownRef}>
                                     <input
                                         type="text"
                                         className="incoming-dropdown-input"
                                         value={formData.locationTo}
-                                        onFocus={() => this.setState({ locationToDropdownOpen: true })}
+                                        onFocus={() => !this.isLocationToFixed(formData.action) && this.setState({ locationToDropdownOpen: true })}
                                         readOnly
+                                        disabled={this.isLocationToFixed(formData.action)}
                                         required
-                                        style={{ cursor: 'pointer' }}
+                                        style={{ cursor: this.isLocationToFixed(formData.action) ? 'default' : 'pointer', borderColor: this.state.validationErrors.locationTo ? '#e74c3c' : '' }}
                                         placeholder="Select location"
                                     />
                                     {locationToDropdownOpen && (
@@ -373,52 +478,90 @@ class StockAdjustmentModal extends Component {
                                         </ul>
                                     )}
                                 </div>
+                                {this.state.validationErrors.locationTo && (
+                                    <div style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '4px' }}>
+                                        {this.state.validationErrors.locationTo}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="stock-modal-field">
-                                <label>Date</label>
+                                <label>Date <span style={{ color: '#e74c3c' }}>*</span></label>
                                 <input
                                     type="date"
                                     value={formData.date}
                                     onChange={(e) => onFormChange('date', e.target.value)}
                                     required
+                                    style={{ borderColor: this.state.validationErrors.date ? '#e74c3c' : '' }}
                                 />
+                                {this.state.validationErrors.date && (
+                                    <div style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '4px' }}>
+                                        {this.state.validationErrors.date}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="stock-modal-field">
-                                <label>Time</label>
+                                <label>Time <span style={{ color: '#e74c3c' }}>*</span></label>
                                 <input
                                     type="time"
                                     value={formData.time}
                                     onChange={(e) => onFormChange('time', e.target.value)}
                                     required
+                                    style={{ borderColor: this.state.validationErrors.time ? '#e74c3c' : '' }}
                                 />
+                                {this.state.validationErrors.time && (
+                                    <div style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '4px' }}>
+                                        {this.state.validationErrors.time}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="stock-modal-field">
-                                <label>Quantity</label>
+                                <label>Quantity <span style={{ color: '#e74c3c' }}>*</span></label>
                                 <input
                                     type="text"
                                     value={formData.quantity}
                                     onChange={(e) => onFormChange('quantity', e.target.value)}
                                     placeholder="Enter quantity"
                                     required
+                                    style={{ borderColor: this.state.validationErrors.quantity ? '#e74c3c' : '' }}
                                 />
+                                {this.state.validationErrors.quantity && (
+                                    <div style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '4px' }}>
+                                        {this.state.validationErrors.quantity}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="stock-modal-field">
-                                <label>Updated By</label>
+                                <label>Updated By <span style={{ color: '#e74c3c' }}>*</span></label>
                                 <input
                                     type="text"
                                     value={formData.updatedBy}
-                                    onChange={(e) => onFormChange('updatedBy', e.target.value)}
                                     placeholder="Enter name"
                                     required
+                                    readOnly
+                                    style={{
+                                        width: '100%',
+                                        padding: '8px 12px',
+                                        border: `1px solid ${this.state.validationErrors.updatedBy ? '#e74c3c' : '#ddd'}`,
+                                        borderRadius: '4px',
+                                        fontSize: '0.95rem',
+                                        backgroundColor: '#fff',
+                                        color: '#333',
+                                        cursor: 'default'
+                                    }}
                                 />
+                                {this.state.validationErrors.updatedBy && (
+                                    <div style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '4px' }}>
+                                        {this.state.validationErrors.updatedBy}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="stock-modal-field">
-                                <label>Reason</label>
+                                <label>Reason <span style={{ color: '#999', fontSize: '0.85rem' }}>(Optional)</span></label>
                                 <input
                                     type="text"
                                     className="incoming-dropdown-input"
