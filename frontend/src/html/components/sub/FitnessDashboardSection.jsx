@@ -30,9 +30,30 @@ class FitnessDashboardSection extends Component {
     return yearFrom && (!yearTo || yearTo === yearFrom);
   }
 
+  // Find the first key in the row that matches the predicate (case-insensitive)
+  findKey = (row, predicate) => {
+    return Object.keys(row).find((k) => predicate(k.trim().toLowerCase()));
+  };
+
   getParticipantName = (row) => {
-    const nameKey = Object.keys(row).find(k => k.toLowerCase() === 'name');
-    return nameKey ? row[nameKey] || 'Unknown' : 'Unknown';
+    const matchName = (k) => {
+      // Avoid picking username / system name columns
+      if (k.includes('user')) return false;
+      return k === 'name' || k.includes(' name') || k.startsWith('name');
+    };
+
+    const matchChinese = (k) => k.includes('chinese') && k.includes('name');
+
+    const nameKey = this.findKey(row, matchName);
+    const cnKey = this.findKey(row, matchChinese);
+
+    const name = nameKey ? row[nameKey] : '';
+    const chineseName = cnKey ? row[cnKey] : '';
+
+    const defaultName = name || chineseName;
+    if (!defaultName) return 'Unknown';
+    if (name && chineseName) return `${name} / ${chineseName}`;
+    return defaultName;
   };
 
   findMetricKey = (row, metricKey) => {
@@ -60,44 +81,96 @@ class FitnessDashboardSection extends Component {
     });
     const years = [...yearsSet].sort();
 
-    // Group by participant
+    // Group by participant (dedupe by Name / Chinese Name)
     const participantMap = {};
+    const participantKeyMap = new Map(); // maps normalized name/cn -> canonical key
+    const normalize = (val) => (val || '').toString().trim().toLowerCase();
+
+    const normalizePhone = (val) => {
+      const digits = (val || '').toString().replace(/\D/g, '');
+      return digits.startsWith('65') ? digits.slice(2) : digits;
+    };
+
+    const normalizeId = (val) => (val || '').toString().trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    const matchNameKey = (k) => {
+      if (k.includes('user')) return false;
+      return k === 'name' || k.includes(' name') || k.startsWith('name');
+    };
+
+    const matchChineseKey = (k) => k.includes('chinese') && k.includes('name');
+
+    const matchPhoneKey = (k) => k.includes('phone') || k.includes('tel') || k.includes('mobile');
+
+    const matchIdKey = (k) => {
+      return k.includes('ic') || k.includes('nric') || k.includes('uinfin') || k.includes('id');
+    };
+
+    const getParticipantKey = (row) => {
+      const nameKey = this.findKey(row, matchNameKey);
+      const cnKey = this.findKey(row, matchChineseKey);
+      const phoneKey = this.findKey(row, matchPhoneKey);
+      const idKey = this.findKey(row, matchIdKey);
+
+      const name = nameKey ? normalize(row[nameKey]) : '';
+      const chineseName = cnKey ? normalize(row[cnKey]) : '';
+      const phone = phoneKey ? normalizePhone(row[phoneKey]) : '';
+      const id = idKey ? normalizeId(row[idKey]) : '';
+
+      const keys = [name, chineseName, phone, id].filter(Boolean);
+      if (!keys.length) return null;
+
+      // If any key already is known, use the existing canonical key
+      for (const k of keys) {
+        if (participantKeyMap.has(k)) {
+          const canonical = participantKeyMap.get(k);
+          // Ensure all keys point to the same canonical
+          keys.forEach((kk) => participantKeyMap.set(kk, canonical));
+          return canonical;
+        }
+      }
+
+      // New participant; choose the first key as canonical and map all keys
+      const canonical = keys[0];
+      keys.forEach((k) => participantKeyMap.set(k, canonical));
+      return canonical;
+    };
+
     let maleCount = 0;
     let femaleCount = 0;
     let maleParticipations = 0;
     let femaleParticipations = 0;
 
     filteredData.forEach(row => {
-      const name = this.getParticipantName(row).toLowerCase().trim();
+      const participantKey = getParticipantKey(row);
       const yearKey = Object.keys(row).find(k => k.toLowerCase() === 'year');
       const year = yearKey ? row[yearKey]?.toString() : null;
-      
-      if (!name || name === 'unknown' || !year) return;
-      
+      if (!participantKey || !year) return;
+
       // Track participation entries by gender
       const gender = this.getParticipantGender(row);
       if (gender === 'Male') maleParticipations++;
       else femaleParticipations++;
-      
-      if (!participantMap[name]) {
-        participantMap[name] = { 
+
+      if (!participantMap[participantKey]) {
+        participantMap[participantKey] = {
           displayName: this.getParticipantName(row),
-          gender: gender,
-          years: {} 
+          gender,
+          years: {}
         };
-        if (participantMap[name].gender === 'Male') maleCount++;
+        if (gender === 'Male') maleCount++;
         else femaleCount++;
       }
-      
-      if (!participantMap[name].years[year]) {
-        participantMap[name].years[year] = {};
+
+      if (!participantMap[participantKey].years[year]) {
+        participantMap[participantKey].years[year] = {};
       }
-      
+
       this.fitnessMetrics.forEach(metric => {
         const metricKey = this.findMetricKey(row, metric.key);
         const val = metricKey ? row[metricKey] : null;
         if (val !== null && val !== undefined && val !== '') {
-          participantMap[name].years[year][metric.key] = parseFloat(val);
+          participantMap[participantKey].years[year][metric.key] = parseFloat(val);
         }
       });
     });
@@ -132,28 +205,29 @@ class FitnessDashboardSection extends Component {
       filteredData.forEach(row => {
         const yearKey = Object.keys(row).find(k => k.toLowerCase() === 'year');
         if ((yearKey ? row[yearKey]?.toString() : null) !== year) return;
-        const name = this.getParticipantName(row).toLowerCase().trim();
-        if (name && name !== 'unknown') {
-          uniqueNames.add(name);
-          totalEntries++;
-          participantEntryCount[name] = (participantEntryCount[name] || 0) + 1;
-          
-          // Check if this is a new participant
-          if (!previousYearsParticipants.has(name)) {
-            newParticipantNames.add(name);
-          }
-          
-          const gender = this.getParticipantGender(row);
-          // Track participation entries by gender
-          if (gender === 'Male') maleParticipationsInYear++;
-          else femaleParticipationsInYear++;
-          
-          // Count gender only once per unique participant per year
-          if (!countedNames.has(name)) {
-            countedNames.add(name);
-            if (gender === 'Male') maleInYear++;
-            else femaleInYear++;
-          }
+
+        const participantKey = getParticipantKey(row);
+        if (!participantKey) return;
+
+        uniqueNames.add(participantKey);
+        totalEntries++;
+        participantEntryCount[participantKey] = (participantEntryCount[participantKey] || 0) + 1;
+
+        // Check if this is a new participant (not in previous years)
+        if (!previousYearsParticipants.has(participantKey)) {
+          newParticipantNames.add(participantKey);
+        }
+
+        const gender = this.getParticipantGender(row);
+        // Track participation entries by gender
+        if (gender === 'Male') maleParticipationsInYear++;
+        else femaleParticipationsInYear++;
+
+        // Count gender only once per unique participant per year
+        if (!countedNames.has(participantKey)) {
+          countedNames.add(participantKey);
+          if (gender === 'Male') maleInYear++;
+          else femaleInYear++;
         }
       });
       

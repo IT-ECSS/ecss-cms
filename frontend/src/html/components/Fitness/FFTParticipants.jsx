@@ -754,7 +754,10 @@ class FFTParticipants extends Component {
                     {/* Personal Info Card — column 1 */}
                     {(() => {
                       const rd = this.state.rowData || {};
-                      const displayName = rd.name || rd.chineseName || '—';
+                      const nameParts = [];
+                      if (rd.name) nameParts.push(rd.name);
+                      if (rd.chineseName) nameParts.push(rd.chineseName);
+                      const displayName = nameParts.length ? nameParts.join(' / ') : '—';
                       const dob = (rd.dd && rd.mm && rd.yyyy) ? `${rd.dd}/${rd.mm}/${rd.yyyy}` : '—';
                       return (
                         <div style={{
@@ -771,7 +774,6 @@ class FFTParticipants extends Component {
                             </div>
                             <div>
                               <div style={{ fontWeight: 700, fontSize: '2.7rem', color: '#1a1a1a' }}>{displayName}</div>
-                              {rd.chineseName && rd.name && <div style={{ fontSize: '2.4rem', color: '#555', fontWeight: 700 }}>{rd.chineseName}</div>}
                             </div>
                           </div>
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px', fontSize: '2.4rem' }}>

@@ -244,7 +244,7 @@ const EntriesTable = ({ data, onRowClick, yearFrom, yearTo, allLocationData, onP
         columns.push({
           headerName: 'Date of Birth',
           field: '_birthDate',
-          width: 150,
+          width: 200,
         });
       }
     });
@@ -302,35 +302,66 @@ const EntriesTable = ({ data, onRowClick, yearFrom, yearTo, allLocationData, onP
     );
   }
 
+  // Filter rows based on quick search
+  const filteredRowData = useMemo(() => {
+    const query = quickFilterText.trim().toLowerCase();
+
+    const matchesQuickFilter = (row) => {
+      if (!query) return true;
+      const allValues = Object.values(row)
+        .filter(v => v !== null && v !== undefined)
+        .map(v => String(v))
+        .join(' ').toLowerCase();
+      return allValues.includes(query);
+    };
+
+    return rowData.filter(matchesQuickFilter);
+  }, [rowData, quickFilterText]);
+
   return (
     <div className="fft-entries-table-wrapper">
-        {/* Show participant list table when no year range, show comparison table when year range */}
-        {!hasYearRange ? (
-          <AgGridReact
-            ref={gridRef}
-            rowData={rowData}
-            columnDefs={columnDefs}
-            defaultColDef={defaultColDef}
-            domLayout="normal"
-            pagination={true}
-            paginationPageSize={rowData.length}
-            getRowStyle={getRowStyle}
-            onRowClicked={onRowClicked}
-            rowSelection="single"
-            animateRows={true}
-            suppressCellFocus={true}
-            autoSizeStrategy={{ type: 'fitCellContents', skipHeader: false }}
+      <div className="fft-entries-search-bar">
+        <div className="fft-entries-search-row">
+          <div className="fft-entries-search-icon">
+            <i className="fas fa-search"></i>
+          </div>
+          <input
+            className="fft-entries-search-input"
+            type="text"
+            value={quickFilterText}
+            onChange={onFilterTextChange}
+            placeholder="Search name / Chinese name / phone..."
           />
-        ) : (yearComparisonData && yearComparisonData.length > 1) ? (
-          <YearComparisonView 
-            data={allLocationData || data} 
-            yearComparisonData={yearComparisonData} 
-            fitnessMetrics={fitnessMetrics}
-            yearFrom={yearFrom}
-            yearTo={yearTo}
-            onParticipantClick={onParticipantClick}
-          />
-        ) : null}
+        </div>
+      </div>
+
+      {/* Show participant list table when no year range, show comparison table when year range */}
+      {!hasYearRange ? (
+        <AgGridReact
+          ref={gridRef}
+          rowData={filteredRowData}
+          columnDefs={columnDefs}
+          defaultColDef={defaultColDef}
+          domLayout="normal"
+          pagination={true}
+          paginationPageSize={filteredRowData.length}
+          getRowStyle={getRowStyle}
+          onRowClicked={onRowClicked}
+          rowSelection="single"
+          animateRows={true}
+          suppressCellFocus={true}
+          autoSizeStrategy={{ type: 'fitCellContents', skipHeader: false }}
+        />
+      ) : (yearComparisonData && yearComparisonData.length > 1) ? (
+        <YearComparisonView 
+          data={allLocationData || data} 
+          yearComparisonData={yearComparisonData} 
+          fitnessMetrics={fitnessMetrics}
+          yearFrom={yearFrom}
+          yearTo={yearTo}
+          onParticipantClick={onParticipantClick}
+        />
+      ) : null}
     </div>
   );
 };

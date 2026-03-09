@@ -212,6 +212,64 @@ class FFTTrainers extends Component {
     });
   };
 
+  // Returns the number of unique participants based on name/chineseName de-duplication.
+  // Treats entries that share the same name or same chineseName as the same participant.
+  getUniqueParticipantCount = (rows) => {
+    const normalize = (val) => (val || '').toString().trim().toLowerCase();
+    const normalizePhone = (val) => {
+      if (!val) return '';
+      const s = val.toString().replace(/\D/g, '');
+      return s.startsWith('65') ? s.slice(2) : s;
+    };
+
+    const parent = new Map();
+
+    const find = (id) => {
+      if (!parent.has(id)) {
+        parent.set(id, id);
+        return id;
+      }
+      const p = parent.get(id);
+      if (p === id) return id;
+      const root = find(p);
+      parent.set(id, root);
+      return root;
+    };
+
+    const union = (a, b) => {
+      const rootA = find(a);
+      const rootB = find(b);
+      if (rootA !== rootB) parent.set(rootB, rootA);
+    };
+
+    rows.forEach((r) => {
+      const nameKey = normalize(r.name);
+      const cnKey = normalize(r.chineseName);
+      const phoneKey = normalizePhone(r.phoneNo);
+
+      // Skip if nothing meaningful
+      if (!nameKey && !cnKey && !phoneKey) return;
+
+      // Register keys
+      if (nameKey) find(nameKey);
+      if (cnKey) find(cnKey);
+      if (phoneKey) find(phoneKey);
+
+      // Link any fields found together
+      const keys = [nameKey, cnKey, phoneKey].filter(Boolean);
+      for (let i = 1; i < keys.length; i++) {
+        union(keys[0], keys[i]);
+      }
+    });
+
+    // Count unique roots (participant groups)
+    const roots = new Set();
+    parent.forEach((_, id) => {
+      roots.add(find(id));
+    });
+    return roots.size;
+  };
+
   onGridReady = (params) => {
     this.gridApi = params.api;
   };
@@ -318,7 +376,8 @@ class FFTTrainers extends Component {
 
               {/* Result count */}
               <div className="fft-trainers-result-count">
-                Showing {filtered.length} of {rows.length} participants
+                Showing {filtered.length} of {rows.length} rows (
+                {this.getUniqueParticipantCount(filtered)} unique participant{this.getUniqueParticipantCount(filtered) === 1 ? '' : 's'})
               </div>
 
               {/* AG Grid */}
