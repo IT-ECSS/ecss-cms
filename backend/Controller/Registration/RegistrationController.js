@@ -18,16 +18,18 @@ class RegistrationController {
                 var databaseName = "Company-Management-System";
                 var collectionName = "Registration Forms";
                 
-                var getAllResult = await this.databaseConnectivity.getAllParticipants(
+                var getAllResult = await this.databaseConnectivity.retrieveCourseRegistration(
                     databaseName,
                     collectionName
                 );
                 //console.log("Get All Participants Result:", getAllResult);
-                
+
+                let participants = getAllResult.participants || [];
+
                 return {
                     success: getAllResult.success,
-                    participants: getAllResult.participants || [],
-                    count: getAllResult.participants ? getAllResult.participants.length : 0,
+                    participants,
+                    count: participants.length,
                     message: getAllResult.message || "Participants retrieved successfully"
                 };
             } else {

@@ -811,11 +811,27 @@ class DatabaseConnectivity {
                     } else {
                         console.log("SiteIC is null, not filtering by location");
                     }
-                } else if (role === "Social Worker") {
+                } 
+                else if (role === "NSA in-charge") {
                     console.log("Processing Social Worker filtering...");
-                    // Social Workers can only see Marriage Preparation Programme courses
-                    query["course.courseType"] = "Marriage Preparation Programme";
-                    console.log("Filtering for Marriage Preparation Programme courses only");
+                    // Social Workers can only see Talks And Seminar and Marriage Preparation Programme courses
+                    query["course.courseType"] = {
+                        $in: [
+                            "NSA",
+                            "Talks And Seminar"
+                        ]
+                    };
+                    console.log("Filtering for Talks And Seminar and Marriage Preparation Programme courses only");
+                }else if (role === "Social Worker") {
+                    console.log("Processing Social Worker filtering...");
+                    // Social Workers can only see Talks And Seminar and Marriage Preparation Programme courses
+                    query["course.courseType"] = {
+                        $in: [
+                            "Talks And Seminar",
+                            "Marriage Preparation Programme"
+                        ]
+                    };
+                    console.log("Filtering for Talks And Seminar and Marriage Preparation Programme courses only");
                 } else {
                     console.log("Role has no specific filters, returning all documents");
                 }

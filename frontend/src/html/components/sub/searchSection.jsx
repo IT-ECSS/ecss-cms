@@ -229,77 +229,101 @@ handleChange = (event) => {
   });
 };
 
-handleDropdownToggle = (dropdown) =>
-{
+handleClearFilters = () => {
+  // Reset all filter inputs
+  this.setState(
+    {
+      searchQuery: '',
+      centreLocation: '',
+      language: '',
+      role: '',
+      courseType: '',
+      courseName: '',
+      quarter: '',
+      paymentMethod: '',
+      collectionLocation: '',
+      fundraisingStatus: '',
+      attendanceType: '',
+      activityCode: '',
+      membershipType: '',
+      showLocationDropdown: false,
+      showLanguageDropdown: false,
+      showTypeDropdown: false,
+      showCourseDropdown: false,
+      showAccountTypeDropdown: false,
+      showQuarterDropdown: false,
+      showPaymentMethodDropdown: false,
+      showCollectionLocationDropdown: false,
+      showStatusDropdown: false
+    },
+    () => {
+      // Reset filter results (parent and component state)
+      if (this.props.passSearchedValueToParent) {
+        this.props.passSearchedValueToParent('');
+      }
+      if (this.props.passSelectedValueToParent) {
+        this.props.passSelectedValueToParent({ clear: true }, 'clearFilters');
+      }
+      if (typeof this.props.onClearFilters === 'function') {
+        this.props.onClearFilters();
+      }
+
+      // Reset dropdown result lists to their full set
+      this.setState({
+        filteredLocations: this.state.locations,
+        filteredLanguages: this.state.languages,
+        filteredTypes: this.state.types,
+        filteredRoles: this.state.roles,
+        filteredCoursesName: this.state.coursesName,
+        filteredQuarters: this.state.quarters,
+        filteredAttendanceTypes: this.state.attendanceTypes,
+        filteredAttendanceLocations: this.state.attendanceLocations,
+        filteredPaymentMethods: this.state.fundraisingPaymentMethods,
+        filteredCollectionLocations: this.state.fundraisingCollectionLocations,
+        filteredFundraisingStatuses: this.state.fundraisingStatuses,
+        filteredMembershipTypes: this.state.membershipTypes
+      });
+    }
+  );
+};
+
+handleDropdownToggle = (dropdown) => {
   console.log("Dropdown:", dropdown);
-  // Only toggle the requested dropdown, do not close the other
-  if(dropdown === 'showLocationDropdown')
-  {
-    this.setState({ showLocationDropdown: true });
-  }
-  else if(dropdown === 'showLanguageDropdown')
-    {
-      this.setState({ showLanguageDropdown: true });
+
+  // Keep only one dropdown open at a time
+  const dropdownKeys = [
+    'showLocationDropdown',
+    'showLanguageDropdown',
+    'showTypeDropdown',
+    'showCourseDropdown',
+    'showQuarterDropdown',
+    'showAccountTypeDropdown',
+    'showAttendanceTypeDropdown',
+    'showAttendanceLocationDropdown',
+    'showActivityCodeDropdown',
+    'showMembershipTypeDropdown',
+    'showPaymentMethodDropdown',
+    'showCollectionLocationDropdown',
+    'showStatusDropdown'
+  ];
+
+  this.setState((prevState) => {
+    const willOpen = !prevState[dropdown];
+    const nextState = {};
+
+    // Close all dropdowns
+    dropdownKeys.forEach((key) => {
+      nextState[key] = false;
+    });
+
+    // Open the requested dropdown if it was previously closed
+    if (willOpen) {
+      nextState[dropdown] = true;
     }
-    else if(dropdown === 'showTypeDropdown')
-    {
-        this.setState({ showTypeDropdown: true });
-    }
-    else if(dropdown === 'showCourseDropdown')
-    {
-        console.log("Show");
-        this.setState({ showCourseDropdown: true });
-    }
-    else if(dropdown === 'showCourseQuarter')
-    {
-        console.log("Show");
-        this.setState({ showQuarterDropdown: true });
-    }
-    else if(dropdown === 'showAccountTypeDropdown')
-      {
-        this.setState({ showAccountTypeDropdown: true });
-    }
-    else if(dropdown === 'showAttendanceTypeDropdown')
-    {
-      this.setState({ showAttendanceTypeDropdown: true });
-    }
-    else if(dropdown === 'showAttendanceLocationDropdown')
-    {
-      this.setState({ showAttendanceLocationDropdown: true });
-    }
-    else if(dropdown === 'showActivityCodeDropdown')
-    {
-      this.setState({ showActivityCodeDropdown: true });
-    }
-    else if(dropdown === 'showMembershipTypeDropdown')
-    {
-      this.setState({ showMembershipTypeDropdown: true });
-    }
-    else if(dropdown === 'showPaymentMethodDropdown')
-    {
-      console.log("Toggling payment method dropdown");
-      this.setState({ showPaymentMethodDropdown: true });
-    }
-    /*
-    else if(dropdown === 'showCollectionModeDropdown')
-    {
-      console.log("Toggling collection mode dropdown");
-      this.setState({ showCollectionModeDropdown: true });
-    }
-    */
-    else if(dropdown === 'showCollectionLocationDropdown')
-    {
-      console.log("Toggling collection location dropdown");
-      console.log("Current filteredCollectionLocations:", this.state.filteredCollectionLocations);
-      console.log("Current fundraisingCollectionLocations:", this.state.fundraisingCollectionLocations);
-      this.setState({ showCollectionLocationDropdown: true });
-    }
-    else if(dropdown === 'showStatusDropdown')
-    {
-      console.log("Toggling status dropdown");
-      this.setState({ showStatusDropdown: true });
-    }
-}
+
+    return nextState;
+  });
+};
 
 handleOptionSelect = (value, dropdown) => {
   console.log("Selected value for filtered:", value, dropdown);
@@ -362,9 +386,9 @@ handleOptionSelect = (value, dropdown) => {
           showQuarterDropdown: false
         });
     }
-    else if(dropdown === 'showCourseQuarter')
+    else if(dropdown === 'showQuarterDropdown')
     {
-        console.log("Show");
+        console.log("Setting quarter filter to", value);
         updatedState = ({
           quarter: value,
           showLocationDropdown: false,
@@ -646,12 +670,16 @@ handleClickOutside = (event) => {
         centreLocation: '',
         language: '',
         role: '',
+        courseType: '',
         courseName: '',
         quarter: '',
         paymentMethod: '',
         // collectionMode: '',
         collectionLocation: '',
         fundraisingStatus: '',
+        attendanceType: '',
+        activityCode: '',
+        membershipType: '',
         showLocationDropdown: false,
         showLanguageDropdown: false,
         showTypeDropdown: false,
@@ -1108,7 +1136,7 @@ render()
             <div className="ss-field-group">
               <label htmlFor="courseQuarter">{this.props.language === 'zh' ? '中心位置' : 'Quarter Year'}</label>
               <div
-                className={`ss-dropdown-wrap ${showLocationDropdown ? 'open' : ''}`}
+                className={`ss-dropdown-wrap ${showQuarterDropdown ? 'open' : ''}`}
                 ref={this.quarterDropdownRef}
               >
                 <input
@@ -1117,7 +1145,7 @@ render()
                   name="quarter"
                   value={quarter}
                   onChange={this.handleChange}
-                  onClick={() => this.handleDropdownToggle('showCourseQuarter')}
+                  onClick={() => this.handleDropdownToggle('showQuarterDropdown')}
                   placeholder={this.props.language === 'zh' ? '按地点筛选' : 'Filter by course quarter'}
                   autoComplete="off"
                 />
@@ -1126,7 +1154,7 @@ render()
                     {filteredQuarters.map((quarter, index) => (
                       <li
                         key={index}
-                        onClick={() => this.handleOptionSelect(quarter, 'showCourseQuarter')}
+                        onClick={() => this.handleOptionSelect(quarter, 'showQuarterDropdown')}
                       >
                         {quarter}
                       </li>
@@ -1181,6 +1209,11 @@ render()
               />
               <i className="fas fa-search ss-magnifier-icon"></i>
             </div>
+          </div>
+          <div className="ss-field-group">
+            <button type="button" className="ss-clear-filters-button" onClick={this.handleClearFilters}>
+              {this.props.language === 'zh' ? '清除筛选' : 'Clear Filters'}
+            </button>
           </div>
         </>            
       )}

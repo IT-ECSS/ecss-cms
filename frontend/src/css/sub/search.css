@@ -62,10 +62,17 @@
   background: #fff; /* Background color of the dropdown list */
   border: none; /* Border to match the input field */
   border-radius: 4px; /* Rounded corners */
-  z-index: 10; /* Ensures the list appears above other content */
+  z-index: 100000; /* Ensure list appears above other content */
   list-style: none; /* Removes default list styling */
   padding: 0; /* Removes default padding */
   margin: 0; /* Removes default margin */
+  pointer-events: auto; /* Ensure the list is clickable */
+}
+
+.ss-options-list li {
+  padding: 0.5rem; /* Adds padding inside each list item */
+  cursor: pointer; /* Changes cursor to pointer for list items */
+  pointer-events: auto; /* Ensure list items are clickable */
 }
   
 .ss-options-list li {
@@ -120,4 +127,17 @@
   margin: 0; /* Reset margin */
   padding: 0; /* Reset padding */
   list-style: none; /* No bullets */
+}
+/* Clear filters button */
+.ss-clear-filters-button {
+  display: inline-block;
+  width: fit-content; /* Allow the button to size to its content */
+  padding: 0.45rem 0.9rem; /* ~10% smaller */
+  border: 3px solid #0b8a3e; /* Thicker green border */
+  border-radius: 4px;
+  background: transparent; /* No background color */
+  cursor: pointer;
+  font-weight: 800; /* Bolder font */
+  font-size: 0.9rem; /* ~20% smaller */
+  color: #0b8a3e; /* More green text */
 }

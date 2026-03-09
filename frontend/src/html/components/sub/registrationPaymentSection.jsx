@@ -88,30 +88,26 @@ class RegistrationPaymentSection extends Component {
 
     fetchCourseRegistrations = async (language) => {
       try {
-        var {siteIC, role, userName} = this.props;  
-        
-        // Handle siteIC as either string or array for backend compatibility
-        let processedSiteIC = siteIC;
-        if (Array.isArray(siteIC)) {
-          processedSiteIC = siteIC; // Keep as array for backend
-        } else if (typeof siteIC === 'string' && siteIC.includes(',')) {
-          processedSiteIC = siteIC.split(',').map(site => site.trim()); // Convert to array
-        } else if (typeof siteIC === 'string') {
-          processedSiteIC = siteIC; // Keep as single string
-        }
-        
-        const response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { purpose: 'retrieve', role, siteIC: processedSiteIC});
-        const response1 = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { purpose: 'retrieve', role: "admin", siteIC: ""});
+        const { siteIC, role } = this.props;
+        console.log("Fetching course registrations with siteIC:", siteIC, "and role:", role);
+        const payload = { purpose: 'retrieve', siteIC, role };
+
+        const response = await axios.post(
+          `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
+          payload
+        );
+
+        console.log('Raw response from server:', response.data);
         
         const data = this.languageDatabase(response.data.result, language);
-        const data1 = this.languageDatabase(response1.data.result, language);
+        console.log('Fetched course registrations:', data);
         
-        return {data, data1};
+        return data;
     
       } catch (error) {
         console.error('=== ERROR FETCHING COURSE REGISTRATIONS ===', error);
         console.error('Error details:', error.response?.data || error.message);
-        return {data: [], data1: []}; // Return proper object structure
+        return []; // Return proper object structure
       }
     };
 
@@ -193,17 +189,13 @@ class RegistrationPaymentSection extends Component {
     const currentPage = (this.gridApi && typeof this.gridApi.paginationGetCurrentPage === 'function') 
       ? this.gridApi.paginationGetCurrentPage() : 0;
 
-    const { language, siteIC, role } = this.props;
-    const { data, data1 } = await this.fetchCourseRegistrations(language);
+    const { language } = this.props;
+    const data = await this.fetchCourseRegistrations(language);
+    console.log("Fetched data for registration details:", data);
 
-    // Social Worker users should see the full admin dataset (including Talks And Seminar entries)
-    const mergedData = role === 'Social Worker'
-      ? [...data, ...data1]
-      : data;
-
-    // Remove duplicates by _id when merging
+    // Remove duplicates by _id
     const uniqueDataMap = new Map();
-    mergedData.forEach(item => {
+    (data || []).forEach(item => {
       const id = item?._id?._id || item?._id || item?.id;
       if (id) {
         uniqueDataMap.set(id, item);
@@ -211,18 +203,80 @@ class RegistrationPaymentSection extends Component {
     });
     const finalData = Array.from(uniqueDataMap.values());
 
-    console.log('All Courses Registration (merged): ', finalData);
+    const visibleData = finalData;
 
-    var locations = await this.getAllLocations(finalData);
-    var types = await this.getAllTypes(finalData);
-    var names = await this.getAllNames(finalData);
-    var quarters = await this.getAllQuarters(finalData);
+    console.log('All Courses Registration:', finalData);
+
+    const filterByCourseType = (data, courseType) => {
+      if (!courseType || courseType === "All Courses Types") return data;
+      const expectedType = (courseType || "").toString().trim().toLowerCase();
+      return data.filter(item => {
+        const itemType = (item.course?.courseType || "").toString().trim().toLowerCase();
+        return itemType === expectedType;
+      });
+    };
+
+    const filterByLocation = (data, location) => {
+      if (!location || location === "All Locations") return data;
+      return data.filter(item => item.course?.courseLocation === location);
+    };
+
+    const filterByQuarter = (data, quarter) => {
+      if (!quarter || quarter === "All Quarters") 
+      {
+        return data;
+      }
+
+      return data.filter(item => {
+        const courseDuration = item.course?.courseDuration;
+        if (!courseDuration) return false;
+
+        try {
+          const firstDate = courseDuration.split(' - ')[0];
+          const [day, monthStr, year] = firstDate.split(' ');
+
+          const monthMap = {
+            "January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6,
+            "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12
+          };
+
+          const month = monthMap[monthStr];
+          if (!month || !year) return false;
+
+          let q = "";
+          if (month >= 1 && month <= 3) q = `Q1 ${year}`;
+          if (month >= 4 && month <= 6) q = `Q2 ${year}`;
+          if (month >= 7 && month <= 9) q = `Q3 ${year}`;
+          if (month >= 10 && month <= 12) q = `Q4 ${year}`;
+
+          return q === quarter;
+        } catch {
+          return false;
+        }
+      });
+    };  
+
+    // Types list is based on full dataset
+    var types = await this.getAllTypes(visibleData);
+
+    // Locations should respect selected type
+    const dataForLocations = filterByCourseType(visibleData, this.props.selectedCourseType);
+    var locations = await this.getAllLocations(dataForLocations);
+
+    // Quarters should respect selected type + location
+    const dataForQuarters = filterByLocation(dataForLocations, this.props.selectedLocation);
+    var quarters = await this.getAllQuarters(dataForQuarters);
+
+    // Course names should respect selected type + location + quarter
+    const dataForNames = filterByQuarter(dataForQuarters, this.props.selectedQuarter);
+    var names = await this.getAllNames(dataForNames);
+
     this.props.passDataToParent(locations, types, names, quarters);
 
-    await this.props.getTotalNumberofDetails(finalData.length);
+    await this.props.getTotalNumberofDetails(visibleData.length);
 
     const inputValues = {};
-    data.forEach((item, index) => {
+    visibleData.forEach((item, index) => {
       // Set initial status based on course type and payment method
       let initialStatus = item.status || "Pending";
       
@@ -237,21 +291,21 @@ class RegistrationPaymentSection extends Component {
     });
 
     const inputValues1 = {};
-    data.forEach((item, index) => {
+    visibleData.forEach((item, index) => {
       inputValues1[index] = item.official.remarks;
     });
 
     this.setState({
-      originalData: finalData,
-      registerationDetails: finalData,
+      originalData: visibleData,
+      registerationDetails: visibleData,
       isLoading: false,
       inputValues: inputValues,
       remarks: inputValues1,
       locations: locations,
       names: names,
     }, async () => {
-      console.log("Initial data loaded, originalData length:", data?.length || 0);
-      await this.getRowData(data);
+      console.log("Initial data loaded, originalData length:", visibleData?.length || 0);
+      await this.getRowData(visibleData);
 
       // Apply initial filtering if any filters are already set
       console.log("Applying initial filtering");
@@ -270,7 +324,7 @@ class RegistrationPaymentSection extends Component {
       }
 
       if (!this.state.isAlertShown) {
-        await this.anomalitiesAlert(data);
+        await this.anomalitiesAlert(visibleData);
         this.setState({ isAlertShown: true });
       }
       this.props.closePopup();
@@ -467,18 +521,11 @@ class RegistrationPaymentSection extends Component {
       });
     };      
 
-      // Method to get all types (restricted to the two required course types)
-      getAllTypes = async (datas) => {
-        const allowedCourseTypes = ["Talks And Seminar", "Marriage Preparation Programme"];
-        const foundTypes = [...new Set(
-          datas
-            .map(data => data.course.courseType)
-            .filter(type => allowedCourseTypes.includes(type))
-        )];
-
-        // Ensure the dropdown always offers the allowed types even if dataset is empty
-        return foundTypes.length > 0 ? foundTypes : allowedCourseTypes;
-      }
+// Method to get all course types (no role filtering)
+    getAllTypes = async (datas) => {
+      const allTypes = [...new Set(datas.map(data => data.course?.courseType).filter(Boolean))];
+      return allTypes;
+    }
   
       // Method to get all languages
       getAllNames = async (datas) => {
@@ -4003,42 +4050,49 @@ debugMarriagePrepData = () => {
     }
   };
 
-  refreshChild = async () => 
-  {
+  refreshChild = async () => {
     const { language } = this.props;
-    
+
     console.log("RefreshChild called - fetching new data");
-    
+
+    // Reset filters/search (if parent provides a handler)
+    if (typeof this.props.onClearFilters === 'function') {
+      this.props.onClearFilters();
+    }
+
     // Save scroll information before fetching data
     const gridContainer = document.querySelector('.ag-body-viewport');
     const currentScrollTop = gridContainer ? gridContainer.scrollTop : 0;
-    
+
     try {
       // Fetch new data
-      const {data, data1} = await this.fetchCourseRegistrations(language);
-      
+      const data = await this.fetchCourseRegistrations(language);
+
       console.log("Fetched data length:", data?.length || 0);
-      
+
       // Update original data state first
-      this.setState({
-        originalData: data || [],
-        registerationDetails: data || []
-      }, () => {
-        console.log("Original data updated, generating row data");
-        // Generate row data from the original data
-        this.getRowData(data || []);
-        
-        // Re-apply current filters after data refresh
-        console.log("Re-applying filters after data refresh");
-        this.filterRegistrationDetails();
-        
-        // Restore scroll position
-        if (gridContainer) {
-          gridContainer.scrollTop = currentScrollTop;
+      this.setState(
+        {
+          originalData: data || [],
+          registerationDetails: data || []
+        },
+        () => {
+          console.log("Original data updated, generating row data");
+          // Generate row data from the original data
+          this.getRowData(data || []);
+
+          // Re-apply current filters after data refresh
+          console.log("Re-applying filters after data refresh");
+          this.filterRegistrationDetails();
+
+          // Restore scroll position
+          if (gridContainer) {
+            gridContainer.scrollTop = currentScrollTop;
+          }
+
+          this.props.closePopup();
         }
-        
-        this.props.closePopup();
-      });
+      );
     } catch (error) {
       console.error("Error in refreshChild:", error);
       this.props.closePopup();
@@ -4091,289 +4145,226 @@ debugMarriagePrepData = () => {
   }
 
   filterRegistrationDetails() {
-    const { section, selectedLocation, selectedCourseType, selectedCourseName, searchQuery, selectedQuarter, role } = this.props;
-    console.log("FilterRegistrationDetails called with section:", section);
-    console.log("Current state - originalData length:", this.state.originalData?.length || 0);
+    const { section, selectedLocation, selectedCourseType, selectedCourseName, searchQuery, selectedQuarter } = this.props;
 
-    if (section === "registration") {
-      const { originalData } = this.state;
+    // Only skip filtering if this component is being used for another section
+    if (section && section !== "registration") {
+      return;
+    }
 
-      if (!originalData || originalData.length === 0) {
-        console.log("No original data available for filtering");
-        // Set empty state when no data
-        this.setState({
-          registerationDetails: [],
-          rowData: []
-        });
-        return;
-      }
-
-      console.log("Original Data sample:", originalData[0]);
-      console.log("Filters Applied:", { selectedLocation, selectedCourseType, searchQuery, selectedCourseName, selectedQuarter });
-
-      // Normalize the search query
-      const normalizedSearchQuery = searchQuery ? searchQuery.toLowerCase().trim() : '';
-
-      // Define filter conditions - fix the comparison strings
-      const filters = {
-        location: selectedLocation && selectedLocation !== "All Locations" ? selectedLocation : null,
-        courseType: selectedCourseType && selectedCourseType !== "All Courses Types" ? selectedCourseType : null,
-        courseName: selectedCourseName && selectedCourseName !== "All Courses Name" ? selectedCourseName : null,
-        quarter: selectedQuarter && selectedQuarter !== "All Quarters" ? selectedQuarter : null,
-        searchQuery: normalizedSearchQuery || null,
-      };
-
-      console.log("Active filters:", filters);
-
-      // Apply filters step by step - create a copy to avoid mutation
-      let filteredDetails = [...originalData];
-      console.log("Starting with originalData length:", filteredDetails.length);
-
-      // Enforce viewing only the required course types
-      const allowedCourseTypes = ["Talks And Seminar", "Marriage Preparation Programme"];
-      filteredDetails = filteredDetails.filter(data => allowedCourseTypes.includes(data.course?.courseType));
-      console.log("After enforcing allowed course types (Talks And Seminar + Marriage Preparation Programme):", filteredDetails.length);
-
-      // Apply location filter
-      if (filters.location) {
-        filteredDetails = filteredDetails.filter(data => {
-          const courseLocation = data.course?.courseLocation;
-          const matches = courseLocation === filters.location;
-          if (!matches) {
-            console.log(`Location filter: ${courseLocation} !== ${filters.location}`);
-          }
-          return matches;
-        });
-        console.log("After location filter:", filteredDetails.length);
-      }
-
-      // Apply course type filter (case-insensitive + trimmed)
-      if (filters.courseType) {
-        const normalize = (value) => (value || '').toString().trim().toLowerCase();
-        const expectedType = normalize(filters.courseType);
-
-        filteredDetails = filteredDetails.filter(data => {
-          const courseType = data.course?.courseType;
-          const normalizedCourseType = normalize(courseType);
-          const matches = normalizedCourseType === expectedType;
-          if (!matches) {
-            console.log(`Course type filter: ${courseType} (!= ${filters.courseType})`);
-          }
-          return matches;
-        });
-        console.log("After courseType filter:", filteredDetails.length);
-      }
-      
-      // Apply course name filter
-      if (filters.courseName) {
-        filteredDetails = filteredDetails.filter(data => {
-          const courseEngName = data.course?.courseEngName;
-          const matches = courseEngName === filters.courseName;
-          if (!matches) {
-            console.log(`Course name filter: ${courseEngName} !== ${filters.courseName}`);
-          }
-          return matches;
-        });
-        console.log("After courseName filter:", filteredDetails.length);
-      }
-
-      // Apply quarter filter
-      if (filters.quarter) {
-        const beforeQuarterFilter = filteredDetails.length;
-        filteredDetails = filteredDetails.filter(data => {
-          const courseDuration = data.course?.courseDuration;
-          if (!courseDuration) {
-            console.log("Quarter filter: No course duration found");
-            return false; // Skip if courseDuration is missing
-          }
-      
-          try {
-            const firstDate = courseDuration.split(' - ')[0]; // Extract "2 May 2025"
-            const [day, monthStr, year] = firstDate.split(' '); // Split into components
-        
-            // Convert month string to a number
-            const monthMap = {
-              "January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6,
-              "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12
-            };        
-        
-            const month = monthMap[monthStr];
-            if (!month || !year) {
-              console.log(`Quarter filter: Invalid month/year - ${monthStr}/${year}`);
-              return false; // Skip if month or year is missing
-            }
-      
-            // Determine the quarter
-            let quarter = "";
-            if (month >= 1 && month <= 3) quarter = `Q1 ${year}`;
-            if (month >= 4 && month <= 6) quarter = `Q2 ${year}`;
-            if (month >= 7 && month <= 9) quarter = `Q3 ${year}`;
-            if (month >= 10 && month <= 12) quarter = `Q4 ${year}`;
-      
-            const matches = quarter === filters.quarter;
-            if (!matches) {
-              console.log(`Quarter filter: ${quarter} !== ${filters.quarter}`);
-            }
-            return matches;
-          } catch (error) {
-            console.log("Quarter filter error:", error, "for duration:", courseDuration);
-            return false;
-          }
-        });
-        console.log(`After quarter filter (${filters.quarter}): ${filteredDetails.length} (was ${beforeQuarterFilter})`);
-      }    
-
-      // Apply search query filter
-      if (filters.searchQuery) {
-        const beforeSearchFilter = filteredDetails.length;
-        filteredDetails = filteredDetails.filter(data => {
-          const searchFields = [
-            (data.participant?.name || "").toLowerCase(),
-            (data.participant?.nric || "").toLowerCase(),
-            (data.participant?.contactNumber || "").toLowerCase(),
-            (data.participant?.email || "").toLowerCase(),
-            (data.course?.courseLocation || "").toLowerCase(),
-            (data.course?.courseType || "").toLowerCase(),
-            (data.course?.courseEngName || "").toLowerCase(),
-            (data.course?.courseChiName || "").toLowerCase(),
-            (data.course?.courseDuration || "").toLowerCase(),
-            (data.course?.payment || "").toLowerCase(),
-            (data.status || "").toLowerCase(),
-            (data.official?.receiptNo || "").toLowerCase(),
-            // Include Marriage Preparation Programme fields in search
-            (data.spouse?.name || "").toLowerCase(),
-            (data.marriageDetails?.maritalStatus || "").toLowerCase(),
-            (data.marriageDetails?.marriageDuration || "").toLowerCase(),
-            (data.marriageDetails?.housingType || "").toLowerCase(),
-            (data.marriageDetails?.typeOfMarriage || "").toLowerCase(),
-            (data.spouse?.nric || "").toLowerCase(),
-            (data.spouse?.mobile || data.spouse?.contactNumber || "").toLowerCase(),
-            (data.spouse?.email || "").toLowerCase(),
-            // Additional Marriage Preparation Programme search fields
-            (data.marriageDetails?.grossMonthlyIncome || "").toLowerCase(),
-            (data.marriageDetails?.hasChildren || "").toLowerCase(),
-            (data.marriageDetails?.howFoundOut || "").toLowerCase(),
-            (data.marriageDetails?.sourceOfReferral || "").toLowerCase(),
-            // Marriage Preparation Programme consent fields for search
-            (data.consent?.marriagePrepConsent1 ? 'yes' : 'no'),
-            (data.consent?.marriagePrepConsent2 ? 'yes' : 'no'),
-            (data.marriagePrepConsent1 ? 'yes' : 'no'),
-            (data.marriagePrepConsent2 ? 'yes' : 'no')
-          ];
-          
-          const matchFound = searchFields.some(field => field.includes(filters.searchQuery));
-          if (matchFound) {
-            const matchingFields = searchFields.filter(field => field.includes(filters.searchQuery));
-            console.log(`Search match found for: "${filters.searchQuery}" in fields:`, matchingFields);
-          }
-          return matchFound;
-        });
-        console.log(`After search filter ("${filters.searchQuery}"): ${filteredDetails.length} (was ${beforeSearchFilter})`);
-      }
-
-      // Log filtered results
-      console.log("Final Filtered Details:", filteredDetails.length, "entries");
-      if (filteredDetails.length > 0) {
-        console.log("Sample filtered entry:", filteredDetails[0]);
-      }
-
-      // Convert filtered data to row format
-      const rowData = filteredDetails.map((item, index) => {
-        try {
-          return {
-            id: item._id,
-            sn: index + 1,  // Serial number (S/N)
-            name: item.participant?.name || '',  // Participant's name
-            contactNo: item.participant?.contactNumber || '',  // Contact number
-            course: item.course?.courseEngName || '',  // Course English name
-            courseChi: item.course?.courseChiName || '',  // Course Chinese name
-            location: item.course?.courseLocation || '',  // Course location
-            courseMode: item.course?.courseMode === "Face-to-Face" ? "F2F" : (item.course?.courseMode || ''),
-            courseTime: item.course?.courseTime || '',  // Ensure courseTime is included
-            paymentMethod: item.course?.payment || '',  // Payment method
-            confirmed: item.official?.confirmed || false,  // Confirmation status
-            paymentStatus: item.status || '',  // Payment status
-            recinvNo: item.official?.receiptNo || '',  // Receipt number
-            participantInfo: item.participant || {},  // Participant details
-            courseInfo: item.course || {},  // Course details
-            officialInfo: item.official || {},  // Official details
-            refundedDate: item.official?.refundedDate || '', 
-            agreement: item.agreement || '',
-            registrationDate: item.registrationDate || '',
-            sendDetails: item.sendingWhatsappMessage || false,
-            remarks: item.official?.remarks || "",
-            paymentDate: item.official?.date || "",
-            // Marriage Preparation Programme specific fields - include all nested data
-            marriageDetails: item.marriageDetails || null,
-            spouse: item.spouse || null,
-            consent: item.consent || null,
-            marriagePrepConsent: item.marriagePrepConsent || null,
-            // Quick display fields for Marriage Preparation Programme - always show actual values with multiple fallback paths
-            spouseName: item.spouse?.name || item.spouseName || '',
-            maritalStatus: item.marriageDetails?.maritalStatus || item.maritalStatus || '',
-            intendedMarriageDate: item.marriageDetails?.marriageDuration || item.intendedMarriageDate || '',
-            // Additional Marriage Preparation Programme fields for comprehensive display
-            housingType: item.marriageDetails?.housingType || item.housingType || '',
-            grossMonthlyIncome: item.marriageDetails?.grossMonthlyIncome || item.grossMonthlyIncome || '',
-            typeOfMarriage: item.marriageDetails?.typeOfMarriage || item.typeOfMarriage || '',
-            hasChildren: item.marriageDetails?.hasChildren || item.hasChildren || '',
-            howFoundOut: item.marriageDetails?.howFoundOut || item.howFoundOut || '',
-            sourceOfReferral: item.marriageDetails?.sourceOfReferral || item.sourceOfReferral || '',
-            spouseNric: item.spouse?.nric || item.spouseNric || '',
-            spouseContact: item.spouse?.mobile || item.spouse?.contactNumber || item.spouseContact || '',
-            spouseEmail: item.spouse?.email || item.spouseEmail || '',
-            // Marriage Preparation Programme consent fields
-            marriagePrepConsent1: item.consent?.marriagePrepConsent1 || item.marriagePrepConsent1 || false,
-            marriagePrepConsent2: item.consent?.marriagePrepConsent2 || item.marriagePrepConsent2 || false
-          };
-        } catch (error) {
-          console.error("Error mapping row data for item:", item, error);
-          return null;
-        }
-      }).filter(row => row !== null); // Remove any null entries from mapping errors
-
-      console.log("Final Row Data length:", rowData.length);
-      console.log("Marriage Preparation Programme entries in filtered data:", rowData.filter(row => row.courseInfo?.courseType === 'Marriage Preparation Programme').length);
-
-      // Safely update state - ensure we have valid data
-      const newState = {
-        registerationDetails: filteredDetails,
-        rowData: rowData
-      };
-
-      // Update column definitions if needed - pass the filtered row data
-      const newColumnDefs = this.getColumnDefs(rowData);
-      if (newColumnDefs && newColumnDefs.length > 0) {
-        newState.columnDefs = newColumnDefs;
-      }
-
-      console.log("Updating state with:", { 
-        filteredDetailsLength: newState.registerationDetails.length,
-        rowDataLength: newState.rowData.length,
-        hasColumnDefs: !!newState.columnDefs
+    const { originalData } = this.state;
+    if (!originalData || originalData.length === 0) {
+      this.setState({
+        registerationDetails: [],
+        rowData: []
       });
+      return;
+    }
 
-      // Update state
-      this.setState(newState, () => {
-        console.log("State updated successfully. New rowData length:", this.state.rowData.length);
-        
-        // Debug Marriage Preparation Programme data after filtering
-        this.debugMarriagePrepData();
-        
-        // Force grid refresh if API is available - the rowData will be updated through React state
-        if (this.gridApi && typeof this.gridApi.refreshCells === 'function') {
-          console.log("Refreshing grid API");
-          try {
-            // In ag-Grid v33, rowData is managed through React state, just refresh cells
-            this.gridApi.refreshCells();
-          } catch (error) {
-            console.warn("Error refreshing grid cells:", error);
-          }
-        } else {
-          console.log("Grid API not available or refreshCells method not found");
+    const normalizedSearchQuery = searchQuery ? searchQuery.toLowerCase().trim() : '';
+
+    const filters = {
+      location: selectedLocation && selectedLocation !== "All Locations" ? selectedLocation : null,
+      courseType: selectedCourseType && selectedCourseType !== "All Courses Types" ? selectedCourseType : null,
+      courseName: selectedCourseName && selectedCourseName !== "All Courses Name" ? selectedCourseName : null,
+      quarter: selectedQuarter && selectedQuarter !== "All Quarters" ? selectedQuarter : null,
+      searchQuery: normalizedSearchQuery || null,
+    };
+
+    let filteredDetails = [...originalData];
+
+    // Apply location filter
+    if (filters.location) {
+      filteredDetails = filteredDetails.filter(data => data.course?.courseLocation === filters.location);
+    }
+
+    // Apply course type filter (case-insensitive)
+    if (filters.courseType) {
+      const normalize = (value) => (value || '').toString().trim().toLowerCase();
+      const expectedType = normalize(filters.courseType);
+      filteredDetails = filteredDetails.filter(data => normalize(data.course?.courseType) === expectedType);
+    }
+
+    // Apply course name filter
+    if (filters.courseName) {
+      filteredDetails = filteredDetails.filter(data => data.course?.courseEngName === filters.courseName);
+    }
+
+    // Apply quarter filter
+    if (filters.quarter) {
+      filteredDetails = filteredDetails.filter(data => {
+        const courseDuration = data.course?.courseDuration;
+        if (!courseDuration) return false;
+
+        try {
+          const firstDate = courseDuration.split(' - ')[0];
+          const [day, monthStr, year] = firstDate.split(' ');
+
+          const monthMap = {
+            "January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6,
+            "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12
+          };
+
+          const month = monthMap[monthStr];
+          if (!month || !year) return false;
+
+          let quarter = "";
+          if (month >= 1 && month <= 3) quarter = `Q1 ${year}`;
+          if (month >= 4 && month <= 6) quarter = `Q2 ${year}`;
+          if (month >= 7 && month <= 9) quarter = `Q3 ${year}`;
+          if (month >= 10 && month <= 12) quarter = `Q4 ${year}`;
+
+          return quarter === filters.quarter;
+        } catch (error) {
+          return false;
         }
       });
     }
+
+    // Apply search query filter
+    if (filters.searchQuery) {
+      filteredDetails = filteredDetails.filter(data => {
+        const searchFields = [
+          (data.participant?.name || "").toLowerCase(),
+          (data.participant?.nric || "").toLowerCase(),
+          (data.participant?.contactNumber || "").toLowerCase(),
+          (data.participant?.email || "").toLowerCase(),
+          (data.course?.courseLocation || "").toLowerCase(),
+          (data.course?.courseType || "").toLowerCase(),
+          (data.course?.courseEngName || "").toLowerCase(),
+          (data.course?.courseChiName || "").toLowerCase(),
+          (data.course?.courseDuration || "").toLowerCase(),
+          (data.course?.payment || "").toLowerCase(),
+          (data.status || "").toLowerCase(),
+          (data.official?.receiptNo || "").toLowerCase(),
+          (data.spouse?.name || "").toLowerCase(),
+          (data.marriageDetails?.maritalStatus || "").toLowerCase(),
+          (data.marriageDetails?.marriageDuration || "").toLowerCase(),
+          (data.marriageDetails?.housingType || "").toLowerCase(),
+          (data.marriageDetails?.typeOfMarriage || "").toLowerCase(),
+          (data.spouse?.nric || "").toLowerCase(),
+          (data.spouse?.mobile || data.spouse?.contactNumber || "").toLowerCase(),
+          (data.spouse?.email || "").toLowerCase(),
+          (data.marriageDetails?.grossMonthlyIncome || "").toLowerCase(),
+          (data.marriageDetails?.hasChildren || "").toLowerCase(),
+          (data.marriageDetails?.howFoundOut || "").toLowerCase(),
+          (data.marriageDetails?.sourceOfReferral || "").toLowerCase(),
+          (data.consent?.marriagePrepConsent1 ? 'yes' : 'no'),
+          (data.consent?.marriagePrepConsent2 ? 'yes' : 'no'),
+          (data.marriagePrepConsent1 ? 'yes' : 'no'),
+          (data.marriagePrepConsent2 ? 'yes' : 'no')
+        ];
+
+        return searchFields.some(field => field.includes(filters.searchQuery));
+      });
+    }
+
+    // Convert filtered data to row format
+    const rowData = filteredDetails.map((item, index) => {
+      try {
+        return {
+          id: item._id,
+          sn: index + 1,  // Serial number (S/N)
+          name: item.participant?.name || '',
+          contactNo: item.participant?.contactNumber || '',
+          course: item.course?.courseEngName || '',
+          courseChi: item.course?.courseChiName || '',
+          location: item.course?.courseLocation || '',
+          courseMode: item.course?.courseMode === "Face-to-Face" ? "F2F" : (item.course?.courseMode || ''),
+          courseTime: item.course?.courseTime || '',
+          paymentMethod: item.course?.payment || '',
+          confirmed: item.official?.confirmed || false,
+          paymentStatus: item.status || '',
+          recinvNo: item.official?.receiptNo || '',
+          participantInfo: item.participant || {},
+          courseInfo: item.course || {},
+          officialInfo: item.official || {},
+          refundedDate: item.official?.refundedDate || '',
+          agreement: item.agreement || '',
+          registrationDate: item.registrationDate || '',
+          sendDetails: item.sendingWhatsappMessage || false,
+          remarks: item.official?.remarks || "",
+          paymentDate: item.official?.date || "",
+          marriageDetails: item.marriageDetails || null,
+          spouse: item.spouse || null,
+          consent: item.consent || null,
+          marriagePrepConsent: item.marriagePrepConsent || null,
+          spouseName: item.spouse?.name || item.spouseName || '',
+          maritalStatus: item.marriageDetails?.maritalStatus || item.maritalStatus || '',
+          intendedMarriageDate: item.marriageDetails?.marriageDuration || item.intendedMarriageDate || '',
+          housingType: item.marriageDetails?.housingType || item.housingType || '',
+          grossMonthlyIncome: item.marriageDetails?.grossMonthlyIncome || item.grossMonthlyIncome || '',
+          typeOfMarriage: item.marriageDetails?.typeOfMarriage || item.typeOfMarriage || '',
+          hasChildren: item.marriageDetails?.hasChildren || item.hasChildren || '',
+          howFoundOut: item.marriageDetails?.howFoundOut || item.howFoundOut || '',
+          sourceOfReferral: item.marriageDetails?.sourceOfReferral || item.sourceOfReferral || '',
+          spouseNric: item.spouse?.nric || item.spouseNric || '',
+          spouseContact: item.spouse?.mobile || item.spouse?.contactNumber || item.spouseContact || '',
+          spouseEmail: item.spouse?.email || item.spouseEmail || '',
+          marriagePrepConsent1: item.consent?.marriagePrepConsent1 || item.marriagePrepConsent1 || false,
+          marriagePrepConsent2: item.consent?.marriagePrepConsent2 || item.marriagePrepConsent2 || false
+        };
+      } catch (error) {
+        console.error("Error mapping row data for item:", item, error);
+        return null;
+      }
+    }).filter(row => row !== null);
+
+    const newState = {
+      registerationDetails: filteredDetails,
+      rowData
+    };
+
+    // Update filter dropdowns to only show values that exist in the current table results
+    const deriveUnique = (arr) => [...new Set(arr.filter(Boolean))];
+    const deriveQuarters = (items) => {
+      const quarters = items
+        .map(d => d.course?.courseDuration)
+        .filter(Boolean)
+        .map(duration => {
+          const firstDate = duration.split(' - ')[0];
+          const [day, monthStr, year] = firstDate.split(' ');
+          const monthMap = {
+            "January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6,
+            "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12
+          };
+          const month = monthMap[monthStr];
+          if (!month || !year) return null;
+          if (month >= 1 && month <= 3) return `Q1 ${year}`;
+          if (month >= 4 && month <= 6) return `Q2 ${year}`;
+          if (month >= 7 && month <= 9) return `Q3 ${year}`;
+          if (month >= 10 && month <= 12) return `Q4 ${year}`;
+          return null;
+        })
+        .filter(Boolean);
+      return [...new Set(quarters)];
+    };
+
+    // Keep dropdown options fixed (derived from the full dataset), not narrowed by the current filters
+    const baseData = this.state.originalData || [];
+    const currentTypes = deriveUnique(baseData.map(d => d.course?.courseType));
+    const currentLocations = deriveUnique(baseData.map(d => d.course?.courseLocation));
+    const currentNames = deriveUnique(baseData.map(d => d.course?.courseEngName));
+    const currentQuarters = deriveQuarters(baseData);
+
+    this.props.passDataToParent(currentLocations, currentTypes, currentNames, currentQuarters);
+
+    const newColumnDefs = this.getColumnDefs(rowData);
+    if (newColumnDefs && newColumnDefs.length > 0) {
+      newState.columnDefs = newColumnDefs;
+    }
+
+    this.setState(newState, () => {
+      this.debugMarriagePrepData();
+
+      if (this.gridApi && typeof this.gridApi.refreshCells === 'function') {
+        try {
+          this.gridApi.refreshCells();
+        } catch (error) {
+          console.warn("Error refreshing grid cells:", error);
+        }
+      }
+    });
   }
 
   // Bulk update methods

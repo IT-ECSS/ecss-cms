@@ -350,6 +350,16 @@ import React, { Component } from 'react';
     {
       const userName = this.props.location.state?.name || 'User';
       console.log("Selected Data (Registration Payment):", updateState, dropdown);
+      if (dropdown === 'clearFilters') {
+        this.setState({
+          selectedLocation: '',
+          selectedCourseType: '',
+          selectedCourseName: '',
+          selectedQuarter: '',
+          searchQuery: ''
+        });
+        return;
+      }
       if(updateState.centreLocation)
       {
         const oldValue = this.state.selectedLocation;
@@ -1139,6 +1149,24 @@ import React, { Component } from 'react';
       }
     }
 
+    handleClearRegPaymentFilters = () => {
+      // Clear all filter state for Registration & Payment
+      this.setState(
+        {
+          selectedLocation: '',
+          selectedCourseType: '',
+          selectedCourseName: '',
+          selectedQuarter: '',
+          searchQuery: ''
+        },
+        () => {
+          // Trigger reset for SearchSection inputs
+          this.setState({ resetSearch: true }, () => {
+            this.setState({ resetSearch: false });
+          });
+        }
+      );
+    }
 
     searchResultFromChild = async (value) => {
      
@@ -1231,6 +1259,14 @@ import React, { Component } from 'react';
       // Save state to localStorage whenever it changes (excluding certain volatile properties)
       const statesToSave = {
         ...this.state,
+        // Clear registration/payment filters on refresh so the UI always starts fresh
+        selectedLocation: '',
+        selectedCourseType: '',
+        selectedCourseName: '',
+        selectedQuarter: '',
+        searchQuery: '',
+        resetSearch: false,
+
         // Exclude volatile/temporary states that shouldn't be persisted
         isPopupOpen: false,
         popupMessage: '',
@@ -1249,8 +1285,21 @@ import React, { Component } from 'react';
     }
 
     handleBeforeUnload = (event) => {
-      // Save the current state to local storage before the page unloads
-      localStorage.setItem('myComponentState', JSON.stringify(this.state));
+      // Save a sanitized snapshot of state to local storage before the page unloads
+      const sanitizedState = {
+        ...this.state,
+        selectedLocation: '',
+        selectedCourseType: '',
+        selectedCourseName: '',
+        selectedQuarter: '',
+        searchQuery: '',
+        resetSearch: false,
+        isPopupOpen: false,
+        popupMessage: '',
+        popupType: '',
+        loading: false
+      };
+      localStorage.setItem('myComponentState', JSON.stringify(sanitizedState));
 
       // Show a warning dialog when the user tries to refresh or close the page
      event.preventDefault();
@@ -2722,6 +2771,7 @@ import React, { Component } from 'react';
                         section={section}
                         passSelectedValueToParent={this.handleRegPaymentSelectFromChild}
                         passSearchedValueToParent={this.handleRegPaymentSearchFromChild}
+                        onClearFilters={this.handleClearRegPaymentFilters}
                         item={item}
                       />
                     </div>
@@ -2751,6 +2801,7 @@ import React, { Component } from 'react';
                         showUpdatePopup = {this.showUpdatePopup}
                         generateInvoiceNumber = {this.generateInvoiceNumber}
                         onResetSearch = {this.onResetSearch}
+                        onClearFilters = {this.handleClearRegPaymentFilters}
                         closePopupMessage = {this.closePopupMessage}
                         generateDeleteConfirmationPopup = {this.generateDeleteConfirmationPopup}
                         generatePortOverConfirmationPopup = {this.generatePortOverConfirmationPopup}

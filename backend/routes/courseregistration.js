@@ -289,7 +289,7 @@ router.post('/', async function(req, res, next)
         var {role, siteIC, name} = req.body;
         console.log("Request Body:", role, siteIC, name);
         console.log("Retrieve From Database")
-        var result = await registrationController.allParticipants(role, siteIC, name);
+        var result = await registrationController.allParticipants(role, siteIC);
         //console.log("Retrieve Registration Records:", result);
         return res.json({"result": result}); 
     }
