@@ -190,7 +190,7 @@ class CourseDetailsSection extends Component {
                   // SkillsFuture not available for Community Ukulele Level 2 per request
                   // so we remove the explicit equality check and only exclude the
                   // mandarin variants and the forbidden chinese name.
-                  !(courseEnglishName === 'Community Ukulele Level 2') &&
+                  //!(courseEnglishName === 'Community Ukulele Level 2') &&
                   courseEnglishName !== 'My Story – Mandarin' &&
                   courseEnglishName !== 'Community Ukulele – Mandarin L1' &&
                   courseChineseName !== "音乐祝福社区四弦琴班"
