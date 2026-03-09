@@ -195,15 +195,31 @@ class RegistrationPaymentSection extends Component {
 
     const { language, siteIC, role } = this.props;
     const { data, data1 } = await this.fetchCourseRegistrations(language);
-    console.log('All Courses Registration: ', data);
 
-    var locations = await this.getAllLocations(data);
-    var types = await this.getAllTypes(data);
-    var names = await this.getAllNames(data);
-    var quarters = await this.getAllQuarters(data);
+    // Social Worker users should see the full admin dataset (including Talks And Seminar entries)
+    const mergedData = role === 'Social Worker'
+      ? [...data, ...data1]
+      : data;
+
+    // Remove duplicates by _id when merging
+    const uniqueDataMap = new Map();
+    mergedData.forEach(item => {
+      const id = item?._id?._id || item?._id || item?.id;
+      if (id) {
+        uniqueDataMap.set(id, item);
+      }
+    });
+    const finalData = Array.from(uniqueDataMap.values());
+
+    console.log('All Courses Registration (merged): ', finalData);
+
+    var locations = await this.getAllLocations(finalData);
+    var types = await this.getAllTypes(finalData);
+    var names = await this.getAllNames(finalData);
+    var quarters = await this.getAllQuarters(finalData);
     this.props.passDataToParent(locations, types, names, quarters);
 
-    await this.props.getTotalNumberofDetails(data.length);
+    await this.props.getTotalNumberofDetails(finalData.length);
 
     const inputValues = {};
     data.forEach((item, index) => {
@@ -226,8 +242,8 @@ class RegistrationPaymentSection extends Component {
     });
 
     this.setState({
-      originalData: data,
-      registerationDetails: data,
+      originalData: finalData,
+      registerationDetails: finalData,
       isLoading: false,
       inputValues: inputValues,
       remarks: inputValues1,
@@ -451,9 +467,17 @@ class RegistrationPaymentSection extends Component {
       });
     };      
 
-      // Method to get all locations
+      // Method to get all types (restricted to the two required course types)
       getAllTypes = async (datas) => {
-        return [...new Set(datas.map(data => data.course.courseType))];
+        const allowedCourseTypes = ["Talks And Seminar", "Marriage Preparation Programme"];
+        const foundTypes = [...new Set(
+          datas
+            .map(data => data.course.courseType)
+            .filter(type => allowedCourseTypes.includes(type))
+        )];
+
+        // Ensure the dropdown always offers the allowed types even if dataset is empty
+        return foundTypes.length > 0 ? foundTypes : allowedCourseTypes;
       }
   
       // Method to get all languages
@@ -4067,7 +4091,7 @@ debugMarriagePrepData = () => {
   }
 
   filterRegistrationDetails() {
-    const { section, selectedLocation, selectedCourseType, selectedCourseName, searchQuery, selectedQuarter } = this.props;
+    const { section, selectedLocation, selectedCourseType, selectedCourseName, searchQuery, selectedQuarter, role } = this.props;
     console.log("FilterRegistrationDetails called with section:", section);
     console.log("Current state - originalData length:", this.state.originalData?.length || 0);
 
@@ -4105,6 +4129,11 @@ debugMarriagePrepData = () => {
       let filteredDetails = [...originalData];
       console.log("Starting with originalData length:", filteredDetails.length);
 
+      // Enforce viewing only the required course types
+      const allowedCourseTypes = ["Talks And Seminar", "Marriage Preparation Programme"];
+      filteredDetails = filteredDetails.filter(data => allowedCourseTypes.includes(data.course?.courseType));
+      console.log("After enforcing allowed course types (Talks And Seminar + Marriage Preparation Programme):", filteredDetails.length);
+
       // Apply location filter
       if (filters.location) {
         filteredDetails = filteredDetails.filter(data => {
@@ -4118,13 +4147,17 @@ debugMarriagePrepData = () => {
         console.log("After location filter:", filteredDetails.length);
       }
 
-      // Apply course type filter
+      // Apply course type filter (case-insensitive + trimmed)
       if (filters.courseType) {
+        const normalize = (value) => (value || '').toString().trim().toLowerCase();
+        const expectedType = normalize(filters.courseType);
+
         filteredDetails = filteredDetails.filter(data => {
           const courseType = data.course?.courseType;
-          const matches = courseType === filters.courseType;
+          const normalizedCourseType = normalize(courseType);
+          const matches = normalizedCourseType === expectedType;
           if (!matches) {
-            console.log(`Course type filter: ${courseType} !== ${filters.courseType}`);
+            console.log(`Course type filter: ${courseType} (!= ${filters.courseType})`);
           }
           return matches;
         });
