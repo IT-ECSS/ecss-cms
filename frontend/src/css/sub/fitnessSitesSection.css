@@ -1,0 +1,204 @@
+/* Fitness Sites Section Styles */
+
+.fft-sites-section {
+  padding: 24px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.fft-sites-header {
+  margin-bottom: 24px;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 16px;
+}
+
+.fft-sites-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 8px 0;
+}
+
+.fft-sites-title i {
+  color: #3b82f6;
+  font-size: 28px;
+}
+
+.fft-sites-subtitle {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+}
+
+.fft-sites-container {
+  width: 100%;
+}
+
+.fft-sites-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  background: white;
+  border-radius: 12px;
+  border: 2px dashed #e2e8f0;
+  text-align: center;
+}
+
+.fft-sites-empty i {
+  font-size: 48px;
+  color: #cbd5e1;
+  margin-bottom: 16px;
+}
+
+.fft-sites-empty p {
+  font-size: 16px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+/* Sites Grid */
+.fft-sites-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+/* Site Card */
+.fft-site-card {
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.fft-site-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+  transform: translateY(-1px);
+}
+
+.fft-site-card-header {
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-bottom: 1px solid #dbeafe;
+}
+
+.fft-site-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+  word-break: break-word;
+}
+
+.fft-site-card-content {
+  padding: 16px;
+}
+
+/* Site Metrics */
+.fft-site-metric {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.fft-site-metric:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.fft-site-metric-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.fft-site-metric-label i {
+  font-size: 14px;
+  color: #3b82f6;
+}
+
+.fft-site-metric-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+/* Gender Breakdown */
+.fft-site-gender-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fft-site-gender-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fft-site-gender-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.fft-site-gender-bar {
+  width: 100%;
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.fft-site-gender-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.fft-site-gender-fill.male {
+  background: linear-gradient(90deg, #3b82f6, #2563eb);
+}
+
+.fft-site-gender-fill.female {
+  background: linear-gradient(90deg, #ec4899, #db2777);
+}
+
+.fft-site-gender-count {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .fft-sites-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fft-sites-section {
+    padding: 16px;
+  }
+
+  .fft-sites-title {
+    font-size: 20px;
+  }
+}

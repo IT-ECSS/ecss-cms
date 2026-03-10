@@ -202,6 +202,12 @@
   margin-right: 4px;
 }
 
+.fft-dropdown-divider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 4px 0;
+}
+
 .fft-dropdown-menu::-webkit-scrollbar {
   width: 6px;
 }
@@ -269,6 +275,58 @@
 
 .fft-filter-section-tag-remove:hover {
   background: rgba(0, 0, 0, 0.1);
+}
+
+/* Multi-select dropdown styles */
+.fft-multiselect-dropdown .fft-dropdown-value {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  width: 100%;
+}
+
+.fft-selected-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+}
+
+.fft-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: #7b61ff;
+  color: white;
+  border-radius: 18px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(123, 97, 255, 0.2);
+}
+
+.fft-badge i {
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.fft-badge i:hover {
+  transform: scale(1.2);
+  opacity: 0.8;
+}
+
+/* Multiselect dropdown item with checkmarks */
+.fft-multiselect-dropdown .fft-dropdown-item i {
+  width: 16px;
+  text-align: center;
+  font-size: 12px;
+}
+
+.fft-multiselect-dropdown .fft-dropdown-item.active i {
+  color: #7b61ff;
 }
 
 /* Responsive adjustments */

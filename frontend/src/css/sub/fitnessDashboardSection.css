@@ -42,6 +42,43 @@
   font-size: 14px;
 }
 
+/* ==================== CENTRE SELECTION TABS ==================== */
+.fft-dash-centre-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  padding: 0;
+  background: transparent;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.fft-dash-centre-tab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 24px;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  font-size: 20px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: -2px;
+}
+
+.fft-dash-centre-tab:hover {
+  color: #3b82f6;
+  background: #f1f5f9;
+}
+
+.fft-dash-centre-tab.active {
+  color: #3b82f6;
+  background: transparent;
+  border-bottom-color: #3b82f6;
+}
+
 /* ==================== SECTIONS WRAPPER ==================== */
 .fft-dash-sections-wrapper {
   display: grid;
@@ -55,9 +92,51 @@
   grid-column: 1 / -1;
 }
 
+/* Full-width gender row at the bottom */
+.fft-dash-gender-row-full-width {
+  padding: 24px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  margin: 24px;
+}
+
+/* Top KPI row */
+.fft-dash-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+/* Chart row */
+.fft-dash-charts-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.fft-dash-chart-section {
+  background: white;
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+}
+
+.fft-dash-chart-section-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 18px 0;
+}
+
 /* ==================== LEFT AND RIGHT SECTIONS ==================== */
 .fft-dash-left-section,
-.fft-dash-right-section {
+.fft-dash-right-section,
+.fft-dash-gender-column {
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -66,6 +145,11 @@
 .fft-dash-left-section {
   border-right: 2px solid #e2e8f0;
   padding-right: 24px;
+}
+
+.fft-dash-gender-column {
+  border-left: 2px solid #e2e8f0;
+  padding-left: 24px;
 }
 
 .fft-dash-right-section {
@@ -417,6 +501,50 @@
   font-weight: 700;
 }
 
+.fft-dash-improvement-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.fft-dash-improvement-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.fft-dash-improvement-period {
+  font-size: 16px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.fft-dash-improvement-value {
+  font-size: 18px;
+  color: #1e293b;
+  font-weight: 700;
+}
+
+/* Improvement card specific styles */
+.fft-dash-kpi-improvement {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 20px;
+}
+
+.fft-dash-kpi-improvement .fft-dash-kpi-value {
+  font-size: 42px;
+  margin-bottom: 0;
+  width: 100%;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
 /* ==================== SECTION 2 & 3: TITLES ==================== */
 
 .fft-dash-section-title-group {
@@ -717,6 +845,30 @@
   color: #1e293b;
 }
 
+.fft-dash-year-total-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.fft-dash-year-total-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fft-dash-year-total-metric-label {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.fft-dash-year-total-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1e293b;
+}
 /* Participants Section with Tabs */
 .fft-dash-participants-section {
   display: flex;

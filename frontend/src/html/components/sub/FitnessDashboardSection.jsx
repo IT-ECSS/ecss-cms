@@ -4,13 +4,37 @@ import ParticipationsBlock from './ParticipationsBlock';
 import ParticipantsBlock from './ParticipantsBlock';
 
 class FitnessDashboardSection extends Component {
+  componentDidMount() {
+    // Set the first selected centre as default
+    this.updateSelectedCentreIfNeeded(this.props);
+  }
+
+  componentDidUpdate(prevProps) {
+    // Update selected centre if selectedLocations changed
+    if (JSON.stringify(prevProps.selectedLocations) !== JSON.stringify(this.props.selectedLocations)) {
+      this.updateSelectedCentreIfNeeded(this.props);
+    }
+  }
+
+  updateSelectedCentreIfNeeded = (props) => {
+    const { selectedLocations = [] } = props;
+    const { selectedCentre } = this.state;
+    
+    // If no centre is selected, or the current selection is not in the list, pick the first one
+    if (!selectedCentre || !selectedLocations.includes(selectedCentre)) {
+      if (selectedLocations.length > 0) {
+        this.setState({ selectedCentre: selectedLocations[0] });
+      }
+    }
+  }
+
+  handleCentreSelect = (centre) => {
+    this.setState({ selectedCentre: centre });
+  }
   constructor(props) {
     super(props);
     this.state = {
-      dashboardMainViewMode: 'participations', // 'participations' or 'participants'
-      participantsViewMode: 'cards', // 'cards' or 'chart'
-      participationsViewMode: 'cards', // 'cards' or 'chart'
-      genderViewMode: 'cards' // 'cards' or 'chart'
+      selectedCentre: null // Will be set to first centre if available
     };
     
     // Fitness metrics
@@ -25,9 +49,161 @@ class FitnessDashboardSection extends Component {
     ];
   }
 
+  getFilteredDataByCentre = () => {
+    const { filteredData = [] } = this.props;
+    const { selectedCentre } = this.state;
+    
+    if (!selectedCentre) return filteredData;
+    
+    return filteredData.filter(item => item.location === selectedCentre);
+  }
+
   isSingleYearView = () => {
     const { yearFrom, yearTo } = this.props;
     return yearFrom && (!yearTo || yearTo === yearFrom);
+  }
+
+  isMultipleYearsView = () => {
+    const { yearFrom, yearTo } = this.props;
+    return yearFrom && yearTo && yearFrom !== yearTo;
+  }
+
+  calculateYearlyImprovement = (data) => {
+    const { yearFrom, yearTo } = this.props;
+    
+    // Only calculate if multiple years selected
+    if (!this.isMultipleYearsView()) {
+      return null;
+    }
+
+    if (!data || data.years.length < 2 || !data.participantMap) {
+      return null;
+    }
+
+    const years = data.years.sort();
+    const improvements = [];
+
+    // Calculate improvement for each consecutive year pair
+    // Count participants who improved in at least one fitness metric
+    for (let i = 0; i < years.length - 1; i++) {
+      const currentYear = years[i];
+      const nextYear = years[i + 1];
+      
+      let participantsWithData = 0;
+      let participantsImproved = 0;
+      
+      // Check each participant
+      Object.values(data.participantMap).forEach(participant => {
+        const currentYearData = participant.years[currentYear];
+        const nextYearData = participant.years[nextYear];
+        
+        // Only count if participant has data in both years
+        if (!currentYearData || !nextYearData) return;
+        
+        participantsWithData++;
+        
+        // Check if improved in at least one fitness metric
+        let hasImprovement = false;
+        this.fitnessMetrics.forEach(metric => {
+          const currentValue = currentYearData[metric.key];
+          const nextValue = nextYearData[metric.key];
+          
+          if (currentValue !== undefined && nextValue !== undefined && !isNaN(currentValue) && !isNaN(nextValue)) {
+            const diff = nextValue - currentValue;
+            const improved = metric.higherIsBetter ? diff > 0 : diff < 0;
+            if (improved) {
+              hasImprovement = true;
+            }
+          }
+        });
+        
+        if (hasImprovement) {
+          participantsImproved++;
+        }
+      });
+      
+      if (participantsWithData > 0) {
+        const improvementPercentage = (participantsImproved / participantsWithData) * 100;
+        improvements.push({
+          from: currentYear,
+          to: nextYear,
+          value: improvementPercentage
+        });
+      }
+    }
+
+    // Only return improvements with positive values
+    const positiveImprovements = improvements.filter(imp => imp.value > 0);
+    return positiveImprovements.length > 0 ? positiveImprovements : null;
+  }
+
+  calculateParticipantsImprovement = (data) => {
+    const { yearFrom, yearTo } = this.props;
+    
+    // Only calculate if multiple years selected
+    if (!this.isMultipleYearsView()) {
+      return null;
+    }
+
+    if (!data || data.years.length < 2 || !data.participantMap) {
+      return null;
+    }
+
+    const years = data.years.sort();
+    const improvements = [];
+
+    // Calculate improvement for each consecutive year pair
+    // Count participants who improved in at least one fitness metric
+    for (let i = 0; i < years.length - 1; i++) {
+      const currentYear = years[i];
+      const nextYear = years[i + 1];
+      
+      let participantsWithData = 0;
+      let participantsImproved = 0;
+      
+      // Check each participant
+      Object.values(data.participantMap).forEach(participant => {
+        const currentYearData = participant.years[currentYear];
+        const nextYearData = participant.years[nextYear];
+        
+        // Only count if participant has data in both years
+        if (!currentYearData || !nextYearData) return;
+        
+        participantsWithData++;
+        
+        // Check if improved in at least one fitness metric
+        let hasImprovement = false;
+        this.fitnessMetrics.forEach(metric => {
+          const currentValue = currentYearData[metric.key];
+          const nextValue = nextYearData[metric.key];
+          
+          if (currentValue !== undefined && nextValue !== undefined && !isNaN(currentValue) && !isNaN(nextValue)) {
+            const diff = nextValue - currentValue;
+            const improved = metric.higherIsBetter ? diff > 0 : diff < 0;
+            if (improved) {
+              hasImprovement = true;
+            }
+          }
+        });
+        
+        if (hasImprovement) {
+          participantsImproved++;
+        }
+      });
+      
+      if (participantsWithData > 0) {
+        const improvementPercentage = (participantsImproved / participantsWithData) * 100;
+        improvements.push({
+          from: currentYear,
+          to: nextYear,
+          value: improvementPercentage
+        });
+      }
+    }
+
+    // Only return improvements with positive values
+    const positiveImprovements = improvements.filter(imp => imp.value > 0);
+    return positiveImprovements.length > 0 ? positiveImprovements : null;
   }
 
   // Find the first key in the row that matches the predicate (case-insensitive)
@@ -69,13 +245,13 @@ class FitnessDashboardSection extends Component {
 
   // Calculate all dashboard data
   calculateDashboardData = () => {
-    const { filteredData = [] } = this.props;
+    const mapData = this.getFilteredDataByCentre();
     
-    if (!filteredData || filteredData.length === 0) return null;
+    if (!mapData || mapData.length === 0) return null;
 
     // Get years
     const yearsSet = new Set();
-    filteredData.forEach(row => {
+    mapData.forEach(row => {
       const yearKey = Object.keys(row).find(k => k.toLowerCase() === 'year');
       if (yearKey && row[yearKey]) yearsSet.add(row[yearKey].toString());
     });
@@ -141,7 +317,7 @@ class FitnessDashboardSection extends Component {
     let maleParticipations = 0;
     let femaleParticipations = 0;
 
-    filteredData.forEach(row => {
+    mapData.forEach(row => {
       const participantKey = getParticipantKey(row);
       const yearKey = Object.keys(row).find(k => k.toLowerCase() === 'year');
       const year = yearKey ? row[yearKey]?.toString() : null;
@@ -202,7 +378,7 @@ class FitnessDashboardSection extends Component {
         });
       }
       
-      filteredData.forEach(row => {
+      mapData.forEach(row => {
         const yearKey = Object.keys(row).find(k => k.toLowerCase() === 'year');
         if ((yearKey ? row[yearKey]?.toString() : null) !== year) return;
 
@@ -254,7 +430,7 @@ class FitnessDashboardSection extends Component {
       const yearlyData = {};
       years.forEach(year => {
         const values = [];
-        filteredData.forEach(row => {
+        mapData.forEach(row => {
           const yearKey = Object.keys(row).find(k => k.toLowerCase() === 'year');
           if ((yearKey ? row[yearKey]?.toString() : null) !== year) return;
           const metricKey = this.findMetricKey(row, metric.key);
@@ -430,8 +606,14 @@ class FitnessDashboardSection extends Component {
       ...p
     }));
     
+    // Determine color based on chart type
+    const isParticipationChart = legendLabel === 'Participations' || legendLabel === 'Participants';
+    const lineColor = isParticipationChart ? '#16a34a' : '#3b82f6';
+    const pointColor = isParticipationChart ? '#16a34a' : '#3b82f6';
+    const valueColor = isParticipationChart ? '#16a34a' : '#1e293b';
+    
     // Draw line
-    ctx.strokeStyle = '#3b82f6';
+    ctx.strokeStyle = lineColor;
     ctx.lineWidth = 3;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -443,7 +625,7 @@ class FitnessDashboardSection extends Component {
     ctx.stroke();
     
     // Draw points
-    ctx.fillStyle = '#3b82f6';
+    ctx.fillStyle = pointColor;
     for (const p of points) {
       ctx.beginPath();
       ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
@@ -460,7 +642,7 @@ class FitnessDashboardSection extends Component {
     }
     
     // Draw value labels above points
-    ctx.fillStyle = '#1e293b';
+    ctx.fillStyle = valueColor;
     ctx.font = 'bold 13px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
@@ -471,7 +653,7 @@ class FitnessDashboardSection extends Component {
     // Draw legend at center bottom
     const legendX = width / 2 - 50;
     const legendY = height - 20;
-    ctx.fillStyle = '#3b82f6';
+    ctx.fillStyle = lineColor;
     ctx.fillRect(legendX, legendY, 12, 12);
     ctx.fillStyle = '#64748b';
     ctx.font = '13px sans-serif';
@@ -627,10 +809,10 @@ class FitnessDashboardSection extends Component {
   };
 
   render() {
-    const { yearFrom, yearTo, loading = false } = this.props;
+    const { yearFrom, yearTo, loading = false, selectedLocations = [] } = this.props;
+    const { selectedCentre } = this.state;
     const isSingleYear = this.isSingleYearView();
     const data = this.calculateDashboardData();
-    const { dashboardMainViewMode } = this.state;
 
     if (loading) {
       return (
@@ -658,306 +840,205 @@ class FitnessDashboardSection extends Component {
       maleParticipations,
       femaleParticipations,
       yearlyParticipants,
-      yearlyGender
+      yearlyGender,
+      yearlyParticipationGender
     } = data;
 
     return (
       <>
-        {/* Dashboard Main View Tabs */}
-        <div className="fft-dash-main-view-tabs">
-          <button
-            className={`fft-dash-main-view-tab ${dashboardMainViewMode === 'participations' ? 'active' : ''}`}
-            onClick={() => this.setState({ dashboardMainViewMode: 'participations' })}
-          >
-            <i className="fas fa-chart-bar"></i> Participations
-          </button>
-          <button
-            className={`fft-dash-main-view-tab ${dashboardMainViewMode === 'participants' ? 'active' : ''}`}
-            onClick={() => this.setState({ dashboardMainViewMode: 'participants' })}
-          >
-            <i className="fas fa-users"></i> Participants
-          </button>
+        {/* Centre Selection Tabs */}
+        {selectedLocations.length > 1 && (
+          <div className="fft-dash-centre-tabs">
+            {selectedLocations.map(centre => (
+              <button
+                key={centre}
+                className={`fft-dash-centre-tab ${selectedCentre === centre ? 'active' : ''}`}
+                onClick={() => this.handleCentreSelect(centre)}
+              >
+                {centre}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Two-column layout: Participations (left) + Participants (right) */}
+        <div className="fft-dash-sections-wrapper">
+          <div className="fft-dash-left-section">
+            <h3 className="fft-dash-section-header">Participations</h3>
+            <div className="fft-dash-kpi-row">
+              <div className="fft-dash-kpi-card">
+                <div className="fft-dash-kpi-label">Total Participations (Attendance)</div>
+                <div className="fft-dash-kpi-value">{totalParticipations}</div>
+              </div>
+              <div className="fft-dash-kpi-card fft-dash-kpi-female">
+                <div className="fft-dash-kpi-label">Participations (Female)</div>
+                <div className="fft-dash-kpi-value">
+                  {femaleParticipations}
+                  <span className="fft-dash-kpi-percent">
+                    ({totalParticipations > 0 ? ((femaleParticipations / totalParticipations) * 100).toFixed(1) : 0}%)
+                  </span>
+                </div>
+              </div>
+              <div className="fft-dash-kpi-card fft-dash-kpi-male">
+                <div className="fft-dash-kpi-label">Participations (Male)</div>
+                <div className="fft-dash-kpi-value">
+                  {maleParticipations}
+                  <span className="fft-dash-kpi-percent">
+                    ({totalParticipations > 0 ? ((maleParticipations / totalParticipations) * 100).toFixed(1) : 0}%)
+                  </span>
+                </div>
+              </div>
+              {this.isMultipleYearsView() && (
+                <div className="fft-dash-kpi-card fft-dash-kpi-improvement">
+                  <div className="fft-dash-kpi-label">Improvement by year</div>
+                  <div className="fft-dash-kpi-value">
+                    {(() => {
+                      const improvements = this.calculateYearlyImprovement(data);
+                      return improvements && improvements[0] ? (
+                        `${improvements[0].value >= 0 ? '+' : ''}${improvements[0].value.toFixed(1)}%`
+                      ) : '-';
+                    })()}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="fft-dash-chart-section">
+              <h3 className="fft-dash-chart-section-title">Participations (Attendance) by year</h3>
+              <div className="fft-dash-line-chart">
+                {(() => {
+                  const participations = years.map(year => ({
+                    year,
+                    value: (yearlyParticipants[year] || {}).total || 0
+                  }));
+                  if (participations.length === 0) {
+                    return <div className="fft-dash-chart-empty">No data available</div>;
+                  }
+                  return (
+                    <canvas
+                      ref={(canvas) => {
+                        this.participationsChartCanvas = canvas;
+                        if (canvas) {
+                          setTimeout(() => this.drawChart(participations, 'participationsChartCanvas', 'Participations'), 0);
+                        }
+                      }}
+                      width={900}
+                      height={400}
+                      className="fft-dash-chart-canvas"
+                      style={{borderRadius: '4px'}}
+                    />
+                  );
+                })()}
+              </div>
+            </div>
+
+          </div>
+
+          <div className="fft-dash-right-section">
+            <h3 className="fft-dash-section-header">Participants</h3>
+            <div className="fft-dash-kpi-row">
+              <div className="fft-dash-kpi-card">
+                <div className="fft-dash-kpi-label">Total Participants (Unique Individuals)</div>
+                <div className="fft-dash-kpi-value">{totalParticipants}</div>
+              </div>
+              <div className="fft-dash-kpi-card fft-dash-kpi-female">
+                <div className="fft-dash-kpi-label">Female Participants</div>
+                <div className="fft-dash-kpi-value">
+                  {femaleCount}
+                  <span className="fft-dash-kpi-percent">
+                    ({totalParticipants > 0 ? ((femaleCount / totalParticipants) * 100).toFixed(1) : 0}%)
+                  </span>
+                </div>
+              </div>
+              <div className="fft-dash-kpi-card fft-dash-kpi-male">
+                <div className="fft-dash-kpi-label">Male Participants</div>
+                <div className="fft-dash-kpi-value">
+                  {maleCount}
+                  <span className="fft-dash-kpi-percent">
+                    ({totalParticipants > 0 ? ((maleCount / totalParticipants) * 100).toFixed(1) : 0}%)
+                  </span>
+                </div>
+              </div>
+              {this.isMultipleYearsView() && (
+                <div className="fft-dash-kpi-card fft-dash-kpi-improvement">
+                  <div className="fft-dash-kpi-label">Improvement by year</div>
+                  <div className="fft-dash-kpi-value">
+                    {(() => {
+                      const improvements = this.calculateParticipantsImprovement(data);
+                      return improvements && improvements[0] ? (
+                        `${improvements[0].value >= 0 ? '+' : ''}${improvements[0].value.toFixed(1)}%`
+                      ) : '-';
+                    })()}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="fft-dash-chart-section">
+              <h3 className="fft-dash-chart-section-title">Participants (Unique Individuals) per year</h3>
+              <div className="fft-dash-line-chart">
+                {(() => {
+                  const participants = years.map(year => ({
+                    year,
+                    value: (yearlyParticipants[year] || {}).newUnique || 0
+                  }));
+                  if (participants.length === 0) {
+                    return <div className="fft-dash-chart-empty">No data available</div>;
+                  }
+                  return (
+                    <canvas
+                      ref={(canvas) => {
+                        this.participantsChartCanvas = canvas;
+                        if (canvas) {
+                          setTimeout(() => this.drawChart(participants, 'participantsChartCanvas', 'Participants'), 0);
+                        }
+                      }}
+                      width={900}
+                      height={400}
+                      className="fft-dash-chart-canvas"
+                      style={{borderRadius: '4px'}}
+                    />
+                  );
+                })()}
+              </div>
+            </div>
+
+          </div>
         </div>
 
-        <div className="fft-dash-sections-wrapper">
-          {dashboardMainViewMode === 'participations' && (
-            <div className="fft-dash-left-section fft-dash-full-width">
-              <h3 className="fft-dash-section-header">Participations</h3>
-              <div className="fft-dash-participations-row">
-                <div className="fft-dash-kpi-row-col">
-                  <div className="fft-dash-kpi-card">
-                    <div className="fft-dash-kpi-label"><strong>Total</strong></div>
-                    <div className="fft-dash-kpi-value">{totalParticipations}</div>
-                  </div>
-                  <div className="fft-dash-kpi-card fft-dash-kpi-female">
-                    <div className="fft-dash-kpi-label">Female</div>
-                    <div className="fft-dash-kpi-value">
-                      {femaleParticipations}
-                      <span className="fft-dash-kpi-percent">
-                        ({totalParticipations > 0 ? ((femaleParticipations / totalParticipations) * 100).toFixed(1) : 0}%)
-                      </span>
-                    </div>
-                  </div>
-                  <div className="fft-dash-kpi-card fft-dash-kpi-male">
-                    <div className="fft-dash-kpi-label">Male</div>
-                    <div className="fft-dash-kpi-value">
-                      {maleParticipations}
-                      <span className="fft-dash-kpi-percent">
-                        ({totalParticipations > 0 ? ((maleParticipations / totalParticipations) * 100).toFixed(1) : 0}%)
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="fft-dash-participations-section-col">
-                  <div className="fft-dash-section-title-and-tabs">
-                    <h4 className="fft-dash-middle-section-title">Participations per Year</h4>
-                    <div className="fft-dash-view-tabs">
-                      <button
-                        className={`fft-dash-tab-btn ${this.state.participationsViewMode === 'cards' ? 'active' : ''}`}
-                        onClick={() => this.setState({ participationsViewMode: 'cards' })}
-                      >
-                        <i className="fas fa-th-large"></i> Cards
-                      </button>
-                      {!this.isSingleYearView() && (
-                        <button
-                          className={`fft-dash-tab-btn ${this.state.participationsViewMode === 'chart' ? 'active' : ''}`}
-                          onClick={() => this.setState({ participationsViewMode: 'chart' })}
-                        >
-                          <i className="fas fa-chart-line"></i> Chart
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  {this.state.participationsViewMode === 'cards' && (
-                    <div className="fft-dash-year-totals">
-                      {years.map((year, yearIdx) => {
-                        const yearData = yearlyParticipants[year] || {};
-                        const yearTotal = yearData.total || 0;
-                        return (
-                          <div key={yearIdx} className="fft-dash-year-total-item">
-                            <span className="fft-dash-year-total-label">{year}</span>
-                            <span className="fft-dash-year-total-value">{yearTotal}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                  {!this.isSingleYearView() && this.state.participationsViewMode === 'chart' && (
-                    <div className="fft-dash-line-chart">
-                      {(() => {
-                        const participations = years.map(year => ({
-                          year,
-                          value: (yearlyParticipants[year] || {}).total || 0
-                        }));
-                        if (participations.length === 0) {
-                          return <div className="fft-dash-chart-empty">No data available</div>;
-                        }
-                        return (
-                          <div>
-                            <canvas
-                              ref={(canvas) => {
-                                this.participationsChartCanvas = canvas;
-                                if (canvas) {
-                                  setTimeout(() => this.drawChart(participations, 'participationsChartCanvas', 'Participations'), 0);
-                                }
-                              }}
-                              width={900}
-                              height={400}
-                              className="fft-dash-chart-canvas"
-                              style={{border: '1px solid #e2e8f0', borderRadius: '4px'}}
-                            />
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-          {dashboardMainViewMode === 'participants' && (
-            <div className="fft-dash-left-section fft-dash-full-width">
-              <h3 className="fft-dash-section-header">Participants</h3>
-              <div className="fft-dash-participations-row">
-                <div className="fft-dash-kpi-row-col">
-                  <div className="fft-dash-kpi-card">
-                    <div className="fft-dash-kpi-label"><strong>Total</strong></div>
-                    <div className="fft-dash-kpi-value">{totalParticipants}</div>
-                  </div>
-                  <div className="fft-dash-kpi-card fft-dash-kpi-female">
-                    <div className="fft-dash-kpi-label">Female</div>
-                    <div className="fft-dash-kpi-value">
-                      {femaleCount}
-                      <span className="fft-dash-kpi-percent">
-                        ({totalParticipants > 0 ? ((femaleCount / totalParticipants) * 100).toFixed(1) : 0}%)
-                      </span>
-                    </div>
-                  </div>
-                  <div className="fft-dash-kpi-card fft-dash-kpi-male">
-                    <div className="fft-dash-kpi-label">Male</div>
-                    <div className="fft-dash-kpi-value">
-                      {maleCount}
-                      <span className="fft-dash-kpi-percent">
-                        ({totalParticipants > 0 ? ((maleCount / totalParticipants) * 100).toFixed(1) : 0}%)
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="fft-dash-participants-section-col">
-                  <div className="fft-dash-section-title-and-tabs">
-                    <h4 className="fft-dash-middle-section-title">Participants per Year</h4>
-                    <div className="fft-dash-view-tabs">
-                      <button
-                        className={`fft-dash-tab-btn ${this.state.participantsViewMode === 'cards' ? 'active' : ''}`}
-                        onClick={() => this.setState({ participantsViewMode: 'cards' })}
-                      >
-                        <i className="fas fa-th-large"></i> Cards
-                      </button>
-                      {!this.isSingleYearView() && (
-                        <button
-                          className={`fft-dash-tab-btn ${this.state.participantsViewMode === 'chart' ? 'active' : ''}`}
-                          onClick={() => this.setState({ participantsViewMode: 'chart' })}
-                        >
-                          <i className="fas fa-chart-line"></i> Chart
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  {this.state.participantsViewMode === 'cards' && (
-                    <div className="fft-dash-year-totals">
-                      {years.map((year, yearIdx) => {
-                        const yearData = yearlyParticipants[year] || {};
-                        const newUniqueCount = yearData.newUnique || 0;
-                        return (
-                          <div key={yearIdx} className="fft-dash-year-total-item">
-                            <span className="fft-dash-year-total-label">{year}</span>
-                            <span className="fft-dash-year-total-value">{newUniqueCount}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                  {!this.isSingleYearView() && this.state.participantsViewMode === 'chart' && (
-                    <div className="fft-dash-line-chart">
-                      {(() => {
-                        const participants = years.map(year => ({
-                          year,
-                          value: (yearlyParticipants[year] || {}).newUnique || 0
-                        }));
-                        if (participants.length === 0) {
-                          return <div className="fft-dash-chart-empty">No data available</div>;
-                        }
-                        return (
-                          <div>
-                            <canvas
-                              ref={(canvas) => {
-                                this.participantsChartCanvas = canvas;
-                                if (canvas) {
-                                  setTimeout(() => this.drawChart(participants, 'participantsChartCanvas', 'Participants'), 0);
-                                }
-                              }}
-                              width={900}
-                              height={400}
-                              className="fft-dash-chart-canvas"
-                              style={{border: '1px solid #e2e8f0', borderRadius: '4px'}}
-                            />
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-          {!isSingleYear && (
-            <div className="fft-dash-left-section fft-dash-full-width">
-              <h3 className="fft-dash-section-header">Gender Distribution per Year</h3>
-              <div className="fft-dash-section-title-and-tabs">
-                <div className="fft-dash-view-tabs">
-                  <button
-                    className={`fft-dash-tab-btn ${this.state.genderViewMode === 'cards' ? 'active' : ''}`}
-                    onClick={() => this.setState({ genderViewMode: 'cards' })}
-                  >
-                    <i className="fas fa-th-large"></i> Cards
-                  </button>
-                  <button
-                    className={`fft-dash-tab-btn ${this.state.genderViewMode === 'chart' ? 'active' : ''}`}
-                    onClick={() => this.setState({ genderViewMode: 'chart' })}
-                  >
-                    <i className="fas fa-chart-bar"></i> Chart
-                  </button>
-                </div>
-              </div>
+        <div className="fft-dash-gender-row-full-width">
+          <h3 className="fft-dash-section-header">Gender Distribution (Unique individuals) by year</h3>
+          <div className="fft-dash-line-chart">
+            {(() => {
+              const genderData = years.map(year => {
+                const yearData = yearlyGender[year] || {};
+                return {
+                  year,
+                  male: yearData.male || 0,
+                  female: yearData.female || 0
+                };
+              });
 
-              {/* Cards View */}
-              {this.state.genderViewMode === 'cards' && (
-                <div className="fft-dash-gender-years-grid">
-                  {years.map((year, yearIdx) => {
-                    const yearData = yearlyGender[year] || {};
-                    const maleCount = yearData.male || 0;
-                    const femaleCount = yearData.female || 0;
-                    const totalInYear = maleCount + femaleCount;
-                    const malePercent = totalInYear > 0 ? ((maleCount / totalInYear) * 100).toFixed(1) : 0;
-                    const femalePercent = totalInYear > 0 ? ((femaleCount / totalInYear) * 100).toFixed(1) : 0;
+              if (genderData.length === 0) {
+                return <div className="fft-dash-chart-empty">No data available</div>;
+              }
 
-                    return (
-                      <div key={yearIdx} className="fft-dash-gender-year-block">
-                        <h4 className="fft-dash-gender-year-title">{year}</h4>
-                        <div className="fft-dash-gender-kpi-row">
-                          <div className="fft-dash-gender-kpi-card fft-dash-kpi-female">
-                            <div className="fft-dash-kpi-label">Female</div>
-                            <div className="fft-dash-kpi-value">{femaleCount}</div>
-                            <div className="fft-dash-kpi-percent">({femalePercent}%)</div>
-                          </div>
-                          <div className="fft-dash-gender-kpi-card fft-dash-kpi-male">
-                            <div className="fft-dash-kpi-label">Male</div>
-                            <div className="fft-dash-kpi-value">{maleCount}</div>
-                            <div className="fft-dash-kpi-percent">({malePercent}%)</div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Chart View */}
-              {this.state.genderViewMode === 'chart' && (
-                <div className="fft-dash-gender-chart-container">
-                  {(() => {
-                    const genderData = years.map(year => {
-                      const yearData = yearlyGender[year] || {};
-                      return {
-                        year,
-                        male: yearData.male || 0,
-                        female: yearData.female || 0
-                      };
-                    });
-
-                    if (genderData.length === 0) {
-                      return <div className="fft-dash-chart-empty">No data available</div>;
+              return (
+                <canvas
+                  ref={(canvas) => {
+                    this.genderChartCanvas = canvas;
+                    if (canvas) {
+                      setTimeout(() => this.drawGenderChart(genderData), 0);
                     }
-
-                    return (
-                      <canvas
-                        ref={(canvas) => {
-                          this.genderChartCanvas = canvas;
-                          if (canvas) {
-                            setTimeout(() => this.drawGenderChart(genderData), 0);
-                          }
-                        }}
-                        width={900}
-                        height={400}
-                        className="fft-dash-chart-canvas"
-                        style={{border: '1px solid #e2e8f0', borderRadius: '4px'}}
-                      />
-                    );
-                  })()}
-                </div>
-              )}
-            </div>
-          )}
+                  }}
+                  width={900}
+                  height={400}
+                  className="fft-dash-chart-canvas"
+                  style={{borderRadius: '4px'}}
+                />
+              );
+            })()}
+          </div>
         </div>
       </>
     );

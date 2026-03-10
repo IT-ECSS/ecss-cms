@@ -27,7 +27,7 @@ class FitnessSection extends Component {
       fftFolderId: '',
       
       // Filter states
-      selectedLocation: '',
+      selectedLocations: [],
       yearFrom: '',
       yearTo: '',
       availableLocations: [],
@@ -465,13 +465,13 @@ class FitnessSection extends Component {
   };
 
   getFilteredData = () => {
-    const { fitnessData, selectedLocation, yearFrom, yearTo } = this.state;
+    const { fitnessData, selectedLocations, yearFrom, yearTo } = this.state;
     
     let filtered = [...fitnessData];
     
-    // Filter by location (data already filtered by location when fetched)
-    if (selectedLocation) {
-      filtered = filtered.filter(item => item.location === selectedLocation);
+    // Filter by locations (allow data from multiple selected locations)
+    if (selectedLocations.length > 0) {
+      filtered = filtered.filter(item => selectedLocations.includes(item.location));
     }
     
     // Filter by year - each row has a 'year' property
@@ -492,10 +492,10 @@ class FitnessSection extends Component {
     return filtered;
   };
 
-  handleLocationChange = async (location) => {
-    if (!location) {
+  handleLocationChange = async (locations) => {
+    if (!locations || locations.length === 0) {
       this.setState({ 
-        selectedLocation: '', 
+        selectedLocations: [], 
         yearFrom: '',
         yearTo: '',
         fitnessData: [],
@@ -505,9 +505,9 @@ class FitnessSection extends Component {
       return;
     }
 
-    // Clear year selections when location changes (years will be filtered for new location)
+    // Clear year selections when locations change (years will be filtered for new locations)
     this.setState({ 
-      selectedLocation: location, 
+      selectedLocations: locations, 
       yearFrom: '', 
       yearTo: '', 
       fitnessData: [],
@@ -516,49 +516,57 @@ class FitnessSection extends Component {
     });
   };
 
-  // Get years available for the selected location
+  // Get years available for the selected locations
   getFilteredYearsForLocation = () => {
-    const { selectedLocation, locationYearMap, availableYears } = this.state;
+    const { selectedLocations, locationYearMap, availableYears } = this.state;
     
-    // If no location selected, return empty (years should only show after location is selected)
-    if (!selectedLocation) {
+    // If no locations selected, return empty (years should only show after location is selected)
+    if (!selectedLocations || selectedLocations.length === 0) {
       return [];
     }
     
-    // If we have the location-year map, use it to filter years
-    if (locationYearMap && locationYearMap[selectedLocation]) {
-      return locationYearMap[selectedLocation];
+    // If we have the location-year map, combine years from all selected locations
+    if (locationYearMap) {
+      const yearsSet = new Set();
+      selectedLocations.forEach(location => {
+        if (locationYearMap[location]) {
+          locationYearMap[location].forEach(year => yearsSet.add(year));
+        }
+      });
+      if (yearsSet.size > 0) {
+        return Array.from(yearsSet).sort();
+      }
     }
     
     // Fallback to all available years
     return availableYears;
   };
 
-  // Fetch data when both location and year(s) are selected
+  // Fetch data when both locations and year(s) are selected
   fetchLocationYearData = async () => {
-    const { selectedLocation, yearFrom, yearTo, yearFolders } = this.state;
+    const { selectedLocations, yearFrom, yearTo, yearFolders } = this.state;
     
-    if (!selectedLocation || (!yearFrom && !yearTo)) {
+    if (!selectedLocations || selectedLocations.length === 0 || (!yearFrom && !yearTo)) {
       return;
     }
 
     this.setState({ loading: true });
     
     try {
-      // Get the centre codes for the selected location
+      // Get the centre codes for all selected locations
       const hardcodedLocations = this.getHardcodedLocations();
-      const selectedCentre = hardcodedLocations.find(loc => loc.name === selectedLocation);
+      const selectedCentres = selectedLocations
+        .map(locName => hardcodedLocations.find(loc => loc.name === locName))
+        .filter(loc => loc !== undefined);
       
-      console.log('Selected location:', selectedLocation);
-      console.log('Selected centre:', selectedCentre);
-      
-      if (!selectedCentre) {
-        console.error('No matching centre found for:', selectedLocation);
-        throw new Error('Invalid centre selected');
+      if (selectedCentres.length === 0) {
+        console.error('No matching centres found for:', selectedLocations);
+        throw new Error('Invalid centres selected');
       }
 
+      console.log('Selected locations:', selectedLocations);
+      console.log('Selected centres:', selectedCentres);
       console.log('Year folders:', yearFolders);
-      const location = selectedLocation;
 
       // Determine which years to fetch
       let yearsToFetch = Object.keys(yearFolders).sort();
@@ -588,58 +596,66 @@ class FitnessSection extends Component {
 
       console.log('Years to fetch after filter:', yearsToFetch);
 
-      // Fetch spreadsheets from each year folder IN PARALLEL for faster loading
-      const fetchPromises = yearsToFetch.map(async (year) => {
-        const folderId = yearFolders[year];
-        
-        try {
-          // List files in the year folder
-          const listResponse = await axios.post(
-            `${this.getApiBaseUrl()}/googleDrive`,
-            { folderId, purpose: 'listFiles' }
-          );
-
-          if (listResponse.data.success) {
-            const files = listResponse.data.files || [];
+      // Fetch spreadsheets from each year folder and for each centre IN PARALLEL
+      const fetchPromises = [];
+      
+      yearsToFetch.forEach(year => {
+        selectedCentres.forEach(selectedCentre => {
+          const promise = (async () => {
+            const folderId = yearFolders[year];
             
-            // Find spreadsheet matching the centre prefixes
-            const matchingFile = files.find(file => {
-              const isSpreadsheet = file.mimeType === 'application/vnd.google-apps.spreadsheet' ||
-                file.mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-                file.name.endsWith('.xlsx') ||
-                file.name.endsWith('.csv');
-              
-              const matchesLoc = selectedCentre && selectedCentre.prefixes ? 
-                this.matchesLocation(file.name, selectedCentre.prefixes) : false;
-              
-              return isSpreadsheet && matchesLoc;
-            });
-
-            if (matchingFile) {
-              // Read the spreadsheet data
-              const readResponse = await axios.post(
-                `${this.getApiBaseUrl()}/googleDrive/readSpreadsheet`,
-                { fileId: matchingFile.id }
+            try {
+              // List files in the year folder
+              const listResponse = await axios.post(
+                `${this.getApiBaseUrl()}/googleDrive`,
+                { folderId, purpose: 'listFiles' }
               );
 
-              if (readResponse.data.success && readResponse.data.data) {
-                const { data: rows, columns } = readResponse.data;
+              if (listResponse.data.success) {
+                const files = listResponse.data.files || [];
                 
-                // Convert array rows to objects using column headers
-                return rows.map(row => {
-                  const obj = { year, location };
-                  columns.forEach((colName, index) => {
-                    obj[colName] = row[index] ?? '';
-                  });
-                  return obj;
+                // Find spreadsheet matching the centre prefixes
+                const matchingFile = files.find(file => {
+                  const isSpreadsheet = file.mimeType === 'application/vnd.google-apps.spreadsheet' ||
+                    file.mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+                    file.name.endsWith('.xlsx') ||
+                    file.name.endsWith('.csv');
+                  
+                  const matchesLoc = selectedCentre && selectedCentre.prefixes ? 
+                    this.matchesLocation(file.name, selectedCentre.prefixes) : false;
+                  
+                  return isSpreadsheet && matchesLoc;
                 });
+
+                if (matchingFile) {
+                  // Read the spreadsheet data
+                  const readResponse = await axios.post(
+                    `${this.getApiBaseUrl()}/googleDrive/readSpreadsheet`,
+                    { fileId: matchingFile.id }
+                  );
+
+                  if (readResponse.data.success && readResponse.data.data) {
+                    const { data: rows, columns } = readResponse.data;
+                    
+                    // Convert array rows to objects using column headers
+                    return rows.map(row => {
+                      const obj = { year, location: selectedCentre.name };
+                      columns.forEach((colName, index) => {
+                        obj[colName] = row[index] ?? '';
+                      });
+                      return obj;
+                    });
+                  }
+                }
               }
+            } catch (err) {
+              console.error(`Error fetching data for year ${year} and centre ${selectedCentre.name}:`, err);
             }
-          }
-        } catch (err) {
-          console.error(`Error fetching data for year ${year}:`, err);
-        }
-        return [];
+            return [];
+          })();
+          
+          fetchPromises.push(promise);
+        });
       });
 
       // Wait for all parallel fetches to complete
@@ -761,22 +777,36 @@ class FitnessSection extends Component {
   }
 
   renderTabContent = () => {
-    const { activeTab, dashboardStats, yearFrom, yearTo, locationFileMap, selectedLocation, availableYears } = this.state;
+    const { activeTab, dashboardStats, yearFrom, yearTo, locationFileMap, selectedLocations, availableYears } = this.state;
     const filteredData = this.getFilteredData();
 
     switch (activeTab) {
       case 'dashboard':
         return (
-          <FitnessDashboardSection
-            dashboardStats={dashboardStats}
-            filteredData={filteredData}
-            yearFrom={yearFrom}
-            yearTo={yearTo}
-          />
+          <>
+            <FitnessDashboardSection
+              dashboardStats={dashboardStats}
+              filteredData={filteredData}
+              selectedLocations={selectedLocations}
+              yearFrom={yearFrom}
+              yearTo={yearTo}
+            />
+          </>
         );
       case 'participants':
-        // Get all data for the location (not filtered by year) for cross-year visualization
-        const allLocationData = this.state.fitnessData.filter(item => item.location === selectedLocation);
+        // Get all data for the selected locations (not filtered by year) for cross-year visualization
+        const allLocationData = this.state.fitnessData.filter(item => 
+          selectedLocations.length > 0 && selectedLocations.includes(item.location)
+        );
+        
+        // Combine spreadsheet files from all selected locations
+        const allLocationFiles = [];
+        selectedLocations.forEach(location => {
+          if (locationFileMap[location]) {
+            allLocationFiles.push(...locationFileMap[location]);
+          }
+        });
+        
         return (
           <FitnessParticipantsSection
             data={filteredData}
@@ -784,9 +814,9 @@ class FitnessSection extends Component {
             yearFrom={yearFrom}
             yearTo={yearTo}
             availableYears={availableYears}
-            spreadsheetFiles={locationFileMap[selectedLocation] || []}
+            spreadsheetFiles={allLocationFiles}
             yearFolders={this.state.yearFolders}
-            selectedLocation={selectedLocation}
+            selectedLocations={selectedLocations}
             getApiBaseUrl={this.getApiBaseUrl}
             getHardcodedLocations={this.getHardcodedLocations}
             matchesLocation={this.matchesLocation}
@@ -798,16 +828,16 @@ class FitnessSection extends Component {
   };
 
   render() {
-    const {
-      loading,
-      error,
-      selectedLocation,
-      yearFrom,
-      yearTo,
+    const { 
       availableLocations,
       availableYears,
+      yearFrom,
+      yearTo,
       activeTab,
-      fftFolderId
+      fftFolderId,
+      selectedLocations,
+      loading,
+      error
     } = this.state;
 
     // Define tabs - renamed as requested
@@ -877,7 +907,7 @@ class FitnessSection extends Component {
             <FitnessFilterSection
               availableLocations={availableLocations}
               availableYears={this.getFilteredYearsForLocation()}
-              selectedLocation={selectedLocation}
+              selectedLocations={selectedLocations}
               yearFrom={yearFrom}
               yearTo={yearTo}
               onLocationChange={this.handleLocationChange}
@@ -898,7 +928,7 @@ class FitnessSection extends Component {
         )}
 
         {/* Tabs and Content - Only shown after centre AND year(s) are selected and not loading */}
-        {!loading && selectedLocation && (yearFrom || yearTo) ? (
+        {!loading && selectedLocations.length > 0 && (yearFrom || yearTo) ? (
           <>
             {/* Tab Navigation */}
             <div className="fft-main-tabs">

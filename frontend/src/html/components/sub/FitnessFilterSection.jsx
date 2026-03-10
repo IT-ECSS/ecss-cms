@@ -5,7 +5,7 @@ class FitnessFilterSection extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      selectedLocation: props.selectedLocation || '',
+      selectedLocations: props.selectedLocations || [],
       yearFrom: props.yearFrom || '',
       yearTo: props.yearTo || '',
       selectedYear: props.selectedYear || '',
@@ -30,10 +30,10 @@ class FitnessFilterSection extends Component {
   componentDidUpdate(prevProps) {
     if (prevProps.yearFrom !== this.props.yearFrom || 
         prevProps.yearTo !== this.props.yearTo ||
-        prevProps.selectedLocation !== this.props.selectedLocation ||
+        JSON.stringify(prevProps.selectedLocations) !== JSON.stringify(this.props.selectedLocations) ||
         prevProps.selectedYear !== this.props.selectedYear) {
       this.setState({
-        selectedLocation: this.props.selectedLocation || '',
+        selectedLocations: this.props.selectedLocations || [],
         yearFrom: this.props.yearFrom || '',
         yearTo: this.props.yearTo || '',
         selectedYear: this.props.selectedYear || ''
@@ -42,10 +42,35 @@ class FitnessFilterSection extends Component {
   }
 
   handleLocationChange = (value) => {
-    this.setState({ selectedLocation: value, openDropdown: null });
-    if (this.props.onLocationChange) {
-      this.props.onLocationChange(value);
+    let updatedLocations;
+    if (value === '') {
+      // Clear all if 'Clear All' is clicked
+      updatedLocations = [];
+    } else if (this.state.selectedLocations.includes(value)) {
+      // Remove if already selected
+      updatedLocations = this.state.selectedLocations.filter(loc => loc !== value);
+    } else {
+      // Add if not selected
+      updatedLocations = [...this.state.selectedLocations, value];
     }
+    
+    // Update state and call parent callback
+    this.setState({ selectedLocations: updatedLocations }, () => {
+      if (this.props.onLocationChange) {
+        this.props.onLocationChange(updatedLocations);
+      }
+    });
+  }
+
+  handleSelectAllLocations = () => {
+    const { availableLocations = [] } = this.props;
+    
+    // Update state with all available locations
+    this.setState({ selectedLocations: availableLocations }, () => {
+      if (this.props.onLocationChange) {
+        this.props.onLocationChange(availableLocations);
+      }
+    });
   }
 
   handleYearFromChange = (value) => {
@@ -70,7 +95,7 @@ class FitnessFilterSection extends Component {
 
   handleClearFilters = () => {
     this.setState({
-      selectedLocation: '',
+      selectedLocations: [],
       yearFrom: '',
       yearTo: '',
       selectedYear: ''
@@ -91,7 +116,7 @@ class FitnessFilterSection extends Component {
       title = 'Filter Options'
     } = this.props;
     
-    const { selectedLocation, yearFrom, yearTo, selectedYear, openDropdown } = this.state;
+    const { selectedLocations, yearFrom, yearTo, selectedYear, openDropdown } = this.state;
 
     return (
       <div className="fft-filter-section-wrapper">
@@ -107,12 +132,31 @@ class FitnessFilterSection extends Component {
                   <i className="fas fa-building"></i>
                   Centre
                 </label>
-                <div className="fft-custom-dropdown">
+                <div className="fft-custom-dropdown fft-multiselect-dropdown">
                   <button 
                     className="fft-dropdown-button"
                     onClick={() => this.toggleDropdown('location')}
                   >
-                    <span>{selectedLocation || 'Select Centre'}</span>
+                    <span className="fft-dropdown-value">
+                      {selectedLocations.length === 0 ? (
+                        'Select Centre'
+                      ) : (
+                        <span className="fft-selected-badges">
+                          {selectedLocations.map(location => (
+                            <span key={location} className="fft-badge">
+                              {location}
+                              <i 
+                                className="fas fa-times" 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  this.handleLocationChange(location);
+                                }}
+                              ></i>
+                            </span>
+                          ))}
+                        </span>
+                      )}
+                    </span>
                     <i className={`fas fa-chevron-down ${openDropdown === 'location' ? 'open' : ''}`}></i>
                   </button>
                   {openDropdown === 'location' && (
@@ -121,14 +165,24 @@ class FitnessFilterSection extends Component {
                         className="fft-dropdown-item"
                         onClick={() => this.handleLocationChange('')}
                       >
-                        Select Centre
+                        <i className="fas fa-times"></i>
+                        Clear All
                       </div>
+                      <div 
+                        className="fft-dropdown-item"
+                        onClick={() => this.handleSelectAllLocations()}
+                      >
+                        <i className="fas fa-check-double"></i>
+                        Select All
+                      </div>
+                      <div className="fft-dropdown-divider"></div>
                       {availableLocations.map(location => (
                         <div
                           key={location}
-                          className={`fft-dropdown-item ${selectedLocation === location ? 'active' : ''}`}
+                          className={`fft-dropdown-item ${selectedLocations.includes(location) ? 'active' : ''}`}
                           onClick={() => this.handleLocationChange(location)}
                         >
+                          <i className={`fas ${selectedLocations.includes(location) ? 'fa-check' : 'fa-plus'}`}></i>
                           {location}
                         </div>
                       ))}
@@ -148,13 +202,13 @@ class FitnessFilterSection extends Component {
                   <div className="fft-custom-dropdown">
                     <button 
                       className="fft-dropdown-button"
-                      onClick={() => selectedLocation && this.toggleDropdown('yearFrom')}
-                      disabled={!selectedLocation}
+                      onClick={() => selectedLocations.length > 0 && this.toggleDropdown('yearFrom')}
+                      disabled={selectedLocations.length === 0}
                     >
-                      <span>{yearFrom || (selectedLocation ? 'Select Year' : 'Select Centre First')}</span>
+                      <span>{yearFrom || (selectedLocations.length > 0 ? 'Select Year' : 'Select Centre First')}</span>
                       <i className={`fas fa-chevron-down ${openDropdown === 'yearFrom' ? 'open' : ''}`}></i>
                     </button>
-                    {openDropdown === 'yearFrom' && selectedLocation && (
+                    {openDropdown === 'yearFrom' && selectedLocations.length > 0 && (
                       <div className="fft-dropdown-menu">
                         <div 
                           className="fft-dropdown-item"
@@ -184,13 +238,13 @@ class FitnessFilterSection extends Component {
                   <div className="fft-custom-dropdown">
                     <button 
                       className="fft-dropdown-button"
-                      onClick={() => selectedLocation && this.toggleDropdown('yearTo')}
-                      disabled={!selectedLocation}
+                      onClick={() => selectedLocations.length > 0 && this.toggleDropdown('yearTo')}
+                      disabled={selectedLocations.length === 0}
                     >
-                      <span>{yearTo || (selectedLocation ? 'Select Year' : 'Select Centre First')}</span>
+                      <span>{yearTo || (selectedLocations.length > 0 ? 'Select Year' : 'Select Centre First')}</span>
                       <i className={`fas fa-chevron-down ${openDropdown === 'yearTo' ? 'open' : ''}`}></i>
                     </button>
-                    {openDropdown === 'yearTo' && selectedLocation && (
+                    {openDropdown === 'yearTo' && selectedLocations.length > 0 && (
                       <div className="fft-dropdown-menu">
                         <div 
                           className="fft-dropdown-item"
@@ -236,12 +290,12 @@ class FitnessFilterSection extends Component {
 
           {/* Active Filters Display */}
           <div className="fft-filter-section-active">
-            {selectedLocation && (
-              <span className="fft-filter-section-tag">
+            {selectedLocations.map(location => (
+              <span key={location} className="fft-filter-section-tag">
                 <i className="fas fa-map-marker-alt"></i>
-                {selectedLocation}
+                {location}
               </span>
-            )}
+            ))}
             {showYearRange && yearFrom && yearTo && yearFrom !== yearTo && (
               <span className="fft-filter-section-tag fft-filter-section-tag-year">
                 <i className="fas fa-calendar-alt"></i>
