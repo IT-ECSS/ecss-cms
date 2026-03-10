@@ -25,7 +25,7 @@ class FFTPage extends Component {
   }
 
   componentDidMount() {
-    document.title = 'ECSS FFT Test';
+    document.title = 'ECSS FFT';
 
     // Check if redirected from SingPass with section parameter
     const urlParams = new URLSearchParams(window.location.search);

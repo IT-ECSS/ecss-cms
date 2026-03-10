@@ -1,0 +1,51 @@
+/* ════════════ CREATE FILE FORM ════════════ */
+
+.fft-create-file-form {
+  width: 100%;
+}
+
+/* ════════════ EVENTS TABLE ════════════ */
+
+.fft-events-table-container {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  margin-top: 12px;
+}
+
+.fft-events-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.fft-events-table thead {
+  background-color: #f5f5f5;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.fft-events-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #333;
+}
+
+.fft-events-table tbody tr {
+  border-bottom: 1px solid #e0e0e0;
+  transition: background-color 0.2s ease;
+}
+
+.fft-events-table tbody tr:hover {
+  background-color: #fafafa;
+}
+
+.fft-events-table td {
+  padding: 12px 16px;
+  color: #555;
+}
+
+.fft-events-table tbody tr:last-child {
+  border-bottom: none;
+}

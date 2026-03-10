@@ -1,0 +1,154 @@
+/* ════════════ CREATE EVENT FORM ════════════ */
+
+.fft-create-event-container {
+  width: 100%;
+  max-width: 600px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  padding: 40px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.fft-create-event-title {
+  margin-top: 0;
+  margin-bottom: 40px;
+  font-size: 32px;
+  color: #333;
+  text-align: center;
+}
+
+/* Form Fields */
+.fft-create-event-field {
+  margin-bottom: 35px;
+}
+
+.fft-create-event-field-last {
+  margin-bottom: 40px;
+}
+
+.fft-create-event-label {
+  display: block;
+  margin-bottom: 12px;
+  font-weight: 600;
+  color: #333;
+  font-size: 16px;
+}
+
+.fft-create-event-input {
+  width: 100%;
+  padding: 14px 16px;
+  box-sizing: border-box;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+  font-family: inherit;
+}
+
+/* Location Dropdown */
+.fft-create-event-location-wrapper {
+  position: relative;
+}
+
+.fft-create-event-location-trigger {
+  width: 100%;
+  padding: 14px 16px;
+  box-sizing: border-box;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+  font-family: inherit;
+  background-color: #fff;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.fft-create-event-location-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.fft-create-event-location-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  background-color: #fff;
+  border-bottom: 1px solid #eee;
+  font-size: 16px;
+  transition: background-color 0.2s;
+}
+
+.fft-create-event-location-item:last-child {
+  border-bottom: none;
+}
+
+.fft-create-event-location-item:hover {
+  background-color: #f0f0f0;
+}
+
+.fft-create-event-location-item.active {
+  background-color: #e8f5e9;
+}
+
+/* Error Message */
+.fft-create-event-error {
+  margin-bottom: 25px;
+  padding: 16px;
+  background-color: #fee;
+  border: 1px solid #f5a5a5;
+  border-radius: 4px;
+  color: #c33;
+  font-size: 15px;
+}
+
+/* Buttons */
+.fft-create-event-buttons {
+  display: flex;
+  gap: 16px;
+}
+
+.fft-create-event-btn {
+  flex: 1;
+  padding: 16px 28px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  transition: background-color 0.3s;
+}
+
+.fft-create-event-btn-clear {
+  background-color: #f0f0f0;
+  color: #333;
+  border: 1px solid #ccc;
+}
+
+.fft-create-event-btn-clear:hover:not(:disabled) {
+  background-color: #e0e0e0;
+}
+
+.fft-create-event-btn-create {
+  background-color: #4CAF50;
+  color: #fff;
+}
+
+.fft-create-event-btn-create:hover:not(:disabled) {
+  background-color: #45a049;
+}
+
+.fft-create-event-btn-create:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

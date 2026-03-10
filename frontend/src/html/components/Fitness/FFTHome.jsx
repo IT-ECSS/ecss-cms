@@ -51,7 +51,7 @@ class FFTHome extends Component {
     return (
       <div className="fft-home-wrapper">
         <div className="fft-home-header">
-          <h2 className="fft-home-title">FFT Test</h2>
+          <h2 className="fft-home-title">ECSS FFT</h2>
         </div>
         
         <div className="fft-home-navigation">

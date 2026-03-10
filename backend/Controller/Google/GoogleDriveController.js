@@ -645,6 +645,69 @@ class GoogleDriveController {
     }
 
     /**
+     * Append an event row with auto-generated S/N
+     * @param {string} fileId - Spreadsheet ID
+     * @param {string} eventName - Event name
+     * @param {string} createdOn - Creation timestamp
+     * @param {string} sheetName - Sheet name (optional)
+     */
+    async appendEventRow(fileId, eventName, createdOn, sheetName = null) {
+        try {
+            const sheets = await this.initializeSheetsAuth();
+
+            console.log(`[SHEETS] Appending event row to spreadsheet: ${fileId}`);
+
+            // Get spreadsheet metadata to determine sheet name
+            const spreadsheet = await sheets.spreadsheets.get({
+                spreadsheetId: fileId,
+                fields: 'sheets.properties'
+            });
+
+            const sheetNames = spreadsheet.data.sheets.map(s => s.properties.title);
+            const targetSheet = sheetName || sheetNames[0];
+
+            // Find the next empty row by checking existing data in column A
+            const existingData = await sheets.spreadsheets.values.get({
+                spreadsheetId: fileId,
+                range: `'${targetSheet}'!A:A`
+            });
+
+            const dataRows = existingData.data.values ? existingData.data.values.length - 1 : 0;
+            const nextSN = dataRows + 1;
+            const nextRow = dataRows + 2; // +2 because rows are 1-indexed and we have a header
+
+            // Prepare row data: [S/N, Event Name, Created On]
+            const rowData = [nextSN.toString(), eventName, createdOn];
+
+            const range = `'${targetSheet}'!A${nextRow}`;
+            const response = await sheets.spreadsheets.values.update({
+                spreadsheetId: fileId,
+                range: range,
+                valueInputOption: 'RAW',
+                resource: {
+                    values: [rowData]
+                }
+            });
+
+            const updatedRange = response.data.updatedRange || `${targetSheet}!A${nextRow}`;
+            console.log(`[SHEETS] Event row appended with S/N ${nextSN} to '${targetSheet}': ${updatedRange}`);
+
+            return {
+                success: true,
+                serialNumber: nextSN,
+                updatedRange: updatedRange,
+                updatedRows: response.data.updatedRows || 1
+            };
+        } catch (error) {
+            console.error('[SHEETS] Error appending event row:', error.message);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
+    /**
      * Update specific columns in a row by entry number.
      * @param {string} fileId - Spreadsheet ID
      * @param {number} entryNumber - Entry number (row - 1 because of header)

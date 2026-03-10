@@ -203,6 +203,46 @@ router.post('/appendRow', async (req, res) => {
     }
 });
 
+// POST endpoint to append an event row with auto-generated S/N
+router.post('/appendEventRow', async (req, res) => {
+    try {
+        const { fileId, eventName, createdOn, sheetName = 'Sheet1' } = req.body;
+        console.log(`[SHEETS] Received request to append event row: fileId=${fileId}, eventName=${eventName}, createdOn=${createdOn}, sheetName=${sheetName}`);
+
+        if (!fileId || !eventName || !createdOn) {
+            return res.status(400).json({
+                success: false,
+                error: 'fileId, eventName, and createdOn are required'
+            });
+        }
+
+        console.log(`[SHEETS] Appending event row to spreadsheet: ${fileId}`);
+
+        // Use GoogleDriveController's method to append the event row with auto-generated S/N
+        const result = await googleDriveController.appendEventRow(
+            fileId, 
+            eventName, 
+            createdOn,
+            sheetName
+        );
+
+        if (!result.success) {
+            console.error('[SHEETS] appendEventRow failed:', result.error);
+            return res.status(500).json(result);
+        }
+
+        console.log(`[SHEETS] Event row successfully appended with S/N ${result.serialNumber}`);
+
+        res.json(result);
+    } catch (error) {
+        console.error('[SHEETS] Error in POST /appendEventRow:', error.message, error.stack);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
 // POST endpoint to create a folder inside a parent folder
 router.post('/createFolder', async (req, res) => {
     try {

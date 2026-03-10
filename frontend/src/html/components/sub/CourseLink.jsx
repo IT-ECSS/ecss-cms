@@ -104,7 +104,8 @@ class CourseLink extends Component {
             location = parts[2];
           }
           
-          location = location.replace(/[()]/g, '');
+          location = typeof location === 'string' ? location.replace(/[()]/g, '') : '';
+          courseName = typeof courseName === 'string' ? courseName.replace(/[()]/g, '') : '';
 
           worksheet.addRow({
             sn: snCounter,
@@ -163,6 +164,16 @@ class CourseLink extends Component {
 
       console.log("Courses:", courses);
       
+      // Remove inventory category
+      courses = courses.filter(course => {
+        if (!course.categories) return true;
+        const categories = Array.isArray(course.categories) ? course.categories : [course.categories];
+        return !categories.some(cat => {
+          const name = typeof cat === 'string' ? cat : (cat?.name || '');
+          return name.toLowerCase().includes('inventory');
+        });
+      });
+
       // Extract product names and permalinks with serial number and shortened URL
       const courseLinks = await Promise.all(courses.map(async (course, index) => {
         const shortenedUrl = await this.getTinyURL(course.permalink);
@@ -233,7 +244,7 @@ class CourseLink extends Component {
           if (parts.length === 3) {
             selectedPart = parts[1];
           }
-          return selectedPart;
+          return typeof selectedPart === 'string' ? selectedPart.replace(/[()]/g, '') : '';
         }
       },
       { 
@@ -246,7 +257,7 @@ class CourseLink extends Component {
           if (parts.length === 3) {
             selectedPart = parts[2];
           }
-          return selectedPart.replace(/[()]/g, '');
+          return typeof selectedPart === 'string' ? selectedPart.replace(/[()]/g, '') : '';
         }
       },
       { 
