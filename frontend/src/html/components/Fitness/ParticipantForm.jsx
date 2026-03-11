@@ -2,11 +2,10 @@ import React, { Component } from 'react';
 import '../../../css/fftParticipants.css';
 import ParticipantEntryMethod from './ParticipantEntryMethod';
 import ParticularsSection from './ParticularsSection';
+import ParticipantDetailsSection from './ParticipantDetailsSection';
 import HealthDeclarationSection from './HealthDeclarationSection';
 import IndemnitySection from './IndemnitySection';
 import { getSingPassUserDataJSON } from '../../../utils/singpassData';
-
-//k
 
 class ParticipantForm extends Component {
   state = {
@@ -16,6 +15,13 @@ class ParticipantForm extends Component {
     healthData: null,
     indemnityData: null,
     singpassFormData: null,
+    // Controlled field state for the SingPass ParticipantDetailsSection
+    spName: '',
+    spDob: '',
+    spGender: '',
+    spAge: '',
+    spPhone: '',
+    spErrors: {},
   };
 
   particularsRef = React.createRef();
@@ -57,7 +63,9 @@ class ParticipantForm extends Component {
 
   handleUseSingpass = () => {
     const userData = getSingPassUserDataJSON();
+    console.log('Retrieved SingPass user data from sessionStorage:', userData);
     let singpassFormData = null;
+    let spName = '', spDob = '', spGender = '', spAge = '', spPhone = '';
     if (userData) {
       const dob = userData.dob?.formattedDate1 || (typeof userData.dob === 'string' ? userData.dob : '');
       // Gender: SingPass returns 'M'/'F' or structured object
@@ -65,15 +73,64 @@ class ParticipantForm extends Component {
       if (typeof userData.sex === 'string') gender = userData.sex.charAt(0).toUpperCase();
       else if (userData.sex?.value) gender = String(userData.sex.value).charAt(0).toUpperCase();
       else if (userData.sex?.code) gender = String(userData.sex.code).charAt(0).toUpperCase();
-      singpassFormData = {
-        name: userData.name ? userData.name.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) : '',
-        dateOfBirth: dob,
-        gender: gender === 'M' || gender === 'F' ? gender : '',
-        age: this.calcAge(dob),
-        phone: this.extractMobile(userData.mobileno),
-      };
+      spName = userData.name ? userData.name.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) : '';
+      spDob = dob;
+      spGender = gender === 'M' || gender === 'F' ? gender : '';
+      spAge = this.calcAge(dob);
+      spPhone = this.extractMobile(userData.mobileno);
+      singpassFormData = { name: spName, dateOfBirth: spDob, gender: spGender, age: spAge, phone: spPhone };
     }
-    this.setState({ entryMethod: 'singpass', currentStep: 2, singpassFormData });
+    this.setState({
+      entryMethod: 'singpass',
+      currentStep: 2,
+      singpassFormData,
+      spName,
+      spDob,
+      spGender,
+      spAge,
+      spPhone,
+      spErrors: {},
+    });
+  };
+
+  handleSpChange = (e) => {
+    const { name, value } = e.target;
+    const keyMap = { name: 'spName', dob: 'spDob', age: 'spAge', phone: 'spPhone' };
+    const stateKey = keyMap[name];
+    if (!stateKey) return;
+    this.setState((prev) => ({
+      [stateKey]: value,
+      spErrors: { ...prev.spErrors, [name]: undefined },
+    }));
+  };
+
+  handleSpGenderChange = (g) => {
+    this.setState((prev) => ({ spGender: g, spErrors: { ...prev.spErrors, gender: undefined } }));
+  };
+
+  validateSpForm = () => {
+    const { spName, spDob, spGender, spPhone } = this.state;
+    const errors = {};
+    if (!spName.trim()) errors.name = 'Name is required';
+    if (!spDob.trim()) errors.dob = 'Date of birth is required';
+    if (!spGender) errors.gender = 'Gender is required';
+    if (!spPhone.trim()) errors.phone = 'Phone number is required';
+    this.setState({ spErrors: errors });
+    return Object.keys(errors).length === 0;
+  };
+
+  handleSpNext = () => {
+    if (this.validateSpForm()) {
+      const { spName, spDob, spGender, spAge, spPhone } = this.state;
+      this.setState({
+        particularsData: { name: spName, dateOfBirth: spDob, gender: spGender, age: spAge, phone: spPhone },
+        currentStep: 3,
+      });
+    }
+  };
+
+  handleSpClear = () => {
+    this.setState({ spErrors: {} });
   };
 
   handleBack = () => {
@@ -89,6 +146,20 @@ class ParticipantForm extends Component {
       this.setState({ currentStep: 3 });
     }
   };
+
+  componentDidMount() {
+    // If SingPass data is already in sessionStorage (returning from SingPass redirect),
+    // auto-advance past the choice screen and pre-fill with SingPass data.
+    const userData = getSingPassUserDataJSON();
+    if (userData && userData.source === 'singpass' && userData.name) {
+      this.handleUseSingpass();
+      // Clear SingPass session data so it isn't re-used for the next participant
+      sessionStorage.removeItem('singpass_user_data_json');
+      sessionStorage.removeItem('singpass_access_token');
+      sessionStorage.removeItem('singpass_user_uuid');
+      sessionStorage.removeItem('singpass_user_profile');
+    }
+  }
 
   handleFinalSubmit = (indemnityData) => {
     this.setState({ indemnityData });
@@ -133,18 +204,36 @@ class ParticipantForm extends Component {
           />
         )}
 
-        {/* Step 2: Particulars section (manual or SingPass pre-filled) */}
-        {currentStep === 2 && (entryMethod === 'manual' || entryMethod === 'singpass') && (
+        {/* Step 2 (manual): Particulars section */}
+        {currentStep === 2 && entryMethod === 'manual' && (
           <ParticularsSection
             ref={this.particularsRef}
             language={language}
-            formData={this.state.particularsData || singpassFormData || this.props.formData}
-            singpassLocked={entryMethod === 'singpass'}
+            formData={this.state.particularsData || this.props.formData}
+            singpassLocked={false}
             onSubmit={(data) => {
               this.setState({ particularsData: data, currentStep: 3 });
             }}
             onBack={() => this.resetForm()}
             onHome={() => onHome?.()}
+          />
+        )}
+
+        {/* Step 2 (singpass): ParticipantDetailsSection pre-filled and locked */}
+        {currentStep === 2 && entryMethod === 'singpass' && (
+          <ParticipantDetailsSection
+            language={language}
+            name={this.state.spName}
+            dob={this.state.spDob}
+            gender={this.state.spGender}
+            age={this.state.spAge}
+            phone={this.state.spPhone}
+            onChange={this.handleSpChange}
+            onGenderChange={this.handleSpGenderChange}
+            singpassLocked={true}
+            onBack={() => this.resetForm()}
+            onHome={() => onHome?.()}
+            errors={this.state.spErrors}
           />
         )}
 
@@ -191,7 +280,7 @@ class ParticipantForm extends Component {
             {/* Centralized footer buttons */}
             {showFooter && (
               <div className="fft-form-footer">
-                {currentStep === 2 && (
+                {currentStep === 2 && entryMethod === 'manual' && (
                   <>
                     <button
                       type="button"
@@ -204,6 +293,24 @@ class ParticipantForm extends Component {
                       type="button"
                       className="fft-create-event-btn fft-create-event-btn-clear"
                       onClick={() => this.particularsRef.current?.handleSubmit()}
+                    >
+                      {language === 'zh' ? '下一步' : language === 'ms' ? 'Seterusnya' : 'Next'}
+                    </button>
+                  </>
+                )}
+                {currentStep === 2 && entryMethod === 'singpass' && (
+                  <>
+                    <button
+                      type="button"
+                      className="fft-create-event-btn fft-create-event-btn-clear"
+                      onClick={this.handleSpClear}
+                    >
+                      {language === 'zh' ? '清空' : language === 'ms' ? 'Kosongkan' : 'Clear'}
+                    </button>
+                    <button
+                      type="button"
+                      className="fft-create-event-btn fft-create-event-btn-clear"
+                      onClick={this.handleSpNext}
                     >
                       {language === 'zh' ? '下一步' : language === 'ms' ? 'Seterusnya' : 'Next'}
                     </button>
