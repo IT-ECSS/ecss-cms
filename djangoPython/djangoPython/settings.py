@@ -211,7 +211,7 @@ CORS_ALLOW_METHODS = [
     'OPTIONS',
 ]
 
-# Suppress BrokenPipeError and other harmless client disconnection errors
+# Suppress BrokenPipeError and other harmless client disconnection errorsok
 import logging
 
 class IgnoreBrokenPipeFilter(logging.Filter):
