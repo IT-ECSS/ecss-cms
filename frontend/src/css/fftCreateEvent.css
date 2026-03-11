@@ -103,11 +103,11 @@
 
 /* Error Message */
 .fft-create-event-error {
-  margin-bottom: 25px;
-  padding: 16px;
-  background-color: #fee;
-  border: 1px solid #f5a5a5;
-  border-radius: 4px;
+  margin-bottom: 0;
+  padding: 0;
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
   color: #c33;
   font-size: 15px;
 }
@@ -118,37 +118,50 @@
   gap: 16px;
 }
 
+
 .fft-create-event-btn {
   flex: 1;
   padding: 16px 28px;
-  border: none;
-  border-radius: 4px;
+  border: 2px solid #4CAF50;
+  border-radius: 8px;
+  background: transparent;
+  color: #333;
   cursor: pointer;
   font-size: 16px;
   font-weight: 600;
-  transition: background-color 0.3s;
+  transition: border-color 0.3s, background 0.3s;
 }
+
 
 .fft-create-event-btn-clear {
-  background-color: #f0f0f0;
+  background: transparent;
   color: #333;
-  border: 1px solid #ccc;
+  border: 2px solid #ccc;
 }
+
 
 .fft-create-event-btn-clear:hover:not(:disabled) {
-  background-color: #e0e0e0;
+  border-color: #888;
+  background: transparent;
 }
+
 
 .fft-create-event-btn-create {
-  background-color: #4CAF50;
-  color: #fff;
+  background: transparent;
+  color: #4CAF50;
+  border: 2px solid #4CAF50;
 }
 
+
 .fft-create-event-btn-create:hover:not(:disabled) {
-  background-color: #45a049;
+  border-color: #388e3c;
+  background: transparent;
+  color: #388e3c;
 }
+
 
 .fft-create-event-btn-create:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  background: transparent;
 }

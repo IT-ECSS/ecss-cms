@@ -44,6 +44,7 @@ class FFTAdmin extends Component {
     const { onBack } = this.props;
     const { activeView } = this.state;
 
+
     return (
       <div className="fft-participants-wrapper">
         <div className="fft-participants-header">
@@ -70,16 +71,12 @@ class FFTAdmin extends Component {
         {/* ════════════ MENU VIEW ════════════ */}
         {!activeView && (
           <div className="fft-participants-form">
-            {/* Current active file indicator */}
-            {this.props.selectedFile && (
-              <div className="fft-admin-result fft-admin-result--success" style={{ marginBottom: '16px' }}>
-                <i className="fas fa-file-alt"></i>
-                <div>
-                  <p className="fft-admin-result-title">Active File</p>
-                  <p className="fft-admin-result-detail">{this.props.selectedFile.name}</p>
-                </div>
+            <div style={{ margin: '0 0 32px 0', textAlign: 'center' }}>
+              <h2 style={{ fontWeight: 700, fontSize: '2rem', marginBottom: 8 }}>FFT Admin Panel</h2>
+              <div style={{ color: '#555', fontSize: '1.1rem', maxWidth: 520, margin: '0 auto' }}>
+                Use this panel to create new FFT events or files. Select an action below to get started.
               </div>
-            )}
+            </div>
             <div className="fft-admin-menu-grid">
               <button
                 type="button"
@@ -100,16 +97,6 @@ class FFTAdmin extends Component {
                   <i className="fas fa-file-medical"></i>
                 </div>
                 <span className="fft-admin-menu-btn-label">Create File</span>
-              </button>
-              <button
-                type="button"
-                className="fft-admin-menu-btn"
-                onClick={() => this.handleMenuSelect('choose')}
-              >
-                <div className="fft-admin-menu-btn-icon">
-                  <i className="fas fa-folder-open"></i>
-                </div>
-                <span className="fft-admin-menu-btn-label">Choose File</span>
               </button>
             </div>
           </div>

@@ -1,0 +1,333 @@
+/* =====================================================
+   FFT Result Entry — Styles
+   Mirrors fft-participants-* layout with fft-result-entry-* class names
+   ===================================================== */
+
+/* ── Section cards ── */
+.fft-result-entry-section {
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 28px 28px 32px;
+  margin-bottom: 20px;
+  border: 1px solid #e2e6ed;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.3s ease;
+}
+
+.fft-result-entry-section:hover {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Section header (number + title) ── */
+.fft-result-entry-section-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
+  padding-bottom: 14px;
+  border-bottom: 2px solid #eef0f4;
+}
+
+.fft-result-entry-section-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #2c7be5;
+  color: #ffffff;
+  font-size: 1.65rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.fft-result-entry-section-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #212121;
+  margin: 0;
+}
+
+/* ── Station badge ── */
+.fft-result-entry-station-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 1.2rem;
+  margin-bottom: 14px;
+}
+
+/* ── Manual entry box ── */
+.fft-result-entry-manual-entry {
+  padding: 14px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e2e6ed;
+  margin-top: 8px;
+}
+
+.fft-result-entry-manual-row {
+  display: flex;
+  gap: 8px;
+}
+
+.fft-result-entry-manual-input {
+  text-align: center;
+}
+
+/* ── Go button ── */
+.fft-result-entry-go-btn {
+  padding: 12px 24px;
+  background: #d32f2f;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 1.35rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fft-result-entry-go-btn:hover {
+  background: #b71c1c;
+}
+
+/* ── Loading indicator ── */
+.fft-result-entry-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 0;
+  color: #555;
+  font-size: 1.2rem;
+  gap: 10px;
+}
+
+/* ── Error message ── */
+.fft-result-entry-error {
+  padding: 12px 16px;
+  background: #fef2f2;
+  color: #dc2626;
+  border-radius: 8px;
+  font-size: 1.2rem;
+  margin-top: 12px;
+  border: 1px solid #fecaca;
+}
+
+/* ── Participant card ── */
+.fft-result-entry-participant-card {
+  padding: 20px 24px;
+}
+
+.fft-result-entry-participant-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.fft-result-entry-participant-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: #f0fdf4;
+  color: #16a34a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.fft-result-entry-participant-info {
+  flex: 1;
+}
+
+.fft-result-entry-participant-name {
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: #1a1a1a;
+}
+
+.fft-result-entry-participant-chinese {
+  font-size: 1.2rem;
+  color: #555;
+}
+
+.fft-result-entry-participant-meta {
+  font-size: 1.13rem;
+  color: #888;
+  margin-top: 4px;
+}
+
+/* ── Success card ── */
+.fft-result-entry-success-card {
+  text-align: center;
+  padding: 32px 24px;
+}
+
+.fft-result-entry-success-icon {
+  font-size: 3.5rem;
+  margin-bottom: 12px;
+  color: #16a34a;
+}
+
+.fft-result-entry-success-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #16a34a;
+  margin: 0 0 8px;
+}
+
+.fft-result-entry-success-text {
+  color: #555;
+  font-size: 1.28rem;
+  margin: 0 0 20px;
+}
+
+/* ── Note banner ── */
+.fft-result-entry-note-banner {
+  padding: 10px 14px;
+  background: #eff6ff;
+  border-radius: 8px;
+  font-size: 1.13rem;
+  color: #2563eb;
+  margin-bottom: 20px;
+  border: 1px solid #bfdbfe;
+}
+
+/* ── Form grid ── */
+.fft-result-entry-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+/* ── Fields ── */
+.fft-result-entry-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.fft-result-entry-field--full {
+  grid-column: 1 / -1;
+}
+
+/* ── Label ── */
+.fft-result-entry-label {
+  font-size: 1.43rem;
+  font-weight: 700;
+  color: #424242;
+  letter-spacing: 0.2px;
+}
+
+/* ── Input ── */
+.fft-result-entry-input {
+  padding: 12px 14px;
+  border: 1.5px solid #d0d0d0;
+  border-radius: 8px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #212121;
+  background: #fafafa;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.fft-result-entry-input:focus {
+  border-color: #d32f2f;
+  box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.1);
+  background: #ffffff;
+}
+
+.fft-result-entry-input::placeholder {
+  color: #9e9e9e;
+  font-weight: 400;
+}
+
+/* ── Submit button ── */
+.fft-result-entry-submit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 10px;
+  font-size: 1.73rem;
+  font-weight: 700;
+  color: #ffffff;
+  background: #d32f2f;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 3px 10px rgba(211, 47, 47, 0.3);
+  letter-spacing: 0.3px;
+}
+
+.fft-result-entry-submit-btn:hover {
+  background: #b71c1c;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 16px rgba(211, 47, 47, 0.35);
+}
+
+.fft-result-entry-submit-btn:active {
+  transform: translateY(0);
+}
+
+.fft-result-entry-submit-btn:disabled {
+  background: #bdbdbd;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+/* =====================================================
+   Responsive
+   ===================================================== */
+@media (max-width: 768px) {
+  .fft-result-entry-section {
+    padding: 20px 16px 24px;
+    border-radius: 10px;
+  }
+
+  .fft-result-entry-section-title {
+    font-size: 1.6rem;
+  }
+
+  .fft-result-entry-section-number {
+    width: 32px;
+    height: 32px;
+    font-size: 1.4rem;
+  }
+
+  .fft-result-entry-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fft-result-entry-label {
+    font-size: 1.25rem;
+  }
+
+  .fft-result-entry-input {
+    font-size: 1.3rem;
+    padding: 11px 12px;
+  }
+
+  .fft-result-entry-submit-btn {
+    font-size: 1.5rem;
+    padding: 14px;
+  }
+
+  .fft-result-entry-go-btn {
+    font-size: 1.2rem;
+    padding: 11px 18px;
+  }
+}

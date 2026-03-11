@@ -75,55 +75,32 @@ class GoogleDriveController {
     async listFilesInFolder(folderId) {
         try {
             const drive = await this.initializeAuth();
-            
-            console.log(`\n📂 Listing files in folder: ${folderId}`);
-            
-            const query = await drive.files.list({
-                q: `'${folderId}' in parents and trashed=false`,
-                spaces: 'drive',
-                fields: 'files(id, name, webViewLink, createdTime, size, mimeType)',
-                supportsAllDrives: true,
-                includeItemsFromAllDrives: true,
-                pageSize: 100,
-                orderBy: 'name',
-                corpora: 'allDrives' // Search all drives including Shared Drives
-            });
-            
-            console.log(`Query response files count: ${query.data.files ? query.data.files.length : 0}`);
-            console.log(`Query response:`, JSON.stringify(query.data, null, 2));
-            
-            if (query.data.files && query.data.files.length > 0) {
-                console.log(`✓ Found ${query.data.files.length} files in folder:`);
-                query.data.files.forEach((file, index) => {
-                    console.log(`  ${index + 1}. ${file.name} (ID: ${file.id}, Size: ${file.size || 'N/A'} bytes)`);
-                });
-                return {
-                    success: true,
-                    fileCount: query.data.files.length,
-                    files: query.data.files
-                };
+            console.log(`\n📂 Recursively listing files in folder and subfolders: ${folderId}`);
+            const allFiles = [];
+            // Use the recursive helper to collect all files (not folders)
+            await this.collectFilesFromFolder(drive, folderId, '', allFiles);
+            // allFiles is an array of { id, path } objects; fetch metadata for each file
+            const filesWithMeta = [];
+            for (const fileObj of allFiles) {
+                try {
+                    const meta = await drive.files.get({
+                        fileId: fileObj.id,
+                        fields: 'id, name, webViewLink, createdTime, size, mimeType',
+                        supportsAllDrives: true
+                    });
+                    filesWithMeta.push(meta.data);
+                } catch (err) {
+                    console.warn('Failed to fetch metadata for file:', fileObj.id, err.message);
+                }
             }
-            
-            console.log('ℹ No files found in folder - trying alternative query...');
-            
-            // Try without 'in parents' to see if folder is accessible
-            const folderCheck = await drive.files.get({
-                fileId: folderId,
-                fields: 'id, name, mimeType, webViewLink',
-                supportsAllDrives: true
-            });
-            
-            console.log(`Folder info:`, folderCheck.data);
-            
+            console.log(`✓ Recursively found ${filesWithMeta.length} files in folder and subfolders.`);
             return {
                 success: true,
-                fileCount: 0,
-                files: [],
-                folderInfo: folderCheck.data
+                fileCount: filesWithMeta.length,
+                files: filesWithMeta
             };
         } catch (error) {
-            console.error('Error listing files in folder:', error.message);
-            console.error('Error details:', error);
+            console.error('Error recursively listing files in folder:', error.message);
             return { success: false, error: error.message };
         }
     }
@@ -136,7 +113,7 @@ class GoogleDriveController {
             const stream = Readable.from(fileBuffer);
 
             const response = await drive.files.create({
-                resource: {
+                requestBody: {
                     name: fileName,
                     parents: [folderId]
                 },
@@ -618,7 +595,7 @@ class GoogleDriveController {
                 spreadsheetId: fileId,
                 range: range,
                 valueInputOption: 'RAW',
-                resource: {
+                requestBody: {
                     values: [rowData]
                 }
             });
@@ -684,7 +661,7 @@ class GoogleDriveController {
                 spreadsheetId: fileId,
                 range: range,
                 valueInputOption: 'RAW',
-                resource: {
+                requestBody: {
                     values: [rowData]
                 }
             });
@@ -752,7 +729,7 @@ class GoogleDriveController {
 
             await sheets.spreadsheets.values.batchUpdate({
                 spreadsheetId: fileId,
-                resource: {
+                requestBody: {
                     valueInputOption: 'RAW',
                     data: data
                 }
@@ -1076,6 +1053,42 @@ class GoogleDriveController {
             };
         } catch (error) {
             console.error('Error creating folder:', error.message);
+            return { success: false, error: error.message };
+        }
+    }
+
+    async findSheetByEventName(folderId, eventName) {
+        try {
+            const drive = await this.initializeAuth();
+            const response = await drive.files.list({
+                q: `'${folderId}' in parents and trashed=false`,
+                fields: 'files(id, name)',
+                supportsAllDrives: true,
+                includeItemsFromAllDrives: true,
+                corpora: 'allDrives',
+            });
+            const files = response.data.files || [];
+            // Normalize: lowercase, strip slashes/dashes/dots, collapse spaces
+            const normalize = (s) => s.toLowerCase().replace(/[\/\-_.]/g, ' ').replace(/\s+/g, ' ').trim();
+            const normalizedEvent = normalize(eventName);
+            // Also strip leading date pattern (e.g. "2026 04 11 ") for word matching
+            const strippedEvent = normalizedEvent.replace(/^\d{4}\s+\d{1,2}\s+\d{1,2}\s+/, '');
+            const eventWords = normalizedEvent.split(' ').filter(Boolean);
+            const match = files.find(f => {
+                const fn = normalize(f.name);
+                if (fn.includes(normalizedEvent) || normalizedEvent.includes(fn)) return true;
+                if (fn.includes(strippedEvent) || strippedEvent.includes(fn)) return true;
+                // Word overlap: if ≥50% of file-name words appear in event name
+                const fnWords = fn.split(' ').filter(Boolean);
+                const overlap = fnWords.filter(w => eventWords.includes(w)).length;
+                return fnWords.length > 0 && overlap / fnWords.length >= 0.5;
+            });
+            if (!match) {
+                return { success: false, error: `No spreadsheet found matching event: "${eventName}"` };
+            }
+            return { success: true, file: match };
+        } catch (error) {
+            console.error('[SHEETS] findSheetByEventName error:', error.message);
             return { success: false, error: error.message };
         }
     }

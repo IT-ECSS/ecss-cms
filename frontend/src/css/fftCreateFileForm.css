@@ -1,51 +1,101 @@
+/* ════════════ WRAPPER ════════════ */
+.fft-participants-wrapper {
+  width: 100%;
+}
+/* ════════════ PARTICIPANTS SECTION ════════════ */
+.fft-participants-section {
+  width: 90%;
+  margin: 0 auto;
+}
+
+/* ════════════ RESULT SECTION WIDTH MATCHING ════════════ */
+.fft-create-result-section {
+  width: 90%;
+  margin: 16px auto 0 auto;
+}
+.fft-admin-result {
+  width: 100%;
+  box-sizing: border-box;
+}
+.fft-admin-result--success {
+  width: 100%;
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+}
+.fft-admin-result--error,
+.fft-admin-result--warning {
+  margin-left: auto;
+  margin-right: auto;
+}
+/* ════════════ RESULT SECTION ════════════ */
+.fft-create-result-section {
+  width: 90%;
+  margin: 16px auto 0 auto;
+}
+.fft-admin-result {
+  width: 100%;
+  box-sizing: border-box;
+}
 /* ════════════ CREATE FILE FORM ════════════ */
 
 .fft-create-file-form {
   width: 100%;
 }
 
-/* ════════════ EVENTS TABLE ════════════ */
+/* ════════════ EVENTS BUTTONS ════════════ */
 
-.fft-events-table-container {
-  width: 100%;
-  overflow-x: auto;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
+.fft-events-buttons-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
   margin-top: 12px;
 }
 
-.fft-events-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-
-.fft-events-table thead {
-  background-color: #f5f5f5;
-  border-bottom: 2px solid #e0e0e0;
-}
-
-.fft-events-table th {
-  padding: 12px 16px;
+.fft-event-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 32px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  background-color: #fff;
+  cursor: pointer;
+  transition: all 0.3s ease;
   text-align: left;
+}
+
+.fft-event-btn:hover {
+  border-color: #0066cc;
+  background-color: #f0f5ff;
+  box-shadow: 0 2px 8px rgba(0, 102, 204, 0.15);
+  transform: translateY(-2px);
+}
+
+.fft-event-btn:active {
+  transform: translateY(0);
+  background-color: #e6f0ff;
+}
+
+.fft-event-btn-sn {
+  font-size: 12px;
+  font-weight: 600;
+  color: #0066cc;
+  margin-bottom: 8px;
+  background-color: #e6f0ff;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.fft-event-btn-name {
+  font-size: 28px;
   font-weight: 600;
   color: #333;
+  margin-bottom: 6px;
+  word-break: break-word;
 }
 
-.fft-events-table tbody tr {
-  border-bottom: 1px solid #e0e0e0;
-  transition: background-color 0.2s ease;
-}
-
-.fft-events-table tbody tr:hover {
-  background-color: #fafafa;
-}
-
-.fft-events-table td {
-  padding: 12px 16px;
-  color: #555;
-}
-
-.fft-events-table tbody tr:last-child {
-  border-bottom: none;
+.fft-event-btn-date {
+  font-size: 12px;
+  color: #666;
 }

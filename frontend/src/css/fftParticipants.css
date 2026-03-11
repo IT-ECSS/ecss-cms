@@ -34,6 +34,25 @@
   to { opacity: 1; }
 }
 
+@keyframes fftSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Sticky form footer (Clear / Next / Submit) ── */
+.fft-form-footer {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 16px;
+  padding: 14px 16px;
+  background: #f5f6fa;
+  z-index: 10;
+  width: 100%;
+  box-sizing: border-box;
+}
+
 /* ── Language Selection Page ── */
 .fft-participants-lang-page-label {
   font-size: 1.6rem;
@@ -94,20 +113,35 @@
   justify-content: center;
   width: 56px;
   height: 56px;
-  border: none;
+  border: none !important;
   border-radius: 50%;
-  background: transparent;
+  background: transparent !important;
   cursor: pointer;
-  font-size: 2.7rem;
+  font-size: 2.2rem;
   color: #2c7be5;
   margin: 0;
   padding: 0;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition: all 0.2s ease;
+  outline: none;
 }
 
 .fft-participants-icon-btn:hover {
-  background: transparent;
-  color: #1a6fd4;
+  background: transparent !important;
+  transform: translateY(-1px);
+  border: none !important;
+  outline: none;
+}
+
+.fft-participants-icon-btn:active {
+  background: transparent !important;
+  border: none !important;
+  outline: none;
+}
+
+.fft-participants-icon-btn:focus {
+  background: transparent !important;
+  border: none !important;
+  outline: none;
 }
 
 /* ── Header ── */
@@ -192,27 +226,59 @@
 }
 
 /* ── Section cards ── */
-.fft-participants-section {
-  background: #ffffff;
-  border-radius: 10px;
-  padding: 28px 28px 32px;
-  margin-bottom: 20px;
-  border: 1px solid #e2e6ed;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-  transition: box-shadow 0.3s ease;
+
+.fft-participants-event-btn {
+  display: block;
+  width: 100%;
+  margin-bottom: 0;
+  padding: 12px 20px;
+  font-size: 1.1em;
+  border-radius: 8px;
+  border: 2px solid #007bff;
+  background: transparent;
+  color: #222;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
 }
 
-.fft-participants-section:hover {
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+.fft-participants-event-btn:hover {
+  border-color: #0056b3;
+  background: transparent;
 }
 
-.fft-participants-section-header {
+.fft-participants-entry-method {
   display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 20px;
   align-items: center;
-  gap: 14px;
-  margin-bottom: 24px;
-  padding-bottom: 14px;
-  border-bottom: 2px solid #eef0f4;
+}
+
+
+  .fft-participants-entry-btn {
+    font-size: 1.5rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+.fft-participants-entry-btn--singpass {
+  background: #d32f2f;
+  color: #fff;
+}
+
+.fft-participants-entry-btn--singpass:hover {
+  background: #c62828;
+}
+
+.fft-participants-entry-btn--manual {
+  background: #2c7be5;
+  color: #fff;
+}
+
+.fft-participants-entry-btn--manual:hover {
+  background: #2269c9;
 }
 
 .fft-participants-section-number {
@@ -383,16 +449,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  outline: none;
 }
 
 .fft-participants-gender-btn:hover {
   color: #424242;
 }
 
-.fft-participants-gender-btn--active {
-  border-color: #d32f2f;
-  color: #c62828;
-}
+/* .fft-participants-gender-btn--active — color/border handled via inline styles per gender */
 
 .fft-participants-gender-btn--locked {
   cursor: not-allowed;
@@ -906,6 +970,14 @@
   .fft-participants-section {
     padding: 20px 16px 24px;
     border-radius: 10px;
+    background: #ffffff;
+    border: 1px solid #eef0f4;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
+    transition: box-shadow 0.2s ease;
+  }
+
+  .fft-participants-section:hover {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
   }
 
   .fft-participants-section-title {
@@ -1001,6 +1073,31 @@
     gap: 10px;
     margin-bottom: 18px;
     padding-bottom: 10px;
+  }
+
+  /* Step header inside multi-step form */
+  .fft-participants-step-header {
+    margin-bottom: 18px;
+  }
+
+  .fft-participants-step-header-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+
+  .fft-participants-step-header-divider {
+    height: 1px;
+    background: #e0e0e0;
+    width: 100%;
+    margin-bottom: 10px;
+  }
+
+  .fft-participants-section-desc {
+    margin-top: 8px;
+    color: #555;
+    font-size: 1rem;
   }
 
   .fft-participants-section-title {
@@ -1174,13 +1271,13 @@
 }
 
 .fft-participants-nav-btn--prev {
-  background: #f5f5f5;
+  background: transparent;
   color: #555;
-  border: 1.5px solid #ddd;
+  border: none;
 }
 
 .fft-participants-nav-btn--prev:hover {
-  background: #ececec;
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .fft-participants-nav-btn--next {

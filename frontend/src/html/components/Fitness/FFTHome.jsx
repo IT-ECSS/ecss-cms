@@ -55,38 +55,41 @@ class FFTHome extends Component {
         </div>
         
         <div className="fft-home-navigation">
+          {/* Admin - Password disabled for testing */}
           <button
             className="fft-home-nav-card fft-home-nav-card--admin"
-            onClick={() => this.handleProtectedNav('admin')}
+            onClick={() => this.props.onNavigate('admin')}
           >
             <span className="fft-home-nav-icon">💼</span>
             <span className="fft-home-nav-text">Admin</span>
           </button>
           <button
-            className="fft-home-nav-card fft-home-nav-card--participants"
+            className="fft-home-nav-card fft-home-nav-card--registration"
             onClick={() => onNavigate('participants')}
           >
             <span className="fft-home-nav-icon">🏃</span>
-            <span className="fft-home-nav-text">Participants</span>
+            <span className="fft-home-nav-text">Registration</span>
           </button>
+          {/* Volunteers - Password disabled for testing */}
           <button
             className="fft-home-nav-card fft-home-nav-card--volunteers"
-            onClick={() => this.handleProtectedNav('volunteers')}
+            onClick={() => this.props.onNavigate('volunteers')}
           >
             <span className="fft-home-nav-icon">🤝</span>
             <span className="fft-home-nav-text">Volunteers</span>
           </button>
+          {/* Staff - Password disabled for testing */}
           <button
             className="fft-home-nav-card fft-home-nav-card--trainers"
-            onClick={() => this.handleProtectedNav('trainers')}
+            onClick={() => this.props.onNavigate('trainers')}
           >
             <span className="fft-home-nav-icon">🏋️</span>
             <span className="fft-home-nav-text">Staff</span>
           </button>
         </div>
 
-        {/* Password Modal */}
-        {showPasswordModal && (
+        {/* Password Modal - Disabled for testing */}
+        {/* {showPasswordModal && (
           <div className="fft-password-overlay" onClick={this.handlePasswordCancel}>
             <div className="fft-password-modal" onClick={(e) => e.stopPropagation()}>
               <div className="fft-password-modal-icon">
@@ -117,7 +120,7 @@ class FFTHome extends Component {
               </div>
             </div>
           </div>
-        )}
+        )} */}
       </div>
     );
   }

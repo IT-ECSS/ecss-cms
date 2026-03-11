@@ -126,6 +126,26 @@ router.post('/downloadZip', async (req, res) => {
     }
 });
 
+// POST endpoint to list events from a spreadsheet in a folder (default)
+router.post('/listEvents', async (req, res) => {
+    try {
+        // Always read events from the specific spreadsheet ID
+        const spreadsheetId = '1fMyjRlqj3ZEj9OcWCP_HtViLbgYG2zW4i-qZUdVOMXo';
+        const result = await googleDriveController.readSpreadsheet(spreadsheetId);
+        if (!result.success) {
+            return res.status(500).json({ success: false, error: result.error || 'Failed to read spreadsheet' });
+        }
+        // Only keep the 2nd column (event name) from each row.
+        const events = (result.data || [])
+            .map(row => (row[1] || '').toString().trim())
+            .filter(name => name);
+        return res.json({ success: true, events });
+    } catch (error) {
+        console.error('Error in POST /listEvents:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // POST endpoint to read spreadsheet data
 router.post('/readSpreadsheet', async (req, res) => {
     try {
@@ -592,6 +612,85 @@ router.post('/updateRow', async (req, res) => {
         res.json(result);
     } catch (error) {
         console.error('Error in POST /updateRow:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// POST endpoint to submit FFT participant registration — finds the sheet by event name and appends a row
+router.post('/fftSubmit', async (req, res) => {
+    try {
+        const { folderId, eventName, eventFileId, participantData } = req.body;
+        if (!eventName || !participantData) {
+            return res.status(400).json({ success: false, error: 'eventName and participantData are required' });
+        }
+
+        console.log(`[FFT] fftSubmit received — event: "${eventName}"`);
+
+        let fileId, sheetFileName;
+
+        if (eventFileId) {
+            // File ID already known — skip the Drive lookup
+            fileId = eventFileId;
+            sheetFileName = eventName;
+            console.log(`[FFT] Using provided fileId: ${fileId}`);
+        } else {
+            if (!folderId) {
+                return res.status(400).json({ success: false, error: 'folderId is required when eventFileId is not provided' });
+            }
+            const findResult = await googleDriveController.findSheetByEventName(folderId, eventName);
+            if (!findResult.success) {
+                return res.status(404).json(findResult);
+            }
+            fileId = findResult.file.id;
+            sheetFileName = findResult.file.name;
+        }
+
+        console.log(`[FFT] Appending to sheet "${sheetFileName}" (${fileId})`);
+
+        const {
+            name = '', phone = '', gender = '',
+            dateOfBirth = '', age = '',
+        } = participantData;
+
+        // Parse dateOfBirth (dd/mm/yyyy) into DD, MM, YYYY columns
+        const dobParts = String(dateOfBirth).split('/');
+        const dd = dobParts[0] || '';
+        const mm = dobParts[1] || '';
+        const yyyy = dobParts[2] || '';
+
+        const pad = (n) => String(n).padStart(2, '0');
+
+        // Date of test — extract from event name (e.g. "2026/04/11 ..." or "2026-04-11 ...")
+        // Expected format in name: yyyy/mm/dd or yyyy-mm-dd at the start
+        let dateOfTest = '';
+        const dateMatch = String(eventName).match(/^(\d{4})[\/\-](\d{2})[\/\-](\d{2})/);
+        if (dateMatch) {
+            // reformat yyyy/mm/dd → dd/mm/yyyy
+            dateOfTest = `${dateMatch[3]}/${dateMatch[2]}/${dateMatch[1]}`;
+        }
+
+        // Row order matches sheet headers:
+        // Name | Chinese Name | Phone Number | Gender | DD | MM | YYYY | Age |
+        // Height | Weight | BMI | Date of test |
+        // 30 secs Sit & Stand | 30 secs Arm Curl | 2 min March on the spot |
+        // Sit & Reach | Back Stretch | 2.44m speed walk | Grip Test | Improvements | Remarks
+        const rowData = [
+            name, '', phone, gender,
+            dd, mm, yyyy, String(age),
+            '', '', '',          // Height, Weight, BMI
+            dateOfTest,
+            '', '', '', '', '', '', '', // test result columns
+            '', '',              // Improvements, Remarks
+        ];
+
+        const appendResult = await googleDriveController.appendRow(fileId, rowData);
+        if (!appendResult.success) {
+            return res.status(500).json(appendResult);
+        }
+
+        res.json({ success: true, sheetName: sheetFileName, fileId, entryNumber: appendResult.entryNumber });
+    } catch (error) {
+        console.error('[FFT] Error in POST /fftSubmit:', error.message);
         res.status(500).json({ success: false, error: error.message });
     }
 });

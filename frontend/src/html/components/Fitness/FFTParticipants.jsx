@@ -1,1354 +1,284 @@
 import React, { Component } from 'react';
 import axios from 'axios';
-import { io } from 'socket.io-client';
-import { QRCodeCanvas } from 'qrcode.react';
 import '../../../css/fftParticipants.css';
-import SingPassButton from '../sub/SingPassButton';
-import fftTranslations from './fftTranslations';
-import { getRating, getStationRange } from './fftScoringHelper';
+import LanguageSelection from './LanguageSelection';
+import EventSelection from './EventSelection';
+import ParticipantForm from './ParticipantForm';
+import ParticipantEntryNumber from './ParticipantEntryNumber';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
   : 'https://ecss-backend-node.azurewebsites.net';
 
-class FFTParticipants extends Component {
-  constructor(props) {
-    super(props);
-    const now = new Date();
-    const todayDDMMYYYY = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
-    this.state = {
-      // Language
-      language: 'en', // 'en', 'zh', 'ms'
-      languageSelected: false,
-      // Pre-section
-      loginMethod: '', // 'singpass' or 'manual'
-      currentStep: 1,
-      // Section 1: Particulars
-      testDate: todayDDMMYYYY,
-      name: '',
-      dob: '',
-      phoneNo: '',
-      gender: '',
-      age: '',
-      icNumber: '',
-      // Section 2: Health Declaration
-      healthQ1: '', // Yes/No
-      healthQ2: '',
-      healthQ3: '',
-      healthQ4: '',
-      // Programme Indemnity
-      indemnityAgreed: false,
-      signatureDate: todayDDMMYYYY,
-      // Signature
-      isDrawing: false,
-      hasSignature: false,
-      // Validation
-      errors: {},
-      // SingPass tracking (matches formPage.jsx pattern)
-      singPassPopulatedFields: {},
-      // Submission
-      submitting: false,
-      submitted: false,
-      submitError: null,
-      entryNumber: null,
-      successTab: 'qr',
-      activeFile: null, // fetched from backend as fallback
-      rowData: null,    // fetched row data from spreadsheet
-      loadingRow: false,
-    };
-    this.signatureCanvasRef = React.createRef();
-    this.signatureCtxRef = React.createRef();
+const FFT_FOLDER_ID = '1EsnCGO1QfPrqfmDtsy-cELUO3UyZKCci';
+
+class SubmitLoadingModal extends Component {
+  render() {
+    const { language } = this.props;
+    return (
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 1000,
+        background: 'rgba(0,0,0,0.45)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <div style={{
+          background: '#fff', borderRadius: '16px',
+          padding: '40px 48px', textAlign: 'center',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+          minWidth: '240px',
+        }}>
+          <div style={{
+            width: '44px', height: '44px', margin: '0 auto 20px',
+            border: '4px solid #e0e0e0', borderTopColor: '#1565c0',
+            borderRadius: '50%',
+            animation: 'fftSpin 0.8s linear infinite',
+          }} />
+          <div style={{ fontSize: '1.05em', color: '#333', fontWeight: 600 }}>
+            {language === 'zh' ? '提交中...' : language === 'ms' ? 'Menghantar...' : 'Submitting...'}
+          </div>
+        </div>
+      </div>
+    );
   }
+}
 
-  // ── Signature pad helpers ──
+class SubmitResultModal extends Component {
+  render() {
+    const { language, entryNumber, error, onHome, onRetry } = this.props;
+    return (
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 1000,
+        background: 'rgba(0,0,0,0.45)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <div style={{
+          background: '#fff', borderRadius: '16px',
+          padding: '40px 32px', textAlign: 'center',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+          minWidth: '280px', maxWidth: '360px', width: '90%',
+        }}>
+          {error ? (
+            <>
+              <div style={{ fontSize: '2.2em', marginBottom: '12px' }}>❌</div>
+              <h3 style={{ color: '#d32f2f', marginBottom: '8px', fontWeight: 700 }}>
+                {language === 'zh' ? '提交失败' : language === 'ms' ? 'Gagal Dihantar' : 'Submission Failed'}
+              </h3>
+              <p style={{ color: '#666', fontSize: '0.9em', marginBottom: '24px', wordBreak: 'break-word' }}>{error}</p>
+              <button
+                type="button"
+                className="fft-create-event-btn fft-create-event-btn-clear"
+                style={{ width: '100%' }}
+                onClick={onRetry}
+              >
+                {language === 'zh' ? '重试' : language === 'ms' ? 'Cuba semula' : 'Try Again'}
+              </button>
+            </>
+          ) : (
+            <>
+              <div style={{ marginBottom: '16px' }}>
+                <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+                  <circle cx="32" cy="32" r="32" fill="#e8f5e9" />
+                  <path d="M18 33L27 43L46 23" stroke="#2e7d32" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+              <h3 style={{ fontWeight: 700, marginBottom: '6px', color: '#222' }}>
+                {language === 'zh' ? '提交成功！' : language === 'ms' ? 'Berjaya Dihantar!' : 'Submitted Successfully!'}
+              </h3>
+              <p style={{ color: '#555', fontSize: '0.9em', marginBottom: '20px' }}>
+                {language === 'zh' ? '您的参与者资料已成功登记。' : language === 'ms' ? 'Maklumat peserta anda telah berjaya didaftarkan.' : 'Your participant details have been registered.'}
+              </p>
+              {entryNumber != null && (
+                <div style={{
+                  display: 'inline-block', padding: '16px 32px',
+                  borderRadius: '12px', background: '#f5f5f5',
+                  border: '2px solid #2e7d32', marginBottom: '24px',
+                }}>
+                  <div style={{ fontSize: '0.75em', color: '#777', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px', fontWeight: 600 }}>
+                    {language === 'zh' ? '参与者编号' : language === 'ms' ? 'Nombor Peserta' : 'Entry Number'}
+                  </div>
+                  <div style={{ fontSize: '2.5em', fontWeight: 800, color: '#2e7d32', lineHeight: 1 }}>{entryNumber}</div>
+                </div>
+              )}
+              <button
+                type="button"
+                className="fft-create-event-btn fft-create-event-btn-clear"
+                style={{ width: '100%' }}
+                onClick={onHome}
+              >
+                {language === 'zh' ? '返回主页' : language === 'ms' ? 'Kembali ke Utama' : 'Back to Home'}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+}
 
-  initSignatureCanvas = () => {
-    const canvas = this.signatureCanvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) return;
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    const ctx = canvas.getContext('2d');
-    ctx.scale(dpr, dpr);
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 2.5;
-    this.signatureCtxRef.current = ctx;
+class FFTParticipants extends Component {
+  state = {
+    language: null,
+    event: null,
+    formData: {},
+    showLoadingModal: false,
+    showResultModal: false,
+    showEntryNumber: false,
+    submitError: null,
+    entryNumber: null,
   };
 
-  ensureCanvasReady = () => {
-    if (!this.signatureCtxRef.current) {
-      this.initSignatureCanvas();
-    }
-  };
+  storageKey = 'fftParticipantsSelection';
+  formRef = React.createRef();
 
-  getPointerPos = (e) => {
-    const canvas = this.signatureCanvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    if (e.touches && e.touches.length > 0) {
-      return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
-    }
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-  };
-
-  startDrawing = (e) => {
-    e.preventDefault();
-    this.ensureCanvasReady();
-    const ctx = this.signatureCtxRef.current;
-    if (!ctx) return;
-    const pos = this.getPointerPos(e);
-    ctx.beginPath();
-    ctx.moveTo(pos.x, pos.y);
-    this.setState({ isDrawing: true });
-  };
-
-  draw = (e) => {
-    e.preventDefault();
-    if (!this.state.isDrawing) return;
-    const ctx = this.signatureCtxRef.current;
-    if (!ctx) return;
-    const pos = this.getPointerPos(e);
-    ctx.lineTo(pos.x, pos.y);
-    ctx.stroke();
-  };
-
-  stopDrawing = (e) => {
-    if (e) e.preventDefault();
-    if (this.state.isDrawing) {
-      this.setState(prev => {
-        const errors = { ...prev.errors };
-        delete errors.signature;
-        return { isDrawing: false, hasSignature: true, errors };
-      });
-    }
-  };
-
-  clearSignature = () => {
-    const canvas = this.signatureCanvasRef.current;
-    if (!canvas) return;
-    const ctx = this.signatureCtxRef.current;
-    if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    this.setState({ hasSignature: false });
-  };
-
-  getSignatureDataUrl = () => {
-    const canvas = this.signatureCanvasRef.current;
-    if (!canvas || !this.state.hasSignature) return null;
-    return canvas.toDataURL('image/png');
-  };
-
-  // ── SingPass helpers (same pattern as formPage.jsx) ──
-
-  checkSingPassAuthentication = () => {
-    try {
-      const userDataJson = sessionStorage.getItem('singpass_user_data_json');
-      const accessToken = sessionStorage.getItem('singpass_access_token');
-      if (userDataJson && accessToken) {
-        const userData = JSON.parse(userDataJson);
-        return userData && userData.name;
-      }
-      return false;
-    } catch (error) {
-      // Error checking SingPass authentication
-      return false;
-    }
-  };
-
-  getSingPassUserData = () => {
-    try {
-      const userDataJson = sessionStorage.getItem('singpass_user_data_json');
-      return userDataJson ? JSON.parse(userDataJson) : null;
-    } catch (error) {
-      // Error getting SingPass user data
-      return null;
-    }
-  };
-
-  formatGender = (gender) => {
-    if (!gender) return '';
-    if (typeof gender === 'string' && (gender.includes('男') || gender.includes('女'))) return gender;
-    let genderCode = gender;
-    if (typeof gender === 'object') {
-      genderCode = gender.code || gender.value || gender;
-    }
-    const genderMap = { 'M': 'M', 'F': 'F' };
-    return genderMap[genderCode] || '';
-  };
-
-  extractMobileNumber = (mobileData) => {
-    if (!mobileData) return '';
-    if (typeof mobileData === 'object' && mobileData.nbr) {
-      return mobileData.nbr.value || mobileData.nbr;
-    }
-    if (typeof mobileData === 'string' || typeof mobileData === 'number') {
-      let mobile = String(mobileData).trim();
-      if (mobile.startsWith('+65')) mobile = mobile.substring(3);
-      if (mobile.startsWith('65') && mobile.length === 10) mobile = mobile.substring(2);
-      return mobile;
-    }
-    return '';
-  };
-
-  // Populate form fields from SingPass session data
-  populateFormWithSingPassData = () => {
-    try {
-      const userData = this.getSingPassUserData();
-      if (!userData) {
-        return;
-      }
-
-      // Convert name to title case (e.g., "LEE XUAN YAO MOSES" → "Lee Xuan Yao Moses")
-      const toTitleCase = (str) => {
-        if (!str) return '';
-        return str.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
-      };
-
-      const genderCode = this.formatGender(userData.sex);
-      const phoneNumber = this.extractMobileNumber(userData.mobileno);
-
-      // Parse DOB into dd/mm/yyyy for display
-      let dobValue = '';
-      let dobForAge = ''; // yyyy-MM-dd for age calculation
-      if (userData.dob) {
-        const rawDob = userData.dob.formattedDate1 || userData.dob;
-        if (typeof rawDob === 'string') {
-          if (/^\d{4}-\d{2}-\d{2}$/.test(rawDob)) {
-            // yyyy-MM-dd → dd/mm/yyyy
-            const [y, m, d] = rawDob.split('-');
-            dobValue = `${d}/${m}/${y}`;
-            dobForAge = rawDob;
-          } else if (/^\d{2}\/\d{2}\/\d{4}$/.test(rawDob)) {
-            // Already dd/mm/yyyy
-            dobValue = rawDob;
-            const parts = rawDob.split('/');
-            dobForAge = `${parts[2]}-${parts[1]}-${parts[0]}`;
-          } else {
-            const parts = rawDob.split('/');
-            if (parts.length === 3) {
-              dobValue = `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[2]}`;
-              dobForAge = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-            }
-          }
-        }
-      }
-
-      // Calculate age from DOB
-      let calculatedAge = '';
-      if (dobForAge) {
-        const today = new Date();
-        const birthDate = new Date(dobForAge);
-        let ageNum = today.getFullYear() - birthDate.getFullYear();
-        const monthDiff = today.getMonth() - birthDate.getMonth();
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-          ageNum--;
-        }
-        if (ageNum >= 0) calculatedAge = ageNum.toString();
-      }
-
-      // Track which fields were populated by SingPass (locked = true, editable = false)
-      // Matches formPage.jsx: name, nric, gender, dob are locked; phone is always editable
-      const singPassPopulatedFields = {
-        name: !!userData.name,
-        icNumber: !!userData.uinfin,
-        gender: !!userData.sex,
-        dob: !!userData.dob,
-        phoneNo: false, // Always editable, same as formPage.jsx cNO: false
-      };
-
-      this.setState({
-        name: toTitleCase(userData.name) || '',
-        icNumber: userData.uinfin || '',
-        gender: genderCode,
-        dob: dobValue,
-        age: calculatedAge,
-        phoneNo: phoneNumber,
-        singPassPopulatedFields,
-      });
-
-    } catch (error) {
-      // Error populating FFT form with SingPass data
-    }
-  };
-
-  clearSingPassData = () => {
-    this.setState({
-      name: '',
-      dob: '',
-      phoneNo: '',
-      gender: '',
-      age: '',
-      icNumber: '',
-      singPassPopulatedFields: {},
-      loginMethod: 'manual',
-    });
-
-  };
-
-  // ── Handlers ──
-
-  handleDateInput = (e) => {
-    const { name, value } = e.target;
-    // Allow only digits and slashes
-    let cleaned = value.replace(/[^\d/]/g, '');
-    // Auto-insert slashes after DD and MM
-    const digits = cleaned.replace(/\//g, '');
-    let formatted = '';
-    for (let i = 0; i < digits.length && i < 8; i++) {
-      if (i === 2 || i === 4) formatted += '/';
-      formatted += digits[i];
-    }
-    this.setState({ [name]: formatted }, () => {
-      // Clear field error on input
-      if (this.state.errors[name]) {
-        this.setState(prev => { const errors = { ...prev.errors }; delete errors[name]; return { errors }; });
-      }
-      // Auto-calculate age when DOB is complete (dd/mm/yyyy)
-      if (name === 'dob' && formatted.length === 10) {
-        const parts = formatted.split('/');
-        const day = parseInt(parts[0], 10);
-        const month = parseInt(parts[1], 10) - 1;
-        const year = parseInt(parts[2], 10);
-        const birthDate = new Date(year, month, day);
-        if (!isNaN(birthDate.getTime())) {
-          const today = new Date();
-          let calculatedAge = today.getFullYear() - birthDate.getFullYear();
-          const monthDiff = today.getMonth() - birthDate.getMonth();
-          if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-            calculatedAge--;
-          }
-          if (calculatedAge >= 0) {
-            this.setState({ age: calculatedAge.toString() });
-          }
-        }
-      }
-    });
-  };
-
-  handleChange = (e) => {
-    const { name, value } = e.target;
-
-    // Block changes to SingPass-locked fields
-    if (this.state.singPassPopulatedFields[name]) return;
-
-    this.setState({ [name]: value }, () => {
-      // Clear field error on input
-      if (this.state.errors[name]) {
-        this.setState(prev => { const errors = { ...prev.errors }; delete errors[name]; return { errors }; });
-      }
-    });
-  };
-
-  // Handler for "Next" button (proceed without SingPass / manual)
-  handleProceedWithoutSingPass = () => {
-    this.setState({
-      loginMethod: 'manual',
-      singPassPopulatedFields: {},
-    });
-  };
-
-  // Handler for SingPassButton success callback (same pattern as formPage.jsx)
-  handleSingPassSuccess = () => {
-
-    this.setState({ loginMethod: 'singpass' }, () => {
-      this.populateFormWithSingPassData();
-    });
-  };
-
-  // Handler for MyInfo error from SingPassButton
-  handleMyInfoError = (errorMessage = 'MyInfo is currently unavailable.') => {
-
-    // Fall back to manual entry
-    this.setState({
-      loginMethod: 'manual',
-      singPassPopulatedFields: {},
-    });
-  };
-
-  handleHealthAnswer = (question, answer) => {
-    this.setState(prev => {
-      const errors = { ...prev.errors };
-      delete errors[question];
-      return { [question]: answer, errors };
-    });
-  };
-
-  validateStep = (step) => {
-    const errors = {};
-    const { name, dob, gender, phoneNo, testDate, healthQ1, healthQ2, healthQ3, healthQ4, indemnityAgreed, signatureDate, hasSignature } = this.state;
-
-    if (step === 1) {
-      if (!name || !name.trim()) errors.name = this.t('errNameRequired');
-      if (!dob || dob.length < 10) errors.dob = this.t('errDobRequired');
-      if (!gender) errors.gender = this.t('errGenderRequired');
-      if (!phoneNo || !phoneNo.trim()) errors.phoneNo = this.t('errPhoneRequired');
-      if (!testDate || testDate.length < 10) errors.testDate = this.t('errTestDateRequired');
-    }
-
-    if (step === 2) {
-      if (!healthQ1) errors.healthQ1 = this.t('errHealthRequired');
-      if (!healthQ2) errors.healthQ2 = this.t('errHealthRequired');
-      if (!healthQ3) errors.healthQ3 = this.t('errHealthRequired');
-      if (!healthQ4) errors.healthQ4 = this.t('errHealthRequired');
-    }
-
-    if (step === 3) {
-      if (!indemnityAgreed) errors.indemnityAgreed = this.t('errAgreeRequired');
-      if (!signatureDate || signatureDate.length < 10) errors.signatureDate = this.t('errDateRequired');
-      if (!hasSignature) errors.signature = this.t('errSignatureRequired');
-    }
-
-    return errors;
-  };
-
-  goToNextStep = () => {
-    const errors = this.validateStep(this.state.currentStep);
-    if (Object.keys(errors).length > 0) {
-      this.setState({ errors });
-      return;
-    }
-    this.setState(prev => ({ currentStep: prev.currentStep + 1, errors: {} }));
-  };
-
-  goToPrevStep = () => {
-    if (this.state.currentStep === 1) {
-      this.setState({ loginMethod: '', currentStep: 1 });
+  handleBack = () => {
+    const { language, event } = this.state;
+    if (language && event) {
+      this.formRef.current?.handleBack();
+    } else if (language) {
+      this.setState({ language: null });
     } else {
-      this.setState(prev => ({ currentStep: prev.currentStep - 1 }));
+      this.props.onBack?.();
     }
   };
 
-  handleBackToLanguage = () => {
-    this.setState({ languageSelected: false, loginMethod: '', currentStep: 1 });
+  handleHome = () => {
+    this.props.onBack?.();
   };
 
-  // ── Chinese name detection ──
-  isChinese = (text) => {
-    // Returns true if the text contains CJK characters
-    return /[\u4e00-\u9fff\u3400-\u4dbf]/.test(text);
-  };
-
-  handleSubmit = (e) => {
-    e.preventDefault();
-    const errors = this.validateStep(3);
-    if (Object.keys(errors).length > 0) {
-      this.setState({ errors });
-      return;
-    }
-
-    const { selectedFile } = this.props;
-    const { name, dob, phoneNo, gender, age, testDate } = this.state;
-
-    // Determine Name vs Chinese Name
-    const isChineseName = this.isChinese(name);
-    const nameCol = isChineseName ? '' : name;          // Name
-    const chineseNameCol = isChineseName ? name : '';    // Chinese Name
-
-    // Split DOB into DD, MM, YYYY
-    // DOB can be dd/mm/yyyy (manual) or yyyy-MM-dd (SingPass)
-    let dd = '', mm = '', yyyy = '';
-    if (dob) {
-      if (dob.includes('/')) {
-        // dd/mm/yyyy format
-        const parts = dob.split('/');
-        if (parts.length === 3) {
-          dd = parts[0];
-          mm = parts[1];
-          yyyy = parts[2];
-        }
-      } else if (dob.includes('-')) {
-        // yyyy-MM-dd format (SingPass)
-        const parts = dob.split('-');
-        if (parts.length === 3) {
-          yyyy = parts[0];
-          mm = parts[1];
-          dd = parts[2];
-        }
-      }
-    }
-
-    // Map form data to spreadsheet columns:
-    // Name | Chinese Name | Phone Number | Gender | DD | MM | YYYY | Age |
-    // Height | Weight | BMI | Date of test |
-    // 30 secs Sit & Stand | 30 secs Arm Curl | 2 min March on the spot |
-    // Sit & Reach | Back Stretch | 2.44m speed walk | Grip Test |
-    // Improvements | Remarks
-    const rowData = [
-      nameCol,          // Name
-      chineseNameCol,   // Chinese Name
-      phoneNo,          // Phone Number
-      gender,           // Gender
-      dd,               // DD
-      mm,               // MM
-      yyyy,             // YYYY
-      age,              // Age
-      '',               // Height (volunteer fills)
-      '',               // Weight (volunteer fills)
-      '',               // BMI (volunteer fills)
-      testDate,         // Date of test
-      '',               // 30 secs Sit & Stand
-      '',               // 30 secs Arm Curl
-      '',               // 2 min March on the spot
-      '',               // Sit & Reach
-      '',               // Back Stretch
-      '',               // 2.44m speed walk
-      '',               // Grip Test
-      '',               // Improvements
-      '',               // Remarks
-    ];
-
-    // Use prop or fallback to fetched active file
-    const file = selectedFile || this.state.activeFile;
-
-    if (!file || !file.id) {
-      this.setState({ submitError: 'No file selected. Please go to Admin → Choose File first.' });
-      return;
-    }
-
-    this.setState({ submitting: true, submitError: null });
-
-    axios.post(`${BACKEND_URL}/googleDrive/appendRow`, {
-      fileId: file.id,
-      rowData: rowData,
-    })
-    .then((res) => {
-      if (res.data.success) {
-        const entry = res.data.entryNumber || null;
-        // Store in cookie so QR code persists across refresh
-        if (entry != null) {
-          const expires = new Date(Date.now() + 24 * 60 * 60 * 1000).toUTCString();
-          document.cookie = `fft_submission=${encodeURIComponent(JSON.stringify({ entryNumber: entry, language: this.state.language }))}; expires=${expires}; path=/`;
-        }
-        // Build rowData from form state so personal info card shows immediately
-        const initialRowData = {
-          name: nameCol, chineseName: chineseNameCol, phoneNo, gender,
-          dd, mm, yyyy, age, height: '', weight: '', bmi: '', testDate,
-          sitStand: '', armCurl: '', march: '', sitReach: '',
-          backStretch: '', speedWalk: '', gripTest: '', improvements: '', remarks: ''
-        };
-        this.setState({ submitting: false, submitted: true, entryNumber: entry, rowData: initialRowData });
+  handleFormSubmit = async (data) => {
+    const { event } = this.state;
+    const eventName = typeof event === 'string' ? event : (event?.name || '');
+    const eventFileId = typeof event === 'object' ? (event?.id || null) : null;
+    this.setState({ showLoadingModal: true, showResultModal: false, submitError: null, entryNumber: null });
+    try {
+      const response = await axios.post(`${BACKEND_URL}/googleDrive/fftSubmit`, {
+        folderId: FFT_FOLDER_ID,
+        eventName,
+        eventFileId,
+        participantData: data,
+      });
+      if (response.data.success) {
+        this.setState({ showLoadingModal: false, showResultModal: false, showEntryNumber: true, entryNumber: response.data.entryNumber });
       } else {
-        this.setState({ submitting: false, submitError: res.data.error || 'Failed to submit' });
+        this.setState({ showLoadingModal: false, showResultModal: true, submitError: response.data.error || 'Submission failed.' });
       }
-    })
-    .catch((err) => {
-      this.setState({ submitting: false, submitError: err.response?.data?.error || err.message });
-    });
+    } catch (err) {
+      this.setState({ showLoadingModal: false, showResultModal: true, submitError: err.response?.data?.error || err.message || 'Submission failed.' });
+    }
   };
-
-  fetchRowData = () => {
-    const { entryNumber } = this.state;
-    if (entryNumber == null) return;
-
-    // Fetch cached volunteer-submitted results (not from Google Sheets)
-    axios.get(`${BACKEND_URL}/googleDrive/cachedResults`, {
-      params: { entryNumber }
-    })
-    .then((res) => {
-      if (res.data.success) {
-        this.setState((prev) => ({
-          rowData: { ...prev.rowData, ...res.data.data },
-          loadingRow: false
-        }));
-      } else {
-        this.setState({ loadingRow: false });
-      }
-    })
-    .catch(() => this.setState({ loadingRow: false }));
-  };
-
-  // ── Lifecycle ──
 
   componentDidMount() {
-    // Restore submission state from cookie if present
     try {
-      const match = document.cookie.match(/(?:^|;\s*)fft_submission=([^;]*)/);
-      if (match) {
-        const data = JSON.parse(decodeURIComponent(match[1]));
-        if (data && data.entryNumber != null) {
-          this.setState({ submitted: true, entryNumber: data.entryNumber, language: data.language || 'en' }, () => {
-            // Fetch cached results for this participant
-            this.fetchRowData();
+      const saved = localStorage.getItem(this.storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') {
+          this.setState({
+            language: parsed.language || null,
+            event: parsed.event || null,
           });
         }
       }
-    } catch (e) { /* ignore */ }
-
-    // Fetch active file from backend (shared across all devices)
-    axios.get(`${BACKEND_URL}/googleDrive/activeFile`)
-      .then((res) => {
-        if (res.data.success && res.data.file) {
-          this.setState({ activeFile: res.data.file });
-        }
-      })
-      .catch(() => {});
-
-    // If user is returning from SingPass login, mark it so we auto-populate after language selection
-    const isAuthenticated = this.checkSingPassAuthentication();
-    if (isAuthenticated) {
-      // Don't skip language selection — let user pick language first,
-      // then auto-populate SingPass data when they select a language
-      this.setState({ singPassReady: true });
+    } catch (e) {
+      // ignore invalid JSON or storage errors
     }
-    // Initialise signature pad canvas
-    this.initSignatureCanvas();
-    window.addEventListener('resize', this.initSignatureCanvas);
-
-    // Socket.IO: live updates
-    this.socket = io(BACKEND_URL);
-    this.socket.on('fftActiveFile', (data) => {
-      if (data && data.file) {
-        this.setState({ activeFile: data.file });
-      }
-    });
-    this.socket.on('fftUpdate', (data) => {
-      // Live update station results when a volunteer submits for this participant
-      if (data && data.type === 'rowUpdated' && data.entryNumber === this.state.entryNumber && data.cached) {
-        this.setState((prev) => ({
-          rowData: { ...prev.rowData, ...data.cached }
-        }));
-      }
-    });
   }
 
   componentDidUpdate(prevProps, prevState) {
-    if (this.state.currentStep === 3 && prevState.currentStep !== 3) {
-      setTimeout(() => this.initSignatureCanvas(), 100);
+    if (prevState.language !== this.state.language || prevState.event !== this.state.event) {
+      try {
+        localStorage.setItem(this.storageKey, JSON.stringify({
+          language: this.state.language,
+          event: this.state.event,
+        }));
+      } catch (e) {
+        // ignore storage errors
+      }
     }
   }
-
-  componentWillUnmount() {
-    window.removeEventListener('resize', this.initSignatureCanvas);
-    if (this.socket) {
-      this.socket.disconnect();
-    }
-  }
-
-  // ── Render helpers ──
-
-  isFieldLocked = (fieldName) => {
-    return !!this.state.singPassPopulatedFields[fieldName];
-  };
-
-  // Helper: get translated string
-  t = (key) => {
-    const { language } = this.state;
-    const entry = fftTranslations[key];
-    if (!entry) return key;
-    return entry[language] || entry['en'] || key;
-  };
 
   render() {
-    const { onBack, onAdmin, selectedFile } = this.props;
-    const { language, languageSelected, loginMethod, currentStep, testDate, name, dob, phoneNo, gender, age, icNumber, healthQ1, healthQ2, healthQ3, healthQ4, indemnityAgreed, signatureDate, singPassPopulatedFields, errors, submitting, submitted, submitError } = this.state;
-
-    const hasSingPassData = singPassPopulatedFields && Object.values(singPassPopulatedFields).some(v => v === true);
-
-    // ── Success screen after submission (checked FIRST, before language selection) ──
-    if (submitted) {
-      const { entryNumber, successTab } = this.state;
-      const currentTab = successTab || 'qr';
-
-      return (
-        <div className="fft-participants-wrapper">
-          <div className="fft-participants-header">
-            <div className="fft-participants-header-top-row">
-              <button
-                className="fft-participants-icon-btn"
-                onClick={() => {
-                  // Navigate home but keep the cookie so QR code persists when returning
-                  if (this.props.onBack) this.props.onBack();
-                }}
-                title="Home"
-              >
-                <i className="fas fa-home"></i>
-              </button>
-            </div>
-          </div>
-
-          {/* Tabs */}
-          <div className="fft-participants-form">
-            <div style={{ display: 'flex', borderBottom: '2px solid #e5e7eb', marginBottom: '20px' }}>
-              <button
-                type="button"
-                onClick={() => this.setState({ successTab: 'qr' })}
-                style={{
-                  flex: 1, padding: '12px 0', fontSize: '1.7rem', fontWeight: 700,
-                  color: currentTab === 'qr' ? '#2563eb' : '#757575', background: 'none', border: 'none',
-                  borderBottom: currentTab === 'qr' ? '3px solid #2563eb' : '3px solid transparent', cursor: 'pointer'
-                }}
-              >
-                <i className="fas fa-qrcode" style={{ marginRight: '6px' }}></i> {this.t('successQrTab')}
-              </button>
-              <button
-                type="button"
-                onClick={() => { this.setState({ successTab: 'stations' }); this.fetchRowData(); }}
-                style={{
-                  flex: 1, padding: '12px 0', fontSize: '1.7rem', fontWeight: 700,
-                  color: currentTab === 'stations' ? '#2563eb' : '#757575', background: 'none', border: 'none',
-                  borderBottom: currentTab === 'stations' ? '3px solid #2563eb' : '3px solid transparent', cursor: 'pointer'
-                }}
-              >
-                <i className="fas fa-clipboard-list" style={{ marginRight: '6px' }}></i> {this.t('successStationsTab')}
-              </button>
-            </div>
-
-            {/* QR Code Tab */}
-            {currentTab === 'qr' && (
-              <div className="fft-participants-section" style={{ textAlign: 'center', padding: '48px 20px' }}>
-                {entryNumber != null ? (
-                  <div style={{ marginBottom: '28px' }}>
-                    <p style={{ fontSize: '1.35rem', color: '#555', marginBottom: '16px' }}>
-                      {this.t('successQrInstruction')}
-                    </p>
-                    <QRCodeCanvas
-                      value={String(entryNumber)}
-                      size={200}
-                      level="H"
-                      style={{ margin: '0 auto', display: 'block' }}
-                    />
-                    <p style={{ fontSize: '1.1rem', color: '#888', marginTop: '16px' }}>
-                      {this.t('successEntry')} #{entryNumber}
-                    </p>
-                  </div>
-                ) : (
-                  <div style={{ marginBottom: '28px' }}>
-                    <p style={{ fontSize: '1.35rem', color: '#888', marginBottom: '20px' }}>
-                      {this.t('successNoQr')}
-                    </p>
-                  </div>
-                )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    // Clear the stale cookie and reset to registration form
-                    document.cookie = 'fft_submission=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-                    this.setState({
-                      submitted: false, entryNumber: null, rowData: null,
-                      currentStep: 1, loginMethod: '', languageSelected: false,
-                      name: '', dob: '', phoneNo: '', gender: '', age: '', icNumber: '',
-                      healthQ1: '', healthQ2: '', healthQ3: '', healthQ4: '',
-                      indemnityAgreed: false, hasSignature: false, errors: {},
-                      singPassPopulatedFields: {}
-                    });
-                  }}
-                  style={{
-                    marginTop: '12px', padding: '12px 32px', fontSize: '1.2rem', fontWeight: 600,
-                    color: '#dc2626', background: 'none', border: '2px solid #dc2626',
-                    borderRadius: '8px', cursor: 'pointer'
-                  }}
-                >
-                  <i className="fas fa-redo" style={{ marginRight: '8px' }}></i>
-                  {this.t('newRegistration')}
-                </button>
-              </div>
-            )}
-
-            {/* Test Stations Tab */}
-            {currentTab === 'stations' && (
-              <div className="fft-participants-section" style={{ padding: '12px 16px', fontWeight: 700 }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', alignItems: 'start' }}>
-                    {/* Personal Info Card — column 1 */}
-                    {(() => {
-                      const rd = this.state.rowData || {};
-                      const nameParts = [];
-                      if (rd.name) nameParts.push(rd.name);
-                      if (rd.chineseName) nameParts.push(rd.chineseName);
-                      const displayName = nameParts.length ? nameParts.join(' / ') : '—';
-                      const dob = (rd.dd && rd.mm && rd.yyyy) ? `${rd.dd}/${rd.mm}/${rd.yyyy}` : '—';
-                      return (
-                        <div style={{
-                          background: '#fff', borderRadius: '12px', padding: '18px',
-                          boxShadow: '0 1px 4px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb'
-                        }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
-                            <div style={{
-                              width: '48px', height: '48px', borderRadius: '50%',
-                              background: '#f0fdf4', color: '#16a34a', display: 'flex',
-                              alignItems: 'center', justifyContent: 'center', fontSize: '1.6rem', flexShrink: 0
-                            }}>
-                              <i className="fas fa-user"></i>
-                            </div>
-                            <div>
-                              <div style={{ fontWeight: 700, fontSize: '2.7rem', color: '#1a1a1a' }}>{displayName}</div>
-                            </div>
-                          </div>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px', fontSize: '2.4rem' }}>
-                            <div><span style={{ color: '#888' }}>{this.t('labelDobShort')}:</span> <strong>{dob}</strong></div>
-                            <div><span style={{ color: '#888' }}>{this.t('labelGender')}:</span> <strong>{rd.gender || '—'}</strong></div>
-                            <div><span style={{ color: '#888' }}>{this.t('labelAge')}:</span> <strong>{rd.age || '—'}</strong></div>
-                            <div><span style={{ color: '#888' }}>{this.t('labelPhone')}:</span> <strong>{rd.phoneNo || '—'}</strong></div>
-                            <div><span style={{ color: '#888' }}>{this.t('labelHeight')}:</span> <strong>{rd.height || '—'}</strong></div>
-                            <div><span style={{ color: '#888' }}>{this.t('labelWeight')}:</span> <strong>{rd.weight || '—'}</strong></div>
-                            <div><span style={{ color: '#888' }}>{this.t('labelBmi')}:</span> <strong>{rd.bmi || '—'}</strong></div>
-                            <div><span style={{ color: '#888' }}>{this.t('labelTestDate')}:</span> <strong>{rd.testDate || '—'}</strong></div>
-                          </div>
-                        </div>
-                      );
-                    })()}
-
-                    {/* Station Cards — fill remaining grid cells */}
-                    {(() => {
-                      const rd = this.state.rowData || {};
-                      const stations = [
-                        { num: '1', zh: '30 秒坐立测验', en: '30-Sec Sit and Stand', icon: 'fa-chair', scoreKey: 'sitStand', remarksKey: 'sitStandRemarks', note: '', attempts: 1 },
-                        { num: '2', zh: '30 秒手臂卷起', en: '30-Sec Arm Banding', icon: 'fa-dumbbell', scoreKey: 'armCurl', remarksKey: 'armCurlRemarks', note: '', attempts: 1 },
-                        { num: '3', zh: '2 分钟抬膝测验', en: '2-Min On-the-spot Marching', icon: 'fa-walking', scoreKey: 'march', remarksKey: 'marchRemarks', note: '', attempts: 1 },
-                        { num: '4', zh: '坐椅体前弯', en: 'Sit- and Reach Test', icon: 'fa-arrows-alt-h', scoreKey: 'sitReach', remarksKey: 'sitReachRemarks', note: '左 L / 右 R (直腿 Straight leg)', attempts: 2, att1Key: 'sitReachAtt1', att2Key: 'sitReachAtt2' },
-                        { num: '5', zh: '抓背测验', en: 'Back Stretching Test', icon: 'fa-hand-paper', scoreKey: 'backStretch', remarksKey: 'backStretchRemarks', note: '左 L / 右 R (上面 Hand on top)', attempts: 2, att1Key: 'backStretchAtt1', att2Key: 'backStretchAtt2' },
-                        { num: '6', zh: '2.44 公尺起身绕物测验', en: '2.44-Meter Speed Walking', icon: 'fa-stopwatch', scoreKey: 'speedWalk', remarksKey: 'speedWalkRemarks', note: '', attempts: 2, att1Key: 'speedWalkAtt1', att2Key: 'speedWalkAtt2' },
-                        { num: '7', zh: '握力测试', en: 'Hand Griping Test', icon: 'fa-fist-raised', scoreKey: 'gripTest', remarksKey: 'gripTestRemarks', note: '左 L / 右 R (手 Hand)', attempts: 2, att1Key: 'gripTestAtt1', att2Key: 'gripTestAtt2' },
-                      ];
-
-                      // Helper: get attempt data from cache
-                      const getAttemptInfo = (station) => {
-                        if (station.attempts === 2) {
-                          const att1 = rd[station.att1Key] || null;
-                          const att2 = rd[station.att2Key] || null;
-                          const count = att2 ? 2 : (att1 ? 1 : 0);
-                          return { att1, att2, count };
-                        }
-                        // Single-attempt station: the result itself is the only attempt
-                        const val = rd[station.scoreKey] || null;
-                        return { att1: val, att2: null, count: val ? 1 : 0 };
-                      };
-
-                      // Determine gender for scoring: 'male' or 'female'
-                      const participantGender = (rd.gender === 'M' || rd.gender === 'male') ? 'male' : 'female';
-                      const participantAge = parseInt(rd.age, 10) || 0;
-
-                      return stations.map((station) => {
-                        const score = rd[station.scoreKey] || '';
-                        const hasScore = score !== '';
-                        if (!hasScore) return null;
-                        const remarksRaw = station.remarksKey ? rd[station.remarksKey] || '' : '';
-                        const { att1, att2, count: attCount } = getAttemptInfo(station);
-
-                        // Rating for best result
-                        const bestRating = getRating(station.scoreKey, participantAge, score, participantGender);
-                        // Rating for each attempt
-                        const att1Rating = att1 != null ? getRating(station.scoreKey, participantAge, att1, participantGender) : null;
-                        const att2Rating = att2 != null ? getRating(station.scoreKey, participantAge, att2, participantGender) : null;
-                        // Age-group range for this station
-                        const rangeInfo = getStationRange(station.scoreKey, participantAge, participantGender);
-
-                        // Helper to render a rating badge
-                        const ratingBadge = (ratingObj) => {
-                          if (!ratingObj) return null;
-                          return (
-                            <span style={{
-                              display: 'inline-block', padding: '3px 12px',
-                              borderRadius: '8px', fontSize: '1.6rem', fontWeight: 700,
-                              background: ratingObj.color.bg, color: ratingObj.color.text,
-                              border: `1.5px solid ${ratingObj.color.border}`,
-                              marginLeft: '8px', whiteSpace: 'nowrap'
-                            }}>
-                              {ratingObj.rating}
-                            </span>
-                          );
-                        };
-
-                        return (
-                          <div key={station.num} style={{
-                            background: '#fff', borderRadius: '16px', padding: '24px',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
-                            border: '2px solid #bbf7d0',
-                            display: 'flex', flexDirection: 'column', gap: '16px'
-                          }}>
-                            {/* Station badge */}
-                            <div style={{
-                              display: 'inline-flex', alignItems: 'center', gap: '10px',
-                              background: '#f0fdf4', border: '2px solid #86efac',
-                              borderRadius: '50px', padding: '8px 20px', alignSelf: 'flex-start'
-                            }}>
-                              <i className="fa fa-clipboard" style={{ color: '#16a34a', fontSize: '1.8rem' }}></i>
-                              <span style={{ fontSize: '2.1rem', color: '#16a34a', fontWeight: 700 }}>{this.t('station')} {station.num}</span>
-                            </div>
-                            <div>
-                              <div style={{ fontWeight: 700, fontSize: '2.4rem', color: '#1a1a1a' }}>{station.en}</div>
-                              <div style={{ fontSize: '2.1rem', color: '#555', fontWeight: 700 }}>{station.zh}</div>
-                            </div>
-                            {station.note && (
-                              <div style={{ fontSize: '2.0rem', color: '#2563eb', fontWeight: 700 }}>
-                                <i className="fas fa-info-circle" style={{ marginRight: '6px' }}></i>{station.note}
-                              </div>
-                            )}
-
-
-                            {/* Attempts section */}
-                            {station.attempts === 2 && att1 != null && (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                <div style={{
-                                  padding: '12px 20px', background: '#f8fafc',
-                                  borderRadius: '12px', fontSize: '2.1rem',
-                                  border: '2px solid #e2e8f0', fontWeight: 700,
-                                  display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '12px'
-                                }}>
-                                  <span style={{
-                                    background: '#e2e8f0', borderRadius: '8px', padding: '4px 14px',
-                                    fontSize: '1.7rem', fontWeight: 700, color: '#64748b'
-                                  }}>{this.t('attempt1')}</span>
-                                  <strong style={{ color: '#1a1a1a' }}>{att1}</strong>
-                                  {ratingBadge(att1Rating)}
-                                </div>
-                                {att2 != null && (
-                                  <div style={{
-                                    padding: '12px 20px', background: '#f8fafc',
-                                    borderRadius: '12px', fontSize: '2.1rem',
-                                    border: '2px solid #e2e8f0', fontWeight: 700,
-                                    display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '12px'
-                                  }}>
-                                    <span style={{
-                                      background: '#e2e8f0', borderRadius: '8px', padding: '4px 14px',
-                                      fontSize: '1.7rem', fontWeight: 700, color: '#64748b'
-                                    }}>{this.t('attempt2')}</span>
-                                    <strong style={{ color: '#1a1a1a' }}>{att2}</strong>
-                                    {ratingBadge(att2Rating)}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                            {/* Remarks section below */}
-                            {remarksRaw && (
-                              <div style={{
-                                fontSize: '2.0rem', color: '#555', fontWeight: 700, marginTop: '4px',
-                                padding: '12px 20px', background: '#fffbeb', borderRadius: '12px',
-                                border: '2px solid #fde68a'
-                              }}>
-                                <span style={{ color: '#888' }}>{this.t('remarks')}:</span>{' '}
-                                {remarksRaw}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      });
-                    })()}
-
-                  </div>
-              </div>
-            )}
-          </div>
-        </div>
-      );
-    }
-
-    // ── Language selection page ──
-    if (!languageSelected) {
-      return (
-        <div className="fft-participants-wrapper">
-          <div className="fft-participants-form">
-              <div style={{ textAlign: 'left', marginBottom: '16px' }}>
-                <button className="fft-participants-icon-btn" onClick={onBack} title="Home">
-                  <i className="fas fa-home"></i>
-                </button>
-              </div>
-              <div className="fft-participants-lang-page-options">
-                {[
-                  { code: 'en', label: 'English' },
-                  { code: 'zh', label: '中文' },
-                  { code: 'ms', label: 'Bahasa Melayu' },
-                ].map((lang) => (
-                  <button
-                    key={lang.code}
-                    type="button"
-                    className={`fft-participants-lang-page-btn ${language === lang.code ? 'fft-participants-lang-page-btn--active' : ''}`}
-                    onClick={() => {
-                      this.setState({ language: lang.code, languageSelected: true }, () => {
-                        // If SingPass auth is ready, auto-populate and skip login method selection
-                        if (this.state.singPassReady) {
-                          this.handleSingPassSuccess();
-                        }
-                      });
-                    }}
-                  >
-                    {lang.label}
-                  </button>
-                ))}
-              </div>
-          </div>
-        </div>
-      );
-    }
-
-    // ── Main form ──
+    const { language, event, formData, showLoadingModal, showResultModal, showEntryNumber, submitError, entryNumber } = this.state;
+    const backTitle = language === 'zh' ? '返回' : language === 'ms' ? 'Kembali' : 'Back';
+    const homeTitle = language === 'zh' ? '主页' : language === 'ms' ? 'Rumah' : 'Home';
 
     return (
       <div className="fft-participants-wrapper">
-        <div className="fft-participants-header">
-          <div className="fft-participants-header-top-row">
-            <button className="fft-participants-icon-btn" onClick={() => this.setState({ languageSelected: false, loginMethod: '', currentStep: 1 })} title="Home">
+        <div className="fft-participants-form">
+          {/* Persistent navigation header */}
+          <div className="fft-participants-header-top-row" style={{ padding: '16px 16px 0', gap: 10 }}>
+            <button
+              type="button"
+              className="fft-participants-icon-btn"
+              onClick={this.handleBack}
+              title={backTitle}
+            >
+              <i className="fas fa-arrow-left"></i>
+            </button>
+            <button
+              type="button"
+              className="fft-participants-icon-btn"
+              onClick={this.handleHome}
+              title={homeTitle}
+            >
               <i className="fas fa-home"></i>
             </button>
           </div>
-          <h2 className="fft-participants-title">{this.t('headerTitle')}</h2>
+
+          {/* Step 1: language selection */}
+          {!language && (
+            <LanguageSelection
+              selectedLanguage={language}
+              onSelectLanguage={(lang) => this.setState({ language: lang })}
+            />
+          )}
+
+          {/* Step 2: event selection */}
+          {language && !event && (
+            <EventSelection
+              language={language}
+              onSelectEvent={(evt) => this.setState({ event: evt })}
+            />
+          )}
+
+          {/* Step 3: participant form */}
+          {language && event && !showEntryNumber && (
+            <ParticipantForm
+              ref={this.formRef}
+              language={language}
+              event={event}
+              formData={formData}
+              onSubmit={this.handleFormSubmit}
+              onBack={() => this.setState({ event: null })}
+              onHome={this.props.onBack}
+            />
+          )}
+
+          {/* Submit loading modal — shown while API call is in progress */}
+          {showLoadingModal && (
+            <SubmitLoadingModal language={language} />
+          )}
+
+          {/* Submit result modal — shown after API call completes */}
+          {showResultModal && (
+            <SubmitResultModal
+              language={language}
+              entryNumber={entryNumber}
+              error={submitError}
+              onHome={() => this.setState({ showResultModal: false, showEntryNumber: true })}
+              onRetry={() => this.setState({ showResultModal: false, submitError: null })}
+            />
+          )}
+
+          {/* Entry number screen — shown after success modal is dismissed */}
+          {showEntryNumber && (
+            <ParticipantEntryNumber
+              language={language}
+              entryNumber={entryNumber}
+              onHome={this.handleHome}
+            />
+          )}
         </div>
-
-        <form className="fft-participants-form" onSubmit={this.handleSubmit}>
-          {/* Pre-Section: App Purpose, MyInfo Consent & Login Method */}
-          {!loginMethod && (
-            <div className="fft-participants-section fft-participants-presection">
-              {/* App Purpose */}
-              <div className="fft-participants-consent-intro">
-                <h3 className="fft-participants-consent-heading">{this.t('preSectionHeading')}</h3>
-              </div>
-
-              {/* Login Method */}
-              <div className="fft-participants-consent-action">
-                <p className="fft-participants-presection-desc">
-                  {this.t('preSectionDesc')}
-                </p>
-                <div className="fft-participants-flex-button-container">
-                  <SingPassButton
-                    buttonText={this.t('singPassButtonText')}
-                    onAuthenticationSuccess={this.handleSingPassSuccess}
-                    onMyInfoError={this.handleMyInfoError}
-                    onError={(error) => {
-                      if (error.message?.includes('MyInfo') || error.message?.includes('unavailable')) {
-                        this.handleMyInfoError(error.message);
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="fft-participants-next-button"
-                    onClick={this.handleProceedWithoutSingPass}
-                  >
-                    {this.t('manualButtonLine1')}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Only show form sections after login method is selected */}
-          {loginMethod && (
-            <>
-          {currentStep === 1 && (
-            <>
-          {/* Section 1: Particulars */}
-          <div className="fft-participants-section">
-            <div className="fft-participants-section-header">
-              <span className="fft-participants-section-number">1</span>
-              <h3 className="fft-participants-section-title">{this.t('sectionParticulars')}</h3>
-            </div>
-
-
-
-            <div className="fft-participants-form-grid">
-              {/* Name */}
-              <div className="fft-participants-field fft-participants-field--full">
-                <label className="fft-participants-label" htmlFor="fft-name">
-                  {this.t('labelName')}
-                </label>
-                <input
-                  id="fft-name"
-                  className={`fft-participants-input ${this.isFieldLocked('name') ? 'fft-participants-input--locked' : ''}`}
-                  type="text"
-                  name="name"
-                  value={name}
-                  onChange={this.handleChange}
-                  placeholder={this.t('placeholderName')}
-                  required
-                  disabled={this.isFieldLocked('name')}
-                />
-                {errors.name && <span className="fft-participants-field-error">{errors.name}</span>}
-              </div>
-
-              {/* DOB */}
-              <div className="fft-participants-field">
-                <label className="fft-participants-label" htmlFor="fft-dob">
-                  {this.t('labelDob')}
-                </label>
-                <input
-                  id="fft-dob"
-                  className={`fft-participants-input ${this.isFieldLocked('dob') ? 'fft-participants-input--locked' : ''}`}
-                  type="text"
-                  name="dob"
-                  value={dob}
-                  onChange={this.handleDateInput}
-                  placeholder="dd/mm/yyyy"
-                  maxLength={10}
-                  required
-                  disabled={this.isFieldLocked('dob')}
-                />
-                {errors.dob && <span className="fft-participants-field-error">{errors.dob}</span>}
-              </div>
-
-              {/* Gender */}
-              <div className="fft-participants-field">
-                <label className="fft-participants-label" htmlFor="fft-gender">
-                  {this.t('labelGender')}
-                </label>
-                <div className="fft-participants-gender-group">
-                  <button
-                    type="button"
-                    className={`fft-participants-gender-btn ${gender === 'M' ? 'fft-participants-gender-btn--active' : ''} ${this.isFieldLocked('gender') ? 'fft-participants-gender-btn--locked' : ''}`}
-                    onClick={() => !this.isFieldLocked('gender') && this.setState(prev => { const errors = { ...prev.errors }; delete errors.gender; return { gender: 'M', errors }; })}
-                    disabled={this.isFieldLocked('gender')}
-                  >
-                    M
-                  </button>
-                  <button
-                    type="button"
-                    className={`fft-participants-gender-btn ${gender === 'F' ? 'fft-participants-gender-btn--active' : ''} ${this.isFieldLocked('gender') ? 'fft-participants-gender-btn--locked' : ''}`}
-                    onClick={() => !this.isFieldLocked('gender') && this.setState(prev => { const errors = { ...prev.errors }; delete errors.gender; return { gender: 'F', errors }; })}
-                    disabled={this.isFieldLocked('gender')}
-                  >
-                    F
-                  </button>
-                </div>
-                {errors.gender && <span className="fft-participants-field-error">{errors.gender}</span>}
-              </div>
-
-              {/* Age */}
-              <div className="fft-participants-field">
-                <label className="fft-participants-label" htmlFor="fft-age">
-                  {this.t('labelAge')}
-                </label>
-                <input
-                  id="fft-age"
-                  className="fft-participants-input"
-                  type="number"
-                  name="age"
-                  value={age}
-                  onChange={this.handleChange}
-                  placeholder={this.t('placeholderAge')}
-                  min="0"
-                  max="150"
-                />
-              </div>
-
-              {/* Phone No */}
-              <div className="fft-participants-field">
-                <label className="fft-participants-label" htmlFor="fft-phone">
-                  {this.t('labelPhone')}
-                </label>
-                <input
-                  id="fft-phone"
-                  className="fft-participants-input"
-                  type="tel"
-                  name="phoneNo"
-                  value={phoneNo}
-                  onChange={this.handleChange}
-                  placeholder={this.t('placeholderPhone')}
-                  required
-                />
-                {errors.phoneNo && <span className="fft-participants-field-error">{errors.phoneNo}</span>}
-              </div>
-
-              {/* Test Date */}
-              <div className="fft-participants-field">
-                <label className="fft-participants-label" htmlFor="fft-test-date">
-                  {this.t('labelTestDate')}
-                </label>
-                <input
-                  id="fft-test-date"
-                  className="fft-participants-input"
-                  type="text"
-                  name="testDate"
-                  value={testDate}
-                  onChange={this.handleDateInput}
-                  placeholder="dd/mm/yyyy"
-                  maxLength={10}
-                  required
-                />
-                {errors.testDate && <span className="fft-participants-field-error">{errors.testDate}</span>}
-              </div>
-            </div>
-          </div>
-
-          {/* Step 1 navigation */}
-          <div className="fft-participants-nav-buttons">
-            <button type="button" className="fft-participants-nav-btn fft-participants-nav-btn--prev" onClick={this.goToPrevStep}>
-              <i className="fas fa-arrow-left"></i> {this.t('previous')}
-            </button>
-            <button type="button" className="fft-participants-nav-btn fft-participants-nav-btn--next" onClick={this.goToNextStep}>
-              {this.t('next')} <i className="fas fa-arrow-right"></i>
-            </button>
-          </div>
-            </>
-          )}
-
-          {currentStep === 2 && (
-            <>
-          {/* Section 2: Health Declaration */}
-          <div className="fft-participants-section">
-            <div className="fft-participants-section-header">
-              <span className="fft-participants-section-number">2</span>
-              <h3 className="fft-participants-section-title">{this.t('sectionHealth')}</h3>
-            </div>
-
-            {/* Health Declaration */}
-            <div className="fft-participants-subsection">
-              {['healthQ1', 'healthQ2', 'healthQ3', 'healthQ4'].map((qKey) => (
-                <div className="fft-participants-health-question" key={qKey}>
-                  <div className="fft-participants-health-question-text">
-                    <p className="fft-participants-health-text">{this.t(qKey)}</p>
-                  </div>
-                  <div className="fft-participants-health-answers">
-                    <button
-                      type="button"
-                      className={`fft-participants-health-btn ${this.state[qKey] === 'Yes' ? 'fft-participants-health-btn--yes' : ''}`}
-                      onClick={() => this.handleHealthAnswer(qKey, 'Yes')}
-                    >
-                      {this.t('yes')}
-                    </button>
-                    <button
-                      type="button"
-                      className={`fft-participants-health-btn ${this.state[qKey] === 'No' ? 'fft-participants-health-btn--no' : ''}`}
-                      onClick={() => this.handleHealthAnswer(qKey, 'No')}
-                    >
-                      {this.t('no')}
-                    </button>
-                  </div>
-                  {errors[qKey] && <span className="fft-participants-field-error">{errors[qKey]}</span>}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Step 2 navigation */}
-          <div className="fft-participants-nav-buttons">
-            <button type="button" className="fft-participants-nav-btn fft-participants-nav-btn--prev" onClick={this.goToPrevStep}>
-              <i className="fas fa-arrow-left"></i> {this.t('previous')}
-            </button>
-            <button type="button" className="fft-participants-nav-btn fft-participants-nav-btn--next" onClick={this.goToNextStep}>
-              {this.t('next')} <i className="fas fa-arrow-right"></i>
-            </button>
-          </div>
-            </>
-          )}
-
-          {currentStep === 3 && (
-            <>
-          {/* Section 3: Programme Indemnity */}
-          <div className="fft-participants-section">
-            <div className="fft-participants-section-header">
-              <span className="fft-participants-section-number">3</span>
-              <h3 className="fft-participants-section-title">{this.t('sectionIndemnity')}</h3>
-            </div>
-
-            <div className="fft-participants-subsection">
-              <div className="fft-participants-indemnity-list">
-                {['indemnity1', 'indemnity2', 'indemnity3'].map((key, idx) => (
-                  <div className="fft-participants-indemnity-item" key={key}>
-                    <span className="fft-participants-indemnity-num">{idx + 1}.</span>
-                    <div>
-                      <p className="fft-participants-indemnity-text">{this.t(key)}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Agreement section */}
-              <div className="fft-participants-agreement-layout">
-                <div className="fft-participants-agreement-left">
-                  <div className="fft-participants-indemnity-agree">
-                    <label className="fft-participants-checkbox-label">
-                      <input
-                        type="checkbox"
-                        className="fft-participants-checkbox"
-                        checked={indemnityAgreed}
-                        onChange={(e) => {
-                          const checked = e.target.checked;
-                          this.setState(prev => {
-                            const errors = { ...prev.errors };
-                            if (checked) delete errors.indemnityAgreed;
-                            return { indemnityAgreed: checked, errors };
-                          });
-                        }}
-                      />
-                      <span>{this.t('agreeTerms')}</span>
-                    </label>
-                    {errors.indemnityAgreed && <span className="fft-participants-field-error">{errors.indemnityAgreed}</span>}
-                  </div>
-                  <div className="fft-participants-field">
-                    <label className="fft-participants-label" htmlFor="fft-sig-date">
-                      {this.t('labelDate')}
-                    </label>
-                    <input
-                      id="fft-sig-date"
-                      className="fft-participants-input"
-                      type="text"
-                      name="signatureDate"
-                      value={signatureDate}
-                      onChange={this.handleDateInput}
-                      placeholder="dd/mm/yyyy"
-                      maxLength={10}
-                      required
-                    />
-                    {errors.signatureDate && <span className="fft-participants-field-error">{errors.signatureDate}</span>}
-                  </div>
-                </div>
-                <div className="fft-participants-agreement-right">
-                  <div className="fft-participants-field fft-participants-signature-field">
-                    <label className="fft-participants-label">
-                      {this.t('labelSignature')} <span style={{ color: '#d32f2f' }}>*</span>
-                    </label>
-                    <div className="fft-participants-signature-pad">
-                      <canvas
-                        ref={this.signatureCanvasRef}
-                        className="fft-participants-signature-canvas"
-                        onMouseDown={this.startDrawing}
-                        onMouseMove={this.draw}
-                        onMouseUp={this.stopDrawing}
-                        onMouseLeave={this.stopDrawing}
-                        onTouchStart={this.startDrawing}
-                        onTouchMove={this.draw}
-                        onTouchEnd={this.stopDrawing}
-                      />
-                      {!this.state.hasSignature && (
-                        <div className="fft-participants-signature-placeholder">
-                          {this.t('signHere')}
-                        </div>
-                      )}
-                      {this.state.hasSignature && (
-                        <button
-                          type="button"
-                          className="fft-participants-signature-clear-x"
-                          onClick={this.clearSignature}
-                          aria-label="Clear signature"
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-                    {errors.signature && <span className="fft-participants-field-error">{errors.signature}</span>}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Step 3 navigation */}
-          <div className="fft-participants-nav-buttons">
-            <button type="button" className="fft-participants-nav-btn fft-participants-nav-btn--prev" onClick={this.goToPrevStep}>
-              <i className="fas fa-arrow-left"></i> {this.t('previous')}
-            </button>
-            <button type="submit" className="fft-participants-nav-btn fft-participants-nav-btn--submit" disabled={!indemnityAgreed || !this.state.hasSignature || submitting}>
-              {submitting ? (
-                <><i className="fas fa-spinner fa-spin"></i> {this.t('submitting') || 'Submitting...'}</>
-              ) : (
-                <><i className="fas fa-check"></i> {this.t('submit')}</>
-              )}
-            </button>
-          </div>
-
-          {/* Submit error */}
-          {submitError && (
-            <div style={{ marginTop: '12px', padding: '14px 18px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#dc2626', fontSize: '1.25rem', fontWeight: 600 }}>
-              <i className="fas fa-exclamation-circle" style={{ marginRight: '8px' }}></i>
-              {submitError}
-            </div>
-          )}
-            </>
-          )}
-            </>
-          )}
-        </form>
       </div>
     );
   }

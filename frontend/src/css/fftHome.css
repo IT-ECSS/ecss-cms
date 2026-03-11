@@ -1,3 +1,16 @@
+.fft-home-nav-card--registration {
+  background: transparent;
+}
+
+.fft-home-nav-card--registration .fft-home-nav-icon,
+.fft-home-nav-card--registration .fft-home-nav-text {
+  color: #4a6fa5;
+}
+
+.fft-home-nav-card--registration:hover {
+  background: transparent;
+  box-shadow: none;
+}
 .fft-home-wrapper {
   display: flex;
   flex-direction: column;

@@ -33,8 +33,8 @@ const fftTranslations = {
   },
   singPassButtonText: {
     en: 'Retrieve Myinfo with',
-    zh: 'Retrieve Myinfo with',
-    ms: 'Retrieve Myinfo with',
+    zh: '使用 Myinfo 检索',
+    ms: 'Dapatkan Myinfo dengan',
   },
   manualButtonLine1: {
     en: 'Fill in the form manually',
@@ -150,7 +150,7 @@ const fftTranslations = {
 
   // ── Section 3: Programme Indemnity ──
   sectionIndemnity: {
-    en: 'Programme Indemnity Form',
+    en: 'Indemnity',
     zh: '活动免责同意书',
     ms: 'Borang Indemniti Program',
   },

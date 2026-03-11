@@ -1,157 +1,31 @@
 import React, { Component } from 'react';
 import axios from 'axios';
 import { io } from 'socket.io-client';
-import { Html5Qrcode } from 'html5-qrcode';
 import '../../../css/fftVolunteers.css';
+import EventSelection from './EventSelection';
+import StationSelection from './StationSelection';
+import ResultEntry from './ResultEntry';
+import VolunteerEntry from './VolunteerEntry';
+import LoadingSpinner from './LoadingSpinner';
+import LoadingParticipant from './LoadingParticipant';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
   : 'https://ecss-backend-node.azurewebsites.net';
 
-// Station definitions with their field mappings
-const STATIONS = [
-  {
-    id: 'measurement',
-    num: '📏',
-    title: 'Measurement Station',
-    titleZh: '测量站',
-    icon: 'fa-ruler-combined',
-    color: '#8b5cf6',
-    bg: '#f5f3ff',
-    fields: [
-      { key: 'height', label: 'Height (cm)', labelZh: '身高', type: 'number', placeholder: 'e.g. 165' },
-      { key: 'weight', label: 'Weight (kg)', labelZh: '体重', type: 'number', placeholder: 'e.g. 60' },
-      { key: 'bmi', label: 'BMI', labelZh: 'BMI', type: 'number', placeholder: 'e.g. 22.5' },
-    ],
-  },
-  {
-    id: 'station1',
-    num: '1',
-    title: '30-Sec Sit and Stand',
-    titleZh: '30 秒坐立测验',
-    icon: 'fa-chair',
-    color: '#2563eb',
-    bg: '#eff6ff',
-    fields: [
-      { key: 'sitStand', label: 'Number of reps', labelZh: '次数', type: 'number', placeholder: 'e.g. 12' },
-    ],
-    remarksKey: 'sitStandRemarks',
-  },
-  {
-    id: 'station2',
-    num: '2',
-    title: '30-Sec Arm Curl',
-    titleZh: '30 秒手臂卷起',
-    icon: 'fa-dumbbell',
-    color: '#2563eb',
-    bg: '#eff6ff',
-    fields: [
-      { key: 'armCurl', label: 'Number of reps', labelZh: '次数', type: 'number', placeholder: 'e.g. 15' },
-    ],
-    remarksKey: 'armCurlRemarks',
-  },
-  {
-    id: 'station3',
-    num: '3',
-    title: '2-Min On-the-spot Marching',
-    titleZh: '2 分钟抬膝测验',
-    icon: 'fa-walking',
-    color: '#2563eb',
-    bg: '#eff6ff',
-    fields: [
-      { key: 'march', label: 'Number of steps', labelZh: '步数', type: 'number', placeholder: 'e.g. 80' },
-    ],
-    remarksKey: 'marchRemarks',
-  },
-  {
-    id: 'station4',
-    num: '4',
-    title: 'Sit and Reach Test',
-    titleZh: '坐椅体前弯',
-    icon: 'fa-arrows-alt-h',
-    color: '#2563eb',
-    bg: '#eff6ff',
-    fields: [
-      { key: 'sitReachAtt1', label: 'Attempt 1 (cm)', labelZh: '第一次', type: 'number', placeholder: 'e.g. 5', required: true },
-      { key: 'sitReachAtt2', label: 'Attempt 2 (cm)', labelZh: '第二次', type: 'number', placeholder: 'e.g. 6', required: false },
-    ],
-    resultKey: 'sitReach',
-    note: '左 L / 右 R (直腿 Straight leg)',
-    remarksKey: 'sitReachRemarks',
-  },
-  {
-    id: 'station5',
-    num: '5',
-    title: 'Back Stretching Test',
-    titleZh: '抓背测验',
-    icon: 'fa-hand-paper',
-    color: '#2563eb',
-    bg: '#eff6ff',
-    fields: [
-      { key: 'backStretchAtt1', label: 'Attempt 1 (cm)', labelZh: '第一次', type: 'number', placeholder: 'e.g. -2', required: true },
-      { key: 'backStretchAtt2', label: 'Attempt 2 (cm)', labelZh: '第二次', type: 'number', placeholder: 'e.g. -1', required: false },
-    ],
-    resultKey: 'backStretch',
-    note: '左 L / 右 R (上面 Hand on top)',
-    remarksKey: 'backStretchRemarks',
-  },
-  {
-    id: 'station6',
-    num: '6',
-    title: '2.44m Speed Walk',
-    titleZh: '2.44 公尺起身绕物测验',
-    icon: 'fa-stopwatch',
-    color: '#2563eb',
-    bg: '#eff6ff',
-    fields: [
-      { key: 'speedWalkAtt1', label: 'Attempt 1 (seconds)', labelZh: '第一次（秒）', type: 'number', placeholder: 'e.g. 5.2', required: true },
-      { key: 'speedWalkAtt2', label: 'Attempt 2 (seconds)', labelZh: '第二次（秒）', type: 'number', placeholder: 'e.g. 4.8', required: false },
-    ],
-    resultKey: 'speedWalk',
-    remarksKey: 'speedWalkRemarks',
-  },
-  {
-    id: 'station7',
-    num: '7',
-    title: 'Hand Grip Test',
-    titleZh: '握力测试',
-    icon: 'fa-fist-raised',
-    color: '#2563eb',
-    bg: '#eff6ff',
-    fields: [
-      { key: 'gripTestAtt1', label: 'Attempt 1 (kg)', labelZh: '第一次', type: 'number', placeholder: 'e.g. 25', required: true },
-      { key: 'gripTestAtt2', label: 'Attempt 2 (kg)', labelZh: '第二次', type: 'number', placeholder: 'e.g. 27', required: false },
-    ],
-    resultKey: 'gripTest',
-    note: '左 L / 右 R (手 Hand)',
-    remarksKey: 'gripTestRemarks',
-  },
-];
-
 class FFTVolunteers extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      // Single-page flow: dropdown → QR scanner → input fields
+      selectedEvent: null,
       selectedStation: null,
-      // QR scanner
-      scannerActive: false,
-      scannerReady: false,
-      scanError: null,
-      // Participant data
-      entryNumber: null,
+      activeFile: null,
       participantData: null,
       loadingParticipant: false,
-      // Form data
-      formData: {},
-      // Submission
-      submitting: false,
-      submitSuccess: false,
-      submitError: null,
-      // Active file
-      activeFile: null,
+      entryError: null,
+      lookupError: null,
+      entryNumber: null,
     };
-    this.html5QrCode = null;
   }
 
   componentDidMount() {
@@ -171,561 +45,158 @@ class FFTVolunteers extends Component {
         this.setState({ activeFile: data.file });
       }
     });
-    this.socket.on('fftUpdate', (data) => {
-      // If a row was updated by another volunteer, refresh participant data if currently viewing
-      const { activeFile, entryNumber, participantData } = this.state;
-      if (participantData && activeFile && activeFile.id && data.fileId === activeFile.id) {
-        // Re-fetch the current participant row to get latest values
-        axios.get(`${BACKEND_URL}/googleDrive/getRow`, {
-          params: { fileId: activeFile.id, entryNumber }
-        }).then((res) => {
-          if (res.data.success && res.data.data) {
-            this.setState({ participantData: res.data.data });
-          }
-        }).catch(() => {});
-      }
+    this.socket.on('fftUpdate', () => {
+      // ResultEntry handles its own live-refresh via its own instance
     });
   }
 
   componentWillUnmount() {
-    this.stopScanner();
     if (this.socket) {
       this.socket.disconnect();
     }
   }
 
-  // ── Station Selection (dropdown) ──
-  handleSelectStation = (e) => {
-    const stationId = e.target.value;
-    if (!stationId) {
-      this.stopScanner();
-      this.setState({
-        selectedStation: null,
-        scannerActive: false,
-        formData: {},
-        entryNumber: null,
-        participantData: null,
-        submitSuccess: false,
-        submitError: null,
-        scanError: null,
-      });
-      return;
-    }
-    const station = STATIONS.find((s) => s.id === stationId);
+  // ── Station Selection ──
+  handleSelectStation = (station) => {
+    this.setState({ selectedStation: station || null, participantData: null, entryNumber: null, entryError: null, lookupError: null });
+  };
 
-    // Always require a fresh QR scan when changing station
-    this.stopScanner().then(() => {
-      this.setState({
-        selectedStation: station,
-        scannerActive: true,
-        formData: {},
-        entryNumber: null,
-        participantData: null,
-        submitSuccess: false,
-        submitError: null,
-        scanError: null,
-      }, () => {
-        const tryStart = (attempts = 0) => {
-          const el = document.getElementById('fft-vol-qr-reader');
-          if (el) {
-            this.startScanner();
-          } else if (attempts < 15) {
-            setTimeout(() => tryStart(attempts + 1), 200);
-          }
-        };
-        setTimeout(() => tryStart(), 100);
-      });
+  // ── Event Selection ──
+  handleSelectEvent = (eventObj) => {
+    this.setState({
+      selectedEvent: eventObj || null,
+      selectedStation: null,
     });
   };
 
-  // ── QR Scanner ──
-  startScanner = () => {
-    if (this._scannerStarting) return;          // guard against double-start
-    this._scannerStarting = true;
-
-    const el = document.getElementById('fft-vol-qr-reader');
-    if (!el) { this._scannerStarting = false; return; }
-
-    // Make sure the container is empty so Html5Qrcode doesn't choke on leftover nodes
-    el.innerHTML = '';
-
-    this.html5QrCode = new Html5Qrcode('fft-vol-qr-reader');
-    this.html5QrCode.start(
-      { facingMode: 'environment' },
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      (decodedText) => {
-        this.handleQRScan(decodedText);
-      },
-      () => { /* ignore errors during scanning */ }
-    ).then(() => {
-      this._scannerStarting = false;
-      this.setState({ scannerReady: true, scanError: null });
-    }).catch((err) => {
-      this._scannerStarting = false;
-      console.error('Scanner start error:', err);
-      this.setState({ scanError: 'Could not access camera. Please allow camera permissions.' });
-    });
-  };
-
-  // Returns a Promise that resolves once the camera is fully released
-  stopScanner = () => {
-    if (this.html5QrCode) {
-      const qr = this.html5QrCode;
-      this.html5QrCode = null;
-      return qr.stop().then(() => {
-        try { qr.clear(); } catch (_) { /* already cleared */ }
-      }).catch(() => {});
-    }
-    return Promise.resolve();
-  };
-
-  handleQRScan = (decodedText) => {
-    // QR code contains the entry number
-    const entryNumber = parseInt(decodedText, 10);
+  // ── Participant Lookup ──
+  handleEntryLookup = (valueStr) => {
+    const entryNumber = parseInt(String(valueStr), 10);
     if (isNaN(entryNumber)) {
-      this.setState({ scanError: `Invalid QR code: "${decodedText}"` });
+      this.setState({ entryError: `Invalid entry number: "${valueStr}"` });
       return;
     }
-
-    this.stopScanner(); // fire-and-forget is fine here — we're not restarting
-    this.setState({ entryNumber, loadingParticipant: true, scanError: null });
-
-    // Fetch participant data
-    const fileId = (this.props.selectedFile && this.props.selectedFile.id) ||
-                   (this.state.activeFile && this.state.activeFile.id);
+    const { activeFile, selectedEvent, selectedStation } = this.state;
+    const { selectedFile } = this.props;
+    const fileId = (selectedEvent && selectedEvent.id) ||
+                   (selectedFile && selectedFile.id) ||
+                   (activeFile && activeFile.id);
     if (!fileId) {
-      this.setState({ loadingParticipant: false, scanError: 'No active file selected.' });
+      this.setState({ entryError: 'No active file selected.' });
       return;
     }
-
+    this.setState({ entryNumber, loadingParticipant: true, entryError: null, lookupError: null });
     axios.get(`${BACKEND_URL}/googleDrive/getRow`, { params: { fileId, entryNumber } })
       .then((res) => {
         if (res.data.success) {
           const data = res.data.data;
-          const station = this.state.selectedStation;
 
-          // Enforce: Measurement Station must be completed first before any other station
-          if (station.id !== 'measurement') {
+          // Treat empty rows (no name) as not found
+          if (!data.name && !data.chineseName) {
+            this.setState({ loadingParticipant: false, lookupError: `Entry #${entryNumber} was not found in the spreadsheet.`, entryNumber });
+            return;
+          }
+
+          if (selectedStation.id !== 'measurement') {
             const hasHeight = data.height && String(data.height).trim() !== '';
             const hasWeight = data.weight && String(data.weight).trim() !== '';
             const hasBmi = data.bmi && String(data.bmi).trim() !== '';
             if (!hasHeight || !hasWeight || !hasBmi) {
               this.setState({
                 loadingParticipant: false,
-                scanError: 'Measurement Station (Height, Weight, BMI) must be completed first before recording results for this station.',
+                lookupError: 'Measurement Station (Height, Weight, BMI) must be completed first before recording results for this station.',
+                entryNumber,
               });
               return;
             }
           }
-
-          // Pre-fill formData with existing values for this station's fields
-          const existingData = {};
-          station.fields.forEach((f) => {
-            existingData[f.key] = data[f.key] || '';
-          });
-          this.setState({
-            participantData: data,
-            formData: existingData,
-            loadingParticipant: false,
-            scannerActive: false,
-          });
+          this.setState({ participantData: data, loadingParticipant: false });
         } else {
-          this.setState({ loadingParticipant: false, scanError: 'Could not find participant data.' });
+          this.setState({ loadingParticipant: false, lookupError: `Entry #${entryNumber} was not found in the spreadsheet.`, entryNumber });
         }
       })
       .catch((err) => {
         console.error('Error fetching participant data:', err.message);
-        this.setState({ loadingParticipant: false, scanError: 'Error loading participant info.' });
+        this.setState({ loadingParticipant: false, lookupError: 'Error loading participant info. Please try again.', entryNumber });
       });
   };
 
-  // ── Form Input ──
-  handleFieldChange = (key, value) => {
-    this.setState((prev) => ({
-      formData: { ...prev.formData, [key]: value },
-    }));
-  };
-
-  handleSubmit = () => {
-    const { selectedStation, entryNumber, formData } = this.state;
-    const fileId = (this.props.selectedFile && this.props.selectedFile.id) ||
-                   (this.state.activeFile && this.state.activeFile.id);
-
-    if (!fileId || entryNumber == null) return;
-
-    // Build updates based on station type
-    const updates = {};
-
-    if (selectedStation.resultKey) {
-      // ── Multi-attempt station (4-7): 2 attempts → pick best result ──
-      const att1 = formData[selectedStation.fields[0].key] || '';
-      const att2 = formData[selectedStation.fields[1].key] || '';
-
-      let bestResult;
-      const n1 = parseFloat(att1);
-      const n2 = parseFloat(att2);
-
-      if (selectedStation.resultKey === 'speedWalk') {
-        // Lower time is better
-        if (att2 && !isNaN(n1) && !isNaN(n2)) {
-          bestResult = n1 <= n2 ? att1 : att2;
-        } else {
-          bestResult = att1;
-        }
-      } else {
-        // sitReach, backStretch, gripTest — higher number is better
-        if (att2 && !isNaN(n1) && !isNaN(n2)) {
-          bestResult = n1 >= n2 ? att1 : att2;
-        } else if (att2 && !isNaN(n2)) {
-          bestResult = att2;
-        } else {
-          bestResult = att1;
-        }
-      }
-      updates[selectedStation.resultKey] = bestResult;
-
-      // Include individual attempt values for caching (displayed on participant cards)
-      updates[selectedStation.fields[0].key] = att1;
-      if (att2) updates[selectedStation.fields[1].key] = att2;
-
-      // Save only volunteer-typed remarks (no attempt data)
-      if (selectedStation.remarksKey && formData[selectedStation.remarksKey]) {
-        updates[selectedStation.remarksKey] = formData[selectedStation.remarksKey];
-      }
-    } else {
-      // ── Single-attempt station (measurement, 1-3) ──
-      selectedStation.fields.forEach((f) => {
-        if (formData[f.key] !== undefined) updates[f.key] = formData[f.key];
-      });
-      if (selectedStation.remarksKey && formData[selectedStation.remarksKey]) {
-        updates[selectedStation.remarksKey] = formData[selectedStation.remarksKey];
-      }
-    }
-
-    this.setState({ submitting: true, submitError: null });
-
-    axios.post(`${BACKEND_URL}/googleDrive/updateRow`, { fileId, entryNumber, updates })
-      .then((res) => {
-        if (res.data.success) {
-          this.setState({ submitting: false, submitSuccess: true });
-          // User manually taps "Scan Next Participant" — no auto-advance
-        } else {
-          this.setState({ submitting: false, submitError: res.data.error || 'Failed to update.' });
-        }
-      })
-      .catch((err) => {
-        console.error('Error updating row:', err.message);
-        this.setState({ submitting: false, submitError: 'Network error. Please try again.' });
-      });
+  handleNextParticipant = () => {
+    this.setState({ participantData: null, entryNumber: null, entryError: null, lookupError: null });
   };
 
   // ── Navigation ──
-  handleBackToStations = () => {
-    this.stopScanner();
-    this.setState({
-      selectedStation: null,
-      scannerActive: false,
-      entryNumber: null,
-      participantData: null,
-      formData: {},
-      submitSuccess: false,
-      submitError: null,
-      scanError: null,
-    });
-  };
-
-  handleScanAnother = () => {
-    // Fully stop & release camera before restarting
-    this.stopScanner().then(() => {
-      this.setState({
-        scannerActive: true,
-        entryNumber: null,
-        participantData: null,
-        formData: {},
-        submitSuccess: false,
-        submitError: null,
-        scanError: null,
-      }, () => {
-        // Wait for DOM to render the scanner container before starting
-        const tryStart = (attempts = 0) => {
-          const el = document.getElementById('fft-vol-qr-reader');
-          if (el) {
-            this.startScanner();
-          } else if (attempts < 15) {
-            setTimeout(() => tryStart(attempts + 1), 200);
-          }
-        };
-        setTimeout(() => tryStart(), 100);
-      });
-    });
+  handleBack = () => {
+    const { selectedEvent, selectedStation, participantData, lookupError } = this.state;
+    if (participantData || lookupError) {
+      this.setState({ participantData: null, entryNumber: null, entryError: null, lookupError: null });
+    } else if (selectedStation) {
+      this.setState({ selectedStation: null });
+    } else if (selectedEvent) {
+      this.setState({ selectedEvent: null });
+    } else {
+      this.props.onBack();
+    }
   };
 
   // ── Render ──
   render() {
     const { onBack, selectedFile } = this.props;
-    const { selectedStation, scannerActive, scanError, loadingParticipant, participantData,
-            formData, submitting, submitSuccess, submitError, entryNumber, activeFile } = this.state;
-
-    const hasFile = (selectedFile && selectedFile.id) || (activeFile && activeFile.id);
-    const fileName = (selectedFile && selectedFile.name) || (activeFile && activeFile.name) || null;
+    const { selectedStation, selectedEvent, activeFile, participantData, loadingParticipant, lookupError, entryNumber } = this.state;
+    const fileId = (selectedEvent && selectedEvent.id) ||
+                   (selectedFile && selectedFile.id) ||
+                   (activeFile && activeFile.id);
 
     return (
       <div className="fft-volunteers-wrapper">
-        {/* Header with back button */}
+        {/* Header with home and back buttons */}
         <div className="fft-volunteers-header">
           <div className="fft-volunteers-header-top-row">
+            <button className="fft-volunteers-icon-btn" onClick={this.handleBack} title="Back">
+              <i className="fas fa-arrow-left"></i>
+            </button>
             <button className="fft-volunteers-icon-btn" onClick={onBack} title="Home">
               <i className="fas fa-home"></i>
             </button>
           </div>
+
         </div>
 
         {/* Content area */}
         <div className="fft-volunteers-form">
 
-          {/* ──── No active file warning ──── */}
-          {!hasFile && (
-            <div className="fft-volunteers-section fft-vol-no-file-banner">
-              <div className="fft-vol-no-file-icon">
-                <i className="fas fa-exclamation-triangle"></i>
-              </div>
-              <h3 className="fft-vol-no-file-title">No Active File Selected</h3>
-              <p className="fft-vol-no-file-text">
-                An admin needs to select a file first before volunteers can start recording data.
-              </p>
-              <button className="fft-volunteers-submit-btn" onClick={onBack} style={{ marginTop: '8px' }}>
-                <i className="fas fa-arrow-left"></i>
-                Go Back
-              </button>
-            </div>
+          {/* ──── Event Selection Section ──── */}
+          {!selectedEvent && (
+            <EventSelection
+              onSelectEvent={this.handleSelectEvent}
+            />
           )}
 
-          {/* ──── Active file indicator ──── */}
-          {hasFile && fileName && (
-            <div className="fft-vol-active-file-bar">
-              <i className="fas fa-file-spreadsheet" style={{ marginRight: '8px', color: '#16a34a' }}></i>
-              <span className="fft-vol-active-file-name">{fileName}</span>
-            </div>
+          {/* ──── Station Selection Section ──── */}
+          {selectedEvent && !selectedStation && (
+            <StationSelection
+              onSelectStation={this.handleSelectStation}
+            />
           )}
 
-          {/* ──── Station Dropdown Section ──── */}
-          {hasFile && (
-            <>
-            <div className="fft-volunteers-section">
-              <div className="fft-volunteers-section-header">
-                <span className="fft-volunteers-section-number">1</span>
-                <h3 className="fft-volunteers-section-title">Select Station</h3>
-              </div>
-              <div className="fft-volunteers-field fft-volunteers-field--full">
-                <label className="fft-volunteers-label">
-                  <i className="fas fa-map-pin" style={{ marginRight: '6px', color: '#2c7be5' }}></i>
-                  Station
-                </label>
-                <select
-                  className="fft-volunteers-input fft-vol-select"
-                  value={selectedStation ? selectedStation.id : ''}
-                  onChange={this.handleSelectStation}
-                >
-                  <option value="">-- Choose a station --</option>
-                  {STATIONS.map((station) => (
-                    <option key={station.id} value={station.id}>
-                      {station.id === 'measurement' ? '📏' : `${station.num}.`} {station.title} ({station.titleZh})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
+          {selectedEvent && selectedStation && !participantData && !lookupError && (
+            <VolunteerEntry
+              onLookup={this.handleEntryLookup}
+            />
+          )}
 
-            {/* ──── QR Code Scanner Section ──── */}
-            {selectedStation && scannerActive && (
-              <div className="fft-volunteers-section">
-                <div className="fft-volunteers-section-header">
-                  <span className="fft-volunteers-section-number">2</span>
-                  <h3 className="fft-volunteers-section-title">Scan Participant QR</h3>
-                </div>
+          <LoadingParticipant visible={!!(selectedEvent && selectedStation && loadingParticipant)} />
 
-                {/* Station badge */}
-                <div className="fft-vol-station-badge" style={{ background: selectedStation.bg, color: selectedStation.color }}>
-                  <i className={`fas ${selectedStation.icon}`}></i>
-                  {selectedStation.title}
-                </div>
-
-                <p className="fft-vol-scan-hint">Point camera at the participant's QR code</p>
-
-                {/* QR reader container */}
-                <div className="fft-vol-qr-container">
-                  <div id="fft-vol-qr-reader" style={{ width: '100%' }}></div>
-                  {loadingParticipant && (
-                    <div className="fft-vol-qr-loading">
-                      <i className="fas fa-spinner fa-spin" style={{ fontSize: '2rem', marginBottom: '12px' }}></i>
-                      <p>Loading participant data...</p>
-                    </div>
-                  )}
-                </div>
-
-                {scanError && (
-                  <div className="fft-vol-error-msg">
-                    <i className="fas fa-exclamation-circle" style={{ marginRight: '6px' }}></i>
-                    {scanError}
-                  </div>
-                )}
-
-                {/* Manual entry fallback */}
-                <div className="fft-vol-manual-entry">
-                  <p className="fft-vol-manual-label">Or enter entry number manually:</p>
-                  <div className="fft-vol-manual-row">
-                    <input
-                      type="number"
-                      placeholder="Entry #"
-                      id="fft-vol-manual-entry"
-                      className="fft-volunteers-input fft-vol-manual-input"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          this.handleQRScan(e.target.value);
-                        }
-                      }}
-                    />
-                    <button
-                      className="fft-vol-go-btn"
-                      onClick={() => {
-                        const val = document.getElementById('fft-vol-manual-entry').value;
-                        if (val) this.handleQRScan(val);
-                      }}
-                    >
-                      Go
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ──── Participant Info + Data Input (shown after QR scan) ──── */}
-            {selectedStation && participantData && (
-              <>
-                {/* Participant Info Card */}
-                <div className="fft-volunteers-section fft-vol-participant-card">
-                  <div className="fft-vol-participant-row">
-                    <div className="fft-vol-participant-avatar">
-                      <i className="fas fa-user"></i>
-                    </div>
-                    <div className="fft-vol-participant-info">
-                      <div className="fft-vol-participant-name">
-                        {participantData.name || participantData.chineseName || '—'}
-                      </div>
-                      {participantData.chineseName && participantData.name && (
-                        <div className="fft-vol-participant-chinese">{participantData.chineseName}</div>
-                      )}
-                      <div className="fft-vol-participant-meta">
-                        Entry #{entryNumber}
-                      </div>
-                      <div className="fft-vol-participant-meta">
-                        <i className="fas fa-phone" style={{ marginRight: '4px', fontSize: '0.85em' }}></i>
-                        {participantData.phoneNo || '—'}
-                      </div>
-                      <div className="fft-vol-participant-meta">
-                        <i className="fas fa-birthday-cake" style={{ marginRight: '4px', fontSize: '0.85em' }}></i>
-                        DOB: {participantData.dd && participantData.mm && participantData.yyyy ? `${participantData.dd}/${participantData.mm}/${participantData.yyyy}` : '—'}
-                        &nbsp;·&nbsp; Age: {participantData.age || '—'}
-                      </div>
-                      <div className="fft-vol-participant-meta">
-                        <i className="fas fa-venus-mars" style={{ marginRight: '4px', fontSize: '0.85em' }}></i>
-                        Gender: {participantData.gender || '—'}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Success state */}
-                {submitSuccess && (
-                  <div className="fft-volunteers-section fft-vol-success-card">
-                    <div className="fft-vol-success-icon">
-                      <i className="fas fa-check-circle"></i>
-                    </div>
-                    <h3 className="fft-vol-success-title">Results Submitted!</h3>
-                    <p className="fft-vol-success-text">Data has been saved to the spreadsheet.</p>
-                    <button className="fft-volunteers-submit-btn" onClick={this.handleScanAnother}>
-                      <i className="fas fa-qrcode"></i>
-                      Scan Next Participant
-                    </button>
-                  </div>
-                )}
-
-                {/* Input form (hidden after submit success) */}
-                {!submitSuccess && (
-                  <div className="fft-volunteers-section">
-                    <div className="fft-volunteers-section-header">
-                      <span className="fft-volunteers-section-number">3</span>
-                      <h3 className="fft-volunteers-section-title">
-                        Enter Results — {selectedStation.title}
-                      </h3>
-                    </div>
-
-                    {selectedStation.note && (
-                      <div className="fft-vol-note-banner">
-                        <i className="fas fa-info-circle" style={{ marginRight: '6px' }}></i>
-                        {selectedStation.note}
-                      </div>
-                    )}
-
-                    <div className="fft-volunteers-form-grid">
-                      {selectedStation.fields.map((field) => (
-                        <div key={field.key} className="fft-volunteers-field fft-volunteers-field--full">
-                          <label className="fft-volunteers-label">
-                            {field.label} <span style={{ color: '#9e9e9e', fontWeight: 400 }}>({field.labelZh})</span>
-                          </label>
-                          <input
-                            type="text"
-                            inputMode="text"
-                            value={formData[field.key] || ''}
-                            placeholder={field.placeholder}
-                            onChange={(e) => this.handleFieldChange(field.key, e.target.value)}
-                            className="fft-volunteers-input"
-                          />
-                        </div>
-                      ))}
-
-                      {/* Per-station remarks (stations 1-7 only) */}
-                      {selectedStation.remarksKey && (
-                        <div className="fft-volunteers-field fft-volunteers-field--full">
-                          <label className="fft-volunteers-label">
-                            Remarks <span style={{ color: '#9e9e9e', fontWeight: 400 }}>(备注)</span>
-                          </label>
-                          <textarea
-                            value={formData[selectedStation.remarksKey] || ''}
-                            placeholder="Optional remarks for this station"
-                            onChange={(e) => this.handleFieldChange(selectedStation.remarksKey, e.target.value)}
-                            className="fft-volunteers-input"
-                            rows={2}
-                            style={{ resize: 'vertical', minHeight: '48px' }}
-                          />
-                        </div>
-                      )}
-                    </div>
-
-                    {submitError && (
-                      <div className="fft-vol-error-msg" style={{ marginTop: '16px' }}>
-                        <i className="fas fa-exclamation-circle" style={{ marginRight: '6px' }}></i>
-                        {submitError}
-                      </div>
-                    )}
-
-                    <button
-                      className="fft-volunteers-submit-btn"
-                      onClick={this.handleSubmit}
-                      disabled={submitting || selectedStation.fields.filter((f) => f.required !== false).some((f) => !formData[f.key])}
-                      style={{ marginTop: '20px' }}
-                    >
-                      {submitting ? (
-                        <><i className="fas fa-spinner fa-spin"></i>Submitting...</>
-                      ) : (
-                        <><i className="fas fa-paper-plane"></i>Submit Results</>
-                      )}
-                    </button>
-                  </div>
-                )}
-              </>
-            )}
-            </>
+          {selectedEvent && selectedStation && (participantData || lookupError) && (
+            <ResultEntry
+              selectedStation={selectedStation}
+              fileId={fileId}
+              participantData={participantData}
+              entryNumber={entryNumber}
+              lookupError={lookupError}
+              onNextParticipant={this.handleNextParticipant}
+              onBack={() => this.setState({ selectedStation: null, participantData: null, entryNumber: null, lookupError: null })}
+            />
           )}
         </div>
       </div>
