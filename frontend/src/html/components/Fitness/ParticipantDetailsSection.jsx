@@ -14,7 +14,10 @@ export default class ParticipantDetailsSection extends Component {
       onGenderChange,
       onBack,
       onHome,
+      singpassLocked = false,
     } = this.props;
+
+    const lockedStyle = { backgroundColor: '#f3f4f6', color: '#6b7280', cursor: 'not-allowed' };
 
     const texts = {
       en: {
@@ -94,7 +97,9 @@ export default class ParticipantDetailsSection extends Component {
         )}
         <div className="fft-participants-form-grid">
           <div className="fft-participants-field fft-participants-field--full">
-            <label className="fft-participants-label">{t.name}</label>
+            <label className="fft-participants-label">
+              {t.name}
+            </label>
             <input
               className="fft-participants-input"
               name="name"
@@ -102,11 +107,15 @@ export default class ParticipantDetailsSection extends Component {
               onChange={onChange}
               placeholder={t.namePlaceholder}
               required
+              disabled={singpassLocked}
+              style={singpassLocked ? lockedStyle : {}}
             />
           </div>
 
         <div className="fft-participants-field">
-          <label className="fft-participants-label">{t.dob}</label>
+          <label className="fft-participants-label">
+            {t.dob}
+          </label>
           <input
             className="fft-participants-input"
             name="dob"
@@ -114,11 +123,15 @@ export default class ParticipantDetailsSection extends Component {
             onChange={onChange}
             placeholder={t.dobPlaceholder}
             required
+            disabled={singpassLocked}
+            style={singpassLocked ? lockedStyle : {}}
           />
         </div>
 
         <div className="fft-participants-field">
-          <label className="fft-participants-label">{t.gender}</label>
+          <label className="fft-participants-label">
+            {t.gender}
+          </label>
           <div className="fft-participants-gender-group">
             {['M', 'F'].map((g) => {
               const isActive = gender === g;
@@ -128,9 +141,14 @@ export default class ParticipantDetailsSection extends Component {
                   key={g}
                   type="button"
                   className="fft-participants-gender-btn"
-                  onClick={() => onGenderChange(g)}
+                  onClick={() => !singpassLocked && onGenderChange(g)}
                   aria-pressed={isActive}
-                  style={isActive ? { border: `2px solid ${activeColor}`, color: activeColor, background: `${activeColor}1a`, outline: 'none' } : { outline: 'none' }}
+                  disabled={singpassLocked}
+                  style={
+                    singpassLocked
+                      ? { ...(isActive ? { border: `2px solid ${activeColor}`, color: activeColor, background: `${activeColor}1a` } : {}), ...lockedStyle, outline: 'none' }
+                      : isActive ? { border: `2px solid ${activeColor}`, color: activeColor, background: `${activeColor}1a`, outline: 'none' } : { outline: 'none' }
+                  }
                 >
                   {g}
                 </button>

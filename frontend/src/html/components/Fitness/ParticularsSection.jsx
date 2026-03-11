@@ -327,7 +327,8 @@ class ParticularsSection extends Component {
 
   render() {
     const { formData, errors } = this.state;
-    const { language, onBack, onHome } = this.props;
+    const { language, onBack, onHome, singpassLocked = false } = this.props;
+    const lockedStyle = { backgroundColor: '#f3f4f6', color: '#6b7280', cursor: 'not-allowed' };
 
     return (
       <div className="fft-create-file-form">
@@ -346,7 +347,9 @@ class ParticularsSection extends Component {
 
             {/* Name Field - Full width */}
             <div className="fft-create-event-field" style={{ marginTop: '32px' }}>
-              <label className="fft-create-event-label">{this.getTrans('labelName')}</label>
+              <label className="fft-create-event-label">
+                {this.getTrans('labelName')}
+              </label>
               <input
                 type="text"
                 name="name"
@@ -354,6 +357,8 @@ class ParticularsSection extends Component {
                 onChange={this.handleInputChange}
                 placeholder={this.getTrans('placeholderName')}
                 className="fft-create-event-input"
+                disabled={singpassLocked}
+                style={singpassLocked ? lockedStyle : {}}
               />
               {errors.name && (
                 <div className="fft-create-event-error" style={{ marginTop: '8px', marginBottom: '0' }}>
@@ -365,7 +370,9 @@ class ParticularsSection extends Component {
             {/* Date of Birth and Gender - Two columns */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '35px' }}>
               <div>
-                <label className="fft-create-event-label">{this.getTrans('labelDob')}</label>
+                <label className="fft-create-event-label">
+                  {this.getTrans('labelDob')}
+                </label>
                 <input
                   type="text"
                   name="dateOfBirth"
@@ -374,6 +381,8 @@ class ParticularsSection extends Component {
                   onKeyDown={this.handleDateOfBirthKeyDown}
                   placeholder="dd/mm/yyyy"
                   className="fft-create-event-input"
+                  disabled={singpassLocked}
+                  style={singpassLocked ? lockedStyle : {}}
                 />
                 {errors.dateOfBirth && (
                   <div className="fft-create-event-error" style={{ marginTop: '8px', marginBottom: '0' }}>
@@ -383,11 +392,14 @@ class ParticularsSection extends Component {
               </div>
 
               <div>
-                <label className="fft-create-event-label">{this.getTrans('labelGender')}</label>
+                <label className="fft-create-event-label">
+                  {this.getTrans('labelGender')}
+                </label>
                 <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
                   <button
                     type="button"
-                    onClick={() => this.handleGenderChange('M')}
+                    onClick={() => !singpassLocked && this.handleGenderChange('M')}
+                    disabled={singpassLocked}
                     style={{
                       width: '56px',
                       height: '56px',
@@ -398,7 +410,7 @@ class ParticularsSection extends Component {
                       color: formData.gender === 'M' ? '#1565c0' : '#333',
                       fontSize: '20px',
                       fontWeight: formData.gender === 'M' ? '700' : '600',
-                      cursor: 'pointer',
+                      cursor: singpassLocked ? 'not-allowed' : 'pointer',
                       transition: 'all 0.2s ease'
                     }}
                   >
@@ -406,7 +418,8 @@ class ParticularsSection extends Component {
                   </button>
                   <button
                     type="button"
-                    onClick={() => this.handleGenderChange('F')}
+                    onClick={() => !singpassLocked && this.handleGenderChange('F')}
+                    disabled={singpassLocked}
                     style={{
                       width: '56px',
                       height: '56px',
@@ -417,7 +430,7 @@ class ParticularsSection extends Component {
                       color: formData.gender === 'F' ? '#e91e8c' : '#333',
                       fontSize: '20px',
                       fontWeight: formData.gender === 'F' ? '700' : '600',
-                      cursor: 'pointer',
+                      cursor: singpassLocked ? 'not-allowed' : 'pointer',
                       transition: 'all 0.2s ease'
                     }}
                   >

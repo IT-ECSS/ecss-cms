@@ -4,6 +4,7 @@ import ParticipantEntryMethod from './ParticipantEntryMethod';
 import ParticularsSection from './ParticularsSection';
 import HealthDeclarationSection from './HealthDeclarationSection';
 import IndemnitySection from './IndemnitySection';
+import { getSingPassUserDataJSON } from '../../../utils/singpassData';
 
 
 class ParticipantForm extends Component {
@@ -13,6 +14,7 @@ class ParticipantForm extends Component {
     particularsData: null,
     healthData: null,
     indemnityData: null,
+    singpassFormData: null,
   };
 
   particularsRef = React.createRef();
@@ -20,7 +22,57 @@ class ParticipantForm extends Component {
   indemnityRef = React.createRef();
 
   resetForm = () => {
-    this.setState({ entryMethod: null, currentStep: 1 });
+    this.setState({ entryMethod: null, currentStep: 1, singpassFormData: null });
+  };
+
+  // Extract mobile number from SingPass mobileno field
+  extractMobile = (mobileData) => {
+    if (!mobileData) return '';
+    if (typeof mobileData === 'object' && mobileData.nbr) {
+      return mobileData.nbr.value || mobileData.nbr || '';
+    }
+    if (typeof mobileData === 'string' || typeof mobileData === 'number') {
+      let m = String(mobileData).trim();
+      if (m.startsWith('+65')) m = m.substring(3);
+      if (m.startsWith('65') && m.length === 10) m = m.substring(2);
+      return m;
+    }
+    return '';
+  };
+
+  // Calculate age from dd/mm/yyyy
+  calcAge = (dob) => {
+    if (!dob) return '';
+    const parts = dob.split('/');
+    if (parts.length !== 3) return '';
+    const [dd, mm, yyyy] = parts;
+    const birth = new Date(parseInt(yyyy), parseInt(mm) - 1, parseInt(dd));
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+    return String(age);
+  };
+
+  handleUseSingpass = () => {
+    const userData = getSingPassUserDataJSON();
+    let singpassFormData = null;
+    if (userData) {
+      const dob = userData.dob?.formattedDate1 || (typeof userData.dob === 'string' ? userData.dob : '');
+      // Gender: SingPass returns 'M'/'F' or structured object
+      let gender = '';
+      if (typeof userData.sex === 'string') gender = userData.sex.charAt(0).toUpperCase();
+      else if (userData.sex?.value) gender = String(userData.sex.value).charAt(0).toUpperCase();
+      else if (userData.sex?.code) gender = String(userData.sex.code).charAt(0).toUpperCase();
+      singpassFormData = {
+        name: userData.name ? userData.name.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) : '',
+        dateOfBirth: dob,
+        gender: gender === 'M' || gender === 'F' ? gender : '',
+        age: this.calcAge(dob),
+        phone: this.extractMobile(userData.mobileno),
+      };
+    }
+    this.setState({ entryMethod: 'singpass', currentStep: 2, singpassFormData });
   };
 
   handleBack = () => {
@@ -44,7 +96,7 @@ class ParticipantForm extends Component {
   };
 
   render() {
-    const { currentStep, entryMethod } = this.state;
+    const { currentStep, entryMethod, singpassFormData } = this.state;
     const { language, event, onBack, onHome } = this.props;
     const eventName = event ? (typeof event === 'string' ? event : event.name) : '';
 
@@ -73,19 +125,20 @@ class ParticipantForm extends Component {
           <ParticipantEntryMethod
             language={language}
             eventName={eventName}
-            onUseSingpass={() => this.setState({ entryMethod: 'singpass', currentStep: 2 })}
+            onUseSingpass={this.handleUseSingpass}
             onUseManual={() => this.setState({ entryMethod: 'manual', currentStep: 2 })}
             onBack={() => onBack?.()}
             onHome={() => onHome?.()}
           />
         )}
 
-        {/* Step 2: Manual entry - Particulars section */}
-        {currentStep === 2 && entryMethod === 'manual' && (
+        {/* Step 2: Particulars section (manual or SingPass pre-filled) */}
+        {currentStep === 2 && (entryMethod === 'manual' || entryMethod === 'singpass') && (
           <ParticularsSection
             ref={this.particularsRef}
             language={language}
-            formData={this.state.particularsData || this.props.formData}
+            formData={this.state.particularsData || singpassFormData || this.props.formData}
+            singpassLocked={entryMethod === 'singpass'}
             onSubmit={(data) => {
               this.setState({ particularsData: data, currentStep: 3 });
             }}
