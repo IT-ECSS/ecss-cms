@@ -2494,16 +2494,8 @@ class FormPage extends Component {
              * assume Chinese if a Chinese name exists, else English.
              */}
             {(() => {
-              const singPassTexts = {
-                en: 'Retrieve Myinfo with',
-                zh: '使用 Myinfo 检索',
-                ms: 'Dapatkan Myinfo dengan',
-              };
-
-              const sLang = formData.isMalayLanguage ? 'ms' : (formData.chineseName ? 'zh' : 'en');
               return (
                 <SingPassButton 
-                  buttonText={singPassTexts[sLang]}
                   onAuthenticationSuccess={this.handleSingPassSuccess}
                   onMyInfoError={this.handleMyInfoError}
                   errorHandler={this.realTimeErrorHandler}
