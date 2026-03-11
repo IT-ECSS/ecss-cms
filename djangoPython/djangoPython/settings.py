@@ -76,6 +76,7 @@ CSRF_TRUSTED_ORIGINS = [
       'https://169.254.131.2',
       'https://169.254.130.3',
       'https://169.254.130.4',
+      'https://169.254.129.2',
       'https://ecss.org.sg'
   ]
 # 
@@ -89,6 +90,7 @@ CORS_ALLOWED_ORIGINS = [
       'https://169.254.131.2',
       'https://169.254.130.3',
       'https://169.254.130.4',
+      'https://169.254.129.2',
       'https://ecss.org.sg'
   ]
 
