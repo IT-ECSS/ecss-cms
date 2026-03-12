@@ -247,33 +247,25 @@ class ParticularsSection extends Component {
     const { formData } = this.state;
     const errors = {};
 
-    if (!formData.name.trim()) errors.name = 'Name is required';
+    if (!formData.name.trim()) errors.name = this.getTrans('errNameRequired');
     if (!formData.dateOfBirth.trim()) {
-      errors.dateOfBirth = 'Date of birth is required';
+      errors.dateOfBirth = this.getTrans('errDobRequired');
     } else if (!this.validateDateOfBirth(formData.dateOfBirth)) {
-      errors.dateOfBirth = 'Date of birth must be in dd/mm/yyyy format';
+      errors.dateOfBirth = this.getTrans('errDobRequired');
     }
-    if (!formData.gender) errors.gender = 'Gender is required';
+    if (!formData.gender) errors.gender = this.getTrans('errGenderRequired');
     if (!formData.phone.trim()) {
-      errors.phone = 'Phone number is required';
+      errors.phone = this.getTrans('errPhoneRequired');
     } else {
-      const messages = [];
       const startsWithValid = /^[89]/.test(formData.phone);
       const isEightDigits = formData.phone.length === 8;
 
       if (startsWithValid && !isEightDigits) {
-        // Starts with correct digit but wrong length - only show length message
-        messages.push('must be 8 digits long');
+        errors.phone = this.getTrans('errPhoneInvalidLength');
       } else if (!startsWithValid && isEightDigits) {
-        // Has correct length but wrong start - only show start message
-        messages.push('must start with 8 or 9');
+        errors.phone = this.getTrans('errPhoneInvalidStart');
       } else if (!startsWithValid && !isEightDigits) {
-        // Both are wrong - show both messages
-        messages.push('must be 8 digits long');
-        messages.push('must start with 8 or 9');
-      }
-      if (messages.length > 0) {
-        errors.phone = 'Phone number ' + messages.join(' and ');
+        errors.phone = this.getTrans('errPhoneInvalidBoth');
       }
     }
 
@@ -461,7 +453,7 @@ class ParticularsSection extends Component {
               </div>
 
               <div>
-                <label className="fft-create-event-label">Contact Number</label>
+                <label className="fft-create-event-label">{this.getTrans('labelContactNumber')}</label>
                 <input
                   type="text"
                   name="phone"

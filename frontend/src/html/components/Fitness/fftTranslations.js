@@ -83,6 +83,11 @@ const fftTranslations = {
     zh: '电话',
     ms: 'No. Telefon',
   },
+  labelContactNumber: {
+    en: 'Contact Number',
+    zh: '联系号码',
+    ms: 'Nombor Hubungan',
+  },
   placeholderPhone: {
     en: 'e.g. 91234567',
     zh: '例如 91234567',
@@ -197,8 +202,8 @@ const fftTranslations = {
   },
   errDobRequired: {
     en: 'Please enter a valid date of birth (dd/mm/yyyy)',
-    zh: '请输入有效的出生日期 (dd/mm/yyyy)',
-    ms: 'Sila masukkan tarikh lahir yang sah (dd/mm/yyyy)',
+    zh: '请输入有效的出生日期（日/月/年）',
+    ms: 'Sila masukkan tarikh lahir yang sah (hh/bb/tttt)',
   },
   errGenderRequired: {
     en: 'Please select your gender',
@@ -209,6 +214,21 @@ const fftTranslations = {
     en: 'Please enter your phone number',
     zh: '请输入您的电话号码',
     ms: 'Sila masukkan nombor telefon anda',
+  },
+  errPhoneInvalidLength: {
+    en: 'Phone number must be 8 digits long',
+    zh: '电话号码必须是8位数字',
+    ms: 'Nombor telefon mestilah 8 digit',
+  },
+  errPhoneInvalidStart: {
+    en: 'Phone number must start with 8 or 9',
+    zh: '电话号码必须以8或9开头',
+    ms: 'Nombor telefon mestilah bermula dengan 8 atau 9',
+  },
+  errPhoneInvalidBoth: {
+    en: 'Phone number must be 8 digits long and start with 8 or 9',
+    zh: '电话号码必须是8位数字且以8或9开头',
+    ms: 'Nombor telefon mestilah 8 digit dan bermula dengan 8 atau 9',
   },
   errTestDateRequired: {
     en: 'Please enter a valid test date (dd/mm/yyyy)',

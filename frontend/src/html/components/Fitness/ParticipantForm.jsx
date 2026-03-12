@@ -88,7 +88,8 @@ class ParticipantForm extends Component {
     } else if (currentStep === 3) {
       this.setState({ currentStep: 2 });
     } else if (currentStep === 4) {
-      this.setState({ currentStep: 3 });
+      const indemnityData = this.indemnityRef.current?.getCurrentData?.() || null;
+      this.setState({ currentStep: 3, indemnityData });
     }
   };
 

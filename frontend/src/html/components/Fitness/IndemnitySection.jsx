@@ -106,6 +106,13 @@ class IndemnitySection extends Component {
     return Object.keys(errors).length === 0;
   };
 
+  getCurrentData = () => {
+    const { agreed, hasSignature } = this.state;
+    const canvas = this.canvasRef.current;
+    const signature = hasSignature && canvas ? canvas.toDataURL('image/png') : null;
+    return { agreed, signature };
+  };
+
   handleSubmit = () => {
     if (this.validateForm()) {
       const canvas = this.canvasRef.current;
@@ -223,14 +230,15 @@ class IndemnitySection extends Component {
                     type="button"
                     onClick={this.clearSignature}
                     style={{
-                      marginTop: '6px',
+                      marginTop: '8px',
                       background: 'none',
-                      border: 'none',
+                      border: '1.5px solid #d32f2f',
+                      borderRadius: '6px',
                       color: '#d32f2f',
                       cursor: 'pointer',
-                      fontSize: '0.8em',
+                      fontSize: '0.9em',
                       fontWeight: 600,
-                      padding: 0,
+                      padding: '6px 14px',
                     }}
                   >
                     ✕ {language === 'zh' ? '清除签名' : language === 'ms' ? 'Padam tandatangan' : 'Clear signature'}

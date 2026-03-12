@@ -26,14 +26,39 @@ class ResultEntry extends Component {
       submitting: false,
       submitSuccess: false,
       submitError: null,
+      fieldErrors: {},
     };
+  }
+
+  // ── Populate form when participantData arrives ──
+  componentDidUpdate(prevProps) {
+    const { selectedStation, participantData } = this.props;
+    if (participantData && prevProps.participantData !== participantData && selectedStation) {
+      const existingData = {};
+      selectedStation.fields.forEach((f) => {
+        existingData[f.key] = participantData[f.key] || '';
+      });
+      this.setState({ formData: existingData, fieldErrors: {} });
+    }
   }
 
   // ── Form Input ──
   handleFieldChange = (key, value) => {
     this.setState((prev) => ({
       formData: { ...prev.formData, [key]: value },
+      fieldErrors: { ...prev.fieldErrors, [key]: null },
     }));
+  };
+
+  // ── Reset ──
+  handleReset = () => {
+    const { selectedStation } = this.props;
+    const emptyData = {};
+    if (selectedStation) {
+      selectedStation.fields.forEach((f) => { emptyData[f.key] = ''; });
+      if (selectedStation.remarksKey) emptyData[selectedStation.remarksKey] = '';
+    }
+    this.setState({ formData: emptyData, fieldErrors: {}, submitError: null });
   };
 
   // ── Submit ──
@@ -42,6 +67,18 @@ class ResultEntry extends Component {
     const { formData } = this.state;
 
     if (!fileId || entryNumber == null) return;
+
+    // Field-level validation (remarks excluded)
+    const fieldErrors = {};
+    selectedStation.fields.forEach((f) => {
+      if (f.required !== false && !formData[f.key]) {
+        fieldErrors[f.key] = f.validationMessage || 'This field is required.';
+      }
+    });
+    if (Object.keys(fieldErrors).length > 0) {
+      this.setState({ fieldErrors });
+      return;
+    }
 
     const updates = {};
 
@@ -86,8 +123,23 @@ class ResultEntry extends Component {
   };
 
   render() {
-    const { selectedStation, participantData, entryNumber, lookupError, onNextParticipant } = this.props;
-    const { formData, submitting, submitSuccess, submitError } = this.state;
+    const { selectedStation, participantData, entryNumber, lookupError, onNextParticipant, loading } = this.props;
+    const { formData, submitting, submitSuccess, submitError, fieldErrors } = this.state;
+
+    if (loading) {
+      return (
+        <>
+          <div>
+            <h3 className="fft-result-entry-section-title">Enter Results</h3>
+          </div>
+          <hr style={{ margin: '12px 0' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '48px 16px', gap: 12 }}>
+            <i className="fas fa-spinner fa-spin" style={{ fontSize: '2rem', color: '#1565c0' }}></i>
+            <span style={{ color: '#555', fontSize: '1em' }}>Loading participant data...</span>
+          </div>
+        </>
+      );
+    }
 
     if (lookupError) {
       return (
@@ -108,7 +160,7 @@ class ResultEntry extends Component {
       <>
         {/* Title + divider + description */}
         <div>
-          <h3 className="fft-result-entry-section-title">Enter Results — {selectedStation.title}</h3>
+          <h3 className="fft-result-entry-section-title">Enter Results</h3>
         </div>
         <hr style={{ margin: '12px 0' }} />
         <p className="fft-result-entry-section-desc">Key in the participant's result and tap Submit to save.</p>
@@ -186,7 +238,13 @@ class ResultEntry extends Component {
                         placeholder={field.placeholder}
                         onChange={(e) => this.handleFieldChange(field.key, e.target.value)}
                         className="fft-result-entry-input"
+                        style={fieldErrors[field.key] ? { borderColor: '#d32f2f' } : {}}
                       />
+                      {fieldErrors[field.key] && (
+                        <div style={{ color: '#d32f2f', fontSize: '1.23em', marginTop: '4px', fontWeight: 700 }}>
+                          {fieldErrors[field.key]}
+                        </div>
+                      )}
                     </div>
                   ))}
 
@@ -218,27 +276,32 @@ class ResultEntry extends Component {
                   </div>
                 )}
 
-                <button
-                  className="fft-result-entry-submit-btn"
-                  onClick={this.handleSubmit}
-                  disabled={
-                    submitting ||
-                    selectedStation.fields
-                      .filter((f) => f.required !== false)
-                      .some((f) => !formData[f.key])
-                  }
-                  style={{ marginTop: '20px' }}
-                >
-                  {submitting ? (
-                    <>
-                      <i className="fas fa-spinner fa-spin"></i>Submitting...
-                    </>
-                  ) : (
-                    <>
-                      <i className="fas fa-paper-plane"></i>Submit Results
-                    </>
-                  )}
-                </button>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
+                  <button
+                    className="fft-result-entry-submit-btn"
+                    onClick={this.handleReset}
+                    disabled={submitting}
+                    style={{ flex: 1, background: 'none', border: '1.5px solid #9e9e9e', color: '#555', boxShadow: 'none' }}
+                  >
+                    <i className="fas fa-undo"></i>Clear
+                  </button>
+                  <button
+                    className="fft-result-entry-submit-btn"
+                    onClick={this.handleSubmit}
+                    disabled={submitting}
+                    style={{ flex: 1 }}
+                  >
+                    {submitting ? (
+                      <>
+                        <i className="fas fa-spinner fa-spin"></i>Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <i className="fas fa-paper-plane"></i>Submit
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             )}
       </>
