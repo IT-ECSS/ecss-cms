@@ -1,5 +1,4 @@
 import React, { Component } from "react";
-import '../../../css/popupMessage.css'; // Corrected import path for modal popup styles
 import '../../../css/popup/popup.css'; // Corrected import path for modal popup styles
 import axios from 'axios';
 
@@ -1003,11 +1002,11 @@ class Popup extends Component {
             <p>{message}</p>
           </div>
           ):type === "sendOver" ? (
-            <div className="payment-advice-modal">
+            <div className="payment-advice-modal-new">
               <p>{message}</p>
-              <div className="confirmation-buttons">
-                <button onClick={() => this.handleSendOver(this.props.id)} className="confirm-btn">Confirm</button>
-                <button onClick={this.cancel} className="cancel-btn">Cancel</button>
+              <div className="confirmation-buttons-new">
+                <button onClick={() => this.handleSendOver(this.props.id)} className="confirm-btn-new">Confirm</button>
+                <button onClick={this.cancel} className="cancel-btn-new">Cancel</button>
               </div>
             </div>
           ):type === "delete" ? (

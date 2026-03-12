@@ -775,3 +775,41 @@
     margin-left: 0;
   }
 }
+
+/* New payment advice modal styling */
+.payment-advice-modal-new {
+  background-color: #000 !important;
+  color: #fff !important;
+  border-radius: 8px;
+  padding: 1.5rem;
+  text-align: center;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);
+  font-weight: bold;
+}
+
+/* Container */
+.confirmation-buttons-new {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-left: 25%;
+  margin-right: 25%;
+}
+
+/* Buttons */
+.confirm-btn-new,
+.cancel-btn-new {
+  font-weight: bold;
+  font-size: 1em;
+}
+
+
+/* Confirm = Blue */
+.confirm-btn-new {
+  background-color: blue;
+}
+
+/* Cancel = Red */
+.cancel-btn-new {
+  background-color: red;
+}

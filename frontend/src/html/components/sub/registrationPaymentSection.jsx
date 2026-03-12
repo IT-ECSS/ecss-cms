@@ -2953,15 +2953,10 @@ debugMarriagePrepData = () => {
         {
           console.log("Entry (Sending Payment Details):", event.data.sendDetails);
             console.log("Entry (Contact Number):", event.data.paymentStatus,  courseType);
-            if(participantInfo && participantInfo.contactNumber && courseInfo.payment === "SkillsFuture")
-            {
-              const phoneNumber = participantInfo.contactNumber.replace(/\D/g, ""); // Remove non-numeric characters
-              const message = `${participantInfo.name} - ${courseInfo.courseEngName} invoice for your SkillsFuture submission
-              HOW TO CLAIM SKILLFUTURE
-              Please ensure that the details are accurate before submission.
-              🔴 Please send us a screenshot of your submission once done.
-              HOW TO CLAIM SKILLFUTURE: https://ecss.org.sg/wp-content/uploads/2025/07/Step-by-step-guide-on-how-to-do-Skillsfuture-claim-submission.pdf`;
-
+            let phoneNumber, message, whatsappWebURL;
+            if (participantInfo && participantInfo.contactNumber && courseInfo.payment === "SkillsFuture") {
+              phoneNumber = participantInfo.contactNumber.replace(/\D/g, "");
+              message = `${participantInfo.name} - ${courseInfo.courseEngName} invoice for your SkillsFuture submission\nHOW TO CLAIM SKILLFUTURE\nPlease ensure that the details are accurate before submission.\n🔴 Please send us a screenshot of your submission once done.\nHOW TO CLAIM SKILLFUTURE: https://ecss.org.sg/wp-content/uploads/2025/07/Step-by-step-guide-on-how-to-do-Skillsfuture-claim-submission.pdf`;
               logMessageSend({
                 userName: this.props.userName,
                 module: "Registration And Payment",
@@ -2970,27 +2965,16 @@ debugMarriagePrepData = () => {
                 courseEngName: courseInfo.courseEngName,
                 messageType: "SkillsFuture Invoice Instructions"
               });
-            }
-            else if (
+              whatsappWebURL = `https://web.whatsapp.com/send?phone=+65${phoneNumber}&text=${encodeURIComponent(message)}`;
+              window.open(whatsappWebURL, "_blank");
+            } else if (
               participantInfo &&
               participantInfo.contactNumber &&
-              (courseInfo.payment === "PayNow" || courseInfo.payment === "Cash")
-              && courseInfo.courseType === "NSA" 
+              (courseInfo.payment === "PayNow" || courseInfo.payment === "Cash") && courseInfo.courseType === "NSA"
             ) {
-              console.log("Open Whatsapp Web for PayNow or Cash - NSA");
-              const phoneNumber = participantInfo.contactNumber.replace(/\D/g, ""); // Remove non-numeric characters
-              let message = `${courseInfo.courseEngName} - ${courseInfo.courseDuration.split("–")[0]}
-              Course subsidy applies to only Singaporeans and PRs aged 50yrs and above
-              Hi ${participantInfo.name}, 
-              Thank you for signing up for the above-mentioned class. 
-              Details are as follows:
-              Price: ${courseInfo.coursePrice}
-              Payment to be made via Paynow to UEN no: T03SS0051L (En Community Services Society) 
-              Under the "reference portion", kindly insert your name as per NRIC. 
-              Once payment has gone through, take a screenshot of the payment receipt on your phone and send it over to us. 
-              Thank you.`;
-
-              // Audit log for NSA payment instructions message
+              phoneNumber = participantInfo.contactNumber.replace(/\D/g, "");
+              const courseDurationNSA = courseInfo.courseDuration && courseInfo.courseDuration.includes("–") ? courseInfo.courseDuration.split("–")[0] : courseInfo.courseDuration || "";
+              message = `${courseInfo.courseEngName} - ${courseDurationNSA}\nCourse subsidy applies to only Singaporeans and PRs aged 50yrs and above\nHi ${participantInfo.name}, \nThank you for signing up for the above-mentioned class. \nDetails are as follows:\nPrice: ${courseInfo.coursePrice}\nPayment to be made via Paynow to UEN no: T03SS0051L (En Community Services Society) \nUnder the "reference portion", kindly insert your name as per NRIC. \nOnce payment has gone through, take a screenshot of the payment receipt on your phone and send it over to us.\nThank you.`;
               logMessageSend({
                 userName: this.props.userName,
                 module: "Registration And Payment",
@@ -2999,20 +2983,15 @@ debugMarriagePrepData = () => {
                 courseEngName: courseInfo.courseEngName,
                 messageType: "NSA Payment Instructions (PayNow/Cash)"
               });
-            }
-              else if (
+              whatsappWebURL = `https://web.whatsapp.com/send?phone=+65${phoneNumber}&text=${encodeURIComponent(message)}`;
+              window.open(whatsappWebURL, "_blank");
+            } else if (
               participantInfo &&
               participantInfo.contactNumber &&
-              event.data.paymentStatus === "Pending"  
+              event.data.paymentStatus === "Pending"
             ) {
-              const phoneNumber = participantInfo.contactNumber.replace(/\D/g, ""); // Remove non-numeric characters
-              let message = `Hi ${participantInfo.name},
-                            Thank you for registering for ${courseInfo.courseEngName}.
-                            We’re sorry to inform you that the course is currently full.
-
-                            We appreciate your interest and will be in touch should a spot become available.`;
-
-              // Audit log for pending/course full notification
+              phoneNumber = participantInfo.contactNumber.replace(/\D/g, "");
+              message = `Hi ${participantInfo.name},\nThank you for registering for ${courseInfo.courseEngName}.\nWe’re sorry to inform you that the course is currently full.\n\nWe appreciate your interest and will be in touch should a spot become available.`;
               logMessageSend({
                 userName: this.props.userName,
                 module: "Registration And Payment",
@@ -3021,24 +3000,16 @@ debugMarriagePrepData = () => {
                 courseEngName: courseInfo.courseEngName,
                 messageType: "Course Full Notification"
               });
-            }
-            else if (
+              // Do NOT open WhatsApp for course full notification
+            } else if (
               participantInfo &&
               participantInfo.contactNumber &&
-              event.data.paymentStatus === "Confirmed" &&
-              courseInfo.courseType === "ILP" 
+              event.data.paymentStatus === "Confirmed" && courseInfo.courseType === "ILP"
             ) {
-              const phoneNumber = participantInfo.contactNumber.replace(/\D/g, ""); // Remove non-numeric characters
-              let message = `Hi ${participantInfo.name},
-                            Thank you for your support.
-                           We wish to confirm your place for ${courseInfo.courseEngName} on ${courseInfo.courseDuration.split("-")[0]} ${courseInfo.courseTime.split("–")[0]} at ${courseInfo.courseLocation}.
-                           Please contact this number if your require more information.
-                           Thank you.`;
-              const whatsappWebURL = `https://web.whatsapp.com/send?phone=+65${phoneNumber}&text=${encodeURIComponent(message)}`;
-              console.log("Whatsapp Link:", whatsappWebURL)
-              window.open(whatsappWebURL, "_blank"); // Opens in a new browser tab
-
-              // Audit log for ILP confirmation message
+              phoneNumber = participantInfo.contactNumber.replace(/\D/g, "");
+              const courseDurationILP = courseInfo.courseDuration && courseInfo.courseDuration.includes("-") ? courseInfo.courseDuration.split("-")[0] : courseInfo.courseDuration || "";
+              const courseTimeILP = courseInfo.courseTime && courseInfo.courseTime.includes("–") ? courseInfo.courseTime.split("–")[0] : courseInfo.courseTime || "";
+              message = `Hi ${participantInfo.name},\nThank you for your support.\nWe wish to confirm your place for ${courseInfo.courseEngName} on ${courseDurationILP} ${courseTimeILP} at ${courseInfo.courseLocation}.\nPlease contact this number if your require more information.\nThank you.`;
               logMessageSend({
                 userName: this.props.userName,
                 module: "Registration And Payment",
@@ -3047,24 +3018,17 @@ debugMarriagePrepData = () => {
                 courseEngName: courseInfo.courseEngName,
                 messageType: "ILP Confirmation"
               });
-            }
-             else if (
+              whatsappWebURL = `https://web.whatsapp.com/send?phone=+65${phoneNumber}&text=${encodeURIComponent(message)}`;
+              window.open(whatsappWebURL, "_blank");
+            } else if (
               participantInfo &&
               participantInfo.contactNumber &&
-              event.data.paymentStatus === "Confirmed" &&
-              courseInfo.courseType === "Talks And Seminar" 
+              event.data.paymentStatus === "Confirmed" && courseInfo.courseType === "Talks And Seminar"
             ) {
-              const phoneNumber = participantInfo.contactNumber.replace(/\D/g, ""); // Remove non-numeric characters
-              let message = `Hi ${participantInfo.name},
-                            Thank you for your your support.
-                           We wish to confirm your place for ${courseInfo.courseEngName} on ${courseInfo.courseDuration.split("-")[0]} ${courseInfo.courseTime.split("–")[0]} at ${courseInfo.courseLocation}.
-                           Please contact this number if your require more information.
-                           Thank you.`;
-              const whatsappWebURL = `https://web.whatsapp.com/send?phone=+65${phoneNumber}&text=${encodeURIComponent(message)}`;
-              console.log("Whatsapp Link:", whatsappWebURL)
-              window.open(whatsappWebURL, "_blank"); // Opens in a new browser tab
-
-              // Audit log for Talks And Seminar confirmation message
+              phoneNumber = participantInfo.contactNumber.replace(/\D/g, "");
+              const courseDurationTalks = courseInfo.courseDuration && courseInfo.courseDuration.includes("-") ? courseInfo.courseDuration.split("-")[0] : courseInfo.courseDuration || "";
+              const courseTimeTalks = courseInfo.courseTime && courseInfo.courseTime.includes("–") ? courseInfo.courseTime.split("–")[0] : courseInfo.courseTime || "";
+              message = `Hi ${participantInfo.name},\nThank you for your your support.\nWe wish to confirm your place for ${courseInfo.courseEngName} on ${courseDurationTalks} ${courseTimeTalks} at ${courseInfo.courseLocation}.\nPlease contact this number if your require more information.\nThank you.`;
               logMessageSend({
                 userName: this.props.userName,
                 module: "Registration And Payment",
@@ -3073,9 +3037,11 @@ debugMarriagePrepData = () => {
                 courseEngName: courseInfo.courseEngName,
                 messageType: "Talks And Seminar Confirmation"
               });
+              whatsappWebURL = `https://web.whatsapp.com/send?phone=+65${phoneNumber}&text=${encodeURIComponent(message)}`;
+              window.open(whatsappWebURL, "_blank");
             }
             console.log("Submitted Id:", id);
-             await this.sendDetails(id);
+            await this.sendDetails(id);
             //await this.refreshChild();
         }
       }
