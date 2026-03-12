@@ -1,6 +1,8 @@
 import React, { Component } from "react";
-import '../../../css/popup/popup.css'; // Import CSS for popup styles
+import '../../../css/popupMessage.css'; // Corrected import path for modal popup styles
+import '../../../css/popup/popup.css'; // Corrected import path for modal popup styles
 import axios from 'axios';
+
 class Popup extends Component {
   constructor(props) {
     super(props);
@@ -1001,7 +1003,7 @@ class Popup extends Component {
             <p>{message}</p>
           </div>
           ):type === "sendOver" ? (
-            <div className="confirmation-message">
+            <div className="payment-advice-modal">
               <p>{message}</p>
               <div className="confirmation-buttons">
                 <button onClick={() => this.handleSendOver(this.props.id)} className="confirm-btn">Confirm</button>

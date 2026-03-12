@@ -1,0 +1,173 @@
+/* Dedicated styles for sendOver modal */
+.sendOver {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+}
+.sendOver .payment-advice-modal {
+  background: #181818;
+  color: #fff;
+  border-radius: 12px;
+  padding: 32px 24px 24px 24px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  min-width: 340px;
+  max-width: 90vw;
+  text-align: center;
+}
+.sendOver .payment-advice-modal p {
+  font-size: 1.15rem;
+  margin-bottom: 24px;
+}
+.sendOver .confirmation-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 16px;
+}
+.sendOver .confirm-btn {
+  background: #22c55e;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 32px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.sendOver .confirm-btn:hover {
+  background: #16a34a;
+}
+.sendOver .cancel-btn {
+  background: #444;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 32px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.sendOver .cancel-btn:hover {
+  background: #222;
+}
+/* Improved modal popup styles */
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.confirmation-message {
+  background: #181818;
+  color: #fff;
+  border-radius: 12px;
+  padding: 32px 24px 24px 24px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  min-width: 340px;
+  max-width: 90vw;
+  text-align: center;
+}
+
+.confirmation-message p {
+  font-size: 1.15rem;
+  margin-bottom: 24px;
+}
+
+.confirmation-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.confirm-btn {
+  background: #22c55e;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 32px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.confirm-btn:hover {
+  background: #16a34a;
+}
+
+.cancel-btn {
+  background: #444;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 32px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.cancel-btn:hover {
+  background: #222;
+}
+
+/* Add this to your CSS file (frontend/src/css/popupMessage.css) */
+.payment-advice-modal {
+  background: #181818;
+  color: #fff;
+  border-radius: 12px;
+  padding: 32px 24px 24px 24px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  min-width: 340px;
+  max-width: 90vw;
+  text-align: center;
+}
+.payment-advice-modal p {
+  font-size: 1.15rem;
+  margin-bottom: 24px;
+}
+.payment-advice-modal .confirmation-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 16px;
+}
+.payment-advice-modal .confirm-btn {
+  background: #22c55e;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 32px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.payment-advice-modal .confirm-btn:hover {
+  background: #16a34a;
+}
+.payment-advice-modal .cancel-btn {
+  background: #444;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 32px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.payment-advice-modal .cancel-btn:hover {
+  background: #222;
+}

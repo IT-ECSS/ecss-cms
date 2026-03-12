@@ -770,28 +770,6 @@ class RegistrationPaymentSection extends Component {
       }
     };
   
-    // Helper to send WhatsApp message
-  generatedWhatsappMessage = async (participantInfo, courseInfo, template, purpose) => {
-    try {
-      console.log("Sending WhatsApp message with template", participantInfo, courseInfo, template, purpose);
-      const payload = {
-        phoneNumber: participantInfo.contactNumber,
-        name: participantInfo.name,
-        course: courseInfo.courseEngName,
-        location: courseInfo.courseLocation,
-        date: courseInfo.courseDuration.split(' - ')[0],
-        template,
-        purpose
-      };
-      await axios.post(
-        `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/whatsapp`,
-        payload
-      );
-      console.log("WhatsApp message sent successfully");
-    } catch (error) {
-      console.error("Failed to send WhatsApp message:", error?.response?.data || error.message);
-    }
-  }
 
     createReceiptInDatabase = async (receiptNo, location, registration_id, url) => {
       try {
@@ -2250,7 +2228,6 @@ class RegistrationPaymentSection extends Component {
       field: "course",
       width: 350,
     },
-    { headerName: "Payment Method", field: "payment", width: 250},
     {
       headerName: "Course Mode",
       field: "courseMode",
@@ -2980,14 +2957,11 @@ debugMarriagePrepData = () => {
             {
               const phoneNumber = participantInfo.contactNumber.replace(/\D/g, ""); // Remove non-numeric characters
               const message = `${participantInfo.name} - ${courseInfo.courseEngName} invoice for your SkillsFuture submission
+              HOW TO CLAIM SKILLFUTURE
               Please ensure that the details are accurate before submission.
               🔴 Please send us a screenshot of your submission once done.
-              More Information: https://ecss.org.sg/wp-content/uploads/2025/07/Step-by-step-guide-on-how-to-do-Skillsfuture-claim-submission.pdf`;
+              HOW TO CLAIM SKILLFUTURE: https://ecss.org.sg/wp-content/uploads/2025/07/Step-by-step-guide-on-how-to-do-Skillsfuture-claim-submission.pdf`;
 
-              const whatsappWebURL = `https://web.whatsapp.com/send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
-              window.open(whatsappWebURL, "_blank"); // Opens in a new browser tab
-
-              // Audit log for SkillsFuture invoice message
               logMessageSend({
                 userName: this.props.userName,
                 module: "Registration And Payment",
@@ -3015,9 +2989,6 @@ debugMarriagePrepData = () => {
               Under the "reference portion", kindly insert your name as per NRIC. 
               Once payment has gone through, take a screenshot of the payment receipt on your phone and send it over to us. 
               Thank you.`;
-              const whatsappWebURL = `https://web.whatsapp.com/send?phone=+65${phoneNumber}&text=${encodeURIComponent(message)}`;
-              window.open(whatsappWebURL, "_blank");
-              console.log("Whatsapp Link:", whatsappWebURL)
 
               // Audit log for NSA payment instructions message
               logMessageSend({
@@ -3040,9 +3011,6 @@ debugMarriagePrepData = () => {
                             We’re sorry to inform you that the course is currently full.
 
                             We appreciate your interest and will be in touch should a spot become available.`;
-              const whatsappWebURL = `https://web.whatsapp.com/send?phone=+65${phoneNumber}&text=${encodeURIComponent(message)}`;
-              console.log("Whatsapp Link:", whatsappWebURL)
-              window.open(whatsappWebURL, "_blank"); // Opens in a new browser tab
 
               // Audit log for pending/course full notification
               logMessageSend({
@@ -4055,10 +4023,6 @@ debugMarriagePrepData = () => {
 
     console.log("RefreshChild called - fetching new data");
 
-    // Reset filters/search (if parent provides a handler)
-    if (typeof this.props.onClearFilters === 'function') {
-      this.props.onClearFilters();
-    }
 
     // Save scroll information before fetching data
     const gridContainer = document.querySelector('.ag-body-viewport');
@@ -4085,10 +4049,13 @@ debugMarriagePrepData = () => {
           console.log("Re-applying filters after data refresh");
           this.filterRegistrationDetails();
 
-          // Restore scroll position
-          if (gridContainer) {
-            gridContainer.scrollTop = currentScrollTop;
-          }
+
+          // Restore scroll position after grid rendering
+          setTimeout(() => {
+            if (gridContainer) {
+              gridContainer.scrollTop = currentScrollTop;
+            }
+          }, 100);
 
           this.props.closePopup();
         }
@@ -4713,7 +4680,7 @@ debugMarriagePrepData = () => {
     return (
       <div className="registration-payment-details-wrapper">
         <div className="registration-payment-details-heading">
-          <h2>Registration & Payment Details</h2>
+          <h2>Registration & Payment Table</h2>
         </div>
 
         <div className="registration-payment-details-button-row">
