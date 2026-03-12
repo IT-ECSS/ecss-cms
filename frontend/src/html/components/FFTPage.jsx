@@ -21,6 +21,9 @@ class FFTPage extends Component {
     this.state = {
       activeSection: section || 'home',
       selectedFile: null,
+      trainersView: null,
+      trainersEvent: null,
+      trainersEntryNumber: null,
     };
   }
 
@@ -62,7 +65,7 @@ class FFTPage extends Component {
   };
 
   render() {
-    const { activeSection, selectedFile } = this.state;
+    const { activeSection, selectedFile, trainersView, trainersEvent, trainersEntryNumber } = this.state;
 
     return (
       <div className="fft-page-container">
@@ -93,6 +96,10 @@ class FFTPage extends Component {
               <FFTTrainers
                 onBack={() => this.handleSectionChange('home')}
                 selectedFile={selectedFile}
+                initialView={trainersView}
+                initialEvent={trainersEvent}
+                initialEntryNumber={trainersEntryNumber}
+                onStateChange={(view, event, entryNumber) => this.setState({ trainersView: view, trainersEvent: event, trainersEntryNumber: entryNumber })}
               />
             )}
       </div>

@@ -1,402 +1,121 @@
 import React, { Component } from 'react';
-import axios from 'axios';
-import { io } from 'socket.io-client';
-import { AgGridReact } from 'ag-grid-react';
-import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
+import BulkUpload from './BulkUpload';
+import ReviewParticipantsResult from './ReviewParticipantsResult';
+import '../../../css/fftParticipants.css';
 import '../../../css/fftTrainers.css';
 
-ModuleRegistry.registerModules([AllCommunityModule]);
-
-const BACKEND_URL = window.location.hostname === 'localhost'
-  ? 'http://localhost:3001'
-  : 'https://ecss-backend-node.azurewebsites.net';
-
-// Column mapping matching the spreadsheet structure (from getRow)
-const COLUMN_MAP = [
-  { key: 'name', label: 'Name', labelZh: '姓名' },
-  { key: 'chineseName', label: 'Chinese Name', labelZh: '中文名' },
-  { key: 'phoneNo', label: 'Phone Number', labelZh: '电话号码' },
-  { key: 'gender', label: 'Gender', labelZh: '性别' },
-  { key: 'dd', label: 'DD', labelZh: '日' },
-  { key: 'mm', label: 'MM', labelZh: '月' },
-  { key: 'yyyy', label: 'YYYY', labelZh: '年' },
-  { key: 'age', label: 'Age', labelZh: '年龄' },
-  { key: 'height', label: 'Height (cm)', labelZh: '身高' },
-  { key: 'weight', label: 'Weight (kg)', labelZh: '体重' },
-  { key: 'bmi', label: 'BMI', labelZh: 'BMI' },
-  { key: 'testDate', label: 'Test Date', labelZh: '测试日期' },
-  { key: 'sitStand', label: 'Sit & Stand', labelZh: '坐立' },
-  { key: 'armCurl', label: 'Arm Curl', labelZh: '手臂卷起' },
-  { key: 'march', label: 'March', labelZh: '抬膝' },
-  { key: 'sitReach', label: 'Sit & Reach', labelZh: '坐姿前伸' },
-  { key: 'backStretch', label: 'Back Stretch', labelZh: '背部伸展' },
-  { key: 'speedWalk', label: 'Speed Walk', labelZh: '速走' },
-  { key: 'gripTest', label: 'Grip Test', labelZh: '握力' },
-  { key: 'improvements', label: 'Improvements', labelZh: '改进' },
-  { key: 'remarks', label: 'Remarks', labelZh: '备注' },
-  { key: 'sitStandRemarks', label: 'Sit & Stand Remarks', labelZh: '坐立备注' },
-  { key: 'armCurlRemarks', label: 'Arm Curl Remarks', labelZh: '手臂卷起备注' },
-  { key: 'marchRemarks', label: 'March Remarks', labelZh: '抬膝备注' },
-  { key: 'sitReachRemarks', label: 'Sit & Reach Remarks', labelZh: '坐姿前伸备注' },
-  { key: 'backStretchRemarks', label: 'Back Stretch Remarks', labelZh: '背部伸展备注' },
-  { key: 'speedWalkRemarks', label: 'Speed Walk Remarks', labelZh: '速走备注' },
-  { key: 'gripTestRemarks', label: 'Grip Test Remarks', labelZh: '握力备注' },
-];
-
-
-
+// ─────────────────────────────────────────────
+// FFTTrainers
+// ─────────────────────────────────────────────
 class FFTTrainers extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      activeFile: null,
-      loading: true,
-      error: null,
-      columns: [],
-      rows: [],
-      searchQuery: '',
+      view: props.initialView || null,
+      event: props.initialEvent || null,
     };
-    this.gridRef = React.createRef();
-
-    // Helper to render the consolidated Remarks column — show only volunteer-typed remarks (not attempt data)
-    const remarksListRenderer = (params) => {
-      const d = params.data;
-      const stationEntries = [
-        { label: 'Sit & Stand', value: d.sitStandRemarks },
-        { label: 'Arm Curl', value: d.armCurlRemarks },
-        { label: 'March', value: d.marchRemarks },
-        { label: 'Sit & Reach', value: d.sitReachRemarks },
-        { label: 'Back Stretch', value: d.backStretchRemarks },
-        { label: 'Speed Walk', value: d.speedWalkRemarks },
-        { label: 'Grip Test', value: d.gripTestRemarks },
-      ];
-      // Strip out the auto-generated "Att 1: ..., Att 2: ..." prefix, keep only volunteer remarks
-      const stationRemarks = stationEntries.map((s) => {
-        if (!s.value) return null;
-        // Remove "Att 1: ..., Att 2: ..." portion (with optional trailing ". ")
-        const cleaned = s.value.replace(/^Att 1:\s*[^,]+,\s*Att 2:\s*[^.]*\.?\s*/, '').trim();
-        return cleaned ? { label: s.label, value: cleaned } : null;
-      }).filter(Boolean);
-      const general = d.remarks || '';
-      if (!stationRemarks.length && !general) return '';
-      let html = '<div style="line-height:1.6">';
-      if (general) html += `<div>${general}</div>`;
-      stationRemarks.forEach((s) => {
-        html += `<div><strong>${s.label}:</strong> ${s.value}</div>`;
-      });
-      html += '</div>';
-      return html;
-    };
-
-    // AG Grid column definitions — matches Google Sheets columns only ok
-    this.columnDefs = [
-      { headerName: 'Name', field: 'name', width: 350, sortable: true, pinned: 'left',
-        cellRenderer: (params) => {
-          const name = params.data.name || '';
-          const cn = params.data.chineseName || '';
-          if (!cn) return name;
-          return <div style="line-height:1.3">${name}<br/><span style="color:#888;font-size:0.85em">${cn}</span></div>;
-        },
-        valueGetter: (params) => {
-          const name = params.data.name || '';
-          const cn = params.data.chineseName || '';
-          return cn ? `${name} ${cn}` : name;
-        },
-        autoHeight: true,
-      },
-      { headerName: 'Phone Number', field: 'phoneNo', width: 250},
-      { headerName: 'Gender', field: 'gender', width: 150},
-      { headerName: 'DD', field: 'dd', width: 100},
-      { headerName: 'MM', field: 'mm', width: 100},
-      { headerName: 'YYYY', field: 'yyyy', width: 100},
-      { headerName: 'Age', field: 'age', width: 100},
-      { headerName: 'Height (cm)', field: 'height', width: 200},
-      { headerName: 'Weight (kg)', field: 'weight', width: 200},
-      { headerName: 'BMI', field: 'bmi', width: 150},
-      { headerName: 'Test Date', field: 'testDate', width: 200 },
-      { headerName: '30 secs Sit & Stand', field: 'sitStand', width: 200 },
-      { headerName: '30 secs Arm Curl', field: 'armCurl', width: 200 },
-      { headerName: '2 min March on the spot', field: 'march', width: 200 },
-      { headerName: 'Sit & Reach', field: 'sitReach', width: 200 },
-      { headerName: 'Back Stretch', field: 'backStretch', width: 200 },
-      { headerName: '2.44m speed walk', field: 'speedWalk', width: 200 },
-      { headerName: 'Grip Test', field: 'gripTest', width: 200 },
-      { headerName: 'Improvements', field: 'improvements', width: 500},
-      { headerName: 'Remarks', field: 'remarks', width: 500, cellRenderer: remarksListRenderer, autoHeight: true },
-    ];
   }
 
-  componentDidMount() {
-    this.fetchData();
+  setTrainersState = (view, event, entryNumber = null) => {
+    this.setState({ view, event });
+    this.props.onStateChange && this.props.onStateChange(view, event, entryNumber);
+  };
 
-    // Socket.IO: live updates
-    this.socket = io(BACKEND_URL);
-    this.socket.on('fftUpdate', (data) => {
-      // Re-fetch spreadsheet data when any row is added/updated
-      const { activeFile } = this.state;
-      if (activeFile && activeFile.id) {
-        this.loadSpreadsheet(activeFile.id);
-      }
-    });
-    this.socket.on('fftActiveFile', (data) => {
-      // Active file changed — update and reload
-      if (data && data.file) {
-        this.setState({ activeFile: data.file });
-        this.loadSpreadsheet(data.file.id);
-      }
-    });
-  }
-
-  componentWillUnmount() {
-    if (this.socket) {
-      this.socket.disconnect();
-    }
-  }
-
-  fetchData = () => {
-    this.setState({ loading: true, error: null });
-
-    const fileFromProps = this.props.selectedFile;
-    if (fileFromProps && fileFromProps.id) {
-      this.setState({ activeFile: fileFromProps });
-      this.loadSpreadsheet(fileFromProps.id);
+  handleBack = () => {
+    const { view } = this.state;
+    if (view === 'reviewResults' && this._reviewRef && this._reviewRef.canGoBack()) {
+      this._reviewRef.handleBack();
+    } else if (view) {
+      this.setTrainersState(null, null, null);
     } else {
-      axios.get(`${BACKEND_URL}/googleDrive/activeFile`)
-        .then((res) => {
-          if (res.data.success && res.data.file) {
-            this.setState({ activeFile: res.data.file });
-            this.loadSpreadsheet(res.data.file.id);
-          } else {
-            this.setState({ loading: false, error: 'no-file' });
-          }
-        })
-        .catch(() => {
-          this.setState({ loading: false, error: 'no-file' });
-        });
+      this.props.onBack && this.props.onBack();
     }
-  };
-
-  loadSpreadsheet = (fileId) => {
-    axios.post(`${BACKEND_URL}/googleDrive/readSpreadsheet`, { fileId })
-      .then((res) => {
-        if (res.data.success) {
-          const columns = res.data.columns || [];
-          const rawData = res.data.data || [];
-
-          const rows = rawData.map((row, idx) => {
-            const obj = {};
-            COLUMN_MAP.forEach((col, colIdx) => {
-              obj[col.key] = row[colIdx] || '';
-            });
-            return obj;
-          });
-
-          this.setState({ columns, rows, loading: false });
-        } else {
-          this.setState({ loading: false, error: res.data.error || 'Failed to read data.' });
-        }
-      })
-      .catch((err) => {
-        console.error('Error reading spreadsheet:', err.message);
-        this.setState({ loading: false, error: 'Network error loading data.' });
-      });
-  };
-
-  applySearch = (rows) => {
-    const query = this.state.searchQuery.toLowerCase().trim();
-    if (!query) return rows;
-    return rows.filter((r) => {
-      const combined = `${r.name || ''} ${r.chineseName || ''}`.toLowerCase();
-      return combined.includes(query) ||
-        (r.phoneNo && r.phoneNo.includes(query));
-    });
-  };
-
-  // Returns the number of unique participants based on name/chineseName de-duplication.
-  // Treats entries that share the same name or same chineseName as the same participant.
-  getUniqueParticipantCount = (rows) => {
-    const normalize = (val) => (val || '').toString().trim().toLowerCase();
-    const normalizePhone = (val) => {
-      if (!val) return '';
-      const s = val.toString().replace(/\D/g, '');
-      return s.startsWith('65') ? s.slice(2) : s;
-    };
-
-    const parent = new Map();
-
-    const find = (id) => {
-      if (!parent.has(id)) {
-        parent.set(id, id);
-        return id;
-      }
-      const p = parent.get(id);
-      if (p === id) return id;
-      const root = find(p);
-      parent.set(id, root);
-      return root;
-    };
-
-    const union = (a, b) => {
-      const rootA = find(a);
-      const rootB = find(b);
-      if (rootA !== rootB) parent.set(rootB, rootA);
-    };
-
-    rows.forEach((r) => {
-      const nameKey = normalize(r.name);
-      const cnKey = normalize(r.chineseName);
-      const phoneKey = normalizePhone(r.phoneNo);
-
-      // Skip if nothing meaningful
-      if (!nameKey && !cnKey && !phoneKey) return;
-
-      // Register keys
-      if (nameKey) find(nameKey);
-      if (cnKey) find(cnKey);
-      if (phoneKey) find(phoneKey);
-
-      // Link any fields found together
-      const keys = [nameKey, cnKey, phoneKey].filter(Boolean);
-      for (let i = 1; i < keys.length; i++) {
-        union(keys[0], keys[i]);
-      }
-    });
-
-    // Count unique roots (participant groups)
-    const roots = new Set();
-    parent.forEach((_, id) => {
-      roots.add(find(id));
-    });
-    return roots.size;
-  };
-
-  onGridReady = (params) => {
-    this.gridApi = params.api;
-  };
-
-  getRowStyle = (params) => {
-    if (params.node.rowIndex % 2 === 0) {
-      return { background: '#fafbfd' };
-    }
-    return null;
   };
 
   render() {
     const { onBack } = this.props;
-    const { activeFile, loading, error, rows, searchQuery } = this.state;
-
-    const hasFile = activeFile && activeFile.id;
-
-    // Apply search
-    const filtered = this.applySearch(rows);
+    const { view, event } = this.state;
 
     return (
-      <div className="fft-trainers-wrapper">
-        {/* Header */}
-        <div className="fft-trainers-header">
-          <div className="fft-trainers-header-top-row">
-            <button className="fft-trainers-icon-btn" onClick={onBack} title="Home">
+      <div className="fft-participants-wrapper">
+        <div className="fft-participants-form">
+
+          {/* Nav row: back + home + event badge (when event selected) */}
+          <div style={{ display: 'flex', flexDirection: 'row', gap: 10, alignItems: 'center', padding: '16px 16px 12px' }}>
+            <button
+              type="button"
+              className="fft-participants-icon-btn"
+              onClick={this.handleBack}
+              title="Back"
+            >
+              <i className="fas fa-arrow-left"></i>
+            </button>
+            <button
+              type="button"
+              className="fft-participants-icon-btn"
+              onClick={() => this.props.onBack && this.props.onBack()}
+              title="Home"
+            >
               <i className="fas fa-home"></i>
             </button>
+            {view === 'reviewResults' && event && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 0 }}>
+                <span style={{ fontSize: '1.05em', color: '#555' }}>Click on the badge below to re-select your event</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    this.setTrainersState('reviewResults', null, this.props.initialEntryNumber);
+                    this._reviewRef && this._reviewRef.resetEventSilent();
+                  }}
+                  style={{
+                    display: 'flex', flexDirection: 'column', gap: 6,
+                    padding: '14px 20px', flex: 1, textAlign: 'left',
+                    background: '#e8f5e9', border: 'none', borderBottom: '2px solid #b2dfcf',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <span style={{ fontSize: '0.9em', color: '#2e7d32', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700 }}>Event</span>
+                  <span style={{ fontSize: '1.3em', fontWeight: 700, color: '#2e7d32', wordBreak: 'break-word' }}>{event.name}</span>
+                </button>
+              </div>
+            )}
           </div>
-        </div>
 
-        <div className="fft-trainers-form">
-          {/* No file state */}
-          {!loading && error === 'no-file' && (
-            <div className="fft-trainers-section fft-trainers-no-file">
-              <div className="fft-trainers-no-file-icon">
-                <i className="fas fa-exclamation-triangle"></i>
-              </div>
-              <h3 className="fft-trainers-no-file-title">No Active File Selected</h3>
-              <p className="fft-trainers-no-file-text">
-                An admin needs to select a file first before staff can view data.
-              </p>
-              <button className="fft-trainers-submit-btn" onClick={onBack} style={{ marginTop: '8px' }}>
-                <i className="fas fa-arrow-left"></i>
-                Go Back
-              </button>
-            </div>
-          )}
-
-          {/* Loading state */}
-          {loading && (
-            <div className="fft-trainers-section" style={{ textAlign: 'center', padding: '48px 24px' }}>
-              <i className="fas fa-spinner fa-spin" style={{ fontSize: '2.5rem', color: '#2c7be5', marginBottom: '16px' }}></i>
-              <p style={{ fontSize: '1.3rem', color: '#555' }}>Loading spreadsheet data...</p>
-            </div>
-          )}
-
-          {/* Error state (non no-file) */}
-          {!loading && error && error !== 'no-file' && (
-            <div className="fft-trainers-section">
-              <div className="fft-trainers-error-msg">
-                <i className="fas fa-exclamation-circle" style={{ marginRight: '6px' }}></i>
-                {error}
-              </div>
-              <button className="fft-trainers-submit-btn" onClick={this.fetchData} style={{ marginTop: '12px' }}>
-                <i className="fas fa-redo"></i>
-                Retry
-              </button>
-            </div>
-          )}
-
-          {/* Data loaded — AG Grid view */}
-          {!loading && !error && hasFile && (
-            <>
-              {/* Active file bar */}
-              {activeFile.name && (
-                <div className="fft-trainers-active-file-bar">
-                  <i className="fas fa-file-spreadsheet" style={{ marginRight: '8px', color: '#16a34a' }}></i>
-                  <span className="fft-trainers-active-file-name">{activeFile.name}</span>
-                </div>
-              )}
-
-              {/* Search row */}
-              <div className="fft-trainers-controls-row">
-                <div className="fft-trainers-search-field">
-                  <i className="fas fa-search fft-trainers-field-icon"></i>
-                  <input
-                    type="text"
-                    className="fft-trainers-input"
-                    placeholder="Search by name, phone..."
-                    value={searchQuery}
-                    onChange={(e) => this.setState({ searchQuery: e.target.value })}
-                  />
-                  {searchQuery && (
-                    <button
-                      className="fft-trainers-field-clear"
-                      onClick={() => this.setState({ searchQuery: '' })}
-                    >
-                      <i className="fas fa-times"></i>
+          {/* Landing */}
+          {!view && (
+            <div className="fft-create-file-form">
+              <div className="fft-participants-wrapper">
+                <div className="fft-participants-section">
+                  <div className="fft-participants-section-header">
+                    <h3 className="fft-participants-section-title">Staff Uses</h3>
+                    <hr style={{ margin: '12px 0' }} />
+                    <div className="fft-participants-section-desc" style={{ marginBottom: '12px', color: '#555', fontSize: '1em' }}>
+                      Please select an option to continue.
+                    </div>
+                  </div>
+                  <div className="fft-events-buttons-container">
+                    <button type="button" className="fft-event-btn" onClick={() => this.setTrainersState('bulkUpload', null)}>
+                      <div className="fft-event-btn-name">Bulk Upload</div>
                     </button>
-                  )}
+                    <button type="button" className="fft-event-btn" onClick={() => this.setTrainersState('reviewResults', null)}>
+                      <div className="fft-event-btn-name">Review Results</div>
+                    </button>
+                  </div>
                 </div>
               </div>
-
-              {/* Result count */}
-              <div className="fft-trainers-result-count">
-                Showing {filtered.length} of {rows.length} rows (
-                {this.getUniqueParticipantCount(filtered)} unique participant{this.getUniqueParticipantCount(filtered) === 1 ? '' : 's'})
-              </div>
-
-              {/* AG Grid */}
-              <div className="fft-trainers-grid-container">
-                <AgGridReact
-                  ref={this.gridRef}
-                  rowData={filtered}
-                  columnDefs={this.columnDefs}
-                  onGridReady={this.onGridReady}
-                  pagination={true}
-                  paginationPageSize={filtered.length}
-                  domLayout="normal"
-                  suppressHorizontalScroll={false}
-                  getRowStyle={this.getRowStyle}
-                  overlayNoRowsTemplate='<span style="padding: 16px; font-size: 1.15rem; color: #888;">No participants found.</span>'
-                />
-              </div>
-            </>
+            </div>
           )}
+
+          {view === 'bulkUpload' && <BulkUpload />}
+          {view === 'reviewResults' && (
+            <ReviewParticipantsResult
+              ref={(r) => { this._reviewRef = r; }}
+              initialEvent={event}
+              initialEntryNumber={this.props.initialEntryNumber}
+              onStateChange={(evt, num) => this.setTrainersState('reviewResults', evt, num)}
+            />
+          )}
+
         </div>
       </div>
     );
