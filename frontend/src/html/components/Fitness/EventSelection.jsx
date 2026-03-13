@@ -66,22 +66,22 @@ class EventSelection extends Component {
 
     const texts = {
       en: {
-        title: 'Select Event',
-        description: 'Please select an event to continue.',
+        title: 'Select A FFT Event',
+        description: 'Please select a FFT event to continue.',
         loading: 'Loading events...',
         back: 'Back',
         home: 'Home',
       },
       zh: {
-        title: '选择活动',
-        description: '请选择一个活动继续。',
+        title: '选择 FFT 活动',
+        description: '请选择一个 FFT 活动继续。',
         loading: '正在加载活动...',
         back: '返回',
         home: '主页',
       },
       ms: {
-        title: 'Pilih Acara',
-        description: 'Sila pilih acara untuk meneruskan.',
+        title: 'Pilih Acara FFT',
+        description: 'Sila pilih acara FFT untuk meneruskan.',
         loading: 'Memuatkan acara...',
         back: 'Kembali',
         home: 'Utama',

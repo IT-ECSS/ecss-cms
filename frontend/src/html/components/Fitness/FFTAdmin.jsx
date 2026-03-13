@@ -12,8 +12,12 @@ const BACKEND_URL = window.location.hostname === 'localhost'
 class FFTAdmin extends Component {
   constructor(props) {
     super(props);
+    // Restore previous section from localStorage if available
+    const savedView = localStorage.getItem('fftAdminLastView');
     this.state = {
-      activeView: null, // null = menu, 'create' = Create File, 'choose' = Choose File, 'event' = Event
+      activeView: savedView || null, // restore or show menu
+      eventFormKey: 0,
+      previousView: null // Track last section
     };
   }
 
@@ -35,32 +39,69 @@ class FFTAdmin extends Component {
   // ── Menu navigation ––
 
   handleMenuSelect = (view) => {
+    // Track previous section for navigation
+    if (view !== null) {
+      this.setState((prev) => ({ previousView: prev.activeView }));
+      localStorage.setItem('fftAdminLastView', view);
+    }
+    // Just change the view without resetting form
     this.setState({ activeView: view });
+  };
+
+  // ── Layered Back Navigation (like FFTParticipants) ––
+
+  handleBack = () => {
+    const { activeView, previousView } = this.state;
+    if (activeView) {
+      // Back from event/create form → menu
+      this.handleMenuSelect(null);
+    } else if (previousView) {
+      // Back from menu → restore previous view
+      this.handleMenuSelect(previousView);
+    } else {
+      // Back from menu (no previous view) → home
+      this.props.onBack?.();
+    }
+  };
+
+  handleHome = () => {
+    // Home button saves current section and exits, or clears saved view if in menu
+    if (this.state.activeView) {
+      localStorage.setItem('fftAdminLastView', this.state.activeView);
+    } else {
+      localStorage.removeItem('fftAdminLastView');
+    }
+    this.props.onBack?.();
+  };
+
+  handleFinish = () => {
+    // Finish button clears ALL data and exits (fresh start when returning)
+    localStorage.removeItem('fftAdminLastView');
+    localStorage.removeItem('fftEventFormData');
+    this.props.onBack?.();
   };
 
   // ── Render ––
 
   render() {
     const { onBack } = this.props;
-    const { activeView } = this.state;
+    const { activeView, previousView } = this.state;
 
 
     return (
       <div className="fft-participants-wrapper">
         <div className="fft-participants-header">
           <div className="fft-participants-header-top-row" style={{ display: 'flex', gap: '12px' }}>
-            {activeView && (
-              <button
-                className="fft-participants-icon-btn"
-                onClick={() => this.handleMenuSelect(null)}
-                title="Back"
-              >
-                <i className="fas fa-arrow-left"></i>
-              </button>
-            )}
             <button
               className="fft-participants-icon-btn"
-              onClick={onBack}
+              onClick={this.handleBack}
+              title="Back"
+            >
+              <i className="fas fa-arrow-left"></i>
+            </button>
+            <button
+              className="fft-participants-icon-btn"
+              onClick={this.handleHome}
               title="Home"
             >
               <i className="fas fa-home"></i>
@@ -74,7 +115,7 @@ class FFTAdmin extends Component {
             <div style={{ margin: '0 0 32px 0', textAlign: 'center' }}>
               <h2 style={{ fontWeight: 700, fontSize: '2rem', marginBottom: 8 }}>FFT Admin Panel</h2>
               <div style={{ color: '#555', fontSize: '1.1rem', maxWidth: 520, margin: '0 auto' }}>
-                Use this panel to create new FFT events or files. Select an action below to get started.
+                Use this panel to create a new FFT event or a Google Sheet file to store FFT participants results.
               </div>
             </div>
             <div className="fft-admin-menu-grid">
@@ -86,7 +127,7 @@ class FFTAdmin extends Component {
                 <div className="fft-admin-menu-btn-icon">
                   <i className="fas fa-calendar-alt"></i>
                 </div>
-                <span className="fft-admin-menu-btn-label">Create Events</span>
+                <span className="fft-admin-menu-btn-label">Create A FFT Event</span>
               </button>
               <button
                 type="button"
@@ -96,7 +137,7 @@ class FFTAdmin extends Component {
                 <div className="fft-admin-menu-btn-icon">
                   <i className="fas fa-file-medical"></i>
                 </div>
-                <span className="fft-admin-menu-btn-label">Create File</span>
+                <span className="fft-admin-menu-btn-label">Create A Google Sheet File</span>
               </button>
             </div>
           </div>
@@ -104,7 +145,7 @@ class FFTAdmin extends Component {
 
         {/* ════════════ CREATE FILE VIEW ════════════ */}
         {activeView === 'create' && (
-          <CreateFileForm onCancel={() => this.handleMenuSelect(null)} />
+          <CreateFileForm onCancel={() => this.handleMenuSelect(null)} onFinish={this.handleFinish} />
         )}
 
         {/* ════════════ CHOOSE FILE VIEW ════════════ */}
@@ -129,7 +170,9 @@ class FFTAdmin extends Component {
             boxSizing: 'border-box',
           }}>
             <CreateEventForm
+              key={this.state.eventFormKey}
               onCancel={() => this.handleMenuSelect(null)}
+              onFinish={() => this.handleFinish()}
             />
           </div>
         )}

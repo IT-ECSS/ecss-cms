@@ -14,10 +14,34 @@ class ParticularsSection extends Component {
     errors: {},
   };
 
+  storageKey = 'fftParticularsSectionData';
+
   componentDidMount() {
     // Initialize with passed formData if available
     if (this.props.formData) {
       this.setState({ formData: { ...this.state.formData, ...this.props.formData } });
+    }
+    // Load additional saved data
+    try {
+      const saved = localStorage.getItem(this.storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        this.setState((prevState) => ({
+          formData: { ...prevState.formData, ...parsed.formData },
+          errors: parsed.errors || {},
+        }));
+      }
+    } catch (e) {}
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    if (prevState.formData !== this.state.formData || prevState.errors !== this.state.errors) {
+      try {
+        localStorage.setItem(this.storageKey, JSON.stringify({
+          formData: this.state.formData,
+          errors: this.state.errors,
+        }));
+      } catch (e) {}
     }
   }
 
@@ -353,7 +377,7 @@ class ParticularsSection extends Component {
                 style={singpassLocked ? lockedStyle : {}}
               />
               {errors.name && (
-                <div className="fft-create-event-error" style={{ marginTop: '8px', marginBottom: '0' }}>
+                <div className="fft-create-event-error" style={{ marginTop: '8px', marginBottom: '0', whiteSpace: 'nowrap' }}>
                   {errors.name}
                 </div>
               )}
@@ -371,13 +395,13 @@ class ParticularsSection extends Component {
                   value={formData.dateOfBirth}
                   onChange={this.handleDateOfBirthChange}
                   onKeyDown={this.handleDateOfBirthKeyDown}
-                  placeholder="dd/mm/yyyy"
+                  placeholder="e.g. 31/01/1965"
                   className="fft-create-event-input"
                   disabled={singpassLocked}
                   style={singpassLocked ? lockedStyle : {}}
                 />
                 {errors.dateOfBirth && (
-                  <div className="fft-create-event-error" style={{ marginTop: '8px', marginBottom: '0' }}>
+                  <div className="fft-create-event-error" style={{ marginTop: '8px', marginBottom: '0', whiteSpace: 'nowrap' }}>
                     {errors.dateOfBirth}
                   </div>
                 )}
@@ -430,7 +454,7 @@ class ParticularsSection extends Component {
                   </button>
                 </div>
                 {errors.gender && (
-                  <div className="fft-create-event-error" style={{ marginTop: '8px', marginBottom: '0' }}>
+                  <div className="fft-create-event-error" style={{ marginTop: '8px', marginBottom: '0', whiteSpace: 'nowrap' }}>
                     {errors.gender}
                   </div>
                 )}
@@ -463,7 +487,7 @@ class ParticularsSection extends Component {
                   className="fft-create-event-input"
                 />
                 {errors.phone && (
-                  <div className="fft-create-event-error" style={{ marginTop: '8px', marginBottom: '0' }}>
+                  <div className="fft-create-event-error" style={{ marginTop: '8px', marginBottom: '0', whiteSpace: 'nowrap' }}>
                     {errors.phone}
                   </div>
                 )}

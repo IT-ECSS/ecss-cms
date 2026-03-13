@@ -15,6 +15,8 @@ class IndemnitySection extends Component {
   canvasRef = createRef();
   lastPos = null;
 
+  storageKey = 'fftIndemnityData';
+
   componentDidMount() {
     if (this.props.initialData?.agreed) {
       this.setState({ agreed: true });
@@ -30,6 +32,44 @@ class IndemnitySection extends Component {
         };
         img.src = this.props.initialData.signature;
       }
+    }
+    // Load saved data
+    try {
+      const saved = localStorage.getItem(this.storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        this.setState((prevState) => ({
+          agreed: parsed.agreed || false,
+          errors: parsed.errors || {},
+          hasSignature: parsed.hasSignature || false,
+        }));
+        if (parsed.signature) {
+          const canvas = this.canvasRef.current;
+          if (canvas) {
+            const img = new Image();
+            img.onload = () => {
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0);
+            };
+            img.src = parsed.signature;
+          }
+        }
+      }
+    } catch (e) {}
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    if (prevState.agreed !== this.state.agreed || prevState.errors !== this.state.errors || prevState.hasSignature !== this.state.hasSignature) {
+      try {
+        const canvas = this.canvasRef.current;
+        const signature = canvas ? canvas.toDataURL() : null;
+        localStorage.setItem(this.storageKey, JSON.stringify({
+          agreed: this.state.agreed,
+          errors: this.state.errors,
+          hasSignature: this.state.hasSignature,
+          signature,
+        }));
+      } catch (e) {}
     }
   }
 

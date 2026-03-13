@@ -14,11 +14,14 @@ class ParticipantForm extends Component {
     healthData: null,
     indemnityData: null,
     singpassFormData: null,
+    isSubmitting: false,
   };
 
   particularsRef = React.createRef();
   healthRef = React.createRef();
   indemnityRef = React.createRef();
+
+  storageKey = 'fftParticipantFormData';
 
   resetForm = () => {
     this.setState({ entryMethod: null, currentStep: 1, singpassFormData: null });
@@ -84,7 +87,7 @@ class ParticipantForm extends Component {
     if (currentStep === 1) {
       onBack?.();
     } else if (currentStep === 2) {
-      this.resetForm();
+      this.setState({ currentStep: 1 });
     } else if (currentStep === 3) {
       this.setState({ currentStep: 2 });
     } else if (currentStep === 4) {
@@ -94,6 +97,20 @@ class ParticipantForm extends Component {
   };
 
   componentDidMount() {
+    try {
+      const saved = localStorage.getItem(this.storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        this.setState({
+          particularsData: parsed.particularsData || null,
+          healthData: parsed.healthData || null,
+          indemnityData: parsed.indemnityData || null,
+          currentStep: parsed.currentStep || 1,
+          entryMethod: parsed.entryMethod || null,
+          singpassFormData: parsed.singpassFormData || null,
+        });
+      }
+    } catch (e) {}
     // If SingPass data is already in sessionStorage (returning from SingPass redirect),
     // auto-advance past the choice screen and pre-fill with SingPass data.
     const userData = getSingPassUserDataJSON();
@@ -107,15 +124,47 @@ class ParticipantForm extends Component {
     }
   }
 
-  handleFinalSubmit = (indemnityData) => {
-    this.setState({ indemnityData });
+  componentDidUpdate(prevProps, prevState) {
+    const { particularsData, healthData, indemnityData, currentStep, entryMethod, singpassFormData } = this.state;
+    if (prevState.particularsData !== particularsData || prevState.healthData !== healthData || prevState.indemnityData !== indemnityData || prevState.currentStep !== currentStep || prevState.entryMethod !== entryMethod || prevState.singpassFormData !== singpassFormData) {
+      try {
+        localStorage.setItem(this.storageKey, JSON.stringify({
+          particularsData,
+          healthData,
+          indemnityData,
+          currentStep,
+          entryMethod,
+          singpassFormData,
+        }));
+      } catch (e) {}
+    }
+  }
+
+  handleFinalSubmit = async (indemnityData) => {
+    this.setState({ indemnityData, isSubmitting: true });
     const { particularsData, healthData } = this.state;
-    this.props.onSubmit?.({ ...particularsData, ...healthData });
+    const { event } = this.props;
+    const eventName = event ? (typeof event === 'string' ? event : event.name) : '';
+    await this.props.onSubmit({ ...particularsData, ...healthData, ...indemnityData, eventName });
+    this.setState({ isSubmitting: false });
+    // Clear saved data after successful submission
+    localStorage.removeItem(this.storageKey);
+    localStorage.removeItem('fftParticularsSectionData');
+    localStorage.removeItem('fftHealthDeclarationData');
+    localStorage.removeItem('fftIndemnityData');
+    this.setState({
+      entryMethod: null,
+      currentStep: 1,
+      particularsData: null,
+      healthData: null,
+      indemnityData: null,
+      singpassFormData: null,
+    });
   };
 
   render() {
-    const { currentStep, entryMethod, singpassFormData } = this.state;
-    const { language, event, onBack, onHome } = this.props;
+    const { currentStep, entryMethod, singpassFormData, isSubmitting } = this.state;
+    const { language, event, onBack, onHome, isLoading } = this.props;
     const eventName = event ? (typeof event === 'string' ? event : event.name) : '';
 
     // Get translations for button titles
@@ -136,10 +185,12 @@ class ParticipantForm extends Component {
       return translations[key][language] || translations[key].en || key;
     };
 
+    const isParticularsStep = currentStep === 2 || (currentStep === 1 && entryMethod);
+
     const headerContent = (
       <>
         {/* Step 1: Entry method selection */}
-        {currentStep === 1 && (
+        {currentStep === 1 && !entryMethod && (
           <ParticipantEntryMethod
             language={language}
             eventName={eventName}
@@ -151,7 +202,7 @@ class ParticipantForm extends Component {
         )}
 
         {/* Step 2: Particulars section (manual or SingPass pre-filled) */}
-        {currentStep === 2 && (entryMethod === 'manual' || entryMethod === 'singpass') && (
+        {isParticularsStep && (
           <ParticularsSection
             ref={this.particularsRef}
             language={language}
@@ -160,7 +211,7 @@ class ParticipantForm extends Component {
             onSubmit={(data) => {
               this.setState({ particularsData: data, currentStep: 3 });
             }}
-            onBack={() => this.resetForm()}
+            onBack={() => this.setState({ currentStep: 1 })}
             onHome={() => onHome?.()}
           />
         )}
@@ -197,7 +248,7 @@ class ParticipantForm extends Component {
       </>
     );
 
-      const showFooter = currentStep >= 2;
+      const showFooter = currentStep >= 2 || isParticularsStep;
 
       return (
         <div className="fft-create-file-form">
@@ -205,15 +256,42 @@ class ParticipantForm extends Component {
             {/* Form content */}
             {headerContent}
 
+            {/* Loading modal during submission */}
+            {isSubmitting && (
+              <div style={{
+                position: 'absolute', inset: 0, zIndex: 1000,
+                background: 'rgba(255,255,255,0.8)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <div style={{
+                  background: '#fff', borderRadius: '16px',
+                  padding: '40px 48px', textAlign: 'center',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+                  minWidth: '240px',
+                }}>
+                  <div style={{
+                    width: '44px', height: '44px', margin: '0 auto 20px',
+                    border: '4px solid #e0e0e0', borderTopColor: '#1565c0',
+                    borderRadius: '50%',
+                    animation: 'fftSpin 0.8s linear infinite',
+                  }} />
+                  <div style={{ fontSize: '1.05em', color: '#333', fontWeight: 600 }}>
+                    {language === 'zh' ? '提交中...' : language === 'ms' ? 'Menghantar...' : 'Submitting...'}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Centralized footer buttons */}
             {showFooter && (
               <div className="fft-form-footer">
-                {currentStep === 2 && (
+                {isParticularsStep && (
                   <>
                     <button
                       type="button"
                       className="fft-create-event-btn fft-create-event-btn-clear"
                       onClick={() => this.particularsRef.current?.handleClear()}
+                      disabled={isLoading}
                     >
                       {language === 'zh' ? '清空' : language === 'ms' ? 'Kosongkan' : 'Clear'}
                     </button>
@@ -221,6 +299,7 @@ class ParticipantForm extends Component {
                       type="button"
                       className="fft-create-event-btn fft-create-event-btn-clear"
                       onClick={() => this.particularsRef.current?.handleSubmit()}
+                      disabled={isLoading}
                     >
                       {language === 'zh' ? '下一步' : language === 'ms' ? 'Seterusnya' : 'Next'}
                     </button>
@@ -232,6 +311,7 @@ class ParticipantForm extends Component {
                       type="button"
                       className="fft-create-event-btn fft-create-event-btn-clear"
                       onClick={() => this.healthRef.current?.handleClear()}
+                      disabled={isLoading}
                     >
                       {language === 'zh' ? '清空' : language === 'ms' ? 'Kosongkan' : 'Clear'}
                     </button>
@@ -239,6 +319,7 @@ class ParticipantForm extends Component {
                       type="button"
                       className="fft-create-event-btn fft-create-event-btn-clear"
                       onClick={() => this.healthRef.current?.handleSubmit()}
+                      disabled={isLoading}
                     >
                       {language === 'zh' ? '下一步' : language === 'ms' ? 'Seterusnya' : 'Next'}
                     </button>
@@ -250,6 +331,7 @@ class ParticipantForm extends Component {
                       type="button"
                       className="fft-create-event-btn fft-create-event-btn-clear"
                       onClick={() => this.indemnityRef.current?.handleClear()}
+                      disabled={isLoading}
                     >
                       {language === 'zh' ? '清空' : language === 'ms' ? 'Kosongkan' : 'Clear'}
                     </button>
@@ -257,6 +339,7 @@ class ParticipantForm extends Component {
                       type="button"
                       className="fft-create-event-btn fft-create-event-btn-clear"
                       onClick={() => this.indemnityRef.current?.handleSubmit()}
+                      disabled={isSubmitting}
                     >
                       {language === 'zh' ? '提交' : language === 'ms' ? 'Hantar' : 'Submit'}
                     </button>

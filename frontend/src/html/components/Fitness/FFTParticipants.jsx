@@ -5,42 +5,13 @@ import LanguageSelection from './LanguageSelection';
 import EventSelection from './EventSelection';
 import ParticipantForm from './ParticipantForm';
 import ParticipantEntryNumber from './ParticipantEntryNumber';
+import fftTranslations from './fftTranslations';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
   : 'https://ecss-backend-node.azurewebsites.net';
 
 const FFT_FOLDER_ID = '1EsnCGO1QfPrqfmDtsy-cELUO3UyZKCci';
-
-class SubmitLoadingModal extends Component {
-  render() {
-    const { language } = this.props;
-    return (
-      <div style={{
-        position: 'fixed', inset: 0, zIndex: 1000,
-        background: 'rgba(0,0,0,0.45)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        <div style={{
-          background: '#fff', borderRadius: '16px',
-          padding: '40px 48px', textAlign: 'center',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
-          minWidth: '240px',
-        }}>
-          <div style={{
-            width: '44px', height: '44px', margin: '0 auto 20px',
-            border: '4px solid #e0e0e0', borderTopColor: '#1565c0',
-            borderRadius: '50%',
-            animation: 'fftSpin 0.8s linear infinite',
-          }} />
-          <div style={{ fontSize: '1.05em', color: '#333', fontWeight: 600 }}>
-            {language === 'zh' ? '提交中...' : language === 'ms' ? 'Menghantar...' : 'Submitting...'}
-          </div>
-        </div>
-      </div>
-    );
-  }
-}
 
 class SubmitResultModal extends Component {
   render() {
@@ -82,10 +53,10 @@ class SubmitResultModal extends Component {
                 </svg>
               </div>
               <h3 style={{ fontWeight: 700, marginBottom: '6px', color: '#222' }}>
-                {language === 'zh' ? '提交成功！' : language === 'ms' ? 'Berjaya Dihantar!' : 'Submitted Successfully!'}
+                {fftTranslations.successTitle[language] || fftTranslations.successTitle.en}
               </h3>
               <p style={{ color: '#555', fontSize: '0.9em', marginBottom: '20px' }}>
-                {language === 'zh' ? '您的参与者资料已成功登记。' : language === 'ms' ? 'Maklumat peserta anda telah berjaya didaftarkan.' : 'Your participant details have been registered.'}
+                {fftTranslations.successMessage[language] || fftTranslations.successMessage.en}
               </p>
               {entryNumber != null && (
                 <div style={{
@@ -209,11 +180,11 @@ class FFTParticipants extends Component {
   };
 
   handleFormSubmit = async (data) => {
-    const { event } = this.state;
-    const eventName = typeof event === 'string' ? event : (event?.name || '');
-    const eventFileId = typeof event === 'object' ? (event?.id || null) : null;
-    this.setState({ showLoadingModal: true, showResultModal: false, submitError: null, entryNumber: null });
+    this.setState({ showResultModal: false, submitError: null, entryNumber: null });
     try {
+      const { event } = this.state;
+      const eventName = event?.name || '';
+      const eventFileId = event?.id || '';
       const response = await axios.post(`${BACKEND_URL}/googleDrive/fftSubmit`, {
         folderId: FFT_FOLDER_ID,
         eventName,
@@ -221,12 +192,12 @@ class FFTParticipants extends Component {
         participantData: data,
       });
       if (response.data.success) {
-        this.setState({ showLoadingModal: false, showResultModal: false, showEntryNumber: true, entryNumber: response.data.entryNumber });
+        this.setState({ showResultModal: false, showEntryNumber: true, entryNumber: response.data.entryNumber });
       } else {
-        this.setState({ showLoadingModal: false, showResultModal: true, submitError: response.data.error || 'Submission failed.' });
+        this.setState({ showResultModal: true, submitError: response.data.error || 'Submission failed.' });
       }
     } catch (err) {
-      this.setState({ showLoadingModal: false, showResultModal: true, submitError: err.response?.data?.error || err.message || 'Submission failed.' });
+      this.setState({ showResultModal: true, submitError: err.response?.data?.error || err.message || 'Submission failed.' });
     }
   };
 
@@ -358,14 +329,16 @@ class FFTParticipants extends Component {
               event={event}
               formData={formData}
               onSubmit={this.handleFormSubmit}
-              onBack={() => this.setState({ event: null })}
+              onBack={() => {
+                localStorage.removeItem('fftParticipantFormData');
+                localStorage.removeItem('fftParticularsSectionData');
+                localStorage.removeItem('fftHealthDeclarationData');
+                localStorage.removeItem('fftIndemnityData');
+                this.setState({ event: null });
+              }}
               onHome={this.props.onBack}
+              isLoading={showLoadingModal}
             />
-          )}
-
-          {/* Submit loading modal — shown while API call is in progress */}
-          {showLoadingModal && (
-            <SubmitLoadingModal language={language} />
           )}
 
           {/* Submit result modal — shown after API call completes */}

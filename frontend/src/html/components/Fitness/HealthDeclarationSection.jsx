@@ -15,9 +15,33 @@ class HealthDeclarationSection extends Component {
     errors: {},
   };
 
+  storageKey = 'fftHealthDeclarationData';
+
   componentDidMount() {
     if (this.props.initialData) {
       this.setState({ answers: { ...this.state.answers, ...this.props.initialData } });
+    }
+    // Load saved data
+    try {
+      const saved = localStorage.getItem(this.storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        this.setState((prevState) => ({
+          answers: { ...prevState.answers, ...parsed.answers },
+          errors: parsed.errors || {},
+        }));
+      }
+    } catch (e) {}
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    if (prevState.answers !== this.state.answers || prevState.errors !== this.state.errors) {
+      try {
+        localStorage.setItem(this.storageKey, JSON.stringify({
+          answers: this.state.answers,
+          errors: this.state.errors,
+        }));
+      } catch (e) {}
     }
   }
 

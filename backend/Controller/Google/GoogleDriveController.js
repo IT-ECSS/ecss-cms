@@ -643,6 +643,22 @@ class GoogleDriveController {
             const sheetNames = spreadsheet.data.sheets.map(s => s.properties.title);
             const targetSheet = sheetName || sheetNames[0];
 
+            // Fetch all event names from column B (Event Name)
+            const eventNameData = await sheets.spreadsheets.values.get({
+                spreadsheetId: fileId,
+                range: `'${targetSheet}'!B:B`
+            });
+            const eventNames = (eventNameData.data.values || []).slice(1).map(row => row[0]); // skip header
+
+            // Check for duplicate event name
+            if (eventNames.includes(eventName)) {
+                console.log(`[SHEETS] Duplicate event name detected: ${eventName}`);
+                return {
+                    success: false,
+                    error: 'duplicate event name'
+                };
+            }
+
             // Find the next empty row by checking existing data in column A
             const existingData = await sheets.spreadsheets.values.get({
                 spreadsheetId: fileId,

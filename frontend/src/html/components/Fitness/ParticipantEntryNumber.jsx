@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import '../../../css/fftParticipants.css';
+import fftTranslations from './fftTranslations';
 
 class ParticipantEntryNumber extends Component {
   render() {
@@ -20,16 +21,12 @@ class ParticipantEntryNumber extends Component {
 
             {/* Title */}
             <h2 style={{ fontWeight: 700, fontSize: '1.4em', marginBottom: '8px', color: '#222' }}>
-              {language === 'zh' ? '提交成功！' : language === 'ms' ? 'Berjaya Dihantar!' : 'Submitted Successfully!'}
+              {fftTranslations.successTitle[language] || fftTranslations.successTitle.en}
             </h2>
 
             {/* Subtitle */}
             <p style={{ color: '#555', marginBottom: '32px', fontSize: '0.95em' }}>
-              {language === 'zh'
-                ? '您的参与者资料已成功登记。'
-                : language === 'ms'
-                ? 'Maklumat peserta anda telah berjaya didaftarkan.'
-                : 'Your participant details have been registered.'}
+              {fftTranslations.successMessage[language] || fftTranslations.successMessage.en}
             </p>
 
             {/* Entry number card */}
@@ -44,7 +41,7 @@ class ParticipantEntryNumber extends Component {
                 }}
               >
                 <div style={{ fontSize: '0.85em', color: '#777', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                  {language === 'zh' ? '参与者编号' : language === 'ms' ? 'Nombor Peserta' : 'Entry Number'}
+                  {fftTranslations.successEntry[language] || fftTranslations.successEntry.en}
                 </div>
                 <div style={{ fontSize: '3em', fontWeight: 800, color: '#2e7d32', lineHeight: 1 }}>
                   {entryNumber}
@@ -55,13 +52,6 @@ class ParticipantEntryNumber extends Component {
 
           {/* Finish section */}
           <div className="fft-participants-section" style={{ textAlign: 'center', padding: '24px', borderTop: '1px solid #e0e0e0' }}>
-            <p style={{ color: '#888', fontSize: '0.9em', marginBottom: '12px' }}>
-              {language === 'zh'
-                ? '点击完成以登记下一位参与者。'
-                : language === 'ms'
-                ? 'Klik Selesai untuk mendaftarkan peserta seterusnya.'
-                : 'Click Finish to register the next participant.'}
-            </p>
             <button
               type="button"
               className="fft-create-event-btn"

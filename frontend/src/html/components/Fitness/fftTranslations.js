@@ -44,24 +44,24 @@ const fftTranslations = {
 
   // ── Section 1: Particulars ──
   sectionParticulars: {
-    en: 'Particulars',
+    en: ' Participant Particulars ',
     zh: '个人资料',
     ms: 'Butiran Peribadi',
   },
   labelName: {
-    en: 'Name',
-    zh: '姓名',
-    ms: 'Nama',
+    en: 'Full Name (NRIC) ',
+    zh: '姓名 (NRIC)',
+    ms: 'Nama (NRIC)',
   },
   placeholderName: {
-    en: 'Enter full name',
-    zh: '请输入全名',
-    ms: 'Masukkan nama penuh',
+    en: 'Enter your full name as per NRIC',
+    zh: '请输入全名 (根据身份证)',
+    ms: 'Masukkan nama penuh (mengikut Kad Pengenalan)',
   },
   labelDob: {
-    en: 'Date of Birth',
-    zh: '生日',
-    ms: 'Tarikh Lahir',
+    en: 'Date of Birth (DD/MM/YYYY)',
+    zh: '生日 (DD/MM/YYYY)',
+    ms: 'Tarikh Lahir (DD/MM/YYYY)',
   },
   labelGender: {
     en: 'Gender',
@@ -155,9 +155,9 @@ const fftTranslations = {
 
   // ── Section 3: Programme Indemnity ──
   sectionIndemnity: {
-    en: 'Indemnity',
-    zh: '活动免责同意书',
-    ms: 'Borang Indemniti Program',
+    en: 'Programme Indemnity',
+    zh: '活动免责声明',
+    ms: 'Indemniti Program',
   },
   indemnity1: {
     en: 'I voluntarily participate, and have been told the test objectives and possible physical discomfort and risks.',
@@ -196,9 +196,9 @@ const fftTranslations = {
   },
   // ── Validation errors ──
   errNameRequired: {
-    en: 'Please enter your name',
-    zh: '请输入您的姓名',
-    ms: 'Sila masukkan nama anda',
+    en: 'Please enter full name as per NRIC',
+    zh: '请输入您的姓名 (根据身份证)',
+    ms: 'Sila masukkan nama anda (mengikut Kad Pengenalan)',
   },
   errDobRequired: {
     en: 'Please enter a valid date of birth (dd/mm/yyyy)',
@@ -273,9 +273,9 @@ const fftTranslations = {
     ms: 'Sila tunjukkan kod QR ini kepada pegawai stesen untuk diimbas',
   },
   successEntry: {
-    en: 'Entry',
-    zh: '编号',
-    ms: 'Entri',
+    en: 'Participant Number',
+    zh: '参与者编号',
+    ms: 'Nombor Peserta',
   },
   successNoQr: {
     en: 'No QR code found. Please register to get your QR code.',
@@ -293,6 +293,17 @@ const fftTranslations = {
     ms: 'Menghantar...',
   },
 
+  // ── Success messages ──
+  successTitle: {
+    en: 'Participant Registration Completed!',
+    zh: '参与者注册完成！',
+    ms: 'Pendaftaran Peserta Selesai!',
+  },
+  successMessage: {
+    en: 'Participant details have been successfully registered.',
+    zh: '参与者资料已成功登记。',
+    ms: 'Maklumat peserta telah berjaya didaftarkan.',
+  },  
   // ── Station results ──
   station: {
     en: 'Station',

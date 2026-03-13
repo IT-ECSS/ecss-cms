@@ -18,7 +18,7 @@ class QRCodeGenerator {
             const buffer = await QRCode.toBuffer(this.text, this.options);
 
             // Save the buffer to a JPG file
-            const filename = `智能手机摄影 Smartphone Photography (CT Hub).jpg`;
+            const filename = `PrepareEnrich Marriage Preparation Programme Group Class (CT Hub).jpg`;
             fs.writeFileSync(filename, buffer);
             console.log(`QR code generated and saved as ${filename}`);
         } catch (error) {
@@ -28,5 +28,5 @@ class QRCodeGenerator {
 }
 
 // Usage const filename = `https://ecss.org.sg/product/crafting-connectionspasir-ris-west-wellness-centre/`;
-const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/%e6%99%ba%e8%83%bd%e6%89%8b%e6%9c%ba%e6%91%84%e5%bd%b1%e7%8f%adsmartphone-photographyct-hub/`);
+const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/fb-mprep-faith-based-marriage-preparation-programme-couplect-hub/`);
 qrCodeGenerator.generate();

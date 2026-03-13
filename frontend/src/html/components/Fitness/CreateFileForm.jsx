@@ -43,9 +43,57 @@ class CreateFileForm extends React.Component {
           sn: row[0] || '',
           eventName: row[1] || '',
           createdOn: row[2] || '',
+          status: 'Not Created', // default status
         }));
-        console.log('Events loaded:', eventList);
-        this.setState({ events: eventList, loadingEvents: false });
+
+        // Check file existence for each event
+        const FFT_ROOT_FOLDER_ID = '1EsnCGO1QfPrqfmDtsy-cELUO3UyZKCci';
+        const updatedEvents = await Promise.all(eventList.map(async (event) => {
+          const eventYear = event.createdOn ? event.createdOn.slice(0, 4) : null;
+          let destinationFolderId = FFT_ROOT_FOLDER_ID;
+          try {
+            // Find year folder
+            const yearFoldersRes = await axios.post(`${BACKEND_URL}/googleDrive`, {
+              folderId: FFT_ROOT_FOLDER_ID,
+              purpose: 'listSubfolders',
+            });
+            if (yearFoldersRes.data.success && yearFoldersRes.data.folders && eventYear) {
+              const matchedYear = yearFoldersRes.data.folders.find(f => f.name.includes(eventYear));
+              if (matchedYear) {
+                // Find event folder inside year folder
+                const eventFoldersRes = await axios.post(`${BACKEND_URL}/googleDrive`, {
+                  folderId: matchedYear.id,
+                  purpose: 'listSubfolders',
+                });
+                if (eventFoldersRes.data.success && eventFoldersRes.data.folders && eventFoldersRes.data.folders.length > 0) {
+                  const matchedEventFolder = eventFoldersRes.data.folders.find(f => f.name === event.eventName);
+                  if (matchedEventFolder) {
+                    destinationFolderId = matchedEventFolder.id;
+                  } else {
+                    destinationFolderId = matchedYear.id;
+                  }
+                } else {
+                  destinationFolderId = matchedYear.id;
+                }
+              }
+            }
+            // Check if file exists
+            const filesRes = await axios.post(`${BACKEND_URL}/googleDrive`, {
+              folderId: destinationFolderId,
+              purpose: 'listFiles',
+            });
+            if (filesRes.data.success && filesRes.data.files) {
+              const fileExists = filesRes.data.files.some(f => f.name === event.eventName);
+              return { ...event, status: fileExists ? 'Created' : 'Not Created' };
+            }
+          } catch (err) {
+            console.warn('Error checking file existence for event:', event.eventName, err);
+          }
+          return event; // default to 'Not Created'
+        }));
+
+        console.log('Events loaded:', updatedEvents);
+        this.setState({ events: updatedEvents, loadingEvents: false });
       } else {
         this.setState({ eventError: 'Unable to load events', loadingEvents: false });
       }
@@ -97,7 +145,14 @@ class CreateFileForm extends React.Component {
       if (filesRes.data.success && filesRes.data.files) {
         const fileExists = filesRes.data.files.some(f => f.name === newFileName);
         if (fileExists) {
-          this.setState({ copying: false, copyResult: { error: 'A file with this name already exists. Cannot create a new one.' } });
+          // Mark event as created
+          this.setState(prev => ({
+            copying: false,
+            copyResult: { error: 'A file with this name already exists. Cannot create a new one.' },
+            events: prev.events.map(ev =>
+              ev.eventName === event.eventName ? { ...ev, status: 'Created' } : ev
+            )
+          }));
           return;
         }
       }
@@ -111,7 +166,14 @@ class CreateFileForm extends React.Component {
 
       // Only update result section, no alert
       if (response.data.success) {
-        this.setState({ copying: false, copyResult: response.data });
+        // Mark event as created
+        this.setState(prev => ({
+          copying: false,
+          copyResult: response.data,
+          events: prev.events.map(ev =>
+            ev.eventName === event.eventName ? { ...ev, status: 'Created' } : ev
+          )
+        }));
       } else {
         this.setState({ copying: false, copyResult: { error: response.data.error } });
       }
@@ -129,10 +191,10 @@ class CreateFileForm extends React.Component {
           {/* ── Step 1: Display Events ── */}
           <div className="fft-participants-section">
             <div className="fft-participants-section-header">
-              <h3 className="fft-participants-section-title">Select Event</h3>
+              <h3 className="fft-participants-section-title">Select A FFT Event </h3>
               <hr style={{ margin: '12px 0' }} />
               <div className="fft-participants-section-desc" style={{ marginBottom: '12px', color: '#555', fontSize: '1em' }}>
-                Please select the event for which you want to create a new file.
+                 Please select the FFT event to create a new Google Sheet file (to track participants results). 
               </div>
             </div>
 
@@ -157,10 +219,35 @@ class CreateFileForm extends React.Component {
                 {events.map((event, index) => (
                   <button
                     key={index}
-                    className="fft-event-btn"
+                    className={`fft-event-btn${event.status === 'Created' ? ' fft-event-btn-created' : ''}`}
                     onClick={() => this.handleCopyTemplate(event)}
                   >
-                    <div className="fft-event-btn-name">{event.eventName}</div>
+                   <div className="fft-event-btn-name">{event.eventName}</div>
+                   <hr style={{ border: 0, borderTop: '1px solid rgba(0,0,0,0.25)', margin: '10px 0', width: '100%' }} />
+                    <div
+                      className="fft-event-btn-status"
+                      style={{
+                        marginTop: '10px',
+                        fontSize: '1.15em',
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '10px'
+                      }}
+                    >
+                      {event.status === 'Created' ? (
+                        <>
+                          <i className="fas fa-check-circle" style={{ color: '#388e3c', fontSize: '1.15em' }}></i>
+                          <span style={{ color: '#388e3c', fontSize: '1.15em' }}>Created</span>
+                        </>
+                      ) : (
+                        <>
+                          <i className="fas fa-times-circle" style={{ color: '#d32f2f', fontSize: '1.15em' }}></i>
+                          <span style={{ color: '#d32f2f', fontSize: '1em' }}>Not Created</span>
+                        </>
+                      )}
+                    </div>
                   </button>
                 ))}
               </div>
@@ -181,22 +268,35 @@ class CreateFileForm extends React.Component {
             <div className="fft-create-result-section">
               {copyResult.error ? (
                 <div className="fft-admin-result fft-admin-result--error">
-                  <i className="fas fa-exclamation-circle"></i>
+                  <i className="fas fa-times-circle" style={{ marginRight: '12px', fontSize: '1.5em' }}></i>
                   <div>
-                    <p className="fft-admin-result-title">Creation Failed</p>
-                    <p className="fft-admin-result-detail">{copyResult.error}</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="fft-admin-result fft-admin-result--success">
-                  <i className="fas fa-check-circle"></i>
-                  <div>
-                    <p className="fft-admin-result-title">File Created</p>
-                    <p className="fft-admin-result-detail">
-                      New file: <a href={copyResult.fileUrl} target="_blank" rel="noopener noreferrer">{copyResult.fileName}</a>
+                    <p className="fft-admin-result-title" style={{ color: '#d32f2f', marginBottom: '4px', fontWeight: 'bold' }}>FFT results file is not created</p>
+                    <p className="fft-admin-result-detail" style={{ color: '#d32f2f' }}>
+                      A file with this name already exists. Please select another FFT event.
                     </p>
                   </div>
                 </div>
+              ) : (
+                <>
+                  <div className="fft-admin-result fft-admin-result--success">
+                    <i className="fas fa-check-circle"></i>
+                    <div>
+                      <p className="fft-admin-result-title">FFT results file created!</p>
+                      <p className="fft-admin-result-detail">
+                        File name: <a href={copyResult.fileUrl} target="_blank" rel="noopener noreferrer">{copyResult.fileName}</a>
+                      </p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
+                    <button
+                      type="button"
+                      onClick={this.props.onFinish}
+                      className="fft-create-event-btn fft-create-event-btn-finish"
+                    >
+                      Finish
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           )}
