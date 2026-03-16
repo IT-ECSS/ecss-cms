@@ -137,7 +137,7 @@ class CreateEventForm extends React.Component {
       let errorMessage = error.response?.data?.error || error.message || 'Failed to save to Google Sheets';
       // Custom error for duplicate event name
       if (typeof errorMessage === 'string' && errorMessage.toLowerCase().includes('duplicate')) {
-        errorMessage = 'FFT results file is not created. An event with the same details already exists. Please indicate a different session.';
+        errorMessage = 'An event with the same details already exists. Please indicate a different session.';
       }
       // Error: keep form fields, show error message
       this.setState({
@@ -173,13 +173,13 @@ class CreateEventForm extends React.Component {
               <h3 className="fft-participants-section-title">Create A FFT Event</h3>
               <hr style={{ margin: '12px 0' }} />
               <div className="fft-participants-section-desc" style={{ marginBottom: '12px', color: '#555', fontSize: '1em' }}>
-                Please fill in the details on the FFT event. 
+                Please fill in the details for the FFT event.
               </div>
             </div>
 
             {/* Date Field */}
             <div className="fft-create-event-field">
-              <label className="fft-create-event-label">Date (yyyy/mm/dd)</label>
+              <label className="fft-create-event-label">Date Of Event (yyyy/mm/dd)</label>
               <DatePicker
                 selected={this.state.eventDateObj}
                 onChange={(date) => {
@@ -257,7 +257,7 @@ class CreateEventForm extends React.Component {
 
             {/* Location Dropdown (Custom) */}
             <div className="fft-create-event-field">
-              <label className="fft-create-event-label">Select A Site</label>
+              <label className="fft-create-event-label">Event Location</label>
               <div className="fft-create-event-location-wrapper">
                 <div
                   onClick={() => !eventSubmitting && !eventResult && this.setState({ eventLocationDropdownOpen: !eventLocationDropdownOpen })}
@@ -311,7 +311,7 @@ class CreateEventForm extends React.Component {
             </div>
 
             {/* Result/Error Message */}
-            {(eventResult || (eventError && typeof eventError === 'string' && eventError.includes('FFT results file is not created'))) && (
+            {(eventResult || (eventError && typeof eventError === 'string' && eventError.includes('An event with the same details already exists.'))) && (
               <div className="fft-create-result-section">
                 {eventResult ? (
                   <div className="fft-admin-result fft-admin-result--success">
@@ -325,7 +325,7 @@ class CreateEventForm extends React.Component {
                   <div className="fft-admin-result fft-admin-result--error" style={{ border: '1px solid #d32f2f', background: '#fff0f0', color: '#d32f2f', display: 'flex', alignItems: 'center', padding: '12px', borderRadius: '6px' }}>
                     <i className="fas fa-times-circle" style={{ marginRight: '12px', fontSize: '1.5em' }}></i>
                     <div>
-                      <p className="fft-admin-result-detail" style={{ color: '#d32f2f', marginBottom: '4px', fontWeight: 'bold' }}>FFT results file is not created</p>
+                      <p className="fft-admin-result-detail" style={{ color: '#d32f2f', marginBottom: '4px', fontWeight: 'bold' }}>The FFT event cannot be created.</p>
                       <p className="fft-admin-result-detail" style={{ color: '#d32f2f' }}>An event with the same details already exists. Please select indicate a different session number if there are more than one FFT event occurring on the same day.</p>
                     </div>
                   </div>
@@ -334,7 +334,7 @@ class CreateEventForm extends React.Component {
             )}
 
             {/* Other Error Message */}
-            {eventError && !(typeof eventError === 'string' && eventError.includes('FFT results file is not created')) && (
+            {eventError && !(typeof eventError === 'string' && eventError.includes('An event with the same details already exists.')) && (
               <div className="fft-create-event-error">
                 {eventError}
               </div>

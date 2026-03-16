@@ -16,6 +16,8 @@ class ReviewParticipantsResult extends Component {
     this.state = {
       event: props.initialEvent || null,
       entryNumber: props.initialEntryNumber || null,
+      hasError: false,
+      isLoading: false,
     };
   }
 
@@ -58,12 +60,20 @@ class ReviewParticipantsResult extends Component {
   handleBack = () => {
     const { event, entryNumber } = this.state;
     if (entryNumber) {
-      this.setState({ entryNumber: null });
+      this.setState({ entryNumber: null, hasError: false });
       this.notifyState(event, null);
     } else {
-      this.setState({ event: null });
+      this.setState({ event: null, hasError: false });
       this.notifyState(null, null);
     }
+  };
+
+  handleError = (hasError) => {
+    this.setState({ hasError });
+  };
+
+  handleLoading = (isLoading) => {
+    this.setState({ isLoading });
   };
 
   render() {
@@ -80,16 +90,59 @@ class ReviewParticipantsResult extends Component {
 
     return (
       <div className="fft-trainers-form">
-
         {/* Entry search or results */}
         {!entryNumber ? (
           <StaffEntry onLookup={this.handleLookup} />
         ) : (
-          <ParticipantResults
-            fileId={event.id}
-            entryNumber={entryNumber}
-            onReset={this.handleReset}
-          />
+          <>
+            <ParticipantResults
+              fileId={event.id}
+              entryNumber={entryNumber}
+              onReset={this.handleReset}
+              onError={this.handleError}
+              onLoading={this.handleLoading}
+            />
+            {/* Back and Try Again buttons - footer style - only show when not loading */}
+            {!this.state.isLoading && (
+            <div style={{ padding: '16px', display: 'flex', gap: '12px', justifyContent: 'center', borderTop: '1px solid #e0e0e0', marginTop: '20px' }}>
+              {this.state.hasError ? (
+                <button
+                  style={{
+                    fontSize: '1.40625em',
+                    padding: '12.5px 20px',
+                    fontWeight: 'bold',
+                    border: '3px solid #dc3545',
+                    background: 'transparent',
+                    color: '#dc3545',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    width: 'fit-content'
+                  }}
+                  onClick={this.handleReset}
+                >
+                  Try Again
+                </button>
+              ) : (
+                <button
+                  style={{
+                    fontSize: '1.40625em',
+                    fontWeight: 'bold',
+                    padding: '12.5px 20px',
+                    border: '3px solid #28a745',
+                    background: 'transparent',
+                    color: '#28a745',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    width: 'fit-content'
+                  }}
+                  onClick={this.handleBack}
+                >
+                  Back to Results
+                </button>
+              )}
+            </div>
+            )}
+          </>
         )}
       </div>
     );

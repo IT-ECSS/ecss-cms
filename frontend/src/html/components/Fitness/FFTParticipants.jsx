@@ -98,14 +98,14 @@ class SelectedLanguageBadge extends Component {
         style={{
           display: 'flex', flexDirection: 'column', gap: 6,
           padding: '14px 20px', flex: 1, textAlign: 'left',
-          background: '#e3f0ff', border: 'none', borderBottom: '1px solid #c5d9f5',
+          background: '#e3f0ff', border: 'none', borderBottom: '2px solid #c5d9f5',
           cursor: 'pointer',
         }}
       >
-        <span style={{ fontSize: '0.9em', color: '#1565c0', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700 }}>
+        <span style={{ fontSize: '1.125em', color: '#1565c0', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700 }}>
           {sectionLabel[language] || 'Language'}
         </span>
-        <span style={{ fontSize: '1.3em', fontWeight: 700, color: '#1565c0' }}>
+        <span style={{ fontSize: '1.625em', fontWeight: 700, color: '#1565c0' }}>
           {labels[language] || language}
         </span>
       </button>
@@ -129,10 +129,10 @@ class SelectedEventBadge extends Component {
           cursor: 'pointer',
         }}
       >
-        <span style={{ fontSize: '0.9em', color: '#2e7d32', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700 }}>
+        <span style={{ fontSize: '1.125em', color: '#2e7d32', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700 }}>
           {sectionLabel[language] || 'Event'}
         </span>
-        <span style={{ fontSize: '1.3em', fontWeight: 700, color: '#2e7d32', wordBreak: 'break-word' }}>
+        <span style={{ fontSize: '1.625em', fontWeight: 700, color: '#2e7d32', wordBreak: 'break-word' }}>
           {name}
         </span>
       </button>
@@ -271,7 +271,7 @@ class FFTParticipants extends Component {
             {/* Right: description + badges stacked */}
             {language && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 0 }}>
-                <span style={{ fontSize: '1.05em', color: '#555' }}>
+                <span style={{ fontSize: '1.3125em', color: '#555' }}>
                   {language === 'zh'
                     ? '点击下方标签可重新选择语言或活动'
                     : language === 'ms'

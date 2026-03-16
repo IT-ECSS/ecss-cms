@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { Readable } = require('stream');
 const archiver = require('archiver');
+const { COLUMN_HEADERS, INTERNAL_KEY_TO_COLUMN_MAP } = require('../../constants/fftFieldMappings');
 
 class GoogleDriveController {
     async initializeAuth() {
@@ -508,8 +509,6 @@ class GoogleDriveController {
             const drive = await this.initializeAuth();
             const sheets = await this.initializeSheetsAuth();
 
-            console.log(`[SHEETS] Reading spreadsheet: ${fileId}`);
-
             // First, get spreadsheet metadata to get sheet names
             const spreadsheet = await sheets.spreadsheets.get({
                 spreadsheetId: fileId,
@@ -517,7 +516,6 @@ class GoogleDriveController {
             });
 
             const sheetNames = spreadsheet.data.sheets.map(s => s.properties.title);
-            console.log(`[SHEETS] Available sheets: ${sheetNames.join(', ')}`);
 
             // Determine which sheet to read
             const targetSheet = sheetName || sheetNames[0];
@@ -711,31 +709,27 @@ class GoogleDriveController {
             const sheets = await this.initializeSheetsAuth();
             const rowNumber = entryNumber + 1; // +1 for header row
 
-            // Column mapping: field name → column letter
-            const columnMap = {
-                name: 'A', chineseName: 'B', phoneNo: 'C', gender: 'D',
-                dd: 'E', mm: 'F', yyyy: 'G', age: 'H',
-                height: 'I', weight: 'J', bmi: 'K', testDate: 'L',
-                sitStand: 'M', armCurl: 'N', march: 'O', sitReach: 'P',
-                backStretch: 'Q', speedWalk: 'R', gripTest: 'S',
-                improvements: 'T', remarks: 'U'
-            };
-
             const spreadsheet = await sheets.spreadsheets.get({
                 spreadsheetId: fileId,
                 fields: 'sheets.properties'
             });
             const targetSheet = spreadsheet.data.sheets[0].properties.title;
+            console.log(`[SHEETS] Updating row ${rowNumber} in sheet '${targetSheet}' with updates:`, updates);
 
-            // Build batch value updates
+            // Build batch value updates using exact column name → column letter mapping
             const data = [];
             for (const [field, value] of Object.entries(updates)) {
-                const col = columnMap[field];
+                const col = INTERNAL_KEY_TO_COLUMN_MAP[field];
+                console.log(`[SHEETS] Processing field: ${field} = ${value}, mapped to column: ${col}`);
                 if (col) {
+                    const range = `'${targetSheet}'!${col}${rowNumber}`;
+                    console.log(`[SHEETS] Adding update: ${range} = ${value}`);
                     data.push({
-                        range: `'${targetSheet}'!${col}${rowNumber}`,
+                        range: range,
                         values: [[value]]
                     });
+                } else {
+                    console.log(`[SHEETS] WARNING: Column not found for field: ${field}`);
                 }
             }
 
@@ -743,6 +737,7 @@ class GoogleDriveController {
                 return { success: false, error: 'No valid fields to update' };
             }
 
+            console.log(`[SHEETS] Sending batch update with ${data.length} changes to row ${rowNumber}`);
             await sheets.spreadsheets.values.batchUpdate({
                 spreadsheetId: fileId,
                 requestBody: {
@@ -777,32 +772,16 @@ class GoogleDriveController {
             });
 
             const row = response.data.values && response.data.values[0] ? response.data.values[0] : [];
-            // Map to column names (A=0 to U=20)
+            
+            // Build data object using exact column header names (order A-U)
+            const data = {};
+            COLUMN_HEADERS.forEach((header, idx) => {
+                data[header] = row[idx] || '';
+            });
+            
             return {
                 success: true,
-                data: {
-                    name: row[0] || '',
-                    chineseName: row[1] || '',
-                    phoneNo: row[2] || '',
-                    gender: row[3] || '',
-                    dd: row[4] || '',
-                    mm: row[5] || '',
-                    yyyy: row[6] || '',
-                    age: row[7] || '',
-                    height: row[8] || '',
-                    weight: row[9] || '',
-                    bmi: row[10] || '',
-                    testDate: row[11] || '',
-                    sitStand: row[12] || '',
-                    armCurl: row[13] || '',
-                    march: row[14] || '',
-                    sitReach: row[15] || '',
-                    backStretch: row[16] || '',
-                    speedWalk: row[17] || '',
-                    gripTest: row[18] || '',
-                    improvements: row[19] || '',
-                    remarks: row[20] || ''
-                }
+                data: data
             };
         } catch (error) {
             console.error('[SHEETS] Error getting row:', error.message);

@@ -1,32 +1,12 @@
 import React from 'react';
 import '../../../css/fftParticipants.css';
 import SingPassButton from '../sub/SingPassButton';
+import fftTranslations from './fftTranslations';
 
 const ParticipantEntryMethod = ({ language, onUseSingpass, onUseManual, onBack, onHome }) => {
-  const texts = {
-    en: {
-      title: 'Registration Form',
-      description: 'Choose how you would like to fill in your information.',
-      manual: 'Fill in the form manually',
-      back: 'Back',
-      home: 'Home',
-    },
-    zh: {
-      title: '登记表格',
-      description: '选择您希望如何填写信息。',
-      manual: '手动填写表格',
-      back: '返回',
-      home: '主页',
-    },
-    ms: {
-      title: 'Borang Pendaftaran',
-      description: 'Pilih bagaimana anda ingin mengisi maklumat anda.',
-      manual: 'Isi borang secara manual',
-      back: 'Kembali',
-      home: 'Utama',
-    },
-  };
-  const { title, description, manual, back, home } = texts[language] || texts.en;
+  const title = fftTranslations.registrationFormTitle[language] || fftTranslations.registrationFormTitle.en;
+  const description = fftTranslations.registrationFormDescription[language] || fftTranslations.registrationFormDescription.en;
+  const manual = fftTranslations.registrationFormManual[language] || fftTranslations.registrationFormManual.en;
 
   return (
     <div className="fft-participants-section">

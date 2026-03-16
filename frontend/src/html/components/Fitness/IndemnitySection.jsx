@@ -138,26 +138,27 @@ class IndemnitySection extends Component {
   };
 
   validateForm = () => {
-    const { agreed, hasSignature } = this.state;
+    const { agreed } = this.state;
     const errors = {};
     if (!agreed) errors.agreed = true;
-    if (!hasSignature) errors.signature = true;
     this.setState({ errors });
     return Object.keys(errors).length === 0;
   };
 
   getCurrentData = () => {
-    const { agreed, hasSignature } = this.state;
-    const canvas = this.canvasRef.current;
-    const signature = hasSignature && canvas ? canvas.toDataURL('image/png') : null;
-    return { agreed, signature };
+    const { agreed } = this.state;
+    return { agreed, signature: null };
   };
 
   handleSubmit = () => {
     if (this.validateForm()) {
-      const canvas = this.canvasRef.current;
-      const signatureData = canvas.toDataURL('image/png');
-      this.props.onSubmit?.({ agreed: true, signature: signatureData });
+      // Commented out - signature section removed
+      // const canvas = this.canvasRef.current;
+      // const signatureData = canvas.toDataURL('image/png');
+      
+      // Correct implementation without signature
+      const data = this.getCurrentData();
+      this.props.onSubmit?.(data);
     }
   };
 
@@ -184,7 +185,7 @@ class IndemnitySection extends Component {
                     display: 'flex',
                     alignItems: 'flex-start',
                     gap: '12px',
-                    backgroundColor: '#f5f5f5',
+                    backgroundColor: '#ffffff',
                     borderRadius: '10px',
                     borderLeft: '4px solid #d32f2f',
                     padding: '14px 16px',
@@ -200,97 +201,94 @@ class IndemnitySection extends Component {
               ))}
             </div>
 
-            {/* Agree checkbox + Signature — same row */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginTop: '24px', alignItems: 'stretch' }}>
-              {/* Left: checkbox */}
-              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
-                <div
+            {/* Agree checkbox */}
+            <div style={{ marginTop: '24px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '14px 16px',
+                  borderRadius: '10px',
+                  border: errors.agreed ? '1.5px solid #d32f2f' : '1.5px solid #ddd',
+                  backgroundColor: '#f5f5f5',
+                  cursor: 'pointer',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={agreed}
+                  onChange={() => this.setState((s) => ({ agreed: !s.agreed, errors: { ...s.errors, agreed: false } }))}
+                  style={{ width: '18px', height: '18px', flexShrink: 0, cursor: 'pointer' }}
+                />
+                <span style={{ fontWeight: 600, fontSize: '0.95em', color: '#222' }}>
+                  {this.getTrans('agreeTerms')}
+                </span>
+              </div>
+              {errors.agreed && (
+                <div className="fft-create-event-error" style={{ marginTop: '6px' }}>
+                  {language === 'zh' ? '请同意以上条款' : language === 'ms' ? 'Sila bersetuju dengan syarat' : 'Please agree to the above terms'}
+                </div>
+              )}
+            </div>
+
+            {/* Signature section — COMMENTED OUT */}
+            {/* <div style={{ marginTop: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+                <label className="fft-create-event-label" style={{ margin: 0 }}>
+                  {this.getTrans('labelSignature')}
+                  <span style={{ color: '#d32f2f', marginLeft: '4px' }}>*</span>
+                </label>
+              </div>
+              <div style={{ position: 'relative' }}>
+                <canvas
+                  ref={this.canvasRef}
+                width={600}
+                height={160}
+                onMouseDown={this.startDrawing}
+                onMouseMove={this.draw}
+                onMouseUp={this.stopDrawing}
+                onMouseLeave={this.stopDrawing}
+                onTouchStart={this.startDrawing}
+                onTouchMove={this.draw}
+                onTouchEnd={this.stopDrawing}
+                style={{
+                  width: '100%',
+                  height: '160px',
+                  border: errors.signature ? '1.5px solid #d32f2f' : '1.5px solid #ddd',
+                  borderRadius: '10px',
+                  backgroundColor: '#fff',
+                  cursor: 'crosshair',
+                  display: 'block',
+                  touchAction: 'none',
+                }}
+              />
+              </div>
+              {hasSignature && (
+                <button
+                  type="button"
+                  onClick={this.clearSignature}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    padding: '14px 16px',
-                    borderRadius: '10px',
-                    border: errors.agreed ? '1.5px solid #d32f2f' : '1.5px solid #ddd',
-                    backgroundColor: '#f5f5f5',
+                    marginTop: '8px',
+                    background: 'none',
+                    border: '1.5px solid #d32f2f',
+                    borderRadius: '6px',
+                    color: '#d32f2f',
                     cursor: 'pointer',
+                    fontSize: '0.9em',
+                    fontWeight: 600,
+                    padding: '6px 14px',
                   }}
                 >
-                  <input
-                    type="checkbox"
-                    checked={agreed}
-                    onChange={() => this.setState((s) => ({ agreed: !s.agreed, errors: { ...s.errors, agreed: false } }))}
-                    style={{ width: '18px', height: '18px', flexShrink: 0, cursor: 'pointer' }}
-                  />
-                  <span style={{ fontWeight: 600, fontSize: '0.95em', color: '#222' }}>
-                    {this.getTrans('agreeTerms')}
-                  </span>
+                  ✕ {language === 'zh' ? '清除签名' : language === 'ms' ? 'Padam tandatangan' : 'Clear signature'}
+                </button>
+              )}
+              {errors.signature && (
+                <div className="fft-create-event-error" style={{ marginTop: '6px' }}>
+                  {language === 'zh' ? '请提供签名' : language === 'ms' ? 'Sila tandatangan' : 'Please provide your signature'}
                 </div>
-                {errors.agreed && (
-                  <div className="fft-create-event-error" style={{ marginTop: '6px' }}>
-                    {language === 'zh' ? '请同意以上条款' : language === 'ms' ? 'Sila bersetuju dengan syarat' : 'Please agree to the above terms'}
-                  </div>
-                )}
-              </div>
-
-              {/* Right: signature */}
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
-                  <label className="fft-create-event-label" style={{ margin: 0 }}>
-                    {this.getTrans('labelSignature')}
-                    <span style={{ color: '#d32f2f', marginLeft: '4px' }}>*</span>
-                  </label>
-                </div>
-                <div style={{ position: 'relative' }}>
-                  <canvas
-                    ref={this.canvasRef}
-                  width={600}
-                  height={160}
-                  onMouseDown={this.startDrawing}
-                  onMouseMove={this.draw}
-                  onMouseUp={this.stopDrawing}
-                  onMouseLeave={this.stopDrawing}
-                  onTouchStart={this.startDrawing}
-                  onTouchMove={this.draw}
-                  onTouchEnd={this.stopDrawing}
-                  style={{
-                    width: '100%',
-                    height: '160px',
-                    border: errors.signature ? '1.5px solid #d32f2f' : '1.5px solid #ddd',
-                    borderRadius: '10px',
-                    backgroundColor: '#fff',
-                    cursor: 'crosshair',
-                    display: 'block',
-                    touchAction: 'none',
-                  }}
-                />
-                </div>
-                {hasSignature && (
-                  <button
-                    type="button"
-                    onClick={this.clearSignature}
-                    style={{
-                      marginTop: '8px',
-                      background: 'none',
-                      border: '1.5px solid #d32f2f',
-                      borderRadius: '6px',
-                      color: '#d32f2f',
-                      cursor: 'pointer',
-                      fontSize: '0.9em',
-                      fontWeight: 600,
-                      padding: '6px 14px',
-                    }}
-                  >
-                    ✕ {language === 'zh' ? '清除签名' : language === 'ms' ? 'Padam tandatangan' : 'Clear signature'}
-                  </button>
-                )}
-                {errors.signature && (
-                  <div className="fft-create-event-error" style={{ marginTop: '6px' }}>
-                    {language === 'zh' ? '请提供签名' : language === 'ms' ? 'Sila tandatangan' : 'Please provide your signature'}
-                  </div>
-                )}
-              </div>
-            </div>
+              )}
+            </div> */}
 
           </div>
         </div>

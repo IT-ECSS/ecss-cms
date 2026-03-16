@@ -13,11 +13,11 @@ class StaffEntry extends Component {
   handleSubmit = () => {
     const val = this.state.value.trim();
     if (!val) {
-      this.setState({ validationMsg: 'Entry number is required.' });
+      this.setState({ validationMsg: 'Participant number is required.' });
       return;
     }
     if (!/^\d+$/.test(val)) {
-      this.setState({ validationMsg: 'Entry number must contain digits only.' });
+      this.setState({ validationMsg: 'Participant number must contain digits only.' });
       return;
     }
     this.setState({ validationMsg: null });
@@ -35,14 +35,14 @@ class StaffEntry extends Component {
         <hr style={{ margin: '12px 0' }} />
 
         <p className="fft-result-entry-section-desc">
-          Enter the participant's entry number to continue.
+          Enter the participant's number to continue.
         </p>
 
         <div className="fft-result-entry-manual-row" style={{ marginTop: '16px' }}>
           <input
             type="text"
             inputMode="numeric"
-            placeholder="Entry #"
+            placeholder="Participant #"
             id="fft-staff-entry-manual-input"
             className="fft-result-entry-input fft-result-entry-manual-input"
             value={value}

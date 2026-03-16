@@ -60,7 +60,7 @@ class FFTTrainers extends Component {
             </button>
             {view === 'reviewResults' && event && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 0 }}>
-                <span style={{ fontSize: '1.05em', color: '#555' }}>Click on the badge below to re-select your event</span>
+                <span style={{ fontSize: '1.3125em', color: '#555' }}>Click on the badge below to re-select your event</span>
                 <button
                   type="button"
                   onClick={() => {
@@ -74,8 +74,8 @@ class FFTTrainers extends Component {
                     cursor: 'pointer',
                   }}
                 >
-                  <span style={{ fontSize: '0.9em', color: '#2e7d32', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700 }}>Event</span>
-                  <span style={{ fontSize: '1.3em', fontWeight: 700, color: '#2e7d32', wordBreak: 'break-word' }}>{event.name}</span>
+                  <span style={{ fontSize: '1.125em', color: '#2e7d32', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700 }}>Event</span>
+                  <span style={{ fontSize: '1.625em', fontWeight: 700, color: '#2e7d32', wordBreak: 'break-word' }}>{event.name}</span>
                 </button>
               </div>
             )}

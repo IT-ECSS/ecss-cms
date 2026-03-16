@@ -191,7 +191,7 @@ class CreateFileForm extends React.Component {
           {/* ── Step 1: Display Events ── */}
           <div className="fft-participants-section">
             <div className="fft-participants-section-header">
-              <h3 className="fft-participants-section-title">Select A FFT Event </h3>
+              <h3 className="fft-participants-section-title">Select A FFT Event</h3>
               <hr style={{ margin: '12px 0' }} />
               <div className="fft-participants-section-desc" style={{ marginBottom: '12px', color: '#555', fontSize: '1em' }}>
                  Please select the FFT event to create a new Google Sheet file (to track participants results). 
@@ -216,40 +216,47 @@ class CreateFileForm extends React.Component {
 
             {!loadingEvents && events.length > 0 && (
               <div className="fft-events-buttons-container">
-                {events.map((event, index) => (
-                  <button
-                    key={index}
-                    className={`fft-event-btn${event.status === 'Created' ? ' fft-event-btn-created' : ''}`}
-                    onClick={() => this.handleCopyTemplate(event)}
-                  >
-                   <div className="fft-event-btn-name">{event.eventName}</div>
-                   <hr style={{ border: 0, borderTop: '1px solid rgba(0,0,0,0.25)', margin: '10px 0', width: '100%' }} />
-                    <div
-                      className="fft-event-btn-status"
-                      style={{
-                        marginTop: '10px',
-                        fontSize: '1.15em',
-                        fontWeight: 700,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '10px'
-                      }}
+                {events.map((event, index) => {
+                  const isCreated = event.status === 'Created';
+                  return (
+                    <button
+                      key={index}
+                      className={`fft-event-btn${isCreated ? ' fft-event-btn-created' : ''}`}
+                      onClick={isCreated ? undefined : () => this.handleCopyTemplate(event)}
+                      disabled={isCreated}
+                      style={isCreated ? { cursor: 'not-allowed' } : {}}
                     >
-                      {event.status === 'Created' ? (
-                        <>
-                          <i className="fas fa-check-circle" style={{ color: '#388e3c', fontSize: '1.15em' }}></i>
-                          <span style={{ color: '#388e3c', fontSize: '1.15em' }}>Created</span>
-                        </>
-                      ) : (
-                        <>
-                          <i className="fas fa-times-circle" style={{ color: '#d32f2f', fontSize: '1.15em' }}></i>
-                          <span style={{ color: '#d32f2f', fontSize: '1em' }}>Not Created</span>
-                        </>
-                      )}
-                    </div>
-                  </button>
-                ))}
+                      <div className="fft-event-btn-name">{event.eventName}</div>
+                      <hr style={{ border: 0, borderTop: '1px solid rgba(0,0,0,0.25)', margin: '10px 0', width: '100%' }} />
+                      <div
+                        className="fft-event-btn-status"
+                        style={{
+                          marginTop: '10px',
+                          fontSize: '1.15em',
+                          fontWeight: 700,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '10px'
+                        }}
+                      >
+                        {isCreated ? (
+                          <>
+                            {/* FontAwesome v5 check-square (grey) */}
+                            <i className="fas fa-check-square" style={{ color: '#bbb', fontSize: '1.4em' }}></i>
+                            <span style={{ color: '#bbb', fontSize: '1.15em' }}>Created</span>
+                          </>
+                        ) : (
+                          <>
+                            {/* FontAwesome v5 check-empty (green) */}
+                            <i className="far fa-square" style={{ color: '#388e3c', fontSize: '1.4em' }}></i>
+                            <span style={{ color: '#388e3c', fontSize: '1em' }}>Not Created</span>
+                          </>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             )}
 

@@ -8,6 +8,7 @@ import ResultEntry from './ResultEntry';
 import VolunteerEntry from './VolunteerEntry';
 import LoadingSpinner from './LoadingSpinner';
 import LoadingParticipant from './LoadingParticipant';
+import fftTranslations from './fftTranslations';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
@@ -23,13 +24,13 @@ class SelectedEventBadge extends Component {
         onClick={onClick}
         style={{
           display: 'flex', flexDirection: 'column', gap: 6,
-          padding: '14px 20px', flex: 1, textAlign: 'left',
+          padding: '14px 20px', flex: 2, textAlign: 'left',
           background: '#e8f5e9', border: 'none', borderBottom: '2px solid #b2dfcf',
           cursor: 'pointer',
         }}
       >
-        <span style={{ fontSize: '0.9em', color: '#2e7d32', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700 }}>Event</span>
-        <span style={{ fontSize: '1.3em', fontWeight: 700, color: '#2e7d32', wordBreak: 'break-word' }}>{name}</span>
+        <span style={{ fontSize: '1.406em', color: '#2e7d32', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700 }}>Event</span>
+        <span style={{ fontSize: '2.031em', fontWeight: 700, color: '#2e7d32' }}>{name}</span>
       </button>
     );
   }
@@ -38,20 +39,22 @@ class SelectedEventBadge extends Component {
 class SelectedStationBadge extends Component {
   render() {
     const { station, onClick } = this.props;
+    const num = station?.num || station?.key?.match(/^\d+/) || '';
     const name = typeof station === 'string' ? station : (station?.title || station?.name || station?.label || '');
+    const displayText = num ? `${num}: ${name}` : name;
     return (
       <button
         type="button"
         onClick={onClick}
         style={{
           display: 'flex', flexDirection: 'column', gap: 6,
-          padding: '14px 20px', flex: 1, textAlign: 'left',
+          padding: '14px 20px', flex: 2, textAlign: 'left',
           background: '#e3f0ff', border: 'none', borderBottom: '2px solid #c5d9f5',
           cursor: 'pointer',
         }}
       >
-        <span style={{ fontSize: '0.9em', color: '#1565c0', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700 }}>Station</span>
-        <span style={{ fontSize: '1.3em', fontWeight: 700, color: '#1565c0', wordBreak: 'break-word' }}>{name}</span>
+        <span style={{ fontSize: '1.406em', color: '#1565c0', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700 }}>Station</span>
+        <span style={{ fontSize: '2.031em', fontWeight: 700, color: '#1565c0' }}>{displayText}</span>
       </button>
     );
   }
@@ -147,7 +150,7 @@ class FFTVolunteers extends Component {
   };
 
   // ── Participant Lookup ──
-  handleEntryLookup = (valueStr) => {
+  handleEntryLookup = async (valueStr) => {
     const entryNumber = parseInt(String(valueStr), 10);
     if (isNaN(entryNumber)) {
       this.setState({ entryError: `Invalid entry number: "${valueStr}"` });
@@ -163,39 +166,41 @@ class FFTVolunteers extends Component {
       return;
     }
     this.setState({ entryNumber, loadingParticipant: true, entryError: null, lookupError: null });
-    axios.get(`${BACKEND_URL}/googleDrive/getRow`, { params: { fileId, entryNumber } })
-      .then((res) => {
-        if (res.data.success) {
-          const data = res.data.data;
+    
+    try {
+      const res = await axios.post(`${BACKEND_URL}/googleDrive/getRow`, { fileId, entryNumber });
+      
+      if (res.data.success) {
+        const data = res.data.data;
+        console.log('Participant data:', data);
 
-          // Treat empty rows (no name) as not found
-          if (!data.name && !data.chineseName) {
-            this.setState({ loadingParticipant: false, lookupError: `Entry #${entryNumber} was not found in the spreadsheet.`, entryNumber });
+        // Treat empty rows (no name) as not found
+        if (!data.Name && !data['Chinese Name']) {
+          this.setState({ loadingParticipant: false, lookupError: `Participant #${entryNumber} was not found in the spreadsheet.`, entryNumber });
+          return;
+        }
+
+        if (selectedStation.id !== 'measurement') {
+          const hasHeight = data.Height && String(data.Height).trim() !== '';
+          const hasWeight = data.Weight && String(data.Weight).trim() !== '';
+          const hasBmi = data.BMI && String(data.BMI).trim() !== '';
+          if (!hasHeight || !hasWeight || !hasBmi) {
+            this.setState({
+              loadingParticipant: false,
+              lookupError: 'Measurement Station (Height, Weight, BMI) must be completed first before recording results for this station.',
+              entryNumber,
+            });
             return;
           }
-
-          if (selectedStation.id !== 'measurement') {
-            const hasHeight = data.height && String(data.height).trim() !== '';
-            const hasWeight = data.weight && String(data.weight).trim() !== '';
-            const hasBmi = data.bmi && String(data.bmi).trim() !== '';
-            if (!hasHeight || !hasWeight || !hasBmi) {
-              this.setState({
-                loadingParticipant: false,
-                lookupError: 'Measurement Station (Height, Weight, BMI) must be completed first before recording results for this station.',
-                entryNumber,
-              });
-              return;
-            }
-          }
-          this.setState({ participantData: data, loadingParticipant: false });
-        } else {
-          this.setState({ loadingParticipant: false, lookupError: `Entry #${entryNumber} was not found in the spreadsheet.`, entryNumber });
         }
-      })
-      .catch((err) => {
-        console.error('Error fetching participant data:', err.message);
-        this.setState({ loadingParticipant: false, lookupError: 'Error loading participant info. Please try again.', entryNumber });
-      });
+        this.setState({ participantData: data, loadingParticipant: false });
+      } else {
+        this.setState({ loadingParticipant: false, lookupError: `Participant #${entryNumber} was not found in the spreadsheet.`, entryNumber });
+      }
+    } catch (err) {
+      console.error('Error fetching participant data:', err.message);
+      this.setState({ loadingParticipant: false, lookupError: 'Error loading participant info. Please try again.', entryNumber });
+    }
   };
 
   handleNextParticipant = () => {
@@ -242,7 +247,7 @@ class FFTVolunteers extends Component {
             {/* Right: description + badges */}
             {(selectedEvent || selectedStation) && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 0 }}>
-                <span style={{ fontSize: '1.05em', color: '#555' }}>Click on a badge below to re-select your event or station</span>
+                <span style={{ fontSize: '1.3125em', color: '#555' }}>Click on a badge below to re-select your event or station</span>
                 <div style={{ display: 'flex', flexDirection: 'row', gap: 8 }}>
                   {selectedEvent && (
                     <SelectedEventBadge
@@ -295,6 +300,7 @@ class FFTVolunteers extends Component {
               loading={loadingParticipant}
               onNextParticipant={this.handleNextParticipant}
               onBack={() => this.setState({ selectedStation: null, participantData: null, entryNumber: null, lookupError: null })}
+              allStations={fftTranslations.stations}
             />
           )}
         </div>

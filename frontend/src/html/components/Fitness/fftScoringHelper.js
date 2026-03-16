@@ -17,14 +17,14 @@
 //
 //   { veryWeak: A, weak: B, normal: C, good: D }
 //
-// For HIGHER-IS-BETTER stations (sitStand, armCurl, march, sitReach, backStretch, gripTest):
+// For HIGHER-IS-BETTER stations ('30 secs Sit & Stand', '30 secs Arm Banding', '2 min On-the-spot Marching', 'Sit & Reach', 'Back Stretching', 'Grip test'):
 //   score < veryWeak  → "Very weak"
 //   score >= veryWeak  → "Weak"
 //   score >= weak      → "Normal"
 //   score >= normal    → "Good"
 //   score > good       → "Very good"
 //
-// For LOWER-IS-BETTER stations (speedWalk):
+// For LOWER-IS-BETTER stations ('2.44m Speed Walk'):
 //   score > veryWeak  → "Very weak"
 //   score <= veryWeak  → "Weak"
 //   score < weak       → "Normal"
@@ -34,13 +34,13 @@
 // ─── Station direction ──────────────────────────────────────────────────
 
 const STATION_DIRECTION = {
-  sitStand:    'higher',
-  armCurl:     'higher',
-  march:       'higher',
-  sitReach:    'higher',
-  backStretch: 'higher',
-  speedWalk:   'lower',
-  gripTest:    'higher',
+  '30 secs Sit & Stand':        'higher',
+  '30 secs Arm Banding':        'higher',
+  '2 min On-the-spot Marching': 'higher',
+  'Sit & Reach':                'higher',
+  'Back Stretching':            'higher',
+  '2.44m Speed Walk':           'lower',
+  'Grip test':                  'higher',
 };
 
 // ─── Female scoring tables ──────────────────────────────────────────────
@@ -48,7 +48,7 @@ const STATION_DIRECTION = {
 const FEMALE_SCORING = {
 
   // ── Station 1: 30-Sec Sit and Stand (higher is better) ──
-  sitStand: {
+  '30 secs Sit & Stand': {
     '< 69':  { veryWeak: 13, weak: 15, normal: 17, good: 18 },
     '70-74': { veryWeak: 12, weak: 14, normal: 16, good: 17 },
     '75-79': { veryWeak: 11, weak: 13, normal: 15, good: 16 },
@@ -58,7 +58,7 @@ const FEMALE_SCORING = {
   },
 
   // ── Station 2: 30-Sec Arm Curl (higher is better) ──
-  armCurl: {
+  '30 secs Arm Banding': {
     '< 69':  { veryWeak: 16, weak: 19, normal: 21, good: 22 },
     '70-74': { veryWeak: 15, weak: 18, normal: 20, good: 21 },
     '75-79': { veryWeak: 15, weak: 17, normal: 19, good: 20 },
@@ -68,7 +68,7 @@ const FEMALE_SCORING = {
   },
 
   // ── Station 3: 2-Min On-the-spot Marching (higher is better) ──
-  march: {
+  '2 min On-the-spot Marching': {
     '< 69':  { veryWeak: 76,  weak: 86,  normal: 96,  good: 105 },
     '70-74': { veryWeak: 69,  weak: 80,  normal: 91,  good: 101 },
     '75-79': { veryWeak: 62,  weak: 74,  normal: 86,  good: 97 },
@@ -78,7 +78,7 @@ const FEMALE_SCORING = {
   },
 
   // ── Station 4: Sit & Reach (higher is better, can be negative) ──
-  sitReach: {
+  'Sit & Reach': {
     '< 69':  { veryWeak: 0,    weak: 4,  normal: 9,  good: 13 },
     '70-74': { veryWeak: 0,    weak: 3,  normal: 8,  good: 12 },
     '75-79': { veryWeak: 0,    weak: 3,  normal: 7,  good: 10 },
@@ -88,7 +88,7 @@ const FEMALE_SCORING = {
   },
 
   // ── Station 5: Back Stretching Test (higher is better, often negative) ──
-  backStretch: {
+  'Back Stretching': {
     '< 69':  { veryWeak: -8,  weak: -4,    normal: 0,    good: 3 },
     '70-74': { veryWeak: -11, weak: -6,    normal: -1,   good: 3 },
     '75-79': { veryWeak: -15, weak: -11,   normal: -4,   good: 2 },
@@ -98,7 +98,7 @@ const FEMALE_SCORING = {
   },
 
   // ── Station 6: 2.44m Speed Walk (lower is better — time in seconds) ──
-  speedWalk: {
+  '2.44m Speed Walk': {
     '< 69':  { veryWeak: 7.7,  weak: 7.0,  normal: 6.4,  good: 5.7 },
     '70-74': { veryWeak: 8.7,  weak: 7.9,  normal: 6.9,  good: 6 },
     '75-79': { veryWeak: 10,   weak: 9.1,  normal: 7.9,  good: 6.8 },
@@ -108,7 +108,7 @@ const FEMALE_SCORING = {
   },
 
   // ── Station 7: Grip Test (higher is better, decimals) ──
-  gripTest: {
+  'Grip test': {
     '< 69':  { veryWeak: 18.1, weak: 22.6, normal: 27.3, good: 31.9 },
     '70-74': { veryWeak: 17.7, weak: 22.2, normal: 26.9, good: 31.5 },
     '75-79': { veryWeak: 17.2, weak: 21.7, normal: 26.4, good: 31 },
@@ -123,7 +123,7 @@ const FEMALE_SCORING = {
 const MALE_SCORING = {
 
   // ── Station 1: 30-Sec Sit and Stand (higher is better) ──
-  sitStand: {
+  '30 secs Sit & Stand': {
     '< 69':  { veryWeak: 16, weak: 18, normal: 20, good: 21 },
     '70-74': { veryWeak: 13, weak: 15, normal: 17, good: 18 },
     '75-79': { veryWeak: 11, weak: 13, normal: 15, good: 16 },
@@ -133,7 +133,7 @@ const MALE_SCORING = {
   },
 
   // ── Station 2: 30-Sec Arm Curl (higher is better) ──
-  armCurl: {
+  '30 secs Arm Banding': {
     '< 69':  { veryWeak: 17, weak: 20, normal: 23, good: 25 },
     '70-74': { veryWeak: 16, weak: 19, normal: 22, good: 24 },
     '75-79': { veryWeak: 15, weak: 17, normal: 20, good: 22 },
@@ -143,7 +143,7 @@ const MALE_SCORING = {
   },
 
   // ── Station 3: 2-Min On-the-spot Marching (higher is better) ──
-  march: {
+  '2 min On-the-spot Marching': {
     '< 69':  { veryWeak: 82,  weak: 92,  normal: 102, good: 109 },
     '70-74': { veryWeak: 76,  weak: 86,  normal: 96,  good: 104 },
     '75-79': { veryWeak: 67,  weak: 78,  normal: 89,  good: 99 },
@@ -153,7 +153,7 @@ const MALE_SCORING = {
   },
 
   // ── Station 4: Sit & Reach (higher is better, can be negative) ──
-  sitReach: {
+  'Sit & Reach': {
     '< 69':  { veryWeak: -3,   weak: 1,  normal: 4,  good: 8 },
     '70-74': { veryWeak: -4,   weak: 1,  normal: 5,  good: 9 },
     '75-79': { veryWeak: -5,   weak: 1,  normal: 4,  good: 7 },
@@ -163,7 +163,7 @@ const MALE_SCORING = {
   },
 
   // ── Station 5: Back Stretching Test (higher is better, often negative) ──
-  backStretch: {
+  'Back Stretching': {
     '< 69':  { veryWeak: -18,   weak: -12,   normal: -7,    good: 1 },
     '70-74': { veryWeak: -20,   weak: -13,   normal: -6,    good: 0 },
     '75-79': { veryWeak: -23,   weak: -15,   normal: -7,    good: 0 },
@@ -173,7 +173,7 @@ const MALE_SCORING = {
   },
 
   // ── Station 6: 2.44m Speed Walk (lower is better — time in seconds) ──
-  speedWalk: {
+  '2.44m Speed Walk': {
     '< 69':  { veryWeak: 7.2,  weak: 6.5,   normal: 5.8,   good: 5.2 },
     '70-74': { veryWeak: 8,    weak: 7.23,  normal: 6.46,  good: 5.7 },
     '75-79': { veryWeak: 9,    weak: 8.06,  normal: 7.12,  good: 6.2 },
@@ -183,7 +183,7 @@ const MALE_SCORING = {
   },
 
   // ── Station 7: Grip Test (higher is better, decimals) ──
-  gripTest: {
+  'Grip test': {
     '< 69':  { veryWeak: 30.7, weak: 36.7, normal: 42.7, good: 48.5 },
     '70-74': { veryWeak: 30.2, weak: 36.2, normal: 43,   good: 48 },
     '75-79': { veryWeak: 28.2, weak: 33.5, normal: 38.8, good: 44 },
@@ -257,7 +257,7 @@ function parseScore(raw) {
  * Lower-is-better:   > veryWeak → Very weak | <= veryWeak → Weak |
  *                    < weak → Normal | < normal → Good | < good → Very good
  *
- * @param {string} station   – One of: sitStand, armCurl, march, sitReach, backStretch, speedWalk, gripTest
+ * @param {string} station   – One of: '30 secs Sit & Stand', '30 secs Arm Banding', '2 min On-the-spot Marching', 'Sit & Reach', 'Back Stretching', '2.44m Speed Walk', 'Grip test'
  * @param {number} age       – Participant's age (≥ 65)
  * @param {string|number} rawScore – The score value (can be a string like "5 / 3")
  * @param {string} [gender='female'] – 'male' or 'female'
@@ -288,7 +288,7 @@ export function getRating(station, age, rawScore, gender = 'female') {
     else if (score >= t.veryWeak) rating = 'Weak';
     else                         rating = 'Very weak';
   } else {
-    // Lower score = better (speedWalk)
+    // Lower score = better ('2.44m Speed Walk')
     if (score < t.good)        rating = 'Very good';
     else if (score < t.normal) rating = 'Good';
     else if (score < t.weak)   rating = 'Normal';

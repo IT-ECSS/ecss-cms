@@ -18,7 +18,7 @@ class QRCodeGenerator {
             const buffer = await QRCode.toBuffer(this.text, this.options);
 
             // Save the buffer to a JPG file
-            const filename = `PrepareEnrich Marriage Preparation Programme Group Class (CT Hub).jpg`;
+            const filename = `Dementia Awareness Talk – Mandarin (Pasir Ris West Wellness Centre)).jpg`;
             fs.writeFileSync(filename, buffer);
             console.log(`QR code generated and saved as ${filename}`);
         } catch (error) {
@@ -28,5 +28,5 @@ class QRCodeGenerator {
 }
 
 // Usage const filename = `https://ecss.org.sg/product/crafting-connectionspasir-ris-west-wellness-centre/`;
-const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/fb-mprep-faith-based-marriage-preparation-programme-couplect-hub/`);
+const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/dementia-awareness-talk-mandrin-pasir-ris-west-wellness-centre/`);
 qrCodeGenerator.generate();

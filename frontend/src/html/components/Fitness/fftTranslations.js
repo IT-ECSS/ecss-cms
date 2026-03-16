@@ -42,6 +42,23 @@ const fftTranslations = {
     ms: 'Isi borang secara manual',
   },
 
+  // ── Registration Form ──
+  registrationFormTitle: {
+    en: 'Registration Form',
+    zh: '登记表格',
+    ms: 'Borang Pendaftaran',
+  },
+  registrationFormDescription: {
+    en: 'Choose how you would like to fill in your information.',
+    zh: '选择您希望如何填写信息。',
+    ms: 'Pilih bagaimana anda ingin mengisi maklumat anda.',
+  },
+  registrationFormManual: {
+    en: 'Fill In The Form Manually',
+    zh: '手动填写表格',
+    ms: 'Isi borang secara manual',
+  },
+
   // ── Section 1: Particulars ──
   sectionParticulars: {
     en: ' Participant Particulars ',
@@ -155,9 +172,9 @@ const fftTranslations = {
 
   // ── Section 3: Programme Indemnity ──
   sectionIndemnity: {
-    en: 'Programme Indemnity',
-    zh: '活动免责声明',
-    ms: 'Indemniti Program',
+    en: 'Indemnity Declaration',
+    zh: '免责申明',
+    ms: 'Pengisytiharan Indemniti',
   },
   indemnity1: {
     en: 'I voluntarily participate, and have been told the test objectives and possible physical discomfort and risks.',
@@ -175,11 +192,11 @@ const fftTranslations = {
     ms: 'Saya bertanggungjawab sepenuhnya atas sebarang risiko penyakit dan kemalangan yang mungkin timbul daripada ujian ini, dan tidak akan mempertanggungjawabkan penganjur.',
   },
   agreeTerms: {
-    en: 'I agree to the above terms',
-    zh: '我同意以上条款',
-    ms: 'Saya bersetuju dengan syarat-syarat di atas',
+    en: 'By checking this checkbox, I agree with the terms above.',
+    zh: '勾选此复选框即表示我同意上述条款。',
+    ms: 'Dengan menanda kotak ini, saya bersetuju dengan syarat-syarat di atas',
   },
-  labelDate: {
+  /*labelDate: {
     en: 'Date',
     zh: '日期',
     ms: 'Tarikh',
@@ -193,7 +210,7 @@ const fftTranslations = {
     en: 'Sign here',
     zh: '请在此处签名',
     ms: 'Tandatangan di sini',
-  },
+  },*/
   // ── Validation errors ──
   errNameRequired: {
     en: 'Please enter full name as per NRIC',
@@ -245,7 +262,7 @@ const fftTranslations = {
     zh: '您必须同意条款',
     ms: 'Anda mesti bersetuju dengan syarat-syarat',
   },
-  errDateRequired: {
+  /*errDateRequired: {
     en: 'Please enter a valid date (dd/mm/yyyy)',
     zh: '请输入有效的日期 (dd/mm/yyyy)',
     ms: 'Sila masukkan tarikh yang sah (dd/mm/yyyy)',
@@ -254,7 +271,7 @@ const fftTranslations = {
     en: 'Please provide your signature',
     zh: '请提供您的签名',
     ms: 'Sila berikan tandatangan anda',
-  },
+  },*/
 
   // ── Success screen ──
   successQrTab: {
@@ -361,6 +378,148 @@ const fftTranslations = {
     en: 'BMI',
     zh: 'BMI',
     ms: 'BMI',
+  },
+  // ── Station Configuration ──
+  stations: [
+    {
+      id: 'measurement',
+      num: '📏',
+      title: 'Measurement Station',
+      titleZh: '测量站',
+      icon: 'fa-ruler-combined',
+      color: '#8b5cf6',
+      bg: '#f5f3ff',
+      unit: '',
+      fields: [
+        { key: 'Height', label: 'Height (cm)', labelZh: '身高', type: 'number', placeholder: 'e.g. 160', unit: 'cm', columnName: 'Height' },
+        { key: 'Weight', label: 'Weight (kg)', labelZh: '体重', type: 'number', placeholder: 'e.g. 60.5', unit: 'kg', columnName: 'Weight' },
+        { key: 'BMI', label: 'BMI', labelZh: 'BMI', type: 'number', placeholder: 'e.g. 22.5', unit: '', columnName: 'BMI' },
+      ],
+    },
+    {
+      id: 'station1',
+      num: 'Station 1',
+      title: '30 sec Sit & Stand',
+      titleZh: '30 秒坐立测验',
+      icon: 'fa-chair',
+      color: '#2563eb',
+      bg: '#eff6ff',
+      unit: '',
+      fields: [
+        { key: '30 secs Sit & Stand', label: 'Number Of Squats', labelZh: '次数', type: 'number', placeholder: 'e.g. 12', unit: '', columnName: '30 secs Sit & Stand' },
+      ],
+      remarksKey: 'Remarks',
+      remarksColumnName: 'Remarks',
+    },
+    {
+      id: 'station2',
+      num: 'Station 2',
+      title: '30 sec Arm Banding',
+      titleZh: '30 秒手臂卷起',
+      icon: 'fa-dumbbell',
+      color: '#2563eb',
+      bg: '#eff6ff',
+      unit: '',
+      fields: [
+        { key: '30 secs Arm Banding', label: 'Number of Bicep Curls', labelZh: '次数', type: 'number', placeholder: 'e.g. 15', unit: '', columnName: '30 secs Arm Banding' },
+      ],
+      remarksKey: 'Remarks',
+      remarksColumnName: 'Remarks',
+    },
+    {
+      id: 'station3',
+      num: 'Station 3',
+      title: '2 min On-the-spot Marching',
+      titleZh: '2 分钟抬膝测验',
+      icon: 'fa-walking',
+      color: '#2563eb',
+      bg: '#eff6ff',
+      unit: '',
+      note: '(1 set = One right & left step)',
+      fields: [
+        { key: '2 min On-the-spot Marching', label: 'Sets of steps', labelZh: '步数', type: 'number', placeholder: 'e.g. 80', unit: '', columnName: '2 min On-the-spot Marching' },
+      ],
+      remarksKey: 'Remarks',
+      remarksColumnName: 'Remarks',
+    },
+    {
+      id: 'station4',
+      num: 'Station 4',
+      title: 'Sit & Reach',
+      titleZh: '坐椅体前弯',
+      icon: 'fa-arrows-alt-h',
+      color: '#2563eb',
+      bg: '#eff6ff',
+      unit: 'cm',
+      fields: [
+        { key: 'Sit & Reach', label: 'Result (cm)', labelZh: '成绩', type: 'number', placeholder: 'e.g. 5', required: true, unit: 'cm', columnName: 'Sit & Reach' },
+      ],
+      resultKey: 'Sit & Reach',
+      note: '左 L / 右 R (直腿 Straight leg)',
+      remarksKey: 'Remarks',
+      remarksColumnName: 'Remarks',
+    },
+    {
+      id: 'station5',
+      num: 'Station 5',
+      title: 'Back Stretching',
+      titleZh: '抓背测验',
+      icon: 'fa-hand-paper',
+      color: '#2563eb',
+      bg: '#eff6ff',
+      unit: 'cm',
+      fields: [
+        { key: 'Back Stretching', label: 'Result (cm)', labelZh: '成绩', type: 'number', placeholder: 'e.g. -2', required: true, unit: 'cm', columnName: 'Back Stretching' },
+      ],
+      resultKey: 'Back Stretching',
+      note: '左 L / 右 R (上面 Hand on top)',
+      remarksKey: 'Remarks',
+      remarksColumnName: 'Remarks',
+    },
+    {
+      id: 'station6',
+      num: 'Station 6',
+      title: '2.44m Speed Walk',
+      titleZh: '2.44 公尺起身绕物测验',
+      icon: 'fa-stopwatch',
+      color: '#2563eb',
+      bg: '#eff6ff',
+      unit: 'sec',
+      fields: [
+        { key: '2.44m Speed Walk', label: 'Result (sec)', labelZh: '成绩（秒）', type: 'number', placeholder: 'e.g. 5.2', required: true, unit: 'sec', columnName: '2.44m Speed Walk' },
+      ],
+      resultKey: '2.44m Speed Walk',
+      remarksKey: 'Remarks',
+      remarksColumnName: 'Remarks',
+    },
+    {
+      id: 'station7',
+      num: 'Station 7',
+      title: 'Grip test',
+      titleZh: '握力测试',
+      icon: 'fa-fist-raised',
+      color: '#2563eb',
+      bg: '#eff6ff',
+      unit: 'kg',
+      fields: [
+        { key: 'Grip test', label: 'Result (kg)', labelZh: '成绩', type: 'number', placeholder: 'e.g. 25', required: true, unit: 'kg', columnName: 'Grip test' },
+      ],
+      resultKey: 'Grip test',
+      note: '左 L / 右 R (手 Hand)',
+      remarksKey: 'Remarks',
+      remarksColumnName: 'Remarks',
+    },
+  ],
+  // ── Station Selection ──
+  selectStation: {
+    en: 'Select Station',
+    zh: '选择工作站',
+    ms: 'Pilih Stesen',
+  },
+  selectStationDesc: {
+    en: 'Please select your station to continue.',
+    zh: '请选择您的工作站以继续。',
+    ms: 'Sila pilih stesen anda untuk meneruskan.',
   },
 };
 

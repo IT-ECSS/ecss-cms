@@ -194,17 +194,47 @@ router.post('/appendRow', async (req, res) => {
         const en = result.entryNumber;
         if (en != null && Array.isArray(rowData)) {
             const colKeys = [
-                'name', 'chineseName', 'phoneNo', 'gender', 'dd', 'mm', 'yyyy', 'age',
-                'height', 'weight', 'bmi', 'testDate',
-                'sitStand', 'armCurl', 'march', 'sitReach', 'backStretch', 'speedWalk', 'gripTest',
-                'improvements', 'remarks'
+                'Name', 'Chinese Name', 'Phone Number', 'Gender', 'DD', 'MM', 'YYYY', 'Age',
+                'Height', 'Weight', 'BMI', 'Date of test',
+                '30 secs Sit & Stand', '30 secs Arm Banding', '2 min On-the-spot Marching', 'Sit & Reach', 'Back Stretching', '2.44m Speed Walk', 'Grip test',
+                'Improvements', 'Remarks'
             ];
+            
+            // Map exact column names to internal keys (lowercase) for cache consistency
+            const exactToInternalKeyMap = {
+                'Name': 'name',
+                'Chinese Name': 'chineseName',
+                'Phone Number': 'phoneNo',
+                'Gender': 'gender',
+                'DD': 'dd',
+                'MM': 'mm',
+                'YYYY': 'yyyy',
+                'Age': 'age',
+                'Height': 'height',
+                'Weight': 'weight',
+                'BMI': 'bmi',
+                'Date of test': 'testDate',
+                '30 secs Sit & Stand': 'sitStand',
+                '30 secs Arm Banding': 'armCurl',
+                '2 min On-the-spot Marching': 'march',
+                'Sit & Reach': 'sitReach',
+                'Back Stretching': 'backStretch',
+                '2.44m Speed Walk': 'speedWalk',
+                'Grip test': 'gripTest',
+                'Improvements': 'improvements',
+                'Remarks': 'remarks'
+            };
+            
             const cached = {};
             colKeys.forEach((key, idx) => {
-                if (rowData[idx]) cached[key] = rowData[idx];
+                if (rowData[idx]) {
+                    // Convert exact column names to internal keys for cache storage
+                    const internalKey = exactToInternalKeyMap[key] || key.toLowerCase();
+                    cached[internalKey] = rowData[idx];
+                }
             });
             fftResultsCache[en] = cached;
-            //console.log(`[FFT] Cached registration data for entry ${en}`);
+            console.log('[FFT] Cached registration data for entry', en, ':', cached);
         }
 
         // Emit Socket.IO event for live FFT updates
@@ -378,10 +408,10 @@ router.post('/activeFile', (req, res) => {
     res.json({ success: true, file: activeFFTFile });
 });
 
-// GET a specific row by entry number
-router.get('/getRow', async (req, res) => {
+// POST request to get a specific row by entry number
+router.post('/getRow', async (req, res) => {
     try {
-        const { fileId, entryNumber } = req.query;
+        const { fileId, entryNumber } = req.body;
         if (!fileId || !entryNumber) {
             return res.status(400).json({ success: false, error: 'fileId and entryNumber are required' });
         }
@@ -391,87 +421,25 @@ router.get('/getRow', async (req, res) => {
         }
         res.json(result);
     } catch (error) {
-        console.error('Error in GET /getRow:', error.message);
+        console.error('Error in POST /getRow:', error.message);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
-// ── Best-result comparison helpers ──
-const HIGHER_IS_BETTER = ['sitStand', 'armCurl', 'march', 'gripTest'];  // more reps / strength = better
-const LOWER_IS_BETTER  = ['speedWalk'];                                  // lower time = better
-// sitReach & backStretch: higher (more positive) = better flexibility
-const HIGHER_FLEX = ['sitReach', 'backStretch'];
-
-// Extract all numbers from a string like "L-3 R+5", "L 3 R 5", "-3", "5.2"
-function extractNumbers(val) {
-    if (val == null || val === '') return [];
-    const str = String(val);
-    // Match optional sign followed by digits (with optional decimal)
-    const matches = str.match(/-?\d+\.?\d*/g);
-    return matches ? matches.map(Number) : [];
-}
-
-function isBetterResult(field, newVal, oldVal) {
-    if (!oldVal || oldVal === '') return true;   // no existing value → always accept
-    if (!newVal || newVal === '') return false;  // no new value → keep existing
-
-    // Try direct numeric parse first
-    let n = parseFloat(newVal);
-    let o = parseFloat(oldVal);
-
-    // If direct parse fails, extract numbers and sum them for comparison
-    if (isNaN(n) || isNaN(o)) {
-        const newNums = extractNumbers(newVal);
-        const oldNums = extractNumbers(oldVal);
-        if (newNums.length === 0 && oldNums.length === 0) return true; // both non-numeric → accept new
-        if (newNums.length === 0) return false; // new has no numbers → keep old
-        if (oldNums.length === 0) return true;  // old has no numbers → accept new
-        // Sum all extracted numbers for comparison
-        n = newNums.reduce((a, b) => a + b, 0);
-        o = oldNums.reduce((a, b) => a + b, 0);
-    }
-
-    if (HIGHER_IS_BETTER.includes(field)) return n > o;
-    if (LOWER_IS_BETTER.includes(field))  return n < o;
-    if (HIGHER_FLEX.includes(field))      return n > o;  // more positive = better flexibility
-    return true; // default (height, weight, bmi) → always accept
-}
-
-// Map each station score field to its remarks column key
-const STATION_REMARKS_MAP = {
-    sitStand: 'sitStandRemarks',
-    armCurl: 'armCurlRemarks',
-    march: 'marchRemarks',
-    sitReach: 'sitReachRemarks',
-    backStretch: 'backStretchRemarks',
-    speedWalk: 'speedWalkRemarks',
-    gripTest: 'gripTestRemarks'
-};
-
-// Human-readable station names for remarks aggregation
-const STATION_NAMES = {
-    sitStand: 'Sit & Stand',
-    armCurl: 'Arm Curl',
-    march: 'March',
-    sitReach: 'Sit & Reach',
-    backStretch: 'Back Stretch',
-    speedWalk: 'Speed Walk',
-    gripTest: 'Grip Test'
-};
-
-// POST update specific columns in a row (with best-result logic)
+// POST update specific columns in a row
 router.post('/updateRow', async (req, res) => {
     try {
         const { fileId, entryNumber, updates } = req.body;
+        console.log('[FFT] updateRow received - entryNumber:', entryNumber, 'updates:', updates);
+        
         if (!fileId || entryNumber == null || !updates) {
             return res.status(400).json({ success: false, error: 'fileId, entryNumber, and updates are required' });
         }
 
         const en = parseInt(entryNumber, 10);
 
-        // Read current row to compare results
+        // Read current row to check for existing remarks
         let currentRow = fftResultsCache[en] || {};
-        // If cache is empty for this entry, fetch from Google Sheets
         if (Object.keys(currentRow).length === 0) {
             try {
                 const rowResult = await googleDriveController.getRow(fileId, en);
@@ -493,109 +461,40 @@ router.post('/updateRow', async (req, res) => {
             }
         }
 
-        // Build the final updates keeping only best results
+        // Build the final updates with exact column names from frontend
         const finalUpdates = {};
-        const stationScoreFields = Object.keys(STATION_REMARKS_MAP);
-        const updatedScoreFields = new Set();
 
         for (const [field, value] of Object.entries(updatesClean)) {
-            // Remarks fields always pass through
-            if (field.endsWith('Remarks')) {
-                finalUpdates[field] = value;
-                continue;
-            }
-            // Station score fields → apply best-result logic
-            if (stationScoreFields.includes(field)) {
-                if (isBetterResult(field, value, currentRow[field])) {
-                    finalUpdates[field] = value;
-                    updatedScoreFields.add(field);
-                    // Also include the matching remarks if provided
-                    const rk = STATION_REMARKS_MAP[field];
-                    if (rk && updatesClean[rk] !== undefined) {
-                        finalUpdates[rk] = updatesClean[rk];
-                    }
+            if (value !== null && value !== undefined && value !== '') {
+                // Special handling for Remarks: append with "|" delimiter
+                if (field === 'Remarks' && currentRow.remarks) {
+                    finalUpdates[field] = currentRow.remarks + '|' + value;
                 } else {
-                    //console.log(`[FFT] Keeping existing better result for entry ${en} ${field}: ${currentRow[field]} (new was ${value})`);
-                    // Keep existing remarks too — don't overwrite with new attempt's remarks
-                    const rk = STATION_REMARKS_MAP[field];
-                    if (rk && updatesClean[rk] !== undefined) {
-                        // Don't include — keep old remarks that match old best result
-                    }
+                    finalUpdates[field] = value;
                 }
-                continue;
             }
-            // All other fields (height, weight, bmi, improvements, remarks) → always update
-            finalUpdates[field] = value;
         }
 
-        // Determine which att metadata to cache (only for updated score fields)
-        const attToCache = {};
-        for (const [attKey, attVal] of Object.entries(attMeta)) {
-            const baseField = attKey.replace(/Att[12]$/, '');
-            if (updatedScoreFields.has(baseField)) {
-                attToCache[attKey] = attVal;
-            }
-        }
+        console.log('[FFT] finalUpdates after processing:', finalUpdates);
 
         if (Object.keys(finalUpdates).length === 0) {
-            // Nothing to update (all new results were worse)
+            // Nothing to update
             if (!fftResultsCache[en]) fftResultsCache[en] = {};
-            return res.json({ success: true, updatedFields: [], message: 'Existing results are better; no changes made.' });
+            return res.json({ success: true, updatedFields: [], message: 'No updates to process.' });
         }
 
-        // Aggregate per-station remarks into the single 'remarks' column (U)
-        const stationRemarksKeys = Object.values(STATION_REMARKS_MAP);
-        const newStationRemarks = {};
-        const perStationRemarksForCache = {}; // Keep per-station keys for frontend cache
-        for (const rk of stationRemarksKeys) {
-            if (finalUpdates[rk] !== undefined) {
-                // Find station name from remarks key (e.g. 'gripTestRemarks' → 'gripTest' → 'Grip Test')
-                const scoreField = Object.keys(STATION_REMARKS_MAP).find(k => STATION_REMARKS_MAP[k] === rk);
-                const stationName = STATION_NAMES[scoreField] || scoreField;
-                newStationRemarks[stationName] = finalUpdates[rk];
-                perStationRemarksForCache[rk] = finalUpdates[rk];
-                // Remove per-station remarks from finalUpdates (not a real sheet column)
-                delete finalUpdates[rk];
-            }
-        }
-        if (Object.keys(newStationRemarks).length > 0) {
-            // Read existing remarks from cache or sheet
-            const existingRemarks = currentRow.remarks || '';
-            // Parse existing remarks into a map: "Grip Test: Ok | Arm Curl: Good" → { 'Grip Test': 'Ok', ... }
-            const remarksMap = {};
-            if (existingRemarks) {
-                existingRemarks.split(' | ').forEach(part => {
-                    const idx = part.indexOf(': ');
-                    if (idx > -1) {
-                        remarksMap[part.substring(0, idx).trim()] = part.substring(idx + 2).trim();
-                    } else {
-                        remarksMap['_general'] = part.trim();
-                    }
-                });
-            }
-            // Merge new station remarks
-            Object.assign(remarksMap, newStationRemarks);
-            // Rebuild combined string
-            const parts = [];
-            if (remarksMap['_general']) parts.push(remarksMap['_general']);
-            delete remarksMap['_general'];
-            for (const [stn, val] of Object.entries(remarksMap)) {
-                parts.push(`${stn}: ${val}`);
-            }
-            finalUpdates.remarks = parts.join(' | ');
-        }
-
+        console.log('[FFT] Calling googleDriveController.updateRow with:', { fileId, en, finalUpdates });
         const result = await googleDriveController.updateRow(fileId, en, finalUpdates);
+        console.log('[FFT] googleDriveController.updateRow result:', result);
         if (!result.success) {
             return res.status(500).json(result);
         }
 
-        // Cache the final results + attempt metadata + per-station remarks (for frontend cards)
+        // Cache the final results (using exact column names)
         if (!fftResultsCache[en]) {
             fftResultsCache[en] = {};
         }
-        Object.assign(fftResultsCache[en], finalUpdates, attToCache, perStationRemarksForCache);
-        //console.log(`[FFT] Cached results for entry ${en}:`, fftResultsCache[en]);
+        Object.assign(fftResultsCache[en], finalUpdates);
 
         // Emit Socket.IO event with actual data for live updates
         const io = req.app.get('io');

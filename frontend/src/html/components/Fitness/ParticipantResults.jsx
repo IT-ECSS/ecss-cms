@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import axios from 'axios';
 import { getRating } from './fftScoringHelper';
+import fftTranslations from './fftTranslations';
 import '../../../css/fftTrainers.css';
 import '../../../css/fftVolunteers.css';
 
@@ -8,28 +9,19 @@ const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
   : 'https://ecss-backend-node.azurewebsites.net';
 
-const STATIONS = [
-  { label: '30 secs Sit & Stand', key: 'sitStand', remarksKey: 'sitStandRemarks', matchKey: 'Sit & Stand' },
-  { label: '30 secs Arm Curl', key: 'armCurl', remarksKey: 'armCurlRemarks', matchKey: 'Arm Curl' },
-  { label: '2 min March on the spot', key: 'march', remarksKey: 'marchRemarks', matchKey: 'March' },
-  { label: 'Sit & Reach', key: 'sitReach', remarksKey: 'sitReachRemarks', matchKey: 'Sit & Reach' },
-  { label: 'Back Stretch', key: 'backStretch', remarksKey: 'backStretchRemarks', matchKey: 'Back Stretch' },
-  { label: '2.44m Speed Walk', key: 'speedWalk', remarksKey: 'speedWalkRemarks', matchKey: 'Speed Walk' },
-  { label: 'Grip Test', key: 'gripTest', remarksKey: 'gripTestRemarks', matchKey: 'Grip Test' },
-];
-
-function parseRemarks(remarksStr) {
-  const map = {};
-  if (!remarksStr) return map;
-  remarksStr.split('|').forEach((part) => {
-    const idx = part.indexOf(':');
-    if (idx === -1) return;
-    const key = part.slice(0, idx).trim();
-    const val = part.slice(idx + 1).trim();
-    if (key && val) map[key] = val;
-  });
-  return map;
-}
+// Build STATIONS from fftTranslations with mapped keys for field lookups
+const STATIONS = fftTranslations.stations
+  .filter(s => ['station1', 'station2', 'station3', 'station4', 'station5', 'station6', 'station7'].includes(s.id))
+  .map(s => ({
+    num: s.num,
+    title: s.title,
+    label: `${s.num}: ${s.title}`,
+    key: s.resultKey || s.fields[0].key,
+    fieldLabel: s.fields[0].label,
+    unit: s.unit,
+    remarksKey: s.remarksKey,
+    matchKey: s.title,
+  }));
 
 class ParticipantResults extends Component {
   // Props:
@@ -56,26 +48,38 @@ class ParticipantResults extends Component {
     }
   }
 
-  fetchRow = () => {
+  fetchRow = async () => {
     const { fileId, entryNumber } = this.props;
     this.setState({ loading: true, error: null, participant: null });
-    axios.get(`${BACKEND_URL}/googleDrive/getRow`, { params: { fileId, entryNumber } })
-      .then((res) => {
-        if (res.data.success) {
-          const data = res.data.data;
-          if (!data.name && !data.chineseName) {
-            this.setState({ loading: false, error: `Entry #${entryNumber} was not found in the spreadsheet.` });
-          } else {
-            this.setState({ loading: false, participant: data });
-          }
+    this.props.onLoading && this.props.onLoading(true);
+    
+    try {
+      const res = await axios.post(`${BACKEND_URL}/googleDrive/getRow`, { fileId, entryNumber });
+      
+      if (res.data.success) {
+        const data = res.data.data;
+        if (!data.Name && !data['Chinese Name']) {
+          const errorMsg = `Participant #${entryNumber} was not found in the spreadsheet.`;
+          this.setState({ loading: false, error: errorMsg });
+          this.props.onLoading && this.props.onLoading(false);
+          this.props.onError && this.props.onError(true);
         } else {
-          this.setState({ loading: false, error: `Entry #${entryNumber} was not found in the spreadsheet.` });
+          this.setState({ loading: false, participant: data });
+          this.props.onLoading && this.props.onLoading(false);
+          this.props.onError && this.props.onError(false);
         }
-      })
-      .catch((err) => {
-        console.error('Error fetching row:', err.message);
-        this.setState({ loading: false, error: 'Error loading participant info. Please try again.' });
-      });
+      } else {
+        const errorMsg = `Participant #${entryNumber} was not found in the spreadsheet.`;
+        this.setState({ loading: false, error: errorMsg });
+        this.props.onLoading && this.props.onLoading(false);
+        this.props.onError && this.props.onError(true);
+      }
+    } catch (err) {
+      console.error('Error fetching row:', err.message);
+      this.setState({ loading: false, error: 'Error loading participant info. Please try again.' });
+      this.props.onLoading && this.props.onLoading(false);
+      this.props.onError && this.props.onError(true);
+    }
   };
 
   render() {
@@ -85,8 +89,8 @@ class ParticipantResults extends Component {
     if (loading) {
       return (
         <div style={{ textAlign: 'center', padding: '48px 24px' }}>
-          <i className="fas fa-spinner fa-spin" style={{ fontSize: '2.5rem', color: '#2c7be5', marginBottom: '16px' }}></i>
-          <p style={{ fontSize: '1.3rem', color: '#555' }}>Loading participant data...</p>
+          <i className="fas fa-spinner fa-spin" style={{ fontSize: '3.125rem', color: '#2c7be5', marginBottom: '16px' }}></i>
+          <p style={{ fontSize: '1.625rem', color: '#555' }}>Loading participant data...</p>
         </div>
       );
     }
@@ -97,9 +101,6 @@ class ParticipantResults extends Component {
           <div className="fft-trainers-error-msg">
             <i className="fas fa-exclamation-circle" style={{ marginRight: '6px' }}></i>{error}
           </div>
-          <button className="fft-trainers-submit-btn" onClick={onReset} style={{ marginTop: '12px' }}>
-            <i className="fas fa-arrow-left"></i>Try Again
-          </button>
         </div>
       );
     }
@@ -118,9 +119,9 @@ class ParticipantResults extends Component {
         </p>
 
         {/* Entry number badge */}
-        <div style={{ marginBottom: '16px' }}>
-          <span style={{ fontSize: '0.85em', color: '#888', fontWeight: 600 }}>
-            Entry #{entryNumber}
+        <div style={{ marginBottom: '8px' }}>
+          <span style={{ fontSize: '1.5em', color: '#333', fontWeight: 700 }}>
+            Participant {entryNumber}
           </span>
         </div>
 
@@ -128,23 +129,28 @@ class ParticipantResults extends Component {
         <div style={{
           border: '1px solid #e2e6ed',
           borderRadius: '10px',
-          padding: '16px 20px',
+          padding: '8px 20px',
           background: '#ffffff',
           boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
           marginBottom: '20px',
         }}>
-          <h3 style={{ marginBottom: '4px' }}>{participant.name || '—'}</h3>
-          {participant.chineseName && (
-            <div style={{ color: '#888', fontSize: '1em', marginBottom: '10px' }}>{participant.chineseName}</div>
+          <div style={{ margin: '0 0 2px 0', color: '#333', fontSize: '1.5em', fontWeight: 700 }}>Personal Particulars</div>
+          <div style={{ margin: '0 0 3px 0', fontSize: '1.3em', fontWeight: 700 }}>{participant.Name || ''}</div>
+          {participant['Chinese Name'] && (
+            <div style={{ color: '#888', fontSize: '1em', marginBottom: '5px' }}>{participant['Chinese Name']}</div>
           )}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px 20px', fontSize: '0.9em', color: '#555' }}>
-            {participant.phoneNo && <span><i className="fas fa-phone" style={{ marginRight: 5 }}></i>{participant.phoneNo}</span>}
-            {participant.gender && <span><i className="fas fa-venus-mars" style={{ marginRight: 5 }}></i>{participant.gender}</span>}
-            {participant.age && <span>Age: {participant.age}</span>}
-            {participant.height && <span>Height: {participant.height} cm</span>}
-            {participant.weight && <span>Weight: {participant.weight} kg</span>}
-            {participant.bmi && <span>BMI: {participant.bmi}</span>}
-            {participant.testDate && <span><i className="fas fa-calendar" style={{ marginRight: 5 }}></i>{participant.testDate}</span>}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '1.125em', color: '#555' }}>
+            {participant['Phone Number'] && <span><i className="fas fa-phone" style={{ marginRight: 5 }}></i>Contact Number: {participant['Phone Number']}</span>}
+            {participant.Gender && <span><i className={`fas fa-${participant.Gender === 'M' || participant.Gender === 'Male' ? 'mars' : 'venus'}`} style={{ marginRight: 5 }}></i>Gender: {participant.Gender}</span>}
+            {participant.Age && <span>Age: {participant.Age}</span>}
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '1.125em', color: '#555', marginTop: '6px' }}>
+            {(participant['DD'] || participant['MM'] || participant['YYYY']) && (
+              <span><i className="fas fa-cake-candles" style={{ marginRight: 5 }}></i>Date of Birth: {participant['DD']}/{participant['MM']}/{participant['YYYY']}</span>
+            )}
+            {participant.Height && <span>Height: {participant.Height} cm</span>}
+            {participant.Weight && <span>Weight: {participant.Weight} kg</span>}
+            {participant.BMI && <span>BMI: {participant.BMI}</span>}
           </div>
         </div>
 
@@ -169,7 +175,7 @@ class ParticipantResults extends Component {
                 }}>
                   {incomplete.map(s => (
                     <span key={s.key} style={{
-                      fontSize: '0.82em',
+                      fontSize: '1.025em',
                       fontWeight: 600,
                       padding: '4px 10px',
                       borderRadius: '12px',
@@ -187,59 +193,74 @@ class ParticipantResults extends Component {
 
           return (
             <>
-              <h4 style={{ marginBottom: '14px', color: '#333' }}>Station Results</h4>
+              <h4 style={{ marginBottom: '14px', color: '#333', fontSize: '1.5em', fontWeight: 700 }}>Station Results</h4>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
           {STATIONS.map((station) => {
             const score = participant[station.key];
-            const parsedRemarks = parseRemarks(participant.remarks);
-            const rawRemark = participant[station.remarksKey] || parsedRemarks[station.matchKey] || '';
-            const remarkLines = rawRemark
-              .split('|')
-              .map(s => s.trim())
-              .filter(Boolean);
+            const allRemarks = participant['Remarks'] || '';
             const ratingResult = score
-              ? getRating(station.key, participant.age, score, participant.gender)
+              ? getRating(station.key, participant.Age, score, participant.Gender)
               : null;
             const rating = ratingResult ? ratingResult.rating : null;
             const ratingColor = ratingResult ? ratingResult.color : null;
+            
+            // Clean up label by removing "Number of" prefix, "Result", and parentheses
+            const cleanLabel = station.fieldLabel
+              .replace(/^Number\s+of\s+/i, '')
+              .replace(/^Result\s+/i, '')
+              .replace(/[()]/g, '')
+              .trim();
+
+            // Check if this is station 3 (full width)
+            const isStation3 = station.key === '2 min On-the-spot Marching';
 
             return (
               <div key={station.key} style={{
-                border: `1px solid ${score ? '#bdd7f5' : '#e0e0e0'}`,
-                borderRadius: '10px',
+                border: '1px solid #e0e0e0',
+                borderRadius: '8px',
                 overflow: 'hidden',
-                background: '#fff',
                 display: 'flex',
                 flexDirection: 'column',
+                background: '#ffffff',
+                height: '160px',
+                gridColumn: isStation3 ? '1 / -1' : 'auto',
               }}>
-                {/* Header: station name */}
+                {/* Header: Station Name */}
                 <div style={{
-                  padding: '8px 14px',
                   background: score ? '#e8f0fb' : '#f4f4f4',
                   borderBottom: `1px solid ${score ? '#bdd7f5' : '#e0e0e0'}`,
-                  fontSize: '0.78em',
+                  fontSize: '0.975em',
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
                   color: score ? '#2c5fa8' : '#999',
+                  padding: '10px 14px',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
                 }}>
                   {station.label}
                 </div>
 
-                {/* Body: score + rating badge */}
+                {/* Body: Result Section */}
                 <div style={{
                   padding: '12px 14px',
                   display: 'flex',
                   alignItems: 'center',
+                  justifyContent: 'space-between',
                   gap: '10px',
-                  flex: 1,
+                  borderBottom: '1px solid #e0e0e0',
                 }}>
-                  <span style={{ fontSize: '1.6em', fontWeight: 700, color: score ? '#2c7be5' : '#ccc' }}>
-                    {score || '—'}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', flexWrap: 'nowrap' }}>
+                    <span style={{ fontSize: '2.25em', fontWeight: 700, color: score ? '#2c7be5' : '#ccc' }}>
+                      {score}
+                    </span>
+                    <span style={{ fontSize: '1.0625em', fontWeight: 600, color: '#666' }}>
+                      {cleanLabel.toLowerCase()}
+                    </span>
+                  </div>
                   {rating && (
                     <span style={{
-                      fontSize: '0.75em',
+                      fontSize: '1.171875em',
                       fontWeight: 700,
                       padding: '3px 10px',
                       borderRadius: '20px',
@@ -253,22 +274,40 @@ class ParticipantResults extends Component {
                   )}
                 </div>
 
-                {/* Footer: remarks */}
+                {/* Footer: Remarks Section */}
                 <div style={{
-                  padding: '8px 14px',
-                  borderTop: `1px solid ${score ? '#bdd7f5' : '#e0e0e0'}`,
-                  background: '#fafafa',
-                  minHeight: '34px',
+                  paddingTop: '8px',
+                  paddingRight: '14px',
+                  paddingBottom: '8px',
+                  paddingLeft: '14px',
+                  background: '#f8f9fa',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '4px',
+                  justifyContent: 'flex-start',
+                  flex: 1,
                 }}>
-                  <div style={{ fontSize: '0.72em', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#aaa', marginBottom: '2px' }}>Remarks</div>
-                  {remarkLines.length > 0 ? remarkLines.map((line, i) => (
-                    <div key={i} style={{ fontSize: '0.82em', color: '#555' }}>{line}</div>
-                  )) : (
-                    <div style={{ fontSize: '0.82em', color: '#bbb' }}>—</div>
-                  )}
+                  {(() => {
+                    const stationRemarks = allRemarks
+                      .split('|')
+                      .map(r => r.trim())
+                      .filter(r => r.startsWith(`${station.title}:`))
+                      .map(r => r.substring(`${station.title}: `.length));
+                    
+                    return (
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <div style={{ fontSize: '1em', color: '#666', fontWeight: 700, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Remarks:</div>
+                        {stationRemarks.length > 0 && (
+                          <div style={{ display: 'flex', gap: '4px' }}>
+                            {stationRemarks.map((remark, idx) => (
+                              <span key={idx} style={{ fontSize: '1em', color: '#666', fontWeight: 700, textTransform: 'uppercase' }}>
+                                {remark}{idx < stationRemarks.length - 1 ? ',' : ''}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             );
