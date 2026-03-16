@@ -46,7 +46,7 @@ router.post('/', async (req, res) => {
         switch (purpose) {
             case 'listFiles':
                 result = await googleDriveController.listFilesInFolder(folderId);
-                console.log("Listing files in folder:", result);
+                //console.log("Listing files in folder:", result);
                 break;
             case 'checkFolder':
                 result = await googleDriveController.checkFolderExists(folderId);
@@ -107,7 +107,7 @@ router.post('/downloadZip', async (req, res) => {
             return res.status(400).json({ success: false, error: 'fileIds array is required' });
         }
 
-        console.log(`Bulk download requested for ${fileIds.length} files`);
+        //console.log(`Bulk download requested for ${fileIds.length} files`);
         const result = await googleDriveController.downloadMultipleFilesAsZip(fileIds);
         
         if (!result.success) {
@@ -158,7 +158,7 @@ router.post('/readSpreadsheet', async (req, res) => {
             });
         }
 
-        console.log(`Reading spreadsheet: ${fileId}, sheet: ${sheetName || 'default'}`);
+        //console.log(`Reading spreadsheet: ${fileId}, sheet: ${sheetName || 'default'}`);
         const result = await googleDriveController.readSpreadsheet(fileId, sheetName);
         
         res.json(result);
@@ -183,7 +183,7 @@ router.post('/appendRow', async (req, res) => {
             });
         }
 
-        console.log(`Appending row to spreadsheet: ${fileId}`);
+        //console.log(`Appending row to spreadsheet: ${fileId}`);
         const result = await googleDriveController.appendRow(fileId, rowData, sheetName);
 
         if (!result.success) {
@@ -204,7 +204,7 @@ router.post('/appendRow', async (req, res) => {
                 if (rowData[idx]) cached[key] = rowData[idx];
             });
             fftResultsCache[en] = cached;
-            console.log(`[FFT] Cached registration data for entry ${en}`);
+            //console.log(`[FFT] Cached registration data for entry ${en}`);
         }
 
         // Emit Socket.IO event for live FFT updates
@@ -227,7 +227,7 @@ router.post('/appendRow', async (req, res) => {
 router.post('/appendEventRow', async (req, res) => {
     try {
         const { fileId, eventName, createdOn, sheetName = 'Sheet1' } = req.body;
-        console.log(`[SHEETS] Received request to append event row: fileId=${fileId}, eventName=${eventName}, createdOn=${createdOn}, sheetName=${sheetName}`);
+        //console.log(`[SHEETS] Received request to append event row: fileId=${fileId}, eventName=${eventName}, createdOn=${createdOn}, sheetName=${sheetName}`);
 
         if (!fileId || !eventName || !createdOn) {
             return res.status(400).json({
@@ -236,7 +236,7 @@ router.post('/appendEventRow', async (req, res) => {
             });
         }
 
-        console.log(`[SHEETS] Appending event row to spreadsheet: ${fileId}`);
+        //console.log(`[SHEETS] Appending event row to spreadsheet: ${fileId}`);
 
         // Use GoogleDriveController's method to append the event row with auto-generated S/N
         const result = await googleDriveController.appendEventRow(
@@ -251,7 +251,7 @@ router.post('/appendEventRow', async (req, res) => {
             return res.status(500).json(result);
         }
 
-        console.log(`[SHEETS] Event row successfully appended with S/N ${result.serialNumber}`);
+        //console.log(`[SHEETS] Event row successfully appended with S/N ${result.serialNumber}`);
 
         res.json(result);
     } catch (error) {
@@ -275,7 +275,7 @@ router.post('/createFolder', async (req, res) => {
             });
         }
 
-        console.log(`Creating folder "${folderName}" in parent ${parentFolderId}`);
+        //console.log(`Creating folder "${folderName}" in parent ${parentFolderId}`);
         const result = await googleDriveController.createFolder(folderName, parentFolderId);
 
         if (!result.success) {
@@ -304,7 +304,7 @@ router.post('/copySpreadsheet', async (req, res) => {
             });
         }
 
-        console.log(`Copying spreadsheet ${sourceFileId} as "${newFileName}" to folder ${destinationFolderId || 'root'}`);
+        //console.log(`Copying spreadsheet ${sourceFileId} as "${newFileName}" to folder ${destinationFolderId || 'root'}`);
         const result = await googleDriveController.copySpreadsheet(sourceFileId, newFileName, destinationFolderId);
 
         if (!result.success) {
@@ -323,7 +323,7 @@ router.post('/copySpreadsheet', async (req, res) => {
 
 // ── In-memory store for the active FFT file (shared across all users/devices) ──
 let activeFFTFile = loadActiveFile();
-console.log('[FFT] Loaded active file:', activeFFTFile ? `${activeFFTFile.name} (${activeFFTFile.id})` : 'none');
+//console.log('[FFT] Loaded active file:', activeFFTFile ? `${activeFFTFile.name} (${activeFFTFile.id})` : 'none');
 
 // ── In-memory cache for FFT station results (keyed by entryNumber) ──
 // Structure: { [entryNumber]: { sitStand: '30', armCurl: '25', ... } }
@@ -353,7 +353,7 @@ router.get('/cachedResultsAll', (req, res) => {
 router.delete('/clearCache', (req, res) => {
     const count = Object.keys(fftResultsCache).length;
     fftResultsCache = {};
-    console.log(`[FFT] Cache cleared by admin. ${count} entries removed.`);
+    //console.log(`[FFT] Cache cleared by admin. ${count} entries removed.`);
     res.json({ success: true, message: `Cache cleared. ${count} entries removed.` });
 });
 
@@ -367,7 +367,7 @@ router.post('/activeFile', (req, res) => {
     saveActiveFile(activeFFTFile);
     // Clear results cache when active file changes
     fftResultsCache = {};
-    console.log(`[FFT] Active file set to: ${file.name} (${file.id}). Cache cleared.`);
+    //console.log(`[FFT] Active file set to: ${file.name} (${file.id}). Cache cleared.`);
 
     // Emit Socket.IO event so all clients know the active file changed
     const io = req.app.get('io');
@@ -515,7 +515,7 @@ router.post('/updateRow', async (req, res) => {
                         finalUpdates[rk] = updatesClean[rk];
                     }
                 } else {
-                    console.log(`[FFT] Keeping existing better result for entry ${en} ${field}: ${currentRow[field]} (new was ${value})`);
+                    //console.log(`[FFT] Keeping existing better result for entry ${en} ${field}: ${currentRow[field]} (new was ${value})`);
                     // Keep existing remarks too — don't overwrite with new attempt's remarks
                     const rk = STATION_REMARKS_MAP[field];
                     if (rk && updatesClean[rk] !== undefined) {
@@ -595,7 +595,7 @@ router.post('/updateRow', async (req, res) => {
             fftResultsCache[en] = {};
         }
         Object.assign(fftResultsCache[en], finalUpdates, attToCache, perStationRemarksForCache);
-        console.log(`[FFT] Cached results for entry ${en}:`, fftResultsCache[en]);
+        //console.log(`[FFT] Cached results for entry ${en}:`, fftResultsCache[en]);
 
         // Emit Socket.IO event with actual data for live updates
         const io = req.app.get('io');
@@ -624,7 +624,7 @@ router.post('/fftSubmit', async (req, res) => {
             return res.status(400).json({ success: false, error: 'eventName and participantData are required' });
         }
 
-        console.log(`[FFT] fftSubmit received — event: "${eventName}"`);
+        //console.log(`[FFT] fftSubmit received — event: "${eventName}"`);
 
         let fileId, sheetFileName;
 
@@ -632,7 +632,7 @@ router.post('/fftSubmit', async (req, res) => {
             // File ID already known — skip the Drive lookup
             fileId = eventFileId;
             sheetFileName = eventName;
-            console.log(`[FFT] Using provided fileId: ${fileId}`);
+            //console.log(`[FFT] Using provided fileId: ${fileId}`);
         } else {
             if (!folderId) {
                 return res.status(400).json({ success: false, error: 'folderId is required when eventFileId is not provided' });
@@ -645,7 +645,7 @@ router.post('/fftSubmit', async (req, res) => {
             sheetFileName = findResult.file.name;
         }
 
-        console.log(`[FFT] Appending to sheet "${sheetFileName}" (${fileId})`);
+        //console.log(`[FFT] Appending to sheet "${sheetFileName}" (${fileId})`);
 
         const {
             name = '', phone = '', gender = '',

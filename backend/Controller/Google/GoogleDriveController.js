@@ -75,7 +75,7 @@ class GoogleDriveController {
     async listFilesInFolder(folderId) {
         try {
             const drive = await this.initializeAuth();
-            console.log(`\n📂 Recursively listing files in folder and subfolders: ${folderId}`);
+            //console.log(`\n📂 Recursively listing files in folder and subfolders: ${folderId}`);
             const allFiles = [];
             // Use the recursive helper to collect all files (not folders)
             await this.collectFilesFromFolder(drive, folderId, '', allFiles);
@@ -93,7 +93,7 @@ class GoogleDriveController {
                     console.warn('Failed to fetch metadata for file:', fileObj.id, err.message);
                 }
             }
-            console.log(`✓ Recursively found ${filesWithMeta.length} files in folder and subfolders.`);
+            //console.log(`✓ Recursively found ${filesWithMeta.length} files in folder and subfolders.`);
             return {
                 success: true,
                 fileCount: filesWithMeta.length,
@@ -192,7 +192,7 @@ class GoogleDriveController {
             const drive = await this.initializeAuth();
             const startTime = Date.now();
 
-            console.log(`[BULK] Creating ZIP for ${fileIds.length} items`);
+            //console.log(`[BULK] Creating ZIP for ${fileIds.length} items`);
 
             // Collect all files from selected items
             const allFiles = [];
@@ -211,14 +211,14 @@ class GoogleDriveController {
                             supportsAllDrives: true
                         });
                         allFiles.push({ id: fileId, path: fileMetadata.data.name });
-                        console.log(`[BULK] Collected file: ${fileMetadata.data.name}`);
+                        //console.log(`[BULK] Collected file: ${fileMetadata.data.name}`);
                     } catch (error) {
                         console.error(`[BULK] Error getting file metadata for ${fileId}:`, error.message);
                     }
                 }
             }
 
-            console.log(`[BULK] Collected ${allFiles.length} files total, now creating ZIP...`);
+            //console.log(`[BULK] Collected ${allFiles.length} files total, now creating ZIP...`);
 
             // Create ZIP archive in memory
             return new Promise((resolve, reject) => {
@@ -236,7 +236,7 @@ class GoogleDriveController {
                         const zipBuffer = Buffer.concat(chunks);
                         const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
                         const zipTime = ((Date.now() - zipStartTime) / 1000).toFixed(2);
-                        console.log(`[BULK] ✓ ZIP created: ${zipBuffer.length} bytes in ${zipTime}s (total: ${totalTime}s)`);
+                        //console.log(`[BULK] ✓ ZIP created: ${zipBuffer.length} bytes in ${zipTime}s (total: ${totalTime}s)`);
                         resolve({
                             success: true,
                             fileBuffer: zipBuffer,
@@ -257,7 +257,7 @@ class GoogleDriveController {
 
                 const addNextFile = () => {
                     if (fileIndex >= allFiles.length) {
-                        console.log('[BULK] All files queued, finalizing...');
+                        //console.log('[BULK] All files queued, finalizing...');
                         archive.finalize();
                         return;
                     }
@@ -267,7 +267,7 @@ class GoogleDriveController {
                     this.addFileToArchive(drive, fileInfo.id, fileInfo.path, archive)
                         .then(() => {
                             const elapsed = ((Date.now() - zipStartTime) / 1000).toFixed(2);
-                            console.log(`[BULK] Progress: ${fileIndex}/${allFiles.length} (${elapsed}s)`);
+                            //console.log(`[BULK] Progress: ${fileIndex}/${allFiles.length} (${elapsed}s)`);
                             addNextFile();
                         })
                         .catch((error) => {
@@ -308,7 +308,7 @@ class GoogleDriveController {
             }
 
             const folderName = folderMetadata.data.name;
-            console.log(`[ZIP] Creating ZIP for folder: ${folderName}`);
+            //console.log(`[ZIP] Creating ZIP for folder: ${folderName}`);
 
             // Collect all files recursively
             const collectStartTime = Date.now();
@@ -316,7 +316,7 @@ class GoogleDriveController {
             await this.collectFilesFromFolder(drive, folderId, '', allFiles);
             const collectTime = ((Date.now() - collectStartTime) / 1000).toFixed(2);
             
-            console.log(`[ZIP] Collected ${allFiles.length} files in ${collectTime}s`);
+            //console.log(`[ZIP] Collected ${allFiles.length} files in ${collectTime}s`);
 
             // Create ZIP archive in memory
             return new Promise((resolve, reject) => {
@@ -336,7 +336,7 @@ class GoogleDriveController {
                         const zipBuffer = Buffer.concat(chunks);
                         const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
                         const zipTime = ((Date.now() - zipStartTime) / 1000).toFixed(2);
-                        console.log(`[ZIP] ✓ Created successfully: ${zipBuffer.length} bytes in ${zipTime}s (total: ${totalTime}s)`);
+                        //console.log(`[ZIP] ✓ Created successfully: ${zipBuffer.length} bytes in ${zipTime}s (total: ${totalTime}s)`);
                         resolve({
                             success: true,
                             fileBuffer: zipBuffer,
@@ -357,7 +357,7 @@ class GoogleDriveController {
 
                 const addNextFile = () => {
                     if (fileIndex >= allFiles.length) {
-                        console.log('[ZIP] All files queued for archive, finalizing...');
+                        //console.log('[ZIP] All files queued for archive, finalizing...');
                         archive.finalize();
                         return;
                     }
@@ -367,7 +367,7 @@ class GoogleDriveController {
                     this.addFileToArchive(drive, fileInfo.id, fileInfo.path, archive)
                         .then(() => {
                             const elapsed = ((Date.now() - zipStartTime) / 1000).toFixed(2);
-                            console.log(`[ZIP] Progress: ${fileIndex}/${totalFiles} (${elapsed}s)`);
+                            //console.log(`[ZIP] Progress: ${fileIndex}/${totalFiles} (${elapsed}s)`);
                             addNextFile();
                         })
                         .catch((error) => {
@@ -413,7 +413,7 @@ class GoogleDriveController {
                 } else {
                     // Add file to list
                     filesList.push({ id: file.id, path: currentPath });
-                    console.log(`Collected file: ${currentPath}`);
+                    //console.log(`Collected file: ${currentPath}`);
                 }
             }
         } catch (error) {
@@ -424,7 +424,7 @@ class GoogleDriveController {
 
     async addFileToArchive(drive, fileId, filePath, archive) {
         try {
-            console.log(`[FILE] Downloading: ${filePath}`);
+            //console.log(`[FILE] Downloading: ${filePath}`);
             const downloadStart = Date.now();
 
             const fileResponse = await drive.files.get({

@@ -295,6 +295,7 @@ class invoiceGenerator {
         //The Rest Note of Life – Mandarin 14-Feb
         course = course.trim();
         console.log("Course Name: ", course);
+        
     
         //Therapeutic Basic Line Work
         const courseMap = {
@@ -328,6 +329,7 @@ class invoiceGenerator {
             "Community Cajon Foundation 1": "TGS-2025054489",
             "Hanyu Pinyin For Intermediate – Mandarin": "TGS-2023019015",
             "Hanyu Pinyin For Intermediate": "TGS-2023019015",
+            "Basics of Smart Money Management": "TGS-2023038736"
         };
     
        // Check for exact match

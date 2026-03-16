@@ -3,150 +3,310 @@ import React, { Component } from "react";
 class ParticipantsBlock extends Component {
   constructor(props) {
     super(props);
-    this.state = {
-      activeTab: 'participations', // 'participations' or 'participants'
-      participationsViewMode: 'cards', // 'cards' or 'chart'
-      participantsViewMode: 'cards' // 'cards' or 'chart'
-    };
-    this.participationsChartRef = React.createRef();
-    this.participantsChartRef = React.createRef();
+    this.participantsChartCanvas = null;
+    this.fitnessMetrics = [
+      { key: '30 secs Sit & Stand', label: '30 Secs Sit & Stand', unit: 'reps', higherIsBetter: true },
+      { key: '30 secs Arm Curl', label: '30 Secs Arm Curl', unit: 'reps', higherIsBetter: true },
+      { key: '2 min March on the spot', label: '2 Min March On The Spot', unit: 'steps', higherIsBetter: true },
+      { key: 'Sit & Reach', label: 'Sit & Reach', unit: 'cm', higherIsBetter: true },
+      { key: 'Back Stretch', label: 'Back Stretch', unit: 'cm', higherIsBetter: true },
+      { key: '2.44m speed walk', label: '2.44m Speed Walk', unit: 'sec', higherIsBetter: false },
+      { key: 'Grip Test', label: 'Grip Test', unit: 'kg', higherIsBetter: true }
+    ];
   }
 
-  componentDidUpdate() {
-    if (this.state.activeTab === 'participations' && this.state.participationsViewMode === 'chart') {
-      this.drawParticipationsChart();
-    } else if (this.state.activeTab === 'participants' && this.state.participantsViewMode === 'chart') {
-      this.drawParticipantsChart();
+  componentDidUpdate(prevProps) {
+    if (
+      prevProps.years !== this.props.years ||
+      prevProps.yearlyParticipants !== this.props.yearlyParticipants ||
+      prevProps.selectedStationCountParticipants !== this.props.selectedStationCountParticipants
+    ) {
+      this.drawChartIfReady();
     }
   }
 
-  getParticipantName = (row) => {
-    const nameKey = Object.keys(row).find(k => k.toLowerCase() === 'name');
-    return nameKey ? row[nameKey] || 'Unknown' : 'Unknown';
-  };
+  componentDidMount() {
+    this.drawChartIfReady();
+  }
 
-  getParticipantGender = (row) => {
-    const genderKey = Object.keys(row).find(k => k.toLowerCase() === 'gender' || k.toLowerCase() === 'sex');
-    const value = genderKey ? String(row[genderKey] || '').toLowerCase() : '';
-    return value === 'm' || value === 'male' ? 'Male' : 'Female';
-  };
-
-  calculateStats = () => {
-    const { filteredData = [] } = this.props;
+  calculateParticipantsImprovementUnique = (data, stationCount = 1) => {
+    const { isMultipleYearsView } = this.props;
     
-    const uniqueParticipants = new Set();
-    const participantMap = {};
-    let femaleParticipants = 0;
-    let maleParticipants = 0;
-
-    filteredData.forEach(row => {
-      const name = this.getParticipantName(row);
-      if (name.toLowerCase() === 'unknown') return;
-
-      uniqueParticipants.add(name.toLowerCase());
-
-      if (!participantMap[name.toLowerCase()]) {
-        participantMap[name.toLowerCase()] = this.getParticipantGender(row);
+    if (!isMultipleYearsView) {
+      return null;
+    }
+    if (!data || data.years.length < 2 || !data.participantMap) {
+      return null;
+    }
+    const years = data.years.sort();
+    const improvements = [];
+    for (let i = 0; i < years.length - 1; i++) {
+      const currentYear = years[i];
+      const nextYear = years[i + 1];
+      let participantsWithData = 0;
+      let participantsImproved = 0;
+      Object.values(data.participantMap).forEach(participant => {
+        const currentYearData = participant.years[currentYear];
+        const nextYearData = participant.years[nextYear];
+        if (!currentYearData || !nextYearData) return;
+        participantsWithData++;
+        let improvedCount = 0;
+        this.fitnessMetrics.slice(0, stationCount).forEach(metric => {
+          const currentValue = currentYearData[metric.key];
+          const nextValue = nextYearData[metric.key];
+          if (currentValue !== undefined && nextValue !== undefined && !isNaN(currentValue) && !isNaN(nextValue)) {
+            const diff = nextValue - currentValue;
+            const improved = metric.higherIsBetter ? diff > 0 : diff < 0;
+            if (improved) {
+              improvedCount++;
+            }
+          }
+        });
+        if (improvedCount >= stationCount) {
+          participantsImproved++;
+        }
+      });
+      if (participantsWithData > 0) {
+        const improvementPercentage = (participantsImproved / participantsWithData) * 100;
+        improvements.push({
+          from: currentYear,
+          to: nextYear,
+          value: improvementPercentage
+        });
       }
-    });
-
-    Object.values(participantMap).forEach(gender => {
-      if (gender === 'Female') {
-        femaleParticipants++;
-      } else {
-        maleParticipants++;
-      }
-    });
-
-    return {
-      totalParticipants: uniqueParticipants.size,
-      femaleParticipants,
-      maleParticipants,
-      totalParticipations: filteredData.length
-    };
+    }
+    // Return all improvements, not just positive ones
+    return improvements.length > 0 ? improvements : null;
   };
 
-  switchTab = (tab) => {
-    this.setState({ activeTab: tab });
+  drawChartIfReady = () => {
+    const { years = [], yearlyParticipants = {} } = this.props;
+    if (this.participantsChartCanvas) {
+      const participants = years.map(year => ({
+        year,
+        value: (yearlyParticipants[year] || {}).newUnique || 0
+      }));
+      if (participants.length > 0) {
+        this.drawChartOnCanvas(this.participantsChartCanvas, participants, 'Participants');
+      }
+    }
+  };
+
+  drawChartOnCanvas = (canvas, participants, legendLabel) => {
+    const ctx = canvas.getContext('2d');
+    const width = 700;
+    const height = 350;
+    const padding = { top: 40, right: 20, bottom: 60, left: 60 };
+    
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+    
+    if (participants.length === 0) return;
+    
+    const maxVal = Math.max(10, ...participants.map(d => d.value));
+    const graphWidth = width - padding.left - padding.right;
+    const graphHeight = height - padding.top - padding.bottom;
+    
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 5; i++) {
+      const y = padding.top + (i / 5) * graphHeight;
+      ctx.beginPath();
+      ctx.moveTo(padding.left, y);
+      ctx.lineTo(width - padding.right, y);
+      ctx.stroke();
+    }
+    
+    ctx.strokeStyle = '#475569';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(padding.left, padding.top);
+    ctx.lineTo(padding.left, height - padding.bottom);
+    ctx.lineTo(width - padding.right, height - padding.bottom);
+    ctx.stroke();
+    
+    ctx.fillStyle = '#64748b';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    for (let i = 0; i <= 5; i++) {
+      const y = padding.top + (i / 5) * graphHeight;
+      const val = Math.round((5 - i) / 5 * maxVal);
+      ctx.fillText(val, padding.left - 10, y);
+    }
+    
+    const points = participants.map((p, idx) => ({
+      x: padding.left + (idx / (participants.length - 1 || 1)) * graphWidth,
+      y: height - padding.bottom - ((p.value / maxVal) * graphHeight),
+      ...p
+    }));
+    
+    const isParticipationChart = legendLabel === 'Participations' || legendLabel === 'Participants';
+    const lineColor = isParticipationChart ? '#16a34a' : '#3b82f6';
+    const pointColor = isParticipationChart ? '#16a34a' : '#3b82f6';
+    const valueColor = isParticipationChart ? '#16a34a' : '#1e293b';
+    
+    ctx.strokeStyle = lineColor;
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo(points[i].x, points[i].y);
+    }
+    ctx.stroke();
+    
+    ctx.fillStyle = pointColor;
+    for (const p of points) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    
+    ctx.fillStyle = '#64748b';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    for (const p of points) {
+      ctx.fillText(p.year, p.x, height - 45);
+    }
+    
+    ctx.fillStyle = valueColor;
+    ctx.font = 'bold 13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    for (const p of points) {
+      ctx.fillText(p.value, p.x, p.y - 20);
+    }
+    
+    const legendX = width / 2 - 50;
+    const legendY = height - 20;
+    ctx.fillStyle = lineColor;
+    ctx.fillRect(legendX, legendY, 12, 12);
+    ctx.fillStyle = '#64748b';
+    ctx.font = '13px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(legendLabel, legendX + 18, legendY + 6);
   };
 
   render() {
-    const stats = this.calculateStats();
-    const { activeTab } = this.state;
+    const {
+      data,
+      yearlyParticipants = {},
+      years = [],
+      selectedStationCountParticipants = 1,
+      handleStationCountChangeParticipants,
+      isMultipleYearsView
+    } = this.props;
+
+    if (!data) {
+      return (
+        <div className="fft-dash-right-section">
+          <h3 className="fft-dash-section-header">Participants</h3>
+          <div className="fft-dash-empty">No data available</div>
+        </div>
+      );
+    }
+
+    const {
+      totalParticipants,
+      maleCount,
+      femaleCount
+    } = data;
 
     return (
-      <div className="fitness-participants-block-tabbed">
-        <div className="fitness-block-header">
-          <h2 className="fitness-block-title">
-            <i className="fas fa-chart-area"></i> Block B: Participations & Participants
-          </h2>
-          <p className="fitness-block-description">
-            View participation and participant statistics.
-          </p>
-        </div>
-
-        <div className="fitness-block-tabs-wrapper">
-          <button 
-            className={`fitness-block-tab-btn ${activeTab === 'participations' ? 'active' : ''}`}
-            onClick={() => this.switchTab('participations')}
-          >
-            <i className="fas fa-chart-bar"></i> Participations
-          </button>
-          <button 
-            className={`fitness-block-tab-btn ${activeTab === 'participants' ? 'active' : ''}`}
-            onClick={() => this.switchTab('participants')}
-          >
-            <i className="fas fa-users"></i> Participants
-          </button>
-        </div>
-
-        {/* Participations Tab Content */}
-        {activeTab === 'participations' && (
-          <div className="fitness-block-tab-content">
-            <h3 className="fitness-block-section-title">Participations</h3>
-            <div className="fitness-block-stats-row">
-              <div className="fitness-block-stat">
-                <i className="fas fa-chart-bar"></i>
-                <div className="fitness-block-stat-info">
-                  <span className="fitness-block-stat-value">{stats.totalParticipations}</span>
-                  <span className="fitness-block-stat-label">Total</span>
-                </div>
-              </div>
+      <div className="fft-dash-right-section">
+        <h3 className="fft-dash-section-header">Participants</h3>
+        <div className="fft-dash-kpi-row">
+          <div className="fft-dash-kpi-card">
+            <div className="fft-dash-kpi-label">Total Participants (Unique Individuals)</div>
+            <div className="fft-dash-kpi-value">{totalParticipants}</div>
+          </div>
+          <div className="fft-dash-kpi-card fft-dash-kpi-female">
+            <div className="fft-dash-kpi-label">Female Participants</div>
+            <div className="fft-dash-kpi-value">
+              {femaleCount}
+              <span className="fft-dash-kpi-percent">
+                ({totalParticipants > 0 ? ((femaleCount / totalParticipants) * 100).toFixed(1) : 0}%)
+              </span>
             </div>
           </div>
-        )}
-
-        {/* Participants Tab Content */}
-        {activeTab === 'participants' && (
-          <div className="fitness-block-tab-content">
-            <h3 className="fitness-block-section-title">Participants</h3>
-            <div className="fitness-block-stats-row">
-              <div className="fitness-block-stat">
-                <i className="fas fa-user"></i>
-                <div className="fitness-block-stat-info">
-                  <span className="fitness-block-stat-value">{stats.totalParticipants}</span>
-                  <span className="fitness-block-stat-label">Total</span>
-                </div>
-              </div>
-              
-              <div className="fitness-block-stat">
-                <i className="fas fa-venus"></i>
-                <div className="fitness-block-stat-info">
-                  <span className="fitness-block-stat-value">{stats.femaleParticipants}</span>
-                  <span className="fitness-block-stat-label">Female<br/>{stats.totalParticipants > 0 ? ((stats.femaleParticipants / stats.totalParticipants) * 100).toFixed(1) : 0}%</span>
-                </div>
-              </div>
-              
-              <div className="fitness-block-stat">
-                <i className="fas fa-mars"></i>
-                <div className="fitness-block-stat-info">
-                  <span className="fitness-block-stat-value">{stats.maleParticipants}</span>
-                  <span className="fitness-block-stat-label">Male<br/>{stats.totalParticipants > 0 ? ((stats.maleParticipants / stats.totalParticipants) * 100).toFixed(1) : 0}%</span>
-                </div>
-              </div>
+          <div className="fft-dash-kpi-card fft-dash-kpi-male">
+            <div className="fft-dash-kpi-label">Male Participants</div>
+            <div className="fft-dash-kpi-value">
+              {maleCount}
+              <span className="fft-dash-kpi-percent">
+                ({totalParticipants > 0 ? ((maleCount / totalParticipants) * 100).toFixed(1) : 0}%)
+              </span>
             </div>
           </div>
-        )}
+          {isMultipleYearsView && (
+            <div className="fft-dash-kpi-card fft-dash-kpi-improvement" style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'flex-start' }}>
+              <div className="fft-dash-kpi-header" style={{ width: '100%', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', paddingBottom: '8px', borderBottom: '1px solid #e2e8f0' }}>
+                <label style={{ fontSize: '13px', fontWeight: 500, marginRight: '8px', color: '#475569', whiteSpace: 'nowrap' }} htmlFor="station-count-select-participants">Number of Stations</label>
+                <select
+                  id="station-count-select-participants"
+                  className="fft-dash-station-dropdown"
+                  style={{ fontSize: '13px', padding: '2px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#f8fafc' }}
+                  value={selectedStationCountParticipants}
+                  onChange={handleStationCountChangeParticipants}
+                >
+                  {this.fitnessMetrics.map((m, idx) => {
+                    const stationValue = Math.round((idx + 1) * 1.25);
+                    return (
+                      <option key={stationValue} value={stationValue}>{stationValue} station{stationValue > 1 ? 's' : ''}</option>
+                    );
+                  })}
+                </select>
+              </div>
+              <div className="fft-dash-kpi-body" style={{ marginTop: '16px', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                <span className="fft-dash-kpi-label" style={{ fontWeight: 600, fontSize: '1.2em', marginBottom: '8px' }}>Improvement by year</span>
+                <span className="fft-dash-kpi-value" style={{ fontWeight: 700, fontSize: '2em', color: '#1e293b' }}>
+                  {(() => {
+                    const improvements = this.calculateParticipantsImprovementUnique(data, selectedStationCountParticipants);
+                    if (!improvements || improvements.length === 0) {
+                      return '-';
+                    }
+                    const value = improvements[0].value;
+                    return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
+                  })()}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="fft-dash-chart-section">
+          <h3 className="fft-dash-chart-section-title">Participants (Unique Individuals) per year</h3>
+          <div className="fft-dash-line-chart">
+            {(() => {
+              const participants = years.map(year => ({
+                year,
+                value: (yearlyParticipants[year] || {}).newUnique || 0
+              }));
+              if (participants.length === 0) {
+                return <div className="fft-dash-chart-empty">No data available</div>;
+              }
+              return (
+                <canvas
+                  ref={(canvas) => {
+                    this.participantsChartCanvas = canvas;
+                    if (canvas) {
+                      setTimeout(() => this.drawChartOnCanvas(canvas, participants, 'Participants'), 0);
+                    }
+                  }}
+                  width={900}
+                  height={400}
+                  className="fft-dash-chart-canvas"
+                  style={{borderRadius: '4px'}}
+                />
+              );
+            })()}
+          </div>
+        </div>
       </div>
     );
   }

@@ -76,23 +76,29 @@ class FitnessSection extends Component {
 
       const response = await axios.post(
         `${this.getApiBaseUrl()}/googleDrive`,
-        { folderId: fftFolderId, purpose: 'listFiles' }
+        { 
+          folderId: fftFolderId, 
+          purpose: 'listSubfolders'
+        }
       );
       
       if (response.data.success) {
-        const files = response.data.files || [];
+        const folders = response.data.folders || [];
+
+        console.log('Fetched year folders:', folders);
         
         // Filter for folders only (year folders like 2024, 2025, 2026)
         const yearFolders = {};
         const yearsSet = new Set();
         
-        files.forEach(file => {
-          if (file.mimeType === 'application/vnd.google-apps.folder') {
-            // Check if folder name is a year
-            if (/^20\d{2}$/.test(file.name)) {
-              yearsSet.add(file.name);
-              yearFolders[file.name] = file.id;
-            }
+        folders.forEach(folder => {
+          // Try to extract a year (e.g., "2024") from the folder name.
+          // Some setups might name the folder "2024 FFT" or "FFT 2024".
+          const yearMatch = folder.name.match(/(20\d{2})/);
+          if (yearMatch) {
+            const year = yearMatch[1];
+            yearsSet.add(year);
+            yearFolders[year] = folder.id;
           }
         });
 
@@ -126,17 +132,23 @@ class FitnessSection extends Component {
   // Hardcoded centre locations with file name prefixes
   getHardcodedLocations = () => {
     return [
-      { name: 'CT Hub', prefixes: ['CT Hub', 'CT'] },
+      { name: 'CT Hub', prefixes: ['CT Hub', 'CT', 'CTH'] },
       { name: 'Pasir Ris', prefixes: ['PRW'] },
-      { name: 'Tampines', prefixes: ['Tampines', 'TNCC'] }
+      { name: 'Tampines', prefixes: ['Tampines', 'TNCC', 'TNC'] }
     ];
   }
 
-  // Check if filename starts with any of the location prefixes
+  // Check if filename contains any of the location prefixes
   matchesLocation = (filename, locationPrefixes) => {
     const lowerFilename = filename.toLowerCase();
-    return locationPrefixes.some(prefix => 
-      lowerFilename.startsWith(prefix.toLowerCase())
+    // Remove date/session patterns for matching
+    const cleanedFilename = lowerFilename.replace(/\d{4}\/\d{2}\/\d{2}/g, '') // Remove YYYY/MM/DD
+      .replace(/\d{4}/g, '') // Remove standalone year
+      .replace(/session \d+/gi, '') // Remove session info
+      .replace(/fft/g, '') // Remove FFT
+      .replace(/\s+/g, ' '); // Normalize spaces
+    return locationPrefixes.some(prefix =>
+      cleanedFilename.includes(prefix.toLowerCase()) || lowerFilename.includes(prefix.toLowerCase())
     );
   }
 
@@ -144,6 +156,7 @@ class FitnessSection extends Component {
   buildLocationYearMap = async (yearFolders, availableYears) => {
     const hardcodedLocations = this.getHardcodedLocations();
     const locationYearMap = {};
+
     
     // Initialize map for each location
     hardcodedLocations.forEach(loc => {
@@ -160,7 +173,7 @@ class FitnessSection extends Component {
           `${this.getApiBaseUrl()}/googleDrive`,
           { folderId, purpose: 'listFiles' }
         );
-
+        
         if (response.data.success) {
           return { year, files: response.data.files || [] };
         }
@@ -176,10 +189,12 @@ class FitnessSection extends Component {
     results.forEach(({ year, files }) => {
       files.forEach(file => {
         // Check if it's a spreadsheet
+        const fileNameLower = (file.name || '').toLowerCase();
         const isSpreadsheet = file.mimeType === 'application/vnd.google-apps.spreadsheet' ||
           file.mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-          file.name.endsWith('.xlsx') ||
-          file.name.endsWith('.csv');
+          fileNameLower.endsWith('.xlsx') ||
+          fileNameLower.endsWith('.xls') ||
+          fileNameLower.endsWith('.csv');
 
         if (isSpreadsheet) {
           // Find which location this file belongs to
@@ -219,10 +234,9 @@ class FitnessSection extends Component {
         `${this.getApiBaseUrl()}/googleDrive`,
         { folderId: yearFolderId, purpose: 'listFiles' }
       );
-      
+
       if (response.data.success) {
         const files = response.data.files || [];
-        
         // Filter for spreadsheet files only
         const spreadsheetFiles = files.filter(file => 
           file.mimeType === 'application/vnd.google-apps.spreadsheet' ||
@@ -230,14 +244,11 @@ class FitnessSection extends Component {
           file.name.endsWith('.xlsx') ||
           file.name.endsWith('.csv')
         );
-        
+
         // Map files to hardcoded locations based on file name prefix
-        // File format: "[Location] [Year] FFT" e.g., "CT Hub 2025 FFT"
         const locationMap = {};
         const hardcodedLocations = this.getHardcodedLocations();
-        
         spreadsheetFiles.forEach(file => {
-          // Find matching hardcoded location by prefix
           for (const loc of hardcodedLocations) {
             if (this.matchesLocation(file.name, loc.prefixes)) {
               if (!locationMap[loc.name]) {
@@ -249,7 +260,6 @@ class FitnessSection extends Component {
           }
         });
 
-        // Use hardcoded location names for dropdown
         const availableLocations = hardcodedLocations.map(loc => loc.name);
 
         this.setState({
@@ -261,7 +271,6 @@ class FitnessSection extends Component {
         throw new Error(response.data.error || 'Failed to fetch files from Google Drive');
       }
     } catch (error) {
-      console.error('Error fetching spreadsheet files:', error);
       this.setState({
         error: error.message || 'Failed to fetch files from Google Drive'
       });
@@ -279,6 +288,8 @@ class FitnessSection extends Component {
 
       if (response.data.success) {
         const data = response.data.data || [];
+
+        console.log('Fetched fitness data:', data.length, 'records');
         
         // Extract unique locations
         const locations = [...new Set(data.map(item => item.location).filter(Boolean))];
@@ -616,10 +627,12 @@ class FitnessSection extends Component {
                 
                 // Find spreadsheet matching the centre prefixes
                 const matchingFile = files.find(file => {
+                  const fileNameLower = (file.name || '').toLowerCase();
                   const isSpreadsheet = file.mimeType === 'application/vnd.google-apps.spreadsheet' ||
                     file.mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-                    file.name.endsWith('.xlsx') ||
-                    file.name.endsWith('.csv');
+                    fileNameLower.endsWith('.xlsx') ||
+                    fileNameLower.endsWith('.xls') ||
+                    fileNameLower.endsWith('.csv');
                   
                   const matchesLoc = selectedCentre && selectedCentre.prefixes ? 
                     this.matchesLocation(file.name, selectedCentre.prefixes) : false;
@@ -840,7 +853,7 @@ class FitnessSection extends Component {
       error
     } = this.state;
 
-    // Define tabs - renamed as requested
+    // Define tabs - always Dashboard and Individual Participants
     const tabs = [
       { key: 'dashboard', label: 'Dashboard', icon: 'fas fa-chart-bar' },
       { key: 'participants', label: 'Individual Participants', icon: 'fas fa-users' }
@@ -958,7 +971,7 @@ class FitnessSection extends Component {
               <p>
                 {!yearFrom && !yearTo
                   ? 'Please select Year From or Year To to begin.'
-                  : !selectedLocation
+                  : selectedLocations.length === 0
                   ? 'Please select a Centre from the filter above to view the dashboard and participant data.'
                   : 'Please select both Centre and Year(s) to view data.'
                 }
