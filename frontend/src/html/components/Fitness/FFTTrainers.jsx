@@ -6,7 +6,7 @@ import StaffOptions from './StaffOptions';
 import '../../../css/fftParticipants.css';
 import '../../../css/fftTrainers.css';
 
-// ─────────────────────────────────────────────ok
+// ─────────────────────────────────────────────
 // FFTTrainers
 // ─────────────────────────────────────────────
 class FFTTrainers extends Component {
