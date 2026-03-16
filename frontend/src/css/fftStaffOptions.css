@@ -1,0 +1,92 @@
+/* ─────────────────────────────────────────────────────────────
+   Staff Options Styles
+   ───────────────────────────────────────────────────────────── */
+
+.fft-staff-options-container {
+  padding: 0;
+  width: 100%;
+}
+
+.fft-staff-options-wrapper {
+  background: #f5f5f5;
+  padding: 16px 0;
+}
+
+.fft-staff-options-section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.fft-staff-options-header {
+  margin-bottom: 24px;
+}
+
+.fft-staff-options-title {
+  margin: 0 0 12px 0;
+  font-size: 2em;
+  font-weight: 700;
+  color: #333;
+}
+
+.fft-staff-options-divider {
+  margin: 12px 0;
+  border: none;
+  border-top: 1px solid #ddd;
+  height: 0;
+}
+
+.fft-staff-options-description {
+  margin: 0;
+  color: #555;
+  font-size: 1em;
+}
+
+.fft-staff-options-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.fft-staff-option-btn {
+  padding: 32px 24px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #ffffff;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.fft-staff-option-btn:hover {
+  border-color: #2563eb;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+  transform: translateY(-2px);
+}
+
+.fft-staff-option-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.1);
+}
+
+.fft-staff-option-btn-name {
+  font-size: 1.75em;
+  font-weight: 600;
+  color: #333;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .fft-staff-options-buttons {
+    grid-template-columns: 1fr;
+  }
+
+  .fft-staff-options-title {
+    font-size: 1.5em;
+  }
+
+  .fft-staff-option-btn-name {
+    font-size: 1.25em;
+  }
+}

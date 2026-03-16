@@ -1,10 +1,12 @@
 import React, { Component } from 'react';
 import BulkUpload from './BulkUpload';
 import ReviewParticipantsResult from './ReviewParticipantsResult';
+import EventSelection from './EventSelection';
+import StaffOptions from './StaffOptions';
 import '../../../css/fftParticipants.css';
 import '../../../css/fftTrainers.css';
 
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────ok
 // FFTTrainers
 // ─────────────────────────────────────────────
 class FFTTrainers extends Component {
