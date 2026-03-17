@@ -41,8 +41,10 @@ class CourseFlyers extends Component {
     if (this.props.closePopup1) {
       this.props.closePopup1();
     }
-    // Fetch flyers for default tab (NSA)
-    this.fetchFlyers('nsa');
+    // Fetch flyers for default tab based on role
+    const defaultCourseType = this.getFilteredCourseTypes()[0];
+    this.setState({ activeTab: defaultCourseType });
+    this.fetchFlyers(defaultCourseType);
     
     // Add click outside listener
     document.addEventListener('mousedown', this.handleClickOutside);
@@ -58,6 +60,33 @@ class CourseFlyers extends Component {
     // window.removeEventListener('beforeunload', this.handleBeforeUnload);
   }
 
+  getFilteredCourseTypes = () => {
+    const { role } = this.props;
+    // NSA in-charge: NSA only
+    if (role === 'NSA in-charge') {
+      return ['nsa'];
+    }
+    // Site in-charge & Ops in-charge: NSA, ILP, SCC
+    if (role === 'Site in-charge' || role === 'Ops in-charge') {
+      return ['nsa', 'ilp', 'scc'];
+    }
+    // Social Worker: SCC only
+    if (role === 'Social Worker') {
+      return ['scc'];
+    }
+    // Default for other roles: NSA, ILP, SCC
+    return ['nsa', 'ilp', 'scc'];
+  }
+
+  getCourseTypeLabel = (type) => {
+    const labels = {
+      'nsa': 'NSA',
+      'ilp': 'ILP',
+      'scc': 'SCC'
+    };
+    return labels[type] || type.toUpperCase();
+  }
+
   handleBeforeUnload = (e) => {
     if (this.state.selectedFiles.size > 0 && !this.state.promptShown) {
       e.preventDefault();
@@ -65,6 +94,36 @@ class CourseFlyers extends Component {
       this.setState({ promptShown: true });
       return e.returnValue;
     }
+  }
+
+  getAssignedLocations = () => {
+    const { role, siteIC } = this.props;
+    
+    // Site in-charge: only access their assigned site location
+    if (role === 'Site in-charge' && siteIC) {
+      // siteIC can be a string or array
+      if (Array.isArray(siteIC)) {
+        return siteIC.map(site => site.toLowerCase());
+      }
+      return [siteIC.toLowerCase()];
+    }
+    
+    // Other roles have no location restrictions
+    return null;
+  }
+
+  isLocationAllowed = (itemName) => {
+    const assignedLocations = this.getAssignedLocations();
+    
+    // No restrictions for other roles
+    if (!assignedLocations) {
+      return true;
+    }
+    
+    const lowerName = (itemName || '').toLowerCase();
+    
+    // Check if item name contains any of the assigned locations
+    return assignedLocations.some(location => lowerName.includes(location));
   }
 
   fetchFlyers = async (courseType, folderId = null) => {
@@ -91,11 +150,34 @@ class CourseFlyers extends Component {
         // Combine folders and files into a single array
         const folders = response.data.folders || [];
         const files = response.data.files || [];
-        const combinedFlyers = [...folders, ...files];
+        let combinedFlyers = [...folders, ...files];
         
         console.log(`Fetched ${folders.length} folders and ${files.length} files`);
         console.log('Folders:', folders);
         console.log('Files:', files);
+        
+        // Filter based on user's assigned location only at specific depths:
+        // - NSA: filter at sub-sub-sub level (breadcrumb.length === 2, showing locations)
+        // - ILP: filter at sub-sub level (breadcrumb.length === 1, showing locations)
+        // - SCC: no filter
+        const { role } = this.props;
+        const { breadcrumb } = this.state;
+        let shouldFilter = false;
+        
+        if (role === 'Site in-charge') {
+          if (courseType === 'nsa' && breadcrumb && breadcrumb.length === 2) {
+            // NSA: filter at third level (showing locations)
+            shouldFilter = true;
+          } else if (courseType === 'ilp' && breadcrumb && breadcrumb.length === 2) {
+            // ILP: filter at second level (showing locations)
+            shouldFilter = true;
+          }
+        }
+        
+        if (shouldFilter) {
+          combinedFlyers = combinedFlyers.filter(item => this.isLocationAllowed(item.name));
+          console.log(`Filtered to ${combinedFlyers.length} items based on Site in-charge location access`);
+        }
         
         // Extract unique locations from folder/file names
         const locationSet = new Set();
@@ -138,6 +220,12 @@ class CourseFlyers extends Component {
   }
 
   handleTabChange = (tab) => {
+    // Validate that the tab is allowed for this role
+    const allowedTabs = this.getFilteredCourseTypes();
+    if (!allowedTabs.includes(tab)) {
+      console.warn(`Tab ${tab} is not allowed for this role`);
+      return;
+    }
     this.setState({ activeTab: tab, currentFolderId: null, breadcrumb: [], flyers: [], selectedFiles: new Set(), promptShown: false, apiError: null });
     this.fetchFlyers(tab);
   }
@@ -352,9 +440,10 @@ class CourseFlyers extends Component {
   }
 
   handleClearFilters = () => {
+    const defaultCourseType = this.getFilteredCourseTypes()[0];
     this.setState({
       searchQuery: '',
-      activeTab: 'nsa',
+      activeTab: defaultCourseType,
       currentFolderId: null,
       breadcrumb: [],
       selectedFiles: new Set(),
@@ -363,7 +452,7 @@ class CourseFlyers extends Component {
       filteredLocationOptions: this.state.locationOptions,
       showLocationDropdown: false
     }, () => {
-      this.fetchFlyers('nsa');
+      this.fetchFlyers(defaultCourseType);
     });
   }
 
@@ -404,257 +493,30 @@ class CourseFlyers extends Component {
           <p className="flyers-subtitle">Browse and download available course materials and information</p>
         </div>
 
-        {/* Filter Section */}
+        {/* Instructions Section */}
         <div style={{
-          width: '100%',
-          padding: '20px',
-          backgroundColor: '#f8f9fa',
+          backgroundColor: '#e7f3ff',
+          border: '1px solid #91d5ff',
           borderRadius: '4px',
-          marginBottom: '20px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-end',
-          gap: '20px',
-          flexWrap: 'wrap',
-          boxSizing: 'border-box'
+          padding: '15px 20px',
+          marginBottom: '30px',
+          fontSize: '14px',
+          color: '#003a8c',
+          lineHeight: '1.6',
+          width: '100%',
+          clear: 'both'
         }}>
-          {/* Left Section - Location, Category, Search (flex: 3) */}
-          <div style={{
-            display: 'flex',
-            gap: '15px',
-            alignItems: 'flex-end',
-            flex: 3,
-            minWidth: '500px',
-            flexWrap: 'wrap'
-          }}>
-            {/* Location Combobox */}
-            <div ref={this.locationDropdownRef} style={{ flex: 1, minWidth: '150px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>
-                Location
-              </label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type="text"
-                  placeholder="Filter by location..."
-                  value={locationInput}
-                  onChange={this.handleLocationInputChange}
-                  onFocus={() => this.setState({ showLocationDropdown: true })}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #ddd',
-                    borderRadius: '4px',
-                    backgroundColor: 'white',
-                    fontSize: '14px',
-                    color: '#000'
-                  }}
-                />
-                {showLocationDropdown && filteredLocationOptions.length > 0 && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    right: 0,
-                    backgroundColor: 'white',
-                    border: '1px solid #ddd',
-                    borderTop: 'none',
-                    borderRadius: '0 0 4px 4px',
-                    marginTop: '0px',
-                    zIndex: 1000,
-                    maxHeight: '250px',
-                    overflowY: 'auto',
-                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-                  }}>
-                    {filteredLocationOptions.map(location => (
-                      <div
-                        key={location}
-                        onClick={() => this.handleLocationSelect(location)}
-                        style={{
-                          padding: '10px 12px',
-                          cursor: 'pointer',
-                          backgroundColor: locationInput === location ? '#e7f3ff' : 'white',
-                          borderBottom: '1px solid #f0f0f0',
-                          fontSize: '14px',
-                          color: '#000'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = '#f5f5f5';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = locationInput === location ? '#e7f3ff' : 'white';
-                        }}
-                      >
-                        {location}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Category - Placeholder for future use */}
-            <div style={{ flex: 1, minWidth: '150px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>
-                Category
-              </label>
-              <input
-                type="text"
-                placeholder="Filter by category..."
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  backgroundColor: 'white',
-                  fontSize: '14px',
-                  color: '#000'
-                }}
-              />
-            </div>
-
-            {/* Search Input */}
-            <div style={{ flex: 1, minWidth: '150px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>
-                Search
-              </label>
-              <div style={{ position: 'relative', display: 'flex' }}>
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  value={searchQuery}
-                  onChange={this.handleSearchChange}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #ddd',
-                    borderRadius: '4px 0 0 4px',
-                    fontSize: '14px'
-                  }}
-                />
-                <button style={{
-                  padding: '8px 12px',
-                  backgroundColor: 'white',
-                  border: '1px solid #ddd',
-                  borderLeft: 'none',
-                  borderRadius: '0 4px 4px 0',
-                  cursor: 'pointer',
-                  fontSize: '16px'
-                }}>
-                  🔍
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Section - Course Type (flex: 1) */}
-          <div style={{
-            display: 'flex',
-            gap: '10px',
-            alignItems: 'flex-end',
-            flex: 1,
-            minWidth: '180px'
-          }}>
-            {/* Course Type Dropdown */}
-            <div ref={this.courseTypeDropdownRef} style={{ width: '100%' }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>
-                Course Type
-              </label>
-              <div style={{ position: 'relative' }}>
-                <button
-                  onClick={this.handleDropdownToggle}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #ddd',
-                    borderRadius: '4px',
-                    backgroundColor: 'white',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    fontSize: '14px'
-                  }}
-                >
-                  {activeTab.toUpperCase()} ▾
-                </button>
-                {showCourseTypeDropdown && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    right: 0,
-                    backgroundColor: 'white',
-                    border: '1px solid #ddd',
-                    borderRadius: '4px',
-                    marginTop: '4px',
-                    zIndex: 1000
-                  }}>
-                    {['NSA', 'ILP', 'SCC'].map(type => (
-                      <div
-                        key={type}
-                        onClick={() => {
-                          this.handleTabChange(type.toLowerCase());
-                          this.setState({ showCourseTypeDropdown: false });
-                        }}
-                        style={{
-                          padding: '10px 12px',
-                          cursor: 'pointer',
-                          backgroundColor: activeTab === type.toLowerCase() ? '#e7f3ff' : 'white',
-                          borderBottom: '1px solid #f0f0f0',
-                          fontSize: '14px'
-                        }}
-                        onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f5'}
-                        onMouseLeave={(e) => e.target.style.backgroundColor = activeTab === type.toLowerCase() ? '#e7f3ff' : 'white'}
-                      >
-                        {type}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Clear Filters Button */}
-            <button
-              onClick={this.handleClearFilters}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: 'white',
-                border: '2px solid #20c997',
-                borderRadius: '4px',
-                color: '#20c997',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                fontSize: '14px'
-              }}
-            >
-              Clear Filters
-            </button>
-          </div>
-        </div>
-
-        {/* Tab Navigation */}
-        <div className="flyers-tabs">
-          <button
-            className={`flyers-tab ${activeTab === 'nsa' ? 'active' : ''}`}
-            onClick={() => this.handleTabChange('nsa')}
-          >
-            NSA
-          </button>
-          <button
-            className={`flyers-tab ${activeTab === 'ilp' ? 'active' : ''}`}
-            onClick={() => this.handleTabChange('ilp')}
-          >
-            ILP
-          </button>
-          <button
-            className={`flyers-tab ${activeTab === 'scc' ? 'active' : ''}`}
-            onClick={() => this.handleTabChange('scc')}
-          >
-            SCC
-          </button>
+          <p style={{ margin: '0 0 10px 0', fontWeight: 'bold' }}>Instructions - Individual file and bulk download:</p>
+          <ul style={{ margin: '0', paddingLeft: '20px' }}>
+            <li>Select a course type from the tabs above</li>
+            <li>Navigate through folders by clicking on them</li>
+            <li><strong>Individual download:</strong> Click on a file to download it individually</li>
+            <li><strong>Bulk download:</strong> Check the checkbox next to files or folders, then click the Download button to download all selected items as a ZIP file</li>
+          </ul>
         </div>
 
         {/* Download Button */}
-        <div style={{ marginBottom: '15px', display: 'flex', gap: '15px', alignItems: 'center' }}>
+        <div style={{ marginBottom: '30px', display: 'flex', gap: '15px', alignItems: 'center', clear: 'both' }}>
           <button 
             className="bulk-download-btn" 
             onClick={this.handleBulkDownload}
@@ -671,21 +533,19 @@ class CourseFlyers extends Component {
           >
             Download {selectedFiles.size > 0 && `(${selectedFiles.size})`}
           </button>
+        </div>
 
-          <button 
-            onClick={this.exportToExcel}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: 'transparent',
-              color: '#20c997',
-              border: 'none',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              fontSize: '14px'
-            }}
-          >
-            Archive Data
-          </button>
+        {/* Tab Navigation */}
+        <div className="flyers-tabs">
+          {this.getFilteredCourseTypes().map(type => (
+            <button
+              key={type}
+              className={`flyers-tab ${activeTab === type ? 'active' : ''}`}
+              onClick={() => this.handleTabChange(type)}
+            >
+              {this.getCourseTypeLabel(type)}
+            </button>
+          ))}
         </div>
 
         {/* Tab Content */}
@@ -795,11 +655,7 @@ class CourseFlyers extends Component {
                 })}
               </div>
             </>
-          ) : (
-            <div className="no-data-state">
-              <p>No files or folders available for this course type. Please select a different tab or try again.</p>
-            </div>
-          )}
+          ) : null}
         </div>
         <BulkDownloadProgress
           isOpen={this.state.bulkDownloadModalOpen}

@@ -2369,8 +2369,6 @@ import React, { Component } from 'react';
       const userName = this.props.location.state?.name || 'User';
       const role = this.props.location.state?.role;
       const siteIC = this.props.location.state?.siteIC;
-      const site = this.props.location.state?.site;
-      const siteArray = site ? site.split(',').map(s => s.trim()) : [];
       const {membershipType, membershipTypes, membershipSearchQuery, isMembershipVisible, isFitnessVisible, fitnessSearchQuery, isCourseFlyersVisible, isCourseLinkVisible, isFundraisingTableVisible, isFundraisingInventoryVisible, isInventoryModulesVisible, isInventoryFormVisible, isAuditLogsVisible, inventoryTab, fundraisingSearchQuery, fundraisingPaymentMethod, fundraisingCollectionLocation, fundraisingStatus, fundraisingPaymentMethods, fundraisingCollectionLocations, fundraisingStatuses, showCalendarModal, selectedOrderForCalendar, collectionSchedule, attendanceVisibility, reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo, selectedQuarter, quarters, attendanceFilterType, attendanceFilterCode, attendanceFilterLocation, attendanceSearchQuery, attendanceTypes, activityCodes, attendanceLocations, isSalesReportModalOpen, isPaymentReportModalOpen, isFiscalBalanceReportModalOpen, showItemsModal, selectedItems, selectedRowData, wooCommerceProductDetails, showReceiptModal, selectedReceipt, showInvoiceModal, invoiceModalData} = this.state;
 
       return (
@@ -2798,7 +2796,6 @@ import React, { Component } from 'react';
                           userName={userName}
                           role={role}
                           siteIC={siteIC}
-                          siteArray={siteArray}
                           closePopup1={this.closePopup}
                           language={language}
                           key={this.state.refreshKey}

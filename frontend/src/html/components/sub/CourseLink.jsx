@@ -37,6 +37,7 @@ class CourseLink extends Component {
   }
 
   componentDidMount = async() => {
+    console.log("CourseLink mounted with siteArray:", this.props.siteArray);
     await this.fetchCourses("");
     document.addEventListener('mousedown', this.handleClickOutside);
   }
@@ -52,9 +53,10 @@ class CourseLink extends Component {
     if (this.props.courseLinkCategory !== prevProps.courseLinkCategory) {
       this.setState({ selectedCategory: this.props.courseLinkCategory || 'All Categories' }, this.applyFilters);
     }
-    // Update when site changes
+    // Re-fetch when site changes
     if (this.props.siteArray !== prevProps.siteArray) {
-      this.applyFilters();
+      console.log("siteArray changed from", prevProps.siteArray, "to", this.props.siteArray);
+      this.fetchCourses("");
     }
   }
 
@@ -120,9 +122,29 @@ class CourseLink extends Component {
     }, this.applyFilters);
   }
 
+  getFilteredCategories = () => {
+    const { role } = this.props;
+    // If role is NSA in-charge, only show NSA
+    if (role === 'NSA in-charge') {
+      return ['NSA'];
+    }
+    // If role is Site in-charge or Ops in-charge, only show NSA, ILP, and Talks And Seminar
+    if (role === 'Site in-charge' || role === 'Ops in-charge') {
+      return ['NSA', 'ILP', 'Talks And Seminar'];
+    }
+    // If role is Social Worker, only show Marriage Preparation Programme and Talks And Seminar
+    if (role === 'Social Worker') {
+      return ['Marriage Preparation Programme', 'Talks And Seminar'];
+    }
+    // Default categories for other roles
+    return ['ILP', 'NSA', 'Marriage Preparation Programme', 'Talks And Seminar'];
+  }
+
   applyFilters = () => {
     const { courseLinks, searchQuery, selectedLocation, selectedCategory } = this.state;
-    const allowedCategories = ['ILP', 'NSA', 'Marriage Preparation Programme', 'Talks And Seminar'];
+    const { role, siteIC } = this.props;
+    const siteNames = (siteIC && siteIC.length > 0) ? siteIC.filter(site => typeof site === 'string' && site.trim() !== '') : [];
+    const allowedCategories = this.getFilteredCategories();
 
     const extractMainCategory = (cat) => {
       const name = typeof cat === 'string' ? cat : (cat?.name || '');
@@ -151,12 +173,27 @@ class CourseLink extends Component {
       // Location filter
       const matchesLocation = selectedLocation === 'All Locations' || location === selectedLocation;
 
-      // Category filter
+      // For Site in-charge, filter out entries that don't match their site location
+      if (role === 'Site in-charge' && siteNames && siteNames.length > 0) {
+        const isAtOwnSite = siteNames.includes(location);
+        if (!isAtOwnSite) {
+          return false;
+        }
+      }
+
+      // Category filter - only show courses with allowed categories
       let matchesCategory = selectedCategory === 'All Categories';
       if (!matchesCategory && link.categories) {
         const categories = Array.isArray(link.categories) ? link.categories : [link.categories];
         const extracted = categories.map(extractMainCategory);
-        matchesCategory = extracted.includes(selectedCategory);
+        const filtered = extracted.filter(cat => allowedCategories.includes(cat));
+        matchesCategory = filtered.includes(selectedCategory);
+      } else if (selectedCategory === 'All Categories' && link.categories) {
+        // For "All Categories", only show if course has at least one allowed category
+        const categories = Array.isArray(link.categories) ? link.categories : [link.categories];
+        const extracted = categories.map(extractMainCategory);
+        const filtered = extracted.filter(cat => allowedCategories.includes(cat));
+        matchesCategory = filtered.length > 0;
       }
 
       return matchesSearch && matchesLocation && matchesCategory;
@@ -194,7 +231,7 @@ class CourseLink extends Component {
     
     try {
       const workbook = new ExcelJS.Workbook();
-      const categories = ['NSA', 'ILP', 'Marriage Preparation Programme', 'Talks And Seminar'];
+      const categories = this.getFilteredCategories();
       const categoryColorMap = {
         'NSA': 'FFD4F1D4',           // Soft pastel green
         'ILP': 'FFFFD4D4',           // Soft pastel red
@@ -204,7 +241,7 @@ class CourseLink extends Component {
 
       // Helper function to extract and filter categories (same as table)
       const extractFilteredCategories = (categoryValue) => {
-        const allowedCategories = ['ILP', 'NSA', 'Marriage Preparation Programme', 'Talks And Seminar'];
+        const allowedCategories = this.getFilteredCategories();
         
         const extractMainCategory = (cat) => {
           const name = typeof cat === 'string' ? cat : (cat?.name || '');
@@ -311,21 +348,42 @@ class CourseLink extends Component {
 
   async fetchCourses(courseType) {
     try {
+      console.log("Fetching courses with courseType:", courseType);
       this.setState({ loading: true });
       var response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3002" : "https://ecss-backend-django.azurewebsites.net"}/courses/`, { courseType });
       var courses = response.data.courses;
 
-      console.log("Courses:", courses);
+      console.log("Courses from API:", courses);
       
-      // Remove inventory category
+      // Get site names early for filtering
+      const { siteIC, role } = this.props;
+      const siteNames = (siteIC && siteIC.length > 0) ? siteIC.filter(site => typeof site === 'string' && site.trim() !== '') : [];
+      console.log("Received siteIC prop:", siteIC);
+      console.log("Site Names extracted:", siteNames);
+      
+      // Filter courses by centre location right after API response
       courses = courses.filter(course => {
-        if (!course.categories) return true;
-        const categories = Array.isArray(course.categories) ? course.categories : [course.categories];
-        return !categories.some(cat => {
-          const name = typeof cat === 'string' ? cat : (cat?.name || '');
-          return name.toLowerCase().includes('inventory');
-        });
+        // Filter by site location if any siteNames exist
+        if (siteNames && siteNames.length > 0) {
+          const parts = course.name.split(/<br\s*\/?>/i);
+          let location = parts[1] || '';
+          if (parts.length === 3) {
+            location = parts[2];
+          }
+          location = typeof location === 'string' ? location.replace(/[()]/g, '').trim() : '';
+          
+          // Check if location matches ANY of the site names
+          const matches = siteNames.includes(location);
+          if (!matches) {
+            console.log(`Filtering out course: ${parts[0]} at location "${location}" (looking for any of "${siteNames.join(', ')}")`);
+          }
+          return matches;
+        }
+        
+        return true;
       });
+      
+      console.log(`Filtered courses count (after site filter): ${courses.length}`);
 
       // Extract product names and permalinks with serial number and shortened URL
       const courseLinks = await Promise.all(courses.map(async (course, index) => {
@@ -339,10 +397,10 @@ class CourseLink extends Component {
         };
       }));
 
-      // Extract unique locations and categories
+      // Extract unique locations and categories from filtered site courses
       const uniqueLocations = ['All Locations'];
       const uniqueCategories = ['All Categories'];
-      const allowedCategories = ['ILP', 'NSA', 'Marriage Preparation Programme', 'Talks And Seminar'];
+      const allowedCategories = this.getFilteredCategories();
 
       const extractMainCategory = (cat) => {
         const name = typeof cat === 'string' ? cat : (cat?.name || '');
@@ -376,54 +434,24 @@ class CourseLink extends Component {
         }
       });
 
-      // Filter locations to only show the current site's location
-      const { siteArray } = this.props;
-      let siteLocations = ['All Locations'];
-      let defaultSelectedLocation = 'All Locations';
-      
-      if (siteArray && siteArray.length > 0) {
-        // Get the last element which is typically the location/centre (e.g., "CT Hub")
-        const siteName = siteArray[siteArray.length - 1];
-        console.log("Site Array:", siteArray);
-        console.log("Site Name from Array:", siteName);
-        console.log("Available Locations:", uniqueLocations);
-        
-        // Filter courses and locations by site
-        const siteCourses = courseLinks.filter(link => {
-          const parts = link.name.split(/<br\s*\/?>/i);
-          let location = parts[1] || '';
-          if (parts.length === 3) {
-            location = parts[2];
-          }
-          location = typeof location === 'string' ? location.replace(/[()]/g, '').trim() : '';
-          return location === siteName;
-        });
-        
-        // Set siteLocations to only include the current site
-        siteLocations = ['All Locations', siteName];
-        defaultSelectedLocation = 'All Locations';
-        
-        console.log("Site Courses Count:", siteCourses.length);
-        console.log("Site Locations:", siteLocations);
-      }
-
       // Update state with fetched data and apply initial filters
-      console.log("Unique Locations:", uniqueLocations);
-      console.log("Unique Categories:", uniqueCategories);
+      console.log("Available Locations:", uniqueLocations);
+      console.log("Available Categories:", uniqueCategories);
+      console.log("Site Courses Count:", courseLinks.length);
       this.setState({
         courseLinks: courseLinks,
         filteredCourseLinks: courseLinks,
-        filteredLocations: siteLocations,
+        filteredLocations: uniqueLocations,
         filteredCategories: uniqueCategories,
-        siteLocations: siteLocations,
-        selectedLocation: defaultSelectedLocation,
+        siteLocations: uniqueLocations,
+        selectedLocation: 'All Locations',
         loading: false
       }, () => {
         // Apply filters to show courses
         this.applyFilters();
         // Notify parent of available filters
         if (this.props.onFiltersLoaded) {
-          this.props.onFiltersLoaded(siteLocations, uniqueCategories);
+          this.props.onFiltersLoaded(uniqueLocations, uniqueCategories);
         }
       });
       this.props.closePopup1();
@@ -450,11 +478,13 @@ class CourseLink extends Component {
       return parts.length > 1 ? parts[1].trim() : parts[0].trim();
     };
 
+    const allowedCategories = this.getFilteredCategories();
     const categories = Array.isArray(params.data.categories) ? params.data.categories : [params.data.categories];
     const extracted = categories.map(extractMainCategory);
     
-    // Find first matching category color
-    for (const cat of extracted) {
+    // Filter to allowed categories and find first matching category color
+    const filtered = extracted.filter(cat => allowedCategories.includes(cat));
+    for (const cat of filtered) {
       if (categoryColorMap[cat]) {
         return { backgroundColor: categoryColorMap[cat] };
       }
@@ -485,7 +515,7 @@ class CourseLink extends Component {
       { 
         field: 'name', 
         headerName: 'Centre Location', 
-        width: 300,
+        width: 250,
         cellRenderer: (params) => {
           const parts = params.value.split(/<br\s*\/?>/i);
           let selectedPart = parts[1];
@@ -496,26 +526,29 @@ class CourseLink extends Component {
         }
       },
       { 
-        field: 'categories', 
+        field: 'name', 
         headerName: 'Category', 
         width: 250,
         cellRenderer: (params) => {
-          if (!params.value) return '';
+          const categoriesValue = params.data.categories;
           
-          const allowedCategories = ['ILP', 'NSA', 'Marriage Preparation Programme', 'Talks And Seminar'];
+          if (!categoriesValue) return '';
           
+          const allowedCategories = this.getFilteredCategories();
+          
+          // Extract categories
           const extractMainCategory = (cat) => {
             const name = typeof cat === 'string' ? cat : (cat?.name || '');
-            const parts = name.split(':');
-            return parts.length > 1 ? parts[1].trim() : parts[0].trim();
+            const catParts = name.split(':');
+            return catParts.length > 1 ? catParts[1].trim() : catParts[0].trim();
           };
 
-          const categories = Array.isArray(params.value) ? params.value : [params.value];
-          const filtered = categories
-            .map(extractMainCategory)
-            .filter(cat => allowedCategories.includes(cat));
+          const categories = Array.isArray(categoriesValue) ? categoriesValue : [categoriesValue];
+          const extracted = categories.map(extractMainCategory);
           
-          return [...new Set(filtered)].join(', ');
+          // Filter to only allowed categories and get first unique one
+          const filtered = extracted.filter(cat => allowedCategories.includes(cat));
+          return filtered.length > 0 ? filtered[0] : '';
         }
       },
       { 
@@ -566,15 +599,7 @@ class CourseLink extends Component {
           <h3 style={{ marginTop: '0', color: '#1976D2', fontSize: '16px' }}>📖 How to Use Course Links</h3>
           <ul style={{ marginLeft: '20px', color: '#333' }}>
             <li><strong>Access a Link:</strong> Double-click on the URL in the "Shortened URL" column to open it in a new window</li>
-            <li><strong>Copy a Link:</strong> Click once on the URL field to select it, then:
-              <ul>
-                <li>On <strong>Windows/Linux:</strong> Press <code style={{ backgroundColor: '#e0e0e0', padding: '2px 6px', borderRadius: '3px' }}>Ctrl + A</code> to select all, then <code style={{ backgroundColor: '#e0e0e0', padding: '2px 6px', borderRadius: '3px' }}>Ctrl + C</code> to copy</li>
-                <li>On <strong>Mac:</strong> Press <code style={{ backgroundColor: '#e0e0e0', padding: '2px 6px', borderRadius: '3px' }}>Cmd + A</code> to select all, then <code style={{ backgroundColor: '#e0e0e0', padding: '2px 6px', borderRadius: '3px' }}>Cmd + C</code> to copy</li>
-              </ul>
-            </li>
-            <li><strong>Filter by Category:</strong> Use the "Category" filter to view courses by event type (ILP, NSA, Marriage Preparation Programme, Talks And Seminar)</li>
-            <li><strong>Filter by Location:</strong> Use the "Location" filter to view courses at your specific centre</li>
-            <li><strong>Search Courses:</strong> Use the search box to find specific course names</li>
+            <li><strong>Copy a Link:</strong> Need to drag on the URL in the "Shortened URL" column and use Ctrl+C (Cmd+C on Mac) to copy it </li>
           </ul>
         </div>
         
