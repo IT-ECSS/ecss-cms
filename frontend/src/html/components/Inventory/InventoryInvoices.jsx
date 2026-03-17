@@ -24,6 +24,7 @@ class InventoryInvoices extends Component {
             folders: [],
             activeFolder: null,
             files: [],
+            subfolders: [],
             isLoadingFolders: true,
             isLoading: false,
             error: null,
@@ -78,9 +79,11 @@ class InventoryInvoices extends Component {
                 purpose: 'listFiles'
             });
 
+            console.log('Fetch folders response:', response.data);
+
             if (response.data.success) {
-                let allItems = response.data.files || [];
-                let folders = allItems.filter(f => f.mimeType === 'application/vnd.google-apps.folder');
+                // New API returns separate files and folders arrays
+                let folders = response.data.folders || [];
 
                 const isRestricted = restrictedRoles.includes(this.props.role);
                 if (isRestricted) {
@@ -120,37 +123,44 @@ class InventoryInvoices extends Component {
 
     fetchFilesForFolder = async (folderId) => {
         try {
-            this.setState({ isLoading: true, error: null, files: [], selectedIds: new Set(), searchQuery: '' });
+            this.setState({ isLoading: true, error: null, files: [], subfolders: [], selectedIds: new Set(), searchQuery: '' });
             const response = await axios.post(`${this.getBackendUrl()}/googleDrive`, {
                 folderId: folderId,
                 purpose: 'listFiles'
             });
 
-            if (response.data.success) {
-                const files = (response.data.files || [])
-                    .filter(f => f.mimeType !== 'application/vnd.google-apps.folder')
-                    .map((file, index) => ({
-                    ...file,
-                    sn: index + 1,
-                    formattedDate: file.createdTime 
-                        ? new Date(file.createdTime).toLocaleDateString('en-GB', {
-                            day: '2-digit', month: 'short', year: 'numeric'
-                        })
-                        : '',
-                    formattedTime: file.createdTime
-                        ? new Date(file.createdTime).toLocaleTimeString('en-GB', {
-                            hour: '2-digit', minute: '2-digit'
-                        })
-                        : '',
-                    formattedSize: file.size 
-                        ? this.formatFileSize(parseInt(file.size))
-                        : '—',
-                    sizeBytes: file.size ? parseInt(file.size) : 0
-                }));
-                this.setState({ files, isLoading: false });
-            } else {
+            console.log('Fetched files response:', response.data);
+
+            if (!response.data.success) {
                 this.setState({ error: response.data.error || 'Failed to fetch files', isLoading: false });
+                return;
             }
+
+            const filesList = response.data.files || [];
+            const subfoldersList = response.data.folders || [];
+            
+            console.log(`Files: ${filesList.length}, Subfolders: ${subfoldersList.length}`);
+
+            const files = filesList.map((file, index) => ({
+                ...file,
+                sn: index + 1,
+                formattedDate: file.createdTime 
+                    ? new Date(file.createdTime).toLocaleDateString('en-GB', {
+                        day: '2-digit', month: 'short', year: 'numeric'
+                    })
+                    : '',
+                formattedTime: file.createdTime
+                    ? new Date(file.createdTime).toLocaleTimeString('en-GB', {
+                        hour: '2-digit', minute: '2-digit'
+                    })
+                    : '',
+                formattedSize: file.size 
+                    ? this.formatFileSize(parseInt(file.size))
+                    : '—',
+                sizeBytes: file.size ? parseInt(file.size) : 0
+            }));
+            
+            this.setState({ files, subfolders: subfoldersList, isLoading: false });
         } catch (error) {
             console.error('Error fetching files:', error);
             this.setState({ error: error.message || 'An error occurred', isLoading: false });
@@ -161,6 +171,11 @@ class InventoryInvoices extends Component {
         if (folderId === this.state.activeFolder) return;
         this.setState({ activeFolder: folderId });
         await this.fetchFilesForFolder(folderId);
+    };
+
+    handleSubfolderClick = async (subfolderId) => {
+        this.setState({ activeFolder: subfolderId });
+        await this.fetchFilesForFolder(subfolderId);
     };
 
     formatFileSize = (bytes) => {
@@ -359,6 +374,67 @@ class InventoryInvoices extends Component {
         } finally {
             this.setState({ downloadingZip: false });
         }
+    };
+
+    // --- Subfolders ---
+    renderSubfolders = () => {
+        const { subfolders } = this.state;
+        
+        if (subfolders.length === 0) return null;
+        
+        return (
+            <div style={{ marginBottom: '24px' }}>
+                <h4 style={{ marginBottom: '12px', color: '#333', fontSize: '1rem', fontWeight: 600 }}>
+                    <i className="fas fa-folder" style={{ marginRight: '8px', color: '#2c7be5' }}></i>
+                    Subfolders
+                </h4>
+                <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+                    gap: '12px'
+                }}>
+                    {subfolders.map(folder => (
+                        <div
+                            key={folder.id}
+                            onClick={() => this.handleSubfolderClick(folder.id)}
+                            style={{
+                                padding: '16px',
+                                border: '1px solid #e0e0e0',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                textAlign: 'center',
+                                transition: 'all 0.2s ease',
+                                background: '#ffffff'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.background = '#f0f4ff';
+                                e.currentTarget.style.borderColor = '#2c7be5';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.background = '#ffffff';
+                                e.currentTarget.style.borderColor = '#e0e0e0';
+                            }}
+                        >
+                            <div style={{ fontSize: '24px', marginBottom: '8px' }}>
+                                <i className="fas fa-folder" style={{ color: '#2c7be5' }}></i>
+                            </div>
+                            <div style={{
+                                fontSize: '0.875rem',
+                                fontWeight: 600,
+                                color: '#333',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                title: folder.name
+                            }}>
+                                {folder.name}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                <hr style={{ margin: '20px 0', borderColor: '#e0e0e0' }} />
+            </div>
+        );
     };
 
     // --- Toolbar ---
@@ -702,6 +778,7 @@ class InventoryInvoices extends Component {
                         </div>
                     ) : (
                         <div className="gdrive-container">
+                            {this.renderSubfolders()}
                             {this.renderToolbar()}
                             {this.renderSelectionBar()}
                             <div className="gdrive-body">

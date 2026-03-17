@@ -109,6 +109,11 @@ import React, { Component } from 'react';
         fitnessSearchQuery: '',
         isCourseFlyersVisible: false,
         isCourseLinkVisible: false,
+        courseLinkLocation: 'All Locations',
+        courseLinkCategory: 'All Categories',
+        courseLinkSearchQuery: '',
+        courseLinkLocations: [],
+        courseLinkCategories: [],
         isFundraisingTableVisible: false,
         isFundraisingInventoryVisible: false,
         isInventoryModulesVisible: false,
@@ -2211,6 +2216,41 @@ import React, { Component } from 'react';
       });
     };
 
+    // Handler for course link search query from child components
+    handleCourseLinkSearchFromChild = (searchQuery) => {
+      console.log('Course link search query:', searchQuery);
+      this.setState({
+        courseLinkSearchQuery: searchQuery,
+        searchQuery: searchQuery
+      });
+    };
+
+    // Handler for course link filter selection (location, category)
+    handleCourseLinkSelectFromChild = (updateState, dropdown) => {
+      console.log("Selected Course Link Filter:", updateState, dropdown);
+      
+      if (dropdown === 'showLocationDropdown') {
+        this.setState({
+          courseLinkLocation: updateState.centreLocation || updateState.courseLinkLocation
+        });
+      } else if (dropdown === 'showCategoryDropdown') {
+        this.setState({
+          courseLinkCategory: updateState.category || updateState.courseLinkCategory
+        });
+      }
+    };
+
+    // Handler to receive course link filter options
+    handleCourseLinkFiltersLoaded = (locations, categories) => {
+      console.log("Received course link locations:", locations);
+      console.log("Received course link categories:", categories);
+      
+      this.setState({
+        courseLinkLocations: locations || ['All Locations'],
+        courseLinkCategories: categories || ['All Categories']
+      });
+    };
+
     // Handle navigation from WelcomeSection action cards
     handleWelcomeNavigate = (section) => {
       console.log("Welcome navigation to:", section);
@@ -2329,6 +2369,8 @@ import React, { Component } from 'react';
       const userName = this.props.location.state?.name || 'User';
       const role = this.props.location.state?.role;
       const siteIC = this.props.location.state?.siteIC;
+      const site = this.props.location.state?.site;
+      const siteArray = site ? site.split(',').map(s => s.trim()) : [];
       const {membershipType, membershipTypes, membershipSearchQuery, isMembershipVisible, isFitnessVisible, fitnessSearchQuery, isCourseFlyersVisible, isCourseLinkVisible, isFundraisingTableVisible, isFundraisingInventoryVisible, isInventoryModulesVisible, isInventoryFormVisible, isAuditLogsVisible, inventoryTab, fundraisingSearchQuery, fundraisingPaymentMethod, fundraisingCollectionLocation, fundraisingStatus, fundraisingPaymentMethods, fundraisingCollectionLocations, fundraisingStatuses, showCalendarModal, selectedOrderForCalendar, collectionSchedule, attendanceVisibility, reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo, selectedQuarter, quarters, attendanceFilterType, attendanceFilterCode, attendanceFilterLocation, attendanceSearchQuery, attendanceTypes, activityCodes, attendanceLocations, isSalesReportModalOpen, isPaymentReportModalOpen, isFiscalBalanceReportModalOpen, showItemsModal, selectedItems, selectedRowData, wooCommerceProductDetails, showReceiptModal, selectedReceipt, showInvoiceModal, invoiceModalData} = this.state;
 
       return (
@@ -2741,6 +2783,14 @@ import React, { Component } from 'react';
                     (
                     <>
                       <div className="search-section">
+                        <Search
+                          section="courselinks"
+                          language={language}
+                          courseLinkLocations={this.state.courseLinkLocations}
+                          courseLinkCategories={this.state.courseLinkCategories}
+                          passSelectedValueToParent={this.handleCourseLinkSelectFromChild}
+                          passSearchedValueToParent={this.handleCourseLinkSearchFromChild}
+                        />
                       </div>
                       <div className="course-link-section-container">
                         <CourseLink
@@ -2748,11 +2798,18 @@ import React, { Component } from 'react';
                           userName={userName}
                           role={role}
                           siteIC={siteIC}
+                          siteArray={siteArray}
                           closePopup1={this.closePopup}
                           language={language}
                           key={this.state.refreshKey}
                           refreshChild={this.refreshChild}
                           onDataLoaded={this.closePopup}
+                          onFiltersLoaded={this.handleCourseLinkFiltersLoaded}
+                          passSelectedValueToParent={this.handleCourseLinkSelectFromChild}
+                          passSearchedValueToParent={this.handleCourseLinkSearchFromChild}
+                          courseLinkSearchQuery={this.state.courseLinkSearchQuery}
+                          courseLinkLocation={this.state.courseLinkLocation}
+                          courseLinkCategory={this.state.courseLinkCategory}
                         />
                         <BulkDownloadProgress />
                       </div>

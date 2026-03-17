@@ -74,10 +74,16 @@ class SearchSection extends Component {
     // showCollectionModeDropdown: false,
     showCollectionLocationDropdown: false,
     showStatusDropdown: false,
+    // CourseLinks category filter states
+    category: '',
+    categories: ['All Categories'],
+    filteredCategories: ['All Categories'],
+    showCategoryDropdown: false,
   };
   this.locationDropdownRef = React.createRef();
   this.languageDropdownRef = React.createRef();
   this.accountTypeDropdownRef = React.createRef();
+  this.categoryDropdownRef = React.createRef();
   this.typeDropdownRef = React.createRef();
   this.courseDropdownRef = React.createRef();
   this.quarterDropdownRef = React.createRef();
@@ -112,6 +118,10 @@ handleChange = (event) => {
         ),
         centrelocation: value
       });
+      // Notify parent handler if it exists
+      if (this.props.section === 'courselinks' && this.props.passSelectedValueToParent) {
+        this.props.passSelectedValueToParent({ centreLocation: value }, 'showLocationDropdown');
+      }
     } else if (name === 'language') {
       this.setState({
         filteredLanguages: this.state.languages.filter(lang =>
@@ -161,6 +171,18 @@ handleChange = (event) => {
     else if (name === 'searchQuery') {
       console.log(name, value);
       this.props.passSearchedValueToParent(value);
+    }
+    else if (name === 'category') {
+      this.setState({
+        filteredCategories: this.state.categories.filter(cat =>
+          cat.toLowerCase().includes(value.toLowerCase())
+        ),
+        category: value
+      });
+      // Notify parent handler if it exists
+      if (this.props.section === 'courselinks' && this.props.passSelectedValueToParent) {
+        this.props.passSelectedValueToParent({ category: value }, 'showCategoryDropdown');
+      }
     }
     else if (name === 'attendanceType') {
       this.setState({
@@ -489,6 +511,13 @@ handleOptionSelect = (value, dropdown) => {
         showStatusDropdown: false
       };
     }
+    else if (dropdown === 'showCategoryDropdown') {
+      updatedState = {
+        category: value,
+        showCategoryDropdown: false,
+        showLocationDropdown: false
+      };
+    }
 
 
     this.setState(updatedState, () => {
@@ -612,20 +641,28 @@ handleClickOutside = (event) => {
       filteredActivityCodes: this.props.activityCodes || []
     });
     
+    // Initialize courselink locations and categories from props if available
+    if (this.props.section === 'courselinks') {
+      const locations = this.props.courseLinkLocations || ['All Locations'];
+      console.log("Course Link Locations in SearchSection:", locations);
+      const categories = this.props.courseLinkCategories || ['All Categories'];
+      this.setState({
+        filteredLocations: locations,
+        categories: categories,
+        filteredCategories: categories
+      });
+    }
+    
     // Initialize membership types if available
     if (this.props.membershipTypes) {
-      console.log('SearchSection componentDidMount: Initializing membership types:', this.props.membershipTypes);
       const membershipTypes = this.props.membershipTypes || ['All Types'];
-      if (!membershipTypes.includes('All Types')) {
-        membershipTypes.unshift('All Types');
-      }
-      
       this.setState({
         membershipTypes: membershipTypes,
         filteredMembershipTypes: membershipTypes
       });
     }
 
+    // Initialize fundraising filter options if available
     // Initialize fundraising filter options if available
     if (this.props.fundraisingPaymentMethods) {
       const paymentMethods = this.props.fundraisingPaymentMethods || ['All Payment Methods'];
@@ -862,6 +899,44 @@ handleClickOutside = (event) => {
       });
     }
 
+    // Check if categories from props have changed (for courselinks)
+    if (this.props.categories !== prevProps.categories) {
+      const categories = this.props.categories || ['All Categories'];
+      if (!categories.includes('All Categories')) {
+        categories.unshift('All Categories');
+      }
+      
+      this.setState({
+        categories: categories,
+        filteredCategories: categories
+      });
+    }
+
+    // Check if courselink locations from props have changed
+    if (this.props.courseLinkLocations !== prevProps.courseLinkLocations) {
+      const locations = this.props.courseLinkLocations || ['All Locations'];
+      if (!locations.includes('All Locations') && locations.length > 0) {
+        locations.unshift('All Locations');
+      }
+      
+      this.setState({
+        filteredLocations: locations
+      });
+    }
+
+    // Check if courselink categories from props have changed
+    if (this.props.courseLinkCategories !== prevProps.courseLinkCategories) {
+      const categories = this.props.courseLinkCategories || ['All Categories'];
+      if (!categories.includes('All Categories') && categories.length > 0) {
+        categories.unshift('All Categories');
+      }
+      
+      this.setState({
+        categories: categories,
+        filteredCategories: categories
+      });
+    }
+
     // Reset search input field when searchQuery changes to empty string
     if (prevProps.searchQuery !== this.props.searchQuery && this.props.searchQuery === '') {
       // Clear the input field
@@ -1051,6 +1126,90 @@ render()
               <i className="fas fa-angle-down ss-chevron-icon"></i>
             </div>
           </div>
+          <div className="ss-field-group">
+            <label htmlFor="searchQuery">{this.props.language === 'zh' ? '搜寻' : 'Search'}</label>
+            <div className="ss-search-wrap">
+              <input
+                type="text"
+                id="searchQuery"
+                name="searchQuery"
+                value={searchQuery}
+                onChange={this.handleChange}
+                placeholder={this.props.language === 'zh' ? '搜索' : 'Search'}
+                autoComplete="off"
+              />
+              <i className="fas fa-search ss-magnifier-icon"></i>
+            </div>
+          </div>
+        </>
+      )}
+
+      {section === "courselinks" && ( // Content for "courselinks"
+        <>
+          <div className="ss-field-group">
+            <label htmlFor="centreLocation">{this.props.language === 'zh' ? '中心位置' : 'Location'}</label>
+            <div
+              className={`ss-dropdown-wrap ${showLocationDropdown ? 'open' : ''}`}
+              ref={this.locationDropdownRef}
+            >
+              <input
+                type="text"
+                id="centreLocation"
+                name="centreLocation"
+                value={centreLocation}
+                onChange={this.handleChange}
+                onClick={() => this.handleDropdownToggle('showLocationDropdown')}
+                placeholder={this.props.language === 'zh' ? '按地点筛选' : 'Filter by location'}
+                autoComplete="off"
+              />
+              {showLocationDropdown && (
+                <ul className="ss-options-list">
+                  {filteredLocations.map((location, index) => (
+                    <li
+                      key={index}
+                      onClick={() => this.handleOptionSelect(location, 'showLocationDropdown')}
+                    >
+                      {location}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <i className="fas fa-angle-down ss-chevron-icon"></i>
+            </div>
+          </div>
+
+          <div className="ss-field-group">
+            <label htmlFor="category">{this.props.language === 'zh' ? '分类' : 'Category'}</label>
+            <div
+              className={`ss-dropdown-wrap ${this.state.showCategoryDropdown ? 'open' : ''}`}
+              ref={this.categoryDropdownRef}
+            >
+              <input
+                type="text"
+                id="category"
+                name="category"
+                value={this.state.category}
+                onChange={this.handleChange}
+                onClick={() => this.handleDropdownToggle('showCategoryDropdown')}
+                placeholder={this.props.language === 'zh' ? '按分类筛选' : 'Filter by category'}
+                autoComplete="off"
+              />
+              {this.state.showCategoryDropdown && (
+                <ul className="ss-options-list">
+                  {this.state.filteredCategories.map((cat, index) => (
+                    <li
+                      key={index}
+                      onClick={() => this.handleOptionSelect(cat, 'showCategoryDropdown')}
+                    >
+                      {cat}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <i className="fas fa-angle-down ss-chevron-icon"></i>
+            </div>
+          </div>
+
           <div className="ss-field-group">
             <label htmlFor="searchQuery">{this.props.language === 'zh' ? '搜寻' : 'Search'}</label>
             <div className="ss-search-wrap">

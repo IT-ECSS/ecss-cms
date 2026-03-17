@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { io } from 'socket.io-client';
-import EventSelection from './EventSelection';
 import StaffEntry from './StaffEntry';
 import ParticipantResults from './ParticipantResults';
 import '../../../css/fftTrainers.css';
@@ -11,14 +10,40 @@ const BACKEND_URL = window.location.hostname === 'localhost'
   : 'https://ecss-backend-node.azurewebsites.net';
 
 class ReviewParticipantsResult extends Component {
+  storageKey = 'reviewParticipantsState';
+
   constructor(props) {
     super(props);
+    
+    // Try to restore state from localStorage
+    let savedState = { event: null, entryNumber: null };
+    try {
+      const stored = localStorage.getItem(this.storageKey);
+      if (stored) {
+        savedState = JSON.parse(stored);
+      }
+    } catch (e) {
+      console.warn('Could not restore ReviewParticipantsResult state from localStorage');
+    }
+    
     this.state = {
-      event: props.initialEvent || null,
-      entryNumber: props.initialEntryNumber || null,
+      event: props.initialEvent || savedState.event,
+      entryNumber: props.initialEntryNumber || savedState.entryNumber,
       hasError: false,
       isLoading: false,
     };
+  }
+
+  componentDidUpdate() {
+    // Save state to localStorage whenever it changes
+    try {
+      localStorage.setItem(this.storageKey, JSON.stringify({
+        event: this.state.event,
+        entryNumber: this.state.entryNumber,
+      }));
+    } catch (e) {
+      console.warn('Could not save ReviewParticipantsResult state to localStorage');
+    }
   }
 
   notifyState = (event, entryNumber) => {

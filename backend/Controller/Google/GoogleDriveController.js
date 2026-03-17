@@ -76,32 +76,43 @@ class GoogleDriveController {
     async listFilesInFolder(folderId) {
         try {
             const drive = await this.initializeAuth();
-            //console.log(`\n📂 Recursively listing files in folder and subfolders: ${folderId}`);
-            const allFiles = [];
-            // Use the recursive helper to collect all files (not folders)
-            await this.collectFilesFromFolder(drive, folderId, '', allFiles);
-            // allFiles is an array of { id, path } objects; fetch metadata for each file
-            const filesWithMeta = [];
-            for (const fileObj of allFiles) {
-                try {
-                    const meta = await drive.files.get({
-                        fileId: fileObj.id,
-                        fields: 'id, name, webViewLink, createdTime, size, mimeType',
-                        supportsAllDrives: true
-                    });
-                    filesWithMeta.push(meta.data);
-                } catch (err) {
-                    console.warn('Failed to fetch metadata for file:', fileObj.id, err.message);
-                }
-            }
-            //console.log(`✓ Recursively found ${filesWithMeta.length} files in folder and subfolders.`);
+            
+            // Get folder metadata to display name
+            const folderMetadata = await drive.files.get({
+                fileId: folderId,
+                fields: 'id, name',
+                supportsAllDrives: true
+            });
+            const folderName = folderMetadata.data.name;
+            
+            // Get immediate children (files and folders) only
+            const query = await drive.files.list({
+                q: `'${folderId}' in parents and trashed=false`,
+                spaces: 'drive',
+                fields: 'files(id, name, mimeType, webViewLink, createdTime, size)',
+                supportsAllDrives: true,
+                includeItemsFromAllDrives: true,
+                pageSize: 100,
+                corpora: 'allDrives'
+            });
+
+            const items = query.data.files || [];
+            //console.log(`✓ Found ${items.length} items in folder "${folderName}" (${folderId})`);
+            
+            // Separate into folders and files
+            const folders = items.filter(f => f.mimeType === 'application/vnd.google-apps.folder');
+            const files = items.filter(f => f.mimeType !== 'application/vnd.google-apps.folder');
+
+            //console.log(`✓ Found ${folders.length} folders and ${files.length} files in folder.`);
             return {
                 success: true,
-                fileCount: filesWithMeta.length,
-                files: filesWithMeta
+                fileCount: files.length,
+                folderCount: folders.length,
+                files: files,
+                folders: folders
             };
         } catch (error) {
-            console.error('Error recursively listing files in folder:', error.message);
+            console.error('Error listing files in folder:', error.message);
             return { success: false, error: error.message };
         }
     }
@@ -202,7 +213,8 @@ class GoogleDriveController {
                 if (checkResult.exists) {
                     // It's a folder, collect files from it
                     console.log(`[BULK] Collecting files from folder: ${checkResult.folderName}`);
-                    await this.collectFilesFromFolder(drive, fileId, checkResult.folderName, allFiles);
+                    const folderFiles = await this.collectFilesFromFolder(drive, fileId, checkResult.folderName, []);
+                    allFiles.push(...folderFiles);
                 } else {
                     // It's a file, add it directly
                     try {
@@ -313,8 +325,7 @@ class GoogleDriveController {
 
             // Collect all files recursively
             const collectStartTime = Date.now();
-            const allFiles = [];
-            await this.collectFilesFromFolder(drive, folderId, '', allFiles);
+            const allFiles = await this.collectFilesFromFolder(drive, folderId, '', []);
             const collectTime = ((Date.now() - collectStartTime) / 1000).toFixed(2);
             
             //console.log(`[ZIP] Collected ${allFiles.length} files in ${collectTime}s`);
@@ -402,7 +413,7 @@ class GoogleDriveController {
             });
 
             if (!query.data.files || query.data.files.length === 0) {
-                return;
+                return filesList;
             }
 
             for (const file of query.data.files) {
@@ -410,13 +421,15 @@ class GoogleDriveController {
 
                 if (file.mimeType === 'application/vnd.google-apps.folder') {
                     // Recursively collect files from subfolder
-                    await this.collectFilesFromFolder(drive, file.id, currentPath, filesList);
+                    const subfolderFiles = await this.collectFilesFromFolder(drive, file.id, currentPath, []);
+                    filesList.push(...subfolderFiles);
                 } else {
                     // Add file to list
                     filesList.push({ id: file.id, path: currentPath });
                     //console.log(`Collected file: ${currentPath}`);
                 }
             }
+            return filesList;
         } catch (error) {
             console.error('Error collecting files from folder:', error.message);
             throw error;

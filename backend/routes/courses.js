@@ -19,7 +19,7 @@ router.post('/', async function(req, res, next)
                 if (!courseType) {
                     return res.status(400).json({
                         success: false,
-                        message: "Course type is required (nsa) or folderId must be provided",
+                        message: "Course type is required (nsa, ilp, scc) or folderId must be provided",
                         files: null
                     });
                 }
@@ -28,6 +28,7 @@ router.post('/', async function(req, res, next)
                 const folderIds = {
                     nsa: '1UDrCWRxg3eB2fDfO393uUWLf_RuRekcJ', // NSA folder ID
                     ilp: '1VxH93qn-pFNyXaxkcKq0Bi1Nu3tQ_IQN', // ILP folder ID
+                    scc: '1c91MT-FEbEvCJrH-XlmBE2-cYGPXfFwx', // SCC folder ID
                 };
 
                 targetFolderId = folderIds[courseType.toLowerCase()];
@@ -35,29 +36,39 @@ router.post('/', async function(req, res, next)
                 if (!targetFolderId) {
                     return res.status(400).json({
                         success: false,
-                        message: `Course type '${courseType}' is not supported. Only 'nsa' and 'ilp' are available.`,
+                        message: `Course type '${courseType}' is not supported. Only 'nsa', 'ilp', and 'scc' are available.`,
                         files: null
                     });
                 }
             }
 
             const googleDriveController = new GoogleDriveController();
+            console.log(`📂 Requesting files/folders for courseType: '${courseType}', targetFolderId: '${targetFolderId}'`);
+            console.log(`⏳ Calling listFilesInFolder with folderId: ${targetFolderId}...`);
             const result = await googleDriveController.listFilesInFolder(targetFolderId);
+            console.log(`📋 API Result:`, JSON.stringify(result, null, 2));
 
             if (!result.success) {
+                const courseTypeDisplay = courseType ? courseType.toUpperCase() : 'BROWSING';
+                console.error(`❌ Error fetching from folder ${targetFolderId}:`, result.error);
                 return res.status(500).json({
                     success: false,
-                    message: result.error,
+                    message: `Failed to retrieve files from ${courseTypeDisplay} folder: ${result.error}`,
                     files: null
                 });
             }
 
+            const courseTypeDisplay = courseType ? courseType.toUpperCase() : 'BROWSING';
+            console.log(`✅ Successfully retrieved ${result.folderCount || 0} folders and ${result.fileCount || 0} files for ${courseTypeDisplay}`);
+
             return res.json({
                 success: true,
-                message: `Successfully retrieved ${result.fileCount} items`,
+                message: `Successfully retrieved ${result.fileCount} files and ${result.folderCount || 0} folders`,
                 courseType: courseType ? courseType.toUpperCase() : 'BROWSING',
                 fileCount: result.fileCount,
-                files: result.files || []
+                folderCount: result.folderCount || 0,
+                files: result.files || [],
+                folders: result.folders || []
             });
         }
         

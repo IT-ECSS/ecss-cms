@@ -25,7 +25,15 @@ class CourseFlyers extends Component {
       bulkDownloadItemsProcessed: 0, // Items processed
       bulkDownloadTotalItems: 0, // Total items
       bulkDownloadError: null, // Error message
+      apiError: null, // Track API errors for display
+      showCourseTypeDropdown: false, // Show/hide course type dropdown
+      locationInput: '', // Location combobox input
+      locationOptions: [], // Available locations
+      filteredLocationOptions: [], // Filtered location options
+      showLocationDropdown: false, // Show/hide location dropdown
     };
+    this.courseTypeDropdownRef = React.createRef();
+    this.locationDropdownRef = React.createRef();
   }
 
   componentDidMount() {
@@ -36,11 +44,16 @@ class CourseFlyers extends Component {
     // Fetch flyers for default tab (NSA)
     this.fetchFlyers('nsa');
     
+    // Add click outside listener
+    document.addEventListener('mousedown', this.handleClickOutside);
+    
     // Leave-site popup disabled
     // window.addEventListener('beforeunload', this.handleBeforeUnload);
   }
 
   componentWillUnmount() {
+    // Remove click outside listener
+    document.removeEventListener('mousedown', this.handleClickOutside);
     // Remove beforeunload listener
     // window.removeEventListener('beforeunload', this.handleBeforeUnload);
   }
@@ -55,44 +68,77 @@ class CourseFlyers extends Component {
   }
 
   fetchFlyers = async (courseType, folderId = null) => {
-    this.setState({ loading: true });
+    this.setState({ loading: true, apiError: null });
     try {
       const backendUrl = window.location.hostname === "localhost" 
         ? "http://localhost:3001" 
         : "https://ecss-backend-node.azurewebsites.net";
       
       const payload = {
-        purpose: 'getFlyers'
+        purpose: 'getFlyers',
+        courseType: courseType
       };
 
-      // If navigating into a subfolder, use only the folderId
+      // If navigating into a subfolder, also include the folderId
       if (folderId) {
         payload.folderId = folderId;
-      } else {
-        // Otherwise use courseType for root folder
-        payload.courseType = courseType;
       }
 
       console.log('Sending payload:', payload);
       const response = await axios.post(`${backendUrl}/courses`, payload);
 
       if (response.data.success) {
+        // Combine folders and files into a single array
+        const folders = response.data.folders || [];
+        const files = response.data.files || [];
+        const combinedFlyers = [...folders, ...files];
+        
+        console.log(`Fetched ${folders.length} folders and ${files.length} files`);
+        console.log('Folders:', folders);
+        console.log('Files:', files);
+        
+        // Extract unique locations from folder/file names
+        const locationSet = new Set();
+        combinedFlyers.forEach(item => {
+          // Extract location from item name if it contains location indicators
+          const name = (item.name || '').toLowerCase();
+          if (name.includes('tampines')) locationSet.add('Tampines');
+          if (name.includes('pasir ris')) locationSet.add('Pasir Ris');
+          if (name.includes('ct hub')) locationSet.add('CT Hub');
+          if (name.includes('online')) locationSet.add('Online');
+        });
+        
+        const locationOptions = Array.from(locationSet).sort();
+        
         this.setState({
-          flyers: response.data.files || [],
-          loading: false
+          flyers: combinedFlyers,
+          loading: false,
+          apiError: null,
+          locationOptions: locationOptions,
+          filteredLocationOptions: locationOptions
         });
       } else {
-        console.error('Error fetching flyers:', response.data.message);
-        this.setState({ loading: false });
+        const errorMsg = response.data.message || `Failed to load files for ${courseType}`;
+        console.error('Error fetching flyers:', errorMsg);
+        this.setState({ 
+          loading: false,
+          apiError: errorMsg,
+          flyers: []
+        });
       }
     } catch (error) {
+      const errorMsg = error.response?.data?.message || error.message || 'Failed to load course materials';
       console.error('Error fetching flyers:', error);
-      this.setState({ loading: false });
+      this.setState({ 
+        loading: false,
+        apiError: errorMsg,
+        flyers: []
+      });
     }
   }
 
   handleTabChange = (tab) => {
-    this.setState({ activeTab: tab, currentFolderId: null, breadcrumb: [], flyers: [], selectedFiles: new Set(), promptShown: false });
+    this.setState({ activeTab: tab, currentFolderId: null, breadcrumb: [], flyers: [], selectedFiles: new Set(), promptShown: false, apiError: null });
     this.fetchFlyers(tab);
   }
 
@@ -280,8 +326,76 @@ class CourseFlyers extends Component {
     this.fetchFlyers(activeTab, targetFolderId);
   }
 
+  handleSearchChange = (event) => {
+    this.setState({ searchQuery: event.target.value });
+  }
+
+  handleDropdownToggle = () => {
+    this.setState(prevState => ({
+      showCourseTypeDropdown: !prevState.showCourseTypeDropdown
+    }));
+  }
+
+  handleClickOutside = (event) => {
+    if (
+      this.courseTypeDropdownRef.current &&
+      !this.courseTypeDropdownRef.current.contains(event.target)
+    ) {
+      this.setState({ showCourseTypeDropdown: false });
+    }
+    if (
+      this.locationDropdownRef.current &&
+      !this.locationDropdownRef.current.contains(event.target)
+    ) {
+      this.setState({ showLocationDropdown: false });
+    }
+  }
+
+  handleClearFilters = () => {
+    this.setState({
+      searchQuery: '',
+      activeTab: 'nsa',
+      currentFolderId: null,
+      breadcrumb: [],
+      selectedFiles: new Set(),
+      showCourseTypeDropdown: false,
+      locationInput: '',
+      filteredLocationOptions: this.state.locationOptions,
+      showLocationDropdown: false
+    }, () => {
+      this.fetchFlyers('nsa');
+    });
+  }
+
+  handleLocationInputChange = (event) => {
+    const input = event.target.value;
+    const filtered = this.state.locationOptions.filter(loc =>
+      loc.toLowerCase().includes(input.toLowerCase())
+    );
+    this.setState({
+      locationInput: input,
+      filteredLocationOptions: filtered,
+      showLocationDropdown: true
+    });
+  }
+
+  handleLocationSelect = (location) => {
+    this.setState({
+      locationInput: location,
+      showLocationDropdown: false,
+      filteredLocationOptions: this.state.locationOptions
+    });
+  }
+
+  handleLocationDropdownToggle = () => {
+    this.setState(prevState => ({
+      showLocationDropdown: !prevState.showLocationDropdown,
+      filteredLocationOptions: !prevState.showLocationDropdown ? this.state.locationOptions : []
+    }));
+  }
+
   render() {
-    const { activeTab, flyers, loading, breadcrumb, selectedFiles } = this.state;
+    const { activeTab, flyers, loading, breadcrumb, selectedFiles, apiError, searchQuery, showCourseTypeDropdown, locationInput, showLocationDropdown, filteredLocationOptions } = this.state;
 
     return (
       <div className="course-flyers-section">
@@ -290,13 +404,232 @@ class CourseFlyers extends Component {
           <p className="flyers-subtitle">Browse and download available course materials and information</p>
         </div>
 
-        <button 
-          className="bulk-download-btn" 
-          onClick={this.handleBulkDownload}
-          disabled={selectedFiles.size <= 0}
-        >
-          Download
-        </button>
+        {/* Filter Section */}
+        <div style={{
+          width: '100%',
+          padding: '20px',
+          backgroundColor: '#f8f9fa',
+          borderRadius: '4px',
+          marginBottom: '20px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-end',
+          gap: '20px',
+          flexWrap: 'wrap',
+          boxSizing: 'border-box'
+        }}>
+          {/* Left Section - Location, Category, Search (flex: 3) */}
+          <div style={{
+            display: 'flex',
+            gap: '15px',
+            alignItems: 'flex-end',
+            flex: 3,
+            minWidth: '500px',
+            flexWrap: 'wrap'
+          }}>
+            {/* Location Combobox */}
+            <div ref={this.locationDropdownRef} style={{ flex: 1, minWidth: '150px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>
+                Location
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  placeholder="Filter by location..."
+                  value={locationInput}
+                  onChange={this.handleLocationInputChange}
+                  onFocus={() => this.setState({ showLocationDropdown: true })}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    backgroundColor: 'white',
+                    fontSize: '14px',
+                    color: '#000'
+                  }}
+                />
+                {showLocationDropdown && filteredLocationOptions.length > 0 && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    backgroundColor: 'white',
+                    border: '1px solid #ddd',
+                    borderTop: 'none',
+                    borderRadius: '0 0 4px 4px',
+                    marginTop: '0px',
+                    zIndex: 1000,
+                    maxHeight: '250px',
+                    overflowY: 'auto',
+                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                  }}>
+                    {filteredLocationOptions.map(location => (
+                      <div
+                        key={location}
+                        onClick={() => this.handleLocationSelect(location)}
+                        style={{
+                          padding: '10px 12px',
+                          cursor: 'pointer',
+                          backgroundColor: locationInput === location ? '#e7f3ff' : 'white',
+                          borderBottom: '1px solid #f0f0f0',
+                          fontSize: '14px',
+                          color: '#000'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#f5f5f5';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = locationInput === location ? '#e7f3ff' : 'white';
+                        }}
+                      >
+                        {location}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Category - Placeholder for future use */}
+            <div style={{ flex: 1, minWidth: '150px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>
+                Category
+              </label>
+              <input
+                type="text"
+                placeholder="Filter by category..."
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  backgroundColor: 'white',
+                  fontSize: '14px',
+                  color: '#000'
+                }}
+              />
+            </div>
+
+            {/* Search Input */}
+            <div style={{ flex: 1, minWidth: '150px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>
+                Search
+              </label>
+              <div style={{ position: 'relative', display: 'flex' }}>
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={this.handleSearchChange}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px 0 0 4px',
+                    fontSize: '14px'
+                  }}
+                />
+                <button style={{
+                  padding: '8px 12px',
+                  backgroundColor: 'white',
+                  border: '1px solid #ddd',
+                  borderLeft: 'none',
+                  borderRadius: '0 4px 4px 0',
+                  cursor: 'pointer',
+                  fontSize: '16px'
+                }}>
+                  🔍
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Section - Course Type (flex: 1) */}
+          <div style={{
+            display: 'flex',
+            gap: '10px',
+            alignItems: 'flex-end',
+            flex: 1,
+            minWidth: '180px'
+          }}>
+            {/* Course Type Dropdown */}
+            <div ref={this.courseTypeDropdownRef} style={{ width: '100%' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>
+                Course Type
+              </label>
+              <div style={{ position: 'relative' }}>
+                <button
+                  onClick={this.handleDropdownToggle}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    backgroundColor: 'white',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    fontSize: '14px'
+                  }}
+                >
+                  {activeTab.toUpperCase()} ▾
+                </button>
+                {showCourseTypeDropdown && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    backgroundColor: 'white',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    marginTop: '4px',
+                    zIndex: 1000
+                  }}>
+                    {['NSA', 'ILP', 'SCC'].map(type => (
+                      <div
+                        key={type}
+                        onClick={() => {
+                          this.handleTabChange(type.toLowerCase());
+                          this.setState({ showCourseTypeDropdown: false });
+                        }}
+                        style={{
+                          padding: '10px 12px',
+                          cursor: 'pointer',
+                          backgroundColor: activeTab === type.toLowerCase() ? '#e7f3ff' : 'white',
+                          borderBottom: '1px solid #f0f0f0',
+                          fontSize: '14px'
+                        }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f5'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = activeTab === type.toLowerCase() ? '#e7f3ff' : 'white'}
+                      >
+                        {type}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Clear Filters Button */}
+            <button
+              onClick={this.handleClearFilters}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: 'white',
+                border: '2px solid #20c997',
+                borderRadius: '4px',
+                color: '#20c997',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                fontSize: '14px'
+              }}
+            >
+              Clear Filters
+            </button>
+          </div>
+        </div>
 
         {/* Tab Navigation */}
         <div className="flyers-tabs">
@@ -311,6 +644,47 @@ class CourseFlyers extends Component {
             onClick={() => this.handleTabChange('ilp')}
           >
             ILP
+          </button>
+          <button
+            className={`flyers-tab ${activeTab === 'scc' ? 'active' : ''}`}
+            onClick={() => this.handleTabChange('scc')}
+          >
+            SCC
+          </button>
+        </div>
+
+        {/* Download Button */}
+        <div style={{ marginBottom: '15px', display: 'flex', gap: '15px', alignItems: 'center' }}>
+          <button 
+            className="bulk-download-btn" 
+            onClick={this.handleBulkDownload}
+            disabled={selectedFiles.size <= 0}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: selectedFiles.size <= 0 ? '#ccc' : '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: selectedFiles.size <= 0 ? 'not-allowed' : 'pointer',
+              fontWeight: 'bold'
+            }}
+          >
+            Download {selectedFiles.size > 0 && `(${selectedFiles.size})`}
+          </button>
+
+          <button 
+            onClick={this.exportToExcel}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: 'transparent',
+              color: '#20c997',
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '14px'
+            }}
+          >
+            Archive Data
           </button>
         </div>
 
@@ -348,6 +722,32 @@ class CourseFlyers extends Component {
               <div className="loading-spinner"></div>
               <p>Loading flyers...</p>
             </div>
+          ) : apiError ? (
+            <div className="error-state" style={{
+              padding: '20px',
+              margin: '20px',
+              backgroundColor: '#fee',
+              border: '1px solid #fcc',
+              borderRadius: '4px',
+              color: '#c33'
+            }}>
+              <p><strong>Error loading materials:</strong></p>
+              <p>{apiError}</p>
+              <button 
+                onClick={() => this.handleTabChange(activeTab)}
+                style={{
+                  marginTop: '10px',
+                  padding: '8px 16px',
+                  backgroundColor: '#c33',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Retry
+              </button>
+            </div>
           ) : flyers && flyers.length > 0 ? (
             <>
               <div className="flyers-grid">
@@ -369,6 +769,11 @@ class CourseFlyers extends Component {
                     key={file.id} 
                     className={`flyer-card ${isFolder ? 'folder-card' : 'file-card'}`}
                     onClick={isFolder ? () => this.handleFolderClick(file) : () => this.handleFileClick(file)}
+                    style={{
+                      cursor: 'pointer',
+                      opacity: 1,
+                      transition: 'all 0.2s ease'
+                    }}
                   >
                     <input 
                       type="checkbox"
@@ -377,21 +782,14 @@ class CourseFlyers extends Component {
                       onChange={(e) => this.handleFileSelect(file.id, e, isFolder)}
                       onClick={(e) => e.stopPropagation()}
                     />
-                    {previewUrl ? (
-                      <div className="flyer-card-header">
-                        <div className="flyer-icon-name">
-                          <div className="flyer-icon">📄</div>
-                          <h3 className="flyer-name">{file.name}</h3>
+                    <div className="flyer-card-header">
+                      <div className="flyer-icon-name">
+                        <div className="flyer-icon" style={{ fontSize: '2.5rem' }}>
+                          {isFolder ? '📁' : isPdf ? '📄' : isImage ? '🖼️' : '📋'}
                         </div>
+                        <h3 className="flyer-name">{file.name}</h3>
                       </div>
-                    ) : (
-                      <div className="flyer-card-header">
-                        <div className="flyer-icon-name">
-                          <div className="flyer-icon">{isFolder ? '📁' : isPdf ? '📄' : '📄'}</div>
-                          <h3 className="flyer-name">{file.name}</h3>
-                        </div>
-                      </div>
-                    )}
+                    </div>
                   </div>
                   );
                 })}
@@ -399,7 +797,7 @@ class CourseFlyers extends Component {
             </>
           ) : (
             <div className="no-data-state">
-              <p>No flyers available for this course type.</p>
+              <p>No files or folders available for this course type. Please select a different tab or try again.</p>
             </div>
           )}
         </div>

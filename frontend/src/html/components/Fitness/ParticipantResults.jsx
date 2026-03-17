@@ -59,7 +59,7 @@ class ParticipantResults extends Component {
       if (res.data.success) {
         const data = res.data.data;
         if (!data.Name && !data['Chinese Name']) {
-          const errorMsg = `Participant #${entryNumber} cannot be found.`;
+          const errorMsg = `Participant ${entryNumber} cannot be found.`;
           this.setState({ loading: false, error: errorMsg });
           this.props.onLoading && this.props.onLoading(false);
           this.props.onError && this.props.onError(true);
@@ -69,7 +69,7 @@ class ParticipantResults extends Component {
           this.props.onError && this.props.onError(false);
         }
       } else {
-        const errorMsg = `Participant #${entryNumber} cannot be found.`;
+        const errorMsg = `Participant ${entryNumber} cannot be found.`;
         this.setState({ loading: false, error: errorMsg });
         this.props.onLoading && this.props.onLoading(false);
         this.props.onError && this.props.onError(true);
