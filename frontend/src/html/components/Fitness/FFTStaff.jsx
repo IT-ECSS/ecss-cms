@@ -9,39 +9,65 @@ import '../../../css/fftStaff.css';
 // FFTStaff
 // ─────────────────────────────────────────────
 class FFTStaff extends Component {
+  storageKey = 'fftStaffState';
+
   constructor(props) {
     super(props);
+    
+    // Try to restore state from localStorage
+    let savedState = { event: null, section: 'selectEvent' };
+    try {
+      const stored = localStorage.getItem(this.storageKey);
+      if (stored) {
+        savedState = JSON.parse(stored);
+      }
+    } catch (e) {
+      console.warn('Could not restore FFTStaff state from localStorage');
+    }
+    
     this.state = {
-      event: props.initialEvent || null,
-      section: props.initialEvent ? 'staffUses' : 'selectEvent', // Track which section to show
+      event: props.initialEvent || savedState.event,
+      section: props.initialEvent ? 'staffUses' : (savedState.section || 'selectEvent'),
     };
     this.bulkUploadRef = React.createRef();
+    this.staffUsesRef = React.createRef();
+  }
+
+  componentDidUpdate() {
+    // Save state to localStorage whenever it changes
+    try {
+      localStorage.setItem(this.storageKey, JSON.stringify({
+        event: this.state.event,
+        section: this.state.section,
+      }));
+    } catch (e) {
+      console.warn('Could not save FFTStaff state to localStorage');
+    }
   }
 
   handleBack = () => {
     const { section } = this.state;
-    const bulkUpload = this.bulkUploadRef.current;
     
-    if (section === 'staffUses' && bulkUpload) {
-      const { reviewing, uploading, results } = bulkUpload.state;
+    // If in Staff Uses section, handle navigation within Staff Uses first
+    if (section === 'staffUses' && this.staffUsesRef.current) {
+      const staffUses = this.staffUsesRef.current;
+      const currentView = staffUses.state.view;
       
-      // If showing results modal, hide it and go back to upload section
-      if (results && results.status === 'completed') {
-        bulkUpload.setState({ results: null, files: [], reviewing: false, uploading: false });
+      // If in a sub-section (bulkUpload or reviewResults), go back to Staff Uses home
+      if (currentView === 'bulkUpload' || currentView === 'reviewResults') {
+        staffUses.setState({ view: null });
         return;
       }
       
-      // If reviewing/validating, go back to file selection
-      if (reviewing || uploading) {
-        bulkUpload.handleClear();
+      // If at Staff Uses home (view: null), go back to event selection
+      if (currentView === null) {
+        this.setState({ section: 'selectEvent', event: null });
         return;
       }
-      
-      // If on upload section with no files, go back to event selection
-      bulkUpload.handleClear();
-      this.setState({ section: 'selectEvent', event: null });
-    } else {
-      // On event selection, go to parent
+    }
+    
+    // If in event selection, go to parent
+    if (section === 'selectEvent') {
       this.props.onBack && this.props.onBack();
     }
   };
@@ -94,6 +120,7 @@ class FFTStaff extends Component {
 
             {section === 'staffUses' && (
               <StaffUses
+                ref={this.staffUsesRef}
                 event={event}
                 initialEntryNumber={this.props.initialEntryNumber}
                 bulkUploadRef={this.bulkUploadRef}
