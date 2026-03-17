@@ -1,0 +1,75 @@
+/* Upload Result Modal Styles */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 40px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+
+.modal-icon {
+  font-size: 3rem;
+  color: #16a34a;
+  margin-bottom: 20px;
+}
+
+.modal-icon.error {
+  font-size: 4rem;
+  color: #dc2626;
+}
+
+.modal-icon.success {
+  font-size: 4rem;
+}
+
+.modal-title {
+  font-size: 1.5rem;
+  margin: 20px 0;
+}
+
+.modal-title.success {
+  color: #16a34a;
+}
+
+.modal-title.error {
+  color: #dc2626;
+}
+
+.modal-description {
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.modal-description.large {
+  margin-bottom: 30px;
+}
+
+.modal-stats {
+  margin-bottom: 20px;
+}
+
+.modal-stats p {
+  font-size: 1rem;
+  color: #999;
+  margin: 0;
+}
+
+.modal-button {
+  width: 100%;
+}

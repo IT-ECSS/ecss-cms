@@ -26,7 +26,6 @@ var attendanceRouter = require('./routes/attendance');
 var membershipRouter = require('./routes/membership');
 var jwksRouter = require('./routes/jwks');
 var whatsappRouter = require('./routes/whatsapp');
-var fitnessRouter = require('./routes/fitness');
 var fundraisingRouter = require('./routes/fundraising');
 var googleDriveRouter = require('./routes/googleDrive');
 var inventoryRouter = require('./routes/inventory');
@@ -89,11 +88,11 @@ app.use("/courses", coursesRouter);
 app.use("/attendance", attendanceRouter);
 app.use("/membership", membershipRouter);
 app.use("/whatsapp", whatsappRouter);
-app.use("/fitness", fitnessRouter);
 app.use("/fundraising", fundraisingRouter);
 app.use("/googleDrive", googleDriveRouter);
 app.use("/inventory", inventoryRouter);
 app.use("/logs", LogsRouter);
+
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

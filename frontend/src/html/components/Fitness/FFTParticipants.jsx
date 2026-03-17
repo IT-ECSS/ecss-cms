@@ -181,6 +181,14 @@ class FFTParticipants extends Component {
 
   handleFormSubmit = async (data) => {
     this.setState({ showResultModal: false, submitError: null, entryNumber: null });
+    
+    // For pre-registered participants, skip backend submission
+    if (data.entryMethod === 'participantNumber' && data.participantNumber) {
+      console.log('[FFT] Pre-registered participant - skipping backend submission');
+      this.setState({ showResultModal: false, showEntryNumber: true, entryNumber: data.participantNumber });
+      return;
+    }
+
     try {
       const { event } = this.state;
       const eventName = event?.name || '';
@@ -190,6 +198,8 @@ class FFTParticipants extends Component {
         eventName,
         eventFileId,
         participantData: data,
+        entryMethod: data.entryMethod,
+        participantNumber: data.participantNumber,
       });
       if (response.data.success) {
         this.setState({ showResultModal: false, showEntryNumber: true, entryNumber: response.data.entryNumber });

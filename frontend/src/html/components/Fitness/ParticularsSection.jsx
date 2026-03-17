@@ -343,7 +343,7 @@ class ParticularsSection extends Component {
 
   render() {
     const { formData, errors } = this.state;
-    const { language, onBack, onHome, singpassLocked = false } = this.props;
+    const { language, onBack, onHome, singpassLocked = false, participantNumberLocked = false } = this.props;
     const lockedStyle = { backgroundColor: '#f3f4f6', color: '#6b7280', cursor: 'not-allowed' };
 
     return (
@@ -374,6 +374,7 @@ class ParticularsSection extends Component {
                 placeholder={this.getTrans('placeholderName')}
                 className="fft-create-event-input"
                 disabled={singpassLocked}
+                readOnly={participantNumberLocked}
                 style={singpassLocked ? lockedStyle : {}}
               />
               {errors.name && (
@@ -398,6 +399,7 @@ class ParticularsSection extends Component {
                   placeholder="e.g. 31/01/1965"
                   className="fft-create-event-input"
                   disabled={singpassLocked}
+                  readOnly={participantNumberLocked}
                   style={singpassLocked ? lockedStyle : {}}
                 />
                 {errors.dateOfBirth && (
@@ -414,7 +416,7 @@ class ParticularsSection extends Component {
                 <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
                   <button
                     type="button"
-                    onClick={() => !singpassLocked && this.handleGenderChange('M')}
+                    onClick={() => !singpassLocked && !participantNumberLocked && this.handleGenderChange('M')}
                     disabled={singpassLocked}
                     style={{
                       width: '56px',
@@ -426,7 +428,8 @@ class ParticularsSection extends Component {
                       color: formData.gender === 'M' ? '#1565c0' : '#333',
                       fontSize: '20px',
                       fontWeight: formData.gender === 'M' ? '700' : '600',
-                      cursor: singpassLocked ? 'not-allowed' : 'pointer',
+                      cursor: singpassLocked ? 'not-allowed' : participantNumberLocked ? 'default' : 'pointer',
+                      opacity: participantNumberLocked ? 0.7 : 1,
                       transition: 'all 0.2s ease'
                     }}
                   >
@@ -434,7 +437,7 @@ class ParticularsSection extends Component {
                   </button>
                   <button
                     type="button"
-                    onClick={() => !singpassLocked && this.handleGenderChange('F')}
+                    onClick={() => !singpassLocked && !participantNumberLocked && this.handleGenderChange('F')}
                     disabled={singpassLocked}
                     style={{
                       width: '56px',
@@ -446,7 +449,8 @@ class ParticularsSection extends Component {
                       color: formData.gender === 'F' ? '#e91e8c' : '#333',
                       fontSize: '20px',
                       fontWeight: formData.gender === 'F' ? '700' : '600',
-                      cursor: singpassLocked ? 'not-allowed' : 'pointer',
+                      cursor: singpassLocked ? 'not-allowed' : participantNumberLocked ? 'default' : 'pointer',
+                      opacity: participantNumberLocked ? 0.7 : 1,
                       transition: 'all 0.2s ease'
                     }}
                   >
@@ -485,6 +489,7 @@ class ParticularsSection extends Component {
                   onChange={this.handlePhoneChange}
                   placeholder={this.getTrans('placeholderPhone')}
                   className="fft-create-event-input"
+                  readOnly={participantNumberLocked}
                 />
                 {errors.phone && (
                   <div className="fft-create-event-error" style={{ marginTop: '8px', marginBottom: '0', whiteSpace: 'nowrap' }}>

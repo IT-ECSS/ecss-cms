@@ -3,7 +3,7 @@ import '../../../css/fftParticipants.css';
 import SingPassButton from '../sub/SingPassButton';
 import fftTranslations from './fftTranslations';
 
-const ParticipantEntryMethod = ({ language, onUseSingpass, onUseManual, onBack, onHome }) => {
+const ParticipantEntryMethod = ({ language, onUseSingpass, onUseManual, onUseParticipantNumber, onBack, onHome }) => {
   const title = fftTranslations.registrationFormTitle[language] || fftTranslations.registrationFormTitle.en;
   const description = fftTranslations.registrationFormDescription[language] || fftTranslations.registrationFormDescription.en;
   const manual = fftTranslations.registrationFormManual[language] || fftTranslations.registrationFormManual.en;
@@ -29,6 +29,18 @@ const ParticipantEntryMethod = ({ language, onUseSingpass, onUseManual, onBack, 
           onClick={onUseManual}
         >
           {manual}
+        </button>
+        <button
+          type="button"
+          className="fft-participants-next-button"
+          onClick={onUseParticipantNumber}
+          style={{
+            backgroundColor: '#4CAF50',
+            color: '#fff',
+            border: 'none'
+          }}
+        >
+          Enter Participant Number
         </button>
       </div>
     </div>

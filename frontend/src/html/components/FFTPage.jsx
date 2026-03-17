@@ -6,7 +6,7 @@ import FFTHome from './Fitness/FFTHome';
 import FFTParticipants from './Fitness/FFTParticipants';
 import FFTVolunteers from './Fitness/FFTVolunteers';
 import FFTAdmin from './Fitness/FFTAdmin';
-import FFTTrainers from './Fitness/FFTTrainers';
+import FFTStaff from './Fitness/FFTStaff';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
@@ -93,7 +93,7 @@ class FFTPage extends Component {
               />
             )}
             {activeSection === 'trainers' && (
-              <FFTTrainers
+              <FFTStaff
                 onBack={() => this.handleSectionChange('home')}
                 selectedFile={selectedFile}
                 initialView={trainersView}

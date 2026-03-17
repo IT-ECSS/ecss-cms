@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import '../../../css/fftParticipants.css';
 import ParticipantEntryMethod from './ParticipantEntryMethod';
+import ParticipantNumberEntry from './ParticipantNumberEntry';
 import ParticularsSection from './ParticularsSection';
 import HealthDeclarationSection from './HealthDeclarationSection';
 import IndemnitySection from './IndemnitySection';
@@ -14,6 +15,7 @@ class ParticipantForm extends Component {
     healthData: null,
     indemnityData: null,
     singpassFormData: null,
+    participantNumber: null,
     isSubmitting: false,
   };
 
@@ -81,11 +83,36 @@ class ParticipantForm extends Component {
     });
   };
 
+  handleUseParticipantNumber = (participantNumber, participantData) => {
+    // For now, just proceed with manual entry after user enters participant number
+    // In the future, you might want to fetch participant data based on the number
+    console.log('Participant number entered:', participantNumber);
+    console.log('Retrieved participant data:', participantData);
+    
+    // Pre-fill particulars section with retrieved data
+    const prefillData = participantData ? {
+      name: participantData.name || '',
+      dateOfBirth: participantData.dateOfBirth || '',
+      age: participantData.age || '',
+      gender: participantData.gender || '',
+      phone: participantData.phone || participantData.phoneNumber || ''
+    } : null;
+
+    this.setState({ 
+      entryMethod: 'participantNumber', 
+      currentStep: 2,
+      participantNumber,
+      particularsData: prefillData
+    });
+  };
+
   handleBack = () => {
     const { currentStep } = this.state;
     const { onBack } = this.props;
     if (currentStep === 1) {
       onBack?.();
+    } else if (currentStep === 1.5) {
+      this.setState({ currentStep: 1, entryMethod: null });
     } else if (currentStep === 2) {
       this.setState({ currentStep: 1 });
     } else if (currentStep === 3) {
@@ -108,6 +135,7 @@ class ParticipantForm extends Component {
           currentStep: parsed.currentStep || 1,
           entryMethod: parsed.entryMethod || null,
           singpassFormData: parsed.singpassFormData || null,
+          participantNumber: parsed.participantNumber || null,
         });
       }
     } catch (e) {}
@@ -125,8 +153,8 @@ class ParticipantForm extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { particularsData, healthData, indemnityData, currentStep, entryMethod, singpassFormData } = this.state;
-    if (prevState.particularsData !== particularsData || prevState.healthData !== healthData || prevState.indemnityData !== indemnityData || prevState.currentStep !== currentStep || prevState.entryMethod !== entryMethod || prevState.singpassFormData !== singpassFormData) {
+    const { particularsData, healthData, indemnityData, currentStep, entryMethod, singpassFormData, participantNumber } = this.state;
+    if (prevState.particularsData !== particularsData || prevState.healthData !== healthData || prevState.indemnityData !== indemnityData || prevState.currentStep !== currentStep || prevState.entryMethod !== entryMethod || prevState.singpassFormData !== singpassFormData || prevState.participantNumber !== participantNumber) {
       try {
         localStorage.setItem(this.storageKey, JSON.stringify({
           particularsData,
@@ -135,6 +163,7 @@ class ParticipantForm extends Component {
           currentStep,
           entryMethod,
           singpassFormData,
+          participantNumber,
         }));
       } catch (e) {}
     }
@@ -142,10 +171,17 @@ class ParticipantForm extends Component {
 
   handleFinalSubmit = async (indemnityData) => {
     this.setState({ indemnityData, isSubmitting: true });
-    const { particularsData, healthData } = this.state;
+    const { particularsData, healthData, entryMethod, participantNumber } = this.state;
     const { event } = this.props;
     const eventName = event ? (typeof event === 'string' ? event : event.name) : '';
-    await this.props.onSubmit({ ...particularsData, ...healthData, ...indemnityData, eventName });
+    await this.props.onSubmit({ 
+      ...particularsData, 
+      ...healthData, 
+      ...indemnityData, 
+      eventName,
+      entryMethod,
+      participantNumber
+    });
     this.setState({ isSubmitting: false });
     // Clear saved data after successful submission
     localStorage.removeItem(this.storageKey);
@@ -159,6 +195,7 @@ class ParticipantForm extends Component {
       healthData: null,
       indemnityData: null,
       singpassFormData: null,
+      participantNumber: null,
     });
   };
 
@@ -185,7 +222,7 @@ class ParticipantForm extends Component {
       return translations[key][language] || translations[key].en || key;
     };
 
-    const isParticularsStep = currentStep === 2 || (currentStep === 1 && entryMethod);
+    const isParticularsStep = currentStep === 2 || (currentStep === 1 && entryMethod && entryMethod !== 'participantNumber');
 
     const headerContent = (
       <>
@@ -196,7 +233,19 @@ class ParticipantForm extends Component {
             eventName={eventName}
             onUseSingpass={this.handleUseSingpass}
             onUseManual={() => this.setState({ entryMethod: 'manual', currentStep: 2 })}
+            onUseParticipantNumber={() => this.setState({ entryMethod: 'participantNumber', currentStep: 1.5 })}
             onBack={() => onBack?.()}
+            onHome={() => onHome?.()}
+          />
+        )}
+
+        {/* Step 1.5: Participant Number Entry */}
+        {currentStep === 1.5 && entryMethod === 'participantNumber' && (
+          <ParticipantNumberEntry
+            language={language}
+            eventName={eventName}
+            onSubmit={this.handleUseParticipantNumber}
+            onBack={() => this.setState({ entryMethod: null, currentStep: 1 })}
             onHome={() => onHome?.()}
           />
         )}
@@ -208,6 +257,7 @@ class ParticipantForm extends Component {
             language={language}
             formData={this.state.particularsData || singpassFormData || this.props.formData}
             singpassLocked={entryMethod === 'singpass'}
+            participantNumberLocked={entryMethod === 'participantNumber'}
             onSubmit={(data) => {
               this.setState({ particularsData: data, currentStep: 3 });
             }}
@@ -241,10 +291,6 @@ class ParticipantForm extends Component {
             onHome={() => onHome?.()}
           />
         )}
-
-
-
-
       </>
     );
 

@@ -6,28 +6,7 @@ var path = require('path');
 
 const googleDriveController = new GoogleDriveController();
 
-// ── Persistent active file storage ──
-const ACTIVE_FILE_PATH = path.join(__dirname, '..', 'fft-active-file.json');
 
-function loadActiveFile() {
-    try {
-        if (fs.existsSync(ACTIVE_FILE_PATH)) {
-            const data = JSON.parse(fs.readFileSync(ACTIVE_FILE_PATH, 'utf8'));
-            if (data && data.id && data.name) return data;
-        }
-    } catch (e) {
-        console.warn('[FFT] Could not load active file from disk:', e.message);
-    }
-    return null;
-}
-
-function saveActiveFile(file) {
-    try {
-        fs.writeFileSync(ACTIVE_FILE_PATH, JSON.stringify(file), 'utf8');
-    } catch (e) {
-        console.warn('[FFT] Could not save active file to disk:', e.message);
-    }
-}
 
 // POST endpoint to handle different Google Drive operations based on purpose
 router.post('/', async (req, res) => {
@@ -146,6 +125,48 @@ router.post('/listEvents', async (req, res) => {
     }
 });
 
+// POST endpoint to get event file ID by event name
+router.post('/getEventFileId', async (req, res) => {
+    try {
+        const { eventName } = req.body;
+        
+        if (!eventName) {
+            return res.status(400).json({ success: false, error: 'eventName is required' });
+        }
+
+        console.log('[FFT] getEventFileId requested for event:', eventName);
+
+        // Events folder ID
+        const folderId = '1EsnCGO1QfPrqfmDtsy-cELUO3UyZKCci';
+        
+        // Search in events folder
+        console.log('[FFT] Searching in folder:', folderId);
+        const filesResult = await googleDriveController.listFilesInFolder(folderId);
+        
+        if (!filesResult.success) {
+            return res.status(500).json({ success: false, error: 'Failed to list files in folder' });
+        }
+
+        // Find file matching the event name
+        const matchingFile = (filesResult.files || []).find(file => 
+            file.name.toLowerCase().includes(eventName.toLowerCase())
+        );
+
+        if (!matchingFile) {
+            console.error('[FFT] No file found matching event:', eventName);
+            return res.status(404).json({ success: false, error: 'No file found for this event' });
+        }
+
+        const fileId = matchingFile.id;
+
+        console.log('[FFT] Found fileId for event "' + eventName + '":', fileId);
+        res.json({ success: true, fileId });
+    } catch (error) {
+        console.error('[FFT] Error in POST /getEventFileId:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // POST endpoint to read spreadsheet data
 router.post('/readSpreadsheet', async (req, res) => {
     try {
@@ -188,53 +209,6 @@ router.post('/appendRow', async (req, res) => {
 
         if (!result.success) {
             return res.status(500).json(result);
-        }
-
-        // Cache the participant's registration data keyed by entryNumber
-        const en = result.entryNumber;
-        if (en != null && Array.isArray(rowData)) {
-            const colKeys = [
-                'Name', 'Chinese Name', 'Phone Number', 'Gender', 'DD', 'MM', 'YYYY', 'Age',
-                'Height', 'Weight', 'BMI', 'Date of test',
-                '30 secs Sit & Stand', '30 secs Arm Banding', '2 min On-the-spot Marching', 'Sit & Reach', 'Back Stretching', '2.44m Speed Walk', 'Grip test',
-                'Improvements', 'Remarks'
-            ];
-            
-            // Map exact column names to internal keys (lowercase) for cache consistency
-            const exactToInternalKeyMap = {
-                'Name': 'name',
-                'Chinese Name': 'chineseName',
-                'Phone Number': 'phoneNo',
-                'Gender': 'gender',
-                'DD': 'dd',
-                'MM': 'mm',
-                'YYYY': 'yyyy',
-                'Age': 'age',
-                'Height': 'height',
-                'Weight': 'weight',
-                'BMI': 'bmi',
-                'Date of test': 'testDate',
-                '30 secs Sit & Stand': 'sitStand',
-                '30 secs Arm Banding': 'armCurl',
-                '2 min On-the-spot Marching': 'march',
-                'Sit & Reach': 'sitReach',
-                'Back Stretching': 'backStretch',
-                '2.44m Speed Walk': 'speedWalk',
-                'Grip test': 'gripTest',
-                'Improvements': 'improvements',
-                'Remarks': 'remarks'
-            };
-            
-            const cached = {};
-            colKeys.forEach((key, idx) => {
-                if (rowData[idx]) {
-                    // Convert exact column names to internal keys for cache storage
-                    const internalKey = exactToInternalKeyMap[key] || key.toLowerCase();
-                    cached[internalKey] = rowData[idx];
-                }
-            });
-            fftResultsCache[en] = cached;
-            console.log('[FFT] Cached registration data for entry', en, ':', cached);
         }
 
         // Emit Socket.IO event for live FFT updates
@@ -351,62 +325,9 @@ router.post('/copySpreadsheet', async (req, res) => {
     }
 });
 
-// ── In-memory store for the active FFT file (shared across all users/devices) ──
-let activeFFTFile = loadActiveFile();
-//console.log('[FFT] Loaded active file:', activeFFTFile ? `${activeFFTFile.name} (${activeFFTFile.id})` : 'none');
 
-// ── In-memory cache for FFT station results (keyed by entryNumber) ──
-// Structure: { [entryNumber]: { sitStand: '30', armCurl: '25', ... } }
-let fftResultsCache = {};
 
-// GET the currently active FFT file
-router.get('/activeFile', (req, res) => {
-    res.json({ success: true, file: activeFFTFile });
-});
 
-// GET cached results for a specific participant entry
-router.get('/cachedResults', (req, res) => {
-    const { entryNumber } = req.query;
-    if (entryNumber == null) {
-        return res.status(400).json({ success: false, error: 'entryNumber is required' });
-    }
-    const cached = fftResultsCache[entryNumber] || {};
-    res.json({ success: true, data: cached });
-});
-
-// GET all cached results (for trainers view)
-router.get('/cachedResultsAll', (req, res) => {
-    res.json({ success: true, data: fftResultsCache });
-});
-
-// DELETE clear the in-memory results cache
-router.delete('/clearCache', (req, res) => {
-    const count = Object.keys(fftResultsCache).length;
-    fftResultsCache = {};
-    //console.log(`[FFT] Cache cleared by admin. ${count} entries removed.`);
-    res.json({ success: true, message: `Cache cleared. ${count} entries removed.` });
-});
-
-// SET the active FFT file
-router.post('/activeFile', (req, res) => {
-    const { file } = req.body;
-    if (!file || !file.id || !file.name) {
-        return res.status(400).json({ success: false, error: 'file with id and name is required' });
-    }
-    activeFFTFile = { id: file.id, name: file.name };
-    saveActiveFile(activeFFTFile);
-    // Clear results cache when active file changes
-    fftResultsCache = {};
-    //console.log(`[FFT] Active file set to: ${file.name} (${file.id}). Cache cleared.`);
-
-    // Emit Socket.IO event so all clients know the active file changed
-    const io = req.app.get('io');
-    if (io) {
-        io.emit('fftActiveFile', { file: activeFFTFile });
-    }
-
-    res.json({ success: true, file: activeFFTFile });
-});
 
 // POST request to get a specific row by entry number
 router.post('/getRow', async (req, res) => {
@@ -439,16 +360,13 @@ router.post('/updateRow', async (req, res) => {
         const en = parseInt(entryNumber, 10);
 
         // Read current row to check for existing remarks
-        let currentRow = fftResultsCache[en] || {};
-        if (Object.keys(currentRow).length === 0) {
-            try {
-                const rowResult = await googleDriveController.getRow(fileId, en);
-                if (rowResult.success) {
-                    currentRow = rowResult.data;
-                    fftResultsCache[en] = { ...currentRow };
-                }
-            } catch (_) { /* proceed with empty */ }
-        }
+        let currentRow = {};
+        try {
+            const rowResult = await googleDriveController.getRow(fileId, en);
+            if (rowResult.success) {
+                currentRow = rowResult.data;
+            }
+        } catch (_) { /* proceed with empty */ }
 
         // Separate attempt metadata fields (e.g. sitReachAtt1, sitReachAtt2) — cache only, not written to Google Sheets
         const attMeta = {};
@@ -479,7 +397,6 @@ router.post('/updateRow', async (req, res) => {
 
         if (Object.keys(finalUpdates).length === 0) {
             // Nothing to update
-            if (!fftResultsCache[en]) fftResultsCache[en] = {};
             return res.json({ success: true, updatedFields: [], message: 'No updates to process.' });
         }
 
@@ -490,12 +407,6 @@ router.post('/updateRow', async (req, res) => {
             return res.status(500).json(result);
         }
 
-        // Cache the final results (using exact column names)
-        if (!fftResultsCache[en]) {
-            fftResultsCache[en] = {};
-        }
-        Object.assign(fftResultsCache[en], finalUpdates);
-
         // Emit Socket.IO event with actual data for live updates
         const io = req.app.get('io');
         if (io) {
@@ -503,8 +414,7 @@ router.post('/updateRow', async (req, res) => {
                 type: 'rowUpdated',
                 fileId,
                 entryNumber: en,
-                updates: finalUpdates,
-                cached: fftResultsCache[en]
+                updates: finalUpdates
             });
         }
 
@@ -518,12 +428,12 @@ router.post('/updateRow', async (req, res) => {
 // POST endpoint to submit FFT participant registration — finds the sheet by event name and appends a row
 router.post('/fftSubmit', async (req, res) => {
     try {
-        const { folderId, eventName, eventFileId, participantData } = req.body;
+        const { folderId, eventName, eventFileId, participantData, entryMethod, participantNumber } = req.body;
         if (!eventName || !participantData) {
             return res.status(400).json({ success: false, error: 'eventName and participantData are required' });
         }
 
-        //console.log(`[FFT] fftSubmit received — event: "${eventName}"`);
+        console.log(`[FFT] fftSubmit received — event: "${eventName}", entryMethod: "${entryMethod}"`);
 
         let fileId, sheetFileName;
 
@@ -531,7 +441,7 @@ router.post('/fftSubmit', async (req, res) => {
             // File ID already known — skip the Drive lookup
             fileId = eventFileId;
             sheetFileName = eventName;
-            //console.log(`[FFT] Using provided fileId: ${fileId}`);
+            console.log(`[FFT] Using provided fileId: ${fileId}`);
         } else {
             if (!folderId) {
                 return res.status(400).json({ success: false, error: 'folderId is required when eventFileId is not provided' });
@@ -544,12 +454,55 @@ router.post('/fftSubmit', async (req, res) => {
             sheetFileName = findResult.file.name;
         }
 
-        //console.log(`[FFT] Appending to sheet "${sheetFileName}" (${fileId})`);
+        console.log(`[FFT] Appending to sheet "${sheetFileName}" (${fileId})`);
+
+        // For pre-registered participants, skip row creation
+        if (entryMethod === 'participantNumber' || participantNumber) {
+            console.log(`[FFT] Pre-registered participant (entry ${participantNumber}) - skipping row creation`);
+            return res.json({ 
+                success: true, 
+                skipped: true,
+                message: 'Pre-registered participant - no new row created',
+                sheetName: sheetFileName, 
+                fileId,
+                participantNumber
+            });
+        }
 
         const {
             name = '', phone = '', gender = '',
-            dateOfBirth = '', age = '',
+            dateOfBirth = '', age: providedAge = '',
         } = participantData;
+
+        // Skip if no name provided
+        if (!name || name.trim() === '') {
+            return res.status(400).json({ success: false, error: 'Participant name is required' });
+        }
+
+        // Check if participant already exists in the sheet
+        try {
+            const sheetData = await googleDriveController.readSpreadsheet(fileId);
+            if (sheetData.success && sheetData.data) {
+                const existingParticipant = sheetData.data.find(row => {
+                    // Compare name (first column) case-insensitively
+                    return row[0] && row[0].toString().trim().toLowerCase() === name.trim().toLowerCase();
+                });
+
+                if (existingParticipant) {
+                    console.log(`[FFT] Participant "${name}" already exists in sheet ${fileId}. Skipping.`);
+                    return res.json({ 
+                        success: true, 
+                        skipped: true,
+                        message: `Participant "${name}" already exists in this event. Record skipped.`,
+                        sheetName: sheetFileName, 
+                        fileId
+                    });
+                }
+            }
+        } catch (e) {
+            console.warn('[FFT] Could not check for existing participant:', e.message);
+            // Continue with upload even if check fails
+        }
 
         // Parse dateOfBirth (dd/mm/yyyy) into DD, MM, YYYY columns
         const dobParts = String(dateOfBirth).split('/');
@@ -557,7 +510,21 @@ router.post('/fftSubmit', async (req, res) => {
         const mm = dobParts[1] || '';
         const yyyy = dobParts[2] || '';
 
-        const pad = (n) => String(n).padStart(2, '0');
+        // Calculate age from date of birth
+        let age = providedAge;
+        if (yyyy && mm && dd) {
+            const birthDate = new Date(parseInt(yyyy), parseInt(mm) - 1, parseInt(dd));
+            const today = new Date();
+            let calculatedAge = today.getFullYear() - birthDate.getFullYear();
+            const monthDiff = today.getMonth() - birthDate.getMonth();
+            
+            // Adjust age if birthday hasn't occurred yet this year
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                calculatedAge--;
+            }
+            
+            age = calculatedAge > 0 ? calculatedAge : '';
+        }
 
         // Date of test — extract from event name (e.g. "2026/04/11 ..." or "2026-04-11 ...")
         // Expected format in name: yyyy/mm/dd or yyyy-mm-dd at the start
@@ -590,6 +557,61 @@ router.post('/fftSubmit', async (req, res) => {
         res.json({ success: true, sheetName: sheetFileName, fileId, entryNumber: appendResult.entryNumber });
     } catch (error) {
         console.error('[FFT] Error in POST /fftSubmit:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// POST endpoint to retrieve participant data by entry number
+router.post('/participant/:entryNumber', async (req, res) => {
+    try {
+        const { entryNumber } = req.params;
+        const { fileId } = req.body;
+        
+        console.log('[FFT] Participant lookup requested for entry number:', entryNumber);
+        
+        if (!entryNumber) {
+            return res.status(400).json({ success: false, error: 'entryNumber is required' });
+        }
+
+        if (!fileId) {
+            return res.status(400).json({ success: false, error: 'fileId is required' });
+        }
+
+        console.log('[FFT] Looking up entry number:', entryNumber, 'in file:', fileId);
+        const entryNum = parseInt(entryNumber, 10);
+
+        // Retrieve the specific row from the spreadsheet
+        const result = await googleDriveController.getRow(fileId, entryNum);
+        console.log('[FFT] getRow result:', JSON.stringify(result, null, 2));
+        
+        if (!result.success) {
+            console.error('[FFT] Failed to get row:', result.error);
+            return res.status(404).json({ success: false, error: 'Participant not found' });
+        }
+
+        const row = result.data;
+        console.log('[FFT] Raw row data:', JSON.stringify(row, null, 2));
+        
+        if (!row || Object.keys(row).length === 0) {
+            console.error('[FFT] Row is empty or null');
+            return res.status(404).json({ success: false, error: 'Participant not found' });
+        }
+
+        // Map the row data to participant fields
+        // row is a keyed object with headers like 'Name', 'Chinese Name', 'Phone Number', etc.
+        const participantData = {
+            name: row['Name'] || '',
+            chineseName: row['Chinese Name'] || '',
+            phone: row['Phone Number'] || '',
+            gender: row['Gender'] || '',
+            dateOfBirth: `${String(row['DD'] || '').padStart(2, '0')}/${String(row['MM'] || '').padStart(2, '0')}/${row['YYYY'] || ''}`,
+            age: row['Age'] || ''
+        };
+
+        console.log('[FFT] Mapped participant data:', JSON.stringify(participantData, null, 2));
+        res.json({ success: true, data: participantData });
+    } catch (error) {
+        console.error('[FFT] Error in POST /participant/:entryNumber:', error.message);
         res.status(500).json({ success: false, error: error.message });
     }
 });
