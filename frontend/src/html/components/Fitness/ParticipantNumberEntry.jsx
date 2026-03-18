@@ -55,6 +55,15 @@ class ParticipantNumberEntry extends Component {
       console.log('Full backend response:', response.data);
       const participantData = response.data.data;
       console.log('Retrieved participant data:', participantData);
+
+      // If the row exists but has no name, the participant hasn't registered yet
+      if (!participantData || (!participantData.name && !participantData.chineseName)) {
+        this.setState({
+          error: fftTranslations.errorNotRegistered[language] || fftTranslations.errorNotRegistered.en,
+          loading: false,
+        });
+        return;
+      }
       
       // Call the parent handler with the participant number and retrieved data
       if (onSubmit) {
@@ -116,9 +125,15 @@ class ParticipantNumberEntry extends Component {
           </div>
 
           {error && (
-            <p style={{ marginTop: '8px', color: '#c0392b', fontSize: '1rem', width: '100%', textAlign: 'left' }}>
-              {error}
-            </p>
+            error === (fftTranslations.errorNotRegistered[language] || fftTranslations.errorNotRegistered.en) ? (
+              <div style={{ marginTop: '8px', color: '#c0392b', fontWeight: 'bold', fontSize: '1.25rem', lineHeight: '1.6', whiteSpace: 'pre-line', width: '100%', textAlign: 'left' }}>
+                {error}
+              </div>
+            ) : (
+              <p style={{ marginTop: '8px', color: '#c0392b', fontSize: '1rem', width: '100%', textAlign: 'left' }}>
+                {error}
+              </p>
+            )
           )}
         </div>
       </>

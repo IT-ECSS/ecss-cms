@@ -59,7 +59,7 @@ class ParticipantResults extends Component {
       if (res.data.success) {
         const data = res.data.data;
         if (!data.Name && !data['Chinese Name']) {
-          const errorMsg = `Participant ${entryNumber} cannot be found.`;
+          const errorMsg = "You have not registered yet.\nPlease click on the back button to register.";
           this.setState({ loading: false, error: errorMsg });
           this.props.onLoading && this.props.onLoading(false);
           this.props.onError && this.props.onError(true);
@@ -96,11 +96,18 @@ class ParticipantResults extends Component {
     }
 
     if (error) {
+      const isNotRegistered = error.startsWith('You have not registered yet');
       return (
         <div style={{ padding: '24px' }}>
-          <div className="fft-trainers-error-msg">
-            <i className="fas fa-exclamation-circle" style={{ marginRight: '6px' }}></i>{error}
-          </div>
+          {isNotRegistered ? (
+            <div style={{ color: '#c0392b', fontWeight: 'bold', fontSize: '1.25em', lineHeight: '1.6', whiteSpace: 'pre-line' }}>
+              <i className="fas fa-exclamation-circle" style={{ marginRight: '6px' }}></i>{error}
+            </div>
+          ) : (
+            <div className="fft-trainers-error-msg">
+              <i className="fas fa-exclamation-circle" style={{ marginRight: '6px' }}></i>{error}
+            </div>
+          )}
         </div>
       );
     }

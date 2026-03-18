@@ -93,6 +93,11 @@ const fftTranslations = {
     zh: '找不到参与者，请检查参与者编号。',
     ms: 'Peserta tidak dijumpai. Sila semak nombor peserta.',
   },
+  errorNotRegistered: {
+    en: 'You have not registered for this FFT yet.\nPlease click on the back button to register.',
+    zh: '您尚未注册此 FFT。\n请点击返回按钮进行注册。',
+    ms: 'Anda belum mendaftar untuk FFT ini.\nSila klik butang kembali untuk mendaftar.',
+  },
   errorParticipantFetch: {
     en: 'Error retrieving participant data. Please try again.',
     zh: '获取参与者资料时出错，请重试。',
