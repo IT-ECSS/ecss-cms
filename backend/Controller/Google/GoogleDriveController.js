@@ -9,7 +9,7 @@ class GoogleDriveController {
     async initializeAuth() {
         let credentials = null;
 
-        // Priority 1: Check for new GOOGLE_SERVICE_ACCOUNT_NORSE environment variable
+        // Priority 1: Check for new GOOGLE_SERVICE_ACCOUNT_NORSE environment variable ok
         if (process.env.GOOGLE_SERVICE_ACCOUNT_NORSE) {
             try {
                 credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_NORSE);

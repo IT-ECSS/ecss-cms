@@ -75,9 +75,6 @@ class UploadResultModal extends Component {
             <i className="fas fa-exclamation-circle modal-icon error"></i>
             <h3 className="modal-title error">Upload Failed</h3>
             <p className="modal-description">Some records failed to upload. Please review and try again.</p>
-            <div className="modal-stats">
-              <p>Successful: {results.successful} | Skipped (duplicates): {results.skipped || 0} | Failed: {results.failed}</p>
-            </div>
             <button
               onClick={onOK}
               className="fft-staff-reset-btn modal-button"
