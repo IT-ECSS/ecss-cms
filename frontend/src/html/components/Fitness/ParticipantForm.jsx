@@ -114,7 +114,11 @@ class ParticipantForm extends Component {
     } else if (currentStep === 1.5) {
       this.setState({ currentStep: 1, entryMethod: null });
     } else if (currentStep === 2) {
-      this.setState({ currentStep: 1 });
+      if (this.state.entryMethod === 'participantNumber') {
+        this.setState({ currentStep: 1.5 });
+      } else {
+        this.setState({ currentStep: 1, entryMethod: null });
+      }
     } else if (currentStep === 3) {
       this.setState({ currentStep: 2 });
     } else if (currentStep === 4) {
@@ -262,7 +266,11 @@ class ParticipantForm extends Component {
             onSubmit={(data) => {
               this.setState({ particularsData: data, currentStep: 3 });
             }}
-            onBack={() => this.setState({ currentStep: 1 })}
+            onBack={() => this.setState(
+              entryMethod === 'participantNumber'
+                ? { currentStep: 1.5 }
+                : { currentStep: 1, entryMethod: null }
+            )}
             onHome={() => onHome?.()}
           />
         )}

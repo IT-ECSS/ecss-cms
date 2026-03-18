@@ -102,7 +102,12 @@ class FFTStaff extends Component {
             {/* Event Badge - Show when event is selected */}
             {event && (
               <div style={{ marginLeft: '20px', flex: 1 }}>
-                <div className="fft-staff-event-badge">
+                <div
+                  className="fft-staff-event-badge"
+                  onClick={() => this.setState({ section: 'selectEvent', event: null })}
+                  style={{ cursor: 'pointer' }}
+                  title="Change event"
+                >
                   <span className="fft-staff-event-badge-label">Event</span>
                   <span className="fft-staff-event-badge-name">{event.name}</span>
                 </div>
