@@ -79,6 +79,7 @@ class BulkUpload extends Component {
       const { event, data } = uploadPayload;
       let successCount = 0;
       let failCount = 0;
+      let skipCount = 0;
 
       for (let index = 0; index < data.length; index++) {
         const row = data[index];
@@ -106,8 +107,14 @@ class BulkUpload extends Component {
           console.log('Participant uploaded:', response.data);
           successCount++;
         } catch (error) {
-          console.error('Failed to upload participant:', error);
-          failCount++;
+          // 409 means duplicate — skip silently
+          if (error.response && error.response.status === 409 && error.response.data?.alreadyRegistered) {
+            console.log('Duplicate participant skipped:', error.response.data.message);
+            skipCount++;
+          } else {
+            console.error('Failed to upload participant:', error);
+            failCount++;
+          }
         }
       }
 
@@ -118,6 +125,7 @@ class BulkUpload extends Component {
         results: {
           total: data.length,
           successful: successCount,
+          skipped: skipCount,
           failed: failCount,
           status: 'completed',
           uploadSuccess: failCount === 0

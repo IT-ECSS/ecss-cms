@@ -244,6 +244,7 @@ class ParticipantForm extends Component {
           <ParticipantNumberEntry
             language={language}
             eventName={eventName}
+            eventFileId={event && typeof event === 'object' ? event.id : null}
             onSubmit={this.handleUseParticipantNumber}
             onBack={() => this.setState({ entryMethod: null, currentStep: 1 })}
             onHome={() => onHome?.()}

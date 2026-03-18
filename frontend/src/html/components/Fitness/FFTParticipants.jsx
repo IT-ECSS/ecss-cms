@@ -34,14 +34,28 @@ class SubmitResultModal extends Component {
               <h3 style={{ color: '#d32f2f', marginBottom: '8px', fontWeight: 700 }}>
                 {language === 'zh' ? '提交失败' : language === 'ms' ? 'Gagal Dihantar' : 'Submission Failed'}
               </h3>
-              <p style={{ color: '#666', fontSize: '0.9em', marginBottom: '24px', wordBreak: 'break-word' }}>{error}</p>
+              <p style={{ color: '#666', fontSize: '0.9em', marginBottom: entryNumber != null ? '16px' : '24px', wordBreak: 'break-word' }}>{error}</p>
+              {entryNumber != null && (
+                <div style={{
+                  display: 'inline-block', padding: '12px 28px',
+                  borderRadius: '12px', background: '#fff3e0',
+                  border: '2px solid #e65100', marginBottom: '20px',
+                }}>
+                  <div style={{ fontSize: '0.75em', color: '#777', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px', fontWeight: 600 }}>
+                    {language === 'zh' ? '已注册编号' : language === 'ms' ? 'Nombor Peserta Sedia Ada' : 'Existing Participant #'}
+                  </div>
+                  <div style={{ fontSize: '2.5em', fontWeight: 800, color: '#e65100', lineHeight: 1 }}>{entryNumber}</div>
+                </div>
+              )}
               <button
                 type="button"
                 className="fft-create-event-btn fft-create-event-btn-clear"
                 style={{ width: '100%' }}
-                onClick={onRetry}
+                onClick={entryNumber != null ? onHome : onRetry}
               >
-                {language === 'zh' ? '重试' : language === 'ms' ? 'Cuba semula' : 'Try Again'}
+                {entryNumber != null
+                  ? (language === 'zh' ? '查看编号' : language === 'ms' ? 'Lihat Nombor' : 'View My Number')
+                  : (language === 'zh' ? '重试' : language === 'ms' ? 'Cuba semula' : 'Try Again')}
               </button>
             </>
           ) : (
@@ -207,7 +221,17 @@ class FFTParticipants extends Component {
         this.setState({ showResultModal: true, submitError: response.data.error || 'Submission failed.' });
       }
     } catch (err) {
-      this.setState({ showResultModal: true, submitError: err.response?.data?.error || err.message || 'Submission failed.' });
+      const errData = err.response?.data;
+      if (errData?.alreadyRegistered) {
+        // Participant already registered — go directly to entry number screen
+        this.setState({
+          showResultModal: false,
+          showEntryNumber: true,
+          entryNumber: errData.participantNumber ?? null,
+        });
+      } else {
+        this.setState({ showResultModal: true, submitError: errData?.error || err.message || 'Submission failed.' });
+      }
     }
   };
 

@@ -76,7 +76,7 @@ class UploadResultModal extends Component {
             <h3 className="modal-title error">Upload Failed</h3>
             <p className="modal-description">Some records failed to upload. Please review and try again.</p>
             <div className="modal-stats">
-              <p>Successful: {results.successful} | Failed: {results.failed}</p>
+              <p>Successful: {results.successful} | Skipped (duplicates): {results.skipped || 0} | Failed: {results.failed}</p>
             </div>
             <button
               onClick={onOK}

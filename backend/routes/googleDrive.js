@@ -325,10 +325,6 @@ router.post('/copySpreadsheet', async (req, res) => {
     }
 });
 
-
-
-
-
 // POST request to get a specific row by entry number
 router.post('/getRow', async (req, res) => {
     try {
@@ -474,34 +470,14 @@ router.post('/fftSubmit', async (req, res) => {
             dateOfBirth = '', age: providedAge = '',
         } = participantData;
 
+        // Normalise to strings (Excel bulk upload may send numbers)
+        const nameStr   = String(name || '').trim();
+        const phoneStr  = String(phone || '').trim();
+        const genderStr = String(gender || '').trim();
+
         // Skip if no name provided
-        if (!name || name.trim() === '') {
+        if (!nameStr) {
             return res.status(400).json({ success: false, error: 'Participant name is required' });
-        }
-
-        // Check if participant already exists in the sheet
-        try {
-            const sheetData = await googleDriveController.readSpreadsheet(fileId);
-            if (sheetData.success && sheetData.data) {
-                const existingParticipant = sheetData.data.find(row => {
-                    // Compare name (first column) case-insensitively
-                    return row[0] && row[0].toString().trim().toLowerCase() === name.trim().toLowerCase();
-                });
-
-                if (existingParticipant) {
-                    console.log(`[FFT] Participant "${name}" already exists in sheet ${fileId}. Skipping.`);
-                    return res.json({ 
-                        success: true, 
-                        skipped: true,
-                        message: `Participant "${name}" already exists in this event. Record skipped.`,
-                        sheetName: sheetFileName, 
-                        fileId
-                    });
-                }
-            }
-        } catch (e) {
-            console.warn('[FFT] Could not check for existing participant:', e.message);
-            // Continue with upload even if check fails
         }
 
         // Parse dateOfBirth (dd/mm/yyyy) into DD, MM, YYYY columns
@@ -517,13 +493,50 @@ router.post('/fftSubmit', async (req, res) => {
             const today = new Date();
             let calculatedAge = today.getFullYear() - birthDate.getFullYear();
             const monthDiff = today.getMonth() - birthDate.getMonth();
-            
-            // Adjust age if birthday hasn't occurred yet this year
             if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
                 calculatedAge--;
             }
-            
             age = calculatedAge > 0 ? calculatedAge : '';
+        }
+
+        // Check if participant already exists in the sheet
+        try {
+            const sheetData = await googleDriveController.readSpreadsheet(fileId);
+            if (sheetData.success && sheetData.data) {
+                const existingIndex = sheetData.data.findIndex(row => {
+                    // row is a raw array: [Name, ChineseName, Phone, Gender, DD, MM, YYYY, Age, ...]
+                    const rowName   = (row[0] || '').toString().trim().toLowerCase();
+                    const rowPhone  = (row[2] || '').toString().trim();
+                    const rowGender = (row[3] || '').toString().trim().toLowerCase();
+                    const rowDD     = (row[4] || '').toString().trim();
+                    const rowMM     = (row[5] || '').toString().trim();
+                    const rowYYYY   = (row[6] || '').toString().trim();
+
+                    return (
+                        rowName   === nameStr.toLowerCase() &&
+                        rowPhone  === phoneStr &&
+                        rowGender === genderStr.toLowerCase() &&
+                        parseInt(rowDD, 10)   === parseInt(dd, 10) &&
+                        parseInt(rowMM, 10)   === parseInt(mm, 10) &&
+                        rowYYYY   === String(yyyy || '').trim()
+                    );
+                });
+
+                if (existingIndex !== -1) {
+                    // +1: convert 0-based data index to 1-based participant number (row 2 = participant 1)
+                    const existingEntryNumber = existingIndex + 1;
+                    console.log(`[FFT] Participant "${nameStr}" already registered at entry ${existingEntryNumber} in sheet ${fileId}.`);
+                    return res.status(409).json({
+                        success: false,
+                        alreadyRegistered: true,
+                        participantNumber: existingEntryNumber,
+                        message: `Participant "${nameStr}" is already registered for this event (Participant #${existingEntryNumber}).`,
+                    });
+                }
+            }
+        } catch (e) {
+            console.warn('[FFT] Could not check for existing participant:', e.message);
+            // Continue with upload even if check fails
         }
 
         // Date of test — extract from event name (e.g. "2026/04/11 ..." or "2026-04-11 ...")
@@ -541,7 +554,7 @@ router.post('/fftSubmit', async (req, res) => {
         // 30 secs Sit & Stand | 30 secs Arm Curl | 2 min March on the spot |
         // Sit & Reach | Back Stretch | 2.44m speed walk | Grip Test | Improvements | Remarks
         const rowData = [
-            name, '', phone, gender,
+            nameStr, '', phoneStr, genderStr,
             dd, mm, yyyy, String(age),
             '', '', '',          // Height, Weight, BMI
             dateOfTest,

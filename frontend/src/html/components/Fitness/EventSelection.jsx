@@ -44,15 +44,28 @@ class EventSelection extends Component {
       ]);
 
       const eventNames = (eventsRes.data.events || []).filter(Boolean);
-      const driveFiles = (filesRes.data.files || []).filter(
-        f => typeof f === 'object' && f.mimeType !== 'application/vnd.google-apps.folder'
+      const driveFolders = (filesRes.data.folders || []).filter(
+        f => typeof f === 'object' && /^\d{4}$/.test(f.name?.trim())
       );
 
-      const events = eventNames.reduce((acc, name) => {
-        const file = driveFiles.find(f => f.name.trim().toLowerCase() === name.trim().toLowerCase());
-        if (file) acc.push({ name, id: file.id });
-        return acc;
-      }, []);
+      console.log('Loaded event names:', eventNames);
+      console.log('Loaded drive folders:', driveFolders);
+
+      const nestedFiles = await Promise.all(
+        driveFolders.map(async (folder) => {
+          const folderRes = await axios.post(`${BACKEND_URL}/googleDrive/`, {
+            folderId: folder.id,
+            purpose: 'listFiles',
+          });
+          const sheets = (folderRes.data.files || []).filter(
+            f => typeof f === 'object' && f.mimeType === 'application/vnd.google-apps.spreadsheet'
+          );
+          return sheets
+            .filter(f => eventNames.some(n => n.trim().toLowerCase() === f.name.trim().toLowerCase()))
+            .map(f => ({ name: f.name, id: f.id }));
+        })
+      );
+      const events = nestedFiles.flat();
 
       this.setState({ events, loading: false });
     } catch (err) {

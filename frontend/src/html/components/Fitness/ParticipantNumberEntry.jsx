@@ -21,20 +21,9 @@ class ParticipantNumberEntry extends Component {
     this.setState({ participantNumber: e.target.value, error: '' });
   };
 
-  getEventFileId = async (eventName) => {
-    try {
-      const response = await axios.post(`${BACKEND_URL}/googleDrive/getEventFileId`, { eventName });
-      return response.data.fileId;
-    } catch (err) {
-      console.error('Error fetching event file ID:', err);
-      this.setState({ error: 'Failed to find event. Please try again.' });
-      return null;
-    }
-  };
-
   handleSubmit = async () => {
     const { participantNumber } = this.state;
-    const { language, eventName, onSubmit } = this.props;
+    const { language, eventName, eventFileId, onSubmit } = this.props;
     
     console.log('Submitting participant number:', participantNumber);
     console.log('Event name:', eventName);
@@ -47,8 +36,8 @@ class ParticipantNumberEntry extends Component {
     this.setState({ loading: true, error: '' });
 
     try {
-      // Get event file ID using event name
-      const fileId = await this.getEventFileId(eventName);
+      // Use the file ID passed directly from the parent (already resolved in EventSelection)
+      const fileId = eventFileId;
       if (!fileId) {
         this.setState({ 
           error: 'Failed to retrieve event details. Please try again.',
