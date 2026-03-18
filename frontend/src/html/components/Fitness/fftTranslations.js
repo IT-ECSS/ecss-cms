@@ -58,6 +58,51 @@ const fftTranslations = {
     zh: '手动填写表格',
     ms: 'Isi borang secara manual',
   },
+  enterParticipantNumber: {
+    en: 'Enter Participant Number',
+    zh: '输入参与者编号',
+    ms: 'Masukkan Nombor Peserta',
+  },
+  participantNumberTitle: {
+    en: 'Participant Number',
+    zh: '参与者编号',
+    ms: 'Nombor Peserta',
+  },
+  participantNumberDesc: {
+    en: "Enter your participant's number which was provided to you to continue.",
+    zh: '请输入您的参与者编号以继续。',
+    ms: 'Masukkan nombor peserta anda yang telah diberikan kepada anda untuk meneruskan.',
+  },
+  participantNumberPlaceholder: {
+    en: 'Participant #',
+    zh: '参与者编号',
+    ms: 'No. Peserta',
+  },
+  searching: {
+    en: 'Searching...',
+    zh: '搜索中...',
+    ms: 'Mencari...',
+  },
+  errorParticipantRequired: {
+    en: 'Participant number is required.',
+    zh: '请输入参与者编号。',
+    ms: 'Nombor peserta diperlukan.',
+  },
+  errorParticipantNotFound: {
+    en: 'Participant not found. Please check the participant number.',
+    zh: '找不到参与者，请检查参与者编号。',
+    ms: 'Peserta tidak dijumpai. Sila semak nombor peserta.',
+  },
+  errorParticipantFetch: {
+    en: 'Error retrieving participant data. Please try again.',
+    zh: '获取参与者资料时出错，请重试。',
+    ms: 'Ralat mendapatkan data peserta. Sila cuba lagi.',
+  },
+  errorEventDetails: {
+    en: 'Failed to retrieve event details. Please try again.',
+    zh: '无法获取活动详情，请重试。',
+    ms: 'Gagal mendapatkan butiran acara. Sila cuba lagi.',
+  },
 
   // ── Section 1: Particulars ──
   sectionParticulars: {
@@ -510,6 +555,28 @@ const fftTranslations = {
       remarksColumnName: 'Remarks',
     },
   ],
+  // ── Home Confirm Modal ──
+  homeModalTitle: {
+    en: 'Go to Home',
+    zh: '返回主页',
+    ms: 'Pergi ke Laman Utama',
+  },
+  homeModalDesc: {
+    en: 'Do you want to clear your saved details?',
+    zh: '您想清除已保存的资料吗？',
+    ms: 'Adakah anda ingin memadam maklumat yang telah disimpan?',
+  },
+  homeModalYes: {
+    en: 'Yes, Clear & Go Home',
+    zh: '是，清除并返回主页',
+    ms: 'Ya, Padam & Pergi ke Laman Utama',
+  },
+  homeModalNo: {
+    en: 'No, Just Go Home',
+    zh: '不，直接返回主页',
+    ms: 'Tidak, Terus ke Laman Utama',
+  },
+
   // ── Station Selection ──
   selectStation: {
     en: 'Select Station',

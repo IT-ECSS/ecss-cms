@@ -4,6 +4,7 @@ import '../../../css/fftAdmin.css';
 import CreateEventForm from './CreateEventForm';
 import CreateFileForm from './CreateFileForm';
 import ChooseFileForm from './ChooseFileForm';
+import HomeConfirmModal from './HomeConfirmModal';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
@@ -17,7 +18,8 @@ class FFTAdmin extends Component {
     this.state = {
       activeView: savedView || null, // restore or show menu
       eventFormKey: 0,
-      previousView: null // Track last section
+      previousView: null, // Track last section
+      showHomeConfirm: false,
     };
   }
 
@@ -65,12 +67,22 @@ class FFTAdmin extends Component {
   };
 
   handleHome = () => {
-    // Home button saves current section and exits, or clears saved view if in menu
+    this.setState({ showHomeConfirm: true });
+  };
+
+  handleHomeYes = () => {
+    localStorage.removeItem('fftAdminLastView');
+    localStorage.removeItem('fftEventFormData');
+    this.setState({ showHomeConfirm: false });
+    this.props.onBack?.();
+  };
+
+  handleHomeNo = () => {
+    // Save current view and go home
     if (this.state.activeView) {
       localStorage.setItem('fftAdminLastView', this.state.activeView);
-    } else {
-      localStorage.removeItem('fftAdminLastView');
     }
+    this.setState({ showHomeConfirm: false });
     this.props.onBack?.();
   };
 
@@ -176,6 +188,13 @@ class FFTAdmin extends Component {
             />
           </div>
         )}
+
+        <HomeConfirmModal
+          visible={this.state.showHomeConfirm}
+          onYes={this.handleHomeYes}
+          onNo={this.handleHomeNo}
+          onCancel={() => this.setState({ showHomeConfirm: false })}
+        />
       </div>
     );
   }

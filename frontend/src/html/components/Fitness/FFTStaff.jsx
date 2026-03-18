@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import EventSelection from './EventSelection';
 import StaffUses from './StaffUses';
 import UploadResultModal from './UploadResultModal';
+import HomeConfirmModal from './HomeConfirmModal';
 import '../../../css/fftParticipants.css';
 import '../../../css/fftStaff.css';
 
@@ -28,6 +29,7 @@ class FFTStaff extends Component {
     this.state = {
       event: props.initialEvent || savedState.event,
       section: props.initialEvent ? 'staffUses' : (savedState.section || 'selectEvent'),
+      showHomeConfirm: false,
     };
     this.bulkUploadRef = React.createRef();
     this.staffUsesRef = React.createRef();
@@ -93,7 +95,7 @@ class FFTStaff extends Component {
             <button
               type="button"
               className="fft-staff-icon-btn"
-              onClick={() => this.props.onBack && this.props.onBack()}
+              onClick={() => this.setState({ showHomeConfirm: true })}
               title="Home"
             >
               <i className="fas fa-home"></i>
@@ -104,7 +106,17 @@ class FFTStaff extends Component {
               <div style={{ marginLeft: '20px', flex: 1 }}>
                 <div
                   className="fft-staff-event-badge"
-                  onClick={() => this.setState({ section: 'selectEvent', event: null })}
+                  onClick={() => {
+                    // Reset participant lookup so Review Results starts at entry screen
+                    try {
+                      const stored = localStorage.getItem('reviewParticipantsState');
+                      if (stored) {
+                        const parsed = JSON.parse(stored);
+                        localStorage.setItem('reviewParticipantsState', JSON.stringify({ ...parsed, entryNumber: null }));
+                      }
+                    } catch (e) {}
+                    this.setState({ section: 'selectEvent', event: null });
+                  }}
                   style={{ cursor: 'pointer' }}
                   title="Change event"
                 >
@@ -247,6 +259,21 @@ class FFTStaff extends Component {
               }}
             />
           )}
+
+          <HomeConfirmModal
+            visible={this.state.showHomeConfirm}
+            onYes={() => {
+              localStorage.removeItem(this.storageKey);
+              localStorage.removeItem('staffUsesView');
+              this.setState({ showHomeConfirm: false });
+              this.props.onBack && this.props.onBack();
+            }}
+            onNo={() => {
+              this.setState({ showHomeConfirm: false });
+              this.props.onBack && this.props.onBack();
+            }}
+            onCancel={() => this.setState({ showHomeConfirm: false })}
+          />
         </div>
       </div>
     );

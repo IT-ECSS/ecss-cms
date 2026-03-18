@@ -7,6 +7,7 @@ const ParticipantEntryMethod = ({ language, onUseSingpass, onUseManual, onUsePar
   const title = fftTranslations.registrationFormTitle[language] || fftTranslations.registrationFormTitle.en;
   const description = fftTranslations.registrationFormDescription[language] || fftTranslations.registrationFormDescription.en;
   const manual = fftTranslations.registrationFormManual[language] || fftTranslations.registrationFormManual.en;
+  const enterParticipantNumber = fftTranslations.enterParticipantNumber[language] || fftTranslations.enterParticipantNumber.en;
 
   return (
     <div className="fft-participants-section">
@@ -40,7 +41,7 @@ const ParticipantEntryMethod = ({ language, onUseSingpass, onUseManual, onUsePar
             border: 'none'
           }}
         >
-          Enter Participant Number
+          {enterParticipantNumber}
         </button>
       </div>
     </div>

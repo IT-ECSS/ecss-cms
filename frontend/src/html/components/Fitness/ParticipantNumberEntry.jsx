@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import axios from 'axios';
+import fftTranslations from './fftTranslations';
 import '../../../css/fftParticipants.css';
 
 // Determine backend URL based on environment
@@ -29,7 +30,7 @@ class ParticipantNumberEntry extends Component {
     console.log('Event name:', eventName);
     
     if (!participantNumber.trim()) {
-      this.setState({ error: 'Participant number is required.' });
+      this.setState({ error: fftTranslations.errorParticipantRequired[language] || fftTranslations.errorParticipantRequired.en });
       return;
     }
 
@@ -40,7 +41,7 @@ class ParticipantNumberEntry extends Component {
       const fileId = eventFileId;
       if (!fileId) {
         this.setState({ 
-          error: 'Failed to retrieve event details. Please try again.',
+          error: fftTranslations.errorEventDetails[language] || fftTranslations.errorEventDetails.en,
           loading: false 
         });
         return;
@@ -64,12 +65,12 @@ class ParticipantNumberEntry extends Component {
       console.error('Error fetching participant data:', err);
       if (err.response?.status === 404) {
         this.setState({ 
-          error: 'Participant not found. Please check the participant number.',
+          error: fftTranslations.errorParticipantNotFound[language] || fftTranslations.errorParticipantNotFound.en,
           loading: false 
         });
       } else {
         this.setState({ 
-          error: 'Error retrieving participant data. Please try again.',
+          error: fftTranslations.errorParticipantFetch[language] || fftTranslations.errorParticipantFetch.en,
           loading: false 
         });
       }
@@ -89,15 +90,15 @@ class ParticipantNumberEntry extends Component {
     return (
       <>
         <div className="fft-participants-section">
-          <h2 style={{ margin: 0, fontWeight: 700, width: '100%', textAlign: 'left' }}>Participant Number</h2>
+          <h2 style={{ margin: 0, fontWeight: 700, width: '100%', textAlign: 'left' }}>{fftTranslations.participantNumberTitle[language] || fftTranslations.participantNumberTitle.en}</h2>
           <hr style={{ margin: '12px 0 12px 0', borderColor: '#ddd', border: 'none', borderTop: '1px solid #ddd', width: '100%' }} />
-          <div style={{ margin: '0', color: '#444', width: '100%', textAlign: 'left' }}>Enter your participant's number which was provided to you to continue.</div>
+          <div style={{ margin: '0', color: '#444', width: '100%', textAlign: 'left' }}>{fftTranslations.participantNumberDesc[language] || fftTranslations.participantNumberDesc.en}</div>
 
           <div className="fft-participant-entry-manual-row" style={{ marginTop: '16px', width: '100%' }}>
             <input
               type="text"
               inputMode="numeric"
-              placeholder="Participant #"
+              placeholder={fftTranslations.participantNumberPlaceholder[language] || fftTranslations.participantNumberPlaceholder.en}
               id="fft-participant-entry-manual-input"
               className="fft-participant-entry-input fft-participant-entry-manual-input"
               value={participantNumber}
@@ -110,7 +111,7 @@ class ParticipantNumberEntry extends Component {
               onClick={this.handleSubmit}
               disabled={loading}
             >
-              {loading ? 'Searching...' : 'Submit'}
+              {loading ? (fftTranslations.searching[language] || fftTranslations.searching.en) : (fftTranslations.submit[language] || fftTranslations.submit.en)}
             </button>
           </div>
 

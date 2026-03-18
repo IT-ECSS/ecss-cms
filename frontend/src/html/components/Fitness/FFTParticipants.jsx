@@ -6,6 +6,7 @@ import EventSelection from './EventSelection';
 import ParticipantForm from './ParticipantForm';
 import ParticipantEntryNumber from './ParticipantEntryNumber';
 import fftTranslations from './fftTranslations';
+import HomeConfirmModal from './HomeConfirmModal';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
@@ -165,6 +166,7 @@ class FFTParticipants extends Component {
     submitError: null,
     entryNumber: null,
     pendingReturnTo: null, // null | 'form' | 'entry'
+    showHomeConfirm: false,
   };
 
   storageKey = 'fftParticipantsSelection';
@@ -184,10 +186,28 @@ class FFTParticipants extends Component {
   };
 
   handleHome = () => {
+    this.setState({ showHomeConfirm: true });
+  };
+
+  handleHomeYes = () => {
+    // Clear all saved data and go home
+    localStorage.removeItem(this.storageKey);
+    localStorage.removeItem('fftParticipantFormData');
+    localStorage.removeItem('fftParticularsSectionData');
+    localStorage.removeItem('fftHealthDeclarationData');
+    localStorage.removeItem('fftIndemnityData');
+    this.setState({ showHomeConfirm: false });
+    this.props.onBack?.();
+  };
+
+  handleHomeNo = () => {
+    // Go home keeping saved data
+    this.setState({ showHomeConfirm: false });
     this.props.onBack?.();
   };
 
   handleFinish = () => {
+    this.setState({ showHomeConfirm: false });
     localStorage.removeItem(this.storageKey);
     this.setState({ language: null, event: null, formData: null, showEntryNumber: false, entryNumber: null, showLoadingModal: false, showResultModal: false, submitError: null });
     this.props.onBack?.();
@@ -273,7 +293,7 @@ class FFTParticipants extends Component {
   }
 
   render() {
-    const { language, event, formData, showLoadingModal, showResultModal, showEntryNumber, submitError, entryNumber } = this.state;
+    const { language, event, formData, showLoadingModal, showResultModal, showEntryNumber, submitError, entryNumber, showHomeConfirm } = this.state;
     const backTitle = language === 'zh' ? '返回' : language === 'ms' ? 'Kembali' : 'Back';
     const homeTitle = language === 'zh' ? '主页' : language === 'ms' ? 'Rumah' : 'Home';
 
@@ -395,6 +415,14 @@ class FFTParticipants extends Component {
               onFinish={this.handleFinish}
             />
           )}
+
+          <HomeConfirmModal
+            visible={showHomeConfirm}
+            language={language}
+            onYes={this.handleHomeYes}
+            onNo={this.handleHomeNo}
+            onCancel={() => this.setState({ showHomeConfirm: false })}
+          />
         </div>
       </div>
     );

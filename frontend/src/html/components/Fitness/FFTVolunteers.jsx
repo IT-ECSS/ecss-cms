@@ -9,6 +9,7 @@ import VolunteerEntry from './VolunteerEntry';
 import LoadingSpinner from './LoadingSpinner';
 import LoadingParticipant from './LoadingParticipant';
 import fftTranslations from './fftTranslations';
+import HomeConfirmModal from './HomeConfirmModal';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
@@ -72,6 +73,7 @@ class FFTVolunteers extends Component {
       entryError: null,
       lookupError: null,
       entryNumber: null,
+      showHomeConfirm: false,
     };
   }
 
@@ -239,7 +241,7 @@ class FFTVolunteers extends Component {
               <button className="fft-volunteers-icon-btn" onClick={this.handleBack} title="Back">
                 <i className="fas fa-arrow-left"></i>
               </button>
-              <button className="fft-volunteers-icon-btn" onClick={onBack} title="Home">
+              <button className="fft-volunteers-icon-btn" onClick={() => this.setState({ showHomeConfirm: true })} title="Home">
                 <i className="fas fa-home"></i>
               </button>
             </div>
@@ -304,6 +306,20 @@ class FFTVolunteers extends Component {
             />
           )}
         </div>
+
+        <HomeConfirmModal
+          visible={this.state.showHomeConfirm}
+          onYes={() => {
+            localStorage.removeItem(this.storageKey);
+            this.setState({ showHomeConfirm: false });
+            this.props.onBack();
+          }}
+          onNo={() => {
+            this.setState({ showHomeConfirm: false });
+            this.props.onBack();
+          }}
+          onCancel={() => this.setState({ showHomeConfirm: false })}
+        />
       </div>
     );
   }
