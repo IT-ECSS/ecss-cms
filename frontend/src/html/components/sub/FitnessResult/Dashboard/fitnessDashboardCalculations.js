@@ -35,38 +35,47 @@ export const createNormalizationHelpers = () => {
   return { normalize, normalizePhone, normalizeId, matchNameKey, matchChineseKey, matchPhoneKey, matchIdKey };
 };
 
-// Create function to resolve participant key with deduplication
+// Create function to resolve participant key using a strict composite identity:
+// name + phone + DOB + gender.  Matches the same logic used in
+// buildPivotedRowData (FitnessParticipantsDetailsTab) so both tabs show
+// identical participant counts and deduplication behaviour.
 export const createParticipantKeyResolver = (helpers, findKey) => {
-  const { normalize, normalizePhone, normalizeId, matchNameKey, matchChineseKey, matchPhoneKey, matchIdKey } = helpers;
-  const participantKeyMap = new Map();
+  const { normalize, normalizePhone, matchNameKey, matchChineseKey, matchPhoneKey } = helpers;
+
+  const matchDdKey   = (k) => k === 'dd';
+  const matchMmKey   = (k) => k === 'mm';
+  const matchYyyyKey = (k) => k === 'yyyy';
+  const matchGenderKey = (k) => k === 'gender' || k === 'sex';
 
   return (row) => {
-    const nameKey = findKey(row, matchNameKey);
-    const cnKey = findKey(row, matchChineseKey);
-    const phoneKey = findKey(row, matchPhoneKey);
-    const idKey = findKey(row, matchIdKey);
+    const nameKey   = findKey(row, matchNameKey);
+    const cnKey     = findKey(row, matchChineseKey);
+    const phoneKey  = findKey(row, matchPhoneKey);
+    const ddKey     = findKey(row, matchDdKey);
+    const mmKey     = findKey(row, matchMmKey);
+    const yyyyKey   = findKey(row, matchYyyyKey);
+    const genderKey = findKey(row, matchGenderKey);
 
-    const name = nameKey ? normalize(row[nameKey]) : '';
-    const chineseName = cnKey ? normalize(row[cnKey]) : '';
-    const phone = phoneKey ? normalizePhone(row[phoneKey]) : '';
-    const id = idKey ? normalizeId(row[idKey]) : '';
+    const rawName        = (nameKey ? row[nameKey] : '') || (cnKey ? row[cnKey] : '') || '';
+    const normalizedName = normalize(rawName);
+    const cleanPhone     = normalizePhone(phoneKey ? row[phoneKey] : '');
+    const hasValidPhone  = cleanPhone.length >= 7;
 
-    const keys = [name, chineseName, phone, id].filter(Boolean);
-    if (!keys.length) return null;
+    const dd   = String(ddKey   ? (row[ddKey]   || '') : '').trim();
+    const mm   = String(mmKey   ? (row[mmKey]   || '') : '').trim();
+    const yyyy = String(yyyyKey ? (row[yyyyKey] || '') : '').trim();
+    const dob  = dd && mm && yyyy ? `${dd}/${mm}/${yyyy}` : '';
 
-    // If any key already is known, use the existing canonical key
-    for (const k of keys) {
-      if (participantKeyMap.has(k)) {
-        const canonical = participantKeyMap.get(k);
-        keys.forEach((kk) => participantKeyMap.set(kk, canonical));
-        return canonical;
-      }
-    }
+    const gender = (genderKey ? String(row[genderKey] || '') : '').trim().toUpperCase();
 
-    // New participant; choose first key as canonical
-    const canonical = keys[0];
-    keys.forEach((k) => participantKeyMap.set(k, canonical));
-    return canonical;
+    // Build composite key from all present fields
+    const parts = [];
+    if (normalizedName) parts.push(`n:${normalizedName}`);
+    if (hasValidPhone)  parts.push(`p:${cleanPhone}`);
+    if (dob)            parts.push(`d:${dob}`);
+    if (gender)         parts.push(`g:${gender}`);
+
+    return parts.length > 0 ? parts.join('||') : null;
   };
 };
 
@@ -159,6 +168,7 @@ export const calculateYearStats = (mapData, getParticipantKey, participantMap, y
       newParticipantNames.add(participantKey);
     }
 
+    if (!participantMap[participantKey]) return;
     const storedGender = participantMap[participantKey].gender;
     if (storedGender === 'Male') maleParticipationsInYear++;
     else femaleParticipationsInYear++;

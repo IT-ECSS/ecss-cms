@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import '../../../css/sub/fitnessParticipantsSection.css';
+import '../../../../../css/sub/FitnessResult/Participants/fitnessParticipantsSection.css';
 import FitnessParticipantsDetailsTab from './FitnessParticipantsDetailsTab';
 import FitnessParticipantsVisualizationTab from './FitnessParticipantsVisualizationTab';
 
@@ -59,22 +59,6 @@ class FitnessParticipantsSection extends Component {
 
     return (
       <div className="fft-participants-section-wrapper">
-        {/* Sub-Tab Navigation - show only when date range selected */}
-        {hasDateRange && (
-          <div className="fft-participants-subtabs">
-            {subTabs.map(tab => (
-              <button
-                key={tab.key}
-                className={`fft-participants-subtab ${activeSubTab === tab.key ? 'fft-participants-subtab-active' : ''}`}
-                onClick={() => this.handleSubTabChange(tab.key)}
-              >
-                <i className={tab.icon}></i>
-                <span>{tab.label}</span>
-              </button>
-            ))}
-          </div>
-        )}
-
         {/* Sub-Tab Content */}
         <div className="fft-participants-subtab-content">
           {data.length === 0 ? (
@@ -86,7 +70,7 @@ class FitnessParticipantsSection extends Component {
               </p>
             </div>
           ) : (
-            <>
+            <>  
               {activeSubTab === 'rawData' && (
                 <FitnessParticipantsDetailsTab 
                   data={data}
@@ -99,19 +83,22 @@ class FitnessParticipantsSection extends Component {
               )}
 
               {activeSubTab === 'visualization' && hasDateRange && (
-                <FitnessParticipantsVisualizationTab 
-                  data={data}
-                  allLocationData={allLocationData}
-                  yearFrom={yearFrom}
-                  yearTo={yearTo}
-                  yearFolders={yearFolders}
-                  selectedLocation={selectedLocation}
-                  getApiBaseUrl={getApiBaseUrl}
-                  getHardcodedLocations={getHardcodedLocations}
-                  matchesLocation={matchesLocation}
-                  initialVisualizationParticipant={initialVisualizationParticipant}
-                  onInitialParticipantUsed={() => this.setState({ initialVisualizationParticipant: null })}
-                />
+                <>
+                  <FitnessParticipantsVisualizationTab 
+                    data={data}
+                    allLocationData={allLocationData}
+                    yearFrom={yearFrom}
+                    yearTo={yearTo}
+                    yearFolders={yearFolders}
+                    selectedLocation={selectedLocation}
+                    getApiBaseUrl={getApiBaseUrl}
+                    getHardcodedLocations={getHardcodedLocations}
+                    matchesLocation={matchesLocation}
+                    initialParticipant={initialVisualizationParticipant}
+                    onInitialParticipantUsed={() => this.setState({ initialVisualizationParticipant: null })}
+                    onBack={() => this.setState({ activeSubTab: 'rawData' })}
+                  />
+                </>
               )}
             </>
           )}

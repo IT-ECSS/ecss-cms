@@ -310,6 +310,7 @@
 .fft-badge i {
   cursor: pointer;
   font-size: 12px;
+  color: white;
   transition: all 0.2s ease;
 }
 

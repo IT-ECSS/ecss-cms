@@ -7,23 +7,19 @@ class DataVisualization extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      searchTerm: '',
-      selectedParticipant: null,
-      searchResults: [],
-      allParticipants: [],
-      showParticipantList: false
+      selectedParticipant: null
     };
     
     // Specific fitness metrics to display
     // key matches the exact column name in spreadsheet
     this.fitnessMetrics = [
-      { key: '30 secs Sit & Stand', label: '30 Secs Sit & Stand', unit: 'reps', higherIsBetter: true },
-      { key: '30 secs Arm Curl', label: '30 Secs Arm Curl', unit: 'reps', higherIsBetter: true },
-      { key: '2 min March on the spot', label: '2 Min March On The Spot', unit: 'steps', higherIsBetter: true },
-      { key: 'Sit & Reach', label: 'Sit & Reach', unit: 'cm', higherIsBetter: true },
-      { key: 'Back Stretch', label: 'Back Stretch', unit: 'cm', higherIsBetter: true },
-      { key: '2.44m speed walk', label: '2.44m Speed Walk', unit: 'sec', higherIsBetter: false },
-      { key: 'Grip Test', label: 'Grip Test', unit: 'kg', higherIsBetter: true }
+      { key: '30 secs Sit & Stand',          label: '30 Secs Sit & Stand',          unit: 'squats', higherIsBetter: true },
+      { key: '30 secs Arm Banding',           label: '30 Secs Arm Banding',          unit: 'bicep curls', higherIsBetter: true },
+      { key: '2 min On-the-spot Marching',    label: '2 Min On-the-spot Marching',   unit: 'Sets of steps', higherIsBetter: true },
+      { key: 'Sit & Reach',                   label: 'Sit & Reach',                  unit: 'cm',   higherIsBetter: true },
+      { key: 'Back Stretching',               label: 'Back Stretching',              unit: 'cm',   higherIsBetter: true },
+      { key: '2.44m Speed Walk',              label: '2.44m Speed Walk',             unit: 'sec',  higherIsBetter: false },
+      { key: 'Grip test',                     label: 'Grip Test',                    unit: 'kg',   higherIsBetter: true }
     ];
   }
 
@@ -39,23 +35,22 @@ class DataVisualization extends Component {
   }
 
   handleInitialParticipant = () => {
-    const { initialParticipant, onInitialParticipantUsed, data } = this.props;
+    const { initialParticipant, onInitialParticipantUsed, data, allLocationData } = this.props;
     if (!initialParticipant) return;
 
-    // Find the matching participant in data
-    const participantName = initialParticipant.name?.toLowerCase();
-    const dataSource = data || [];
-    
+    // Normalise: lowercase + trim so casing differences don't break the match
+    const participantName = (initialParticipant.Name || initialParticipant.name || '').toLowerCase().trim();
+    // Use allLocationData so we can find the participant even when not in the filtered set
+    const dataSource = allLocationData || data || [];
+
     const matchingRow = dataSource.find(row => {
-      const rowName = this.getParticipantName(row).toLowerCase();
+      const rowName = this.getParticipantName(row).toLowerCase().trim();
       return rowName === participantName;
     });
 
-    if (matchingRow) {
-      this.setState({ selectedParticipant: matchingRow });
-    }
+    // Use the found flat row; fall back to the pivoted row itself so charts still render
+    this.setState({ selectedParticipant: matchingRow || initialParticipant });
 
-    // Clear the initial participant after using it
     if (onInitialParticipantUsed) {
       onInitialParticipantUsed();
     }
@@ -156,8 +151,8 @@ class DataVisualization extends Component {
     const allRecords = dataSource.filter(row => {
       const rowName = this.getParticipantName(row);
       const rowChineseName = this.getChineseName(row);
-      return rowName.toLowerCase() === name.toLowerCase() ||
-        (chineseName && rowChineseName && rowChineseName.toLowerCase() === chineseName.toLowerCase());
+      return rowName.toLowerCase().trim() === name.toLowerCase().trim() ||
+        (chineseName && rowChineseName && rowChineseName.toLowerCase().trim() === chineseName.toLowerCase().trim());
     });
 
     return allRecords.sort((a, b) => (a.year || '').localeCompare(b.year || ''));
@@ -227,8 +222,8 @@ class DataVisualization extends Component {
   };
 
   render() {
-    const { yearFrom, yearTo, data } = this.props;
-    const { searchTerm, selectedParticipant, searchResults, showParticipantList } = this.state;
+    const { yearFrom, yearTo } = this.props;
+    const { selectedParticipant } = this.state;
 
     const yearlyRecords = selectedParticipant ? this.getParticipantYearlyData(selectedParticipant) : [];
     const chartData = yearlyRecords.length > 0 ? this.buildChartData(yearlyRecords) : [];
@@ -236,99 +231,6 @@ class DataVisualization extends Component {
 
     return (
       <div className="fft-viz-wrapper">
-        <div className="fft-viz-section">
-          {/* Collapsible header */}
-          <div 
-            className="fft-viz-dropdown-header"
-            onClick={() => this.setState({ showParticipantList: !showParticipantList })}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '15px 20px',
-              backgroundColor: '#f8f9fa',
-              border: '1px solid #e0e0e0',
-              borderRadius: showParticipantList ? '8px 8px 0 0' : '8px',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            <h3 className="fft-viz-section-title" style={{ margin: 0 }}>
-              <i className="fas fa-users" style={{ marginRight: '10px' }}></i>
-              Select Participant
-              {selectedParticipant && (
-                <span style={{ marginLeft: '10px', fontSize: '18px', color: '#4CAF50', fontWeight: 'bold' }}>
-                  - {this.getParticipantName(selectedParticipant)}
-                </span>
-              )}
-              {yearFrom && (
-                <span className="fft-viz-year-badge">
-                  {yearTo && yearTo !== yearFrom ? `${yearFrom} - ${yearTo}` : yearFrom}
-                </span>
-              )}
-            </h3>
-            <i className={`fas fa-chevron-${showParticipantList ? 'up' : 'down'}`} style={{ color: '#666' }}></i>
-          </div>
-
-          {/* Collapsible content */}
-          {showParticipantList && (
-            <div style={{ border: '1px solid #e0e0e0', borderTop: 'none', borderRadius: '0 0 8px 8px', padding: '15px' }}>
-              <div className="fft-viz-search-container">
-                <div className="fft-viz-search-input-wrapper">
-                  <i className="fas fa-search fft-viz-search-icon"></i>
-                  <input
-                    type="text"
-                    className="fft-viz-search-input"
-                    placeholder="Search by name..."
-                    value={searchTerm}
-                    onChange={this.handleSearchChange}
-                  />
-                  {searchTerm && (
-                    <button
-                      className="fft-viz-search-clear"
-                      onClick={() => this.setState({ searchTerm: '', searchResults: [] })}
-                    >
-                      <i className="fas fa-times"></i>
-                    </button>
-                  )}
-                </div>
-
-                <div className="fft-viz-search-results" style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid #e0e0e0', borderRadius: '8px', marginTop: '10px' }}>
-                  {(searchResults.length > 0 ? searchResults : this.getDefaultParticipants()).map((result, index) => {
-                    const name = this.getParticipantName(result);
-                    const chineseName = this.getChineseName(result);
-                    const gender = this.getParticipantGender(result);
-                    const age = this.getParticipantAge(result);
-                    const yearRange = this.getParticipantYearRange(result);
-                    const isMale = gender === 'Male';
-
-                    return (
-                      <div
-                        key={index}
-                        className={`fft-viz-search-result-item ${isMale ? 'fft-viz-result-male' : 'fft-viz-result-female'}`}
-                        onClick={() => {
-                          this.handleSelectParticipant(result);
-                          this.setState({ showParticipantList: false });
-                        }}
-                      >
-                        <div className="fft-viz-result-name">
-                          <i className={`fas ${isMale ? 'fa-male' : 'fa-female'}`}></i>
-                          <span>{name}</span>
-                          {chineseName && <span className="fft-viz-result-chinese">({chineseName})</span>}
-                        </div>
-                        <div className="fft-viz-result-info">
-                          {age && <span>Age: {age}</span>}
-                          {yearRange && <span>Year: {yearRange}</span>}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
         {selectedParticipant ? (
           <div className="fft-viz-section fft-viz-results-section">
             <div className={`fft-viz-participant-card ${this.getParticipantGender(selectedParticipant) === 'Male' ? 'fft-viz-card-male-bg' : 'fft-viz-card-female-bg'}`}>
@@ -598,7 +500,7 @@ class DataVisualization extends Component {
                                 // Build a text summary with meaningful descriptions
                                 let summaryParts = [];
                                 const pName = this.getParticipantName(selectedParticipant);
-                                summaryParts.push(`In ${values[0].year}, ${pName} recorded <strong>${values[0].value} ${metric.unit}</strong> for ${metric.label}.`);
+                                summaryParts.push(`In ${values[0].year}, ${pName} recorded <strong>${values[0].value} ${metric.unit}</strong> for ${metric.label}.<br/>`);
                                 
                                 for (let i = 1; i < values.length; i++) {
                                   const prev = values[i - 1];
@@ -609,26 +511,26 @@ class DataVisualization extends Component {
                                   const absDiff = Math.abs(diff);
                                   
                                   if (unchanged) {
-                                    summaryParts.push(`In ${curr.year}, maintained the same performance at <strong>${curr.value} ${metric.unit}</strong>.`);
+                                    summaryParts.push(`In ${curr.year}, maintained the same performance at <strong>${curr.value} ${metric.unit}</strong>.<br/>`);
                                   } else if (improved) {
                                     if (metric.higherIsBetter) {
                                       // Higher is better (reps, steps, cm, kg)
                                       const changeDesc = absDiff >= 5 ? 'significantly improved' : absDiff >= 2 ? 'showed improvement' : 'slightly improved';
-                                      summaryParts.push(`In ${curr.year}, ${changeDesc} to <strong>${curr.value} ${metric.unit}</strong> (<span style="color:#10b981">+${absDiff.toFixed(1)}</span> from ${prev.year}).`);
+                                      summaryParts.push(`In ${curr.year}, ${changeDesc} to <strong>${curr.value} ${metric.unit}</strong> (<span style="color:#10b981; font-weight: bold">+${absDiff.toFixed(1)} ${metric.unit}</span> from ${prev.year}).<br/>`);
                                     } else {
                                       // Lower is better (seconds for speed walk)
                                       const changeDesc = absDiff >= 1 ? 'completed faster' : 'slightly faster';
-                                      summaryParts.push(`In ${curr.year}, ${changeDesc} at <strong>${curr.value} ${metric.unit}</strong> (<span style="color:#10b981">${absDiff.toFixed(2)}s faster</span> than ${prev.year}).`);
+                                      summaryParts.push(`In ${curr.year}, ${changeDesc} at <strong>${curr.value} ${metric.unit}</strong> (<span style="color:#10b981; font-weight: bold">${absDiff.toFixed(2)} ${metric.unit} faster</span> than ${prev.year}).<br/>`);
                                     }
                                   } else {
                                     if (metric.higherIsBetter) {
                                       // Higher is better but decreased
                                       const changeDesc = absDiff >= 5 ? 'showed a notable decline' : absDiff >= 2 ? 'decreased' : 'slightly decreased';
-                                      summaryParts.push(`In ${curr.year}, ${changeDesc} to <strong>${curr.value} ${metric.unit}</strong> (<span style="color:#ef4444">-${absDiff.toFixed(1)}</span> from ${prev.year}).`);
+                                      summaryParts.push(`In ${curr.year}, ${changeDesc} to <strong>${curr.value} ${metric.unit}</strong> (<span style="color:#ef4444; font-weight: bold">-${absDiff.toFixed(1)} ${metric.unit}</span> from ${prev.year}).<br/>`);
                                     } else {
                                       // Lower is better but got slower
                                       const changeDesc = absDiff >= 1 ? 'took longer' : 'slightly slower';
-                                      summaryParts.push(`In ${curr.year}, ${changeDesc} at <strong>${curr.value} ${metric.unit}</strong> (<span style="color:#ef4444">+${absDiff.toFixed(2)}s</span> from ${prev.year}).`);
+                                      summaryParts.push(`In ${curr.year}, ${changeDesc} at <strong>${curr.value} ${metric.unit}</strong> (<span style="color:#ef4444; font-weight: bold">+${absDiff.toFixed(2)} ${metric.unit}</span> from ${prev.year}).<br/>`);
                                     }
                                   }
                                 }
@@ -642,11 +544,11 @@ class DataVisualization extends Component {
                                 // Always show overall when there's a range (2+ years)
                                 if (values.length >= 2) {
                                   if (overallImproved) {
-                                    summaryParts.push(`<br/><strong>Overall:</strong> Showed positive progress from ${values[0].year} to ${values[values.length - 1].year}.`);
+                                    summaryParts.push(`<br/><strong>Overall:</strong> Showed positive progress from ${values[0].year} to ${values[values.length - 1].year}.<br/>`);
                                   } else if (overallDiff === 0) {
-                                    summaryParts.push(`<br/><strong>Overall:</strong> Maintained consistent performance from ${values[0].year} to ${values[values.length - 1].year}.`);
+                                    summaryParts.push(`<br/><strong>Overall:</strong> Maintained consistent performance from ${values[0].year} to ${values[values.length - 1].year}.<br/>`);
                                   } else {
-                                    summaryParts.push(`<br/><strong>Overall:</strong> Performance declined from ${values[0].year} to ${values[values.length - 1].year}. Consider additional training focus.`);
+                                    summaryParts.push(`<br/><strong>Overall:</strong> Performance declined from ${values[0].year} to ${values[values.length - 1].year}. Consider additional training focus.<br/>`);
                                   }
                                 }
                                 
@@ -699,10 +601,20 @@ const FitnessParticipantsVisualizationTab = ({
   yearFrom,
   yearTo,
   initialParticipant,
-  onInitialParticipantUsed
+  onInitialParticipantUsed,
+  onBack
 }) => {
   return (
     <div className="fft-participants-subtab-block">
+      {onBack && (
+        <button
+          onClick={onBack}
+          title="Back to Details"
+          style={{ marginBottom: '12px', background: 'none', border: 'none', cursor: 'pointer', color: '#1976d2', height: '40px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '20px', padding: 0, alignSelf: 'flex-start' }}
+        >
+          <i className="fas fa-arrow-left"></i><span>Back</span>
+        </button>
+      )}
       {/* Content */}
       <div className="fft-participants-subtab-content">
         <DataVisualization 

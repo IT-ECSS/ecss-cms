@@ -1,7 +1,7 @@
 import React, { Component, useMemo, useState } from "react";
 import axios from 'axios';
-import '../../../css/sub/fitnessGoogleSheetsSection.css';
-import FitnessFilterSection from './FitnessFilterSection';
+import '../../../../../css/sub/FitnessResult/GoogleSheets/fitnessGoogleSheetsSection.css';
+import FitnessFilterSection from '../Filter/FitnessFilterSection';
 import {
   getCoreRowModel,
   getSortedRowModel,

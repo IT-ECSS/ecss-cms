@@ -1,6 +1,6 @@
 import React, { Component } from "react";
-import '../../../css/sub/fitnessDashboardSection.css';
-import { ParticipationsBlock, ParticipantsBlock, GenderBlock } from './index';
+import '../../../../../css/sub/FitnessResult/Dashboard/fitnessDashboardSection.css';
+import { ParticipationsBlock, ParticipantsBlock, GenderBlock } from '../../index';
 import { calculateDashboardData as calculateAllDashboardData } from './fitnessDashboardCalculations';
 
 class FitnessDashboardSection extends Component {
@@ -153,6 +153,14 @@ class FitnessDashboardSection extends Component {
     
     // Default to Female if empty or unrecognized
     return 'Female';
+  };
+
+  handleStationCountChangeParticipations = (e) => {
+    this.setState({ selectedStationCountParticipations: parseInt(e.target.value, 10) });
+  };
+
+  handleStationCountChangeParticipants = (e) => {
+    this.setState({ selectedStationCountParticipants: parseInt(e.target.value, 10) });
   };
 
   // Calculate all dashboard data - Main orchestrator

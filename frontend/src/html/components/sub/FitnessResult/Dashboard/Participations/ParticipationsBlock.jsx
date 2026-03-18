@@ -1,6 +1,6 @@
 import React, { Component } from "react";
-import ParticipationsCardsBlock from './ParticipationsCardsBlock';
-import ParticipationsChartBlock from './ParticipationsChartBlock';
+import ParticipationsCardsBlock from './section/ParticipationsCardsBlock';
+import ParticipationsChartBlock from './section/ParticipationsChartBlock';
 
 class ParticipationsBlock extends Component {
   render() {

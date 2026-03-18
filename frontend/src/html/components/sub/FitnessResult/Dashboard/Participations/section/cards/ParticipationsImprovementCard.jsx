@@ -47,7 +47,7 @@ class ParticipationsImprovementCard extends Component {
   };
 
   handleOptionSelect = (optionNumber) => {
-    this.setState({ isDropdownOpen: false });
+    this.setState({ isDropdownOpen: false, selectedStationCountParticipations: optionNumber });
   };
 
   getQualifiedParticipants = (data) => {
@@ -68,17 +68,44 @@ class ParticipationsImprovementCard extends Component {
       }));
   };
 
-  calculateTotalAttendance = (data) => 
-  {
+  calculateTotalAttendance = (data) => {
     if (!data || !data.participantMap) {
       return 0;
     }
+    return this.getQualifiedParticipants(data).length;
+  };
+
+  calculateImprovementRate = (data, stationCount = 1) => {
+    const total = this.calculateTotalAttendance(data);
+    if (!total) return '—';
+    const improved = this.calculateImprovementCount(data, stationCount);
+    return `${parseFloat(((improved / total) * 100).toFixed(2))}%`;
+  };
+
+  calculateImprovementCount = (data, stationCount = 1) => {
+    if (!data || !data.participantMap) return 0;
 
     const qualifiedParticipants = this.getQualifiedParticipants(data);
-    console.log('Qualified participants (attended more than once):', qualifiedParticipants);
-    
-    console.log('Total participants who attended more than once:', qualifiedParticipants.length);
-    return qualifiedParticipants.length;
+    const years = (data.years || []).slice().sort();
+    if (years.length < 2) return 0;
+
+    let count = 0;
+    qualifiedParticipants.forEach(({ participant }) => {
+      for (let i = 0; i < years.length - 1; i++) {
+        const curr = participant.years[years[i]];
+        const next = participant.years[years[i + 1]];
+        if (!curr || !next) continue;
+        let improvedCount = 0;
+        this.fitnessMetrics.forEach(metric => {
+          const a = curr[metric.key];
+          const b = next[metric.key];
+          if (a === undefined || b === undefined || isNaN(a) || isNaN(b)) return;
+          if (metric.higherIsBetter ? b > a : b < a) improvedCount++;
+        });
+        if (improvedCount >= stationCount) { count++; break; }
+      }
+    });
+    return count;
   };
 
   render() {
@@ -114,7 +141,7 @@ class ParticipationsImprovementCard extends Component {
                 color: '#000000',
               }}
             >
-              1
+              {selectedStationCountParticipations}
               <span style={{ fontSize: '12px' }}>▼</span>
             </button>
             
@@ -158,14 +185,14 @@ class ParticipationsImprovementCard extends Component {
           </div>
         </div>
 
-        {/* Bottom Main Section: Header and Value */}
+        {/* Improvement by Year */}
         <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: '16px', paddingTop: '16px', borderTop: '1px solid #e2e8f0' }}>
           <div style={{ flex: 1 }}>
-            <span className="fft-dash-kpi-label" style={{ marginBottom: '0' }}>Total Attendance</span>
+            <span className="fft-dash-kpi-label" style={{ marginBottom: '0' }}>Improvement by Year</span>
           </div>
           <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
             <span className="fft-dash-kpi-value">
-              {this.calculateTotalAttendance(data)}
+              {this.calculateImprovementRate(data, selectedStationCountParticipations)}
             </span>
           </div>
         </div>

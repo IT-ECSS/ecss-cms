@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import '../../../css/sub/fitnessSitesSection.css';
+import '../../../../../css/sub/FitnessResult/Sites/fitnessSitesSection.css';
 
 /**
  * FitnessSitesSection - Display site/location-level fitness statistics

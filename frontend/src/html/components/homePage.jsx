@@ -13,7 +13,7 @@ import React, { Component } from 'react';
   import DashboardSection from './sub/dashboardSection';
   import AttendanceSection from './sub/AttendanceSection';
   import MembershipSection from './sub/MembershipSection';
-  import FitnessSection from './sub/FitnessSection';
+  import FitnessSection from './sub/FitnessResult/FitnessSection';
   import FundraisingOrders from './sub/FundraisingOrders';
   import FundraisingInventory from './sub/FundraisingInventory';
   import InventoryModules from './sub/InventoryModules';

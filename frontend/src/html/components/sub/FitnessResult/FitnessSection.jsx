@@ -1,9 +1,9 @@
 import React, { Component } from 'react';
 import axios from 'axios';
-import FitnessFilterSection from './FitnessFilterSection';
-import FitnessDashboardSection from './FitnessDashboardSection';
-import FitnessParticipantsSection from './FitnessParticipantsSection';
-import '../../../css/sub/fitnessMainSection.css';
+import FitnessFilterSection from './Filter/FitnessFilterSection';
+import FitnessDashboardSection from './Dashboard/FitnessDashboardSection';
+import FitnessParticipantsSection from './Participants/FitnessParticipantsSection';
+import '../../../../css/sub/FitnessResult/fitnessMainSection.css';
 
 /**
  * FitnessSection - Main container for FFT Fitness Results
@@ -25,6 +25,7 @@ class FitnessSection extends Component {
       locationFileMap: {},
       locationYearMap: {}, // Maps location -> [years] where that location has data
       fftFolderId: '',
+      fileRegistry: [], // [{ fileId, fileName, year, location }]
       
       // Filter states
       selectedLocations: [],
@@ -46,7 +47,7 @@ class FitnessSection extends Component {
     const defaultFolderId = '1EsnCGO1QfPrqfmDtsy-cELUO3UyZKCci';
     const savedFolderId = localStorage.getItem('fftGoogleDriveFolderId') || defaultFolderId;
     this.setState({ fftFolderId: savedFolderId }, () => {
-      this.fetchYearFolders();
+      this.scanFFTFiles();
     });
   }
 
@@ -56,84 +57,130 @@ class FitnessSection extends Component {
       : "https://ecss-backend-node.azurewebsites.net";
   }
 
-  fetchYearFolders = async () => {
+  // Extract year from filename using both naming conventions:
+  //   Convention 1: "Location yyyy FFT"           e.g. "PRW 2025 FFT"
+  //   Convention 2: "yyyy/mm/dd Location FFT Session N"  e.g. "2025/03/15 PRW FFT Session 1"
+  extractYearFromFilename = (filename) => {
+    // Convention 2: starts with yyyy/mm/dd
+    const dateMatch = filename.match(/^(20\d{2})\/\d{2}\/\d{2}/);
+    if (dateMatch) return dateMatch[1];
+    // Convention 1 / general: first 20xx pattern anywhere in the name
+    const yearMatch = filename.match(/(20\d{2})/);
+    if (yearMatch) return yearMatch[1];
+    return null;
+  }
+
+  isSpreadsheetFile = (file) => {
+    const lower = (file.name || '').toLowerCase();
+    return file.mimeType === 'application/vnd.google-apps.spreadsheet' ||
+      file.mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+      lower.endsWith('.xlsx') || lower.endsWith('.xls') || lower.endsWith('.csv');
+  }
+
+  scanFFTFiles = async () => {
     const { fftFolderId } = this.state;
-    
-    try {
-      this.setState({ error: null });
-      
-      if (!fftFolderId) {
-        this.setState({ 
-          availableYears: [],
-          yearFolders: {}
-        }, () => {
-          if (this.props.onDataLoaded) {
-            this.props.onDataLoaded();
-          }
-        });
-        return;
-      }
 
-      const response = await axios.post(
-        `${this.getApiBaseUrl()}/googleDrive`,
-        { 
-          folderId: fftFolderId, 
-          purpose: 'listSubfolders'
+    this.setState({ error: null });
+
+    if (!fftFolderId) {
+      this.setState({ availableYears: [], yearFolders: {}, fileRegistry: [] }, () => {
+        if (this.props.onDataLoaded) this.props.onDataLoaded();
+      });
+      return;
+    }
+
+    const hardcodedLocations = this.getHardcodedLocations();
+    const fileRegistry = [];
+    const yearsSet = new Set();
+    const locationYearMap = {};
+    hardcodedLocations.forEach(loc => { locationYearMap[loc.name] = []; });
+    const yearFolders = {};
+
+    const registerFile = (file, folderYear = null) => {
+      if (!this.isSpreadsheetFile(file)) return;
+      const year = folderYear || this.extractYearFromFilename(file.name);
+      if (!year) return;
+      for (const loc of hardcodedLocations) {
+        if (this.matchesLocation(file.name, loc.prefixes)) {
+          fileRegistry.push({ fileId: file.id, fileName: file.name, year, location: loc.name });
+          yearsSet.add(year);
+          if (!locationYearMap[loc.name].includes(year)) {
+            locationYearMap[loc.name].push(year);
+          }
+          break;
         }
-      );
-      
-      if (response.data.success) {
-        const folders = response.data.folders || [];
-
-        console.log('Fetched year folders:', folders);
-        
-        // Filter for folders only (year folders like 2024, 2025, 2026)
-        const yearFolders = {};
-        const yearsSet = new Set();
-        
-        folders.forEach(folder => {
-          // Try to extract a year (e.g., "2024") from the folder name.
-          // Some setups might name the folder "2024 FFT" or "FFT 2024".
-          const yearMatch = folder.name.match(/(20\d{2})/);
-          if (yearMatch) {
-            const year = yearMatch[1];
-            yearsSet.add(year);
-            yearFolders[year] = folder.id;
-          }
-        });
-
-        const availableYears = [...yearsSet].sort();
-
-        this.setState({
-          yearFolders,
-          availableYears
-        }, () => {
-          // After loading year folders, scan for location-year mapping
-          this.buildLocationYearMap(yearFolders, availableYears);
-          if (this.props.onDataLoaded) {
-            this.props.onDataLoaded();
-          }
-        });
-      } else {
-        throw new Error(response.data.error || 'Failed to fetch folders from Google Drive');
       }
-    } catch (error) {
-      console.error('Error fetching year folders:', error);
-      this.setState({
-        error: error.message || 'Failed to fetch folders from Google Drive'
-      }, () => {
-        if (this.props.onDataLoaded) {
-          this.props.onDataLoaded();
+    };
+
+    try {
+      // Step 1: List sub-folders (year-folder structure support)
+      const subfoldersResp = await axios.post(
+        `${this.getApiBaseUrl()}/googleDrive`,
+        { folderId: fftFolderId, purpose: 'listSubfolders' }
+      );
+      const subfolders = subfoldersResp.data.success ? (subfoldersResp.data.folders || []) : [];
+
+      // Extract year from sub-folder names
+      subfolders.forEach(folder => {
+        const ym = folder.name.match(/(20\d{2})/);
+        if (ym) yearFolders[ym[1]] = folder.id;
+      });
+
+      // Step 2: List files directly in root (flat file structure support)
+      const rootResp = await axios.post(
+        `${this.getApiBaseUrl()}/googleDrive`,
+        { folderId: fftFolderId, purpose: 'listFiles' }
+      );
+      const rootFiles = rootResp.data.success ? (rootResp.data.files || []) : [];
+      rootFiles.forEach(f => registerFile(f, null));
+
+      // Step 3: Scan each year sub-folder using folder year as reference
+      const subFolderScans = Object.entries(yearFolders).map(async ([year, folderId]) => {
+        try {
+          const resp = await axios.post(
+            `${this.getApiBaseUrl()}/googleDrive`,
+            { folderId, purpose: 'listFiles' }
+          );
+          const files = resp.data.success ? (resp.data.files || []) : [];
+          files.forEach(f => registerFile(f, year));
+        } catch (err) {
+          console.error(`Error scanning year folder ${year}:`, err);
         }
       });
+      await Promise.all(subFolderScans);
+
+      // Sort
+      Object.keys(locationYearMap).forEach(loc => locationYearMap[loc].sort());
+      const availableYears = [...yearsSet].sort();
+      const availableLocations = hardcodedLocations.map(loc => loc.name);
+
+      console.log('File registry:', fileRegistry);
+      console.log('Available years:', availableYears);
+      console.log('Location-year map:', locationYearMap);
+
+      this.setState({
+        yearFolders,
+        fileRegistry,
+        availableYears,
+        availableLocations,
+        locationYearMap
+      }, () => {
+        if (this.props.onDataLoaded) this.props.onDataLoaded();
+      });
+    } catch (error) {
+      console.error('Error scanning FFT files:', error);
+      this.setState(
+        { error: error.message || 'Failed to scan FFT files', availableYears: [], yearFolders: {}, fileRegistry: [] },
+        () => { if (this.props.onDataLoaded) this.props.onDataLoaded(); }
+      );
     }
   }
 
-  // Hardcoded centre locations with file name prefixes
+  // Hardcoded centre locations with file name prefixes (both short codes and full names)
   getHardcodedLocations = () => {
     return [
-      { name: 'CT Hub', prefixes: ['CT Hub', 'CT', 'CTH'] },
-      { name: 'Pasir Ris', prefixes: ['PRW'] },
+      { name: 'CT Hub', prefixes: ['CT Hub', 'CTH', 'CT'] },
+      { name: 'Pasir Ris', prefixes: ['Pasir Ris', 'PRW', 'PR'] },
       { name: 'Tampines', prefixes: ['Tampines', 'TNCC', 'TNC'] }
     ];
   }
@@ -152,79 +199,7 @@ class FitnessSection extends Component {
     );
   }
 
-  // Build a map of which years each location has data in
-  buildLocationYearMap = async (yearFolders, availableYears) => {
-    const hardcodedLocations = this.getHardcodedLocations();
-    const locationYearMap = {};
-
-    
-    // Initialize map for each location
-    hardcodedLocations.forEach(loc => {
-      locationYearMap[loc.name] = [];
-    });
-
-    // Scan each year folder in parallel
-    const scanPromises = availableYears.map(async (year) => {
-      const folderId = yearFolders[year];
-      if (!folderId) return { year, files: [] };
-
-      try {
-        const response = await axios.post(
-          `${this.getApiBaseUrl()}/googleDrive`,
-          { folderId, purpose: 'listFiles' }
-        );
-        
-        if (response.data.success) {
-          return { year, files: response.data.files || [] };
-        }
-      } catch (err) {
-        console.error(`Error scanning year folder ${year}:`, err);
-      }
-      return { year, files: [] };
-    });
-
-    const results = await Promise.all(scanPromises);
-
-    // Map files to locations
-    results.forEach(({ year, files }) => {
-      files.forEach(file => {
-        // Check if it's a spreadsheet
-        const fileNameLower = (file.name || '').toLowerCase();
-        const isSpreadsheet = file.mimeType === 'application/vnd.google-apps.spreadsheet' ||
-          file.mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-          fileNameLower.endsWith('.xlsx') ||
-          fileNameLower.endsWith('.xls') ||
-          fileNameLower.endsWith('.csv');
-
-        if (isSpreadsheet) {
-          // Find which location this file belongs to
-          for (const loc of hardcodedLocations) {
-            if (this.matchesLocation(file.name, loc.prefixes)) {
-              if (!locationYearMap[loc.name].includes(year)) {
-                locationYearMap[loc.name].push(year);
-              }
-              break;
-            }
-          }
-        }
-      });
-    });
-
-    // Sort years for each location
-    Object.keys(locationYearMap).forEach(loc => {
-      locationYearMap[loc].sort();
-    });
-
-    // Extract available locations from hardcoded list
-    const availableLocations = hardcodedLocations.map(loc => loc.name);
-
-    console.log('Location-Year Map:', locationYearMap);
-    console.log('Available Locations:', availableLocations);
-    this.setState({ 
-      locationYearMap,
-      availableLocations 
-    });
-  }
+  // buildLocationYearMap is now handled inside scanFFTFiles
 
   fetchSpreadsheetFiles = async (yearFolderId) => {
     try {
@@ -494,7 +469,7 @@ class FitnessSection extends Component {
         } else if (yearFrom) {
           return itemYear >= parseInt(yearFrom);
         } else if (yearTo) {
-          return itemYear <= parseInt(yearTo);
+          return itemYear === parseInt(yearTo);
         }
         return true;
       });
@@ -553,138 +528,112 @@ class FitnessSection extends Component {
     return availableYears;
   };
 
+  // Detect and correct a one-column right-shift caused by a missing S/N header in the spreadsheet.
+  // When the 2026 template omits the leading "S/N" column, every field ends up stored under the
+  // NEXT column's header.  We detect this by checking whether "30 secs Sit & Stand" holds a date
+  // value (DD/MM/YYYY) instead of a numeric score, then slide every field left one slot.
+  normalizeShiftedColumns = (rows) => {
+    if (!rows || rows.length === 0) return rows;
+    const sampleRow = rows.find(
+      r => r['30 secs Sit & Stand'] !== undefined && String(r['30 secs Sit & Stand']).trim() !== ''
+    );
+    if (!sampleRow) return rows;
+    const val = String(sampleRow['30 secs Sit & Stand']).trim();
+    // If it looks like a date (e.g. "03/02/2026") the columns are shifted
+    if (!/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(val)) return rows;
+    return rows.map(row => ({
+      year:                           row.year,
+      location:                       row.location,
+      'S/N':                          row['Name']                        || '',
+      'Name':                         row['Chinese Name']                || '',
+      'Chinese Name':                 '',
+      'Phone Number':                 row['Gender']                      || '',
+      'Gender':                       row['DD']                          || '',
+      'DD':                           row['MM']                          || '',
+      'MM':                           row['YYYY']                        || '',
+      'YYYY':                         row['Age']                         || '',
+      'Age':                          row['Height']                      || '',
+      'Height':                       row['Weight']                      || '',
+      'Weight':                       row['BMI']                         || '',
+      'BMI':                          row['Date of test']                || '',
+      'Date of test':                 row['30 secs Sit & Stand']         || '',
+      '30 secs Sit & Stand':          row['30 secs Arm Banding']         || '',
+      '30 secs Arm Banding':          row['2 min On-the-spot Marching']  || '',
+      '2 min On-the-spot Marching':   row['Sit & Reach']                 || '',
+      'Sit & Reach':                  row['Back Stretching']             || '',
+      'Back Stretching':              row['2.44m Speed Walk']            || '',
+      '2.44m Speed Walk':             row['Grip test']                   || '',
+      'Grip test':                    row['Improvements']                || '',
+      'Improvements':                 row['Remarks']                     || '',
+      'Remarks':                      '',
+    }));
+  };
+
   // Fetch data when both locations and year(s) are selected
   fetchLocationYearData = async () => {
-    const { selectedLocations, yearFrom, yearTo, yearFolders } = this.state;
-    
+    const { selectedLocations, yearFrom, yearTo, fileRegistry } = this.state;
+
     if (!selectedLocations || selectedLocations.length === 0 || (!yearFrom && !yearTo)) {
       return;
     }
 
     this.setState({ loading: true });
-    
+
     try {
-      // Get the centre codes for all selected locations
-      const hardcodedLocations = this.getHardcodedLocations();
-      const selectedCentres = selectedLocations
-        .map(locName => hardcodedLocations.find(loc => loc.name === locName))
-        .filter(loc => loc !== undefined);
-      
-      if (selectedCentres.length === 0) {
-        console.error('No matching centres found for:', selectedLocations);
-        throw new Error('Invalid centres selected');
-      }
+      // Filter file registry for matching location + year range
+      let filesToFetch = fileRegistry.filter(f => selectedLocations.includes(f.location));
 
-      console.log('Selected locations:', selectedLocations);
-      console.log('Selected centres:', selectedCentres);
-      console.log('Year folders:', yearFolders);
-
-      // Determine which years to fetch
-      let yearsToFetch = Object.keys(yearFolders).sort();
-      console.log('All available years:', yearsToFetch);
-      
-      if (yearsToFetch.length === 0) {
-        console.warn('No year folders available. Make sure the FFT folder is accessible.');
-        this.setState({
-          fitnessData: [],
-          dashboardStats: null,
-          loading: false
-        });
-        return;
-      }
-      
-      // If Year From is set but Year To is empty, just use Year From only
       if (yearFrom && !yearTo) {
-        yearsToFetch = yearsToFetch.filter(y => y === yearFrom);
+        filesToFetch = filesToFetch.filter(f => f.year === yearFrom);
       } else if (yearFrom && yearTo) {
-        yearsToFetch = yearsToFetch.filter(y => 
-          parseInt(y) >= parseInt(yearFrom) && parseInt(y) <= parseInt(yearTo)
+        filesToFetch = filesToFetch.filter(f =>
+          parseInt(f.year) >= parseInt(yearFrom) && parseInt(f.year) <= parseInt(yearTo)
         );
       } else if (yearTo) {
-        yearsToFetch = yearsToFetch.filter(y => parseInt(y) <= parseInt(yearTo));
+        filesToFetch = filesToFetch.filter(f => parseInt(f.year) <= parseInt(yearTo));
       }
-      // If no year filters, fetch all years
 
-      console.log('Years to fetch after filter:', yearsToFetch);
+      console.log('Files to fetch:', filesToFetch);
 
-      // Fetch spreadsheets from each year folder and for each centre IN PARALLEL
-      const fetchPromises = [];
-      
-      yearsToFetch.forEach(year => {
-        selectedCentres.forEach(selectedCentre => {
-          const promise = (async () => {
-            const folderId = yearFolders[year];
-            
-            try {
-              // List files in the year folder
-              const listResponse = await axios.post(
-                `${this.getApiBaseUrl()}/googleDrive`,
-                { folderId, purpose: 'listFiles' }
-              );
+      if (filesToFetch.length === 0) {
+        console.warn('No matching files found for selected location/year.');
+        this.setState({ fitnessData: [], dashboardStats: null, loading: false });
+        return;
+      }
 
-              if (listResponse.data.success) {
-                const files = listResponse.data.files || [];
-                
-                // Find spreadsheet matching the centre prefixes
-                const matchingFile = files.find(file => {
-                  const fileNameLower = (file.name || '').toLowerCase();
-                  const isSpreadsheet = file.mimeType === 'application/vnd.google-apps.spreadsheet' ||
-                    file.mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-                    fileNameLower.endsWith('.xlsx') ||
-                    fileNameLower.endsWith('.xls') ||
-                    fileNameLower.endsWith('.csv');
-                  
-                  const matchesLoc = selectedCentre && selectedCentre.prefixes ? 
-                    this.matchesLocation(file.name, selectedCentre.prefixes) : false;
-                  
-                  return isSpreadsheet && matchesLoc;
-                });
+      // Fetch each matching spreadsheet in parallel
+      const fetchPromises = filesToFetch.map(async ({ fileId, year, location }) => {
+        try {
+          const readResponse = await axios.post(
+            `${this.getApiBaseUrl()}/googleDrive/readSpreadsheet`,
+            { fileId }
+          );
 
-                if (matchingFile) {
-                  // Read the spreadsheet data
-                  const readResponse = await axios.post(
-                    `${this.getApiBaseUrl()}/googleDrive/readSpreadsheet`,
-                    { fileId: matchingFile.id }
-                  );
-
-                  if (readResponse.data.success && readResponse.data.data) {
-                    const { data: rows, columns } = readResponse.data;
-                    
-                    // Convert array rows to objects using column headers
-                    return rows.map(row => {
-                      const obj = { year, location: selectedCentre.name };
-                      columns.forEach((colName, index) => {
-                        obj[colName] = row[index] ?? '';
-                      });
-                      return obj;
-                    });
-                  }
-                }
-              }
-            } catch (err) {
-              console.error(`Error fetching data for year ${year} and centre ${selectedCentre.name}:`, err);
-            }
-            return [];
-          })();
-          
-          fetchPromises.push(promise);
-        });
+          if (readResponse.data.success && readResponse.data.data) {
+            const { data: rows, columns } = readResponse.data;
+            const rawRows = rows.map(row => {
+              const obj = { year, location };
+              columns.forEach((colName, index) => {
+                obj[colName] = row[index] ?? '';
+              });
+              return obj;
+            });
+            return this.normalizeShiftedColumns(rawRows);
+          }
+        } catch (err) {
+          console.error(`Error reading file ${fileId} (${year} / ${location}):`, err);
+        }
+        return [];
       });
 
-      // Wait for all parallel fetches to complete
       const results = await Promise.all(fetchPromises);
       const allData = results.flat();
 
       console.log('Total data rows:', allData.length);
 
-      // Calculate dashboard stats
       const dashboardStats = this.calculateDashboardStatsFromData(allData);
 
-      this.setState({
-        fitnessData: allData,
-        dashboardStats,
-        loading: false
-      });
+      this.setState({ fitnessData: allData, dashboardStats, loading: false });
 
     } catch (error) {
       console.error('Error fetching centre data:', error);
@@ -786,7 +735,7 @@ class FitnessSection extends Component {
   handleSaveFolderId = () => {
     const { fftFolderId } = this.state;
     localStorage.setItem('fftGoogleDriveFolderId', fftFolderId);
-    this.fetchYearFolders();
+    this.scanFFTFiles();
   }
 
   renderTabContent = () => {
@@ -864,7 +813,7 @@ class FitnessSection extends Component {
         <div className="fft-main-error">
           <i className="fas fa-exclamation-triangle"></i>
           <span>{error}</span>
-          <button onClick={this.fetchYearFolders} className="fft-main-retry-btn">
+          <button onClick={this.scanFFTFiles} className="fft-main-retry-btn">
             <i className="fas fa-redo"></i> Retry
           </button>
         </div>

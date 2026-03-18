@@ -1,8 +1,8 @@
 import React, { Component } from "react";
-import ParticipationsTotalCard from './ParticipationsTotalCard';
-import ParticipationsFemaleCard from './ParticipationsFemaleCard';
-import ParticipationsMaleCard from './ParticipationsMaleCard';
-import ParticipationsImprovementCard from './ParticipationsImprovementCard';
+import ParticipationsTotalCard from './cards/ParticipationsTotalCard';
+import ParticipationsFemaleCard from './cards/ParticipationsFemaleCard';
+import ParticipationsMaleCard from './cards/ParticipationsMaleCard';
+import ParticipationsImprovementCard from './cards/ParticipationsImprovementCard';
 
 class ParticipationsCardsBlock extends Component {
   render() {

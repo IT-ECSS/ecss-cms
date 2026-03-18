@@ -27,8 +27,13 @@
 }
 
 /* Comparison table specific cell borders */
-.fft-entries-table-wrapper .ag-cell {
+/*.fft-entries-table-wrapper .ag-cell {
   border-right: 1px solid #ddd !important;
+  border-bottom: 1px solid #ddd !important;
+}*/
+
+.fft-entries-table-wrapper .ag-cell {
+  border-right: none;
   border-bottom: 1px solid #ddd !important;
 }
 
@@ -196,23 +201,52 @@
 }
 
 /* Ensure all header cells in comparison view have borders and centered text */
-.fft-entries-table-wrapper .ag-header-cell {
+/*.fft-entries-table-wrapper .ag-header-cell {
+  border-right: 1px solid #c9a097 !important;
+}*/
+
+.fft-multi-year-table .ag-header-cell {
   border-right: 1px solid #c9a097 !important;
 }
 
-.fft-entries-table-wrapper .ag-header-cell .ag-header-cell-label {
+.fft-multi-year-table .ag-header-cell .ag-header-cell-label {
   justify-content: center !important;
   font-weight: bold !important;
 }
 
-.fft-entries-table-wrapper .ag-header-group-cell {
+.fft-multi-year-table .ag-header-group-cell {
   border-right: 2px solid #a08078 !important;
   border-bottom: 1px solid #c9a097 !important;
 }
 
-.fft-entries-table-wrapper .ag-header-group-cell .ag-header-group-cell-label {
+.fft-multi-year-table .ag-header-group-cell .ag-header-group-cell-label {
+  display: flex !important;
   justify-content: center !important;
-  font-weight: bold !important;
+  width: 100% !important;
+  font-weight: 800 !important;
+  font-size: 22.5px !important;
+  letter-spacing: 0.3px !important;
+  text-align: center !important;
+}
+
+.fft-multi-year-table .ag-center-cols-container .ag-cell {
+  border-left: 1px solid #ddd !important;
+  border-right: 1px solid #ddd !important;
+}
+
+.fft-multi-year-table .ag-header-viewport .ag-header-cell {
+  border-left: 1px solid #c9a097 !important;
+  border-right: 1px solid #c9a097 !important;
+}
+
+.fft-multi-year-table .ag-header-viewport .ag-header-group-cell {
+  border-left: 1px solid #c9a097 !important;
+  border-right: 1px solid #c9a097 !important;
+}
+
+.fft-multi-year-table .ag-pinned-left-header .ag-header-cell {
+  border-left: none !important;
+  border-right: none !important;
 }
 
 /* Grid container */

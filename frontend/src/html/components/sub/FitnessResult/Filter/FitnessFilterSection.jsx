@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import '../../../css/sub/fitnessFilterSection.css';
+import '../../../../../css/sub/FitnessResult/Filter/fitnessFilterSection.css';
 
 class FitnessFilterSection extends Component {
   constructor(props) {
@@ -55,7 +55,7 @@ class FitnessFilterSection extends Component {
     }
     
     // Update state and call parent callback
-    this.setState({ selectedLocations: updatedLocations }, () => {
+    this.setState({ selectedLocations: updatedLocations, yearFrom: '', yearTo: '' }, () => {
       if (this.props.onLocationChange) {
         this.props.onLocationChange(updatedLocations);
       }
@@ -143,15 +143,17 @@ class FitnessFilterSection extends Component {
                       ) : (
                         <span className="fft-selected-badges">
                           {selectedLocations.map(location => (
-                            <span key={location} className="fft-badge">
+                            <span
+                              key={location}
+                              className="fft-badge"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                this.handleLocationChange(location);
+                              }}
+                              style={{ cursor: 'pointer' }}
+                            >
                               {location}
-                              <i 
-                                className="fas fa-times" 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  this.handleLocationChange(location);
-                                }}
-                              ></i>
+                              <i className="fas fa-times" style={{ marginLeft: '6px', fontSize: '11px' }}></i>
                             </span>
                           ))}
                         </span>
