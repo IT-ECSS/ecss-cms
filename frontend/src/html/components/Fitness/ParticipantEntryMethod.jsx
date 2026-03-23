@@ -31,6 +31,7 @@ const ParticipantEntryMethod = ({ language, onUseSingpass, onUseManual, onUsePar
         >
           {manual}
         </button>
+        {/*Commented out */}
         {/*<button
           type="button"
           className="fft-participants-next-button"
