@@ -40,6 +40,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Create deployment package
+        run: |
+          cd djangoPython
+          zip -r ../django-deploy.zip . \
+            --exclude "*.pyc" \
+            --exclude "__pycache__/*" \
+            --exclude "venv/*" \
+            --exclude ".DS_Store" \
+            --exclude "db.sqlite3" \
+            --exclude "media/*"
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -50,5 +61,5 @@ jobs:
         with:
           app-name: 'ecss-backend-django'
           slot-name: 'Production'
-          package: './djangoPython'
+          package: './django-deploy.zip'
           
