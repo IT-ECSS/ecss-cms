@@ -1,0 +1,404 @@
+/* =====================================================
+   FFT Edit Participants — fft-edit-* namespace
+   ===================================================== */
+
+.fft-edit-participants {
+  width: 100%;
+  padding: 0 0 40px;
+  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+/* ── Header ── */
+.fft-edit-title {
+  font-size: 1.71875rem;
+  font-weight: 700;
+  color: #212121;
+  margin: 0 0 12px;
+}
+
+.fft-edit-divider {
+  border: none;
+  border-top: 2px solid #e2e6ed;
+  margin: 0 0 12px;
+}
+
+.fft-edit-desc {
+  font-size: 1.25rem;
+  color: #555;
+  margin: 0 0 20px;
+}
+
+/* ── Search bar ── */
+.fft-edit-search-row {
+  margin-bottom: 12px;
+}
+
+.fft-edit-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.fft-edit-search-icon {
+  position: absolute;
+  left: 12px;
+  color: #888;
+  font-size: 0.9rem;
+  pointer-events: none;
+}
+
+.fft-edit-search-input {
+  width: 100%;
+  padding: 8px 36px 8px 34px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.fft-edit-search-input:focus {
+  border-color: #4caf50;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.15);
+}
+
+.fft-edit-search-clear {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #888;
+  font-size: 0.9rem;
+  padding: 4px;
+  line-height: 1;
+}
+
+.fft-edit-search-clear:hover {
+  color: #333;
+}
+
+.fft-edit-search {
+  flex: 1;
+  padding: 10px 14px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.fft-edit-search:focus {
+  border-color: #2c7be5;
+}
+
+.fft-edit-refresh-btn {
+  background: transparent;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 1rem;
+  color: #555;
+  transition: background 0.2s, color 0.2s;
+}
+
+.fft-edit-refresh-btn:hover {
+  background: #f0f4ff;
+  color: #2c7be5;
+}
+
+/* ── Status messages ── */
+.fft-edit-status {
+  font-size: 1.1rem;
+  color: #555;
+  padding: 16px 0;
+  margin-top: 16px;
+}
+
+.fft-edit-error {
+  font-size: 1.1rem;
+  color: #c62828;
+  background: #ffebee;
+  border: 1px solid #ef5350;
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+.fft-edit-success {
+  font-size: 1.1rem;
+  color: #1b5e20;
+  background: #e8f5e9;
+  border: 1px solid #66bb6a;
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+/* ── Table ── */
+.fft-edit-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.fft-edit-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 1rem;
+}
+
+.fft-edit-table thead tr {
+  background-color: #E7B8B0;
+  color: white;
+}
+
+.fft-edit-table th {
+  padding: 12px 14px;
+  text-align: left;
+  font-weight: 700;
+  font-size: 1.1rem;
+  border-right: 1px solid #c9a097;
+}
+
+.fft-edit-table th:last-child {
+  border-right: none;
+}
+
+.fft-edit-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #e2e6ed;
+  border-right: 1px solid #e2e6ed;
+  vertical-align: middle;
+}
+
+.fft-edit-table td:last-child {
+  border-right: none;
+}
+
+.fft-edit-table tbody tr:hover {
+  background-color: #fdf5f4;
+}
+
+.fft-edit-row--editing {
+  background-color: #fff8f0 !important;
+}
+
+/* ── Inline inputs ── */
+.fft-edit-input {
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 0.95rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.fft-edit-input:focus {
+  border-color: #2c7be5;
+}
+
+.fft-edit-input--sm {
+  width: 52px;
+}
+
+.fft-edit-input--md {
+  width: 72px;
+}
+
+.fft-edit-dob-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── Action buttons ── */
+.fft-edit-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.fft-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+  white-space: nowrap;
+}
+
+.fft-edit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.fft-edit-btn--edit {
+  background: #e3edfc;
+  color: #2c7be5;
+  border: 1px solid #b3cfef;
+}
+
+.fft-edit-btn--edit:hover {
+  background: #c9dff8;
+}
+
+.fft-edit-btn--save {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #a5d6a7;
+}
+
+.fft-edit-btn--save:hover:not(:disabled) {
+  background: #c8e6c9;
+}
+
+.fft-edit-btn--cancel {
+  background: #ffebee;
+  color: #c62828;
+  border: 1px solid #ef9a9a;
+}
+
+.fft-edit-btn--cancel:hover:not(:disabled) {
+  background: #ffcdd2;
+}
+
+/* ── No results ── */
+.fft-edit-no-results {
+  text-align: center;
+  color: #888;
+  padding: 20px 0;
+  font-size: 1rem;
+}
+
+/* ── Pending changes badge ── */
+.fft-edit-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #2e7d32;
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-left: 6px;
+}
+
+/* ── AG Grid editable cell highlight ── */
+.fft-edit-grid .ag-cell[aria-colindex]:not([col-id="0"]) {
+  cursor: pointer;
+}
+
+.fft-edit-grid .ag-cell-focus {
+  border: 1px solid #2c7be5 !important;
+}
+
+/* Override global grid-container margins/dimensions */
+.fft-edit-participants .grid-container {
+  width: 100% !important;
+  height: 450px !important;
+  overflow: auto !important;
+  margin-left: 0 !important;
+}
+
+/* ── Changes panel ── */
+.fft-edit-changes-panel {
+  margin-top: 20px;
+  padding: 16px 20px;
+  background: #fffde7;
+  border: 1px solid #f9a825;
+  border-radius: 8px;
+}
+
+.fft-edit-changes-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #5d4037;
+  margin: 0 0 12px;
+}
+
+.fft-edit-changes-list {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fft-edit-changes-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.fft-edit-changes-rownum {
+  font-weight: 700;
+  color: #5d4037;
+  min-width: 50px;
+}
+
+.fft-edit-changes-field {
+  background: #fff8e1;
+  border: 1px solid #ffe082;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 0.9rem;
+}
+
+.fft-edit-old {
+  color: #c62828;
+  text-decoration: line-through;
+  margin: 0 2px;
+}
+
+.fft-edit-new {
+  color: #2e7d32;
+  font-weight: 600;
+  margin: 0 2px;
+}
+
+/* ── Save row (below changes panel) ── */
+.fft-edit-save-row {
+  margin-top: 16px;
+}
+
+.fft-edit-changes-panel .fft-edit-btn--save {
+  margin-top: 4px;
+}
+
+/* ── Error state for combined panel ── */
+.fft-edit-changes-panel--error {
+  background: #ffebee;
+  border-color: #ef5350;
+}
+
+.fft-edit-changes-panel--error .fft-edit-changes-title {
+  color: #c62828;
+}
+
+.fft-edit-validation-msg {
+  background: #fff;
+  border: 1px solid #ef9a9a;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 0.9rem;
+  color: #c62828;
+}

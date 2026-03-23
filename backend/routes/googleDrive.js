@@ -629,4 +629,100 @@ router.post('/participant/:entryNumber', async (req, res) => {
     }
 });
 
+// POST endpoint to list all participants in a spreadsheet
+router.post('/getParticipants', async (req, res) => {
+    try {
+        const { fileId } = req.body;
+        if (!fileId) {
+            return res.status(400).json({ success: false, error: 'fileId is required' });
+        }
+
+        const result = await googleDriveController.readSpreadsheet(fileId);
+        if (!result.success) {
+            return res.status(500).json({ success: false, error: result.error || 'Failed to read spreadsheet' });
+        }
+
+        const headers = (result.columns || []).map(h => String(h || '').trim());
+        const rows = result.data || [];
+
+        if (headers.length === 0 || rows.length === 0) {
+            return res.json([]);
+        }
+
+        const participants = rows
+            .filter(row => row.some(cell => cell !== null && cell !== undefined && String(cell).trim() !== ''))
+            .map(row => {
+                const obj = {};
+                headers.forEach((header, i) => {
+                    obj[header] = row[i] !== undefined ? String(row[i]) : '';
+                });
+                return obj;
+            });
+
+        console.log('[FFT] getParticipants - headers:', JSON.stringify(headers.slice(0, 8)));
+        console.log('[FFT] getParticipants - first row sample:', JSON.stringify(participants[0]));
+        console.log('[FFT] getParticipants - count:', participants.length);
+        res.json(participants);
+    } catch (error) {
+        console.error('[FFT] Error in POST /getParticipants:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// POST endpoint to update a single participant row by row index
+router.post('/updateParticipant', async (req, res) => {
+    try {
+        const { fileId, rowIndex, participantData } = req.body;
+        if (!fileId || rowIndex == null || !participantData) {
+            return res.status(400).json({ success: false, error: 'fileId, rowIndex, and participantData are required' });
+        }
+
+        // rowIndex is 0-based from the frontend; entryNumber is 1-based (header row is row 1 in sheet)
+        const entryNumber = parseInt(rowIndex, 10) + 1;
+
+        const updates = {};
+        for (const [key, value] of Object.entries(participantData)) {
+            if (key !== '#' && value !== null && value !== undefined) {
+                updates[key] = String(value);
+            }
+        }
+
+        const result = await googleDriveController.updateRow(fileId, entryNumber, updates);
+        if (!result.success) {
+            return res.status(500).json(result);
+        }
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[FFT] Error in POST /updateParticipant:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// POST endpoint to export a Google Sheet as .xlsx
+router.post('/exportSpreadsheet', async (req, res) => {
+    try {
+        const { fileId, fileName } = req.body;
+        if (!fileId) {
+            return res.status(400).json({ success: false, error: 'fileId is required' });
+        }
+        const drive = await googleDriveController.initializeAuth();
+        const exportResponse = await drive.files.export(
+            { fileId, mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+            { responseType: 'arraybuffer' }
+        );
+        const buffer = Buffer.from(exportResponse.data);
+        const safeFileName = (fileName || 'spreadsheet').replace(/[^a-zA-Z0-9_\-. ]/g, '_') + '.xlsx';
+        res.set({
+            'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition': `attachment; filename="${encodeURIComponent(safeFileName)}"`,
+            'Content-Length': buffer.length,
+        });
+        res.send(buffer);
+    } catch (error) {
+        console.error('[FFT] Error in POST /exportSpreadsheet:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 module.exports = router;

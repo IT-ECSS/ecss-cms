@@ -1,0 +1,163 @@
+/* =====================================================
+   FFT Upload Sub-Section Styles
+   (fft-upload-* namespace)
+   ===================================================== */
+
+.fft-upload-subsection {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 24px;
+  border: 1px solid #e2e6ed;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+/* ── Header ── */
+.fft-upload-subsection-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e2e6ed;
+}
+
+.fft-upload-subsection-header i {
+  font-size: 1.375rem;
+  color: #2c7be5;
+}
+
+.fft-upload-subsection-title {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: #212121;
+  margin: 0;
+}
+
+/* ── Description ── */
+.fft-upload-subsection-desc {
+  font-size: 1rem;
+  color: #555;
+  margin: 0 0 20px 0;
+}
+
+/* ── Drop zone ── */
+.fft-upload-drop-zone {
+  display: block;
+  border: 2px dashed #d0d0d0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.25s ease, background 0.25s ease;
+  margin-bottom: 20px;
+  background: #fafbfc;
+}
+
+.fft-upload-drop-zone:hover {
+  border-color: #2c7be5;
+  background: #f0f6ff;
+}
+
+.fft-upload-drop-zone--dragging {
+  border-color: #2c7be5;
+  background: #e8f0fe;
+}
+
+.fft-upload-drop-zone--selected {
+  border-color: #166534;
+  border-style: solid;
+  background: #f0fdf4;
+}
+
+.fft-upload-drop-inner {
+  padding: 40px 20px;
+  text-align: center;
+  pointer-events: none;
+}
+
+/* ── Drop zone icons & text ── */
+.fft-upload-drop-icon {
+  font-size: 2.5rem;
+  color: #9ca3af;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.fft-upload-drop-icon--selected {
+  color: #166534;
+}
+
+.fft-upload-drop-text {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 4px 0;
+}
+
+.fft-upload-drop-text--selected {
+  color: #166534;
+}
+
+.fft-upload-drop-subtext {
+  font-size: 1rem;
+  color: #777;
+  margin: 0 0 8px 0;
+}
+
+.fft-upload-drop-hint {
+  font-size: 0.875rem;
+  color: #aaa;
+  margin: 0;
+}
+
+.fft-upload-file-name {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #166534;
+  margin: 4px 0 0 0;
+  word-break: break-all;
+}
+
+/* ── Actions ── */
+.fft-upload-subsection-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.fft-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.fft-upload-btn--upload {
+  background: #2c7be5;
+  color: #fff;
+  border-color: #2c7be5;
+}
+
+.fft-upload-btn--upload:hover:not(:disabled) {
+  background: #1a6fd4;
+  border-color: #1a6fd4;
+}
+
+.fft-upload-btn--clear {
+  background: transparent;
+  color: #dc3545;
+  border-color: #dc3545;
+}
+
+.fft-upload-btn--clear:hover {
+  background: #fff5f5;
+}
+
+.fft-upload-btn--disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

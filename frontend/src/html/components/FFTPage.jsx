@@ -92,7 +92,8 @@ class FFTPage extends Component {
                 selectedFile={selectedFile}
               />
             )}
-            {activeSection === 'trainers' && (
+            {/* Always mounted to preserve EditParticipants state when navigating home */}
+            <div style={{ display: activeSection === 'trainers' ? 'block' : 'none' }}>
               <FFTStaff
                 onBack={() => this.handleSectionChange('home')}
                 selectedFile={selectedFile}
@@ -101,7 +102,7 @@ class FFTPage extends Component {
                 initialEntryNumber={trainersEntryNumber}
                 onStateChange={(view, event, entryNumber) => this.setState({ trainersView: view, trainersEvent: event, trainersEntryNumber: entryNumber })}
               />
-            )}
+            </div>
       </div>
     );
   }

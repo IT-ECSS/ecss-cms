@@ -16,7 +16,7 @@ class ParticipationsBlock extends Component {
     if (!data) {
       return (
         <div className="fft-dash-left-section">
-          <h3 className="fft-dash-section-header">Participations</h3>
+          <h3 className="fft-dash-section-header">Participations (By attendance)</h3>
           <div className="fft-dash-empty">No data available</div>
         </div>
       );
@@ -24,7 +24,7 @@ class ParticipationsBlock extends Component {
 
     return (
       <div className="fft-dash-left-section">
-        <h3 className="fft-dash-section-header">Participations</h3>
+        <h3 className="fft-dash-section-header">Participations (By attendance)</h3>
         
         <ParticipationsCardsBlock
           data={data}

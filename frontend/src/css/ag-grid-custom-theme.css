@@ -143,6 +143,27 @@
   justify-content: center !important;
 }
 
+/* Column borders for upload status grid */
+.fft-upload-grid .ag-cell {
+  border-right: 1px solid #ddd !important;
+}
+
+.fft-upload-grid .ag-header-cell {
+  border-right: 1px solid #c9a097 !important;
+}
+
+.fft-upload-grid .ag-row {
+  border-bottom: 1px solid #ddd !important;
+}
+
+.fft-upload-grid .ag-header-cell-label {
+  justify-content: flex-start !important;
+}
+
+.fft-upload-grid .ag-cell {
+  justify-content: flex-start !important;
+}
+
 /* Header cells with borders for Year Comparison table */
 .ag-header-cell-bordered {
   border-right: 1px solid #c9a097 !important;

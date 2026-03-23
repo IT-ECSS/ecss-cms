@@ -35,6 +35,15 @@ class UploadStatus extends Component {
     const { files } = this.props;
     if (!files || files.length === 0) return;
 
+    // Reset validation state before parsing new file
+    this.setState({
+      excelData: [],
+      validationResults: {},
+      showValidation: false,
+      validationComplete: false,
+      rowsWithErrors: [],
+    });
+
     const file = files[0]; // Parse first file
     const reader = new FileReader();
 
@@ -45,7 +54,9 @@ class UploadStatus extends Component {
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
-        this.setState({ excelData: jsonData });
+        this.setState({ excelData: jsonData }, () => {
+          this.handleValidateAll();
+        });
       } catch (error) {
         console.error('Error parsing Excel file:', error);
       }
@@ -114,58 +125,33 @@ class UploadStatus extends Component {
 
   handleValidateAll = () => {
     const { excelData } = this.state;
-    const validationResults = {};
-    const rowsWithErrors = [];
+    const totalRows = excelData.length;
 
-    // Calculate total validations needed
-    const totalValidations = excelData.length;
-    let completedValidations = 0;
-    let hasErrorsFound = false;
-
-    // Validate rows one by one with delay for visual progression
     excelData.forEach((row, index) => {
+      const batchDelay = Math.floor(index / 5) * 1000;
       setTimeout(() => {
-        validationResults[index] = this.validateRow(row, index);
-        completedValidations++;
-        
-        // Check if this row has errors
-        const rowHasErrors = validationResults[index].errors && validationResults[index].errors.length > 0;
-        if (rowHasErrors) {
-          hasErrorsFound = true;
-          rowsWithErrors.push(index + 1); // Store row number (1-indexed)
-          console.log('ERROR FOUND at row', index + 1, ':', validationResults[index].errors);
-        }
-        
-        this.setState({ 
-          validationResults: { ...this.state.validationResults, ...validationResults },
-          rowsWithErrors: rowsWithErrors,
-          showValidation: true 
-        });
+        const result = this.validateRow(row, index);
 
-        // After all validations complete, set validationComplete to true and notify parent
-        if (completedValidations === totalValidations) {
-          if (hasErrorsFound) {
-            console.log('VALIDATION COMPLETE: Errors found in rows:', rowsWithErrors);
-          } else {
-            console.log('VALIDATION COMPLETE: All rows are valid');
+        this.setState(
+          (prev) => {
+            const isLast = index === totalRows - 1;
+            return {
+              validationResults: { ...prev.validationResults, [index]: result },
+              rowsWithErrors: result.errors.length > 0
+                ? [...prev.rowsWithErrors, index + 1]
+                : prev.rowsWithErrors,
+              showValidation: true,
+              ...(isLast ? { validationComplete: true } : {}),
+            };
+          },
+          () => {
+            if (index === totalRows - 1 && this.props.onValidationComplete) {
+              this.props.onValidationComplete();
+            }
           }
-          this.setState({ validationComplete: true });
-          // Notify parent to re-render and detect validation errors
-          if (this.props.onValidationComplete) {
-            this.props.onValidationComplete();
-          }
-        }
-      }, index * 500); // 500ms delay between each row
+        );
+      }, batchDelay);
     });
-
-    // For return value, validate all immediately but show progressively
-    const allValidationResults = {};
-    excelData.forEach((row, index) => {
-      allValidationResults[index] = this.validateRow(row, index);
-    });
-    
-    // Return whether all rows are valid
-    return Object.values(allValidationResults).every((result) => result.isValid);
   };
 
   getColumnDefs = () => {
@@ -197,6 +183,7 @@ class UploadStatus extends Component {
         },
         sortable: false,
         filter: false,
+        pinned: 'left'
       }
     ];
 
@@ -234,7 +221,7 @@ class UploadStatus extends Component {
     // Add Result column at the end - always show, but empty until validation completes
     columnDefs.push({
       field: 'result',
-      headerName: 'Result',
+      headerName: 'Status',
       width: columnWidths['Result'],
       pinned: 'right',
       valueGetter: (params) => {
@@ -265,7 +252,7 @@ class UploadStatus extends Component {
 
   render() {
     const { reviewing, uploading, uploadProgress, results, files, onConfirmUpload } = this.props;
-    const { excelData, showValidation, validationResults } = this.state;
+    const { excelData, showValidation, validationResults, validationComplete } = this.state;
 
     if (!reviewing && !uploading && !results) {
       return null;
@@ -273,7 +260,7 @@ class UploadStatus extends Component {
 
     // Build error list for display - group all errors for each participant into one entry
     const errorList = [];
-    if (showValidation) {
+    if (validationComplete) {
       excelData.forEach((row, index) => {
         const validation = validationResults[index];
         if (!validation?.isValid && validation?.errors.length > 0) {
@@ -295,7 +282,7 @@ class UploadStatus extends Component {
             </h4>
             <hr style={{ border: 'none', borderTop: '2px solid #e2e6ed', margin: '0 0 12px' }} />
             <p style={{ fontSize: '1.25rem', color: '#555', margin: '0 0 16px 0' }}>
-                Please review the files below and click Confirm to proceed.
+                Validating your file. Please review the results below before proceeding.
             </p>
             
             {/* Files Being Uploaded - Show Excel Data with AG Grid */}
@@ -304,7 +291,7 @@ class UploadStatus extends Component {
                 <p style={{ fontSize: '1.25rem', fontWeight: "bold"}}>
                   File: {files[0].name}
                 </p>
-                <div className="grid-container" style={{marginLeft: '0px', width: '100%'}}>
+                <div className="grid-container fft-upload-grid" style={{marginLeft: '0px', width: '100%'}}>
                   <AgGridReact
                     columnDefs={this.getColumnDefs()}
                     rowData={excelData}
@@ -315,7 +302,7 @@ class UploadStatus extends Component {
                 </div>
 
                 {/* Error List Display - Below the Table */}
-                {showValidation && errorList.length > 0 && (
+                {validationComplete && errorList.length > 0 && (
                   <div style={{ 
                     marginTop: '20px',
                     padding: '16px',
@@ -323,14 +310,17 @@ class UploadStatus extends Component {
                     border: '1px solid #ef5350',
                     borderRadius: '4px',
                   }}>
-                    <h5 style={{ fontSize: '1.25rem', color: '#c62828', margin: '0 0 12px 0' }}>
+                    <h5 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#c62828', margin: '0 0 4px 0' }}>
                       Validation Errors:
                     </h5>
+                    <p style={{ fontSize: '1.3rem', fontWeight: '700', color: '#c62828', margin: '0 0 12px 0' }}>
+                      All records are not uploaded. Please fix the error(s) below and try again.
+                    </p>
                     <ul style={{ 
                       margin: '0',
                       paddingLeft: '20px',
                       color: '#c62828',
-                      fontSize: '1.25rem',
+                      fontSize: '1.1rem',
                     }}>
                       {errorList.map((item, idx) => (
                         <li key={idx} style={{ marginBottom: '6px' }}>

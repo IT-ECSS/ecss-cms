@@ -31,7 +31,7 @@ const ParticipantEntryMethod = ({ language, onUseSingpass, onUseManual, onUsePar
         >
           {manual}
         </button>
-        <button
+        {/*<button
           type="button"
           className="fft-participants-next-button"
           onClick={onUseParticipantNumber}
@@ -42,7 +42,7 @@ const ParticipantEntryMethod = ({ language, onUseSingpass, onUseManual, onUsePar
           }}
         >
           {enterParticipantNumber}
-        </button>
+        </button>*/}
       </div>
     </div>
   );

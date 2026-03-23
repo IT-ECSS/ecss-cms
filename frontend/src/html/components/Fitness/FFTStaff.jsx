@@ -10,41 +10,16 @@ import '../../../css/fftStaff.css';
 // FFTStaff
 // ─────────────────────────────────────────────
 class FFTStaff extends Component {
-  storageKey = 'fftStaffState';
-
   constructor(props) {
     super(props);
     
-    // Try to restore state from localStorage
-    let savedState = { event: null, section: 'selectEvent' };
-    try {
-      const stored = localStorage.getItem(this.storageKey);
-      if (stored) {
-        savedState = JSON.parse(stored);
-      }
-    } catch (e) {
-      console.warn('Could not restore FFTStaff state from localStorage');
-    }
-    
     this.state = {
-      event: props.initialEvent || savedState.event,
-      section: props.initialEvent ? 'staffUses' : (savedState.section || 'selectEvent'),
+      event: props.initialEvent || null,
+      section: props.initialEvent ? 'staffUses' : 'selectEvent',
       showHomeConfirm: false,
     };
     this.bulkUploadRef = React.createRef();
     this.staffUsesRef = React.createRef();
-  }
-
-  componentDidUpdate() {
-    // Save state to localStorage whenever it changes
-    try {
-      localStorage.setItem(this.storageKey, JSON.stringify({
-        event: this.state.event,
-        section: this.state.section,
-      }));
-    } catch (e) {
-      console.warn('Could not save FFTStaff state to localStorage');
-    }
   }
 
   handleBack = () => {
@@ -55,8 +30,8 @@ class FFTStaff extends Component {
       const staffUses = this.staffUsesRef.current;
       const currentView = staffUses.state.view;
       
-      // If in a sub-section (bulkUpload or reviewResults), go back to Staff Uses home
-      if (currentView === 'bulkUpload' || currentView === 'reviewResults') {
+      // If in a sub-section (bulkUpload, reviewResults, editParticipants), go back to Staff Uses home
+      if (currentView === 'bulkUpload' || currentView === 'reviewResults' || currentView === 'editParticipants') {
         staffUses.setState({ view: null });
         return;
       }
@@ -135,7 +110,8 @@ class FFTStaff extends Component {
               />
             )}
 
-            {section === 'staffUses' && (
+            {/* Always mounted to preserve EditParticipants state */}
+            <div style={{ display: section === 'staffUses' ? 'block' : 'none' }}>
               <StaffUses
                 ref={this.staffUsesRef}
                 event={event}
@@ -144,7 +120,7 @@ class FFTStaff extends Component {
                 onFilesChange={() => this.forceUpdate()}
                 onBack={() => this.setState({ section: 'selectEvent', event: null })}
               />
-            )}
+            </div>
           </div>
 
           {/* Footer: Action Buttons */}
@@ -186,23 +162,9 @@ class FFTStaff extends Component {
               const rowsWithErrors = uploadStatus?.state?.rowsWithErrors || [];
               const hasErrors = rowsWithErrors.length > 0;
               
-              // Stage 1: No validation started yet
+              // Stage 1: Validation in progress - show nothing yet
               if (!showValidation) {
-                return (
-                  <div style={{ marginTop: '20px', padding: '0 20px' }}>
-                    <button
-                      onClick={() => uploadStatus?.handleValidateAll()}
-                      className="fft-staff-upload-btn"
-                      style={{ 
-                        width: '100%',
-                        color: '#999999',
-                        borderColor: '#999999'
-                      }}
-                    >
-                      Validate
-                    </button>
-                  </div>
-                );
+                return null;
               }
 
               // Stage 2: Validation has errors - Show Try Again
@@ -263,12 +225,11 @@ class FFTStaff extends Component {
           <HomeConfirmModal
             visible={this.state.showHomeConfirm}
             onYes={() => {
-              localStorage.removeItem(this.storageKey);
-              localStorage.removeItem('staffUsesView');
-              this.setState({ showHomeConfirm: false });
+              this.setState({ showHomeConfirm: false, event: null, section: 'selectEvent' });
               this.props.onBack && this.props.onBack();
             }}
             onNo={() => {
+              // Go home without clearing data — stay inside FFTStaff so StaffUses stays mounted
               this.setState({ showHomeConfirm: false });
               this.props.onBack && this.props.onBack();
             }}

@@ -174,6 +174,7 @@ class BulkUpload extends Component {
             files={files}
             uploading={uploading}
             results={results}
+            event={this.props.event}
             onDragOver={this.handleDragOver}
             onDrop={this.handleDrop}
             onFileSelect={this.handleFileSelect}

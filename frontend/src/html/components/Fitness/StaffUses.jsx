@@ -1,47 +1,26 @@
 import React, { Component } from 'react';
 import BulkUpload from './BulkUpload';
 import ReviewParticipantsResult from './ReviewParticipantsResult';
+import EditParticipants from './EditParticipants';
 import '../../../css/fftStaff.css';
 
 // ─────────────────────────────────────────────
 // StaffUses Component
 // ─────────────────────────────────────────────
 class StaffUses extends Component {
-  storageKey = 'staffUsesView';
-
   constructor(props) {
     super(props);
     
-    // Try to restore view from localStorage
-    let savedView = null;
-    try {
-      const stored = localStorage.getItem(this.storageKey);
-      if (stored) {
-        savedView = JSON.parse(stored);
-      }
-    } catch (e) {
-      console.warn('Could not restore StaffUses view from localStorage');
-    }
-    
     this.state = {
-      view: savedView || null, // Start at Staff Uses home screen to select option
+      view: null,
     };
-  }
-
-  componentDidUpdate() {
-    // Save view to localStorage whenever it changes
-    try {
-      localStorage.setItem(this.storageKey, JSON.stringify(this.state.view));
-    } catch (e) {
-      console.warn('Could not save StaffUses view to localStorage');
-    }
   }
 
   handleBack = () => {
     const { view } = this.state;
     
     // If in a sub-section (bulkUpload or reviewResults), go back to Staff Uses home
-    if (view === 'bulkUpload' || view === 'reviewResults') {
+    if (view === 'bulkUpload' || view === 'reviewResults' || view === 'editParticipants') {
       this.setState({ view: null });
       return;
     }
@@ -76,6 +55,11 @@ class StaffUses extends Component {
           />
         </div>
 
+        {/* EditParticipants is always mounted to preserve state */}
+        <div style={{ display: view === 'editParticipants' ? 'block' : 'none' }}>
+          <EditParticipants event={event} />
+        </div>
+
         {/* Staff Uses home screen */}
         {view === null && (
           <div className="fft-participants-section">
@@ -94,6 +78,10 @@ class StaffUses extends Component {
               <button type="button" className="fft-event-btn" onClick={() => this.setState({ view: 'reviewResults' })}>
                 <i className="fas fa-chart-bar"></i>
                 <div className="fft-event-btn-name">Review Results</div>
+              </button>
+              <button type="button" className="fft-event-btn" onClick={() => this.setState({ view: 'editParticipants' })}>
+                <i className="fas fa-user-edit"></i>
+                <div className="fft-event-btn-name">Edit Participants</div>
               </button>
             </div>
           </div>
