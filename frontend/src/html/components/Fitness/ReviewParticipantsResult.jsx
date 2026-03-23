@@ -4,6 +4,7 @@ import StaffEntry from './StaffEntry';
 import ParticipantResults from './ParticipantResults';
 import '../../../css/fftTrainers.css';
 import '../../../css/fftParticipants.css';
+import EventSelection from './EventSelection';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
