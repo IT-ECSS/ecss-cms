@@ -272,14 +272,19 @@ class ReportSection extends Component {
       // Treat NSA in-charge and Ops in-charge as admin/sub-admin
       const isAdminLike = (
         role === "admin" ||
-        role === "sub-admin" ||
+        role === "sub-admin"
+      );
+      const isOpsLike = (
         role === "nsa in-charge" ||
         role === "ops in-charge"
       );
-      if (isAdminLike) {
+      const isFinanceLike = (
+        role === "finance" 
+      );
+      if (isAdminLike || isOpsLike || isFinanceLike) {
         // Remove location filter for all roles, only filter out SkillsFuture
         filteredData = data.filter(item => item.course?.payment !== "SkillsFuture");
-        console.log("Filtered Data (Admin/Sub-admin/NSA/Ops in-charge):", filteredData);
+        console.log("Filtered Data (Admin/Sub-admin/NSA/Ops in-charge/Finance):", filteredData);
       } else if (role.includes("in-charge")) {
         // Other in-charge roles: can see only their assigned sites
         filteredData = data.filter(item => {
@@ -296,12 +301,13 @@ class ReportSection extends Component {
         console.log("Filtered Data (Default):", filteredData);
       }
 
+
       // Map data to include an 'index' field for the AG-Grid
       const mappedData = filteredData.map((item, index) => ({
         ...item,
         index: index + 1,
       }));
-      console.log("Invoice Data:", mappedData);
+      console.log("Invoice Data (mapped):", mappedData);
       
       // Generate the month-year combinations
       const monthYearOptions = this.getMonthYearOptions(mappedData);
@@ -313,7 +319,7 @@ class ReportSection extends Component {
         updatedInvoiceData: mappedData, // Set the filtered data initially to the full data
         monthYearOptions, 
         filteredMonthYearOptions: monthYearOptions,
-        status: `Collection by ${this.props.userName || 'Lee Chin'}`,
+        status: `Collection by ${this.props.userName}`,
         showReport: false,
         showTable: false,
         fromDate: "",
@@ -368,6 +374,13 @@ class ReportSection extends Component {
       let customIndex = 1; // Always start the index from 1
       console.log("Original Invoice Data:", this.state.invoiceData);
 
+      // Role checks (computed once, outside the filter loop)
+      const roleLC = this.props.role ? this.props.role.toLowerCase() : "";
+      const isAdminLike = roleLC === "admin" || roleLC === "sub-admin";
+      const isOpsLike = roleLC === "ops in-charge";
+      const isFinanceLike = roleLC === "finance";
+      const isAdminOrEquivalent = isAdminLike || isOpsLike || isFinanceLike;
+
       // Filter the data based on date range and location
       const filteredData = this.state.invoiceData.filter((item) => {
         const itemDate = item.registrationDate;
@@ -385,64 +398,41 @@ class ReportSection extends Component {
           // Use the specific selected location
           targetLocations = [selectedSiteIC];
         }
+
         if (payment) {
           if (fromParsed && toParsed && isValidDate(fromParsed) && isValidDate(toParsed)) {
-            console.log("From1234", this.props.role, this.props.role.toLowerCase().includes("in-charge"));  
-            if (this.props.role && (this.props.role.toLowerCase() === "admin" || this.props.role.toLowerCase() === "sub-admin")) {
-              // Admins see all sites
+            if (isAdminOrEquivalent) {
+              // Admin/sub-admin/nsa in-charge/ops in-charge/finance see all course locations
               return payment >= fromParsed && payment <= toParsed && item.course.payment !== "SkillsFuture" && item.status != "Pending";
-            } /*else if (this.props.siteIC === null || this.props.siteIC === undefined || this.props.siteIC == "") {
-              return payment >= fromParsed && payment <= toParsed && item.course.payment !== "SkillsFuture" && item.status != "Pending";
-            } */
-            else if (this.props.role && this.props.role.toLowerCase().includes("in-charge")) {
-              console.log("In-charge Role Detected:", this.props.role);
-              // NSA in-charge: can see only CT Hub, Site in-charge: can see only their assigned sites
-              if (this.props.role.toLowerCase() === "nsa in-charge") {
-                return (
-                  payment >= fromParsed &&
-                  payment <= toParsed &&
-                  (courseLocation === "CT Hub" || courseLocation === "Sree Narayana Mission" || courseLocation === "Renewal Christian Church") &&
-                  item.course.payment !== "SkillsFuture" &&
-                  item.status !== "Pending"
-                );
-              } else {
-                return (
-                  payment >= fromParsed &&
-                  payment <= toParsed &&
-                  targetLocations.includes(courseLocation) &&
-                  item.course.payment !== "SkillsFuture" &&
-                  item.status !== "Pending"
-                );
-              }
-            }
-            else {
-              // Default: restrict to targetLocations
-              return payment >= fromParsed && payment <= toParsed && targetLocations.includes(courseLocation) && item.course.payment !== "SkillsFuture" && item.status != "Pending";
+            } else if (roleLC === "nsa in-charge") {
+              return (
+                payment >= fromParsed &&
+                payment <= toParsed &&
+                (courseLocation === "CT Hub" || courseLocation === "Sree Narayana Mission" || courseLocation === "Renewal Christian Church") &&
+                item.course.payment !== "SkillsFuture" &&
+                item.status !== "Pending"
+              );
+            } else if (roleLC === "site in-charge") {
+              return (
+                payment >= fromParsed &&
+                payment <= toParsed &&
+                targetLocations.includes(courseLocation) &&
+                item.course.payment !== "SkillsFuture" &&
+                item.status !== "Pending"
+              );
             }
           } else if (!fromParsed && !toParsed) {
-            if (this.props.role && (this.props.role.toLowerCase() === "admin" || this.props.role.toLowerCase() === "sub-admin")) {
+            if (isAdminOrEquivalent) {
+              // Admin/sub-admin/nsa in-charge/ops in-charge/finance see all course locations
               return item.course.payment !== "SkillsFuture";
-            }else if (this.props.role && this.props.role.toLowerCase().includes("in-charge")) {
-              // NSA in-charge: can see only CT Hub, Site in-charge: can see only their assigned sites
-              if (this.props.role.toLowerCase() === "nsa in-charge") {
-                return (
-                  payment >= fromParsed &&
-                  payment <= toParsed &&
-                  targetLocations.includes("CT Hub") &&
-                  item.course.payment !== "SkillsFuture" &&
-                  item.status !== "Pending"
-                );
-              } else {
-                return (
-                  payment >= fromParsed &&
-                  payment <= toParsed &&
-                  targetLocations.includes(courseLocation) &&
-                  item.course.payment !== "SkillsFuture" &&
-                  item.status !== "Pending"
-                );
-              }
+            } else if (roleLC === "nsa in-charge") {
+              return (
+                (courseLocation === "CT Hub" || courseLocation === "Sree Narayana Mission" || courseLocation === "Renewal Christian Church") &&
+                item.course.payment !== "SkillsFuture"
+              );
+            } else if (roleLC === "site in-charge") {
+              return targetLocations.includes(courseLocation) && item.course.payment !== "SkillsFuture";
             }
-            return targetLocations.includes(courseLocation) && item.course.payment !== "SkillsFuture";
           }
         }
         return false;
