@@ -61,11 +61,11 @@ jobs:
               --name ecss-backend-django \
               --resource-group ECSS-Course-Management-System \
               --settings SCM_DO_BUILD_DURING_DEPLOYMENT=false \
-                         PYTHONPATH="/home/site/wwwroot/.python_packages/lib/site-packages"
+                         PYTHONPATH="/home/site/wwwroot:/home/site/wwwroot/.python_packages/lib/site-packages"
             az webapp config set \
               --name ecss-backend-django \
               --resource-group ECSS-Course-Management-System \
-              --startup-file "gunicorn --bind=0.0.0.0 --timeout 600 djangoPython.wsgi"
+              --startup-file "gunicorn --bind=0.0.0.0 --timeout 600 --chdir /home/site/wwwroot djangoPython.wsgi"
 
       - name: 'Deploy to Azure Web App (Django)'
         uses: azure/webapps-deploy@v3
