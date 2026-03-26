@@ -684,8 +684,8 @@ class RegistrationPaymentSection extends Component {
                 const match = receipt.receiptNo.match(regex);
                 return match ? parseInt(match[1], 10) : null;
             } else {
-                // Match format: XXX - 0001
-                const regex = new RegExp(`^${courseLocation} - (\\d+)$`);
+                // Match format: yyyy - XXX - 0001
+                const regex = new RegExp(`^${fullYear} - ${courseLocation} - (\\d+)$`);
                 const match = receipt.receiptNo.match(regex);
                 return match ? parseInt(match[1], 10) : null;
             }
@@ -704,8 +704,8 @@ class RegistrationPaymentSection extends Component {
                 const match = receipt.receiptNo.match(regex);
                 return match ? parseInt(match[1], 10) : null;
             } else {
-                // Match format: XXX - 0001
-                const regex = new RegExp(`^${courseLocation} - (\\d+)$`);
+                // Match format: yyyy - XXX - 0001
+                const regex = new RegExp(`^${fullYear} -${courseLocation} - (\\d+)$`);
                 const match = receipt.receiptNo.match(regex);
                 return match ? parseInt(match[1], 10) : null;
             }
