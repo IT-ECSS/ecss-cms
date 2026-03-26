@@ -32,10 +32,13 @@ jobs:
             exit 0
           fi
 
-      - name: Install dependencies into package bundle
+      - name: Install dependencies
         working-directory: djangoPython
         run: |
-          pip install -r requirements.txt --target=".python_packages/lib/site-packages" --no-cache-dir
+          python -m venv venv
+          source venv/bin/activate
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
       - name: Create deployment package
         run: |
@@ -47,47 +50,11 @@ jobs:
             --exclude ".DS_Store" \
             --exclude "db.sqlite3" \
             --exclude "media/*"
-          echo "Zip size: $(du -sh ../django-deploy.zip)"
 
       - name: Login to Azure
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Clean up disk space on App Service
-        uses: azure/CLI@v2
-        with:
-          inlineScript: |
-            CREDS=$(az webapp deployment list-publishing-credentials \
-              --name ecss-backend-django \
-              --resource-group ECSS-Course-Management-System \
-              --query "{username: publishingUserName, password: publishingPassword}" \
-              -o json)
-            USERNAME=$(echo $CREDS | jq -r '.username')
-            PASSWORD=$(echo $CREDS | jq -r '.password')
-
-            echo "=== Wiping entire /home directory ==="
-            curl -s -u "$USERNAME:$PASSWORD" \
-              -X POST \
-              "https://ecss-backend-django.scm.azurewebsites.net/api/command" \
-              -H "Content-Type: application/json" \
-              -d '{"command":"rm -rf /home/site/wwwroot/* /home/site/deployments/* /home/LogFiles/* /home/data/* /home/.cache/* /home/.local/* /home/site/locks/* || true; echo DONE","dir":"/"}' || true
-
-            echo "=== Disk usage after wipe ==="
-            curl -s -u "$USERNAME:$PASSWORD" \
-              -X POST \
-              "https://ecss-backend-django.scm.azurewebsites.net/api/command" \
-              -H "Content-Type: application/json" \
-              -d '{"command":"df -h /home && du -sh /home/*/  2>/dev/null || true","dir":"/"}' || true
-
-      - name: Enable Oryx build
-        uses: azure/CLI@v2
-        with:
-          inlineScript: |
-            az webapp config appsettings set \
-              --name ecss-backend-django \
-              --resource-group ECSS-Course-Management-System \
-              --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true
 
       - name: 'Deploy to Azure Web App (Django)'
         uses: azure/webapps-deploy@v3
@@ -95,5 +62,4 @@ jobs:
           app-name: 'ecss-backend-django'
           slot-name: 'Production'
           package: './django-deploy.zip'
-          deployment-method: zipDeploy
           
