@@ -654,6 +654,7 @@ class RegistrationPaymentSection extends Component {
     
         // Get the current two-digit year
         const currentYear = new Date().getFullYear().toString().slice(-2);
+        const fullYear = new Date().getFullYear(); // 4-digit year e.g. 2026
     
         // Retrieve all receipts matching the specified courseLocation
         const existingReceipts = await collection.find({
@@ -719,13 +720,13 @@ class RegistrationPaymentSection extends Component {
                 const nextNumber = maxCthubNumber > 0 ? maxCthubNumber + 1 : 109; // Start from 109 if no CT Hub receipts exist
                 return courseLocation === "ECSS/SFC/"
                     ? `${courseLocation}${String(nextNumber).padStart(3, '0')}/${currentYear}`
-                    : `${courseLocation} - ${String(nextNumber).padStart(4, '0')}`;
+                    : `${fullYear} - ${courseLocation} - ${String(nextNumber).padStart(4, '0')}`;
             } else {
                 // For other centres, continue from the highest number for other locations
                 const nextNumber = maxOtherNumber > 0 ? maxOtherNumber + 1 : 1; // Start from 1 if no other receipts exist
                 return courseLocation === "ECSS/SFC/"
                     ? `${courseLocation}${String(nextNumber).padStart(3, '0')}/${currentYear}`
-                    : `${courseLocation} - ${String(nextNumber).padStart(4, '0')}`;
+                    : `${fullYear} - ${courseLocation} - ${String(nextNumber).padStart(4, '0')}`;
             }
         } else {
             // For other years, reset numbers
@@ -733,12 +734,12 @@ class RegistrationPaymentSection extends Component {
                 const nextNumber = maxCthubNumber > 0 ? maxCthubNumber + 1 : 109; // Start from 109 if no CT Hub receipts exist
                 return courseLocation === "ECSS/SFC/"
                     ? `${courseLocation}${String(nextNumber).padStart(3, '0')}/${currentYear}`
-                    : `${courseLocation} - ${String(nextNumber).padStart(4, '0')}`;
+                    : `${fullYear} - ${courseLocation} - ${String(nextNumber).padStart(4, '0')}`;
             } else {
                 const nextNumber = maxOtherNumber > 0 ? maxOtherNumber + 1 : 1; // Start from 1 if no other receipts exist
                 return courseLocation === "ECSS/SFC/"
                     ? `${courseLocation}${String(nextNumber).padStart(3, '0')}/${currentYear}`
-                    : `${courseLocation} - ${String(nextNumber).padStart(4, '0')}`;
+                    : `${fullYear} - ${courseLocation} - ${String(nextNumber).padStart(4, '0')}`;
             }
         }
     }

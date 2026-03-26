@@ -1213,7 +1213,7 @@ class DatabaseConnectivity {
         var currentYear = new Date().getFullYear().toString().slice(-2);
         currentYear = parseInt(currentYear);
     
-        let regexPattern = `^${courseLocation}`; // Default pattern
+        let regexPattern = `^\\d{4} - ${courseLocation}`; // Default pattern (year-prefixed format)
     
         if (centreLocation === "Tampines 253 Centre" && courseLocation.startsWith("ECSS/SFC")) {
             regexPattern = `${courseLocation}TP`; // Ensure "TP" appears after courseLocation
@@ -1503,23 +1503,29 @@ class DatabaseConnectivity {
     
     getNextReceiptNumberForPayNowCash(courseLocation, existingReceipts, centreLocation, currentYear) {
         let nextNumber;
+        const fullYear = new Date().getFullYear(); // 4-digit year e.g. 2026
     
         console.log("=== PayNow/Cash Receipt Generation Debug ===");
         console.log("Course Location:", courseLocation);
         console.log("Centre Location:", centreLocation);
         console.log("Current Year:", currentYear);
+        console.log("Full Year:", fullYear);
         console.log("Existing Receipts Count:", existingReceipts.length);
         console.log("Existing Receipts:", existingReceipts.map(r => ({ receiptNo: r.receiptNo, location: r.location })));
 
-         // Filter the existing receipts based on the location (already filtered in main function, but double-check)
-        const filteredReceipts = existingReceipts.filter(receipt => receipt.location === centreLocation);
-        console.log("Filtered Receipts for Centre Location:", filteredReceipts.length);
+        // Filter by location AND current year (new format: yyyy - CourseLocation - NNNN)
+        const filteredReceipts = existingReceipts.filter(receipt =>
+            receipt.location === centreLocation &&
+            receipt.receiptNo.startsWith(`${fullYear} - `)
+        );
+        console.log("Filtered Receipts for Centre Location (current year):", filteredReceipts.length);
 
-        // Extract the numeric part of the receiptNo (after the " - ") and get the numbers
+        // Extract the numeric part (last segment after the final " - ")
         const centreReceiptNumbers = filteredReceipts.map(receipt => {
-                const receiptNumberMatch = receipt.receiptNo.split(" - ")[1]; // Split by " - " and get the number part
+                const parts = receipt.receiptNo.split(" - ");
+                const receiptNumberMatch = parts[parts.length - 1]; // Last part = number e.g. "0001"
                 return receiptNumberMatch ? parseInt(receiptNumberMatch, 10) : null;
-            }).filter(num => num !== null);
+            }).filter(num => num !== null && !isNaN(num));
 
         //console.log("Centre Receipt Numbers11:", centreReceiptNumbers);
 
@@ -1560,10 +1566,10 @@ class DatabaseConnectivity {
     
         // Format the next number with consistent 4-digit padding (0001, 0002, etc.)
         let formattedNextNumber = String(nextNumber).padStart(4, '0');
-        console.log(`Generated Receipt Number for ${centreLocation}: ${courseLocation} - ${formattedNextNumber}`);
+        console.log(`Generated Receipt Number for ${centreLocation}: ${fullYear} - ${courseLocation} - ${formattedNextNumber}`);
     
-        // Return the formatted receipt number in the format: "courseLocation - 0001"
-        return `${courseLocation} - ${formattedNextNumber}`;
+        // Return the formatted receipt number in the format: "yyyy - courseLocation - 0001"
+        return `${fullYear} - ${courseLocation} - ${formattedNextNumber}`;
     }
      
     async newInvoice(databaseName, collectionName, invoiceNumber, month, username, date, time) {
