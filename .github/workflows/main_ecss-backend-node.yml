@@ -53,6 +53,14 @@ jobs:
           npm ci
           npm run build --if-present
 
+      - name: Create deployment package
+        run: |
+          cd backend
+          zip -r ../node-deploy.zip . \
+            --exclude "node_modules/*" \
+            --exclude "*.log" \
+            --exclude ".DS_Store"
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -64,7 +72,8 @@ jobs:
         with:
           app-name: 'ecss-backend-node'
           slot-name: 'Production'
-          package: ./backend
+          package: ./node-deploy.zip
+          clean: true
 
       - name: Configure Azure App Settings for OneSignal and Google Drive
         run: |
@@ -76,7 +85,8 @@ jobs:
               ONESIGNAL_API_KEY="${{ secrets.ONESIGNAL_API_KEY }}" \
               GOOGLE_DRIVE_FOLDER_ID="1DF81mvA5pv8_X-_uP8528Vb1xNfs1D8M" \
               GOOGLE_SERVICE_ACCOUNT_NORSE='${{ secrets.GOOGLE_SERVICE_ACCOUNT_NORSE }}' \
-              NODE_ENV="production"
+              NODE_ENV="production" \
+              SCM_DO_BUILD_DURING_DEPLOYMENT="true"
           echo "✓ All settings configured in Azure"
 
       - name: Configure Google Drive Credentials
