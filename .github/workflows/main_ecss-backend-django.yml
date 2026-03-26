@@ -38,7 +38,7 @@ jobs:
         working-directory: djangoPython
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt --target=".python_packages/lib/site-packages"
+          pip install -r requirements.txt --target="site-packages"
 
       - name: Create deployment package
         run: |
@@ -63,5 +63,5 @@ jobs:
           app-name: 'ecss-backend-django'
           slot-name: 'Production'
           package: './django-deploy.zip'
-          startup-command: 'gunicorn --bind 0.0.0.0:8000 --workers 4 --timeout 120 djangoPython.wsgi:application'
+          startup-command: 'PYTHONPATH=/home/site/wwwroot/site-packages gunicorn --bind 0.0.0.0:8000 --workers 2 --timeout 120 djangoPython.wsgi:application'
           
