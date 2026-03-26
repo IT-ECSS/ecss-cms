@@ -51,6 +51,7 @@ jobs:
         working-directory: backend
         run: |
           npm ci
+          npm install
           npm run build --if-present
 
       - name: Create deployment package
@@ -73,7 +74,6 @@ jobs:
           app-name: 'ecss-backend-node'
           slot-name: 'Production'
           package: ./node-deploy.zip
-          clean: true
 
       - name: Configure Azure App Settings for OneSignal and Google Drive
         run: |
