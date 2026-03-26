@@ -22,7 +22,7 @@ jobs:
       - name: Set up Python version
         uses: actions/setup-python@v5
         with:
-          python-version: '3.14.2'
+          python-version: '3.12'
 
       - name: Check if Django directory exists
         run: |
@@ -56,6 +56,14 @@ jobs:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_4FECCB8738974CFFB45BF0BAA3F41DE5 }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_171130E8D32C4CA8BE4721794C632D84 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_019C65756BC44E35992611AD25F859E1 }}
+
+      - name: Configure Azure App Service Python Runtime
+        run: |
+          az webapp config set \
+            --resource-group ECSS-Course-Management-System \
+            --name ecss-backend-django \
+            --linux-fx-version "PYTHON|3.12"
+          echo "✓ Python runtime set to 3.12"
 
       - name: 'Deploy to Azure Web App (Django)'
         uses: azure/webapps-deploy@v3
