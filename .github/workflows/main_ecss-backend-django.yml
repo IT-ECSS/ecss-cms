@@ -62,4 +62,5 @@ jobs:
           app-name: 'ecss-backend-django'
           slot-name: 'Production'
           package: './django-deploy.zip'
+          deployment-method: zipDeploy
           
