@@ -382,7 +382,7 @@ class EditParticipants extends Component {
         {hasPending && !saveAttempted && (
           <button
             className="fft-edit-btn fft-edit-btn--save"
-            style={{ marginTop: '16px' }}
+            style={{ margin: '16px auto 0', width: 'fit-content', display: 'block' }}
             onClick={this.handleSaveAll}
             disabled={saving}
           >
