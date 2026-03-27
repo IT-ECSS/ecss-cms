@@ -38,62 +38,20 @@ class CreateFileForm extends React.Component {
       if (response.data.success && response.data.data) 
     {
         const rows = response.data.data;
-        // Map data (no need to skip header since backend returns only data rows)
-        const eventList = rows.filter(row => row.length > 0).map((row, index) => ({
+        // Sheet columns: A=S/N, B=Event Name, C=Time Slots, D=Max Participants, E=Created On, F=File ID
+        // "Created" = column F has a File ID
+        const eventList = rows.filter(row => row.length > 0).map((row) => ({
           sn: row[0] || '',
           eventName: row[1] || '',
-          createdOn: row[2] || '',
-          status: 'Not Created', // default status
+          timeSlots: row[2] || '',
+          maxParticipants: row[3] || '',
+          createdOn: row[4] || '',
+          participantFileId: row[5] || '',
+          status: row[5] ? 'Created' : 'Not Created',
         }));
 
-        // Check file existence for each event
-        const FFT_ROOT_FOLDER_ID = '1EsnCGO1QfPrqfmDtsy-cELUO3UyZKCci';
-        const updatedEvents = await Promise.all(eventList.map(async (event) => {
-          const eventYear = event.createdOn ? event.createdOn.slice(0, 4) : null;
-          let destinationFolderId = FFT_ROOT_FOLDER_ID;
-          try {
-            // Find year folder
-            const yearFoldersRes = await axios.post(`${BACKEND_URL}/googleDrive`, {
-              folderId: FFT_ROOT_FOLDER_ID,
-              purpose: 'listSubfolders',
-            });
-            if (yearFoldersRes.data.success && yearFoldersRes.data.folders && eventYear) {
-              const matchedYear = yearFoldersRes.data.folders.find(f => f.name.includes(eventYear));
-              if (matchedYear) {
-                // Find event folder inside year folder
-                const eventFoldersRes = await axios.post(`${BACKEND_URL}/googleDrive`, {
-                  folderId: matchedYear.id,
-                  purpose: 'listSubfolders',
-                });
-                if (eventFoldersRes.data.success && eventFoldersRes.data.folders && eventFoldersRes.data.folders.length > 0) {
-                  const matchedEventFolder = eventFoldersRes.data.folders.find(f => f.name === event.eventName);
-                  if (matchedEventFolder) {
-                    destinationFolderId = matchedEventFolder.id;
-                  } else {
-                    destinationFolderId = matchedYear.id;
-                  }
-                } else {
-                  destinationFolderId = matchedYear.id;
-                }
-              }
-            }
-            // Check if file exists
-            const filesRes = await axios.post(`${BACKEND_URL}/googleDrive`, {
-              folderId: destinationFolderId,
-              purpose: 'listFiles',
-            });
-            if (filesRes.data.success && filesRes.data.files) {
-              const fileExists = filesRes.data.files.some(f => f.name === event.eventName);
-              return { ...event, status: fileExists ? 'Created' : 'Not Created' };
-            }
-          } catch (err) {
-            console.warn('Error checking file existence for event:', event.eventName, err);
-          }
-          return event; // default to 'Not Created'
-        }));
-
-        console.log('Events loaded:', updatedEvents);
-        this.setState({ events: updatedEvents, loadingEvents: false });
+        console.log('Events loaded:', eventList);
+        this.setState({ events: eventList, loadingEvents: false });
       } else {
         this.setState({ eventError: 'Unable to load events', loadingEvents: false });
       }
@@ -106,72 +64,35 @@ class CreateFileForm extends React.Component {
     this.setState({ copying: true, copyResult: null });
     const TEMPLATE_FILE_ID = '1xaTsyYx8rND25rMz8QUjlRxHO82TRQ8k5M3JIOg5KkQ';
     const FFT_ROOT_FOLDER_ID = '1EsnCGO1QfPrqfmDtsy-cELUO3UyZKCci';
-    let destinationFolderId = FFT_ROOT_FOLDER_ID;
-    let newFileName = event.eventName;
-    const eventYear = event.createdOn ? event.createdOn.slice(0, 4) : null;
+    const newFileName = event.eventName;
 
     try {
-      // Find year folder
-      const yearFoldersRes = await axios.post(`${BACKEND_URL}/googleDrive`, {
-        folderId: FFT_ROOT_FOLDER_ID,
-        purpose: 'listSubfolders',
-      });
-      if (yearFoldersRes.data.success && yearFoldersRes.data.folders && eventYear) {
-        const matchedYear = yearFoldersRes.data.folders.find(f => f.name.includes(eventYear));
-        if (matchedYear) {
-          // Find event folder inside year folder
-          const eventFoldersRes = await axios.post(`${BACKEND_URL}/googleDrive`, {
-            folderId: matchedYear.id,
-            purpose: 'listSubfolders',
-          });
-          if (eventFoldersRes.data.success && eventFoldersRes.data.folders && eventFoldersRes.data.folders.length > 0) {
-            const matchedEventFolder = eventFoldersRes.data.folders.find(f => f.name === event.eventName);
-            if (matchedEventFolder) {
-              destinationFolderId = matchedEventFolder.id;
-            } else {
-              destinationFolderId = matchedYear.id;
-            }
-          } else {
-            destinationFolderId = matchedYear.id;
-          }
-        }
-      }
-
-      // Check if file already exists in destination folder
-      const filesRes = await axios.post(`${BACKEND_URL}/googleDrive`, {
-        folderId: destinationFolderId,
-        purpose: 'listFiles',
-      });
-      if (filesRes.data.success && filesRes.data.files) {
-        const fileExists = filesRes.data.files.some(f => f.name === newFileName);
-        if (fileExists) {
-          // Mark event as created
-          this.setState(prev => ({
-            copying: false,
-            copyResult: { error: 'A file with this name already exists. Cannot create a new one.' },
-            events: prev.events.map(ev =>
-              ev.eventName === event.eventName ? { ...ev, status: 'Created' } : ev
-            )
-          }));
-          return;
-        }
-      }
-
-      // Create/copy file
+      // Create/copy file directly to FFT root folder
       const response = await axios.post(`${BACKEND_URL}/googleDrive/copySpreadsheet`, {
         sourceFileId: TEMPLATE_FILE_ID,
         newFileName,
-        destinationFolderId,
+        destinationFolderId: FFT_ROOT_FOLDER_ID,
       });
 
       // Only update result section, no alert
       if (response.data.success) {
+        // Write File ID back to index sheet column E
+        if (event.sn && response.data.fileId) {
+          try {
+            await axios.post(`${BACKEND_URL}/googleDrive/updateEventFileId`, {
+              serialNumber: event.sn,
+              fileId: response.data.fileId,
+            });
+          } catch (updateErr) {
+            console.warn('Failed to update index sheet with file ID:', updateErr.message);
+          }
+        }
         // Mark event as created
         this.setState(prev => ({
           copying: false,
           copyResult: response.data,
           events: prev.events.map(ev =>
-            ev.eventName === event.eventName ? { ...ev, status: 'Created' } : ev
+            ev.eventName === event.eventName ? { ...ev, status: 'Created', participantFileId: response.data.fileId } : ev
           )
         }));
       } else {

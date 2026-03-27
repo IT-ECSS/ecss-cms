@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { io } from 'socket.io-client';
 import '../../../css/fftAdmin.css';
 import CreateEventForm from './CreateEventForm';
+import CreateFFTEventTimeSlots from './CreateFFTEventTimeSlots';
 import CreateFileForm from './CreateFileForm';
 import ChooseFileForm from './ChooseFileForm';
 import HomeConfirmModal from './HomeConfirmModal';
@@ -15,11 +16,15 @@ class FFTAdmin extends Component {
     super(props);
     // Restore previous section from localStorage if available
     const savedView = localStorage.getItem('fftAdminLastView');
+    const savedEventStep = parseInt(localStorage.getItem('fftAdminEventStep'), 10) || 1;
+    const savedEventData = (() => { try { const d = localStorage.getItem('fftAdminEventData'); return d ? JSON.parse(d) : null; } catch { return null; } })();
     this.state = {
       activeView: savedView || null, // restore or show menu
       eventFormKey: 0,
       previousView: null, // Track last section
       showHomeConfirm: false,
+      eventStep: savedEventStep,
+      eventData: savedEventData,
     };
   }
 
@@ -53,8 +58,11 @@ class FFTAdmin extends Component {
   // ── Layered Back Navigation (like FFTParticipants) ––
 
   handleBack = () => {
-    const { activeView, previousView } = this.state;
-    if (activeView) {
+    const { activeView, previousView, eventStep } = this.state;
+    if (activeView === 'event' && eventStep === 2) {
+      // Back from time slots → step 1 (CreateEventForm)
+      this.setState({ eventStep: 1 });
+    } else if (activeView) {
       // Back from event/create form → menu
       this.handleMenuSelect(null);
     } else if (previousView) {
@@ -73,14 +81,21 @@ class FFTAdmin extends Component {
   handleHomeYes = () => {
     localStorage.removeItem('fftAdminLastView');
     localStorage.removeItem('fftEventFormData');
+    localStorage.removeItem('fftAdminEventStep');
+    localStorage.removeItem('fftAdminEventData');
     this.setState({ showHomeConfirm: false });
     this.props.onBack?.();
   };
 
   handleHomeNo = () => {
-    // Save current view and go home
-    if (this.state.activeView) {
-      localStorage.setItem('fftAdminLastView', this.state.activeView);
+    // Go home WITHOUT clearing saved data — persist step and form data
+    const { activeView, eventStep, eventData } = this.state;
+    if (activeView) {
+      localStorage.setItem('fftAdminLastView', activeView);
+    }
+    localStorage.setItem('fftAdminEventStep', String(eventStep));
+    if (eventData) {
+      localStorage.setItem('fftAdminEventData', JSON.stringify(eventData));
     }
     this.setState({ showHomeConfirm: false });
     this.props.onBack?.();
@@ -90,6 +105,8 @@ class FFTAdmin extends Component {
     // Finish button clears ALL data and exits (fresh start when returning)
     localStorage.removeItem('fftAdminLastView');
     localStorage.removeItem('fftEventFormData');
+    localStorage.removeItem('fftAdminEventStep');
+    localStorage.removeItem('fftAdminEventData');
     this.props.onBack?.();
   };
 
@@ -181,11 +198,22 @@ class FFTAdmin extends Component {
             margin: '0',
             boxSizing: 'border-box',
           }}>
-            <CreateEventForm
-              key={this.state.eventFormKey}
-              onCancel={() => this.handleMenuSelect(null)}
-              onFinish={() => this.handleFinish()}
-            />
+            {this.state.eventStep === 1 ? (
+              <CreateEventForm
+                key={this.state.eventFormKey}
+                onCancel={() => this.handleMenuSelect(null)}
+                onFinish={() => this.handleFinish()}
+                onNext={(data) => this.setState({ eventStep: 2, eventData: data })}
+              />
+            ) : (
+              <CreateFFTEventTimeSlots
+                eventDate={this.state.eventData?.eventDate}
+                eventLocation={this.state.eventData?.eventLocation}
+                eventSessionNumber={this.state.eventData?.eventSessionNumber}
+                onBack={() => this.setState({ eventStep: 1 })}
+                onFinish={() => this.handleFinish()}
+              />
+            )}
           </div>
         )}
 

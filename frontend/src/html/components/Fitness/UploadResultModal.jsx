@@ -48,42 +48,9 @@ class UploadResultModal extends Component {
       );
     }
 
-    // If upload completed successfully
-    if (results && results.status === 'completed' && results.uploadSuccess) {
-      return (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <i className="fas fa-check-circle modal-icon success"></i>
-            <h3 className="modal-title success">Success!</h3>
-            <p className="modal-description large">Your participant details have been submitted successfully for pre-registration</p>
-            <button
-              onClick={onOK}
-              className="fft-staff-upload-btn modal-button"
-            >
-              OK
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    // If upload failed
-    if (results && results.status === 'completed' && !results.uploadSuccess) {
-      return (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <i className="fas fa-exclamation-circle modal-icon error"></i>
-            <h3 className="modal-title error">Upload Failed</h3>
-            <p className="modal-description">Some records failed to upload. Please review and try again.</p>
-            <button
-              onClick={onOK}
-              className="fft-staff-reset-btn modal-button"
-            >
-              OK
-            </button>
-          </div>
-        </div>
-      );
+    // If upload completed - handled by footer Done/Try Again button, not modal
+    if (results && results.status === 'completed') {
+      return null;
     }
 
     return null;

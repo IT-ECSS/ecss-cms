@@ -17,10 +17,38 @@ class BulkUpload extends Component {
       uploading: false,
       uploadProgress: 0,
       results: null,
-      validationPassed: false, // Track if validation has passed
+      validationPassed: false,
+      existingParticipants: [],
+      existingLoaded: false,
     };
     this.uploadStatusRef = React.createRef();
   }
+
+  componentDidMount() {
+    if (this.props.event) this.fetchExistingParticipants();
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.event !== this.props.event && this.props.event) {
+      this.fetchExistingParticipants();
+    }
+  }
+
+  fetchExistingParticipants = async () => {
+    const { event } = this.props;
+    if (!event?.id) return;
+    try {
+      const res = await axios.post(`${BACKEND_URL}/googleDrive/getParticipants`, { fileId: event.id });
+      if (res.data && Array.isArray(res.data)) {
+        this.setState({ existingParticipants: res.data, existingLoaded: true }, () => this.props.onFilesChange?.());
+      } else {
+        this.setState({ existingLoaded: true }, () => this.props.onFilesChange?.());
+      }
+    } catch (err) {
+      console.warn('Could not fetch existing participants:', err.message);
+      this.setState({ existingLoaded: true }, () => this.props.onFilesChange?.());
+    }
+  };
 
   handleDragOver = (e) => {
     e.preventDefault();
@@ -57,7 +85,10 @@ class BulkUpload extends Component {
   handleFinalUpload = async () => {
     const { files } = this.state;
     const { event } = this.props;
-    const excelData = this.uploadStatusRef.current?.state?.excelData || [];
+    // Use only rows not already registered; fall back to all rows if check hasn't completed
+    const excelData = this.uploadStatusRef.current?.getNewOnlyData?.()
+      ?? this.uploadStatusRef.current?.state?.excelData
+      ?? [];
 
     if (!event) {
       console.error('Event not selected');
@@ -92,9 +123,12 @@ class BulkUpload extends Component {
         try {
           const participantData = {
             name: row.Name || '',
+            chineseName: row['Chinese Name'] || '',
             phone: row['Phone Number'] || '',
             gender: row.Gender || '',
             dateOfBirth: `${row.DD}/${row.MM}/${row.YYYY}`,
+            startTime: row['Start Time'] || '',
+            endTime: row['End Time'] || row['Time End'] || '',
             age: row.Age || ''
           };
 
@@ -118,7 +152,7 @@ class BulkUpload extends Component {
         }
       }
 
-      // Upload complete
+      // Upload complete — auto-reset after a short delay
       this.setState({
         uploading: false,
         uploadProgress: 100,
@@ -130,7 +164,9 @@ class BulkUpload extends Component {
           status: 'completed',
           uploadSuccess: failCount === 0
         },
-      }, () => this.props.onFilesChange?.());
+      }, () => {
+        this.props.onFilesChange?.();
+      });
     } catch (error) {
       console.error('Upload failed:', error);
       
@@ -156,6 +192,7 @@ class BulkUpload extends Component {
   handleReset = () => {
     this.setState({
       files: [],
+      reviewing: false,
       uploading: false,
       uploadProgress: 0,
       results: null,
@@ -181,19 +218,25 @@ class BulkUpload extends Component {
           />
         )}
 
-        {/* Section 2: Upload Status - Show when reviewing, and stay visible during upload */}
-        {reviewing && (
-          <UploadStatus
-            ref={this.uploadStatusRef}
-            reviewing={reviewing}
-            uploading={uploading}
-            uploadProgress={uploadProgress}
-            results={results}
-            files={files}
-            onConfirmUpload={this.handleConfirmUpload}
-            onValidationComplete={() => this.props.onFilesChange?.()}
-          />
-        )}
+        {/* Section 2: Upload Status - Always mounted so it can manage action buttons */}
+        <UploadStatus
+          ref={this.uploadStatusRef}
+          reviewing={reviewing}
+          uploading={uploading}
+          uploadProgress={uploadProgress}
+          results={results}
+          files={files}
+          event={this.props.event}
+          existingParticipants={this.state.existingParticipants}
+          existingLoaded={this.state.existingLoaded}
+          onConfirmUpload={this.handleConfirmUpload}
+          onValidationComplete={() => this.props.onFilesChange?.()}
+          onExistingLoaded={() => this.props.onFilesChange?.()}
+          onClear={this.handleClear}
+          onReview={this.handleReview}
+          onReset={this.handleReset}
+          onDone={() => { this.handleReset(); this.props.onUploadComplete?.(); }}
+        />
       </div>
     );
   }

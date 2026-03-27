@@ -19,9 +19,7 @@ class UploadSection extends Component {
 
         {/* Download sub-section */}
         <DownloadSubSection
-          fileId={event?.id}
-          fileName={event?.name ? `${event.name}.xlsx` : undefined}
-          description="Download the current event's participant data as an Excel file."
+          eventName={event?.name}
         />
       </div>
     );

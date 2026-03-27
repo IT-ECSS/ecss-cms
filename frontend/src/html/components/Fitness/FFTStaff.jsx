@@ -24,25 +24,23 @@ class FFTStaff extends Component {
 
   handleBack = () => {
     const { section } = this.state;
-    
-    // If in Staff Uses section, handle navigation within Staff Uses first
+
+    // Delegate sub-navigation to StaffUses when in staffUses section
     if (section === 'staffUses' && this.staffUsesRef.current) {
       const staffUses = this.staffUsesRef.current;
       const currentView = staffUses.state.view;
-      
-      // If in a sub-section (bulkUpload, reviewResults, editParticipants), go back to Staff Uses home
-      if (currentView === 'bulkUpload' || currentView === 'reviewResults' || currentView === 'editParticipants') {
-        staffUses.setState({ view: null });
-        return;
-      }
-      
+
       // If at Staff Uses home (view: null), go back to event selection
       if (currentView === null) {
         this.setState({ section: 'selectEvent', event: null });
         return;
       }
+
+      // Delegate to StaffUses to handle its own sub-section back navigation
+      staffUses.handleBack();
+      return;
     }
-    
+
     // If in event selection, go to parent
     if (section === 'selectEvent') {
       this.props.onBack && this.props.onBack();
@@ -119,96 +117,16 @@ class FFTStaff extends Component {
                 bulkUploadRef={this.bulkUploadRef}
                 onFilesChange={() => this.forceUpdate()}
                 onBack={() => this.setState({ section: 'selectEvent', event: null })}
+                onUploadDone={() => {
+                  this.setState({ section: 'selectEvent', event: null });
+                  this.props.onBack?.();
+                }}
               />
             </div>
           </div>
 
-          {/* Footer: Action Buttons */}
-          {section === 'staffUses' && this.bulkUploadRef.current && (() => {
-            const bulkUpload = this.bulkUploadRef.current;
-            const { files, reviewing, uploading, results } = bulkUpload.state;
-            
-            // Don't show footer buttons if upload is completed (show modal instead)
-            if (results && results.status === 'completed') {
-              return null;
-            }
-            
-            // Show Clear/Review buttons (file selection only with files selected)
-            if (files.length > 0 && !reviewing && !uploading && !results) {
-              return (
-                <div style={{ display: 'flex', gap: '12px', marginTop: '20px', padding: '0 20px' }}>
-                  <button
-                    className="fft-staff-reset-btn"
-                    onClick={() => bulkUpload.handleClear()}
-                    style={{ flex: 1 }}
-                  >
-                    Clear
-                  </button>
-                  <button
-                    className="fft-staff-upload-btn"
-                    onClick={() => bulkUpload.handleReview()}
-                    style={{ flex: 1 }}
-                  >
-                    Review
-                  </button>
-                </div>
-              );
-            }
-
-            // Show buttons during review (based on validation state)
-            if (reviewing && !results) {
-              const uploadStatus = bulkUpload.uploadStatusRef?.current;
-              const showValidation = uploadStatus?.state?.showValidation;
-              const rowsWithErrors = uploadStatus?.state?.rowsWithErrors || [];
-              const hasErrors = rowsWithErrors.length > 0;
-              
-              // Stage 1: Validation in progress - show nothing yet
-              if (!showValidation) {
-                return null;
-              }
-
-              // Stage 2: Validation has errors - Show Try Again
-              if (hasErrors) {
-                return (
-                  <div style={{ marginTop: '20px', padding: '0 20px' }}>
-                    <button
-                      className="fft-staff-reset-btn"
-                      onClick={() => {
-                        // Reset UploadStatus validation state
-                        uploadStatus.setState({ validationComplete: false, validationResults: {}, showValidation: false, rowsWithErrors: [] });
-                        // Reset BulkUpload to go back to Upload Section
-                        bulkUpload.setState({ files: [], reviewing: false, validationPassed: false }, () => {
-                          // Trigger parent re-render after state is updated
-                          this.forceUpdate();
-                        });
-                      }}
-                      style={{ width: '100%' }}
-                    >
-                      Try Again
-                    </button>
-                  </div>
-                );
-              }
-
-              // Stage 3: Validation passed - Show Upload button
-              if (showValidation && !hasErrors) {
-                return (
-                  <div style={{ marginTop: '20px', padding: '0 20px' }}>
-                    <button
-                      onClick={() => bulkUpload.handleConfirmUpload()}
-                      className="fft-staff-upload-btn"
-                      style={{ width: '100%' }}
-                    >
-                      Upload
-                    </button>
-                  </div>
-                );
-              }
-            }
-          })()}
-
           {/* Modal Overlay for Upload Results */}
-          {section === 'staffUses' && this.bulkUploadRef.current && (
+          {section === 'staffUses' && this.bulkUploadRef.current && this.staffUsesRef?.current?.state?.view === 'bulkUpload' && (
             <UploadResultModal
               uploading={this.bulkUploadRef.current.state.uploading}
               uploadProgress={this.bulkUploadRef.current.state.uploadProgress}
@@ -225,11 +143,11 @@ class FFTStaff extends Component {
           <HomeConfirmModal
             visible={this.state.showHomeConfirm}
             onYes={() => {
+              this.staffUsesRef.current?.resetAll?.();
               this.setState({ showHomeConfirm: false, event: null, section: 'selectEvent' });
               this.props.onBack && this.props.onBack();
             }}
             onNo={() => {
-              // Go home without clearing data — stay inside FFTStaff so StaffUses stays mounted
               this.setState({ showHomeConfirm: false });
               this.props.onBack && this.props.onBack();
             }}

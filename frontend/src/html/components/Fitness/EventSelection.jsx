@@ -33,39 +33,29 @@ class EventSelection extends Component {
     const BACKEND_URL = window.location.hostname === 'localhost'
       ? 'http://localhost:3001'
       : 'https://ecss-backend-node.azurewebsites.net';
-    const FOLDER_ID = '1EsnCGO1QfPrqfmDtsy-cELUO3UyZKCci';
+    const INDEX_SHEET_ID = '1fMyjRlqj3ZEj9OcWCP_HtViLbgYG2zW4i-qZUdVOMXo';
 
     this.setState({ loading: true, error: null });
 
     try {
-      const [eventsRes, filesRes] = await Promise.all([
-        axios.post(`${BACKEND_URL}/googleDrive/listEvents`, {}),
-        axios.post(`${BACKEND_URL}/googleDrive/`, { folderId: FOLDER_ID, purpose: 'listFiles' }),
-      ]);
+      const res = await axios.post(`${BACKEND_URL}/googleDrive/readSpreadsheet`, {
+        fileId: INDEX_SHEET_ID,
+        sheetName: 'Sheet1',
+      });
 
-      const eventNames = (eventsRes.data.events || []).filter(Boolean);
-      const driveFolders = (filesRes.data.folders || []).filter(
-        f => typeof f === 'object' && /^\d{4}$/.test(f.name?.trim())
-      );
+      if (!res.data.success) {
+        throw new Error(res.data.error || 'Failed to read index sheet');
+      }
 
-      console.log('Loaded event names:', eventNames);
-      console.log('Loaded drive folders:', driveFolders);
-
-      const nestedFiles = await Promise.all(
-        driveFolders.map(async (folder) => {
-          const folderRes = await axios.post(`${BACKEND_URL}/googleDrive/`, {
-            folderId: folder.id,
-            purpose: 'listFiles',
-          });
-          const sheets = (folderRes.data.files || []).filter(
-            f => typeof f === 'object' && f.mimeType === 'application/vnd.google-apps.spreadsheet'
-          );
-          return sheets
-            .filter(f => eventNames.some(n => n.trim().toLowerCase() === f.name.trim().toLowerCase()))
-            .map(f => ({ name: f.name, id: f.id }));
-        })
-      );
-      const events = nestedFiles.flat();
+      // Sheet columns: A=S/N, B=Event Name, C=Time Slots, D=Max Participants, E=Created On, F=File ID
+      const events = (res.data.data || [])
+        .filter(row => row[1] && row[5]) // must have event name and file ID
+        .map(row => ({
+          name: row[1].trim(),
+          id: row[5].trim(),
+          timeSlots: row[2] ? row[2].trim() : '',
+          maxParticipants: row[3] ? row[3].trim() : '',
+        }));
 
       this.setState({ events, loading: false });
     } catch (err) {

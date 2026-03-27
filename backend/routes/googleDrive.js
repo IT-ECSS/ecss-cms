@@ -3,6 +3,8 @@ var router = express.Router();
 var GoogleDriveController = require('../Controller/Google/GoogleDriveController');
 var fs = require('fs');
 var path = require('path');
+const XLSX = require('xlsx');
+const XlsxPopulate = require('xlsx-populate');
 
 const googleDriveController = new GoogleDriveController();
 
@@ -267,6 +269,115 @@ router.post('/appendEventRow', async (req, res) => {
     }
 });
 
+// POST endpoint to generate a pre-filled Excel template with one sheet per time slot
+router.post('/generateTemplate', async (req, res) => {
+    try {
+        const { eventName } = req.body;
+        if (!eventName) {
+            return res.status(400).json({ success: false, error: 'eventName is required' });
+        }
+
+        const INDEX_SHEET_ID = '1fMyjRlqj3ZEj9OcWCP_HtViLbgYG2zW4i-qZUdVOMXo';
+        const result = await googleDriveController.readSpreadsheet(INDEX_SHEET_ID);
+        if (!result.success) {
+            return res.status(500).json({ success: false, error: 'Failed to read index sheet' });
+        }
+
+        // Find the row for this event (column B = event name, column C = time slots)
+        // Sheet columns: A=S/N, B=Event Name, C=Time Slots, D=Max Participants, E=Created On, F=File ID
+        const eventRow = (result.data || []).find(row => (row[1] || '').trim() === eventName.trim());
+        const timeSlotsStr = eventRow ? (eventRow[2] || '') : '';
+        const maxParticipants = eventRow ? parseInt(eventRow[3], 10) : NaN;
+        const PREFILL_ROWS = (!isNaN(maxParticipants) && maxParticipants > 0) ? maxParticipants : 40;
+
+        // Parse "Slot 1: 09:00-10:00, Slot 2: 10:00-11:00" → [{label, start, end}]
+        let slots = [];
+        if (timeSlotsStr) {
+            const parts = timeSlotsStr.split(',').map(s => s.trim()).filter(Boolean);
+            for (const part of parts) {
+                // e.g. "Slot 1: 09:00-10:00"
+                const m = part.match(/^(Slot\s*\d+):\s*(\d{2}:\d{2})-(\d{2}:\d{2})$/i);
+                if (m) {
+                    slots.push({ label: m[1].trim(), start: m[2], end: m[3] });
+                } else {
+                    slots.push({ label: part, start: '', end: '' });
+                }
+            }
+        }
+        if (slots.length === 0) {
+            slots = [{ label: 'Sheet1', start: '', end: '' }];
+        }
+
+        // Export the real Google Sheet template as xlsx bytes (preserves formatting & bold headers)
+        const TEMPLATE_FILE_ID = '1xu3UtY6fm3O09_vwlCk1p_NZM0waWrzUMsDGmJbmNDk';
+        const drive = await googleDriveController.initializeAuth();
+        const exportResponse = await drive.files.export(
+            { fileId: TEMPLATE_FILE_ID, mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+            { responseType: 'arraybuffer' }
+        );
+        const templateBuffer = Buffer.from(exportResponse.data);
+
+        // Load the template workbook and clone it per slot
+        // Start Time = column H (index 8), Time End = column I (index 9)
+        const START_TIME_COL = 8; // H
+        const TIME_END_COL = 9;   // I
+
+        const wb = await XlsxPopulate.fromDataAsync(templateBuffer);
+        const firstSheet = wb.sheet(0);
+
+        for (let i = 0; i < slots.length; i++) {
+            const slot = slots[i];
+            // Colons are invalid in Excel sheet names — replace with dots
+            const safeTimes = `${slot.start.replace(/:/g, '.')}-${slot.end.replace(/:/g, '.')}`;
+            const sheetName = `${slot.label} (${safeTimes})`.slice(0, 31);
+
+            let ws;
+            if (i === 0) {
+                ws = firstSheet.name(sheetName);
+            } else {
+                // Copy the first sheet as a new sheet for each additional slot
+                ws = wb.cloneSheet(firstSheet, sheetName);
+            }
+
+            // Fill Start Time and Time End for PREFILL_ROWS data rows (row 2 onwards)
+            for (let r = 0; r < PREFILL_ROWS; r++) {
+                if (slot.start) ws.cell(r + 2, START_TIME_COL).value(slot.start);
+                if (slot.end)   ws.cell(r + 2, TIME_END_COL).value(slot.end);
+            }
+        }
+
+        const buf = await wb.outputAsync();
+        const fileName = `${eventName} - Registration Template.xlsx`;
+        res.set({
+            'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition': `attachment; filename="${fileName.replace(/"/g, '')}"`,
+            'Content-Length': buf.length,
+        });
+        res.send(buf);
+    } catch (error) {
+        console.error('[FFT] Error in POST /generateTemplate:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// POST endpoint to update File ID (column E) in the index sheet for a given event S/N
+router.post('/updateEventFileId', async (req, res) => {
+    try {
+        const { serialNumber, fileId } = req.body;
+        if (!serialNumber || !fileId) {
+            return res.status(400).json({ success: false, error: 'serialNumber and fileId are required' });
+        }
+        const result = await googleDriveController.updateIndexFileId(serialNumber, fileId);
+        if (!result.success) {
+            return res.status(500).json(result);
+        }
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[FFT] Error in POST /updateEventFileId:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // POST endpoint to create a folder inside a parent folder
 router.post('/createFolder', async (req, res) => {
     try {
@@ -466,14 +577,16 @@ router.post('/fftSubmit', async (req, res) => {
         }
 
         const {
-            name = '', phone = '', gender = '',
+            name = '', chineseName = '', phone = '', gender = '',
             dateOfBirth = '', age: providedAge = '',
+            startTime = '', endTime = '',
         } = participantData;
 
         // Normalise to strings (Excel bulk upload may send numbers)
-        const nameStr   = String(name || '').trim();
-        const phoneStr  = String(phone || '').trim();
-        const genderStr = String(gender || '').trim();
+        const nameStr       = String(name || '').trim();
+        const chineseNameStr = String(chineseName || '').trim();
+        const phoneStr      = String(phone || '').trim();
+        const genderStr     = String(gender || '').trim();
 
         // Skip if no name provided
         if (!nameStr) {
@@ -549,13 +662,16 @@ router.post('/fftSubmit', async (req, res) => {
         }
 
         // Row order matches sheet headers:
-        // Name | Chinese Name | Phone Number | Gender | DD | MM | YYYY | Age |
+        // Name | Chinese Name | Phone Number | Gender | DD | MM | YYYY |
+        // Start Time | End Time | Age |
         // Height | Weight | BMI | Date of test |
-        // 30 secs Sit & Stand | 30 secs Arm Curl | 2 min March on the spot |
-        // Sit & Reach | Back Stretch | 2.44m speed walk | Grip Test | Improvements | Remarks
+        // 30 secs Sit & Stand | 30 secs Arm Banding | 2 min On-the-spot Marching |
+        // Sit & Reach | Back Stretching | 2.44m Speed Walk | Grip test | Improvements | Remarks
         const rowData = [
-            nameStr, '', phoneStr, genderStr,
-            dd, mm, yyyy, String(age),
+            nameStr, chineseNameStr, phoneStr, genderStr,
+            dd, mm, yyyy,
+            String(startTime || ''), String(endTime || ''), // Start Time, End Time
+            String(age),
             '', '', '',          // Height, Weight, BMI
             dateOfTest,
             '', '', '', '', '', '', '', // test result columns
@@ -695,6 +811,47 @@ router.post('/updateParticipant', async (req, res) => {
         res.json({ success: true });
     } catch (error) {
         console.error('[FFT] Error in POST /updateParticipant:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// POST endpoint to create a full FFT event: copies participant template sheet and
+// Write event row to index sheet (S/N, Event Name, Time Slots, Max Participants, Created On)
+router.post('/createFFTEvent', async (req, res) => {
+    try {
+        const { eventName, timeSlots, maxParticipants, createdOn } = req.body;
+        if (!eventName || !timeSlots || !createdOn) {
+            return res.status(400).json({ success: false, error: 'eventName, timeSlots, and createdOn are required' });
+        }
+
+        const INDEX_SHEET_ID = '1fMyjRlqj3ZEj9OcWCP_HtViLbgYG2zW4i-qZUdVOMXo';
+
+        console.log(`[FFT] createFFTEvent — event: "${eventName}"`);
+
+        const appendResult = await googleDriveController.appendFFTEventRow(
+            INDEX_SHEET_ID,
+            eventName,
+            timeSlots,
+            maxParticipants || '',
+            createdOn
+        );
+        if (!appendResult.success) {
+            const isDuplicate = appendResult.error && appendResult.error.includes('duplicate');
+            if (isDuplicate) {
+                return res.status(409).json({ success: false, error: 'An event with the same details already exists.' });
+            }
+            return res.status(500).json({ success: false, error: appendResult.error || 'Failed to write to index sheet' });
+        }
+
+        res.json({
+            success: true,
+            eventName,
+            serialNumber: appendResult.serialNumber,
+            timeSlots,
+            createdOn,
+        });
+    } catch (error) {
+        console.error('[FFT] Error in POST /createFFTEvent:', error.message);
         res.status(500).json({ success: false, error: error.message });
     }
 });

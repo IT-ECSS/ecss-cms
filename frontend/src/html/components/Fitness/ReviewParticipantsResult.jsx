@@ -35,7 +35,11 @@ class ReviewParticipantsResult extends Component {
     };
   }
 
-  componentDidUpdate() {
+  componentDidUpdate(prevProps) {
+    // Sync event from parent prop
+    if (prevProps.initialEvent !== this.props.initialEvent) {
+      this.setState({ event: this.props.initialEvent, entryNumber: null });
+    }
     // Save state to localStorage whenever it changes
     try {
       localStorage.setItem(this.storageKey, JSON.stringify({
@@ -49,6 +53,11 @@ class ReviewParticipantsResult extends Component {
 
   notifyState = (event, entryNumber) => {
     this.props.onStateChange && this.props.onStateChange(event, entryNumber);
+  };
+
+  reset = () => {
+    this.setState({ entryNumber: null, hasError: false, isLoading: false });
+    try { localStorage.removeItem(this.storageKey); } catch (e) {}
   };
 
   handleSelectEvent = (evt) => {

@@ -6,7 +6,7 @@ const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
   : 'https://ecss-backend-node.azurewebsites.net';
 
-// Fixed spreadsheet to download
+// Fixed spreadsheet to download (fallback when no event is known)
 const TEMPLATE_FILE_ID = '1xu3UtY6fm3O09_vwlCk1p_NZM0waWrzUMsDGmJbmNDk';
 const TEMPLATE_FILE_NAME = 'FFT Pre-Registration Template (Bulk Upload)';
 
@@ -21,19 +21,33 @@ class DownloadSubSection extends Component {
   }
 
   handleDownload = async () => {
+    const { eventName } = this.props;
     this.setState({ loading: true, error: null, success: false });
 
     try {
-      const response = await axios.post(
-        `${BACKEND_URL}/googleDrive/exportSpreadsheet`,
-        { fileId: TEMPLATE_FILE_ID, fileName: TEMPLATE_FILE_NAME },
-        { responseType: 'blob' }
-      );
-
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      let url, downloadName;
+      if (eventName) {
+        // Generate dynamic template with per-slot sheets and pre-filled times
+        const response = await axios.post(
+          `${BACKEND_URL}/googleDrive/generateTemplate`,
+          { eventName },
+          { responseType: 'blob' }
+        );
+        url = window.URL.createObjectURL(new Blob([response.data]));
+        downloadName = `${eventName} - Registration Template.xlsx`;
+      } else {
+        // Fallback: export the static template
+        const response = await axios.post(
+          `${BACKEND_URL}/googleDrive/exportSpreadsheet`,
+          { fileId: TEMPLATE_FILE_ID, fileName: TEMPLATE_FILE_NAME },
+          { responseType: 'blob' }
+        );
+        url = window.URL.createObjectURL(new Blob([response.data]));
+        downloadName = `${TEMPLATE_FILE_NAME}.xlsx`;
+      }
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `${TEMPLATE_FILE_NAME}.xlsx`);
+      link.setAttribute('download', downloadName);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -59,7 +73,7 @@ class DownloadSubSection extends Component {
         </div>
 
         <p className="fft-download-subsection-desc">
-          As an alternative, you may download the FFT Template Spreadsheet.
+          Please download the template for this FFT Event.
         </p>
 
         {/* Action */}

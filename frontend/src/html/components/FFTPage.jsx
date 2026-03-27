@@ -37,14 +37,7 @@ class FFTPage extends Component {
       this.setState({ activeSection: section });
     }
 
-    // Fetch the active file from the backend (shared across all devices)
-    axios.get(`${BACKEND_URL}/googleDrive/activeFile`)
-      .then((res) => {
-        if (res.data.success && res.data.file) {
-          this.setState({ selectedFile: res.data.file });
-        }
-      })
-      .catch((err) => console.error('Failed to fetch active file:', err.message));
+
   }
 
   handleSectionChange = (section) => {
@@ -52,16 +45,7 @@ class FFTPage extends Component {
   };
 
   handleFileSelected = (file) => {
-    // Admin chose a file → store it on the backend so all devices share it
-    axios.post(`${BACKEND_URL}/googleDrive/activeFile`, { file })
-      .then(() => {
-        this.setState({ selectedFile: file, activeSection: 'participants' });
-      })
-      .catch((err) => {
-        console.error('Failed to set active file:', err.message);
-        // Still set locally as fallback
-        this.setState({ selectedFile: file, activeSection: 'participants' });
-      });
+    this.setState({ selectedFile: file, activeSection: 'participants' });
   };
 
   render() {

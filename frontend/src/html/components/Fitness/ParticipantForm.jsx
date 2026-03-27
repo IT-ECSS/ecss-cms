@@ -395,6 +395,11 @@ class ParticipantForm extends Component {
                       className="fft-create-event-btn fft-create-event-btn-clear"
                       onClick={() => this.indemnityRef.current?.handleSubmit()}
                       disabled={isSubmitting}
+                      style={{
+                        background: 'transparent',
+                        borderColor: '#2e7d32',
+                        color: '#2e7d32',
+                      }}
                     >
                       {language === 'zh' ? '提交' : language === 'ms' ? 'Hantar' : 'Submit'}
                     </button>

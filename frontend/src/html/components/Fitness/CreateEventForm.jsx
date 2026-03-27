@@ -76,6 +76,22 @@ class CreateEventForm extends React.Component {
     }));
   };
 
+  handleNext = () => {
+    const { eventDate, eventLocation, eventSessionNumber } = this.state;
+    this.setState({ submitted: true });
+
+    if (!eventDate || !eventLocation || !eventSessionNumber) return;
+
+    const dateRegex = /^\d{4}\/\d{2}\/\d{2}$/;
+    if (!dateRegex.test(eventDate)) {
+      this.setState({ eventError: 'Date must be in format yyyy/mm/dd' });
+      return;
+    }
+
+    this.setState({ submitted: false, eventError: null });
+    this.props.onNext?.({ eventDate, eventLocation, eventSessionNumber });
+  };
+
   handleEventSubmit = async () => {
     const { eventDate, eventLocation, eventSessionNumber } = this.state;
 
@@ -158,8 +174,6 @@ class CreateEventForm extends React.Component {
       eventSubmitting,
       submitted
     } = this.state;
-
-    const { onCancel } = this.props;
 
     const dateInvalid = eventDate === '' || !/^\d{4}\/\d{2}\/\d{2}$/.test(eventDate);
     const locationInvalid = eventLocation === '';
@@ -380,17 +394,18 @@ class CreateEventForm extends React.Component {
                   </button>
                   <button
                     type="button"
-                    onClick={() => this.handleEventSubmit()}
+                    onClick={this.handleNext}
                     disabled={eventSubmitting || !!eventResult}
                     className="fft-create-event-btn fft-create-event-btn-create"
                   >
-                    {eventSubmitting ? 'Creating...' : 'Create'}
+                    Next
                   </button>
                 </>
               )}
             </div>
           </div>
         </div>
+
       </div>
     );
   }

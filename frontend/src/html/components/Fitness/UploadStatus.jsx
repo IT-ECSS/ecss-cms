@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import axios from 'axios';
 import * as XLSX from 'xlsx';
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community'; 
@@ -8,6 +9,9 @@ import '../../../css/fftStaff.css';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
+const BACKEND_URL = window.location.hostname === 'localhost'
+  ? 'http://localhost:3001'
+  : 'https://ecss-backend-node.azurewebsites.net';
 
 class UploadStatus extends Component {
   constructor(props) {
@@ -18,16 +22,26 @@ class UploadStatus extends Component {
       showValidation: false,
       validationComplete: false,
       rowsWithErrors: [], // Track which rows have errors
+      sheetCounts: {},   // { sheetName: rowCount } for capacity checks
+      existingParticipants: [], // Participants already in the sheet
+      existingLoaded: false,    // Whether the existing-participant fetch has completed
     };
   }
 
   componentDidMount() {
     this.parseExcelFiles();
+    // Only fetch if parent hasn't pre-fetched
+    if (this.props.event && !this.props.existingLoaded) {
+      this.fetchExistingParticipants();
+    }
   }
 
   componentDidUpdate(prevProps) {
     if (prevProps.files !== this.props.files) {
       this.parseExcelFiles();
+    }
+    if (prevProps.event !== this.props.event && this.props.event && !this.props.existingLoaded) {
+      this.fetchExistingParticipants();
     }
   }
 
@@ -42,6 +56,7 @@ class UploadStatus extends Component {
       showValidation: false,
       validationComplete: false,
       rowsWithErrors: [],
+      sheetCounts: {},
     });
 
     const file = files[0]; // Parse first file
@@ -51,10 +66,24 @@ class UploadStatus extends Component {
       try {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet);
-        this.setState({ excelData: jsonData }, () => {
+
+        // Read ALL sheets so multi-slot uploads are fully processed.
+        // Skip rows where all participant-identifying columns are empty
+        // (e.g. template rows that only have Start Time / Time End pre-filled).
+        const KEY_FIELDS = ['Name', 'Chinese Name', 'Phone Number', 'Gender', 'DD', 'MM', 'YYYY'];
+        const allData = [];
+        const sheetCounts = {};
+        for (const sheetName of workbook.SheetNames) {
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet);
+          const validRows = jsonData.filter(row =>
+            KEY_FIELDS.some(f => String(row[f] ?? '').trim() !== '')
+          );
+          sheetCounts[sheetName] = validRows.length;
+          validRows.forEach(row => allData.push({ ...row, _sheetName: sheetName }));
+        }
+
+        this.setState({ excelData: allData, sheetCounts }, () => {
           this.handleValidateAll();
         });
       } catch (error) {
@@ -63,6 +92,52 @@ class UploadStatus extends Component {
     };
 
     reader.readAsArrayBuffer(file);
+  };
+
+  fetchExistingParticipants = async () => {
+    const { event } = this.props;
+    if (!event?.id) return;
+    try {
+      const res = await axios.post(`${BACKEND_URL}/googleDrive/getParticipants`, {
+        fileId: event.id,
+      });
+      if (res.data && Array.isArray(res.data)) {
+        this.setState({ existingParticipants: res.data, existingLoaded: true }, () => this.props.onExistingLoaded?.());
+      } else {
+        this.setState({ existingLoaded: true }, () => this.props.onExistingLoaded?.());
+      }
+    } catch (err) {
+      console.warn('Could not fetch existing participants for duplicate check:', err.message);
+      this.setState({ existingLoaded: true }, () => this.props.onExistingLoaded?.());
+    }
+  };
+
+  isExistingParticipant = (row) => {
+    // Prefer pre-fetched data from parent prop
+    const existingParticipants = this.props.existingParticipants ?? this.state.existingParticipants;
+    const nameLower   = String(row.Name || '').trim().toLowerCase();
+    const phone       = String(row['Phone Number'] || '').trim();
+    const genderLower = String(row.Gender || '').trim().toLowerCase();
+    const dd   = parseInt(row.DD, 10);
+    const mm   = parseInt(row.MM, 10);
+    const yyyy = String(row.YYYY || '').trim();
+
+    return existingParticipants.some(existing =>
+      String(existing.Name || '').trim().toLowerCase() === nameLower &&
+      String(existing['Phone Number'] || '').trim() === phone &&
+      String(existing.Gender || '').trim().toLowerCase() === genderLower &&
+      parseInt(existing.DD, 10) === dd &&
+      parseInt(existing.MM, 10) === mm &&
+      String(existing.YYYY || '').trim() === yyyy
+    );
+  };
+
+  // Returns only rows that are not already registered — used by BulkUpload to skip duplicates
+  getNewOnlyData = () => {
+    const { excelData } = this.state;
+    const existingLoaded = this.props.existingLoaded ?? this.state.existingLoaded;
+    if (!existingLoaded) return excelData;
+    return excelData.filter(row => !this.isExistingParticipant(row));
   };
 
   validateRow = (row, rowIndex) => {
@@ -125,51 +200,45 @@ class UploadStatus extends Component {
 
   handleValidateAll = () => {
     const { excelData } = this.state;
-    const totalRows = excelData.length;
+    if (excelData.length === 0) return;
+
+    const newValidationResults = {};
+    const newRowsWithErrors = [];
 
     excelData.forEach((row, index) => {
-      const batchDelay = Math.floor(index / 5) * 1000;
-      setTimeout(() => {
-        const result = this.validateRow(row, index);
-
-        this.setState(
-          (prev) => {
-            const isLast = index === totalRows - 1;
-            return {
-              validationResults: { ...prev.validationResults, [index]: result },
-              rowsWithErrors: result.errors.length > 0
-                ? [...prev.rowsWithErrors, index + 1]
-                : prev.rowsWithErrors,
-              showValidation: true,
-              ...(isLast ? { validationComplete: true } : {}),
-            };
-          },
-          () => {
-            if (index === totalRows - 1 && this.props.onValidationComplete) {
-              this.props.onValidationComplete();
-            }
-          }
-        );
-      }, batchDelay);
+      const result = this.validateRow(row, index);
+      newValidationResults[index] = result;
+      if (result.errors.length > 0) newRowsWithErrors.push(index + 1);
     });
+
+    this.setState(
+      { validationResults: newValidationResults, rowsWithErrors: newRowsWithErrors, showValidation: true, validationComplete: true },
+      () => { if (this.props.onValidationComplete) this.props.onValidationComplete(); }
+    );
   };
 
   getColumnDefs = () => {
     const { excelData, showValidation } = this.state;
     if (excelData.length === 0) return [];
 
-    const headers = Object.keys(excelData[0]);
+    // Filter out internal fields (prefixed with _)
+    const headers = Object.keys(excelData[0]).filter(h => !h.startsWith('_'));
     const hasDateFields = headers.includes('DD') && headers.includes('MM') && headers.includes('YYYY');
+    const hasMultipleSheets = Object.keys(this.state.sheetCounts).length > 1;
 
     // Column width mapping
     const columnWidths = {
-      'Participant Number': 250,
+      'Participant Number': 200,
+      'Slot': 210,
       'Name': 200,
-      'Contact Number': 250,
-      'Phone Number': 250,
-      'Gender': 150,
-      'Date of Birth': 200,
-      'Result': 100,
+      'Chinese Name': 160,
+      'Contact Number': 200,
+      'Phone Number': 200,
+      'Gender': 120,
+      'Date of Birth': 160,
+      'Start Time': 130,
+      'Time End': 130,
+      'Status': 100,
     };
 
     // Add Participant Number column at the beginning
@@ -183,7 +252,7 @@ class UploadStatus extends Component {
         },
         sortable: false,
         filter: false,
-        pinned: 'left'
+        pinned: 'left',
       }
     ];
 
@@ -218,32 +287,32 @@ class UploadStatus extends Component {
       }
     }
 
-    // Add Result column at the end - always show, but empty until validation completes
+    // Single combined Status column:
+    //   ✓ green  = validation passed + new entry
+    //   ✗ red    = validation failed
+    //   – orange = already registered (will be skipped)
     columnDefs.push({
-      field: 'result',
+      field: 'status',
       headerName: 'Status',
-      width: columnWidths['Result'],
+      width: 100,
       pinned: 'right',
-      valueGetter: (params) => {
+      cellRenderer: (params) => {
         const rowIndex = params.node.rowIndex;
         const validation = this.state.validationResults[rowIndex];
-        // Return empty string if validation hasn't run, otherwise show symbol
-        if (!validation) return '';
-        return validation.isValid ? '✓' : '✗';
-      },
-      cellStyle: (params) => {
-        const rowIndex = params.node.rowIndex;
-        const validation = this.state.validationResults[rowIndex];
-        // Only apply colors if validation has completed
-        if (!validation) {
-          return { textAlign: 'center' };
+        const existingLoaded = this.props.existingLoaded ?? this.state.existingLoaded;
+        let symbol = '';
+        let color = 'inherit';
+        if (validation) {
+          if (!validation.isValid) { symbol = '✗'; color = 'red'; }
+          else if (!existingLoaded) { symbol = ''; }
+          else if (this.isExistingParticipant(params.data)) { symbol = '–'; color = '#e65100'; }
+          else { symbol = '✓'; color = 'green'; }
         }
-        return {
-          color: validation.isValid ? 'green' : 'red',
-          fontWeight: 'bold',
-          fontSize: '18px',
-          textAlign: 'center',
-        };
+        return (
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22.5px', fontWeight: 'bold', color }}>
+            {symbol}
+          </div>
+        );
       },
     });
 
@@ -251,10 +320,13 @@ class UploadStatus extends Component {
   };
 
   render() {
-    const { reviewing, uploading, uploadProgress, results, files, onConfirmUpload } = this.props;
-    const { excelData, showValidation, validationResults, validationComplete } = this.state;
+    const { reviewing, uploading, uploadProgress, results, files, onConfirmUpload, event } = this.props;
+    const { excelData, showValidation, validationResults, validationComplete, rowsWithErrors } = this.state;
+    const existingLoaded = this.props.existingLoaded ?? this.state.existingLoaded;
+    const newCount = existingLoaded ? excelData.filter(row => !this.isExistingParticipant(row)).length : null;
+    const dupCount = existingLoaded ? excelData.length - newCount : null;
 
-    if (!reviewing && !uploading && !results) {
+    if (!reviewing && !uploading && !results && (!files || files.length === 0)) {
       return null;
     }
 
@@ -271,6 +343,117 @@ class UploadStatus extends Component {
           });
         }
       });
+    }
+
+    // ─── Action Buttons ───
+    let actionButtons = null;
+
+    // Completed: show Done (success) or Try Again (failure)
+    if (results && results.status === 'completed') {
+      if (results.uploadSuccess) {
+        actionButtons = (
+          <div style={{ marginTop: '20px', padding: '0 20px', display: 'flex', justifyContent: 'center' }}>
+            <button
+              className="fft-staff-upload-btn"
+              onClick={() => this.props.onDone?.()}
+              style={{ width: 'fit-content', padding: '10px 32px' }}
+            >
+              Done
+            </button>
+          </div>
+        );
+      } else {
+        actionButtons = (
+          <div style={{ marginTop: '20px', padding: '0 20px', display: 'flex', justifyContent: 'center' }}>
+            <button
+              className="fft-staff-reset-btn"
+              onClick={() => this.props.onReset?.()}
+              style={{ width: 'fit-content', padding: '10px 32px' }}
+            >
+              Try Again
+            </button>
+          </div>
+        );
+      }
+    }
+
+    // Show Clear/Review buttons (file selection only with files selected)
+    else if (files && files.length > 0 && !reviewing && !uploading && !results) {
+      actionButtons = (
+        <div style={{ display: 'flex', gap: '12px', marginTop: '20px', padding: '0 20px' }}>
+          <button
+            className="fft-staff-reset-btn"
+            onClick={() => this.props.onClear?.()}
+            style={{ flex: 1 }}
+          >
+            Clear
+          </button>
+          <button
+            className="fft-staff-upload-btn"
+            onClick={() => this.props.onReview?.()}
+            style={{ flex: 1 }}
+          >
+            Review
+          </button>
+        </div>
+      );
+    }
+
+    // Show buttons during review (based on validation state)
+    else if (reviewing && !results) {
+      const hasErrors = rowsWithErrors.length > 0;
+
+      if (!showValidation) {
+        actionButtons = null;
+      } else if (hasErrors) {
+        actionButtons = (
+          <div style={{ marginTop: '20px', padding: '0 20px', display: 'flex', justifyContent: 'center' }}>
+            <button
+              className="fft-staff-reset-btn"
+              onClick={() => {
+                this.setState({ validationComplete: false, validationResults: {}, showValidation: false, rowsWithErrors: [] });
+                this.props.onClear?.();
+              }}
+              style={{ width: 'fit-content', padding: '10px 32px' }}
+            >
+              Try Again
+            </button>
+          </div>
+        );
+      } else if (!existingLoaded) {
+        actionButtons = null;
+      } else {
+        const newOnlyData = this.getNewOnlyData?.() || [];
+        const hasNewRows = newOnlyData.length > 0;
+        if (!hasNewRows) {
+          actionButtons = (
+            <div style={{ marginTop: '20px', padding: '0 20px', display: 'flex', justifyContent: 'center' }}>
+              <button
+                className="fft-staff-reset-btn"
+                onClick={() => {
+                  this.setState({ validationComplete: false, validationResults: {}, showValidation: false, rowsWithErrors: [] });
+                  this.props.onClear?.();
+                }}
+                style={{ width: 'fit-content', padding: '10px 32px' }}
+              >
+                Try Again
+              </button>
+            </div>
+          );
+        } else {
+          actionButtons = (
+            <div style={{ marginTop: '20px', padding: '0 20px', display: 'flex', justifyContent: 'center' }}>
+              <button
+                onClick={() => this.props.onConfirmUpload?.()}
+                className="fft-staff-upload-btn"
+                style={{ width: 'fit-content', padding: '10px 32px' }}
+              >
+                Upload
+              </button>
+            </div>
+          );
+        }
+      }
     }
 
     return (
@@ -301,6 +484,18 @@ class UploadStatus extends Component {
                   />
                 </div>
 
+                {/* Legend — only shows entries that are actually present */}
+                {validationComplete && existingLoaded && (() => {
+                  const failCount = excelData.filter((_, i) => validationResults[i] && !validationResults[i].isValid).length;
+                  return (
+                    <div style={{ marginTop: '8px', padding: '10px 16px', border: '1px solid #ccc', borderRadius: '4px', display: 'flex', gap: '32px', flexWrap: 'wrap', alignItems: 'center' }}>
+                      {newCount > 0 && <span style={{ color: 'green', fontWeight: 600, fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '10px' }}><span style={{ fontSize: '1.5625rem' }}>✓</span><span>Success</span></span>}
+                      {dupCount > 0 && <span style={{ color: '#e65100', fontWeight: 600, fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '10px' }}><span style={{ fontSize: '1.5625rem' }}>–</span><span>Already Uploaded</span></span>}
+                      {failCount > 0 && <span style={{ color: 'red', fontWeight: 600, fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '10px' }}><span style={{ fontSize: '1.5625rem' }}>✗</span><span>Validation Failed</span></span>}
+                    </div>
+                  );
+                })()}
+
                 {/* Error List Display - Below the Table */}
                 {validationComplete && errorList.length > 0 && (
                   <div style={{ 
@@ -330,11 +525,28 @@ class UploadStatus extends Component {
                     </ul>
                   </div>
                 )}
+
+                {/* Already Uploaded notice — shown when all valid rows are duplicates */}
+                {validationComplete && existingLoaded && errorList.length === 0 && dupCount > 0 && newCount === 0 && (
+                  <div style={{
+                    marginTop: '20px',
+                    padding: '16px',
+                    backgroundColor: '#fff3e0',
+                    border: '1px solid #e65100',
+                    borderRadius: '4px',
+                  }}>
+                    <h5 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#e65100', margin: '0 0 4px 0' }}>
+                      All Entries Already Uploaded
+                    </h5>
+                  </div>
+                )}
+
               </>
             )}
             
           </div>
         )}
+        {actionButtons}
       </div>
     );
   }

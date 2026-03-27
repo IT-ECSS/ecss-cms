@@ -100,15 +100,6 @@ class FFTVolunteers extends Component {
       // ignore
     }
 
-    // Fetch the active file from backend
-    axios.get(`${BACKEND_URL}/googleDrive/activeFile`)
-      .then((res) => {
-        if (res.data.success && res.data.file) {
-          this.setState({ activeFile: res.data.file });
-        }
-      })
-      .catch((err) => console.error('Failed to fetch active file:', err.message));
-
     // Socket.IO: live updates
     this.socket = io(BACKEND_URL);
     this.socket.on('fftActiveFile', (data) => {

@@ -35,6 +35,21 @@ class EditParticipants extends Component {
     this.fetchParticipants();
   }
 
+  reset = () => {
+    this.setState({
+      participants: [],
+      loading: false,
+      error: null,
+      saving: false,
+      saveSuccess: false,
+      saveError: null,
+      pendingChanges: {},
+      validationErrors: {},
+      saveAttempted: false,
+      searchText: '',
+    });
+  };
+
   componentDidUpdate(prevProps) {
     if (prevProps.event?.id !== this.props.event?.id) {
       this.fetchParticipants();
@@ -174,9 +189,17 @@ class EditParticipants extends Component {
       valueSetter: (params) => { if (params.data) { params.data['Name'] = params.newValue; } return true; },
     },
     {
+      colId: 'Chinese Name',
+      headerName: 'Chinese Name',
+      width: 160,
+      editable: true,
+      valueGetter: (params) => params.data ? params.data['Chinese Name'] || '' : '',
+      valueSetter: (params) => { if (params.data) { params.data['Chinese Name'] = params.newValue; } return true; },
+    },
+    {
       colId: 'Phone Number',
       headerName: 'Contact Number',
-      width: 250,
+      width: 200,
       editable: true,
       valueGetter: (params) => params.data ? params.data['Phone Number'] || '' : '',
       valueSetter: (params) => { if (params.data) { params.data['Phone Number'] = params.newValue; } return true; },
@@ -184,7 +207,7 @@ class EditParticipants extends Component {
     {
       colId: 'Gender',
       headerName: 'Gender',
-      width: 150,
+      width: 120,
       editable: true,
       cellEditor: 'agSelectCellEditor',
       cellEditorParams: { values: ['M', 'F'] },
@@ -194,7 +217,7 @@ class EditParticipants extends Component {
     {
       colId: 'DateOfBirth',
       headerName: 'Date of Birth',
-      width: 200,
+      width: 160,
       editable: true,
       valueGetter: (params) => {
         if (!params.data) return '';
@@ -213,6 +236,22 @@ class EditParticipants extends Component {
         params.data['YYYY'] = parts[2].trim();
         return true;
       },
+    },
+    {
+      colId: 'Start Time',
+      headerName: 'Start Time',
+      width: 130,
+      editable: true,
+      valueGetter: (params) => params.data ? params.data['Start Time'] || '' : '',
+      valueSetter: (params) => { if (params.data) { params.data['Start Time'] = params.newValue; } return true; },
+    },
+    {
+      colId: 'End Time',
+      headerName: 'End Time',
+      width: 130,
+      editable: true,
+      valueGetter: (params) => params.data ? params.data['End Time'] || '' : '',
+      valueSetter: (params) => { if (params.data) { params.data['End Time'] = params.newValue; } return true; },
     },
   ];
 

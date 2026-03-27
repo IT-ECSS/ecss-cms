@@ -593,6 +593,98 @@ const fftTranslations = {
     zh: '请选择您的工作站以继续。',
     ms: 'Sila pilih stesen anda untuk meneruskan.',
   },
+
+  // ── Time Slot Selection ──
+  selectTimeSlot: {
+    en: 'Select A Time Slot',
+    zh: '选择时间段',
+    ms: 'Pilih Slot Masa',
+  },
+  selectTimeSlotDesc: {
+    en: 'Please select a time slot to continue.',
+    zh: '请选择一个时间段继续。',
+    ms: 'Sila pilih slot masa untuk meneruskan.',
+  },
+  timeSlotLabel: {
+    en: 'Time Slot',
+    zh: '时间段',
+    ms: 'Slot Masa',
+  },
+  noTimeSlots: {
+    en: 'No time slots available for this event.',
+    zh: '此活动没有可用的时间段。',
+    ms: 'Tiada slot masa tersedia untuk acara ini.',
+  },
+  slotStatsLoading: {
+    en: 'Loading slot availability...',
+    zh: '正在加载时间段可用名额...',
+    ms: 'Memuatkan ketersediaan slot...',
+  },
+  slotMaxLabel: {
+    en: 'Max',
+    zh: '上限',
+    ms: 'Maksimum',
+  },
+  slotRegisteredLabel: {
+    en: 'Registered',
+    zh: '已报名',
+    ms: 'Berdaftar',
+  },
+  slotStatusLabel: {
+    en: 'Status',
+    zh: '状态',
+    ms: 'Status',
+  },
+  slotStatusFull: {
+    en: 'Full',
+    zh: '已满',
+    ms: 'Penuh',
+  },
+  slotStatusOpen: {
+    en: 'Open',
+    zh: '开放',
+    ms: 'Terbuka',
+  },
+  slotStatusUpdating: {
+    en: 'Loading...',
+    zh: '加载中...',
+    ms: 'Memuatkan...',
+  },
+  slotLeftSuffix: {
+    en: 'slots left',
+    zh: '个名额剩余',
+    ms: 'slot berbaki',
+  },
+  slotFullModalTitle: {
+    en: 'This Slot Is Full',
+    zh: '此时间段已满',
+    ms: 'Slot Ini Penuh',
+  },
+  slotFullModalDesc: {
+    en: 'Do you want to proceed anyway?',
+    zh: '您仍要继续吗？',
+    ms: 'Adakah anda mahu teruskan?',
+  },
+  slotFullModalYes: {
+    en: 'Yes, Proceed',
+    zh: '是，继续',
+    ms: 'Ya, Teruskan',
+  },
+  slotFullModalNo: {
+    en: 'No, Stay Here',
+    zh: '不，留在此页',
+    ms: 'Tidak, Kekal Di Sini',
+  },
+  headerDesc: {
+    en: 'Click on a badge below to re-select your language, event or time slot',
+    zh: '点击下方标签可重新选择语言、活动或时间段',
+    ms: 'Klik pada label di bawah untuk memilih semula bahasa, acara atau slot masa',
+  },
+  headerDescWithSlot: {
+    en: 'Click on a badge below to re-select your language, event or time slot',
+    zh: '点击下方标签可重新选择语言、活动或时间段',
+    ms: 'Klik pada label di bawah untuk memilih semula bahasa, acara atau slot masa',
+  },
 };
 
 export default fftTranslations;

@@ -712,6 +712,83 @@ class GoogleDriveController {
     }
 
     /**
+     * Append a full FFT event row with all 5 columns:
+     * A=S/N, B=Event Name, C=Time Slots, D=Created On, E=File ID
+     */
+    async appendFFTEventRow(spreadsheetId, eventName, timeSlots, maxParticipants, createdOn, sheetName = 'Sheet1') {
+        try {
+            const sheets = await this.initializeSheetsAuth();
+
+            // Get spreadsheet metadata to confirm sheet name
+            const spreadsheet = await sheets.spreadsheets.get({
+                spreadsheetId,
+                fields: 'sheets.properties'
+            });
+            const sheetNames = spreadsheet.data.sheets.map(s => s.properties.title);
+            const targetSheet = sheetNames.includes(sheetName) ? sheetName : sheetNames[0];
+
+            // Check for duplicate event name in column B
+            const eventNameData = await sheets.spreadsheets.values.get({
+                spreadsheetId,
+                range: `'${targetSheet}'!B:B`
+            });
+            const existingNames = (eventNameData.data.values || []).slice(1).map(r => r[0]);
+            if (existingNames.includes(eventName)) {
+                return { success: false, error: 'duplicate event name' };
+            }
+
+            // Determine next S/N from column A
+            const existingData = await sheets.spreadsheets.values.get({
+                spreadsheetId,
+                range: `'${targetSheet}'!A:A`
+            });
+            const dataRows = existingData.data.values ? existingData.data.values.length - 1 : 0;
+            const nextSN = dataRows + 1;
+            const nextRow = dataRows + 2; // 1-indexed + header
+
+            // Columns: A=S/N, B=Event Name, C=Time Slots, D=Maximum Of Participants, E=Created On, F=File ID
+            const rowData = [nextSN.toString(), eventName, timeSlots, maxParticipants.toString(), createdOn];
+
+            await sheets.spreadsheets.values.update({
+                spreadsheetId,
+                range: `'${targetSheet}'!A${nextRow}`,
+                valueInputOption: 'RAW',
+                requestBody: { values: [rowData] }
+            });
+
+            console.log(`[SHEETS] FFT event row appended with S/N ${nextSN}: "${eventName}"`);
+            return { success: true, serialNumber: nextSN };
+        } catch (error) {
+            console.error('[SHEETS] Error appending FFT event row:', error.message);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * Write a participant file ID into column E of the index sheet for a given S/N.
+     * @param {string|number} serialNumber - The S/N value in column A (data row, not sheet row)
+     * @param {string} fileId - The participant spreadsheet's Google Drive file ID
+     */
+    async updateIndexFileId(serialNumber, fileId) {
+        try {
+            const sheets = await this.initializeSheetsAuth();
+            const INDEX_SHEET_ID = '1fMyjRlqj3ZEj9OcWCP_HtViLbgYG2zW4i-qZUdVOMXo';
+            const rowNumber = parseInt(serialNumber, 10) + 1; // +1 for header row
+            await sheets.spreadsheets.values.update({
+                spreadsheetId: INDEX_SHEET_ID,
+                range: `Sheet1!F${rowNumber}`, // Column F = File ID
+                valueInputOption: 'RAW',
+                requestBody: { values: [[fileId]] }
+            });
+            console.log(`[SHEETS] Updated index sheet row ${rowNumber} column E with fileId: ${fileId}`);
+            return { success: true };
+        } catch (error) {
+            console.error('[SHEETS] Error updating index file ID:', error.message);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
      * Update specific columns in a row by entry number.
      * @param {string} fileId - Spreadsheet ID
      * @param {number} entryNumber - Entry number (row - 1 because of header)
@@ -971,6 +1048,7 @@ class GoogleDriveController {
             // Copy the file
             const copyResponse = await drive.files.copy({
                 fileId: sourceFileId,
+                fields: 'id,name',
                 requestBody: {
                     name: newFileName,
                     parents: destinationFolderId ? [destinationFolderId] : undefined,

@@ -14,18 +14,52 @@ class StaffUses extends Component {
     this.state = {
       view: null,
     };
+    this.editParticipantsRef = React.createRef();
   }
+
+  resetAll = () => {
+    this.props.bulkUploadRef?.current?.handleReset?.();
+    this.editParticipantsRef.current?.reset?.();
+    this._reviewRef?.reset?.();
+    this.setState({ view: null });
+  };
 
   handleBack = () => {
     const { view } = this.state;
-    
-    // If in a sub-section (bulkUpload or reviewResults), go back to Staff Uses home
-    if (view === 'bulkUpload' || view === 'reviewResults' || view === 'editParticipants') {
+
+    if (view === 'bulkUpload') {
+      const bulkUpload = this.props.bulkUploadRef?.current;
+      if (bulkUpload) {
+        const { reviewing, files } = bulkUpload.state;
+        if (reviewing) {
+          // Step 1: Back from Review → go back to file selection
+          bulkUpload.setState({ reviewing: false });
+          return;
+        }
+        if (files && files.length > 0) {
+          // Step 2: File selected → clear file, stay on upload screen
+          bulkUpload.handleClear();
+          return;
+        }
+        // Step 3: Empty upload screen → go to Staff Uses menu
+        bulkUpload.handleReset();
+      }
       this.setState({ view: null });
       return;
     }
-    
-    // If at Staff Uses home, go back to parent (event selection)
+
+    if (view === 'reviewResults' || view === 'editParticipants') {
+      if (view === 'editParticipants') {
+        this.editParticipantsRef.current?.reset?.();
+      }
+      if (view === 'reviewResults') {
+        this._reviewRef?.reset?.();
+      }
+      this.setState({ view: null });
+      return;
+    }
+
+    // At Staff Uses home — go back to event selection
     if (!view) {
       this.props.onBack && this.props.onBack();
     }
@@ -40,7 +74,7 @@ class StaffUses extends Component {
         {/* Always render both components, but only show the active one */}
         {/* BulkUpload is always mounted to preserve file state */}
         <div style={{ display: view === 'bulkUpload' ? 'block' : 'none' }}>
-          <BulkUpload ref={bulkUploadRef} onFilesChange={onFilesChange} event={event} />
+          <BulkUpload ref={bulkUploadRef} onFilesChange={onFilesChange} event={event} onUploadComplete={() => { this.setState({ view: null }); this.props.onUploadDone?.(); }} />
         </div>
 
         {/* ReviewParticipantsResult is always mounted to preserve review state */}
@@ -57,7 +91,7 @@ class StaffUses extends Component {
 
         {/* EditParticipants is always mounted to preserve state */}
         <div style={{ display: view === 'editParticipants' ? 'block' : 'none' }}>
-          <EditParticipants event={event} />
+          <EditParticipants ref={this.editParticipantsRef} event={event} />
         </div>
 
         {/* Staff Uses home screen */}
@@ -79,7 +113,11 @@ class StaffUses extends Component {
                 <i className="fas fa-chart-bar"></i>
                 <div className="fft-event-btn-name">Review Results</div>
               </button>
-              <button type="button" className="fft-event-btn" onClick={() => this.setState({ view: 'editParticipants' })}>
+              <button type="button" className="fft-event-btn" onClick={() => {
+                this.setState({ view: 'editParticipants' }, () => {
+                  this.editParticipantsRef.current?.fetchParticipants?.();
+                });
+              }}>
                 <i className="fas fa-user-edit"></i>
                 <div className="fft-event-btn-name">Edit Participants</div>
               </button>
