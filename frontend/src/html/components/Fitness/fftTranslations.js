@@ -572,14 +572,14 @@ const fftTranslations = {
     ms: 'Adakah anda ingin memadam maklumat yang telah disimpan?',
   },
   homeModalYes: {
-    en: 'Yes, Clear & Go Home',
-    zh: '是，清除并返回主页',
-    ms: 'Ya, Padam & Pergi ke Laman Utama',
+    en: 'Leave',
+    zh: '离开',
+    ms: 'Keluar',
   },
   homeModalNo: {
-    en: 'No, Just Go Home',
-    zh: '不，直接返回主页',
-    ms: 'Tidak, Terus ke Laman Utama',
+    en: 'Stay',
+    zh: '留下',
+    ms: 'Kekal',
   },
 
   // ── Station Selection ──

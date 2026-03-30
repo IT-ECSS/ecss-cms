@@ -211,20 +211,24 @@ class SelectedSlotBadge extends Component {
 }
 
 class FFTParticipants extends Component {
-  state = {
-    language: null,
-    event: null,
-    slot: null,
-    formData: {},
-    showLoadingModal: false,
-    showResultModal: false,
-    showEntryNumber: false,
-    submitError: null,
-    entryNumber: null,
-    pendingReturnTo: null, // null | 'form' | 'entry'
-    reselecting: null, // null | 'language' | 'event' | 'slot'
-    showHomeConfirm: false,
-  };
+  constructor(props) {
+    super(props);
+    this.state = {
+      language: props.initialLanguage || null,
+      // Pre-select event when coming from Registration section
+      event: props.initialEvent || null,
+      slot: null,
+      formData: {},
+      showLoadingModal: false,
+      showResultModal: false,
+      showEntryNumber: false,
+      submitError: null,
+      entryNumber: null,
+      pendingReturnTo: null,
+      reselecting: null,
+      showHomeConfirm: false,
+    };
+  }
 
   storageKey = 'fftParticipantsSelection';
   formRef = React.createRef();
@@ -238,9 +242,18 @@ class FFTParticipants extends Component {
     } else if (language && event && slot) {
       this.formRef.current?.handleBack();
     } else if (language && event) {
-      this.setState({ slot: null });
+      // At slot selection — if event was pre-selected by parent, go back to parent
+      if (this.props.initialEvent) {
+        this.props.onBack?.();
+      } else {
+        this.setState({ event: null });
+      }
     } else if (language) {
-      this.setState({ language: null });
+      if (this.props.initialLanguage) {
+        this.props.onBack?.();
+      } else {
+        this.setState({ language: null });
+      }
     } else {
       this.props.onBack?.();
     }
@@ -251,27 +264,36 @@ class FFTParticipants extends Component {
   };
 
   handleHomeYes = () => {
-    // Clear all saved data and go home
+    // Leave — clear all saved data and go home
     localStorage.removeItem(this.storageKey);
     localStorage.removeItem('fftParticipantFormData');
     localStorage.removeItem('fftParticularsSectionData');
     localStorage.removeItem('fftHealthDeclarationData');
     localStorage.removeItem('fftIndemnityData');
+    localStorage.removeItem('fftRegistrationSelection');
     this.setState({ showHomeConfirm: false });
-    this.props.onBack?.();
+    const goHome = this.props.onHome || this.props.onBack;
+    goHome?.();
   };
 
   handleHomeNo = () => {
-    // Go home keeping saved data
+    // Stay — go home but preserve localStorage so they can resume when they come back
     this.setState({ showHomeConfirm: false });
-    this.props.onBack?.();
+    const goHome = this.props.onHome || this.props.onBack;
+    goHome?.();
   };
 
   handleFinish = () => {
     this.setState({ showHomeConfirm: false });
     localStorage.removeItem(this.storageKey);
+    localStorage.removeItem('fftParticipantFormData');
+    localStorage.removeItem('fftParticularsSectionData');
+    localStorage.removeItem('fftHealthDeclarationData');
+    localStorage.removeItem('fftIndemnityData');
+    localStorage.removeItem('fftRegistrationSelection');
     this.setState({ language: null, event: null, slot: null, formData: null, showEntryNumber: false, entryNumber: null, showLoadingModal: false, showResultModal: false, submitError: null });
-    this.props.onBack?.();
+    const goHome = this.props.onHome || this.props.onBack;
+    goHome?.();
   };
 
   handleFormSubmit = async (data) => {
@@ -335,8 +357,11 @@ class FFTParticipants extends Component {
         const parsed = JSON.parse(saved);
         if (parsed && typeof parsed === 'object') {
           this.setState({
-            language: parsed.language || null,
-            event: parsed.event || null,
+            // Props override stored language/event (parent pre-selected them),
+            // but slot/entryNumber/showEntryNumber are always restored from localStorage
+            // so returning from Home picks up exactly where the user left off.
+            language: this.props.initialLanguage || parsed.language || null,
+            event: this.props.initialEvent || parsed.event || null,
             slot: parsed.slot || null,
             showEntryNumber: parsed.showEntryNumber || false,
             entryNumber: parsed.entryNumber != null ? parsed.entryNumber : null,

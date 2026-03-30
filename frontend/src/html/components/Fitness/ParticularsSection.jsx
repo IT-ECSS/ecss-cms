@@ -17,21 +17,23 @@ class ParticularsSection extends Component {
   storageKey = 'fftParticularsSectionData';
 
   componentDidMount() {
-    // Initialize with passed formData if available
-    if (this.props.formData) {
-      this.setState({ formData: { ...this.state.formData, ...this.props.formData } });
-    }
-    // Load additional saved data
+    // Load saved localStorage data first as the base
+    let savedData = {};
     try {
       const saved = localStorage.getItem(this.storageKey);
       if (saved) {
         const parsed = JSON.parse(saved);
-        this.setState((prevState) => ({
-          formData: { ...prevState.formData, ...parsed.formData },
-          errors: parsed.errors || {},
-        }));
+        savedData = parsed.formData || {};
       }
     } catch (e) {}
+
+    // props.formData (e.g. from SingPass or participant number lookup) always takes priority
+    const merged = {
+      ...this.state.formData,
+      ...savedData,
+      ...(this.props.formData || {}),
+    };
+    this.setState({ formData: merged });
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -373,9 +375,8 @@ class ParticularsSection extends Component {
                 onChange={this.handleInputChange}
                 placeholder={this.getTrans('placeholderName')}
                 className="fft-create-event-input"
-                disabled={singpassLocked}
-                readOnly={participantNumberLocked}
-                style={singpassLocked ? lockedStyle : {}}
+                disabled={singpassLocked || participantNumberLocked}
+                style={singpassLocked || participantNumberLocked ? lockedStyle : {}}
               />
               {errors.name && (
                 <div className="fft-create-event-error" style={{ marginTop: '8px', marginBottom: '0', whiteSpace: 'nowrap' }}>
@@ -398,9 +399,8 @@ class ParticularsSection extends Component {
                   onKeyDown={this.handleDateOfBirthKeyDown}
                   placeholder="e.g. 31/01/1965"
                   className="fft-create-event-input"
-                  disabled={singpassLocked}
-                  readOnly={participantNumberLocked}
-                  style={singpassLocked ? lockedStyle : {}}
+                  disabled={singpassLocked || participantNumberLocked}
+                  style={singpassLocked || participantNumberLocked ? lockedStyle : {}}
                 />
                 {errors.dateOfBirth && (
                   <div className="fft-create-event-error" style={{ marginTop: '8px', marginBottom: '0', whiteSpace: 'nowrap' }}>
@@ -417,19 +417,19 @@ class ParticularsSection extends Component {
                   <button
                     type="button"
                     onClick={() => !singpassLocked && !participantNumberLocked && this.handleGenderChange('M')}
-                    disabled={singpassLocked}
+                    disabled={singpassLocked || participantNumberLocked}
                     style={{
                       width: '56px',
                       height: '56px',
                       borderRadius: '50%',
                       border: formData.gender === 'M' ? '2px solid #1565c0' : 'none',
                       outline: 'none',
-                      backgroundColor: 'transparent',
-                      color: formData.gender === 'M' ? '#1565c0' : '#333',
+                      backgroundColor: participantNumberLocked ? '#f3f4f6' : 'transparent',
+                      color: participantNumberLocked ? '#6b7280' : formData.gender === 'M' ? '#1565c0' : '#333',
                       fontSize: '20px',
                       fontWeight: formData.gender === 'M' ? '700' : '600',
-                      cursor: singpassLocked ? 'not-allowed' : participantNumberLocked ? 'default' : 'pointer',
-                      opacity: participantNumberLocked ? 0.7 : 1,
+                      cursor: singpassLocked || participantNumberLocked ? 'not-allowed' : 'pointer',
+                      opacity: 1,
                       transition: 'all 0.2s ease'
                     }}
                   >
@@ -438,19 +438,19 @@ class ParticularsSection extends Component {
                   <button
                     type="button"
                     onClick={() => !singpassLocked && !participantNumberLocked && this.handleGenderChange('F')}
-                    disabled={singpassLocked}
+                    disabled={singpassLocked || participantNumberLocked}
                     style={{
                       width: '56px',
                       height: '56px',
                       borderRadius: '50%',
                       border: formData.gender === 'F' ? '2px solid #e91e8c' : 'none',
                       outline: 'none',
-                      backgroundColor: 'transparent',
-                      color: formData.gender === 'F' ? '#e91e8c' : '#333',
+                      backgroundColor: participantNumberLocked ? '#f3f4f6' : 'transparent',
+                      color: participantNumberLocked ? '#6b7280' : formData.gender === 'F' ? '#e91e8c' : '#333',
                       fontSize: '20px',
                       fontWeight: formData.gender === 'F' ? '700' : '600',
-                      cursor: singpassLocked ? 'not-allowed' : participantNumberLocked ? 'default' : 'pointer',
-                      opacity: participantNumberLocked ? 0.7 : 1,
+                      cursor: singpassLocked || participantNumberLocked ? 'not-allowed' : 'pointer',
+                      opacity: 1,
                       transition: 'all 0.2s ease'
                     }}
                   >
@@ -489,7 +489,8 @@ class ParticularsSection extends Component {
                   onChange={this.handlePhoneChange}
                   placeholder={this.getTrans('placeholderPhone')}
                   className="fft-create-event-input"
-                  readOnly={participantNumberLocked}
+                  disabled={participantNumberLocked}
+                  style={participantNumberLocked ? lockedStyle : {}}
                 />
                 {errors.phone && (
                   <div className="fft-create-event-error" style={{ marginTop: '8px', marginBottom: '0', whiteSpace: 'nowrap' }}>

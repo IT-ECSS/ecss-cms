@@ -46,7 +46,7 @@ class FFTHome extends Component {
     const { onNavigate } = this.props;
     const { showPasswordModal, pendingSection, passwordInput, passwordError } = this.state;
 
-    const sectionLabels = { admin: 'Admin', volunteers: 'Volunteers', trainers: 'Staff' };
+    const sectionLabels = { admin: 'Admin', volunteers: 'Station Masters', trainers: 'Staff' };
 
     return (
       <div className="fft-home-wrapper">
@@ -65,18 +65,18 @@ class FFTHome extends Component {
           </button>
           <button
             className="fft-home-nav-card fft-home-nav-card--registration"
-            onClick={() => onNavigate('participants')}
+            onClick={() => onNavigate('registration')}
           >
             <span className="fft-home-nav-icon">🏃</span>
             <span className="fft-home-nav-text">Registration</span>
           </button>
-          {/* Volunteers - Password disabled for testing */}
+          {/* Station Masters - Password disabled for testing */}
           <button
             className="fft-home-nav-card fft-home-nav-card--volunteers"
             onClick={() => this.props.onNavigate('volunteers')}
           >
-            <span className="fft-home-nav-icon">🤝</span>
-            <span className="fft-home-nav-text">Volunteers</span>
+            <span className="fft-home-nav-icon">🚩</span>
+            <span className="fft-home-nav-text">Station Masters</span>
           </button>
           {/* Staff - Password disabled for testing */}
           <button

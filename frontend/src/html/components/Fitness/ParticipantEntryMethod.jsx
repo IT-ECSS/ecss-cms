@@ -3,9 +3,9 @@ import '../../../css/fftParticipants.css';
 import SingPassButton from '../sub/SingPassButton';
 import fftTranslations from './fftTranslations';
 
-const ParticipantEntryMethod = ({ language, onUseSingpass, onUseManual, onUseParticipantNumber, onBack, onHome }) => {
-  const title = fftTranslations.registrationFormTitle[language] || fftTranslations.registrationFormTitle.en;
-  const description = fftTranslations.registrationFormDescription[language] || fftTranslations.registrationFormDescription.en;
+const ParticipantEntryMethod = ({ language, onUseSingpass, onUseManual, onUseParticipantNumber, onBack, onHome, showParticipantNumber, showSingpass = true, showManual = true, titleOverride, descriptionOverride }) => {
+  const title = titleOverride || fftTranslations.registrationFormTitle[language] || fftTranslations.registrationFormTitle.en;
+  const description = descriptionOverride || fftTranslations.registrationFormDescription[language] || fftTranslations.registrationFormDescription.en;
   const manual = fftTranslations.registrationFormManual[language] || fftTranslations.registrationFormManual.en;
   const enterParticipantNumber = fftTranslations.enterParticipantNumber[language] || fftTranslations.enterParticipantNumber.en;
 
@@ -17,33 +17,38 @@ const ParticipantEntryMethod = ({ language, onUseSingpass, onUseManual, onUsePar
         <div style={{ margin: '0', color: '#444' }}>{description}</div>
       </div>
       <div className="fft-participants-flex-button-container" style={{ marginTop: '32px' }}>
-        <SingPassButton
-          onAuthenticationSuccess={onUseSingpass}
-          onMyInfoError={(error) => {
-            console.error('MyInfo error:', error);
-          }}
-          className="fft-participants-next-button"
-        />
-        <button
-          type="button"
-          className="fft-participants-next-button"
-          onClick={onUseManual}
-        >
-          {manual}
-        </button>
-        {/*Commented out */}
-        {/*<button
-          type="button"
-          className="fft-participants-next-button"
-          onClick={onUseParticipantNumber}
-          style={{
-            backgroundColor: '#4CAF50',
-            color: '#fff',
-            border: 'none'
-          }}
-        >
-          {enterParticipantNumber}
-        </button>*/}
+        {showSingpass && (
+          <SingPassButton
+            onAuthenticationSuccess={onUseSingpass}
+            onMyInfoError={(error) => {
+              console.error('MyInfo error:', error);
+            }}
+            className="fft-participants-next-button"
+          />
+        )}
+        {showManual && (
+          <button
+            type="button"
+            className="fft-participants-next-button"
+            onClick={onUseManual}
+          >
+            {manual}
+          </button>
+        )}
+          {showParticipantNumber && (
+            <button
+              type="button"
+              className="fft-participants-next-button"
+              onClick={onUseParticipantNumber}
+              style={{
+                backgroundColor: '#4CAF50',
+                color: '#fff',
+                border: 'none'
+              }}
+            >
+              {enterParticipantNumber}
+            </button>
+          )}
       </div>
     </div>
   );

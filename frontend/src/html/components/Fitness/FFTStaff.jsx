@@ -12,14 +12,37 @@ import '../../../css/fftStaff.css';
 class FFTStaff extends Component {
   constructor(props) {
     super(props);
-    
+
+    // Restore section+event from localStorage if not provided via props
+    let restoredEvent = props.initialEvent || null;
+    let restoredSection = props.initialEvent ? 'staffUses' : 'selectEvent';
+    if (!props.initialEvent) {
+      try {
+        const saved = localStorage.getItem('fftStaffSession');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          restoredEvent = parsed.event || null;
+          restoredSection = parsed.section || 'selectEvent';
+        }
+      } catch (e) {}
+    }
+
     this.state = {
-      event: props.initialEvent || null,
-      section: props.initialEvent ? 'staffUses' : 'selectEvent',
+      event: restoredEvent,
+      section: restoredSection,
       showHomeConfirm: false,
     };
     this.bulkUploadRef = React.createRef();
     this.staffUsesRef = React.createRef();
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    const { section, event } = this.state;
+    if (prevState.section !== section || prevState.event !== event) {
+      try {
+        localStorage.setItem('fftStaffSession', JSON.stringify({ section, event }));
+      } catch (e) {}
+    }
   }
 
   handleBack = () => {
@@ -117,6 +140,12 @@ class FFTStaff extends Component {
                 bulkUploadRef={this.bulkUploadRef}
                 onFilesChange={() => this.forceUpdate()}
                 onBack={() => this.setState({ section: 'selectEvent', event: null })}
+                onHome={() => {
+                  localStorage.removeItem('fftStaffSession');
+                  this.staffUsesRef.current?.resetAll?.();
+                  this.setState({ section: 'selectEvent', event: null });
+                  this.props.onBack?.();
+                }}
                 onUploadDone={() => {
                   this.setState({ section: 'selectEvent', event: null });
                   this.props.onBack?.();
@@ -144,10 +173,12 @@ class FFTStaff extends Component {
             visible={this.state.showHomeConfirm}
             onYes={() => {
               this.staffUsesRef.current?.resetAll?.();
+              localStorage.removeItem('fftStaffSession');
               this.setState({ showHomeConfirm: false, event: null, section: 'selectEvent' });
               this.props.onBack && this.props.onBack();
             }}
             onNo={() => {
+              // Stay: preserve localStorage, just navigate to FFT home
               this.setState({ showHomeConfirm: false });
               this.props.onBack && this.props.onBack();
             }}

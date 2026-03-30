@@ -1108,6 +1108,32 @@ class GoogleDriveController {
     }
 
     /**
+     * Find or create a year-named subfolder inside a parent folder.
+     * @param {string} parentFolderId - Root folder ID
+     * @param {string|number} year - e.g. "2026"
+     * @returns {Object} { success, folderId, folderName }
+     */
+    async getOrCreateYearFolder(parentFolderId, year) {
+        try {
+            const subfolderResult = await this.listSubfolders(parentFolderId);
+            if (!subfolderResult.success) {
+                return { success: false, error: subfolderResult.error };
+            }
+            const existing = (subfolderResult.folders || []).find(f => f.name === String(year));
+            if (existing) {
+                console.log(`[FFT] Year folder "${year}" already exists: ${existing.id}`);
+                return { success: true, folderId: existing.id, folderName: existing.name };
+            }
+            // Create the year folder
+            console.log(`[FFT] Creating year folder "${year}" in parent: ${parentFolderId}`);
+            return await this.createFolder(String(year), parentFolderId);
+        } catch (error) {
+            console.error('Error in getOrCreateYearFolder:', error.message);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
      * Create a new folder inside a parent folder.
      * @param {string} folderName - The name of the new folder
      * @param {string} parentFolderId - The parent folder ID
@@ -1146,21 +1172,15 @@ class GoogleDriveController {
     async findSheetByEventName(folderId, eventName) {
         try {
             const drive = await this.initializeAuth();
-            const response = await drive.files.list({
-                q: `'${folderId}' in parents and trashed=false`,
-                fields: 'files(id, name)',
-                supportsAllDrives: true,
-                includeItemsFromAllDrives: true,
-                corpora: 'allDrives',
-            });
-            const files = response.data.files || [];
+
             // Normalize: lowercase, strip slashes/dashes/dots, collapse spaces
             const normalize = (s) => s.toLowerCase().replace(/[\/\-_.]/g, ' ').replace(/\s+/g, ' ').trim();
             const normalizedEvent = normalize(eventName);
             // Also strip leading date pattern (e.g. "2026 04 11 ") for word matching
             const strippedEvent = normalizedEvent.replace(/^\d{4}\s+\d{1,2}\s+\d{1,2}\s+/, '');
             const eventWords = normalizedEvent.split(' ').filter(Boolean);
-            const match = files.find(f => {
+
+            const matchFiles = (files) => files.find(f => {
                 const fn = normalize(f.name);
                 if (fn.includes(normalizedEvent) || normalizedEvent.includes(fn)) return true;
                 if (fn.includes(strippedEvent) || strippedEvent.includes(fn)) return true;
@@ -1169,9 +1189,46 @@ class GoogleDriveController {
                 const overlap = fnWords.filter(w => eventWords.includes(w)).length;
                 return fnWords.length > 0 && overlap / fnWords.length >= 0.5;
             });
+
+            const listFilesInFolder = async (searchFolderId) => {
+                const response = await drive.files.list({
+                    q: `'${searchFolderId}' in parents and trashed=false`,
+                    fields: 'files(id, name)',
+                    supportsAllDrives: true,
+                    includeItemsFromAllDrives: true,
+                    corpora: 'allDrives',
+                });
+                return response.data.files || [];
+            };
+
+            // Extract year from event name — supports YYYY/MM/DD (year first) and DD/MM/YYYY (year last)
+            const yearMatch = String(eventName).match(/^(\d{4})[\/\-]/) ||
+                              String(eventName).match(/[\/\-](\d{4})(?:[\s\/\-]|$)/) ||
+                              String(eventName).match(/\b(20\d{2})\b/);
+            if (yearMatch) {
+                const year = yearMatch[1];
+                // Look for a year-named subfolder first
+                const subfolderResult = await this.listSubfolders(folderId);
+                if (subfolderResult.success) {
+                    const yearFolder = (subfolderResult.folders || []).find(f => f.name === year);
+                    if (yearFolder) {
+                        const yearFiles = await listFilesInFolder(yearFolder.id);
+                        const match = matchFiles(yearFiles);
+                        if (match) {
+                            console.log(`[SHEETS] Found "${match.name}" in year subfolder "${year}"`);
+                            return { success: true, file: match };
+                        }
+                    }
+                }
+            }
+
+            // Fallback: search directly in the root folder
+            const rootFiles = await listFilesInFolder(folderId);
+            const match = matchFiles(rootFiles);
             if (!match) {
                 return { success: false, error: `No spreadsheet found matching event: "${eventName}"` };
             }
+            console.log(`[SHEETS] Found "${match.name}" in root folder`);
             return { success: true, file: match };
         } catch (error) {
             console.error('[SHEETS] findSheetByEventName error:', error.message);

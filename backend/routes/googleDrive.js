@@ -138,29 +138,16 @@ router.post('/getEventFileId', async (req, res) => {
 
         console.log('[FFT] getEventFileId requested for event:', eventName);
 
-        // Events folder ID
         const folderId = '1EsnCGO1QfPrqfmDtsy-cELUO3UyZKCci';
-        
-        // Search in events folder
-        console.log('[FFT] Searching in folder:', folderId);
-        const filesResult = await googleDriveController.listFilesInFolder(folderId);
-        
-        if (!filesResult.success) {
-            return res.status(500).json({ success: false, error: 'Failed to list files in folder' });
-        }
 
-        // Find file matching the event name
-        const matchingFile = (filesResult.files || []).find(file => 
-            file.name.toLowerCase().includes(eventName.toLowerCase())
-        );
-
-        if (!matchingFile) {
+        // Use findSheetByEventName which checks year subfolders then falls back to root
+        const findResult = await googleDriveController.findSheetByEventName(folderId, eventName);
+        if (!findResult.success) {
             console.error('[FFT] No file found matching event:', eventName);
             return res.status(404).json({ success: false, error: 'No file found for this event' });
         }
 
-        const fileId = matchingFile.id;
-
+        const fileId = findResult.file.id;
         console.log('[FFT] Found fileId for event "' + eventName + '":', fileId);
         res.json({ success: true, fileId });
     } catch (error) {
@@ -318,9 +305,10 @@ router.post('/generateTemplate', async (req, res) => {
         const templateBuffer = Buffer.from(exportResponse.data);
 
         // Load the template workbook and clone it per slot
-        // Start Time = column H (index 8), Time End = column I (index 9)
-        const START_TIME_COL = 8; // H
-        const TIME_END_COL = 9;   // I
+        // Column order: A=Name, B=Chinese Name, C=Phone Number, D=Gender,
+        //               E=DOB, F=Start Time, G=End Time
+        const START_TIME_COL = 6; // F
+        const TIME_END_COL = 7;   // G
 
         const wb = await XlsxPopulate.fromDataAsync(templateBuffer);
         const firstSheet = wb.sheet(0);
@@ -337,6 +325,12 @@ router.post('/generateTemplate', async (req, res) => {
             } else {
                 // Copy the first sheet as a new sheet for each additional slot
                 ws = wb.cloneSheet(firstSheet, sheetName);
+            }
+
+            // Format DOB column (E = col 5) as plain text so Excel never auto-converts entries
+            const DOB_COL = 5;
+            for (let r = 0; r < PREFILL_ROWS; r++) {
+                ws.cell(r + 2, DOB_COL).style('numberFormat', '@');
             }
 
             // Fill Start Time and Time End for PREFILL_ROWS data rows (row 2 onwards)
@@ -374,6 +368,24 @@ router.post('/updateEventFileId', async (req, res) => {
         res.json({ success: true });
     } catch (error) {
         console.error('[FFT] Error in POST /updateEventFileId:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// POST endpoint to find or create a year-named subfolder inside a parent folder
+router.post('/getOrCreateYearFolder', async (req, res) => {
+    try {
+        const { parentFolderId, year } = req.body;
+        if (!parentFolderId || !year) {
+            return res.status(400).json({ success: false, error: 'parentFolderId and year are required' });
+        }
+        const result = await googleDriveController.getOrCreateYearFolder(parentFolderId, String(year));
+        if (!result.success) {
+            return res.status(500).json(result);
+        }
+        res.json(result);
+    } catch (error) {
+        console.error('[FFT] Error in POST /getOrCreateYearFolder:', error.message);
         res.status(500).json({ success: false, error: error.message });
     }
 });
@@ -563,16 +575,29 @@ router.post('/fftSubmit', async (req, res) => {
 
         console.log(`[FFT] Appending to sheet "${sheetFileName}" (${fileId})`);
 
-        // For pre-registered participants, skip row creation
+        // Generate submission timestamp (DD/MM/YYYY HH:MM:SS)
+        const now = new Date();
+        const dd2 = String(now.getDate()).padStart(2, '0');
+        const mm2 = String(now.getMonth() + 1).padStart(2, '0');
+        const yyyy2 = now.getFullYear();
+        const ts = now.toTimeString().slice(0, 8);
+        const hdValue = `Acknowledged as per ${dd2}/${mm2}/${yyyy2} ${ts}`;
+        const indemnityValue = `Acknowledged as per ${dd2}/${mm2}/${yyyy2} ${ts}`;
+
+        // For pre-registered participants, update their existing row with Health Declaration + Indemnity timestamps
         if (entryMethod === 'participantNumber' || participantNumber) {
-            console.log(`[FFT] Pre-registered participant (entry ${participantNumber}) - skipping row creation`);
-            return res.json({ 
-                success: true, 
-                skipped: true,
-                message: 'Pre-registered participant - no new row created',
-                sheetName: sheetFileName, 
+            console.log(`[FFT] Pre-registered participant (entry ${participantNumber}) - updating Health Declaration + Indemnity columns`);
+            const updateResult = await googleDriveController.updateRow(fileId, parseInt(participantNumber, 10), {
+                'Health Declaration': hdValue,
+                'Indemnity': indemnityValue,
+            });
+            return res.json({
+                success: true,
+                updated: true,
+                message: 'Health Declaration & Indemnity recorded for pre-registered participant',
+                sheetName: sheetFileName,
                 fileId,
-                participantNumber
+                participantNumber: parseInt(participantNumber, 10),
             });
         }
 
@@ -670,12 +695,14 @@ router.post('/fftSubmit', async (req, res) => {
         const rowData = [
             nameStr, chineseNameStr, phoneStr, genderStr,
             dd, mm, yyyy,
-            String(startTime || ''), String(endTime || ''), // Start Time, End Time
-            String(age),
-            '', '', '',          // Height, Weight, BMI
-            dateOfTest,
-            '', '', '', '', '', '', '', // test result columns
-            '', '',              // Improvements, Remarks
+            String(startTime || ''), String(endTime || ''), // H I: Start Time, End Time
+            String(age),                                     // J: Age
+            '', '', '',                                      // K L M: Height, Weight, BMI
+            dateOfTest,                                      // N: Date of test
+            hdValue,                                         // O: Health Declaration
+            indemnityValue,                                  // P: Indemnity
+            '', '', '', '', '', '', '',                      // Q-W: test result columns
+            '', '',                                          // X Y: Improvements, Remarks
         ];
 
         const appendResult = await googleDriveController.appendRow(fileId, rowData);

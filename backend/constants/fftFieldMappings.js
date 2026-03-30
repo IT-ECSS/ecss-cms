@@ -19,15 +19,17 @@ const INTERNAL_KEY_TO_COLUMN_MAP = {
     'Weight': 'L',
     'BMI': 'M',
     'Date of test': 'N',
-    '30 secs Sit & Stand': 'O',
-    '30 secs Arm Banding': 'P',
-    '2 min On-the-spot Marching': 'Q',
-    'Sit & Reach': 'R',
-    'Back Stretching': 'S',
-    '2.44m Speed Walk': 'T',
-    'Grip test': 'U',
-    'Improvements': 'V',
-    'Remarks': 'W'
+    'Health Declaration': 'O',
+    'Indemnity': 'P',
+    '30 secs Sit & Stand': 'Q',
+    '30 secs Arm Banding': 'R',
+    '2 min On-the-spot Marching': 'S',
+    'Sit & Reach': 'T',
+    'Back Stretching': 'U',
+    '2.44m Speed Walk': 'V',
+    'Grip test': 'W',
+    'Improvements': 'X',
+    'Remarks': 'Y'
 };
 
 // Derive column headers in order from the map (A-U)

@@ -11,29 +11,23 @@ class ParticipantEntryNumber extends Component {
         <div className="fft-participants-wrapper">
           {/* Success content section */}
           <div className="fft-participants-section" style={{ textAlign: 'center', padding: '48px 24px 32px' }}>
-            {/* Tick icon */}
-            <div style={{ marginBottom: '20px' }}>
-              <svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="36" cy="36" r="36" fill="#e8f5e9" />
-                <path d="M20 37L31 48L52 26" stroke="#2e7d32" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+            {/* Header + divider + description */}
+            <div className="fft-participants-section-header" style={{ textAlign: 'left' }}>
+              <h2 style={{ margin: 0, fontWeight: 700 }}>
+                {fftTranslations.successTitle[language] || fftTranslations.successTitle.en}
+              </h2>
+              <hr style={{ margin: '12px 0 12px 0', borderColor: '#ddd', border: 'none', borderTop: '1px solid #ddd' }} />
+              <div style={{ margin: '0', color: '#444' }}>
+                {fftTranslations.successMessage[language] || fftTranslations.successMessage.en}
+              </div>
             </div>
-
-            {/* Title */}
-            <h2 style={{ fontWeight: 700, fontSize: '1.4em', marginBottom: '8px', color: '#222' }}>
-              {fftTranslations.successTitle[language] || fftTranslations.successTitle.en}
-            </h2>
-
-            {/* Subtitle */}
-            <p style={{ color: '#555', marginBottom: '32px', fontSize: '0.95em' }}>
-              {fftTranslations.successMessage[language] || fftTranslations.successMessage.en}
-            </p>
 
             {/* Entry number card */}
             {entryNumber != null && (
               <div
                 style={{
                   display: 'inline-block',
+                  marginTop: '32px',
                   padding: '24px 48px',
                   borderRadius: '16px',
                   backgroundColor: '#f5f5f5',
@@ -51,12 +45,12 @@ class ParticipantEntryNumber extends Component {
           </div>
 
           {/* Finish section */}
-          <div className="fft-participants-section" style={{ textAlign: 'center', padding: '24px', borderTop: '1px solid #e0e0e0' }}>
+          <div className="fft-participants-section" style={{ textAlign: 'center', padding: '24px' }}>
             <button
               type="button"
               className="fft-create-event-btn"
               onClick={() => onFinish?.()}
-              style={{ minWidth: '180px', fontSize: '1.05em', padding: '14px 32px' }}
+              style={{ width: 'fit-content', fontSize: '1.05em', padding: '14px 32px' }}
             >
               {language === 'zh' ? '完成' : language === 'ms' ? 'Selesai' : 'Finish'}
             </button>

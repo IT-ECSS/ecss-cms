@@ -67,11 +67,33 @@ class CreateFileForm extends React.Component {
     const newFileName = event.eventName;
 
     try {
-      // Create/copy file directly to FFT root folder
+      // Extract year — supports YYYY/MM/DD (year first) and DD/MM/YYYY (year last)
+      const yearMatch = String(newFileName).match(/^(\d{4})[\/\-]/) ||
+                        String(newFileName).match(/[\/\-](\d{4})(?:[\s\/\-]|$)/) ||
+                        String(newFileName).match(/\b(20\d{2})\b/);
+      let destinationFolderId = FFT_ROOT_FOLDER_ID;
+
+      if (yearMatch) {
+        const year = yearMatch[1];
+        try {
+          const yearFolderRes = await axios.post(`${BACKEND_URL}/googleDrive/getOrCreateYearFolder`, {
+            parentFolderId: FFT_ROOT_FOLDER_ID,
+            year,
+          });
+          if (yearFolderRes.data.success) {
+            destinationFolderId = yearFolderRes.data.folderId;
+            console.log(`[FFT] Using year folder "${year}" (${destinationFolderId}) for event file`);
+          }
+        } catch (yearErr) {
+          console.warn('[FFT] Failed to get/create year folder, using root folder:', yearErr.message);
+        }
+      }
+
+      // Copy template to the year (or root) folder
       const response = await axios.post(`${BACKEND_URL}/googleDrive/copySpreadsheet`, {
         sourceFileId: TEMPLATE_FILE_ID,
         newFileName,
-        destinationFolderId: FFT_ROOT_FOLDER_ID,
+        destinationFolderId,
       });
 
       // Only update result section, no alert

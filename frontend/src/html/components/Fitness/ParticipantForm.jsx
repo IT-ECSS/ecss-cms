@@ -19,14 +19,29 @@ class ParticipantForm extends Component {
     isSubmitting: false,
   };
 
+  constructor(props) {
+    super(props);
+    if (props.skipToParticipantNumber) {
+      this.state = {
+        ...this.state,
+        entryMethod: 'participantNumber',
+        currentStep: 1.5,
+      };
+    }
+    // Allow caller to provide a custom storage key (e.g. staff health declaration flow)
+    this.storageKey = props.storageKey || 'fftParticipantFormData';
+  }
+
   particularsRef = React.createRef();
   healthRef = React.createRef();
   indemnityRef = React.createRef();
 
-  storageKey = 'fftParticipantFormData';
-
   resetForm = () => {
-    this.setState({ entryMethod: null, currentStep: 1, singpassFormData: null });
+    if (this.props.skipToParticipantNumber) {
+      this.setState({ entryMethod: 'participantNumber', currentStep: 1.5, singpassFormData: null });
+    } else {
+      this.setState({ entryMethod: null, currentStep: 1, singpassFormData: null });
+    }
   };
 
   // Extract mobile number from SingPass mobileno field
@@ -84,12 +99,9 @@ class ParticipantForm extends Component {
   };
 
   handleUseParticipantNumber = (participantNumber, participantData) => {
-    // For now, just proceed with manual entry after user enters participant number
-    // In the future, you might want to fetch participant data based on the number
     console.log('Participant number entered:', participantNumber);
     console.log('Retrieved participant data:', participantData);
     
-    // Pre-fill particulars section with retrieved data
     const prefillData = participantData ? {
       name: participantData.name || '',
       dateOfBirth: participantData.dateOfBirth || '',
@@ -97,6 +109,9 @@ class ParticipantForm extends Component {
       gender: participantData.gender || '',
       phone: participantData.phone || participantData.phoneNumber || ''
     } : null;
+
+    // Clear stale particulars so prefilled data is not overridden by localStorage
+    localStorage.removeItem('fftParticularsSectionData');
 
     this.setState({ 
       entryMethod: 'participantNumber', 
@@ -112,7 +127,11 @@ class ParticipantForm extends Component {
     if (currentStep === 1) {
       onBack?.();
     } else if (currentStep === 1.5) {
-      this.setState({ currentStep: 1, entryMethod: null });
+      if (this.props.skipToParticipantNumber) {
+        onBack?.();
+      } else {
+        this.setState({ currentStep: 1, entryMethod: null });
+      }
     } else if (currentStep === 2) {
       if (this.state.entryMethod === 'participantNumber') {
         this.setState({ currentStep: 1.5 });
@@ -128,6 +147,8 @@ class ParticipantForm extends Component {
   };
 
   componentDidMount() {
+    // Skip storage only if skipToParticipantNumber AND no custom storageKey was provided
+    if (this.props.skipToParticipantNumber && !this.props.storageKey) return;
     try {
       const saved = localStorage.getItem(this.storageKey);
       if (saved) {
@@ -159,17 +180,19 @@ class ParticipantForm extends Component {
   componentDidUpdate(prevProps, prevState) {
     const { particularsData, healthData, indemnityData, currentStep, entryMethod, singpassFormData, participantNumber } = this.state;
     if (prevState.particularsData !== particularsData || prevState.healthData !== healthData || prevState.indemnityData !== indemnityData || prevState.currentStep !== currentStep || prevState.entryMethod !== entryMethod || prevState.singpassFormData !== singpassFormData || prevState.participantNumber !== participantNumber) {
-      try {
-        localStorage.setItem(this.storageKey, JSON.stringify({
-          particularsData,
-          healthData,
-          indemnityData,
-          currentStep,
-          entryMethod,
-          singpassFormData,
-          participantNumber,
-        }));
-      } catch (e) {}
+      if (!this.props.skipToParticipantNumber || this.props.storageKey) {
+        try {
+          localStorage.setItem(this.storageKey, JSON.stringify({
+            particularsData,
+            healthData,
+            indemnityData,
+            currentStep,
+            entryMethod,
+            singpassFormData,
+            participantNumber,
+          }));
+        } catch (e) {}
+      }
     }
   }
 
@@ -240,6 +263,11 @@ class ParticipantForm extends Component {
             onUseParticipantNumber={() => this.setState({ entryMethod: 'participantNumber', currentStep: 1.5 })}
             onBack={() => onBack?.()}
             onHome={() => onHome?.()}
+            showParticipantNumber={this.props.showParticipantNumber || false}
+            showSingpass={this.props.showSingpass !== undefined ? this.props.showSingpass : true}
+            showManual={this.props.showManual !== undefined ? this.props.showManual : true}
+            titleOverride={this.props.titleOverride}
+            descriptionOverride={this.props.descriptionOverride}
           />
         )}
 

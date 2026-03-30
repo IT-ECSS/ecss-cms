@@ -22,6 +22,8 @@ class UploadSubSection extends Component {
 
         <label
           className="fft-staff-drag-drop"
+          onDragOver={onDragOver}
+          onDrop={onDrop}
           style={{
             cursor: 'pointer',
             ...(files.length > 0 && {
@@ -39,8 +41,6 @@ class UploadSubSection extends Component {
           />
           {files.length === 0 && (
             <div
-              onDragOver={onDragOver}
-              onDrop={onDrop}
               style={{ pointerEvents: 'none' }}
             >
               <i className="fas fa-file-upload"></i>

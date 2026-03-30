@@ -70,17 +70,50 @@ class UploadStatus extends Component {
         // Read ALL sheets so multi-slot uploads are fully processed.
         // Skip rows where all participant-identifying columns are empty
         // (e.g. template rows that only have Start Time / Time End pre-filled).
-        const KEY_FIELDS = ['Name', 'Chinese Name', 'Phone Number', 'Gender', 'DD', 'MM', 'YYYY'];
+        const KEY_FIELDS = ['Name', 'Chinese Name', 'Phone Number', 'Gender', 'DD', 'MM', 'YYYY', 'DOB', 'Date of Birth (DD/MM/YYYY)'];
         const allData = [];
         const sheetCounts = {};
+
+        // Helper: normalise a DOB string to DD/MM/YYYY with 4-digit year.
+        // XLSX.utils.sheet_to_json with raw:false + dateNF:'dd/mm/yyyy' returns all
+        // date-formatted cells as "DD/MM/YYYY" strings — no JS Date objects needed.
+        const dobToString = (val) => {
+          if (!val) return '';
+          const str = String(val).trim();
+          // Expand 2-digit year: "06/07/95" → "06/07/1995"
+          // Pivot: yy < 30 → 20xx, yy >= 30 → 19xx
+          return str.replace(/^(\d{1,2}\/\d{1,2}\/)([0-9]{2})$/, (_, prefix, yy) => {
+            const century = parseInt(yy, 10) < 30 ? '20' : '19';
+            return prefix + century + yy;
+          });
+        };
+
         for (const sheetName of workbook.SheetNames) {
           const worksheet = workbook.Sheets[sheetName];
-          const jsonData = XLSX.utils.sheet_to_json(worksheet);
+          // raw:false + dateNF forces Excel date serials to be returned as
+          // "DD/MM/YYYY" formatted strings instead of JS Date objects or numbers.
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { raw: false, dateNF: 'dd/mm/yyyy' });
           const validRows = jsonData.filter(row =>
             KEY_FIELDS.some(f => String(row[f] ?? '').trim() !== '')
           );
-          sheetCounts[sheetName] = validRows.length;
-          validRows.forEach(row => allData.push({ ...row, _sheetName: sheetName }));
+          // Normalise: split combined DOB column ("DOB" or "Date of Birth (DD/MM/YYYY)") into DD, MM, YYYY
+          const normalisedRows = validRows.map(row => {
+            const rawDob = row['DOB'] || row['Date of Birth (DD/MM/YYYY)'];
+            if (rawDob) {
+              const dobStr = dobToString(rawDob);
+              const parts = dobStr.split('/');
+              return {
+                ...row,
+                _dobRaw: dobStr,
+                DD: parts[0] ? parseInt(parts[0], 10) : '',
+                MM: parts[1] ? parseInt(parts[1], 10) : '',
+                YYYY: parts[2] ? String(parts[2]).trim() : '',
+              };
+            }
+            return row;
+          });
+          sheetCounts[sheetName] = normalisedRows.length;
+          normalisedRows.forEach(row => allData.push({ ...row, _sheetName: sheetName }));
         }
 
         this.setState({ excelData: allData, sheetCounts }, () => {
@@ -143,9 +176,8 @@ class UploadStatus extends Component {
   validateRow = (row, rowIndex) => {
     const errors = [];
 
-    // Check for empty cells in required fields
-    const requiredFields = ['Name', 'Phone Number', 'Gender', 'DD', 'MM', 'YYYY'];
-    requiredFields.forEach((field) => {
+    // Check for empty cells in required fields (Name, Phone Number, Gender)
+    ['Name', 'Phone Number', 'Gender'].forEach((field) => {
       const value = row[field];
       if (value === null || value === undefined || String(value).trim() === '') {
         errors.push(`${field} cannot be empty`);
@@ -175,20 +207,30 @@ class UploadStatus extends Component {
       }
     }
 
-    // Validate Date of Birth
-    const dd = parseInt(row?.DD);
-    const mm = parseInt(row?.MM);
+    // Validate Date of Birth (DD/MM/YYYY after normalisation)
+    const dd   = parseInt(row?.DD);
+    const mm   = parseInt(row?.MM);
     const yyyy = parseInt(row?.YYYY);
 
-    if (dd || mm || yyyy) {
+    if (!row?.DD && !row?.MM && !row?.YYYY) {
+      errors.push('Date of Birth cannot be empty');
+    } else {
       if (!dd || dd < 1 || dd > 31) {
-        errors.push('DD must be between 1-31');
+        errors.push('Date of Birth: day must be between 1–31');
       }
       if (!mm || mm < 1 || mm > 12) {
-        errors.push('MM must be between 1-12');
+        errors.push('Date of Birth: month must be between 1–12');
       }
       if (!yyyy || String(yyyy).length !== 4) {
-        errors.push('YYYY must be exactly 4 digits');
+        errors.push('Date of Birth: year must be exactly 4 digits');
+      }
+      // Check the date actually exists in the calendar (e.g. rejects 31/04, 29/02 on non-leap years)
+      if (dd >= 1 && dd <= 31 && mm >= 1 && mm <= 12 && yyyy && String(yyyy).length === 4) {
+        const isLeap = (yyyy % 4 === 0 && yyyy % 100 !== 0) || (yyyy % 400 === 0);
+        const daysInMonth = [31, isLeap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][mm - 1];
+        if (dd > daysInMonth) {
+          errors.push(`Date of Birth: ${String(dd).padStart(2,'0')}/${String(mm).padStart(2,'0')}/${yyyy} is not a valid calendar date`);
+        }
       }
     }
 
@@ -218,73 +260,48 @@ class UploadStatus extends Component {
   };
 
   getColumnDefs = () => {
-    const { excelData, showValidation } = this.state;
+    const { excelData } = this.state;
     if (excelData.length === 0) return [];
 
-    // Filter out internal fields (prefixed with _)
-    const headers = Object.keys(excelData[0]).filter(h => !h.startsWith('_'));
-    const hasDateFields = headers.includes('DD') && headers.includes('MM') && headers.includes('YYYY');
     const hasMultipleSheets = Object.keys(this.state.sheetCounts).length > 1;
 
-    // Column width mapping
-    const columnWidths = {
-      'Participant Number': 200,
-      'Slot': 210,
-      'Name': 200,
-      'Chinese Name': 160,
-      'Contact Number': 200,
-      'Phone Number': 200,
-      'Gender': 120,
-      'Date of Birth': 160,
-      'Start Time': 130,
-      'Time End': 130,
-      'Status': 100,
-    };
-
-    // Add Participant Number column at the beginning
+    // Fixed column order: Participant Number | Name | Chinese Name | Contact Number | Gender | Date of Birth | Start Time | End Time | [Slot] | Status
     let columnDefs = [
       {
         field: 'participantNumber',
         headerName: 'Participant Number',
-        width: columnWidths['Participant Number'],
-        valueGetter: (params) => {
-          return params.node.rowIndex + 1;
-        },
+        width: 250,
+        valueGetter: (params) => params.node.rowIndex + 1,
         sortable: false,
         filter: false,
         pinned: 'left',
-      }
+      },
+      { field: 'Name',         headerName: 'Name',           width: 250 },
+      { field: 'Chinese Name', headerName: 'Chinese Name',   width: 250 },
+      { field: 'Phone Number', headerName: 'Contact Number', width: 250 },
+      { field: 'Gender',       headerName: 'Gender',         width: 150 },
+      {
+        field: 'dateOfBirth',
+        headerName: 'Date of Birth',
+        width: 200,
+        valueGetter: (params) => {
+          const dd   = params.data?.DD;
+          const mm   = params.data?.MM;
+          const yyyy = params.data?.YYYY;
+          if (dd && mm && yyyy) {
+            return `${String(dd).padStart(2, '0')}/${String(mm).padStart(2, '0')}/${yyyy}`;
+          }
+          // Fallback: show the raw value as entered so the user can see what's wrong
+          return params.data?._dobRaw || '';
+        },
+      },
+      { field: 'Start Time', headerName: 'Start Time', width: 150 },
+      { field: 'End Time',   headerName: 'End Time',   width: 150 },
     ];
 
-    // Add other columns with Phone Number renamed to Contact Number
-    columnDefs = columnDefs.concat(
-      headers.map((header) => ({
-        field: header,
-        headerName: header === 'Phone Number' ? 'Contact Number' : header,
-        width: columnWidths[header] || 120,
-        hide: hasDateFields && ['DD', 'MM', 'YYYY'].includes(header),
-      }))
-    );
-
-    // Add Date of Birth column if date fields exist
-    if (hasDateFields) {
-      const ddIndex = columnDefs.findIndex((col) => col.field === 'DD');
-      if (ddIndex !== -1) {
-        columnDefs.splice(ddIndex, 0, {
-          field: 'dateOfBirth',
-          headerName: 'Date of Birth',
-          width: columnWidths['Date of Birth'],
-          valueGetter: (params) => {
-            const dd = params.data?.DD;
-            const mm = params.data?.MM;
-            const yyyy = params.data?.YYYY;
-            if (dd && mm && yyyy) {
-              return `${String(dd).padStart(2, '0')}/${String(mm).padStart(2, '0')}/${yyyy}`;
-            }
-            return '';
-          },
-        });
-      }
+    // Slot column — only show when file has multiple sheets
+    if (hasMultipleSheets) {
+      columnDefs.push({ field: '_sheetName', headerName: 'Slot', width: 210 });
     }
 
     // Single combined Status column:

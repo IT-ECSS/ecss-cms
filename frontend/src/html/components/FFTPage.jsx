@@ -7,6 +7,7 @@ import FFTParticipants from './Fitness/FFTParticipants';
 import FFTVolunteers from './Fitness/FFTVolunteers';
 import FFTAdmin from './Fitness/FFTAdmin';
 import FFTStaff from './Fitness/FFTStaff';
+import FFTRegistration from './Fitness/FFTRegistration';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
@@ -74,6 +75,11 @@ class FFTPage extends Component {
                 onBack={() => this.handleSectionChange('home')}
                 onFileSelected={this.handleFileSelected}
                 selectedFile={selectedFile}
+              />
+            )}
+            {activeSection === 'registration' && (
+              <FFTRegistration
+                onBack={() => this.handleSectionChange('home')}
               />
             )}
             {/* Always mounted to preserve EditParticipants state when navigating home */}

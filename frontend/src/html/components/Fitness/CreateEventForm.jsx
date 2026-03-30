@@ -53,7 +53,7 @@ class CreateEventForm extends React.Component {
       }
     }
     
-    this.state = initialState;
+    this.state = { ...initialState, checkingDuplicate: false };
   }
 
   componentDidMount() {
@@ -76,9 +76,9 @@ class CreateEventForm extends React.Component {
     }));
   };
 
-  handleNext = () => {
+  handleNext = async () => {
     const { eventDate, eventLocation, eventSessionNumber } = this.state;
-    this.setState({ submitted: true });
+    this.setState({ submitted: true, eventError: null });
 
     if (!eventDate || !eventLocation || !eventSessionNumber) return;
 
@@ -88,7 +88,28 @@ class CreateEventForm extends React.Component {
       return;
     }
 
-    this.setState({ submitted: false, eventError: null });
+    const eventName = `${eventDate} ${eventLocation} FFT Session ${eventSessionNumber}`;
+
+    // Check index sheet for duplicate before proceeding
+    this.setState({ checkingDuplicate: true });
+    try {
+      const response = await axios.post(`${BACKEND_URL}/googleDrive/listEvents`);
+      if (response.data.success) {
+        const existing = (response.data.events || []).map(e => e.toLowerCase().trim());
+        if (existing.includes(eventName.toLowerCase().trim())) {
+          this.setState({
+            checkingDuplicate: false,
+            eventError: 'An event with the same details already exists.',
+          });
+          return;
+        }
+      }
+    } catch (err) {
+      // Non-blocking — if check fails, allow user to proceed
+      console.warn('[FFT] Duplicate check failed:', err.message);
+    }
+
+    this.setState({ checkingDuplicate: false, submitted: false, eventError: null });
     this.props.onNext?.({ eventDate, eventLocation, eventSessionNumber });
   };
 
@@ -395,10 +416,10 @@ class CreateEventForm extends React.Component {
                   <button
                     type="button"
                     onClick={this.handleNext}
-                    disabled={eventSubmitting || !!eventResult}
+                    disabled={eventSubmitting || !!eventResult || this.state.checkingDuplicate}
                     className="fft-create-event-btn fft-create-event-btn-create"
                   >
-                    Next
+                    {this.state.checkingDuplicate ? 'Checking...' : 'Next'}
                   </button>
                 </>
               )}
