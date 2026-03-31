@@ -16,9 +16,9 @@ class LanguageSelection extends Component {
             </div>
             <div className="fft-events-buttons-container">
               {[
-                { code: 'en', label: 'English' },
-                { code: 'zh', label: '中文' },
-                { code: 'ms', label: 'Bahasa Melayu' },
+                { code: 'en', label: 'English', flag: '🇬🇧' },
+                { code: 'zh', label: '中文', flag: '🇨🇳' },
+                { code: 'ms', label: 'Bahasa Melayu', flag: '🇲🇾' },
               ].map((lang) => (
                 <button
                   key={lang.code}
@@ -26,6 +26,7 @@ class LanguageSelection extends Component {
                   className={`fft-event-btn ${this.props.selectedLanguage === lang.code ? 'fft-participants-lang-page-btn--active' : ''}`}
                   onClick={() => this.props.onSelectLanguage(lang.code)}
                 >
+                  <div style={{ fontSize: 40, marginBottom: 4 }}>{lang.flag}</div>
                   <div className="fft-event-btn-name" style={{ fontSize: 24 }}>{lang.label}</div>
                 </button>
               ))}

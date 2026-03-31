@@ -18,7 +18,7 @@ class QRCodeGenerator {
             const buffer = await QRCode.toBuffer(this.text, this.options);
 
             // Save the buffer to a JPG file
-            const filename = `Leadership Foundation – Mandarin (Tampines North Community Centre).jpg`;
+            const filename = `Back to Primary School Experience (East Spring Primary School – CT Hub).jpg`;
             fs.writeFileSync(filename, buffer);
             console.log(`QR code generated and saved as ${filename}`);
         } catch (error) {
@@ -28,5 +28,5 @@ class QRCodeGenerator {
 }
 
 // Usage const filename = `https://ecss.org.sg/product/crafting-connectionspasir-ris-west-wellness-centre/`;
-const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/leadership-foundation-mandarintampines-north-community-centre/`);
+const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/back-to-primary-school-experienceeast-spring-primary-school-2/`);
 qrCodeGenerator.generate();

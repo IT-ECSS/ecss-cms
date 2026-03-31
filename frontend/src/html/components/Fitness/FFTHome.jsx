@@ -60,7 +60,7 @@ class FFTHome extends Component {
             className="fft-home-nav-card fft-home-nav-card--admin"
             onClick={() => this.props.onNavigate('admin')}
           >
-            <span className="fft-home-nav-icon">💼</span>
+            <span className="fft-home-nav-icon">👨‍💼</span>
             <span className="fft-home-nav-text">Admin</span>
           </button>
           <button
@@ -83,7 +83,7 @@ class FFTHome extends Component {
             className="fft-home-nav-card fft-home-nav-card--trainers"
             onClick={() => this.props.onNavigate('trainers')}
           >
-            <span className="fft-home-nav-icon">🏋️</span>
+            <span className="fft-home-nav-icon" style={{ color: 'initial' }}>💼</span>
             <span className="fft-home-nav-text">Staff</span>
           </button>
         </div>
