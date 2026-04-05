@@ -5,6 +5,7 @@ import RegistrationSection from './RegistrationSection';
 import BulkUpload from './BulkUpload';
 import FFTParticipants from './FFTParticipants';
 import HomeConfirmModal from './HomeConfirmModal';
+import UploadResultModal from './UploadResultModal';
 import '../../../css/fftParticipants.css';
 import '../../../css/fftStaff.css';
 
@@ -218,15 +219,30 @@ class FFTRegistration extends Component {
               />
             )}
 
-            {/* BulkUpload always mounted to preserve file state while in bulkUpload view */}
-            <div style={{ display: view === 'bulkUpload' ? 'block' : 'none' }}>
+            {/* BulkUpload — conditionally rendered so state always resets on entry */}
+            {view === 'bulkUpload' && (
               <BulkUpload
                 ref={this.bulkUploadRef}
                 event={event}
-                onUploadComplete={() => this.setState({ view: 'registrationMenu' })}
+                onFilesChange={() => this.forceUpdate()}
+                onUploadComplete={() => {
+                  localStorage.removeItem(this.storageKey);
+                  this.setState({ view: 'selectLanguage', language: null, event: null });
+                  this.props.onBack?.();
+                }}
               />
-            </div>
+            )}
           </div>
+
+          {/* Upload loading modal — shown when bulk upload is in progress */}
+          {view === 'bulkUpload' && this.bulkUploadRef.current && (
+            <UploadResultModal
+              uploading={this.bulkUploadRef.current.state.uploading}
+              uploadProgress={this.bulkUploadRef.current.state.uploadProgress}
+              totalEntries={this.bulkUploadRef.current.state.totalEntries}
+              results={this.bulkUploadRef.current.state.results}
+            />
+          )}
 
           <HomeConfirmModal
             visible={showHomeConfirm}

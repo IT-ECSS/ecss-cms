@@ -121,20 +121,43 @@ class BulkUpload extends Component {
         this.setState({ uploadProgress: currentEntry, totalEntries }, () => this.props.onFilesChange?.());
 
         try {
+          const nameVal = String(row['Full Name (as Per NRIC)'] || row.Name || '').trim();
+          if (!nameVal) {
+            // Row has no name — skip silently (shouldn't reach here after frontend filtering)
+            skipCount++;
+            continue;
+          }
           const participantData = {
-            name: row.Name || '',
+            entryMethod: 'Bulk Registration',
+            name: nameVal,
             chineseName: row['Chinese Name'] || '',
-            phone: row['Phone Number'] || '',
-            gender: row.Gender || '',
+            phone: row['Phone Number (No country code)'] || row['Phone Number'] || '',
+            gender: row['Gender (M/F)'] || row.Gender || '',
             dateOfBirth: `${row.DD}/${row.MM}/${row.YYYY}`,
-            startTime: row['Start Time'] || '',
-            endTime: row['End Time'] || row['Time End'] || '',
-            age: row.Age || ''
+            startTime: row['Start Time (HH:MM - 24 hrs format)'] || row['Start Time'] || '',
+            endTime: row['End Time (HH:MM - 24 hrs format)'] || row['End Time'] || row['Time End'] || '',
+            age: row.Age || '',
+            height: row.Height || '',
+            weight: row.Weight || '',
+            bmi: row.BMI || '',
+            dateOfTest: row['Date of test'] || '',
+            healthDeclaration: row['Health Declaration'] || '',
+            indemnity: row.Indemnity || '',
+            sitStand: row['30 secs Sit & Stand'] || '',
+            armBanding: row['30 secs Arm Banding'] || '',
+            marchingInPlace: row['2 min On-the-spot Marching'] || '',
+            sitReach: row['Sit & Reach'] || '',
+            backStretching: row['Back Stretching'] || '',
+            speedWalk: row['2.44m Speed Walk'] || '',
+            gripTest: row['Grip test'] || '',
+            improvements: row.Improvements || '',
+            remarks: row.Remarks || '',
           };
 
           const response = await axios.post(`${BACKEND_URL}/googleDrive/fftSubmit`, {
             eventName: event.name,
             eventFileId: event.id,
+            entryMethod: 'Bulk Registration',
             participantData
           });
 

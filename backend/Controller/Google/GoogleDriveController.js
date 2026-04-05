@@ -855,7 +855,7 @@ class GoogleDriveController {
             });
             const targetSheet = spreadsheet.data.sheets[0].properties.title;
 
-            const range = `'${targetSheet}'!A${rowNumber}:U${rowNumber}`;
+            const range = `'${targetSheet}'!A${rowNumber}:Z${rowNumber}`;
             const response = await sheets.spreadsheets.values.get({
                 spreadsheetId: fileId,
                 range: range

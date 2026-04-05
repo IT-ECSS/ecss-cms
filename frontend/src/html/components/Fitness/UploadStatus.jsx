@@ -70,7 +70,7 @@ class UploadStatus extends Component {
         // Read ALL sheets so multi-slot uploads are fully processed.
         // Skip rows where all participant-identifying columns are empty
         // (e.g. template rows that only have Start Time / Time End pre-filled).
-        const KEY_FIELDS = ['Name', 'Chinese Name', 'Phone Number', 'Gender', 'DD', 'MM', 'YYYY', 'DOB', 'Date of Birth (DD/MM/YYYY)'];
+        const KEY_FIELDS = ['Full Name (as Per NRIC)', 'Name', 'Chinese Name', 'Phone Number (No country code)', 'Phone Number', 'Gender (M/F)', 'Gender', 'DD', 'MM', 'YYYY', 'DOB (DD/MM/YYYY)', 'DOB', 'Date of Birth (DD/MM/YYYY)'];
         const allData = [];
         const sheetCounts = {};
 
@@ -92,13 +92,18 @@ class UploadStatus extends Component {
           const worksheet = workbook.Sheets[sheetName];
           // raw:false + dateNF forces Excel date serials to be returned as
           // "DD/MM/YYYY" formatted strings instead of JS Date objects or numbers.
-          const jsonData = XLSX.utils.sheet_to_json(worksheet, { raw: false, dateNF: 'dd/mm/yyyy' });
+          // Normalise row keys: trim whitespace so headers like ' Full Name (as Per NRIC) ' still match
+          const rawJson = XLSX.utils.sheet_to_json(worksheet, { raw: false, dateNF: 'dd/mm/yyyy' });
+          const jsonData = rawJson.map(row =>
+            Object.fromEntries(Object.entries(row).map(([k, v]) => [k.trim(), v]))
+          );
           const validRows = jsonData.filter(row =>
-            KEY_FIELDS.some(f => String(row[f] ?? '').trim() !== '')
+            // Require the name field to be present — rows with only DOB/time pre-filled are skipped
+            String(row['Full Name (as Per NRIC)'] ?? row['Name'] ?? '').trim() !== ''
           );
           // Normalise: split combined DOB column ("DOB" or "Date of Birth (DD/MM/YYYY)") into DD, MM, YYYY
           const normalisedRows = validRows.map(row => {
-            const rawDob = row['DOB'] || row['Date of Birth (DD/MM/YYYY)'];
+            const rawDob = row['DOB (DD/MM/YYYY)'] || row['DOB'] || row['Date of Birth (DD/MM/YYYY)'];
             if (rawDob) {
               const dobStr = dobToString(rawDob);
               const parts = dobStr.split('/');
@@ -148,21 +153,45 @@ class UploadStatus extends Component {
   isExistingParticipant = (row) => {
     // Prefer pre-fetched data from parent prop
     const existingParticipants = this.props.existingParticipants ?? this.state.existingParticipants;
-    const nameLower   = String(row.Name || '').trim().toLowerCase();
-    const phone       = String(row['Phone Number'] || '').trim();
-    const genderLower = String(row.Gender || '').trim().toLowerCase();
+    const nameLower   = String(row['Full Name (as Per NRIC)'] || row.Name || '').trim().toLowerCase();
+    const phone       = String(row['Phone Number (No country code)'] || row['Phone Number'] || '').trim();
+    const genderLower = String(row['Gender (M/F)'] || row.Gender || '').trim().toLowerCase();
     const dd   = parseInt(row.DD, 10);
     const mm   = parseInt(row.MM, 10);
     const yyyy = String(row.YYYY || '').trim();
 
-    return existingParticipants.some(existing =>
-      String(existing.Name || '').trim().toLowerCase() === nameLower &&
-      String(existing['Phone Number'] || '').trim() === phone &&
-      String(existing.Gender || '').trim().toLowerCase() === genderLower &&
-      parseInt(existing.DD, 10) === dd &&
-      parseInt(existing.MM, 10) === mm &&
-      String(existing.YYYY || '').trim() === yyyy
-    );
+    return existingParticipants.some(existing => {
+      // Name comparison — handles both "Name" and "Full Name (as Per NRIC)" sheet headers
+      const existingName = String(existing['Full Name (as Per NRIC)'] || existing.Name || '').trim().toLowerCase();
+      if (existingName !== nameLower) return false;
+
+      // Phone comparison — handles both header variants
+      const existingPhone = String(existing['Phone Number (No country code)'] || existing['Phone Number'] || '').trim();
+      if (existingPhone !== phone) return false;
+
+      // Gender comparison — handles both header variants
+      const existingGender = String(existing['Gender (M/F)'] || existing.Gender || '').trim().toLowerCase();
+      if (existingGender !== genderLower) return false;
+
+      // DOB comparison — handle split DD/MM/YYYY columns OR combined "DOB (DD/MM/YYYY)" column
+      const existingDD   = existing.DD   !== undefined && existing.DD   !== '' ? parseInt(existing.DD, 10)   : null;
+      const existingMM   = existing.MM   !== undefined && existing.MM   !== '' ? parseInt(existing.MM, 10)   : null;
+      const existingYYYY = existing.YYYY !== undefined && existing.YYYY !== '' ? String(existing.YYYY).trim() : null;
+
+      if (existingDD !== null && existingMM !== null && existingYYYY !== null) {
+        // Sheet has split DD/MM/YYYY columns
+        return existingDD === dd && existingMM === mm && existingYYYY === yyyy;
+      }
+
+      // Fallback: sheet has a combined "DOB (DD/MM/YYYY)" or "DOB" column
+      const rawDob = existing['DOB (DD/MM/YYYY)'] || existing['DOB'] || existing['Date of Birth (DD/MM/YYYY)'] || '';
+      if (!rawDob) return false;
+      const parts = String(rawDob).trim().split('/');
+      const existingDDFallback   = parts[0] ? parseInt(parts[0], 10) : NaN;
+      const existingMMFallback   = parts[1] ? parseInt(parts[1], 10) : NaN;
+      const existingYYYYFallback = parts[2] ? String(parts[2]).trim() : '';
+      return existingDDFallback === dd && existingMMFallback === mm && existingYYYYFallback === yyyy;
+    });
   };
 
   // Returns only rows that are not already registered — used by BulkUpload to skip duplicates
@@ -176,16 +205,22 @@ class UploadStatus extends Component {
   validateRow = (row, rowIndex) => {
     const errors = [];
 
-    // Check for empty cells in required fields (Name, Phone Number, Gender)
-    ['Name', 'Phone Number', 'Gender'].forEach((field) => {
-      const value = row[field];
-      if (value === null || value === undefined || String(value).trim() === '') {
-        errors.push(`${field} cannot be empty`);
-      }
-    });
+    // Check for empty cells in required fields (handles both template and full-sheet header variants)
+    const nameValue   = row['Full Name (as Per NRIC)'] ?? row['Name'];
+    const phoneValue  = row['Phone Number (No country code)'] ?? row['Phone Number'];
+    const genderValue = row['Gender (M/F)'] ?? row['Gender'];
+    if (nameValue === null || nameValue === undefined || String(nameValue).trim() === '') {
+      errors.push('Name cannot be empty');
+    }
+    if (phoneValue === null || phoneValue === undefined || String(phoneValue).trim() === '') {
+      errors.push('Phone Number cannot be empty');
+    }
+    if (genderValue === null || genderValue === undefined || String(genderValue).trim() === '') {
+      errors.push('Gender cannot be empty');
+    }
 
     // Validate Contact Number: starts with 8 or 9, exactly 8 chars, numeric
-    const phoneNumber = row['Phone Number'] || '';
+    const phoneNumber = row['Phone Number (No country code)'] || row['Phone Number'] || '';
     if (phoneNumber && String(phoneNumber).trim() !== '') {
       const phoneStr = String(phoneNumber).trim();
       console.log(`Validating Contact Number for Participant ${rowIndex + 1}:`, phoneStr.length);
@@ -264,8 +299,27 @@ class UploadStatus extends Component {
     if (excelData.length === 0) return [];
 
     const hasMultipleSheets = Object.keys(this.state.sheetCounts).length > 1;
+    const sample = excelData[0];
 
-    // Fixed column order: Participant Number | Name | Chinese Name | Contact Number | Gender | Date of Birth | Start Time | End Time | [Slot] | Status
+    // Pick the first key that actually exists in the data — returns the real Excel header name
+    const pick = (...keys) => keys.find(k => k in sample) || keys[0];
+
+    const nameKey   = pick('Full Name (as Per NRIC)', 'Name');
+    const phoneKey  = pick('Phone Number (No country code)', 'Phone Number');
+    const genderKey = pick('Gender (M/F)', 'Gender');
+    const startKey  = pick('Start Time (HH:MM - 24 hrs format)', 'Start Time');
+    const endKey    = pick('End Time (HH:MM - 24 hrs format)', 'End Time', 'Time End');
+    const dobHeader = pick('DOB (DD/MM/YYYY)', 'DOB', 'Date of Birth (DD/MM/YYYY)');
+
+    // Helper: true if any row has a non-empty value for the given key
+    const hasField = (key) => excelData.some(row => {
+      const v = row[key];
+      return v !== undefined && v !== null && String(v).trim() !== '';
+    });
+
+    // Fixed column order follows sheet layout:
+    // Participant Number | Name | Chinese Name | Phone Number | Gender | DOB |
+    // Start Time | End Time | [optional] | [Slot] | Status
     let columnDefs = [
       {
         field: 'participantNumber',
@@ -276,14 +330,14 @@ class UploadStatus extends Component {
         filter: false,
         pinned: 'left',
       },
-      { field: 'Name',         headerName: 'Name',           width: 250 },
-      { field: 'Chinese Name', headerName: 'Chinese Name',   width: 250 },
-      { field: 'Phone Number', headerName: 'Contact Number', width: 250 },
-      { field: 'Gender',       headerName: 'Gender',         width: 150 },
+      { field: nameKey,        headerName: nameKey,        width: 300 },
+      { field: 'Chinese Name', headerName: 'Chinese Name', width: 250 },
+      { field: phoneKey,       headerName: phoneKey,       width: 350 },
+      { field: genderKey,      headerName: genderKey,      width: 180 },
       {
-        field: 'dateOfBirth',
-        headerName: 'Date of Birth',
-        width: 200,
+        // DOB is always reconstructed from split DD/MM/YYYY columns
+        headerName: dobHeader,
+        width: 250,
         valueGetter: (params) => {
           const dd   = params.data?.DD;
           const mm   = params.data?.MM;
@@ -291,17 +345,59 @@ class UploadStatus extends Component {
           if (dd && mm && yyyy) {
             return `${String(dd).padStart(2, '0')}/${String(mm).padStart(2, '0')}/${yyyy}`;
           }
-          // Fallback: show the raw value as entered so the user can see what's wrong
           return params.data?._dobRaw || '';
         },
       },
-      { field: 'Start Time', headerName: 'Start Time', width: 150 },
-      { field: 'End Time',   headerName: 'End Time',   width: 150 },
+      { field: startKey, headerName: startKey, width: 300 },
+      { field: endKey,   headerName: endKey,   width: 300 },
     ];
+
+    // All remaining columns from the uploaded file, in the order they appear,
+    // excluding internal/fixed keys already rendered above.
+    const FIXED_KEYS = new Set([
+      nameKey, 'Full Name (as Per NRIC)', 'Name',
+      'Chinese Name',
+      phoneKey, 'Phone Number (No country code)', 'Phone Number',
+      genderKey, 'Gender (M/F)', 'Gender',
+      'DOB (DD/MM/YYYY)', 'DOB', 'Date of Birth (DD/MM/YYYY)',
+      'DD', 'MM', 'YYYY', '_dobRaw',
+      startKey, 'Start Time (HH:MM - 24 hrs format)', 'Start Time',
+      endKey, 'End Time (HH:MM - 24 hrs format)', 'End Time', 'Time End',
+      '_sheetName',
+    ]);
+
+    const seenKeys = [];
+    const seenSet = new Set();
+    excelData.forEach(row => {
+      Object.keys(row).forEach(k => {
+        if (!seenSet.has(k) && !FIXED_KEYS.has(k)) {
+          seenSet.add(k);
+          seenKeys.push(k);
+        }
+      });
+    });
+
+    seenKeys.forEach(key => {
+      if (hasField(key)) {
+        columnDefs.push({ field: key, headerName: key, width: 200 });
+      }
+    });
 
     // Slot column — only show when file has multiple sheets
     if (hasMultipleSheets) {
-      columnDefs.push({ field: '_sheetName', headerName: 'Slot', width: 210 });
+      columnDefs.push({
+        field: '_sheetName',
+        headerName: 'Slot',
+        width: 240,
+        valueGetter: (params) => {
+          const raw = params.data?._sheetName || '';
+          // Convert stored "Slot N (HH.MM-HH.MM)" → "Slot N (HH:MM - HH:MM)"
+          return raw.replace(
+            /\((\d{2})\.(\d{2})-(\d{2})\.(\d{2})\)/,
+            '($1:$2 - $3:$4)'
+          );
+        },
+       });
     }
 
     // Single combined Status column:
@@ -428,7 +524,7 @@ class UploadStatus extends Component {
             <button
               className="fft-staff-reset-btn"
               onClick={() => {
-                this.setState({ validationComplete: false, validationResults: {}, showValidation: false, rowsWithErrors: [] });
+                this.setState({ excelData: [], sheetCounts: {}, validationComplete: false, validationResults: {}, showValidation: false, rowsWithErrors: [] });
                 this.props.onClear?.();
               }}
               style={{ width: 'fit-content', padding: '10px 32px' }}
@@ -448,7 +544,7 @@ class UploadStatus extends Component {
               <button
                 className="fft-staff-reset-btn"
                 onClick={() => {
-                  this.setState({ validationComplete: false, validationResults: {}, showValidation: false, rowsWithErrors: [] });
+                  this.setState({ excelData: [], sheetCounts: {}, validationComplete: false, validationResults: {}, showValidation: false, rowsWithErrors: [] });
                   this.props.onClear?.();
                 }}
                 style={{ width: 'fit-content', padding: '10px 32px' }}

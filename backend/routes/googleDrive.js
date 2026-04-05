@@ -575,29 +575,32 @@ router.post('/fftSubmit', async (req, res) => {
 
         console.log(`[FFT] Appending to sheet "${sheetFileName}" (${fileId})`);
 
-        // Generate submission timestamp (DD/MM/YYYY HH:MM:SS)
-        const now = new Date();
-        const dd2 = String(now.getDate()).padStart(2, '0');
-        const mm2 = String(now.getMonth() + 1).padStart(2, '0');
-        const yyyy2 = now.getFullYear();
-        const ts = now.toTimeString().slice(0, 8);
-        const hdValue = `Acknowledged as per ${dd2}/${mm2}/${yyyy2} ${ts}`;
-        const indemnityValue = `Acknowledged as per ${dd2}/${mm2}/${yyyy2} ${ts}`;
-
-        // For pre-registered participants, update their existing row with Health Declaration + Indemnity timestamps
+        // For pre-registered participants — update Health Declaration & Indemnity columns
         if (entryMethod === 'participantNumber' || participantNumber) {
-            console.log(`[FFT] Pre-registered participant (entry ${participantNumber}) - updating Health Declaration + Indemnity columns`);
-            const updateResult = await googleDriveController.updateRow(fileId, parseInt(participantNumber, 10), {
-                'Health Declaration': hdValue,
-                'Indemnity': indemnityValue,
+            const entryNum = parseInt(participantNumber, 10);
+            console.log(`[FFT] Pre-registered participant (entry ${entryNum}) - updating Health Declaration & Indemnity`);
+
+            // Generate acknowledgement string in Singapore time (Asia/Singapore, UTC+8)
+            const sgNow = new Date().toLocaleString('en-GB', { timeZone: 'Asia/Singapore', hour12: false });
+            // en-GB gives "DD/MM/YYYY, HH:MM:SS" — strip the comma
+            const acknowledgedStr = `Acknowledged as per ${sgNow.replace(',', '')}`;
+
+            const updateResult = await googleDriveController.updateRow(fileId, entryNum, {
+                'Health Declaration': acknowledgedStr,
+                'Indemnity': acknowledgedStr,
             });
+
+            if (!updateResult.success) {
+                console.warn(`[FFT] Could not update Health Declaration/Indemnity for entry ${entryNum}:`, updateResult.error);
+            }
+
             return res.json({
                 success: true,
                 updated: true,
-                message: 'Health Declaration & Indemnity recorded for pre-registered participant',
+                message: 'Health Declaration & Indemnity acknowledged',
                 sheetName: sheetFileName,
                 fileId,
-                participantNumber: parseInt(participantNumber, 10),
+                participantNumber: entryNum,
             });
         }
 
@@ -605,6 +608,12 @@ router.post('/fftSubmit', async (req, res) => {
             name = '', chineseName = '', phone = '', gender = '',
             dateOfBirth = '', age: providedAge = '',
             startTime = '', endTime = '',
+            height = '', weight = '', bmi = '',
+            dateOfTest: providedDateOfTest = '',
+            healthDeclaration = '', indemnity = '',
+            sitStand = '', armBanding = '', marchingInPlace = '',
+            sitReach = '', backStretching = '', speedWalk = '',
+            gripTest = '', improvements = '', remarks = '',
         } = participantData;
 
         // Normalise to strings (Excel bulk upload may send numbers)
@@ -638,24 +647,38 @@ router.post('/fftSubmit', async (req, res) => {
         }
 
         // Check if participant already exists in the sheet
+        let currentRowCount = 0;
         try {
             const sheetData = await googleDriveController.readSpreadsheet(fileId);
             if (sheetData.success && sheetData.data) {
+                currentRowCount = sheetData.data.length;
+
+                // Build header-aware lookup so the check works regardless of whether
+                // the sheet has an S/N column or uses the old layout (no S/N column).
+                const headers = (sheetData.columns || []).map(h => String(h || '').trim());
+                const col = (name) => headers.indexOf(name); // returns -1 if missing
+
+                const nameIdx   = col('Name')   !== -1 ? col('Name')   : 0;
+                const phoneIdx  = col('Phone Number') !== -1 ? col('Phone Number') : 2;
+                const genderIdx = col('Gender') !== -1 ? col('Gender') : 3;
+                const ddIdx     = col('DD')     !== -1 ? col('DD')     : 4;
+                const mmIdx     = col('MM')     !== -1 ? col('MM')     : 5;
+                const yyyyIdx   = col('YYYY')   !== -1 ? col('YYYY')   : 6;
+
                 const existingIndex = sheetData.data.findIndex(row => {
-                    // row is a raw array: [Name, ChineseName, Phone, Gender, DD, MM, YYYY, Age, ...]
-                    const rowName   = (row[0] || '').toString().trim().toLowerCase();
-                    const rowPhone  = (row[2] || '').toString().trim();
-                    const rowGender = (row[3] || '').toString().trim().toLowerCase();
-                    const rowDD     = (row[4] || '').toString().trim();
-                    const rowMM     = (row[5] || '').toString().trim();
-                    const rowYYYY   = (row[6] || '').toString().trim();
+                    const rowName   = (row[nameIdx]   || '').toString().trim().toLowerCase();
+                    const rowPhone  = (row[phoneIdx]  || '').toString().trim();
+                    const rowGender = (row[genderIdx] || '').toString().trim().toLowerCase();
+                    const rowDD     = (row[ddIdx]     || '').toString().trim();
+                    const rowMM     = (row[mmIdx]     || '').toString().trim();
+                    const rowYYYY   = (row[yyyyIdx]   || '').toString().trim();
 
                     return (
                         rowName   === nameStr.toLowerCase() &&
                         rowPhone  === phoneStr &&
                         rowGender === genderStr.toLowerCase() &&
-                        parseInt(rowDD, 10)   === parseInt(dd, 10) &&
-                        parseInt(rowMM, 10)   === parseInt(mm, 10) &&
+                        parseInt(rowDD, 10) === parseInt(dd, 10) &&
+                        parseInt(rowMM, 10) === parseInt(mm, 10) &&
                         rowYYYY   === String(yyyy || '').trim()
                     );
                 });
@@ -686,23 +709,35 @@ router.post('/fftSubmit', async (req, res) => {
             dateOfTest = `${dateMatch[3]}/${dateMatch[2]}/${dateMatch[1]}`;
         }
 
+        // Generate acknowledgement string in Singapore time (Asia/Singapore, UTC+8)
+        // Only for individual registrations — bulk uploads skip the timestamp
+        let acknowledgedStr = '';
+        if (entryMethod !== 'Bulk Registration') {
+            const sgNow = new Date().toLocaleString('en-GB', { timeZone: 'Asia/Singapore', hour12: false });
+            acknowledgedStr = `Acknowledged as per ${sgNow.replace(',', '')}`;
+        }
+
         // Row order matches sheet headers:
-        // Name | Chinese Name | Phone Number | Gender | DD | MM | YYYY |
+        // S/N | Name | Chinese Name | Phone Number | Gender | DD | MM | YYYY |
         // Start Time | End Time | Age |
         // Height | Weight | BMI | Date of test |
+        // Health Declaration | Indemnity |
         // 30 secs Sit & Stand | 30 secs Arm Banding | 2 min On-the-spot Marching |
         // Sit & Reach | Back Stretching | 2.44m Speed Walk | Grip test | Improvements | Remarks
+        const nextSN = currentRowCount + 1;
         const rowData = [
-            nameStr, chineseNameStr, phoneStr, genderStr,
-            dd, mm, yyyy,
-            String(startTime || ''), String(endTime || ''), // H I: Start Time, End Time
-            String(age),                                     // J: Age
-            '', '', '',                                      // K L M: Height, Weight, BMI
-            dateOfTest,                                      // N: Date of test
-            hdValue,                                         // O: Health Declaration
-            indemnityValue,                                  // P: Indemnity
-            '', '', '', '', '', '', '',                      // Q-W: test result columns
-            '', '',                                          // X Y: Improvements, Remarks
+            String(nextSN),                                          // A: S/N
+            nameStr, chineseNameStr, phoneStr, genderStr,            // B C D E: Name, Chinese Name, Phone, Gender
+            dd, mm, yyyy,                                            // F G H: DD, MM, YYYY
+            String(startTime || ''), String(endTime || ''),          // I J: Start Time, End Time
+            String(age),                                             // K: Age
+            String(height), String(weight), String(bmi),             // L M N: Height, Weight, BMI
+            dateOfTest || String(providedDateOfTest),                // O: Date of test
+            acknowledgedStr,                                         // P: Health Declaration
+            acknowledgedStr,                                         // Q: Indemnity
+            String(sitStand), String(armBanding), String(marchingInPlace), // R S T: test results
+            String(sitReach), String(backStretching), String(speedWalk),   // U V W: test results
+            String(gripTest), String(improvements), String(remarks),       // X Y Z: Grip test, Improvements, Remarks
         ];
 
         const appendResult = await googleDriveController.appendRow(fileId, rowData);

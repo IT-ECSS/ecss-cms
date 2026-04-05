@@ -201,12 +201,16 @@ class ParticipantForm extends Component {
     const { particularsData, healthData, entryMethod, participantNumber } = this.state;
     const { event } = this.props;
     const eventName = event ? (typeof event === 'string' ? event : event.name) : '';
+    // Map internal entryMethod values to display-friendly names for the backend
+    const submittedEntryMethod = (entryMethod === 'manual' || entryMethod === 'singpass')
+      ? 'Individual Registration'
+      : entryMethod;
     await this.props.onSubmit({ 
       ...particularsData, 
       ...healthData, 
       ...indemnityData, 
       eventName,
-      entryMethod,
+      entryMethod: submittedEntryMethod,
       participantNumber
     });
     this.setState({ isSubmitting: false });
@@ -374,7 +378,7 @@ class ParticipantForm extends Component {
                       type="button"
                       className="fft-create-event-btn fft-create-event-btn-clear"
                       onClick={() => this.particularsRef.current?.handleClear()}
-                      disabled={isLoading}
+                      disabled={isLoading || entryMethod === 'participantNumber'}
                     >
                       {language === 'zh' ? '清空' : language === 'ms' ? 'Kosongkan' : 'Clear'}
                     </button>
