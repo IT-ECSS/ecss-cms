@@ -5,6 +5,7 @@ var fs = require('fs');
 var path = require('path');
 const XLSX = require('xlsx');
 const XlsxPopulate = require('xlsx-populate');
+const JSZip = require('jszip');
 
 const googleDriveController = new GoogleDriveController();
 
@@ -259,91 +260,118 @@ router.post('/appendEventRow', async (req, res) => {
 // POST endpoint to generate a pre-filled Excel template with one sheet per time slot
 router.post('/generateTemplate', async (req, res) => {
     try {
-        const { eventName } = req.body;
+        const { eventName, slots: clientSlots } = req.body;
         if (!eventName) {
             return res.status(400).json({ success: false, error: 'eventName is required' });
         }
 
-        const INDEX_SHEET_ID = '1fMyjRlqj3ZEj9OcWCP_HtViLbgYG2zW4i-qZUdVOMXo';
-        const result = await googleDriveController.readSpreadsheet(INDEX_SHEET_ID);
-        if (!result.success) {
-            return res.status(500).json({ success: false, error: 'Failed to read index sheet' });
-        }
-
-        // Find the row for this event (column B = event name, column C = time slots)
-        const eventRow = (result.data || []).find(row => (row[1] || '').trim() === eventName.trim());
-        const timeSlotsStr = eventRow ? (eventRow[2] || '') : '';
-
-        // Parse "Slot 1: 09:00-10:00, Slot 2: 10:00-11:00" → [{start, end}]
         let slots = [];
-        if (timeSlotsStr) {
-            const parts = timeSlotsStr.split(',').map(s => s.trim()).filter(Boolean);
-            for (const part of parts) {
-                const m = part.match(/(\d{2}:\d{2})-(\d{2}:\d{2})/);
-                if (m) slots.push({ start: m[1], end: m[2] });
+
+        // If the client sent a pre-edited slots array, use it directly
+        if (Array.isArray(clientSlots) && clientSlots.length > 0) {
+            const pad = t => t.includes(':') && t.length === 4 ? '0' + t : t;
+            slots = clientSlots
+                .filter(s => s && s.start && s.end)
+                .map(s => ({ start: pad(String(s.start)), end: pad(String(s.end)) }));
+            console.log(`[generateTemplate] Using client-provided slots:`, JSON.stringify(slots));
+        } else {
+            // Fall back to reading from the index sheet
+            const INDEX_SHEET_ID = '1fMyjRlqj3ZEj9OcWCP_HtViLbgYG2zW4i-qZUdVOMXo';
+            const result = await googleDriveController.readSpreadsheet(INDEX_SHEET_ID);
+            if (!result.success) {
+                return res.status(500).json({ success: false, error: 'Failed to read index sheet' });
             }
+
+            const allRows = result.data || [];
+            console.log(`[generateTemplate] Total rows in index sheet: ${allRows.length}`);
+            console.log(`[generateTemplate] Looking for event: "${eventName}"`);
+            allRows.forEach((row, i) => console.log(`[generateTemplate] Row ${i}: B="${row[1]}", C="${row[2]}"`));
+
+            const eventRow = allRows.find(row => (row[1] || '').trim() === eventName.trim());
+            const timeSlotsStr = eventRow ? (eventRow[2] || '') : '';
+            console.log(`[generateTemplate] Found event row: ${!!eventRow}, timeSlotsStr: "${timeSlotsStr}"`);
+
+            if (timeSlotsStr) {
+                const parts = timeSlotsStr.split(',').map(s => s.trim()).filter(Boolean);
+                for (const part of parts) {
+                    const m = part.match(/(\d{1,2}:\d{2})\s*[-–]\s*(\d{1,2}:\d{2})/);
+                    if (m) {
+                        const pad = t => t.includes(':') && t.length === 4 ? '0' + t : t;
+                        slots.push({ start: pad(m[1]), end: pad(m[2]) });
+                    }
+                }
+            }
+            console.log(`[generateTemplate] Parsed slots:`, JSON.stringify(slots));
         }
 
-        const PREFILL_ROWS = 20; // Data rows 2–21
+        const PREFILL_ROWS = 30; // Dropdown applied to rows 2–31
 
-        // Export the Google Sheets template and use it as base (preserves formatting & headers)
+        // Export the Google Sheets template as base
         const TEMPLATE_FILE_ID = '1xu3UtY6fm3O09_vwlCk1p_NZM0waWrzUMsDGmJbmNDk';
         const drive = await googleDriveController.initializeAuth();
         const exportResponse = await drive.files.export(
             { fileId: TEMPLATE_FILE_ID, mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
             { responseType: 'arraybuffer' }
         );
-        const wb = await XlsxPopulate.fromDataAsync(Buffer.from(exportResponse.data));
-        const ws = wb.sheet(0);
 
-        // Column positions in the template:
-        // A=Full Name (as Per NRIC), B=Phone Number (No country code), C=Gender (M/F),
-        // D=DOB (DD/MM/YYYY), E=Start Time (HH:MM - 24 hrs format), F=End Time (HH:MM - 24 hrs format)
-        const START_TIME_COL = 5; // E
-        const END_TIME_COL   = 6; // F
-
-        // Format DOB column (D=4) AND both time columns (E=5, F=6) as plain text
-        // so Excel never auto-converts "05:00" to a time serial number
-        for (let r = 2; r <= PREFILL_ROWS + 1; r++) {
-            ws.cell(r, 4).style('numberFormat', '@');
-            ws.cell(r, START_TIME_COL).style('numberFormat', '@');
-            ws.cell(r, END_TIME_COL).style('numberFormat', '@');
-        }
+        let workbookBuf = Buffer.from(exportResponse.data);
 
         if (slots.length > 0) {
             const startTimes = [...new Set(slots.map(s => s.start).filter(Boolean))];
-            const startFormula = `"${startTimes.join(',')}"`;
-            const slotMap = slots.filter(s => s.start && s.end);
 
-            // Build the inner nested-IF once (using placeholder ROW)
-            // e.g. IF(E2="05:00","06:00",IF(E2="06:00","07:00",""))
-            let innerIf = '""';
-            for (let i = slotMap.length - 1; i >= 0; i--) {
-                innerIf = `IF(EROW="${slotMap[i].start}","${slotMap[i].end}",${innerIf})`;
-            }
-            // Wrap: blank when Start Time is empty
-            const ifTemplate = `IF(EROW="","",${innerIf})`;
-
-            for (let r = 2; r <= PREFILL_ROWS + 1; r++) {
-                // Start Time — dropdown, empty by default
-                if (startTimes.length > 0) {
-                    ws.cell(r, START_TIME_COL).dataValidation({
-                        type: 'list',
-                        allowBlank: true,
-                        showDropDown: false,
-                        formula1: startFormula,
-                    });
+            // Step 1: Use xlsx-populate to inject IF formulas into column F (F2:F31).
+            // Uses TEXT(E,"HH:MM") so comparison works whether Excel stores the dropdown
+            // value as a time serial (8:00:00 AM) or plain text ("08:00").
+            const workbook = await XlsxPopulate.fromDataAsync(workbookBuf);
+            const sheet = workbook.sheet(0);
+            for (let rowNum = 2; rowNum <= PREFILL_ROWS + 1; rowNum++) {
+                let inner = '""';
+                for (let i = slots.length - 1; i >= 0; i--) {
+                    inner = `IF(TEXT(E${rowNum},"HH:MM")="${slots[i].start}","${slots[i].end}",${inner})`;
                 }
-
-                // End Time — formula auto-fills from Start Time selection
-                if (slotMap.length > 0) {
-                    const formula = ifTemplate.replace(/EROW/g, `E${r}`);
-                    ws.cell(r, END_TIME_COL).formula(formula);
-                }
+                sheet.cell(`F${rowNum}`).formula(`IF(E${rowNum}="","",${inner})`);
             }
+            workbookBuf = await workbook.outputAsync();
+
+            // Step 2: Use JSZip to patch the dataValidations block with a schema-valid version.
+            // xlsx-populate's validation API emits a forbidden operator="between" attribute on
+            // type="list" validations, causing Excel to silently remove them during repair.
+            const zip = await JSZip.loadAsync(workbookBuf);
+            let sheetXml = await zip.file('xl/worksheets/sheet1.xml').async('string');
+
+            // Remove any existing <dataValidations> block
+            sheetXml = sheetXml.replace(/<dataValidations[\s\S]*?<\/dataValidations>/, '');
+
+            const endTimes     = [...new Set(slots.map(s => s.end).filter(Boolean))];
+            const startFormula = '&quot;' + ['Please select the time', ...startTimes].join(',') + '&quot;';
+            const endFormula   = '&quot;' + ['Please select the time', ...endTimes].join(',') + '&quot;';
+            const startSqref   = `E2:E${PREFILL_ROWS + 1}`;
+            const endSqref     = `F2:F${PREFILL_ROWS + 1}`;
+            console.log(`[generateTemplate] Validation formula - Start: ${startFormula}`);
+            console.log(`[generateTemplate] Validation formula - End:   ${endFormula}`);
+
+            const dvXml =
+                `<dataValidations count="2">` +
+                `<dataValidation type="list" allowBlank="0" showDropDown="0" showInputMessage="1" showErrorMessage="1" sqref="${startSqref}">` +
+                `<formula1>${startFormula}</formula1>` +
+                `</dataValidation>` +
+                `<dataValidation type="list" allowBlank="0" showDropDown="0" showInputMessage="1" showErrorMessage="1" sqref="${endSqref}">` +
+                `<formula1>${endFormula}</formula1>` +
+                `</dataValidation>` +
+                `</dataValidations>`;
+
+            // Insert right after </sheetData> to respect OOXML element ordering
+            if (sheetXml.includes('</sheetData>')) {
+                sheetXml = sheetXml.replace('</sheetData>', '</sheetData>' + dvXml);
+            } else {
+                sheetXml = sheetXml.replace('</worksheet>', dvXml + '</worksheet>');
+            }
+
+            zip.file('xl/worksheets/sheet1.xml', sheetXml);
+            workbookBuf = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
         }
 
-        const buf = await wb.outputAsync();
+        const buf = workbookBuf;
         const fileName = `${eventName} - Registration Template.xlsx`;
         res.set({
             'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

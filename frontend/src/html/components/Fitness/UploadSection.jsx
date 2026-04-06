@@ -7,6 +7,7 @@ class UploadSection extends Component {
   render() {
     const { files, onDragOver, onDrop, onFileSelect, event } = this.props;
 
+
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         {/* Upload sub-section */}

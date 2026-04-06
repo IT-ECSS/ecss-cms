@@ -112,6 +112,19 @@ class BulkUpload extends Component {
       let failCount = 0;
       let skipCount = 0;
 
+      // Build a start→end lookup map from the event's time slots string
+      // e.g. "Slot 1: 08:00-09:00, Slot 2: 09:00-10:00" → { "08:00": "09:00", "09:00": "10:00" }
+      const slotMap = {};
+      if (event?.timeSlots) {
+        String(event.timeSlots).split(',').map(s => s.trim()).filter(Boolean).forEach(part => {
+          const m = part.match(/(\d{1,2}:\d{2})\s*[-–]\s*(\d{1,2}:\d{2})/);
+          if (m) {
+            const pad = t => t.length === 4 ? '0' + t : t;
+            slotMap[pad(m[1])] = pad(m[2]);
+          }
+        });
+      }
+
       for (let index = 0; index < data.length; index++) {
         const row = data[index];
         const currentEntry = index + 1;
@@ -127,6 +140,8 @@ class BulkUpload extends Component {
             skipCount++;
             continue;
           }
+          const startTime = row['Start Time (HH:MM - 24 hrs format)'] || row['Start Time'] || '';
+          const endTime = row['End Time (HH:MM - 24 hrs format)'] || row['End Time'] || row['Time End'] || (startTime ? slotMap[startTime] : '') || '';
           const participantData = {
             entryMethod: 'Bulk Registration',
             name: nameVal,
@@ -134,8 +149,8 @@ class BulkUpload extends Component {
             phone: row['Phone Number (No country code)'] || row['Phone Number'] || '',
             gender: row['Gender (M/F)'] || row.Gender || '',
             dateOfBirth: `${row.DD}/${row.MM}/${row.YYYY}`,
-            startTime: row['Start Time (HH:MM - 24 hrs format)'] || row['Start Time'] || '',
-            endTime: row['End Time (HH:MM - 24 hrs format)'] || row['End Time'] || row['Time End'] || '',
+            startTime,
+            endTime,
             age: row.Age || '',
             height: row.Height || '',
             weight: row.Weight || '',

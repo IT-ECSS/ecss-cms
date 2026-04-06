@@ -332,7 +332,7 @@ class UploadStatus extends Component {
       },
       { field: nameKey,        headerName: nameKey,        width: 300 },
       { field: phoneKey,       headerName: phoneKey,       width: 350 },
-      { field: genderKey,      headerName: genderKey,      width: 180 },
+      { field: genderKey,      headerName: genderKey,      width: 200 },
       {
         // DOB is always reconstructed from split DD/MM/YYYY columns
         headerName: dobHeader,
@@ -347,8 +347,8 @@ class UploadStatus extends Component {
           return params.data?._dobRaw || '';
         },
       },
-      { field: startKey, headerName: startKey, width: 300 },
-      { field: endKey,   headerName: endKey,   width: 300 },
+      { field: startKey, headerName: startKey, width: 400 },
+      { field: endKey,   headerName: endKey,   width: 400 },
     ];
 
     // All remaining columns from the uploaded file, in the order they appear,
