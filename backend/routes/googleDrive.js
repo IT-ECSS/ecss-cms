@@ -720,22 +720,24 @@ router.post('/fftSubmit', async (req, res) => {
                 // Fallback: use row count if no valid S/N found
                 if (lastSN === 0) lastSN = currentRowCount;
 
-                const nameIdx   = col('Name')   !== -1 ? col('Name')   : 0;
-                const phoneIdx  = col('Phone Number') !== -1 ? col('Phone Number') : 2;
-                const genderIdx = col('Gender') !== -1 ? col('Gender') : 3;
-                const ddIdx     = col('DD')     !== -1 ? col('DD')     : 4;
-                const mmIdx     = col('MM')     !== -1 ? col('MM')     : 5;
-                const yyyyIdx   = col('YYYY')   !== -1 ? col('YYYY')   : 6;
+                const nameIdx      = col('Name')         !== -1 ? col('Name')         : 0;
+                const phoneIdx     = col('Phone Number')  !== -1 ? col('Phone Number')  : 2;
+                const genderIdx    = col('Gender')        !== -1 ? col('Gender')        : 3;
+                const ddIdx        = col('DD')            !== -1 ? col('DD')            : 4;
+                const mmIdx        = col('MM')            !== -1 ? col('MM')            : 5;
+                const yyyyIdx      = col('YYYY')          !== -1 ? col('YYYY')          : 6;
+                const startTimeIdx = col('Start Time')    !== -1 ? col('Start Time')    : -1;
 
                 const existingIndex = sheetData.data.findIndex(row => {
-                    const rowName   = (row[nameIdx]   || '').toString().trim().toLowerCase();
-                    const rowPhone  = (row[phoneIdx]  || '').toString().trim();
-                    const rowGender = (row[genderIdx] || '').toString().trim().toLowerCase();
-                    const rowDD     = (row[ddIdx]     || '').toString().trim();
-                    const rowMM     = (row[mmIdx]     || '').toString().trim();
-                    const rowYYYY   = (row[yyyyIdx]   || '').toString().trim();
+                    const rowName      = (row[nameIdx]   || '').toString().trim().toLowerCase();
+                    const rowPhone     = (row[phoneIdx]  || '').toString().trim();
+                    const rowGender    = (row[genderIdx] || '').toString().trim().toLowerCase();
+                    const rowDD        = (row[ddIdx]     || '').toString().trim();
+                    const rowMM        = (row[mmIdx]     || '').toString().trim();
+                    const rowYYYY      = (row[yyyyIdx]   || '').toString().trim();
+                    const rowStartTime = startTimeIdx !== -1 ? (row[startTimeIdx] || '').toString().trim() : null;
 
-                    return (
+                    const sameBasicInfo = (
                         rowName   === nameStr.toLowerCase() &&
                         rowPhone  === phoneStr &&
                         rowGender === genderStr.toLowerCase() &&
@@ -743,6 +745,14 @@ router.post('/fftSubmit', async (req, res) => {
                         parseInt(rowMM, 10) === parseInt(mm, 10) &&
                         rowYYYY   === String(yyyy || '').trim()
                     );
+
+                    // Only flag as duplicate if both basic info AND start time match.
+                    // If start time column doesn't exist in sheet, fall back to basic info only.
+                    if (!sameBasicInfo) return false;
+                    if (rowStartTime !== null && startTime) {
+                        return rowStartTime === String(startTime).trim();
+                    }
+                    return true;
                 });
 
                 if (existingIndex !== -1) {

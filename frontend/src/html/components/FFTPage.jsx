@@ -20,12 +20,12 @@ class FFTPage extends Component {
     super(props);
     const urlParams = new URLSearchParams(window.location.search);
     const section = urlParams.get('section');
-    // Detect SingPass return: suppress login modal ONLY when URL is ?section=participants
-    // (the SingPass callback return path) AND SingPass data is actually present.
-    // Staff visiting /fft directly must always see the login modal.
-    const isSingpassReturn = section === 'participants' && !!(sessionStorage.getItem('singpass_user_data_json') || sessionStorage.getItem('fft_singpass_return_state'));
+    // Detect SingPass return: fft_singpass_return_state is saved just before the SingPass
+    // redirect and consumed by FFTParticipants on mount — its presence means we are mid-flow.
+    const isSingpassReturn = !!(sessionStorage.getItem('fft_singpass_return_state'));
     this.state = {
-      activeSection: section || 'home',
+      // If returning from SingPass, go straight to participants section (no URL param needed)
+      activeSection: isSingpassReturn ? 'participants' : (section || 'home'),
       loggedInRole: null,
       singpassSession: isSingpassReturn,
       selectedFile: null,
@@ -37,15 +37,6 @@ class FFTPage extends Component {
 
   componentDidMount() {
     document.title = 'ECSS FFT';
-
-    // Check if redirected from SingPass with section parameter
-    const urlParams = new URLSearchParams(window.location.search);
-    const section = urlParams.get('section');
-    if (section) {
-      this.setState({ activeSection: section });
-    }
-
-
   }
 
   handleSectionChange = (section) => {
