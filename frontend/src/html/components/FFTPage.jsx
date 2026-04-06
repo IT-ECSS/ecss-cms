@@ -76,6 +76,7 @@ class FFTPage extends Component {
             {activeSection === 'participants' && (
               <FFTParticipants
                 onBack={() => this.handleSectionChange('home')}
+                onHome={() => this.handleSectionChange('home')}
                 onAdmin={() => this.handleSectionChange('admin')}
                 selectedFile={selectedFile}
               />

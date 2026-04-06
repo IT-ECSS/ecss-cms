@@ -309,8 +309,12 @@ class FFTParticipants extends Component {
     localStorage.removeItem('fftHealthDeclarationData');
     localStorage.removeItem('fftIndemnityData');
     localStorage.removeItem('fftRegistrationSelection');
-    // Public form (kiosk): reset to start so the next person gets a fresh form
+    // Public form (kiosk): call onHome (closes tab) if provided, otherwise reset to start
     if (this.props.showParticipantNumber === false) {
+      if (this.props.onHome) {
+        this.props.onHome();
+        return;
+      }
       this.setState({ language: null, event: null, slot: null, formData: null, showEntryNumber: false, entryNumber: null, showLoadingModal: false, showResultModal: false, submitError: null, showHomeConfirm: false });
       return;
     }

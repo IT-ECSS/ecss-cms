@@ -90,6 +90,7 @@ class FFTFormPage extends Component {
         <FFTParticipants
           key={resetKey}
           onBack={this.handleReset}
+          onHome={() => window.close()}
           onAdmin={() => this.props.history.push('/fft')}
           trilingual
           showParticipantNumber={false}
