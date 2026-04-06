@@ -268,6 +268,7 @@ class ParticipantForm extends Component {
             showManual={this.props.showManual !== undefined ? this.props.showManual : true}
             titleOverride={this.props.titleOverride}
             descriptionOverride={this.props.descriptionOverride}
+            trilingual={this.props.trilingual}
           />
         )}
 
@@ -302,6 +303,7 @@ class ParticipantForm extends Component {
                 : { currentStep: 1, entryMethod: null }
             )}
             onHome={() => onHome?.()}
+            trilingual={this.props.trilingual}
           />
         )}
 

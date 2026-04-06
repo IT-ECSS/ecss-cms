@@ -157,10 +157,23 @@ class TimeSlotSelection extends Component {
         <div className="fft-participants-wrapper">
           <div className="fft-participants-section">
             <div className="fft-participants-section-header">
-              <h3 className="fft-participants-section-title">{t('selectTimeSlot')}</h3>
+              <h3 className="fft-participants-section-title">
+                {t('selectTimeSlot')}
+                {this.props.trilingual && (
+                  <span style={{ display: 'block', fontWeight: 400, fontSize: '0.78em', color: '#666', marginTop: 2 }}>{fftTranslations.selectTimeSlot.zh} · {fftTranslations.selectTimeSlot.ms}</span>
+                )}
+              </h3>
               <hr style={{ margin: '12px 0' }} />
               <div className="fft-participants-section-desc" style={{ marginBottom: '12px', color: '#555', fontSize: '1em' }}>
-                {t('selectTimeSlotDesc')}
+                {this.props.trilingual ? (
+                  <>
+                    <span>{fftTranslations.selectTimeSlotDesc.en}</span>
+                    <span style={{ display: 'block', fontSize: '0.92em', marginTop: 3 }}>{fftTranslations.selectTimeSlotDesc.zh}</span>
+                    <span style={{ display: 'block', fontSize: '0.92em', marginTop: 2 }}>{fftTranslations.selectTimeSlotDesc.ms}</span>
+                  </>
+                ) : (
+                  t('selectTimeSlotDesc')
+                )}
               </div>
             </div>
 

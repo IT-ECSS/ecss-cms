@@ -404,14 +404,16 @@ class FFTParticipants extends Component {
           <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'stretch', padding: '16px 16px 12px', gap: 10 }}>
             {/* Left: nav buttons */}
             <div style={{ display: 'flex', flexDirection: 'row', gap: 10, alignItems: 'center', flexShrink: 0 }}>
-              <button
-                type="button"
-                className="fft-participants-icon-btn"
-                onClick={this.handleBack}
-                title={backTitle}
-              >
-                <i className="fas fa-arrow-left"></i>
-              </button>
+              {!(this.props.hideBackOnLanguage && step === 'language') && (
+                <button
+                  type="button"
+                  className="fft-participants-icon-btn"
+                  onClick={this.handleBack}
+                  title={backTitle}
+                >
+                  <i className="fas fa-arrow-left"></i>
+                </button>
+              )}
               <button
                 type="button"
                 className="fft-participants-icon-btn"
@@ -423,7 +425,7 @@ class FFTParticipants extends Component {
             </div>
 
             {/* Right: description + badges stacked */}
-            {language && (
+            {language && !this.props.hideStatus && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 0 }}>
                 <span style={{ fontSize: '1.3125em', color: '#555' }}>
                   {slot
@@ -465,6 +467,8 @@ class FFTParticipants extends Component {
                 // Language is just a preference — keep event & slot, return to form
                 this.setState({ language: lang, reselecting: null });
               }}
+              trilingual={this.props.trilingual}
+              pageTitle={this.props.languagePageTitle}
             />
           )}
 
@@ -508,6 +512,7 @@ class FFTParticipants extends Component {
               }}
               onHome={this.props.onBack}
               isLoading={showLoadingModal}
+              showParticipantNumber={this.props.showParticipantNumber || false}
             />
           )}
 

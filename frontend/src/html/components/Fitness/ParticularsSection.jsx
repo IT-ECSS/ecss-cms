@@ -345,7 +345,7 @@ class ParticularsSection extends Component {
 
   render() {
     const { formData, errors } = this.state;
-    const { language, onBack, onHome, singpassLocked = false, participantNumberLocked = false } = this.props;
+    const { language, onBack, onHome, singpassLocked = false, participantNumberLocked = false, trilingual = false } = this.props;
     const lockedStyle = { backgroundColor: '#f3f4f6', color: '#6b7280', cursor: 'not-allowed' };
 
     return (
@@ -354,12 +354,29 @@ class ParticularsSection extends Component {
           <div className="fft-participants-section">
             {/* Section header */}
             <div className="fft-participants-section-header">
-              <h2 style={{ margin: 0, fontWeight: 700 }}>{this.getTrans('sectionParticulars')}</h2>
+              <h2 style={{ margin: 0, fontWeight: 700 }}>
+                {this.getTrans('sectionParticulars')}
+                {trilingual && (
+                  <span style={{ display: 'block', fontWeight: 400, fontSize: '0.72em', color: '#666', marginTop: 2 }}>
+                    {fftTranslations.sectionParticulars.zh} · {fftTranslations.sectionParticulars.ms}
+                  </span>
+                )}
+              </h2>
               <hr style={{ margin: '12px 0 12px 0', borderColor: '#ddd', border: 'none', borderTop: '1px solid #ddd' }} />
               <div style={{ margin: '0', color: '#444', fontSize: '1em' }}>
-                {language === 'zh' && '请填写您的个人资料'}
-                {language === 'ms' && 'Sila isi maklumat peribadi anda'}
-                {language === 'en' && 'Please fill in your personal details'}
+                {trilingual ? (
+                  <>
+                    <span>Please fill in your personal details</span>
+                    <span style={{ display: 'block', fontSize: '0.92em', marginTop: 3 }}>请填写您的个人资料</span>
+                    <span style={{ display: 'block', fontSize: '0.92em', marginTop: 2 }}>Sila isi maklumat peribadi anda</span>
+                  </>
+                ) : (
+                  <>
+                    {language === 'zh' && '请填写您的个人资料'}
+                    {language === 'ms' && 'Sila isi maklumat peribadi anda'}
+                    {language === 'en' && 'Please fill in your personal details'}
+                  </>
+                )}
               </div>
             </div>
 
@@ -367,6 +384,11 @@ class ParticularsSection extends Component {
             <div className="fft-create-event-field" style={{ marginTop: '32px' }}>
               <label className="fft-create-event-label">
                 {this.getTrans('labelName')}
+                {trilingual && (
+                  <span style={{ display: 'block', fontWeight: 400, fontSize: '0.82em', color: '#888', marginTop: 1 }}>
+                    {fftTranslations.labelName.zh} · {fftTranslations.labelName.ms}
+                  </span>
+                )}
               </label>
               <input
                 type="text"
@@ -390,6 +412,11 @@ class ParticularsSection extends Component {
               <div>
                 <label className="fft-create-event-label">
                   {this.getTrans('labelDob')}
+                  {trilingual && (
+                    <span style={{ display: 'block', fontWeight: 400, fontSize: '0.82em', color: '#888', marginTop: 1 }}>
+                      {fftTranslations.labelDob.zh} · {fftTranslations.labelDob.ms}
+                    </span>
+                  )}
                 </label>
                 <input
                   type="text"
@@ -412,6 +439,11 @@ class ParticularsSection extends Component {
               <div>
                 <label className="fft-create-event-label">
                   {this.getTrans('labelGender')}
+                  {trilingual && (
+                    <span style={{ display: 'block', fontWeight: 400, fontSize: '0.82em', color: '#888', marginTop: 1 }}>
+                      {fftTranslations.labelGender.zh} · {fftTranslations.labelGender.ms}
+                    </span>
+                  )}
                 </label>
                 <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
                   <button
@@ -468,7 +500,14 @@ class ParticularsSection extends Component {
             {/* Age and Phone Number - Two columns */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '35px', marginTop: '35px' }}>
               <div>
-                <label className="fft-create-event-label">{this.getTrans('labelAge')}</label>
+                <label className="fft-create-event-label">
+                  {this.getTrans('labelAge')}
+                  {trilingual && (
+                    <span style={{ display: 'block', fontWeight: 400, fontSize: '0.82em', color: '#888', marginTop: 1 }}>
+                      {fftTranslations.labelAge.zh} · {fftTranslations.labelAge.ms}
+                    </span>
+                  )}
+                </label>
                 <input
                   type="number"
                   name="age"
@@ -481,7 +520,14 @@ class ParticularsSection extends Component {
               </div>
 
               <div>
-                <label className="fft-create-event-label">{this.getTrans('labelContactNumber')}</label>
+                <label className="fft-create-event-label">
+                  {this.getTrans('labelContactNumber')}
+                  {trilingual && (
+                    <span style={{ display: 'block', fontWeight: 400, fontSize: '0.82em', color: '#888', marginTop: 1 }}>
+                      {fftTranslations.labelContactNumber.zh} · {fftTranslations.labelContactNumber.ms}
+                    </span>
+                  )}
+                </label>
                 <input
                   type="text"
                   name="phone"

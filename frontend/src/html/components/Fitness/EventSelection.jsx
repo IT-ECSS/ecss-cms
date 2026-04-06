@@ -98,10 +98,23 @@ class EventSelection extends Component {
         <div className="fft-participants-wrapper">
           <div className="fft-participants-section">
             <div className="fft-participants-section-header">
-              <h3 className="fft-participants-section-title">{title}</h3>
+              <h3 className="fft-participants-section-title">
+                {title}
+                {this.props.trilingual && (
+                  <span style={{ display: 'block', fontWeight: 400, fontSize: '0.78em', color: '#666', marginTop: 2 }}>{texts.zh.title} · {texts.ms.title}</span>
+                )}
+              </h3>
               <hr style={{ margin: '12px 0' }} />
               <div className="fft-participants-section-desc" style={{ marginBottom: '12px', color: '#555', fontSize: '1em' }}>
-                {description}
+                {this.props.trilingual ? (
+                  <>
+                    <span>{texts.en.description}</span>
+                    <span style={{ display: 'block', fontSize: '0.92em', marginTop: 3 }}>{texts.zh.description}</span>
+                    <span style={{ display: 'block', fontSize: '0.92em', marginTop: 2 }}>{texts.ms.description}</span>
+                  </>
+                ) : (
+                  description
+                )}
               </div>
             </div>
 
