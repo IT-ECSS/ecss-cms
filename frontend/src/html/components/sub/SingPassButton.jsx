@@ -228,8 +228,10 @@ class SingPassButton extends Component {
 
       // Store current page path so CallbackPage knows where to redirect back
       // For FFT page, include section=participants so it opens the form directly
+      // Preserve query string (e.g. ?event=...) so the callback returns to the exact same page
       const currentPath = window.location.pathname;
-      const returnPath = currentPath === '/fft' ? '/fft?section=participants' : currentPath;
+      const currentSearch = window.location.search;
+      const returnPath = currentPath === '/fft' ? '/fft?section=participants' : `${currentPath}${currentSearch}`;
       sessionStorage.setItem('singpass_return_path', returnPath);
 
       // FAPI 2.0: Use Pushed Authorization Request (PAR)

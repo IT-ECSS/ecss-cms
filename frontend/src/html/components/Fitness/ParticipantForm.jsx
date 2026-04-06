@@ -269,6 +269,7 @@ class ParticipantForm extends Component {
             titleOverride={this.props.titleOverride}
             descriptionOverride={this.props.descriptionOverride}
             trilingual={this.props.trilingual}
+            onBeforeRedirect={this.props.onBeforeSingpass}
           />
         )}
 

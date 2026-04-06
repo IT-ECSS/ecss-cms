@@ -363,7 +363,20 @@ class FFTParticipants extends Component {
 
   componentDidMount() {
     // Public form (kiosk): always start fresh — never restore previous session
-    if (this.props.showParticipantNumber === false) return;
+    // EXCEPTION: if returning from SingPass, restore language + slot so the form reopens at personal particulars
+    if (this.props.showParticipantNumber === false) {
+      if (sessionStorage.getItem('singpass_user_data_json')) {
+        try {
+          const saved = sessionStorage.getItem('fft_singpass_return_state');
+          if (saved) {
+            const { language, slot } = JSON.parse(saved);
+            this.setState({ language: language || null, slot: slot || null });
+            sessionStorage.removeItem('fft_singpass_return_state');
+          }
+        } catch (e) {}
+      }
+      return;
+    }
     // Clean up the old unscoped key if present
     localStorage.removeItem('fftParticipantsSelection');
     try {
@@ -533,6 +546,10 @@ class FFTParticipants extends Component {
               onHome={this.props.onBack}
               isLoading={showLoadingModal}
               showParticipantNumber={this.props.showParticipantNumber || false}
+              onBeforeSingpass={() => {
+                const { language, slot } = this.state;
+                try { sessionStorage.setItem('fft_singpass_return_state', JSON.stringify({ language, slot })); } catch (e) {}
+              }}
             />
           )}
 

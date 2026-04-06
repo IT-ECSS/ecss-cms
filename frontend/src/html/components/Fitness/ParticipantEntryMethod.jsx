@@ -3,7 +3,7 @@ import '../../../css/fftParticipants.css';
 import SingPassButton from '../sub/SingPassButton';
 import fftTranslations from './fftTranslations';
 
-const ParticipantEntryMethod = ({ language, onUseSingpass, onUseManual, onUseParticipantNumber, onBack, onHome, showParticipantNumber, showSingpass = true, showManual = true, titleOverride, descriptionOverride, trilingual = false }) => {
+const ParticipantEntryMethod = ({ language, onUseSingpass, onUseManual, onUseParticipantNumber, onBack, onHome, showParticipantNumber, showSingpass = true, showManual = true, titleOverride, descriptionOverride, trilingual = false, onBeforeRedirect }) => {
   const title = titleOverride || fftTranslations.registrationFormTitle[language] || fftTranslations.registrationFormTitle.en;
   const description = descriptionOverride || fftTranslations.registrationFormDescription[language] || fftTranslations.registrationFormDescription.en;
   const manual = fftTranslations.registrationFormManual[language] || fftTranslations.registrationFormManual.en;
@@ -38,6 +38,7 @@ const ParticipantEntryMethod = ({ language, onUseSingpass, onUseManual, onUsePar
             onMyInfoError={(error) => {
               console.error('MyInfo error:', error);
             }}
+            onBeforeRedirect={onBeforeRedirect}
             className="fft-participants-next-button"
           />
         )}
