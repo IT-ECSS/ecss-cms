@@ -11,7 +11,12 @@ const BACKEND_URL = window.location.hostname === 'localhost'
 const INDEX_SHEET_ID = '1fMyjRlqj3ZEj9OcWCP_HtViLbgYG2zW4i-qZUdVOMXo';
 
 class FFTFormPage extends Component {
-  state = { resetKey: 0, initialEvent: null, loadingEvent: false, eventError: null };
+  constructor(props) {
+    super(props);
+    const params = new URLSearchParams(props.location.search);
+    const eventName = params.get('event');
+    this.state = { resetKey: 0, initialEvent: null, loadingEvent: !!eventName, eventError: null };
+  }
 
   componentDidMount() {
     document.title = 'ECSS FFT Registration';
