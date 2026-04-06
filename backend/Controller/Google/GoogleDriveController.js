@@ -769,18 +769,18 @@ class GoogleDriveController {
      * @param {string|number} serialNumber - The S/N value in column A (data row, not sheet row)
      * @param {string} fileId - The participant spreadsheet's Google Drive file ID
      */
-    async updateIndexFileId(serialNumber, fileId) {
+    async updateIndexFileId(serialNumber, fileId, registrationLink = '', qrCodeUrl = '') {
         try {
             const sheets = await this.initializeSheetsAuth();
             const INDEX_SHEET_ID = '1fMyjRlqj3ZEj9OcWCP_HtViLbgYG2zW4i-qZUdVOMXo';
             const rowNumber = parseInt(serialNumber, 10) + 1; // +1 for header row
             await sheets.spreadsheets.values.update({
                 spreadsheetId: INDEX_SHEET_ID,
-                range: `Sheet1!F${rowNumber}`, // Column F = File ID
+                range: `Sheet1!F${rowNumber}:H${rowNumber}`, // F=File ID, G=Registration Link, H=QR Code
                 valueInputOption: 'RAW',
-                requestBody: { values: [[fileId]] }
+                requestBody: { values: [[fileId, registrationLink, qrCodeUrl]] }
             });
-            console.log(`[SHEETS] Updated index sheet row ${rowNumber} column E with fileId: ${fileId}`);
+            console.log(`[SHEETS] Updated index sheet row ${rowNumber} columns F-H with fileId, registrationLink, qrCodeUrl`);
             return { success: true };
         } catch (error) {
             console.error('[SHEETS] Error updating index file ID:', error.message);

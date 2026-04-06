@@ -271,72 +271,75 @@ router.post('/generateTemplate', async (req, res) => {
         }
 
         // Find the row for this event (column B = event name, column C = time slots)
-        // Sheet columns: A=S/N, B=Event Name, C=Time Slots, D=Max Participants, E=Created On, F=File ID
         const eventRow = (result.data || []).find(row => (row[1] || '').trim() === eventName.trim());
         const timeSlotsStr = eventRow ? (eventRow[2] || '') : '';
-        const maxParticipants = eventRow ? parseInt(eventRow[3], 10) : NaN;
-        const PREFILL_ROWS = (!isNaN(maxParticipants) && maxParticipants > 0) ? maxParticipants : 40;
 
-        // Parse "Slot 1: 09:00-10:00, Slot 2: 10:00-11:00" → [{label, start, end}]
+        // Parse "Slot 1: 09:00-10:00, Slot 2: 10:00-11:00" → [{start, end}]
         let slots = [];
         if (timeSlotsStr) {
             const parts = timeSlotsStr.split(',').map(s => s.trim()).filter(Boolean);
             for (const part of parts) {
-                // e.g. "Slot 1: 09:00-10:00"
-                const m = part.match(/^(Slot\s*\d+):\s*(\d{2}:\d{2})-(\d{2}:\d{2})$/i);
-                if (m) {
-                    slots.push({ label: m[1].trim(), start: m[2], end: m[3] });
-                } else {
-                    slots.push({ label: part, start: '', end: '' });
-                }
+                const m = part.match(/(\d{2}:\d{2})-(\d{2}:\d{2})/);
+                if (m) slots.push({ start: m[1], end: m[2] });
             }
         }
-        if (slots.length === 0) {
-            slots = [{ label: 'Sheet1', start: '', end: '' }];
-        }
 
-        // Export the real Google Sheet template as xlsx bytes (preserves formatting & bold headers)
+        const PREFILL_ROWS = 20; // Data rows 2–21
+
+        // Export the Google Sheets template and use it as base (preserves formatting & headers)
         const TEMPLATE_FILE_ID = '1xu3UtY6fm3O09_vwlCk1p_NZM0waWrzUMsDGmJbmNDk';
         const drive = await googleDriveController.initializeAuth();
         const exportResponse = await drive.files.export(
             { fileId: TEMPLATE_FILE_ID, mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
             { responseType: 'arraybuffer' }
         );
-        const templateBuffer = Buffer.from(exportResponse.data);
+        const wb = await XlsxPopulate.fromDataAsync(Buffer.from(exportResponse.data));
+        const ws = wb.sheet(0);
 
-        // Load the template workbook and clone it per slot
-        // Column order: A=Name, B=Chinese Name, C=Phone Number, D=Gender,
-        //               E=DOB, F=Start Time, G=End Time
-        const START_TIME_COL = 6; // F
-        const TIME_END_COL = 7;   // G
+        // Column positions in the template:
+        // A=Full Name (as Per NRIC), B=Phone Number (No country code), C=Gender (M/F),
+        // D=DOB (DD/MM/YYYY), E=Start Time (HH:MM - 24 hrs format), F=End Time (HH:MM - 24 hrs format)
+        const START_TIME_COL = 5; // E
+        const END_TIME_COL   = 6; // F
 
-        const wb = await XlsxPopulate.fromDataAsync(templateBuffer);
-        const firstSheet = wb.sheet(0);
+        // Format DOB column (D=4) AND both time columns (E=5, F=6) as plain text
+        // so Excel never auto-converts "05:00" to a time serial number
+        for (let r = 2; r <= PREFILL_ROWS + 1; r++) {
+            ws.cell(r, 4).style('numberFormat', '@');
+            ws.cell(r, START_TIME_COL).style('numberFormat', '@');
+            ws.cell(r, END_TIME_COL).style('numberFormat', '@');
+        }
 
-        for (let i = 0; i < slots.length; i++) {
-            const slot = slots[i];
-            // Colons are invalid in Excel sheet names — replace with dots
-            const safeTimes = `${slot.start.replace(/:/g, '.')}-${slot.end.replace(/:/g, '.')}`;
-            const sheetName = `${slot.label} (${safeTimes})`.slice(0, 31);
+        if (slots.length > 0) {
+            const startTimes = [...new Set(slots.map(s => s.start).filter(Boolean))];
+            const startFormula = `"${startTimes.join(',')}"`;
+            const slotMap = slots.filter(s => s.start && s.end);
 
-            let ws;
-            if (i === 0) {
-                ws = firstSheet.name(sheetName);
-            } else {
-                // Copy the first sheet as a new sheet for each additional slot
-                ws = wb.cloneSheet(firstSheet, sheetName);
+            // Build the inner nested-IF once (using placeholder ROW)
+            // e.g. IF(E2="05:00","06:00",IF(E2="06:00","07:00",""))
+            let innerIf = '""';
+            for (let i = slotMap.length - 1; i >= 0; i--) {
+                innerIf = `IF(EROW="${slotMap[i].start}","${slotMap[i].end}",${innerIf})`;
             }
+            // Wrap: blank when Start Time is empty
+            const ifTemplate = `IF(EROW="","",${innerIf})`;
 
-            // Format DOB column (E = col 5) as plain text so Excel never auto-converts entries
-            const DOB_COL = 5;
-            for (let r = 0; r < PREFILL_ROWS; r++) {
-                ws.cell(r + 2, DOB_COL).style('numberFormat', '@');
-            }
+            for (let r = 2; r <= PREFILL_ROWS + 1; r++) {
+                // Start Time — dropdown, empty by default
+                if (startTimes.length > 0) {
+                    ws.cell(r, START_TIME_COL).dataValidation({
+                        type: 'list',
+                        allowBlank: true,
+                        showDropDown: false,
+                        formula1: startFormula,
+                    });
+                }
 
-            // Fill Start Time and Time End for PREFILL_ROWS data rows (row 2 onwards)
-            for (let r = 0; r < PREFILL_ROWS; r++) {
-                if (slot.start) ws.cell(r + 2, START_TIME_COL).value(slot.start);
-                if (slot.end)   ws.cell(r + 2, TIME_END_COL).value(slot.end);
+                // End Time — formula auto-fills from Start Time selection
+                if (slotMap.length > 0) {
+                    const formula = ifTemplate.replace(/EROW/g, `E${r}`);
+                    ws.cell(r, END_TIME_COL).formula(formula);
+                }
             }
         }
 
@@ -354,14 +357,42 @@ router.post('/generateTemplate', async (req, res) => {
     }
 });
 
+// POST endpoint to retrieve all events from the index sheet
+// Returns: { rows: [{serialNumber, eventName, timeSlots, maxParticipants, createdOn, fileId, registrationLink, qrCodeUrl}] }
+router.post('/getIndexSheet', async (req, res) => {
+    try {
+        const INDEX_SHEET_ID = '1fMyjRlqj3ZEj9OcWCP_HtViLbgYG2zW4i-qZUdVOMXo';
+        const result = await googleDriveController.readSpreadsheet(INDEX_SHEET_ID);
+        if (!result.success) {
+            return res.status(500).json({ success: false, error: 'Failed to read index sheet' });
+        }
+        const rows = (result.data || [])
+            .filter(row => row[1] && String(row[1]).trim()) // must have event name
+            .map(row => ({
+                serialNumber:     String(row[0] || '').trim(),
+                eventName:        String(row[1] || '').trim(),
+                timeSlots:        String(row[2] || '').trim(),
+                maxParticipants:  String(row[3] || '').trim(),
+                createdOn:        String(row[4] || '').trim(),
+                fileId:           String(row[5] || '').trim(),
+                registrationLink: String(row[6] || '').trim(),
+                qrCodeUrl:        String(row[7] || '').trim(),
+            }));
+        res.json({ success: true, rows });
+    } catch (error) {
+        console.error('[FFT] Error in POST /getIndexSheet:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // POST endpoint to update File ID (column E) in the index sheet for a given event S/N
 router.post('/updateEventFileId', async (req, res) => {
     try {
-        const { serialNumber, fileId } = req.body;
+        const { serialNumber, fileId, registrationLink, qrCodeUrl } = req.body;
         if (!serialNumber || !fileId) {
             return res.status(400).json({ success: false, error: 'serialNumber and fileId are required' });
         }
-        const result = await googleDriveController.updateIndexFileId(serialNumber, fileId);
+        const result = await googleDriveController.updateIndexFileId(serialNumber, fileId, registrationLink || '', qrCodeUrl || '');
         if (!result.success) {
             return res.status(500).json(result);
         }
@@ -706,23 +737,23 @@ router.post('/fftSubmit', async (req, res) => {
         }
 
         // Row order matches sheet headers:
-        // S/N | Name | Chinese Name | Phone Number | Gender | DD | MM | YYYY |
-        // Start Time | End Time | Age |
-        // Height | Weight | BMI | Date of test |
-        // 30 secs Sit & Stand | 30 secs Arm Banding | 2 min On-the-spot Marching |
-        // Sit & Reach | Back Stretching | 2.44m Speed Walk | Grip test | Improvements | Remarks
+        // A=S/N | B=Name | C=Phone Number | D=Gender | E=DD | F=MM | G=YYYY |
+        // H=Start Time | I=End Time | J=Age |
+        // K=Height | L=Weight | M=BMI | N=Date of test |
+        // O=30 secs Sit & Stand | P=30 secs Arm Banding | Q=2 min On-the-spot Marching |
+        // R=Sit & Reach | S=Back Stretching | T=2.44m Speed Walk | U=Grip test | V=Improvements | W=Remarks
         const nextSN = lastSN + 1;
         const rowData = [
-            String(nextSN),                                          // A: S/N
-            nameStr, chineseNameStr, phoneStr, genderStr,            // B C D E: Name, Chinese Name, Phone, Gender
-            dd, mm, yyyy,                                            // F G H: DD, MM, YYYY
-            String(startTime || ''), String(endTime || ''),          // I J: Start Time, End Time
-            String(age),                                             // K: Age
-            String(height), String(weight), String(bmi),             // L M N: Height, Weight, BMI
-            dateOfTest || String(providedDateOfTest),                // O: Date of test
-            String(sitStand), String(armBanding), String(marchingInPlace), // P Q R: test results
-            String(sitReach), String(backStretching), String(speedWalk),   // S T U: test results
-            String(gripTest), String(improvements), String(remarks),       // V W X: Grip test, Improvements, Remarks
+            String(nextSN),                                                // A: S/N
+            nameStr, phoneStr, genderStr,                                  // B C D: Name, Phone Number, Gender
+            dd, mm, yyyy,                                                  // E F G: DD, MM, YYYY
+            String(startTime || ''), String(endTime || ''),                // H I: Start Time, End Time
+            String(age),                                                   // J: Age
+            String(height), String(weight), String(bmi),                   // K L M: Height, Weight, BMI
+            dateOfTest || String(providedDateOfTest),                      // N: Date of test
+            String(sitStand), String(armBanding), String(marchingInPlace), // O P Q: test results
+            String(sitReach), String(backStretching), String(speedWalk),   // R S T: test results
+            String(gripTest), String(improvements), String(remarks),       // U V W: Grip test, Improvements, Remarks
         ];
 
         const appendResult = await googleDriveController.appendRow(fileId, rowData);
@@ -774,10 +805,9 @@ router.post('/participant/:entryNumber', async (req, res) => {
         }
 
         // Map the row data to participant fields
-        // row is a keyed object with headers like 'Name', 'Chinese Name', 'Phone Number', etc.
+        // row is a keyed object with headers like 'Name', 'Phone Number', etc.
         const participantData = {
             name: row['Name'] || '',
-            chineseName: row['Chinese Name'] || '',
             phone: row['Phone Number'] || '',
             gender: row['Gender'] || '',
             dateOfBirth: `${String(row['DD'] || '').padStart(2, '0')}/${String(row['MM'] || '').padStart(2, '0')}/${row['YYYY'] || ''}`,

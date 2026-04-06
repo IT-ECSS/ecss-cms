@@ -3,6 +3,8 @@ import axios from 'axios';
 import ReviewParticipantsResult from './ReviewParticipantsResult';
 import EditParticipants from './EditParticipants';
 import ParticipantForm from './ParticipantForm';
+import MasterDataTable from './MasterDataTable';
+import AccessMasterData from './AccessMasterData';
 import '../../../css/fftStaff.css';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
@@ -62,7 +64,7 @@ class StaffUses extends Component {
   handleBack = () => {
     const { view } = this.state;
 
-    if (view === 'reviewResults' || view === 'editParticipants') {
+    if (view === 'reviewResults' || view === 'editParticipants' || view === 'masterData') {
       if (view === 'editParticipants') {
         this.editParticipantsRef.current?.reset?.();
       }
@@ -197,6 +199,11 @@ class StaffUses extends Component {
           </div>
         )} */}
 
+        {/* Access Master Data — AG Grid read-only table */}
+        {view === 'masterData' && (
+          <AccessMasterData mode="staff" initialEvent={event} />
+        )}
+
         {/* Staff Uses home screen */}
         {view === null && (
           <div className="fft-participants-section">
@@ -219,6 +226,10 @@ class StaffUses extends Component {
               }}>
                 <i className="fas fa-user-edit"></i>
                 <div className="fft-event-btn-name">Edit Participants</div>
+              </button>
+              <button type="button" className="fft-event-btn" onClick={() => this.setState({ view: 'masterData' })}>
+                <i className="fas fa-table"></i>
+                <div className="fft-event-btn-name">Access Master Data (View Only)</div>
               </button>
               {/* Health Declaration + Indemnity button — currently disabled */}
               {/* <button type="button" className="fft-event-btn" onClick={() => this.setState({ view: 'healthDeclaration', formSubmitSuccess: false })}>

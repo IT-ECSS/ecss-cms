@@ -35,9 +35,30 @@ class CreateFFTEventTimeSlots extends React.Component {
 
   handleTimeChange = (index, field, value) => {
     this.setState((prev) => {
-      const updated = prev.timeslotTimes.map((slot, i) =>
-        i === index ? { ...slot, [field]: value } : slot
-      );
+      const updated = prev.timeslotTimes.map((slot, i) => {
+        if (i !== index) return slot;
+        const newSlot = { ...slot, [field]: value };
+        if (field === 'start' && value) {
+          const [h, m] = value.split(':').map(Number);
+          const endH = (h + 1) % 24;
+          newSlot.end = `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        }
+        return newSlot;
+      });
+
+      // Determine the end time of the changed slot, then cascade through all subsequent slots
+      const changedEnd = updated[index].end;
+      if (changedEnd) {
+        let prevEnd = changedEnd;
+        for (let i = index + 1; i < updated.length; i++) {
+          const [h, m] = prevEnd.split(':').map(Number);
+          const endH = (h + 1) % 24;
+          const nextEnd = `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+          updated[i] = { ...updated[i], start: prevEnd, end: nextEnd };
+          prevEnd = nextEnd;
+        }
+      }
+
       return { timeslotTimes: updated };
     });
   };
@@ -81,8 +102,80 @@ class CreateFFTEventTimeSlots extends React.Component {
         createdOn,
       });
 
-      this.setState({ submitting: false, submitResult: response.data }, () => {
-        this.props.onFinish?.();
+      const { serialNumber } = response.data;
+
+      // Automatically create the Google Sheet file for this event
+      const TEMPLATE_FILE_ID = '1xaTsyYx8rND25rMz8QUjlRxHO82TRQ8k5M3JIOg5KkQ';
+      const FFT_ROOT_FOLDER_ID = '1EsnCGO1QfPrqfmDtsy-cELUO3UyZKCci';
+
+      const yearMatch = String(eventName).match(/^(\d{4})[\/\-]/) ||
+                        String(eventName).match(/[\/\-](\d{4})(?:[\s\/\-]|$)/) ||
+                        String(eventName).match(/\b(20\d{2})\b/);
+      let destinationFolderId = FFT_ROOT_FOLDER_ID;
+
+      if (yearMatch) {
+        const year = yearMatch[1];
+        try {
+          const yearFolderRes = await axios.post(`${BACKEND_URL}/googleDrive/getOrCreateYearFolder`, {
+            parentFolderId: FFT_ROOT_FOLDER_ID,
+            year,
+          });
+          if (yearFolderRes.data.success) {
+            destinationFolderId = yearFolderRes.data.folderId;
+          }
+        } catch (yearErr) {
+          console.warn('[FFT] Failed to get/create year folder, using root folder:', yearErr.message);
+        }
+      }
+
+      const copyResponse = await axios.post(`${BACKEND_URL}/googleDrive/copySpreadsheet`, {
+        sourceFileId: TEMPLATE_FILE_ID,
+        newFileName: eventName,
+        destinationFolderId,
+      });
+
+      const FRONTEND_URL = window.location.hostname === 'localhost'
+        ? 'http://localhost:3000'
+        : 'https://salmon-wave-09f02b100.6.azurestaticapps.net';
+      const registrationLink = `${FRONTEND_URL}/fft/form?event=${encodeURIComponent(eventName)}`;
+
+      // Generate & upload QR code PNG to the dedicated QR code Drive folder
+      const QR_FOLDER_ID = '1pYiCfYdCKGFoAmoQ64IDx05Mf8Omj88R';
+      let qrCodeUrl = '';
+      try {
+        const qrRes = await axios.post(`${BACKEND_URL}/qrcode`, {
+          purpose: eventName,
+          registrationLink,
+          folderId: QR_FOLDER_ID,
+        });
+        if (qrRes.data.success) {
+          qrCodeUrl = qrRes.data.fileUrl || '';
+        }
+      } catch (qrErr) {
+        console.warn('[FFT] Failed to upload QR code:', qrErr.message);
+      }
+
+      if (copyResponse.data.success && serialNumber && copyResponse.data.fileId) {
+        try {
+          await axios.post(`${BACKEND_URL}/googleDrive/updateEventFileId`, {
+            serialNumber,
+            fileId: copyResponse.data.fileId,
+            registrationLink,
+            qrCodeUrl,
+          });
+        } catch (updateErr) {
+          console.warn('[FFT] Failed to update index sheet with file ID:', updateErr.message);
+        }
+      }
+
+      this.setState({
+        submitting: false,
+        submitResult: {
+          ...response.data,
+          registrationLink,
+          fileUrl: copyResponse.data.fileUrl || null,
+          fileName: copyResponse.data.fileName || eventName,
+        },
       });
     } catch (error) {
       const msg = error.response?.data?.error || error.message || 'Failed to create event';
@@ -223,15 +316,25 @@ class CreateFFTEventTimeSlots extends React.Component {
 
           {/* Result / Error */}
           {submitResult && (
-            <div style={{
-              marginTop: '24px', padding: '16px 20px', borderRadius: '8px',
-              background: '#e8f5e9', border: '1px solid #4caf50', color: '#2e7d32',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                <i className="fas fa-check-circle" style={{ fontSize: '1.3rem' }}></i>
-                <strong style={{ fontSize: '1rem' }}>FFT Event Created Successfully!</strong>
+            <div className="fft-create-result-section">
+              <div className="fft-admin-result fft-admin-result--success">
+                <i className="fas fa-check-circle"></i>
+                <div>
+                  <p className="fft-admin-result-title">FFT Event Created Successfully!</p>
+                  {submitResult.fileUrl ? (
+                    <p className="fft-admin-result-detail">
+                      File name: <a href={submitResult.fileUrl} target="_blank" rel="noopener noreferrer">{submitResult.fileName}</a>
+                    </p>
+                  ) : (
+                    <p className="fft-admin-result-detail">File name: {submitResult.fileName}</p>
+                  )}
+                  {submitResult.registrationLink && (
+                    <p className="fft-admin-result-detail" style={{ marginTop: '4px' }}>
+                      Registration link: <a href={submitResult.registrationLink} target="_blank" rel="noopener noreferrer">{submitResult.registrationLink}</a>
+                    </p>
+                  )}
+                </div>
               </div>
-
             </div>
           )}
           {submitError && (
@@ -247,22 +350,34 @@ class CreateFFTEventTimeSlots extends React.Component {
 
           {/* Buttons */}
           <div style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>
-            <button
-              type="button"
-              onClick={onBack}
-              disabled={submitting}
-              className="fft-create-event-btn fft-create-event-btn-clear"
-            >
-              Back
-            </button>
-            <button
-              type="button"
-              onClick={this.handleSubmit}
-              disabled={submitting || !!submitResult}
-              className="fft-create-event-btn fft-create-event-btn-create"
-            >
-              {submitting ? 'Submitting...' : 'Submit'}
-            </button>
+            {submitResult ? (
+              <button
+                type="button"
+                onClick={this.props.onFinish}
+                className="fft-create-event-btn fft-create-event-btn-finish"
+              >
+                Finish
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={onBack}
+                  disabled={submitting}
+                  className="fft-create-event-btn fft-create-event-btn-clear"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={this.handleSubmit}
+                  disabled={submitting}
+                  className="fft-create-event-btn fft-create-event-btn-create"
+                >
+                  {submitting ? 'Submitting...' : 'Submit'}
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

@@ -1,11 +1,13 @@
 import React, { Component } from 'react';
 import { io } from 'socket.io-client';
+import axios from 'axios';
 import '../../../css/fftAdmin.css';
 import CreateEventForm from './CreateEventForm';
 import CreateFFTEventTimeSlots from './CreateFFTEventTimeSlots';
 import CreateFileForm from './CreateFileForm';
 import ChooseFileForm from './ChooseFileForm';
 import HomeConfirmModal from './HomeConfirmModal';
+import AccessMasterData from './AccessMasterData';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
@@ -158,7 +160,7 @@ class FFTAdmin extends Component {
                 </div>
                 <span className="fft-admin-menu-btn-label">Create A FFT Event</span>
               </button>
-              <button
+              {/* <button
                 type="button"
                 className="fft-admin-menu-btn"
                 onClick={() => this.handleMenuSelect('create')}
@@ -167,6 +169,16 @@ class FFTAdmin extends Component {
                   <i className="fas fa-file-medical"></i>
                 </div>
                 <span className="fft-admin-menu-btn-label">Create A Google Sheet File</span>
+              </button> */}
+              <button
+                type="button"
+                className="fft-admin-menu-btn"
+                onClick={() => this.handleMenuSelect('masterData')}
+              >
+                <div className="fft-admin-menu-btn-icon" style={{ background: '#1a73e8' }}>
+                  <i className="fas fa-table"></i>
+                </div>
+                <span className="fft-admin-menu-btn-label">Access Master Data</span>
               </button>
             </div>
           </div>
@@ -183,6 +195,11 @@ class FFTAdmin extends Component {
             onCancel={() => this.handleMenuSelect(null)}
             onFileSelected={this.props.onFileSelected}
           />
+        )}
+
+        {/* ════════════ MASTER DATA VIEW ════════════ */}
+        {activeView === 'masterData' && (
+          <AccessMasterData mode="admin" />
         )}
 
         {/* ════════════ EVENT VIEW ════════════ */}

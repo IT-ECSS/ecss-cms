@@ -331,7 +331,6 @@ class UploadStatus extends Component {
         pinned: 'left',
       },
       { field: nameKey,        headerName: nameKey,        width: 300 },
-      { field: 'Chinese Name', headerName: 'Chinese Name', width: 250 },
       { field: phoneKey,       headerName: phoneKey,       width: 350 },
       { field: genderKey,      headerName: genderKey,      width: 180 },
       {
@@ -356,7 +355,6 @@ class UploadStatus extends Component {
     // excluding internal/fixed keys already rendered above.
     const FIXED_KEYS = new Set([
       nameKey, 'Full Name (as Per NRIC)', 'Name',
-      'Chinese Name',
       phoneKey, 'Phone Number (No country code)', 'Phone Number',
       genderKey, 'Gender (M/F)', 'Gender',
       'DOB (DD/MM/YYYY)', 'DOB', 'Date of Birth (DD/MM/YYYY)',
