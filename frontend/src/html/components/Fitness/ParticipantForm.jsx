@@ -30,6 +30,8 @@ class ParticipantForm extends Component {
     }
     // Allow caller to provide a custom storage key (e.g. staff health declaration flow)
     this.storageKey = props.storageKey || 'fftParticipantFormData';
+    this.particularsStorageKey = this.storageKey.replace('fftParticipantFormData', 'fftParticularsSectionData');
+    if (this.particularsStorageKey === this.storageKey) this.particularsStorageKey = `${this.storageKey}_particulars`;
   }
 
   particularsRef = React.createRef();
@@ -112,6 +114,7 @@ class ParticipantForm extends Component {
 
     // Clear stale particulars so prefilled data is not overridden by localStorage
     localStorage.removeItem('fftParticularsSectionData');
+    localStorage.removeItem(this.particularsStorageKey);
 
     this.setState({ 
       entryMethod: 'participantNumber', 
@@ -213,6 +216,7 @@ class ParticipantForm extends Component {
     // Clear saved data after successful submission
     localStorage.removeItem(this.storageKey);
     localStorage.removeItem('fftParticularsSectionData');
+    localStorage.removeItem(this.particularsStorageKey);
     localStorage.removeItem('fftHealthDeclarationData');
     localStorage.removeItem('fftIndemnityData');
     this.setState({
@@ -293,6 +297,7 @@ class ParticipantForm extends Component {
             formData={this.state.particularsData || singpassFormData || this.props.formData}
             singpassLocked={entryMethod === 'singpass'}
             participantNumberLocked={entryMethod === 'participantNumber'}
+            storageKey={this.particularsStorageKey}
             onSubmit={(data) => {
               this.setState({ particularsData: data }, () => {
                 this.handleFinalSubmit({});

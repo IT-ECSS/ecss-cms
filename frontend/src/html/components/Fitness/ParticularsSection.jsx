@@ -14,7 +14,9 @@ class ParticularsSection extends Component {
     errors: {},
   };
 
-  storageKey = 'fftParticularsSectionData';
+  get storageKey() {
+    return this.props.storageKey || 'fftParticularsSectionData';
+  }
 
   componentDidMount() {
     // Load saved localStorage data first as the base

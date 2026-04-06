@@ -234,10 +234,18 @@ class FFTParticipants extends Component {
 
   get storageKey() {
     // Scope the key to the specific event so different event forms never share state
+    // Also scope by storageScope prop so kiosk (/fft/form) and individual (/fft) never share state
+    const prefix = this.props.storageScope ? `${this.props.storageScope}_` : '';
     const eventName = this.props.initialEvent?.name || this.state?.event?.name;
     return eventName
-      ? `fftParticipantsSelection_${eventName}`
-      : 'fftParticipantsSelection';
+      ? `${prefix}fftParticipantsSelection_${eventName}`
+      : `${prefix}fftParticipantsSelection`;
+  }
+
+  get particularsStorageKey() {
+    // Mirrors ParticipantForm's particularsStorageKey logic
+    const base = this.props.storageScope ? `${this.props.storageScope}_fftParticipantFormData` : 'fftParticipantFormData';
+    return base.replace('fftParticipantFormData', 'fftParticularsSectionData');
   }
 
   handleBack = () => {
@@ -274,7 +282,9 @@ class FFTParticipants extends Component {
     // Leave — clear all saved data and go home
     localStorage.removeItem(this.storageKey);
     localStorage.removeItem('fftParticipantFormData');
+    localStorage.removeItem(`${this.props.storageScope ? this.props.storageScope + '_' : ''}fftParticipantFormData`);
     localStorage.removeItem('fftParticularsSectionData');
+    localStorage.removeItem(this.particularsStorageKey);
     localStorage.removeItem('fftHealthDeclarationData');
     localStorage.removeItem('fftIndemnityData');
     localStorage.removeItem('fftRegistrationSelection');
@@ -293,7 +303,9 @@ class FFTParticipants extends Component {
   handleFinish = () => {
     localStorage.removeItem(this.storageKey);
     localStorage.removeItem('fftParticipantFormData');
+    localStorage.removeItem(`${this.props.storageScope ? this.props.storageScope + '_' : ''}fftParticipantFormData`);
     localStorage.removeItem('fftParticularsSectionData');
+    localStorage.removeItem(this.particularsStorageKey);
     localStorage.removeItem('fftHealthDeclarationData');
     localStorage.removeItem('fftIndemnityData');
     localStorage.removeItem('fftRegistrationSelection');
@@ -377,7 +389,25 @@ class FFTParticipants extends Component {
       }
       return;
     }
-    // Clean up the old unscoped key if present
+    // If returning from SingPass, restore language + event + slot from sessionStorage.
+    // (localStorage can't be reliably read at mount time because storageKey includes the
+    // event name, which isn't known until state is set — chicken-and-egg problem.)
+    if (sessionStorage.getItem('singpass_user_data_json')) {
+      try {
+        const saved = sessionStorage.getItem('fft_singpass_return_state');
+        if (saved) {
+          const { language, event, slot } = JSON.parse(saved);
+          this.setState({
+            language: this.props.initialLanguage || language || null,
+            event: this.props.initialEvent || event || null,
+            slot: slot || null,
+          });
+          sessionStorage.removeItem('fft_singpass_return_state');
+          return;
+        }
+      } catch (e) {}
+    }
+    // Normal restore from localStorage (non-SingPass navigation)
     localStorage.removeItem('fftParticipantsSelection');
     try {
       const saved = localStorage.getItem(this.storageKey);
@@ -538,7 +568,9 @@ class FFTParticipants extends Component {
               onSubmit={this.handleFormSubmit}
               onBack={() => {
                 localStorage.removeItem('fftParticipantFormData');
+                localStorage.removeItem(`${this.props.storageScope ? this.props.storageScope + '_' : ''}fftParticipantFormData`);
                 localStorage.removeItem('fftParticularsSectionData');
+                localStorage.removeItem(this.particularsStorageKey);
                 localStorage.removeItem('fftHealthDeclarationData');
                 localStorage.removeItem('fftIndemnityData');
                 this.setState({ slot: null });
@@ -546,9 +578,10 @@ class FFTParticipants extends Component {
               onHome={this.props.onBack}
               isLoading={showLoadingModal}
               showParticipantNumber={this.props.showParticipantNumber || false}
+              storageKey={this.props.storageScope ? `${this.props.storageScope}_fftParticipantFormData` : undefined}
               onBeforeSingpass={() => {
-                const { language, slot } = this.state;
-                try { sessionStorage.setItem('fft_singpass_return_state', JSON.stringify({ language, slot })); } catch (e) {}
+                const { language, event, slot } = this.state;
+                try { sessionStorage.setItem('fft_singpass_return_state', JSON.stringify({ language, event, slot })); } catch (e) {}
               }}
             />
           )}

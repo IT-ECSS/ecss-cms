@@ -90,6 +90,7 @@ class FFTFormPage extends Component {
           showParticipantNumber={false}
           hideBackOnLanguage
           initialEvent={initialEvent || undefined}
+          storageScope="kiosk"
         />
       </div>
     );
