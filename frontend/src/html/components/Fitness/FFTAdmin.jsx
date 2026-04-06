@@ -8,6 +8,7 @@ import CreateFileForm from './CreateFileForm';
 import ChooseFileForm from './ChooseFileForm';
 import HomeConfirmModal from './HomeConfirmModal';
 import AccessMasterData from './AccessMasterData';
+import RegistrationLinksAdmin from './RegistrationLinksAdmin';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
@@ -175,10 +176,20 @@ class FFTAdmin extends Component {
                 className="fft-admin-menu-btn"
                 onClick={() => this.handleMenuSelect('masterData')}
               >
-                <div className="fft-admin-menu-btn-icon" style={{ background: '#1a73e8' }}>
+                <div className="fft-admin-menu-btn-icon">
                   <i className="fas fa-table"></i>
                 </div>
                 <span className="fft-admin-menu-btn-label">Access Master Data</span>
+              </button>
+              <button
+                type="button"
+                className="fft-admin-menu-btn"
+                onClick={() => this.handleMenuSelect('registrationLinks')}
+              >
+                <div className="fft-admin-menu-btn-icon">
+                  <i className="fas fa-qrcode"></i>
+                </div>
+                <span className="fft-admin-menu-btn-label">Registration Links &amp; QR Codes</span>
               </button>
             </div>
           </div>
@@ -200,6 +211,11 @@ class FFTAdmin extends Component {
         {/* ════════════ MASTER DATA VIEW ════════════ */}
         {activeView === 'masterData' && (
           <AccessMasterData mode="admin" />
+        )}
+
+        {/* ════════════ REGISTRATION LINKS VIEW ════════════ */}
+        {activeView === 'registrationLinks' && (
+          <RegistrationLinksAdmin />
         )}
 
         {/* ════════════ EVENT VIEW ════════════ */}

@@ -855,20 +855,22 @@ class GoogleDriveController {
             });
             const targetSheet = spreadsheet.data.sheets[0].properties.title;
 
-            const range = `'${targetSheet}'!A${rowNumber}:Z${rowNumber}`;
+            // Read header row + data row together
             const response = await sheets.spreadsheets.values.get({
                 spreadsheetId: fileId,
-                range: range
+                range: `'${targetSheet}'!A1:Z${rowNumber}`
             });
 
-            const row = response.data.values && response.data.values[0] ? response.data.values[0] : [];
-            
-            // Build data object using exact column header names (order A-U)
+            const allRows = response.data.values || [];
+            const headers = allRows[0] || [];
+            const row = allRows[rowNumber - 1] || [];
+
+            // Build data object by matching actual sheet headers
             const data = {};
-            COLUMN_HEADERS.forEach((header, idx) => {
-                data[header] = row[idx] || '';
+            headers.forEach((header, idx) => {
+                if (header) data[header] = row[idx] || '';
             });
-            
+
             return {
                 success: true,
                 data: data

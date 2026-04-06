@@ -959,4 +959,40 @@ router.post('/exportSpreadsheet', async (req, res) => {
     }
 });
 
+// POST endpoint to validate FFT access rights credentials against the access rights sheet
+router.post('/validateAccessRights', async (req, res) => {
+    try {
+        const { accountRole, password } = req.body;
+        if (!accountRole || !password) {
+            return res.status(400).json({ success: false, error: 'accountRole and password are required' });
+        }
+
+        const SHEET_ID = '1OIQAHuQQaFLwQz7d3JR3Tp2ooagHbs90y9JejLLWBZ8';
+        const result = await googleDriveController.readSpreadsheet(SHEET_ID);
+        if (!result.success) {
+            return res.status(500).json({ success: false, error: 'Failed to read access rights sheet' });
+        }
+
+        // Sheet columns: A=S/N, B=Account Role, C=Password
+        const rows = result.data || [];
+        const match = rows.find(row =>
+            (row[1] || '').trim().toLowerCase() === accountRole.trim().toLowerCase()
+        );
+
+        if (!match) {
+            return res.json({ success: false, error: 'Account role not found' });
+        }
+
+        const storedPassword = (match[2] || '').trim();
+        if (storedPassword !== password.trim()) {
+            return res.json({ success: false, error: 'Incorrect password' });
+        }
+
+        return res.json({ success: true, accountRole: (match[1] || '').trim() });
+    } catch (error) {
+        console.error('[FFT] Error in POST /validateAccessRights:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 module.exports = router;

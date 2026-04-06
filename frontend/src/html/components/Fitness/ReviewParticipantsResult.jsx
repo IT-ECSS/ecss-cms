@@ -27,9 +27,14 @@ class ReviewParticipantsResult extends Component {
       console.warn('Could not restore ReviewParticipantsResult state from localStorage');
     }
     
+    // Only restore saved entryNumber if it's for the same event
+    const savedEventName = savedState.event?.name || savedState.event;
+    const initialEventName = props.initialEvent?.name || props.initialEvent;
+    const sameEvent = savedEventName && initialEventName && savedEventName === initialEventName;
+
     this.state = {
       event: props.initialEvent || savedState.event,
-      entryNumber: props.initialEntryNumber || savedState.entryNumber,
+      entryNumber: props.initialEntryNumber || (sameEvent ? savedState.entryNumber : null),
       hasError: false,
       isLoading: false,
     };

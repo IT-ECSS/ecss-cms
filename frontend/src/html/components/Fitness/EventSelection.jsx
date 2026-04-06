@@ -121,6 +121,12 @@ class EventSelection extends Component {
             {loading && <div>{loadingText}</div>}
             {error && <div style={{ color: 'red' }}>{error}</div>}
 
+            {!loading && !error && events.length === 0 && (
+              <div style={{ color: '#888', padding: '16px 0', fontSize: '1em' }}>
+                No events found.
+              </div>
+            )}
+
             <div className="fft-events-buttons-container">
               {events.map(this.renderEventButton)}
             </div>

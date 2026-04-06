@@ -1,126 +1,60 @@
 import React, { Component } from 'react';
 import '../../../css/fftHome.css';
 
+// Which sections each role is allowed to access
+const ACCESS_MAP = {
+  'Admin':           ['admin', 'registration', 'volunteers', 'trainers', 'fitnessTrainers'],
+  'Programme Staff': ['registration', 'trainers'],
+  'Station Master':  ['volunteers'],
+  'Fitness Trainer': ['fitnessTrainers'],
+};
+
+const ALL_BUTTONS = [
+  { section: 'admin',          icon: '👨‍💼', label: 'Admin',           cardClass: 'fft-home-nav-card--admin' },
+  { section: 'registration',   icon: '🏃',  label: 'Registration',    cardClass: 'fft-home-nav-card--registration' },
+  { section: 'volunteers',     icon: '🚩',  label: 'Station Masters', cardClass: 'fft-home-nav-card--volunteers' },
+  { section: 'trainers',       icon: '💼',  label: 'Staff',           cardClass: 'fft-home-nav-card--trainers' },
+  { section: 'fitnessTrainers',icon: '🏋️', label: 'Fitness Trainers',cardClass: 'fft-home-nav-card--trainers' },
+];
+
 class FFTHome extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      showPasswordModal: false,
-      pendingSection: null,
-      passwordInput: '',
-      passwordError: false,
-    };
-  }
-
-  // Password map for protected sections
-  sectionPasswords = {
-    admin: 'fftAdmin',
-    volunteers: 'fftVol',
-    trainers: 'fftStaffs',
-  };
-
-  handleProtectedNav = (section) => {
-    this.setState({ showPasswordModal: true, pendingSection: section, passwordInput: '', passwordError: false });
-  };
-
-  handlePasswordSubmit = () => {
-    const { pendingSection, passwordInput } = this.state;
-    const { onNavigate } = this.props;
-    if (passwordInput === this.sectionPasswords[pendingSection]) {
-      this.setState({ showPasswordModal: false, pendingSection: null, passwordInput: '', passwordError: false });
-      onNavigate(pendingSection);
-    } else {
-      this.setState({ passwordError: true });
-    }
-  };
-
-  handlePasswordCancel = () => {
-    this.setState({ showPasswordModal: false, pendingSection: null, passwordInput: '', passwordError: false });
-  };
-
-  handlePasswordKeyDown = (e) => {
-    if (e.key === 'Enter') this.handlePasswordSubmit();
-  };
-
   render() {
-    const { onNavigate } = this.props;
-    const { showPasswordModal, pendingSection, passwordInput, passwordError } = this.state;
-
-    const sectionLabels = { admin: 'Admin', volunteers: 'Station Masters', trainers: 'Staff' };
+    const { role, onNavigate, onLogout } = this.props;
+    const allowed = ACCESS_MAP[role] || [];
+    const visibleButtons = ALL_BUTTONS.filter(b => allowed.includes(b.section));
 
     return (
       <div className="fft-home-wrapper">
-        <div className="fft-home-header">
+        <div className="fft-home-header" style={{ position: 'relative' }}>
           <h2 className="fft-home-title">ECSS FFT</h2>
-        </div>
-        
-        <div className="fft-home-navigation">
-          {/* Admin - Password disabled for testing */}
-          <button
-            className="fft-home-nav-card fft-home-nav-card--admin"
-            onClick={() => this.props.onNavigate('admin')}
-          >
-            <span className="fft-home-nav-icon">👨‍💼</span>
-            <span className="fft-home-nav-text">Admin</span>
-          </button>
-          <button
-            className="fft-home-nav-card fft-home-nav-card--registration"
-            onClick={() => onNavigate('registration')}
-          >
-            <span className="fft-home-nav-icon">🏃</span>
-            <span className="fft-home-nav-text">Registration</span>
-          </button>
-          {/* Station Masters - Password disabled for testing */}
-          <button
-            className="fft-home-nav-card fft-home-nav-card--volunteers"
-            onClick={() => this.props.onNavigate('volunteers')}
-          >
-            <span className="fft-home-nav-icon">🚩</span>
-            <span className="fft-home-nav-text">Station Masters</span>
-          </button>
-          {/* Staff - Password disabled for testing */}
-          <button
-            className="fft-home-nav-card fft-home-nav-card--trainers"
-            onClick={() => this.props.onNavigate('trainers')}
-          >
-            <span className="fft-home-nav-icon" style={{ color: 'initial' }}>💼</span>
-            <span className="fft-home-nav-text">Staff</span>
-          </button>
+          <div style={{ position: 'absolute', top: 0, right: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '0.85em', color: '#666', fontWeight: 500 }}>{role}</span>
+            <button
+              onClick={onLogout}
+              style={{
+                background: 'none', border: '1px solid #ccc', borderRadius: 8,
+                padding: '6px 14px', cursor: 'pointer', fontSize: '0.85em',
+                color: '#555', fontWeight: 600,
+              }}
+              title="Sign out"
+            >
+              <i className="fas fa-sign-out-alt" style={{ marginRight: 6 }}></i>Sign Out
+            </button>
+          </div>
         </div>
 
-        {/* Password Modal - Disabled for testing */}
-        {/* {showPasswordModal && (
-          <div className="fft-password-overlay" onClick={this.handlePasswordCancel}>
-            <div className="fft-password-modal" onClick={(e) => e.stopPropagation()}>
-              <div className="fft-password-modal-icon">
-                <i className="fas fa-lock"></i>
-              </div>
-              <h3 className="fft-password-modal-title">
-                Enter Password for {sectionLabels[pendingSection]}
-              </h3>
-              <input
-                type="password"
-                className={`fft-password-input ${passwordError ? 'fft-password-input--error' : ''}`}
-                placeholder="Enter password"
-                value={passwordInput}
-                onChange={(e) => this.setState({ passwordInput: e.target.value, passwordError: false })}
-                onKeyDown={this.handlePasswordKeyDown}
-                autoFocus
-              />
-              {passwordError && (
-                <p className="fft-password-error">Incorrect password. Please try again.</p>
-              )}
-              <div className="fft-password-modal-actions">
-                <button className="fft-password-btn fft-password-btn--cancel" onClick={this.handlePasswordCancel}>
-                  Cancel
-                </button>
-                <button className="fft-password-btn fft-password-btn--submit" onClick={this.handlePasswordSubmit}>
-                  Enter
-                </button>
-              </div>
-            </div>
-          </div>
-        )} */}
+        <div className="fft-home-navigation">
+          {visibleButtons.map(({ section, icon, label, cardClass }) => (
+            <button
+              key={section}
+              className={`fft-home-nav-card ${cardClass}`}
+              onClick={() => onNavigate(section)}
+            >
+              <span className="fft-home-nav-icon">{icon}</span>
+              <span className="fft-home-nav-text">{label}</span>
+            </button>
+          ))}
+        </div>
       </div>
     );
   }

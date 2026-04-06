@@ -3,10 +3,12 @@ import { withRouter } from 'react-router-dom';
 import axios from 'axios';
 import '../../css/fftPage.css';
 import FFTHome from './Fitness/FFTHome';
+import FFTLoginModal from './Fitness/FFTLoginModal';
 import FFTParticipants from './Fitness/FFTParticipants';
 import FFTVolunteers from './Fitness/FFTVolunteers';
 import FFTAdmin from './Fitness/FFTAdmin';
 import FFTStaff from './Fitness/FFTStaff';
+import FFTFitnessTrainers from './Fitness/FFTFitnessTrainers';
 import FFTRegistration from './Fitness/FFTRegistration';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
@@ -16,11 +18,11 @@ const BACKEND_URL = window.location.hostname === 'localhost'
 class FFTPage extends Component {
   constructor(props) {
     super(props);
-    // Check for section parameter immediately in constructor
     const urlParams = new URLSearchParams(window.location.search);
     const section = urlParams.get('section');
     this.state = {
       activeSection: section || 'home',
+      loggedInRole: null,
       selectedFile: null,
       trainersView: null,
       trainersEvent: null,
@@ -45,17 +47,34 @@ class FFTPage extends Component {
     this.setState({ activeSection: section });
   };
 
+  handleLoginSuccess = (role) => {
+    this.setState({ loggedInRole: role });
+  };
+
+  handleLogout = () => {
+    this.setState({ loggedInRole: null, activeSection: 'home' });
+  };
+
   handleFileSelected = (file) => {
     this.setState({ selectedFile: file, activeSection: 'participants' });
   };
 
   render() {
-    const { activeSection, selectedFile, trainersView, trainersEvent, trainersEntryNumber } = this.state;
+    const { activeSection, loggedInRole, selectedFile, trainersView, trainersEvent, trainersEntryNumber } = this.state;
 
     return (
       <div className="fft-page-container">
-            {activeSection === 'home' && (
-              <FFTHome onNavigate={this.handleSectionChange} />
+            <FFTLoginModal
+              visible={!loggedInRole}
+              onSuccess={this.handleLoginSuccess}
+            />
+
+            {loggedInRole && activeSection === 'home' && (
+              <FFTHome
+                role={loggedInRole}
+                onNavigate={this.handleSectionChange}
+                onLogout={this.handleLogout}
+              />
             )}
             {activeSection === 'participants' && (
               <FFTParticipants
@@ -93,6 +112,11 @@ class FFTPage extends Component {
                 onStateChange={(view, event, entryNumber) => this.setState({ trainersView: view, trainersEvent: event, trainersEntryNumber: entryNumber })}
               />
             </div>
+            {activeSection === 'fitnessTrainers' && (
+              <FFTFitnessTrainers
+                onBack={() => this.handleSectionChange('home')}
+              />
+            )}
       </div>
     );
   }

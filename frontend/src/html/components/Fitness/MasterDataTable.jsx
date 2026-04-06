@@ -11,6 +11,55 @@ const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
   : 'https://ecss-backend-node.azurewebsites.net';
 
+// Cell renderer: Registration Link → opens URL in new tab
+class LinkCellRenderer extends Component {
+  render() {
+    const value = this.props.value;
+    if (!value) return <span style={{ color: '#aaa' }}>—</span>;
+    return (
+      <a
+        href={value}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ color: '#1a73e8', textDecoration: 'underline' }}
+      >
+        <i className="fas fa-external-link-alt" style={{ marginRight: 6 }}></i>
+        Open Link
+      </a>
+    );
+  }
+}
+
+// Cell renderer: QR Code → opens image/URL in new tab
+class QRLinkCellRenderer extends Component {
+  render() {
+    const value = this.props.value;
+    if (!value) return <span style={{ color: '#aaa' }}>—</span>;
+    const isUrl = value.startsWith('http://') || value.startsWith('https://') || value.startsWith('data:image');
+    if (isUrl) {
+      return (
+        <a
+          href={value}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: '#1a73e8', textDecoration: 'underline' }}
+        >
+          <i className="fas fa-qrcode" style={{ marginRight: 6 }}></i>
+          View QR
+        </a>
+      );
+    }
+    return (
+      <span
+        title={value}
+        style={{ color: '#555', fontSize: '0.82rem', wordBreak: 'break-all' }}
+      >
+        {value}
+      </span>
+    );
+  }
+}
+
 class MasterDataTable extends Component {
   constructor(props) {
     super(props);
@@ -46,15 +95,28 @@ class MasterDataTable extends Component {
         this.setState({ loading: false, rowData: [], columnDefs: [] });
         return;
       }
-      const columnDefs = Object.keys(raw[0]).map(key => ({
-        field: key,
-        headerName: key,
-        sortable: true,
-        filter: true,
-        resizable: true,
-        minWidth: 100,
-      }));
-      this.setState({ loading: false, rowData: raw, columnDefs });
+      // Combine DD / MM / YYYY columns into a single Date Of Birth column
+      const dobDD   = Object.keys(raw[0]).find(k => k.toLowerCase().trim() === 'dd')   || '';
+      const dobMM   = Object.keys(raw[0]).find(k => k.toLowerCase().trim() === 'mm')   || '';
+      const dobYYYY = Object.keys(raw[0]).find(k => k.toLowerCase().trim() === 'yyyy') || '';
+      const processedRaw = (dobDD && dobMM && dobYYYY)
+        ? raw.map(row => ({
+            ...row,
+            'Date Of Birth': [row[dobDD], row[dobMM], row[dobYYYY]].every(v => v)
+              ? `${row[dobDD]}/${row[dobMM]}/${row[dobYYYY]}`
+              : '',
+          }))
+        : raw;
+
+      // ── Column widths – set each manually here ──────────────────────────────
+      const columnDefs = [
+        { field: 'Participant Number', headerName: 'Participant Number', width: 250 },
+        { field: 'Name',               headerName: 'Name',               width: 200},
+        { field: 'Phone Number',       headerName: 'Phone Number',       width: 200 },
+        { field: 'Start Time',         headerName: 'Start Time',         width: 150 },
+        { field: 'End Time',           headerName: 'End Time',           width: 150 },
+      ].filter(col => col.field in processedRaw[0]);
+      this.setState({ loading: false, rowData: processedRaw, columnDefs });
     } catch (err) {
       this.setState({ loading: false, error: 'Failed to load data. Please try again.' });
     }
@@ -70,7 +132,7 @@ class MasterDataTable extends Component {
           <h3 style={{ fontSize: '2rem', fontWeight: 700, color: '#212121', margin: 0, whiteSpace: 'nowrap' }}>Access Master Data (View Only)</h3>
           <hr style={{ margin: '12px 0' }} />
           <div className="fft-participants-section-desc" style={{ marginBottom: '12px', color: '#555', fontSize: '1em' }}>
-            Viewing read-only participant data for this event.
+            Viewing read-only participant data. No edits can be made from this view.
           </div>
         </div>
 
@@ -92,8 +154,9 @@ class MasterDataTable extends Component {
               rowData={rowData}
               domLayout="normal"
               pagination={true}
-              paginationPageSize={20}
-              defaultColDef={{ sortable: true, filter: true, resizable: true }}
+              paginationPageSize={rowData.length}
+              paginationPageSizeSelector={[25, 50, 75, 100, rowData.length]}
+              defaultColDef={{ sortable: true, resizable: true, minWidth: 80 }}
               suppressCellFocus={true}
             />
           </div>

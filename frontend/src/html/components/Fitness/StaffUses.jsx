@@ -215,10 +215,6 @@ class StaffUses extends Component {
               </div>
             </div>
             <div className="fft-events-buttons-container">
-              <button type="button" className="fft-event-btn" onClick={() => this.setState({ view: 'reviewResults' })}>
-                <i className="fas fa-chart-bar"></i>
-                <div className="fft-event-btn-name">Review Results</div>
-              </button>
               <button type="button" className="fft-event-btn" onClick={() => {
                 this.setState({ view: 'editParticipants' }, () => {
                   this.editParticipantsRef.current?.fetchParticipants?.();

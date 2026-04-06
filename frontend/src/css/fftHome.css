@@ -286,14 +286,14 @@
 .fft-password-modal {
   background: #fff;
   border-radius: 20px;
-  padding: 36px 32px 28px;
+  padding: 36px 32px 32px;
   width: 90%;
-  max-width: 380px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  max-width: 400px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
   animation: fftModalSlideUp 0.25s ease-out;
 }
 
@@ -313,42 +313,110 @@
   color: #dc2626;
 }
 
-.fft-password-modal-title {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: #1a1a1a;
+.fft-password-modal-header {
   text-align: center;
+  width: 100%;
+}
+
+.fft-password-modal-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 6px;
+}
+
+.fft-password-modal-subtitle {
+  font-size: 0.88rem;
+  color: #6b7280;
   margin: 0;
+  line-height: 1.5;
+}
+
+.fft-password-field {
+  width: 100%;
+}
+
+.fft-password-label {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.fft-password-select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.fft-password-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 40px !important;
+  cursor: pointer;
+}
+
+.fft-password-select-icon {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  font-size: 0.8rem;
+  pointer-events: none;
 }
 
 .fft-password-input {
   width: 100%;
-  padding: 14px 16px;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
-  font-size: 1.1rem;
-  font-weight: 600;
+  padding: 12px 16px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 0.97rem;
+  font-weight: 500;
+  color: #111827;
   outline: none;
-  transition: border-color 0.2s;
-  text-align: center;
-  letter-spacing: 2px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  text-align: left;
+  letter-spacing: normal;
   box-sizing: border-box;
+  background: #f9fafb;
+}
+
+.fft-password-input::placeholder {
+  color: #9ca3af;
+  font-weight: 400;
 }
 
 .fft-password-input:focus {
   border-color: #3b82f6;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
 }
 
 .fft-password-input--error {
   border-color: #ef4444;
-  background: #fef2f2;
+  background: #fff5f5;
+}
+
+.fft-password-input--error:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
 }
 
 .fft-password-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 14px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
   color: #dc2626;
-  font-size: 0.95rem;
-  font-weight: 600;
-  margin: -4px 0 0 0;
+  font-size: 0.88rem;
+  font-weight: 500;
+  margin: -4px 0 0;
 }
 
 .fft-password-modal-actions {
@@ -360,33 +428,45 @@
 
 .fft-password-btn {
   flex: 1;
-  padding: 12px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 0;
   border: none;
-  border-radius: 12px;
-  font-size: 1.1rem;
+  border-radius: 10px;
+  font-size: 0.97rem;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.2s, transform 0.1s;
+  transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+  letter-spacing: 0.01em;
 }
 
 .fft-password-btn:active {
   transform: scale(0.97);
 }
 
+.fft-password-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .fft-password-btn--cancel {
-  background: #f1f5f9;
-  color: #64748b;
+  background: #f3f4f6;
+  color: #6b7280;
 }
 
 .fft-password-btn--cancel:hover {
-  background: #e2e8f0;
+  background: #e5e7eb;
 }
 
 .fft-password-btn--submit {
   background: #dc2626;
   color: #fff;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25);
 }
 
-.fft-password-btn--submit:hover {
+.fft-password-btn--submit:hover:not(:disabled) {
   background: #b91c1c;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
 }
