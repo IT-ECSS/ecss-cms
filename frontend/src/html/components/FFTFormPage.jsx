@@ -15,7 +15,7 @@ class FFTFormPage extends Component {
     super(props);
     const params = new URLSearchParams(props.location.search);
     const eventName = params.get('event');
-    this.state = { resetKey: 0, initialEvent: null, loadingEvent: !!eventName, eventError: null };
+    this.state = { resetKey: 0, initialEvent: null, loadingEvent: !!eventName, eventError: null, finished: false };
   }
 
   componentDidMount() {
@@ -55,11 +55,17 @@ class FFTFormPage extends Component {
   };
 
   handleReset = () => {
-    this.setState(s => ({ resetKey: s.resetKey + 1 }));
+    this.setState(s => ({ resetKey: s.resetKey + 1, finished: false }));
+  };
+
+  handleFinished = () => {
+    window.close();
+    // Fallback for mobile browsers that block window.close()
+    this.setState({ finished: true });
   };
 
   render() {
-    const { resetKey, initialEvent, loadingEvent, eventError } = this.state;
+    const { resetKey, initialEvent, loadingEvent, eventError, finished } = this.state;
     const params = new URLSearchParams(this.props.location.search);
     const eventName = params.get('event');
 
@@ -85,12 +91,54 @@ class FFTFormPage extends Component {
       );
     }
 
+    if (finished) {
+      return (
+        <div className="fft-page-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{
+            textAlign: 'center',
+            padding: '48px 32px',
+            maxWidth: 480,
+            width: '100%',
+          }}>
+            <div style={{
+              width: 72, height: 72, borderRadius: '50%',
+              background: '#e8f5e9', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', margin: '0 auto 24px',
+            }}>
+              <i className="fas fa-check" style={{ fontSize: '2rem', color: '#2e7d32' }}></i>
+            </div>
+            <h2 style={{ fontSize: '1.8rem', fontWeight: 700, color: '#1a1a1a', margin: '0 0 12px' }}>
+              Registration Complete
+            </h2>
+            <p style={{ fontSize: '1.2rem', color: '#555', margin: '0 0 8px', lineHeight: 1.5 }}>
+              注册已完成 · Pendaftaran Selesai
+            </p>
+            <p style={{ fontSize: '1.1rem', color: '#777', margin: '0 0 32px', lineHeight: 1.6 }}>
+              You may now close this tab.<br />
+              您可以关闭此页面。<br />
+              Anda boleh menutup tab ini.
+            </p>
+            <button
+              onClick={this.handleReset}
+              style={{
+                padding: '12px 28px', border: '1.5px solid #bdbdbd', borderRadius: 8,
+                background: 'transparent', color: '#555', fontSize: '1rem',
+                fontWeight: 600, cursor: 'pointer',
+              }}
+            >
+              Register another participant
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="fft-page-container">
         <FFTParticipants
           key={resetKey}
           onBack={this.handleReset}
-          onHome={() => window.close()}
+          onHome={this.handleFinished}
           onAdmin={() => this.props.history.push('/fft')}
           trilingual
           showParticipantNumber={false}

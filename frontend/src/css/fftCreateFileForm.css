@@ -99,3 +99,52 @@
   font-size: 12px;
   color: #666;
 }
+
+/* =====================================================
+   Responsive
+   ===================================================== */
+
+/* ── Tablet (≤ 900px) ── */
+@media (max-width: 900px) {
+  .fft-event-btn {
+    padding: 24px 20px;
+  }
+
+  .fft-event-btn-name {
+    font-size: 22px;
+  }
+}
+
+/* ── Mobile/Small tablet (≤ 600px) ── */
+@media (max-width: 600px) {
+  .fft-events-buttons-container {
+    grid-template-columns: 1fr;
+  }
+
+  .fft-event-btn {
+    padding: 18px 16px;
+  }
+
+  .fft-event-btn-name {
+    font-size: 18px;
+  }
+
+  .fft-event-btn-sn {
+    font-size: 11px;
+  }
+
+  .fft-event-btn-date {
+    font-size: 11px;
+  }
+}
+
+/* ── Small phones (≤ 400px) ── */
+@media (max-width: 400px) {
+  .fft-event-btn {
+    padding: 14px 12px;
+  }
+
+  .fft-event-btn-name {
+    font-size: 15px;
+  }
+}
