@@ -37,6 +37,43 @@
   text-align: center;
 }
 
+.fft-home-header-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  width: 100%;
+  gap: 8px;
+}
+
+.fft-home-header-spacer {
+  /* mirrors the actions column so the title stays centred */
+}
+
+.fft-home-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.fft-home-header-role {
+  font-size: 0.85em;
+  color: #666;
+  font-weight: 500;
+}
+
+.fft-home-signout-btn {
+  background: none;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 0.85em;
+  color: #555;
+  font-weight: 600;
+}
+
 .fft-home-title {
   font-size: 5rem;
   font-weight: 800;
@@ -189,6 +226,20 @@
 
   .fft-home-header {
     margin-bottom: 32px;
+  }
+
+  .fft-home-header-row {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 12px;
+  }
+
+  .fft-home-header-spacer {
+    display: none;
+  }
+
+  .fft-home-header-actions {
+    justify-content: center;
   }
 
   .fft-home-navigation {

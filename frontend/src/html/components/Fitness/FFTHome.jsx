@@ -25,21 +25,20 @@ class FFTHome extends Component {
 
     return (
       <div className="fft-home-wrapper">
-        <div className="fft-home-header" style={{ position: 'relative' }}>
-          <h2 className="fft-home-title">ECSS FFT</h2>
-          <div style={{ position: 'absolute', top: 0, right: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '0.85em', color: '#666', fontWeight: 500 }}>{role}</span>
-            <button
-              onClick={onLogout}
-              style={{
-                background: 'none', border: '1px solid #ccc', borderRadius: 8,
-                padding: '6px 14px', cursor: 'pointer', fontSize: '0.85em',
-                color: '#555', fontWeight: 600,
-              }}
-              title="Sign out"
-            >
-              <i className="fas fa-sign-out-alt" style={{ marginRight: 6 }}></i>Sign Out
-            </button>
+        <div className="fft-home-header">
+          <div className="fft-home-header-row">
+            <div className="fft-home-header-spacer" />
+            <h2 className="fft-home-title">ECSS FFT</h2>
+            <div className="fft-home-header-actions">
+              <span className="fft-home-header-role">{role}</span>
+              <button
+                onClick={onLogout}
+                className="fft-home-signout-btn"
+                title="Sign out"
+              >
+                <i className="fas fa-sign-out-alt" style={{ marginRight: 6 }}></i>Sign Out
+              </button>
+            </div>
           </div>
         </div>
 
