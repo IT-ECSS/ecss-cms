@@ -52,7 +52,10 @@ class FFTPage extends Component {
   };
 
   handleLogout = () => {
-    this.setState({ loggedInRole: null, activeSection: 'home' });
+    const { activeSection } = this.state;
+    // If logging out from the participant registration flow, stay on registration
+    const nextSection = activeSection === 'registration' ? 'registration' : 'home';
+    this.setState({ loggedInRole: null, activeSection: nextSection });
   };
 
   handleFileSelected = (file) => {
@@ -65,7 +68,7 @@ class FFTPage extends Component {
     return (
       <div className="fft-page-container">
             <FFTLoginModal
-              visible={!loggedInRole}
+              visible={!loggedInRole && activeSection !== 'registration'}
               onSuccess={this.handleLoginSuccess}
             />
 
