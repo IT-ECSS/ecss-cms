@@ -575,29 +575,15 @@ router.post('/fftSubmit', async (req, res) => {
 
         console.log(`[FFT] Appending to sheet "${sheetFileName}" (${fileId})`);
 
-        // For pre-registered participants — update Health Declaration & Indemnity columns
+        // For pre-registered participants — no additional columns to update
         if (entryMethod === 'participantNumber' || participantNumber) {
             const entryNum = parseInt(participantNumber, 10);
-            console.log(`[FFT] Pre-registered participant (entry ${entryNum}) - updating Health Declaration & Indemnity`);
-
-            // Generate acknowledgement string in Singapore time (Asia/Singapore, UTC+8)
-            const sgNow = new Date().toLocaleString('en-GB', { timeZone: 'Asia/Singapore', hour12: false });
-            // en-GB gives "DD/MM/YYYY, HH:MM:SS" — strip the comma
-            const acknowledgedStr = `Acknowledged as per ${sgNow.replace(',', '')}`;
-
-            const updateResult = await googleDriveController.updateRow(fileId, entryNum, {
-                'Health Declaration': acknowledgedStr,
-                'Indemnity': acknowledgedStr,
-            });
-
-            if (!updateResult.success) {
-                console.warn(`[FFT] Could not update Health Declaration/Indemnity for entry ${entryNum}:`, updateResult.error);
-            }
+            console.log(`[FFT] Pre-registered participant (entry ${entryNum}) - skipping update`);
 
             return res.json({
                 success: true,
                 updated: true,
-                message: 'Health Declaration & Indemnity acknowledged',
+                message: 'Pre-registered participant acknowledged',
                 sheetName: sheetFileName,
                 fileId,
                 participantNumber: entryNum,
@@ -610,7 +596,6 @@ router.post('/fftSubmit', async (req, res) => {
             startTime = '', endTime = '',
             height = '', weight = '', bmi = '',
             dateOfTest: providedDateOfTest = '',
-            healthDeclaration = '', indemnity = '',
             sitStand = '', armBanding = '', marchingInPlace = '',
             sitReach = '', backStretching = '', speedWalk = '',
             gripTest = '', improvements = '', remarks = '',
@@ -648,6 +633,7 @@ router.post('/fftSubmit', async (req, res) => {
 
         // Check if participant already exists in the sheet
         let currentRowCount = 0;
+        let lastSN = 0;
         try {
             const sheetData = await googleDriveController.readSpreadsheet(fileId);
             if (sheetData.success && sheetData.data) {
@@ -657,6 +643,16 @@ router.post('/fftSubmit', async (req, res) => {
                 // the sheet has an S/N column or uses the old layout (no S/N column).
                 const headers = (sheetData.columns || []).map(h => String(h || '').trim());
                 const col = (name) => headers.indexOf(name); // returns -1 if missing
+
+                // Determine last S/N for auto-increment
+                const snIdx = col('S/N');
+                if (snIdx !== -1 && sheetData.data.length > 0) {
+                    const lastRow = sheetData.data[sheetData.data.length - 1];
+                    const lastSnVal = parseInt(String(lastRow[snIdx] || '0').trim(), 10);
+                    if (!isNaN(lastSnVal) && lastSnVal > 0) lastSN = lastSnVal;
+                }
+                // Fallback: use row count if no valid S/N found
+                if (lastSN === 0) lastSN = currentRowCount;
 
                 const nameIdx   = col('Name')   !== -1 ? col('Name')   : 0;
                 const phoneIdx  = col('Phone Number') !== -1 ? col('Phone Number') : 2;
@@ -709,22 +705,13 @@ router.post('/fftSubmit', async (req, res) => {
             dateOfTest = `${dateMatch[3]}/${dateMatch[2]}/${dateMatch[1]}`;
         }
 
-        // Generate acknowledgement string in Singapore time (Asia/Singapore, UTC+8)
-        // Only for individual registrations — bulk uploads skip the timestamp
-        let acknowledgedStr = '';
-        if (entryMethod !== 'Bulk Registration') {
-            const sgNow = new Date().toLocaleString('en-GB', { timeZone: 'Asia/Singapore', hour12: false });
-            acknowledgedStr = `Acknowledged as per ${sgNow.replace(',', '')}`;
-        }
-
         // Row order matches sheet headers:
         // S/N | Name | Chinese Name | Phone Number | Gender | DD | MM | YYYY |
         // Start Time | End Time | Age |
         // Height | Weight | BMI | Date of test |
-        // Health Declaration | Indemnity |
         // 30 secs Sit & Stand | 30 secs Arm Banding | 2 min On-the-spot Marching |
         // Sit & Reach | Back Stretching | 2.44m Speed Walk | Grip test | Improvements | Remarks
-        const nextSN = currentRowCount + 1;
+        const nextSN = lastSN + 1;
         const rowData = [
             String(nextSN),                                          // A: S/N
             nameStr, chineseNameStr, phoneStr, genderStr,            // B C D E: Name, Chinese Name, Phone, Gender
@@ -733,11 +720,9 @@ router.post('/fftSubmit', async (req, res) => {
             String(age),                                             // K: Age
             String(height), String(weight), String(bmi),             // L M N: Height, Weight, BMI
             dateOfTest || String(providedDateOfTest),                // O: Date of test
-            acknowledgedStr,                                         // P: Health Declaration
-            acknowledgedStr,                                         // Q: Indemnity
-            String(sitStand), String(armBanding), String(marchingInPlace), // R S T: test results
-            String(sitReach), String(backStretching), String(speedWalk),   // U V W: test results
-            String(gripTest), String(improvements), String(remarks),       // X Y Z: Grip test, Improvements, Remarks
+            String(sitStand), String(armBanding), String(marchingInPlace), // P Q R: test results
+            String(sitReach), String(backStretching), String(speedWalk),   // S T U: test results
+            String(gripTest), String(improvements), String(remarks),       // V W X: Grip test, Improvements, Remarks
         ];
 
         const appendResult = await googleDriveController.appendRow(fileId, rowData);

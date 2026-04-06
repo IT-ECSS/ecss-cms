@@ -135,8 +135,8 @@ class StaffUses extends Component {
           <EditParticipants ref={this.editParticipantsRef} event={event} />
         </div>
 
-        {/* Health Declaration + Indemnity form */}
-        {view === 'healthDeclaration' && !formSubmitSuccess && (
+        {/* Health Declaration + Indemnity form — currently disabled */}
+        {/* {view === 'healthDeclaration' && !formSubmitSuccess && (
           <ParticipantForm
             ref={this.participantFormRef}
             language="en"
@@ -150,7 +150,6 @@ class StaffUses extends Component {
             descriptionOverride="Enter the participant number to pre-populate the form."
             onSubmit={this.handleFormSubmit}
             onBack={() => {
-              // Called when ParticipantForm reaches step 1.5 and user hits back → exit to menu
               localStorage.removeItem(this.staffHDStorageKey);
               localStorage.removeItem('fftParticularsSectionData');
               localStorage.removeItem('fftHealthDeclarationData');
@@ -159,10 +158,10 @@ class StaffUses extends Component {
             }}
             onHome={this.props.onBack}
           />
-        )}
+        )} */}
 
-        {/* Success screen after health declaration submission */}
-        {view === 'healthDeclaration' && formSubmitSuccess && (
+        {/* Success screen after health declaration submission — currently disabled */}
+        {/* {view === 'healthDeclaration' && formSubmitSuccess && (
           <div className="fft-participants-section">
             <div className="fft-participants-section-header">
               <h2 style={{ margin: 0, fontWeight: 700 }}>Health Declaration &amp; Indemnity Form Submitted</h2>
@@ -196,7 +195,7 @@ class StaffUses extends Component {
               </button>
             </div>
           </div>
-        )}
+        )} */}
 
         {/* Staff Uses home screen */}
         {view === null && (
@@ -221,10 +220,11 @@ class StaffUses extends Component {
                 <i className="fas fa-user-edit"></i>
                 <div className="fft-event-btn-name">Edit Participants</div>
               </button>
-              <button type="button" className="fft-event-btn" onClick={() => this.setState({ view: 'healthDeclaration', formSubmitSuccess: false })}>
+              {/* Health Declaration + Indemnity button — currently disabled */}
+              {/* <button type="button" className="fft-event-btn" onClick={() => this.setState({ view: 'healthDeclaration', formSubmitSuccess: false })}>
                 <i className="fas fa-file-medical"></i>
                 <div className="fft-event-btn-name">Health Declaration + Indemnity</div>
-              </button>
+              </button> */}
             </div>
           </div>
         )}

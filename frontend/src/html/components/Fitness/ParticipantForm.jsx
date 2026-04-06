@@ -138,11 +138,7 @@ class ParticipantForm extends Component {
       } else {
         this.setState({ currentStep: 1, entryMethod: null });
       }
-    } else if (currentStep === 3) {
-      this.setState({ currentStep: 2 });
-    } else if (currentStep === 4) {
-      const indemnityData = this.indemnityRef.current?.getCurrentData?.() || null;
-      this.setState({ currentStep: 3, indemnityData });
+    // Steps 3 (Health Declaration) and 4 (Indemnity) are currently disabled
     }
   };
 
@@ -296,7 +292,9 @@ class ParticipantForm extends Component {
             singpassLocked={entryMethod === 'singpass'}
             participantNumberLocked={entryMethod === 'participantNumber'}
             onSubmit={(data) => {
-              this.setState({ particularsData: data, currentStep: 3 });
+              this.setState({ particularsData: data }, () => {
+                this.handleFinalSubmit({});
+              });
             }}
             onBack={() => this.setState(
               entryMethod === 'participantNumber'
@@ -307,8 +305,8 @@ class ParticipantForm extends Component {
           />
         )}
 
-        {/* Step 3: Health Declaration */}
-        {currentStep === 3 && (
+        {/* Step 3: Health Declaration — currently disabled */}
+        {/* {currentStep === 3 && (
           <HealthDeclarationSection
             ref={this.healthRef}
             language={language}
@@ -319,10 +317,10 @@ class ParticipantForm extends Component {
             onBack={() => this.setState({ currentStep: 2 })}
             onHome={() => onHome?.()}
           />
-        )}
+        )} */}
 
-        {/* Step 4: Programme Indemnity */}
-        {currentStep === 4 && (
+        {/* Step 4: Programme Indemnity — currently disabled */}
+        {/* {currentStep === 4 && (
           <IndemnitySection
             ref={this.indemnityRef}
             language={language}
@@ -331,7 +329,7 @@ class ParticipantForm extends Component {
             onBack={() => this.setState({ currentStep: 3 })}
             onHome={() => onHome?.()}
           />
-        )}
+        )} */}
       </>
     );
 
@@ -386,9 +384,14 @@ class ParticipantForm extends Component {
                       type="button"
                       className="fft-create-event-btn fft-create-event-btn-clear"
                       onClick={() => this.particularsRef.current?.handleSubmit()}
-                      disabled={isLoading}
+                      disabled={isLoading || isSubmitting}
+                      style={{
+                        background: 'transparent',
+                        borderColor: '#2e7d32',
+                        color: '#2e7d32',
+                      }}
                     >
-                      {language === 'zh' ? '下一步' : language === 'ms' ? 'Seterusnya' : 'Next'}
+                      {language === 'zh' ? '提交' : language === 'ms' ? 'Hantar' : 'Submit'}
                     </button>
                   </>
                 )}
