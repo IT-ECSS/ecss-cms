@@ -207,6 +207,7 @@ class TimeSlotSelection extends Component {
                       disabled={loadingStats}
                     >
                       <div className="fft-event-btn-name">{formatSlotLabel(slot, t('timeSlotLabel'))}</div>
+                      {this.props.showSlotStatus !== false && (
                       <div
                         style={{
                           marginTop: '10px',
@@ -224,6 +225,7 @@ class TimeSlotSelection extends Component {
                           ? t('slotStatusUpdating')
                           : (isFull ? t('slotStatusFull') : (remaining == null ? t('slotStatusOpen') : `${remaining} ${t('slotLeftSuffix')}`))}
                       </div>
+                      )}
                     </button>
                   );
                 })()

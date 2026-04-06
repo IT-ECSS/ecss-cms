@@ -554,6 +554,7 @@ class FFTParticipants extends Component {
             <TimeSlotSelection
               language={language}
               event={event}
+              showSlotStatus={this.props.storageScope !== 'kiosk'}
               onSelectSlot={(s) => {
                 // Slot selected — return to form
                 this.setState({ slot: s, reselecting: null });
