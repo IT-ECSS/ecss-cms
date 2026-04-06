@@ -230,8 +230,15 @@ class FFTParticipants extends Component {
     };
   }
 
-  storageKey = 'fftParticipantsSelection';
   formRef = React.createRef();
+
+  get storageKey() {
+    // Scope the key to the specific event so different event forms never share state
+    const eventName = this.props.initialEvent?.name || this.state?.event?.name;
+    return eventName
+      ? `fftParticipantsSelection_${eventName}`
+      : 'fftParticipantsSelection';
+  }
 
   handleBack = () => {
     const { language, event, slot, showEntryNumber, reselecting } = this.state;
@@ -284,14 +291,18 @@ class FFTParticipants extends Component {
   };
 
   handleFinish = () => {
-    this.setState({ showHomeConfirm: false });
     localStorage.removeItem(this.storageKey);
     localStorage.removeItem('fftParticipantFormData');
     localStorage.removeItem('fftParticularsSectionData');
     localStorage.removeItem('fftHealthDeclarationData');
     localStorage.removeItem('fftIndemnityData');
     localStorage.removeItem('fftRegistrationSelection');
-    this.setState({ language: null, event: null, slot: null, formData: null, showEntryNumber: false, entryNumber: null, showLoadingModal: false, showResultModal: false, submitError: null });
+    // Public form (kiosk): reset to start so the next person gets a fresh form
+    if (this.props.showParticipantNumber === false) {
+      this.setState({ language: null, event: null, slot: null, formData: null, showEntryNumber: false, entryNumber: null, showLoadingModal: false, showResultModal: false, submitError: null, showHomeConfirm: false });
+      return;
+    }
+    this.setState({ language: null, event: null, slot: null, formData: null, showEntryNumber: false, entryNumber: null, showLoadingModal: false, showResultModal: false, submitError: null, showHomeConfirm: false });
     const goHome = this.props.onHome || this.props.onBack;
     goHome?.();
   };
@@ -351,6 +362,10 @@ class FFTParticipants extends Component {
   };
 
   componentDidMount() {
+    // Public form (kiosk): always start fresh — never restore previous session
+    if (this.props.showParticipantNumber === false) return;
+    // Clean up the old unscoped key if present
+    localStorage.removeItem('fftParticipantsSelection');
     try {
       const saved = localStorage.getItem(this.storageKey);
       if (saved) {
@@ -382,11 +397,14 @@ class FFTParticipants extends Component {
         this.setState({ pendingReturnTo: null }); // form shows automatically
       }
     }
-    if (prevState.language !== language || prevState.event !== event || prevState.slot !== this.state.slot || prevState.showEntryNumber !== this.state.showEntryNumber || prevState.entryNumber !== this.state.entryNumber) {
-      try {
-        localStorage.setItem(this.storageKey, JSON.stringify({ language, event, slot: this.state.slot, showEntryNumber: this.state.showEntryNumber, entryNumber: this.state.entryNumber }));
-      } catch (e) {
-        // ignore storage errors
+    // Public form (kiosk): never persist state to localStorage
+    if (this.props.showParticipantNumber !== false) {
+      if (prevState.language !== language || prevState.event !== event || prevState.slot !== this.state.slot || prevState.showEntryNumber !== this.state.showEntryNumber || prevState.entryNumber !== this.state.entryNumber) {
+        try {
+          localStorage.setItem(this.storageKey, JSON.stringify({ language, event, slot: this.state.slot, showEntryNumber: this.state.showEntryNumber, entryNumber: this.state.entryNumber }));
+        } catch (e) {
+          // ignore storage errors
+        }
       }
     }
   }
@@ -414,14 +432,16 @@ class FFTParticipants extends Component {
                   <i className="fas fa-arrow-left"></i>
                 </button>
               )}
-              <button
-                type="button"
-                className="fft-participants-icon-btn"
-                onClick={this.handleHome}
-                title={homeTitle}
-              >
-                <i className="fas fa-home"></i>
-              </button>
+              {this.props.showParticipantNumber !== false && (
+                <button
+                  type="button"
+                  className="fft-participants-icon-btn"
+                  onClick={this.handleHome}
+                  title={homeTitle}
+                >
+                  <i className="fas fa-home"></i>
+                </button>
+              )}
             </div>
 
             {/* Right: description + badges stacked */}
@@ -534,6 +554,7 @@ class FFTParticipants extends Component {
               entryNumber={entryNumber}
               onHome={this.handleHome}
               onFinish={this.handleFinish}
+              showParticipantNumber={this.props.showParticipantNumber !== false}
             />
           )}
 

@@ -4,7 +4,7 @@ import fftTranslations from './fftTranslations';
 
 class ParticipantEntryNumber extends Component {
   render() {
-    const { entryNumber, language, onHome, onFinish } = this.props;
+    const { entryNumber, language, onHome, onFinish, showParticipantNumber = true } = this.props;
 
     return (
       <div className="fft-create-file-form">
@@ -22,8 +22,8 @@ class ParticipantEntryNumber extends Component {
               </div>
             </div>
 
-            {/* Entry number card */}
-            {entryNumber != null && (
+            {/* Entry number card — hidden on public form */}
+            {showParticipantNumber && entryNumber != null && (
               <div
                 style={{
                   display: 'inline-block',
