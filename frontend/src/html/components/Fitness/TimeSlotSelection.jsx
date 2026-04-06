@@ -25,15 +25,21 @@ function formatSlotLabel(slot, slotWord) {
   return `${slotWord} ${match[1]}: ${match[2]}`;
 }
 
+// Normalise "8:00" → "08:00" so comparisons work regardless of leading zero
+function padTime(t) {
+  const s = String(t || '').trim();
+  return s.length === 4 && s[1] === ':' ? '0' + s : s;
+}
+
 function extractSlotRange(slot) {
   const match = String(slot || '').match(/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/);
   if (!match) return null;
-  return { start: match[1], end: match[2] };
+  return { start: padTime(match[1]), end: padTime(match[2]) };
 }
 
 function getRowTimeRange(row) {
-  const start = (row['Start Time'] || row['Start time'] || row['Start'] || '').toString().trim();
-  const end = (row['End Time'] || row['End time'] || row['Time End'] || row['End'] || '').toString().trim();
+  const start = padTime((row['Start Time'] || row['Start time'] || row['Start'] || '').toString().trim());
+  const end = padTime((row['End Time'] || row['End time'] || row['Time End'] || row['End'] || '').toString().trim());
   return { start, end };
 }
 

@@ -319,15 +319,22 @@ router.post('/generateTemplate', async (req, res) => {
         if (slots.length > 0) {
             const startTimes = [...new Set(slots.map(s => s.start).filter(Boolean))];
 
-            // Step 1: Use xlsx-populate to inject IF formulas into column F (F2:F31).
-            // Uses TEXT(E,"HH:MM") so comparison works whether Excel stores the dropdown
-            // value as a time serial (8:00:00 AM) or plain text ("08:00").
+            // Step 1: Use xlsx-populate to:
+            //   a) Format columns E and F as Text (@) so Excel stores "08:00" as a string,
+            //      not as a time serial (which displays as "8:00" or "8:00:00 AM").
+            //   b) Inject IF formulas into column F (F2:F31) for auto-populate.
             const workbook = await XlsxPopulate.fromDataAsync(workbookBuf);
             const sheet = workbook.sheet(0);
             for (let rowNum = 2; rowNum <= PREFILL_ROWS + 1; rowNum++) {
+                // Format E and F as Text so dropdown values stay as typed strings
+                sheet.cell(`E${rowNum}`).style('numberFormat', '@');
+                sheet.cell(`F${rowNum}`).style('numberFormat', '@');
+
+                // Auto-populate F based on E — plain string comparison works because
+                // E is now Text-formatted (no time serial conversion)
                 let inner = '""';
                 for (let i = slots.length - 1; i >= 0; i--) {
-                    inner = `IF(TEXT(E${rowNum},"HH:MM")="${slots[i].start}","${slots[i].end}",${inner})`;
+                    inner = `IF(E${rowNum}="${slots[i].start}","${slots[i].end}",${inner})`;
                 }
                 sheet.cell(`F${rowNum}`).formula(`IF(E${rowNum}="","",${inner})`);
             }
