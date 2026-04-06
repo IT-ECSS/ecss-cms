@@ -23,10 +23,12 @@ class FFTPage extends Component {
     // Detect SingPass return: fft_singpass_return_state is saved just before the SingPass
     // redirect and consumed by FFTParticipants on mount — its presence means we are mid-flow.
     const isSingpassReturn = !!(sessionStorage.getItem('fft_singpass_return_state'));
+    // Restore staff login that was persisted before SingPass redirect
+    const savedRole = sessionStorage.getItem('fft_logged_in_role') || null;
     this.state = {
       // If returning from SingPass, go straight to participants section (no URL param needed)
       activeSection: isSingpassReturn ? 'participants' : (section || 'home'),
-      loggedInRole: null,
+      loggedInRole: savedRole,
       singpassSession: isSingpassReturn,
       selectedFile: null,
       trainersView: null,
@@ -44,10 +46,12 @@ class FFTPage extends Component {
   };
 
   handleLoginSuccess = (role) => {
+    sessionStorage.setItem('fft_logged_in_role', role);
     this.setState({ loggedInRole: role, singpassSession: false });
   };
 
   handleLogout = () => {
+    sessionStorage.removeItem('fft_logged_in_role');
     // Always go back to home and clear any SingPass session flag so the login modal shows again
     this.setState({ loggedInRole: null, activeSection: 'home', singpassSession: false });
   };
