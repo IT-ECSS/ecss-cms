@@ -329,7 +329,8 @@ class invoiceGenerator {
             "Community Cajon Foundation 1": "TGS-2025054489",
             "Hanyu Pinyin For Intermediate – Mandarin": "TGS-2023019015",
             "Hanyu Pinyin For Intermediate": "TGS-2023019015",
-            "Basics of Smart Money Management": "TGS-2023038736"
+            "Basics of Smart Money Management": "TGS-2023038736",
+            "Fall Prevention & Functional Improvement Training": "TGS-2021008562"
         };
     
        // Check for exact match
@@ -395,7 +396,7 @@ class invoiceGenerator {
         case '音乐祝福社区歌唱班':
             return 'TGS-2021008563';
         case '预防跌倒与功能强化训练':
-            return 'TGS-2021008562';
+            return '2021008562';
         case '自我养生保健':
             return 'TGS-2021008561';
         case 'C3A心理健康课程: 以微笑应万变':
