@@ -4746,7 +4746,7 @@ debugMarriagePrepData = () => {
                     <option value="Cancelled">Cancelled</option>
                     <option value="Withdrawn">Withdrawn</option>
                     <option value="Refunded">Refunded</option>
-                    <option value="Generating SkillsFuture Invoice">Generating SkillsFuture Invoice</option>
+                    <option value=""></option>
                     <option value="SkillsFuture Done">SkillsFuture Done</option>
                     <option value="Confirmed">Confirmed</option>
                   </select>

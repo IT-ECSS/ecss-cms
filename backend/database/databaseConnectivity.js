@@ -15,6 +15,26 @@ const mongoOptions = {
     // useUnifiedTopology is now default and deprecated as an option
 };
 
+// ─── Receipt Year Boundary Configuration ────────────────────────────────────
+// Receipts are counted within a financial/calendar year window.
+// Change YEAR_START and YEAR_END below when a new year begins.
+// Format: new Date(YYYY, MM-1, DD, HH, MM, SS)  (month is 0-indexed)
+const RECEIPT_YEAR_CONFIG = {
+    YEAR_START: new Date(2026, 0, 1, 0, 0, 0),    // 1 Jan 2026 00:00:00
+    YEAR_END:   new Date(2026, 11, 31, 23, 59, 59), // 31 Dec 2026 23:59:59
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Helper: returns the two-digit year (e.g. 26) if now is within the configured
+// window, otherwise falls back to the actual current year.
+function getConfiguredYear() {
+    const now = new Date();
+    if (now >= RECEIPT_YEAR_CONFIG.YEAR_START && now <= RECEIPT_YEAR_CONFIG.YEAR_END) {
+        return RECEIPT_YEAR_CONFIG.YEAR_START.getFullYear();
+    }
+    return now.getFullYear();
+}
+
 class DatabaseConnectivity {
     constructor() {
         this.client = new MongoClient(uri, mongoOptions);
@@ -1209,9 +1229,9 @@ class DatabaseConnectivity {
         }
     
         // Continue with existing logic for other course types
-        // Get the current two-digit year (e.g., 2025 -> "25")
-        var currentYear = new Date().getFullYear().toString().slice(-2);
-        currentYear = parseInt(currentYear);
+        // Get the two-digit year based on the configured year boundary.
+        // To change the year window, update RECEIPT_YEAR_CONFIG at the top of this file.
+        var currentYear = parseInt(getConfiguredYear().toString().slice(-2));
     
         let regexPattern = `^\\d{4} - ${courseLocation}`; // Default pattern (year-prefixed format)
     
@@ -1223,6 +1243,9 @@ class DatabaseConnectivity {
         }
         else if (centreLocation === "Renewal Christian Church" && courseLocation.startsWith("ECSS/SFC")) {
             regexPattern = `${courseLocation}R`; // Ensure "R" appears after courseLocation
+        }
+        else if (courseLocation.startsWith("ECSS/SFC")) {
+            regexPattern = courseLocation; // Default for other SFC centres (e.g., CT Hub)
         }
     
         //console.log("Regex Pattern:", regexPattern);
@@ -1256,9 +1279,17 @@ class DatabaseConnectivity {
                 else if (centreLocation === "Sree Narayana Mission") {
                     // Ensure "SNM" appears for Sree Narayana Mission
                     regexPattern = new RegExp(`^${courseLocation}SNM\\d+/(${currentYear})$`);
-                } 
+                }
+                else if (centreLocation === "CT Hub") {
+                    // CT Hub uses plain format: ECSS/SFC/NNN/YY
+                    regexPattern = new RegExp(`^${courseLocation}\\d+/(${currentYear})$`);
+                }
+                else if (centreLocation === "Pasir Ris West Wellness Centre") {
+                    // Pasir Ris West uses plain format: ECSS/SFC/NNN/YY
+                    regexPattern = new RegExp(`^${courseLocation}\\d+/(${currentYear})$`);
+                }
                 else {
-                    // Default pattern without "TP"
+                    // Default pattern
                     regexPattern = new RegExp(`^${courseLocation}\\d+/(${currentYear})$`);
                 }
                 return regexPattern.test(receipt.receiptNo);
@@ -1279,9 +1310,17 @@ class DatabaseConnectivity {
                 else if (centreLocation === "Sree Narayana Mission" && courseLocation.startsWith("ECSS/SFC")) {
                     // Enforce "SNM" for Sree Narayana Mission receipts
                     regexPattern = new RegExp(`^${courseLocation}SNM(\\d+)(?:/\\d+| - \\d+)$`);
-                }   
+                }
+                else if (centreLocation === "CT Hub") {
+                    // CT Hub: plain number after courseLocation
+                    regexPattern = new RegExp(`^${courseLocation}(\\d+)(?:/\\d+| - \\d+)$`);
+                }
+                else if (centreLocation === "Pasir Ris West Wellness Centre") {
+                    // Pasir Ris West: plain number after courseLocation
+                    regexPattern = new RegExp(`^${courseLocation}(\\d+)(?:/\\d+| - \\d+)$`);
+                }
                 else {
-                    // Default pattern without "TP"
+                    // Default pattern
                     regexPattern = new RegExp(`^${courseLocation}(\\d+)(?:/\\d+| - \\d+)$`);
                 }
                 const match = receipt.receiptNo.match(regexPattern);
@@ -1389,121 +1428,52 @@ class DatabaseConnectivity {
     
     getNextReceiptNumberForSkillsFuture(courseLocation, centreReceiptNumbers, centreLocation, currentYear) 
     {
+        // centreReceiptNumbers contains ONLY the current year's receipt numbers for this centre
+        // (filtered upstream by validReceipts), so year reset is automatic:
+        // if it's a new year, centreReceiptNumbers will be empty and we start from 1.
         let nextNumber;
         console.log("Debug - Centre Receipt Numbers:", centreReceiptNumbers, "Centre Location:", centreLocation, "Current Year:", currentYear);
-        // Logic for 2025
-        if (currentYear === 25) {
-            if (centreLocation === "CT Hub") 
-            {
-             // For CT Hub in 2025, start from 109
-                nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 109;
-            }             
-            else if (centreLocation === "Tampines 253 Centre") 
-            {             
-                // For Tampines 253 Centre in 2025, start from 91
-                nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 91;
-            } 
-            else if (centreLocation === "Pasir Ris West Wellness Centre") {
-                // For Pasir Ris West Wellness Centre in 2025, start from 13
-                nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 13 ;
-            }
-            else if (centreLocation === "Sree Narayana Mission") {
-                // For Sree Narayana Mission in 2025, start from 1
-                nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
-            }
-            else if (centreLocation === "Renewal Christian Church") {
-                // For Renewal Christian Church in 2025, start from 16
-                nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 16 ;
-            }
-            else {
-                // Default case for any other centre location in 2025
-                nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
-            }
-        } 
-        // Logic for 2026 and beyond
-        else if (currentYear >= 26) {
-            if (centreLocation === "CT Hub") {
-                // For CT Hub in 2026 and beyond, start from 1
-                nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
-            } else if (centreLocation === "Tampines 253 Centre") {
-                // For Tampines 253 Centre in 2026 and beyond, start from 1
-                nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
-            } else if (centreLocation === "Pasir Ris West Wellness Centre") {
-                // For Pasir Ris West Wellness Centre in 2026 and beyond, start from 1
-                nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
-            }
-            else if (centreLocation === "Sree Narayana Mission") {
-                // For Sree Narayana Mission in 2026 and beyond, start from 1
-                nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
-            }
-            else if (centreLocation === "Renewal Christian Church") {
-                // For Renewal Christian Church in 2026 and beyond, start from 1
-                nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
-            }
-            else {
-                // Default case for any other centre location in 2026 and beyond
-                nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
-            }
-        }
-        else {
-            // Default case for years before 2025
-            nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
+
+        if (centreReceiptNumbers.length > 0) {
+            // Continue from the last invoice number for this centre + year
+            nextNumber = Math.max(...centreReceiptNumbers) + 1;
+        } else if (currentYear === 25) {
+            // 2025 first-time setup: continue from historical starting numbers per centre
+            if (centreLocation === "CT Hub")                          nextNumber = 109;
+            else if (centreLocation === "Tampines 253 Centre")        nextNumber = 91;
+            else if (centreLocation === "Pasir Ris West Wellness Centre") nextNumber = 13;
+            else if (centreLocation === "Sree Narayana Mission")      nextNumber = 1;
+            else if (centreLocation === "Renewal Christian Church")   nextNumber = 16;
+            else                                                       nextNumber = 1;
+        } else {
+            // New year or new centre: always reset to 1
+            nextNumber = 1;
         }
 
         console.log("Debug - Next Number before formatting:", nextNumber);
 
-      //  console.log("Tampines 253 Centre Next Receipt:", nextNumber);
-    
-        // Pad number to 3 digits if less than 3 digits, else keep original length
-        if (nextNumber.toString().length < 3) 
-        {
-            
-            if(centreLocation === "Tampines 253 Centre")
-            {
-                nextNumber = `TP${nextNumber.toString().padStart(3, '0')}`; // Pad to 3 digits if less than 3
-            }
-            else if(centreLocation === "Renewal Christian Church")
-            {
-                nextNumber = `R${nextNumber.toString().padStart(3, '0')}`; // Pad to 3 digits if less than 3
-            }
-            else if (centreLocation === "Sree Narayana Mission") {
-                // For Sree Narayana Mission, pad with SNM prefix
-               nextNumber = `SNM${nextNumber.toString().padStart(3, '0')}`; // Pad to 3 digits if less than 3
-            }
-            else
-            {
-                nextNumber = nextNumber.toString().padStart(3, '0'); // Pad to 3 digits if less than 3
-            }
-        } 
-        else 
-        {
-            if(centreLocation === "Tampines 253 Centre")
-            {
-                nextNumber = `TP${nextNumber.toString().padStart(3, '0')}`; // Pad to 3 digits if less than 3
-            }
-            else if (centreLocation === "Sree Narayana Mission") {
-                // For Sree Narayana Mission, pad with SNM prefix
-               nextNumber = `SNM${nextNumber.toString().padStart(3, '0')}`; // Pad to 3 digits if less than 3
-            }
-            else if(centreLocation === "Renewal Christian Church")
-            {
-                nextNumber = `R${nextNumber.toString().padStart(3, '0')}`; // Pad to 3 digits if less than 3
-            }
-            else
-            {
-                nextNumber = nextNumber.toString().padStart(3, '0'); // Pad to 3 digits if less than 3
-            }
+        // Format with centre-specific prefix, always padded to 3 digits
+        const paddedNumber = nextNumber.toString().padStart(3, '0');
+        let formattedNumber;
+        if (centreLocation === "Tampines 253 Centre") {
+            formattedNumber = `TP${paddedNumber}`;
+        } else if (centreLocation === "Renewal Christian Church") {
+            formattedNumber = `R${paddedNumber}`;
+        } else if (centreLocation === "Sree Narayana Mission") {
+            formattedNumber = `SNM${paddedNumber}`;
+        } else {
+            // CT Hub, Pasir Ris West Wellness Centre, and any other centre: plain number
+            formattedNumber = paddedNumber;
         }
-            
-        // Return the formatted receipt number ok 
-        console.log("Debug - Final formatted receipt number:", `${courseLocation}${nextNumber}/${currentYear.toString()}`);
-       return `${courseLocation}${nextNumber}/${currentYear.toString()}`;
+
+        console.log("Debug - Final formatted receipt number:", `${courseLocation}${formattedNumber}/${currentYear.toString()}`);
+        return `${courseLocation}${formattedNumber}/${currentYear.toString()}`;
     }
     
     
     getNextReceiptNumberForPayNowCash(courseLocation, existingReceipts, centreLocation, currentYear) {
         let nextNumber;
-        const fullYear = new Date().getFullYear(); // 4-digit year e.g. 2026
+        const fullYear = getConfiguredYear(); // 4-digit year from RECEIPT_YEAR_CONFIG
     
         console.log("=== PayNow/Cash Receipt Generation Debug ===");
         console.log("Course Location:", courseLocation);
