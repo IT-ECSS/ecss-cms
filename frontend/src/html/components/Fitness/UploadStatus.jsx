@@ -102,20 +102,26 @@ class UploadStatus extends Component {
             String(row['Full Name (as Per NRIC)'] ?? row['Name'] ?? '').trim() !== ''
           );
           // Normalise: split combined DOB column ("DOB" or "Date of Birth (DD/MM/YYYY)") into DD, MM, YYYY
+          // Also title-case the name field so only the first character of each word is uppercase.
+          const titleCase = (str) => String(str || '').trim().toLowerCase().replace(/(^\w|\s\w)/g, c => c.toUpperCase());
           const normalisedRows = validRows.map(row => {
-            const rawDob = row['DOB (DD/MM/YYYY)'] || row['DOB'] || row['Date of Birth (DD/MM/YYYY)'];
+            const nameKey = 'Full Name (as Per NRIC)' in row ? 'Full Name (as Per NRIC)' : 'Name';
+            const normalisedRow = row[nameKey]
+              ? { ...row, [nameKey]: titleCase(row[nameKey]) }
+              : { ...row };
+            const rawDob = normalisedRow['DOB (DD/MM/YYYY)'] || normalisedRow['DOB'] || normalisedRow['Date of Birth (DD/MM/YYYY)'];
             if (rawDob) {
               const dobStr = dobToString(rawDob);
               const parts = dobStr.split('/');
               return {
-                ...row,
+                ...normalisedRow,
                 _dobRaw: dobStr,
                 DD: parts[0] ? parseInt(parts[0], 10) : '',
                 MM: parts[1] ? parseInt(parts[1], 10) : '',
                 YYYY: parts[2] ? String(parts[2]).trim() : '',
               };
             }
-            return row;
+            return normalisedRow;
           });
           sheetCounts[sheetName] = normalisedRows.length;
           normalisedRows.forEach(row => allData.push({ ...row, _sheetName: sheetName }));
@@ -223,8 +229,7 @@ class UploadStatus extends Component {
     const phoneNumber = row['Phone Number (No country code)'] || row['Phone Number'] || '';
     if (phoneNumber && String(phoneNumber).trim() !== '') {
       const phoneStr = String(phoneNumber).trim();
-      console.log(`Validating Contact Number for Participant ${rowIndex + 1}:`, phoneStr.length);
-      
+
       // Check if all characters are numeric
       const isNumeric = /^\d+$/.test(phoneStr);
       if (!isNumeric) {

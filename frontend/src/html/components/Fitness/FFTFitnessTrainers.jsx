@@ -2,19 +2,56 @@ import React, { Component } from 'react';
 import EventSelection from './EventSelection';
 import ReviewParticipantsResult from './ReviewParticipantsResult';
 import HomeConfirmModal from './HomeConfirmModal';
+import { SelectionBadgesBar } from './SelectionBadges';
 import '../../../css/fftAdmin.css';
 import '../../../css/fftStaff.css';
 
 class FFTFitnessTrainers extends Component {
   constructor(props) {
     super(props);
+    let restoredEvent = null;
+    try {
+      const saved = localStorage.getItem('fftFitnessTrainersSelection');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        restoredEvent = parsed.event || null;
+      }
+    } catch (e) {}
     this.state = {
-      selectedEvent: null,
-      view: null, // null = menu, 'reviewResults' = review
+      selectedEvent: restoredEvent,
+      view: null,
       showHomeConfirm: false,
+      reselectingBadge: null,
     };
     this._reviewRef = React.createRef();
   }
+
+  componentDidMount() {
+    const { selectedEvent } = this.state;
+    if (selectedEvent) {
+      this.props.onSelectionChange?.(selectedEvent);
+    }
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    const { selectedEvent } = this.state;
+    if (prevState.selectedEvent !== selectedEvent) {
+      try {
+        localStorage.setItem('fftFitnessTrainersSelection', JSON.stringify({ event: selectedEvent }));
+      } catch (e) {}
+      this.props.onSelectionChange?.(selectedEvent);
+    }
+    // Clear reselecting badge once a new event arrives back via props
+    if (this.state.reselectingBadge === 'event' && !prevProps.badgeEvent && this.props.badgeEvent) {
+      this.setState({ reselectingBadge: null });
+    }
+  }
+
+  // ── Public reset method (called from FFTPage via ref) ──
+  resetEvent = () => {
+    this._reviewRef.current?.reset?.();
+    this.setState({ selectedEvent: null, view: null });
+  };
 
   handleBack = () => {
     const { selectedEvent, view } = this.state;
@@ -34,6 +71,7 @@ class FFTFitnessTrainers extends Component {
 
   handleHomeYes = () => {
     this._reviewRef.current?.reset?.();
+    try { localStorage.removeItem('fftFitnessTrainersSelection'); } catch (e) {}
     this.setState({ showHomeConfirm: false, selectedEvent: null, view: null });
     this.props.onBack?.();
   };
@@ -67,19 +105,11 @@ class FFTFitnessTrainers extends Component {
             >
               <i className="fas fa-home"></i>
             </button>
-            {selectedEvent && (
-              <div style={{ marginLeft: '20px', flex: 1 }}>
-                <div
-                  className="fft-staff-event-badge"
-                  onClick={() => this.setState({ selectedEvent: null, view: null })}
-                  style={{ cursor: 'pointer' }}
-                  title="Change event"
-                >
-                  <span className="fft-staff-event-badge-label">EVENT</span>
-                  <span className="fft-staff-event-badge-name">{selectedEvent.name}</span>
-                </div>
-              </div>
-            )}
+            <SelectionBadgesBar
+              event={this.props.badgeEvent}
+              onEventClick={() => { this.setState({ reselectingBadge: 'event' }); this.props.onBadgeEventClick?.(); }}
+              showEventPlaceholder={this.state.reselectingBadge === 'event'}
+            />
           </div>
 
           <div className="fft-staff-landing-container">

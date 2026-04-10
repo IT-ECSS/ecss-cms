@@ -10,56 +10,11 @@ import LoadingSpinner from './LoadingSpinner';
 import LoadingParticipant from './LoadingParticipant';
 import fftTranslations from './fftTranslations';
 import HomeConfirmModal from './HomeConfirmModal';
+import { SelectionBadgesBar } from './SelectionBadges';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
   : 'https://ecss-backend-node.azurewebsites.net';
-
-class SelectedEventBadge extends Component {
-  render() {
-    const { event, onClick } = this.props;
-    const name = typeof event === 'string' ? event : (event?.name || '');
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        style={{
-          display: 'flex', flexDirection: 'column', gap: 6,
-          padding: '14px 20px', flex: 2, textAlign: 'left',
-          background: '#e8f5e9', border: 'none', borderBottom: '2px solid #b2dfcf',
-          cursor: 'pointer',
-        }}
-      >
-        <span style={{ fontSize: '1.406em', color: '#2e7d32', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700 }}>Event</span>
-        <span style={{ fontSize: '2.031em', fontWeight: 700, color: '#2e7d32' }}>{name}</span>
-      </button>
-    );
-  }
-}
-
-class SelectedStationBadge extends Component {
-  render() {
-    const { station, onClick } = this.props;
-    const num = station?.num || station?.key?.match(/^\d+/) || '';
-    const name = typeof station === 'string' ? station : (station?.title || station?.name || station?.label || '');
-    const displayText = num ? `${num}: ${name}` : name;
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        style={{
-          display: 'flex', flexDirection: 'column', gap: 6,
-          padding: '14px 20px', flex: 2, textAlign: 'left',
-          background: '#e3f0ff', border: 'none', borderBottom: '2px solid #c5d9f5',
-          cursor: 'pointer',
-        }}
-      >
-        <span style={{ fontSize: '1.406em', color: '#1565c0', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700 }}>Station</span>
-        <span style={{ fontSize: '2.031em', fontWeight: 700, color: '#1565c0' }}>{displayText}</span>
-      </button>
-    );
-  }
-}
 
 class FFTVolunteers extends Component {
   constructor(props) {
@@ -74,6 +29,7 @@ class FFTVolunteers extends Component {
       lookupError: null,
       entryNumber: null,
       showHomeConfirm: false,
+      reselectingBadge: null,
     };
   }
 
@@ -126,6 +82,16 @@ class FFTVolunteers extends Component {
       } catch (e) {
         // ignore
       }
+      if (prevState.selectedEvent !== selectedEvent || prevState.selectedStation !== selectedStation) {
+        this.props.onSelectionChange?.(selectedEvent, selectedStation);
+      }
+    }
+    // Clear reselecting badge once a new event arrives back via props
+    if (this.state.reselectingBadge === 'event' && !prevProps.badgeEvent && this.props.badgeEvent) {
+      this.setState({ reselectingBadge: null });
+    }
+    if (this.state.reselectingBadge === 'station' && !prevProps.badgeStation && this.props.badgeStation) {
+      this.setState({ reselectingBadge: null });
     }
   }
 
@@ -165,7 +131,6 @@ class FFTVolunteers extends Component {
       
       if (res.data.success) {
         const data = res.data.data;
-        console.log('Participant data:', data);
 
         // Treat empty rows (no name) as not found
         if (!data.Name && !data['Chinese Name']) {
@@ -200,6 +165,15 @@ class FFTVolunteers extends Component {
     this.setState({ participantData: null, entryNumber: null, entryError: null, lookupError: null });
   };
 
+  // ── Public reset methods (called from FFTPage via ref) ──
+  resetEvent = () => {
+    this.setState({ selectedEvent: null, selectedStation: null, participantData: null, entryNumber: null, entryError: null, lookupError: null });
+  };
+
+  resetStation = () => {
+    this.setState({ selectedStation: null, participantData: null, entryNumber: null, entryError: null, lookupError: null });
+  };
+
   // ── Navigation ──
   handleBack = () => {
     const { selectedEvent, selectedStation, participantData, lookupError } = this.state;
@@ -226,7 +200,7 @@ class FFTVolunteers extends Component {
       <div className="fft-volunteers-wrapper">
         {/* Header with home and back buttons */}
         <div className="fft-volunteers-header">
-          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'stretch', padding: '16px 16px 12px', gap: 10 }}>
+          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'stretch', flexWrap: 'wrap', width: '100%', padding: '16px 16px 12px', gap: 10 }}>
             {/* Left: nav buttons */}
             <div style={{ display: 'flex', flexDirection: 'row', gap: 10, alignItems: 'center', flexShrink: 0 }}>
               <button className="fft-volunteers-icon-btn" onClick={this.handleBack} title="Back">
@@ -236,27 +210,14 @@ class FFTVolunteers extends Component {
                 <i className="fas fa-home"></i>
               </button>
             </div>
-
-            {/* Right: description + badges */}
-            {(selectedEvent || selectedStation) && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 0 }}>
-                <span style={{ fontSize: '1.3125em', color: '#555' }}>Click on a badge below to re-select your event or station</span>
-                <div style={{ display: 'flex', flexDirection: 'row', gap: 8 }}>
-                  {selectedEvent && (
-                    <SelectedEventBadge
-                      event={selectedEvent}
-                      onClick={() => this.setState({ selectedEvent: null, selectedStation: null, participantData: null, entryNumber: null, entryError: null, lookupError: null })}
-                    />
-                  )}
-                  {selectedStation && (
-                    <SelectedStationBadge
-                      station={selectedStation}
-                      onClick={() => this.setState({ selectedStation: null, participantData: null, entryNumber: null, entryError: null, lookupError: null })}
-                    />
-                  )}
-                </div>
-              </div>
-            )}
+            <SelectionBadgesBar
+              event={this.props.badgeEvent}
+              station={this.props.badgeStation}
+              onEventClick={() => { this.setState({ reselectingBadge: 'event' }); this.props.onBadgeEventClick?.(); }}
+              onStationClick={() => { this.setState({ reselectingBadge: 'station' }); this.props.onBadgeStationClick?.(); }}
+              showEventPlaceholder={this.state.reselectingBadge === 'event'}
+              showStationPlaceholder={this.state.reselectingBadge === 'station'}
+            />
           </div>
         </div>
 

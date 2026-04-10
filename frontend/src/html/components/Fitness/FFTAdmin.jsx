@@ -6,6 +6,7 @@ import CreateEventForm from './CreateEventForm';
 import CreateFFTEventTimeSlots from './CreateFFTEventTimeSlots';
 import CreateFileForm from './CreateFileForm';
 import ChooseFileForm from './ChooseFileForm';
+import { SelectionBadgesBar } from './SelectionBadges';
 import HomeConfirmModal from './HomeConfirmModal';
 import AccessMasterData from './AccessMasterData';
 import RegistrationLinksAdmin from './RegistrationLinksAdmin';
@@ -123,7 +124,7 @@ class FFTAdmin extends Component {
     return (
       <div className="fft-participants-wrapper">
         <div className="fft-participants-header">
-          <div className="fft-participants-header-top-row" style={{ display: 'flex', gap: '12px' }}>
+          <div className="fft-participants-header-top-row" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', width: '100%' }}>
             <button
               className="fft-participants-icon-btn"
               onClick={this.handleBack}
@@ -138,6 +139,11 @@ class FFTAdmin extends Component {
             >
               <i className="fas fa-home"></i>
             </button>
+            <SelectionBadgesBar
+              language={this.props.badgeLanguage}
+              event={this.props.badgeEvent}
+              slot={this.props.badgeSlot}
+            />
           </div>
         </div>
 
@@ -227,7 +233,7 @@ class FFTAdmin extends Component {
             minHeight: 'fit-content',
             width: '100%',
             backgroundColor: '#f5f5f5',
-            padding: '40px 0',
+            padding: 'clamp(16px, 4vw, 40px) 0',
             margin: '0',
             boxSizing: 'border-box',
           }}>

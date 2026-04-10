@@ -47,6 +47,7 @@ class StaffUses extends Component {
       try {
         localStorage.setItem(this.staffViewStorageKey, JSON.stringify({ view: this.state.view }));
       } catch (e) {}
+      this.props.onViewChange?.(this.state.view);
     }
   }
 

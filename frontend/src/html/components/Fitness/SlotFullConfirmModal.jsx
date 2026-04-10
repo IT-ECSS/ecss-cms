@@ -8,19 +8,45 @@ class SlotFullConfirmModal extends Component {
     if (!visible) return null;
 
     const t = (key) => fftTranslations[key]?.[language] || fftTranslations[key]?.en || '';
+    const modalCardStyle = {
+      background: '#fff',
+      borderRadius: 12,
+      width: 'min(92vw, 520px)',
+      maxWidth: '92vw',
+      maxHeight: 'calc(100dvh - 24px)',
+      boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+      overflow: 'auto',
+      display: 'flex',
+      flexDirection: 'column',
+      boxSizing: 'border-box',
+    };
+    const modalActionStyle = (borderColor, textColor) => ({
+      flex: '1 1 180px',
+      minWidth: 0,
+      width: '100%',
+      padding: '15px 20px',
+      borderRadius: 8,
+      border: `2px solid ${borderColor}`,
+      background: 'transparent',
+      color: textColor,
+      fontWeight: 700,
+      fontSize: '1.1rem',
+      cursor: 'pointer',
+      whiteSpace: 'normal',
+      textAlign: 'center',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      lineHeight: 1.3,
+    });
 
     return (
       <div className="modal-overlay" onClick={onNo}>
         <div
           onClick={(e) => e.stopPropagation()}
-          style={{
-            background: '#fff', borderRadius: 12, width: 'fit-content',
-            maxWidth: '90vw', minWidth: 320,
-            boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
-            overflow: 'hidden', display: 'flex', flexDirection: 'column',
-          }}
+          style={modalCardStyle}
         >
-          <div style={{ padding: '28px 40px', textAlign: 'center' }}>
+          <div style={{ padding: 'clamp(20px, 4vw, 28px) clamp(18px, 5vw, 40px)', textAlign: 'center' }}>
             <i className="fas fa-circle-question" style={{ fontSize: '2.5rem', color: '#222', marginBottom: 16 }}></i>
             <h3 style={{ color: '#111', fontWeight: 700, fontSize: '1.875rem', margin: '0 0 12px' }}>
               {t('slotFullModalTitle')}
@@ -30,40 +56,18 @@ class SlotFullConfirmModal extends Component {
             </p>
           </div>
 
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', alignItems: 'center', padding: '0 24px 24px' }}>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', alignItems: 'stretch', flexWrap: 'wrap', padding: '0 24px 24px' }}>
             <button
               type="button"
               onClick={onYes}
-              style={{
-                minWidth: 220,
-                padding: '15px 20px', borderRadius: 8, border: '2px solid #2e7d32',
-                background: 'transparent', color: '#2e7d32', fontWeight: 700,
-                fontSize: '1.25rem', cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                textAlign: 'center',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                lineHeight: 1,
-              }}
+              style={modalActionStyle('#2e7d32', '#2e7d32')}
             >
               {t('slotFullModalYes')}
             </button>
             <button
               type="button"
               onClick={onNo}
-              style={{
-                minWidth: 220,
-                padding: '15px 20px', borderRadius: 8, border: '2px solid #d32f2f',
-                background: 'transparent', color: '#d32f2f', fontWeight: 700,
-                fontSize: '1.25rem', cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                textAlign: 'center',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                lineHeight: 1,
-              }}
+              style={modalActionStyle('#d32f2f', '#d32f2f')}
             >
               {t('slotFullModalNo')}
             </button>

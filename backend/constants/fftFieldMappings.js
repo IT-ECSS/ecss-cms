@@ -3,34 +3,31 @@
  * Maps exact column headers to column letters for Google Sheets
  */
 
-// Exact column headers → Column letters (A-Z)
+// Exact column headers → Column letters (A-W)
 const INTERNAL_KEY_TO_COLUMN_MAP = {
-    'S/N': 'A',
+    'Participant Number': 'A',
     'Name': 'B',
-    'Chinese Name': 'C',
-    'Phone Number': 'D',
-    'Gender': 'E',
-    'DD': 'F',
-    'MM': 'G',
-    'YYYY': 'H',
-    'Start Time': 'I',
-    'End Time': 'J',
-    'Age': 'K',
-    'Height': 'L',
-    'Weight': 'M',
-    'BMI': 'N',
-    'Date of test': 'O',
-    'Health Declaration': 'P',
-    'Indemnity': 'Q',
-    '30 secs Sit & Stand': 'R',
-    '30 secs Arm Banding': 'S',
-    '2 min On-the-spot Marching': 'T',
-    'Sit & Reach': 'U',
-    'Back Stretching': 'V',
-    '2.44m Speed Walk': 'W',
-    'Grip test': 'X',
-    'Improvements': 'Y',
-    'Remarks': 'Z'
+    'Phone Number': 'C',
+    'Gender': 'D',
+    'DD': 'E',
+    'MM': 'F',
+    'YYYY': 'G',
+    'Start Time': 'H',
+    'End Time': 'I',
+    'Age': 'J',
+    'Height': 'K',
+    'Weight': 'L',
+    'BMI': 'M',
+    'Date of test': 'N',
+    '30 secs Sit & Stand': 'O',
+    '30 secs Arm Banding': 'P',
+    '2 min On-the-spot Marching': 'Q',
+    'Sit & Reach': 'R',
+    'Back Stretching': 'S',
+    '2.44m Speed Walk': 'T',
+    'Grip test': 'U',
+    'Improvements': 'V',
+    'Remarks': 'W'
 };
 
 // Derive column headers in order from the map (A-U)

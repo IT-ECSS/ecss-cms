@@ -6,6 +6,7 @@ import BulkUpload from './BulkUpload';
 import FFTParticipants from './FFTParticipants';
 import HomeConfirmModal from './HomeConfirmModal';
 import UploadResultModal from './UploadResultModal';
+import { SelectionBadgesBar } from './SelectionBadges';
 import '../../../css/fftParticipants.css';
 import '../../../css/fftStaff.css';
 
@@ -125,7 +126,7 @@ class FFTRegistration extends Component {
         <div className="fft-participants-form">
 
           {/* Persistent navigation header — matches FFTParticipants layout */}
-          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'stretch', padding: '16px 16px 12px', gap: 10 }}>
+          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'stretch', flexWrap: 'wrap', width: '100%', padding: '16px 16px 12px', gap: 10 }}>
             {/* Left: nav buttons */}
             <div style={{ display: 'flex', flexDirection: 'row', gap: 10, alignItems: 'center', flexShrink: 0 }}>
               <button
@@ -148,48 +149,19 @@ class FFTRegistration extends Component {
 
             {/* Right: description + badges stacked */}
             {language && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: '1 1 320px', minWidth: 0, width: '100%' }}>
                 <span style={{ fontSize: '1.3125em', color: '#555' }}>
                   Click on a badge below to re-select your language{event ? ' or event' : ''}
                 </span>
-                <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                  {/* Language badge */}
-                  <button
-                    type="button"
-                    onClick={() => this.setState({ view: 'selectLanguage', reselecting: 'language', previousView: view })}
-                    onMouseUp={(e) => e.currentTarget.blur()}
-                    style={{
-                      display: 'flex', flexDirection: 'column', gap: 6,
-                      padding: '14px 20px', flex: '0 0 calc(50% - 4px)', textAlign: 'left',
-                      background: '#e3f0ff', border: 'none', borderBottom: '2px solid #c5d9f5',
-                      cursor: 'pointer', boxSizing: 'border-box', outline: 'none',
-                      boxShadow: 'none', appearance: 'none', WebkitAppearance: 'none',
-                    }}
-                  >
-                    <span style={{ fontSize: '1.125em', color: '#1565c0', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700 }}>Language</span>
-                    <span style={{ fontSize: '1.625em', fontWeight: 700, color: '#1565c0' }}>
-                      {reselecting === 'language' ? '-' : ({ en: 'English', zh: '中文', ms: 'Bahasa Melayu' }[language] || language)}
-                    </span>
-                  </button>
-                  {/* Event badge */}
-                  {event && (
-                    <button
-                      type="button"
-                      onClick={() => this.setState({ view: 'selectEvent', reselecting: 'event', previousView: view })}
-                      onMouseUp={(e) => e.currentTarget.blur()}
-                      style={{
-                        display: 'flex', flexDirection: 'column', gap: 6,
-                        padding: '14px 20px', flex: '0 0 calc(50% - 4px)', textAlign: 'left',
-                        background: '#e8f5e9', border: 'none', borderBottom: '2px solid #b2dfcf',
-                        cursor: 'pointer', boxSizing: 'border-box', outline: 'none',
-                        boxShadow: 'none', appearance: 'none', WebkitAppearance: 'none',
-                      }}
-                    >
-                      <span style={{ fontSize: '1.125em', color: '#2e7d32', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700 }}>Event</span>
-                      <span style={{ fontSize: '1.625em', fontWeight: 700, color: '#2e7d32', wordBreak: 'break-word' }}>{reselecting === 'event' ? '-' : event.name}</span>
-                    </button>
-                  )}
-                </div>
+                <SelectionBadgesBar
+                  noBorder
+                  language={language}
+                  event={event}
+                  onLanguageClick={() => this.setState({ view: 'selectLanguage', reselecting: 'language', previousView: view })}
+                  onEventClick={event ? () => this.setState({ view: 'selectEvent', reselecting: 'event', previousView: view }) : undefined}
+                  showLanguagePlaceholder={reselecting === 'language'}
+                  showEventPlaceholder={reselecting === 'event'}
+                />
               </div>
             )}
           </div>

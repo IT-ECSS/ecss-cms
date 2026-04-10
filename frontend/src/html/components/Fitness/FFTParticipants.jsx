@@ -8,6 +8,7 @@ import ParticipantForm from './ParticipantForm';
 import ParticipantEntryNumber from './ParticipantEntryNumber';
 import fftTranslations from './fftTranslations';
 import HomeConfirmModal from './HomeConfirmModal';
+import { SelectionBadgesBar } from './SelectionBadges';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
@@ -26,9 +27,11 @@ class SubmitResultModal extends Component {
       }}>
         <div style={{
           background: '#fff', borderRadius: '16px',
-          padding: '40px 32px', textAlign: 'center',
+          padding: 'clamp(20px, 5vw, 40px) clamp(16px, 4vw, 32px)', textAlign: 'center',
           boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
-          minWidth: '280px', maxWidth: '360px', width: '90%',
+          maxWidth: '360px', width: '90%',
+          maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto',
+          boxSizing: 'border-box',
         }}>
           {error ? (
             <>
@@ -102,114 +105,6 @@ class SubmitResultModal extends Component {
   }
 }
 
-class SelectedLanguageBadge extends Component {
-  render() {
-    const { language, onClick, showPlaceholder } = this.props;
-    const labels = { en: 'English', zh: '中文', ms: 'Bahasa Melayu' };
-    const sectionLabel = { en: 'Language', zh: '语言', ms: 'Bahasa' };
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        onMouseUp={(e) => e.currentTarget.blur()}
-        style={{
-          display: 'flex', flexDirection: 'column', gap: 6,
-          padding: '14px 20px', flex: '0 0 calc(50% - 4px)', textAlign: 'left',
-          background: '#e3f0ff',
-          border: 'none',
-          borderBottom: '2px solid #c5d9f5',
-          cursor: 'pointer',
-          boxSizing: 'border-box',
-          outline: 'none',
-          boxShadow: 'none',
-          appearance: 'none',
-          WebkitAppearance: 'none',
-        }}
-      >
-        <span style={{ fontSize: '1.125em', color: '#1565c0', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700 }}>
-          {sectionLabel[language] || 'Language'}
-        </span>
-        <span style={{ fontSize: '1.625em', fontWeight: 700, color: '#1565c0' }}>
-          {showPlaceholder ? '-' : (labels[language] || language)}
-        </span>
-      </button>
-    );
-  }
-}
-
-class SelectedEventBadge extends Component {
-  render() {
-    const { event, language, onClick, showPlaceholder } = this.props;
-    const name = typeof event === 'string' ? event : (event?.name || '');
-    const sectionLabel = { en: 'Event', zh: '活动', ms: 'Acara' };
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        onMouseUp={(e) => e.currentTarget.blur()}
-        style={{
-          display: 'flex', flexDirection: 'column', gap: 6,
-          padding: '14px 20px', flex: '0 0 calc(50% - 4px)', textAlign: 'left',
-          background: '#e8f5e9',
-          border: 'none',
-          borderBottom: '2px solid #b2dfcf',
-          cursor: 'pointer',
-          boxSizing: 'border-box',
-          outline: 'none',
-          boxShadow: 'none',
-          appearance: 'none',
-          WebkitAppearance: 'none',
-        }}
-      >
-        <span style={{ fontSize: '1.125em', color: '#2e7d32', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700 }}>
-          {sectionLabel[language] || 'Event'}
-        </span>
-        <span style={{ fontSize: '1.625em', fontWeight: 700, color: '#2e7d32', wordBreak: 'break-word' }}>
-          {showPlaceholder ? '-' : name}
-        </span>
-      </button>
-    );
-  }
-}
-
-class SelectedSlotBadge extends Component {
-  render() {
-    const { slot, language, onClick, showPlaceholder } = this.props;
-    const slotWord = fftTranslations.timeSlotLabel?.[language] || fftTranslations.timeSlotLabel?.en || 'Time Slot';
-    // Format + localize: "Slot 1: 09:00-10:00" → "时间段 1: 09:00 - 10:00"
-    const normalized = slot ? slot.replace(/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/, '$1 - $2') : slot;
-    const slotMatch = String(normalized || '').match(/^Slot\s*(\d+)\s*:\s*(.*)$/i);
-    const slotLabel = slotMatch ? `${slotWord} ${slotMatch[1]}: ${slotMatch[2]}` : normalized;
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        onMouseUp={(e) => e.currentTarget.blur()}
-        style={{
-          display: 'flex', flexDirection: 'column', gap: 6,
-          padding: '14px 20px', flex: '0 0 calc(50% - 4px)', textAlign: 'left',
-          background: '#fff3e0',
-          border: 'none',
-          borderBottom: '2px solid #ffe0b2',
-          cursor: 'pointer',
-          boxSizing: 'border-box',
-          outline: 'none',
-          boxShadow: 'none',
-          appearance: 'none',
-          WebkitAppearance: 'none',
-        }}
-      >
-        <span style={{ fontSize: '1.125em', color: '#e65100', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700 }}>
-          {slotWord}
-        </span>
-        <span style={{ fontSize: '1.625em', fontWeight: 700, color: '#e65100', wordBreak: 'break-word' }}>
-          {showPlaceholder ? '-' : slotLabel}
-        </span>
-      </button>
-    );
-  }
-}
-
 class FFTParticipants extends Component {
   constructor(props) {
     super(props);
@@ -233,13 +128,10 @@ class FFTParticipants extends Component {
   formRef = React.createRef();
 
   get storageKey() {
-    // Scope the key to the specific event so different event forms never share state
-    // Also scope by storageScope prop so kiosk (/fft/form) and individual (/fft) never share state
+    // Stable key scoped only by storageScope so mount and save always resolve to the
+    // same string (event name can't be included here — it's null at mount time).
     const prefix = this.props.storageScope ? `${this.props.storageScope}_` : '';
-    const eventName = this.props.initialEvent?.name || this.state?.event?.name;
-    return eventName
-      ? `${prefix}fftParticipantsSelection_${eventName}`
-      : `${prefix}fftParticipantsSelection`;
+    return `${prefix}fftParticipantsSelection`;
   }
 
   get particularsStorageKey() {
@@ -328,7 +220,6 @@ class FFTParticipants extends Component {
     
     // For pre-registered participants, skip backend submission
     if (data.entryMethod === 'participantNumber' && data.participantNumber) {
-      console.log('[FFT] Pre-registered participant - skipping backend submission');
       this.setState({ showResultModal: false, showEntryNumber: true, entryNumber: data.participantNumber });
       return;
     }
@@ -412,7 +303,6 @@ class FFTParticipants extends Component {
       } catch (e) {}
     }
     // Normal restore from localStorage (non-SingPass navigation)
-    localStorage.removeItem('fftParticipantsSelection');
     try {
       const saved = localStorage.getItem(this.storageKey);
       if (saved) {
@@ -452,6 +342,9 @@ class FFTParticipants extends Component {
         } catch (e) {
           // ignore storage errors
         }
+        if (prevState.language !== language || prevState.event !== event || prevState.slot !== this.state.slot) {
+          this.props.onSelectionChange?.(language, event, this.state.slot);
+        }
       }
     }
   }
@@ -466,7 +359,7 @@ class FFTParticipants extends Component {
       <div className="fft-participants-wrapper">
         <div className="fft-participants-form">
           {/* Persistent navigation header */}
-          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'stretch', padding: '16px 16px 12px', gap: 10 }}>
+          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'stretch', flexWrap: 'wrap', width: '100%', padding: '16px 16px 12px', gap: 10 }}>
             {/* Left: nav buttons */}
             <div style={{ display: 'flex', flexDirection: 'row', gap: 10, alignItems: 'center', flexShrink: 0 }}>
               {!(this.props.hideBackOnLanguage && step === 'language') && (
@@ -493,35 +386,24 @@ class FFTParticipants extends Component {
 
             {/* Right: description + badges stacked */}
             {language && !this.props.hideStatus && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: '1 1 320px', minWidth: 0, width: '100%' }}>
                 <span style={{ fontSize: '1.3125em', color: '#555' }}>
                   {slot
                     ? (fftTranslations.headerDescWithSlot?.[language] ?? fftTranslations.headerDescWithSlot?.en)
                     : (fftTranslations.headerDesc?.[language] ?? fftTranslations.headerDesc?.en)}
                 </span>
-                <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                  <SelectedLanguageBadge
-                    language={language}
-                    showPlaceholder={reselecting === 'language'}
-                    onClick={() => this.setState({ reselecting: 'language', showEntryNumber: false })}
-                  />
-                  {event && (
-                    <SelectedEventBadge
-                      event={event}
-                      language={language}
-                      showPlaceholder={reselecting === 'event'}
-                      onClick={() => this.setState({ reselecting: 'event', showEntryNumber: false })}
-                    />
-                  )}
-                  {event && slot && (
-                    <SelectedSlotBadge
-                      slot={slot}
-                      language={language}
-                      showPlaceholder={reselecting === 'slot'}
-                      onClick={() => this.setState({ reselecting: 'slot', showEntryNumber: false })}
-                    />
-                  )}
-                </div>
+                <SelectionBadgesBar
+                  noBorder
+                  language={language}
+                  event={event}
+                  slot={slot}
+                  onLanguageClick={() => this.setState({ reselecting: 'language', showEntryNumber: false })}
+                  onEventClick={this.props.lockEvent ? undefined : () => this.setState({ reselecting: 'event', showEntryNumber: false })}
+                  onSlotClick={() => this.setState({ reselecting: 'slot', showEntryNumber: false })}
+                  showLanguagePlaceholder={reselecting === 'language'}
+                  showEventPlaceholder={reselecting === 'event'}
+                  showSlotPlaceholder={reselecting === 'slot'}
+                />
               </div>
             )}
           </div>

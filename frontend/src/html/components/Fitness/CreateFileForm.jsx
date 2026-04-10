@@ -33,8 +33,6 @@ class CreateFileForm extends React.Component {
         sheetName: 'Sheet1',
       });
 
-      console.log('Fetch Events Response:', response.data);
-
       if (response.data.success && response.data.data) 
     {
         const rows = response.data.data;
@@ -50,7 +48,6 @@ class CreateFileForm extends React.Component {
           status: row[5] ? 'Created' : 'Not Created',
         }));
 
-        console.log('Events loaded:', eventList);
         this.setState({ events: eventList, loadingEvents: false });
       } else {
         this.setState({ eventError: 'Unable to load events', loadingEvents: false });
@@ -82,7 +79,6 @@ class CreateFileForm extends React.Component {
           });
           if (yearFolderRes.data.success) {
             destinationFolderId = yearFolderRes.data.folderId;
-            console.log(`[FFT] Using year folder "${year}" (${destinationFolderId}) for event file`);
           }
         } catch (yearErr) {
           console.warn('[FFT] Failed to get/create year folder, using root folder:', yearErr.message);

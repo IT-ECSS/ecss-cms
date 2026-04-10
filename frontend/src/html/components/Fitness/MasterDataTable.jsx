@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import axios from 'axios';
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
+import LoadingModal from '../Common/LoadingModal';
 import '../../../css/ag-grid-custom-theme.css';
 import '../../../css/fftStaff.css';
 
@@ -113,9 +114,10 @@ class MasterDataTable extends Component {
         { field: 'Participant Number', headerName: 'Participant Number', width: 250 },
         { field: 'Name',               headerName: 'Name',               width: 200},
         { field: 'Phone Number',       headerName: 'Phone Number',       width: 200 },
+        { field: 'Date Of Birth',      headerName: 'Date Of Birth',      width: 200 },
         { field: 'Start Time',         headerName: 'Start Time',         width: 150 },
         { field: 'End Time',           headerName: 'End Time',           width: 150 },
-      ].filter(col => col.field in processedRaw[0]);
+      ];
       this.setState({ loading: false, rowData: processedRaw, columnDefs });
     } catch (err) {
       this.setState({ loading: false, error: 'Failed to load data. Please try again.' });
@@ -127,41 +129,44 @@ class MasterDataTable extends Component {
     const { rowData, columnDefs, loading, error } = this.state;
 
     return (
-      <div className="fft-participants-section">
-        <div className="fft-participants-section-header">
-          <h3 style={{ fontSize: '2rem', fontWeight: 700, color: '#212121', margin: 0, whiteSpace: 'nowrap' }}>Access Master Data (View Only)</h3>
-          <hr style={{ margin: '12px 0' }} />
-          <div className="fft-participants-section-desc" style={{ marginBottom: '12px', color: '#555', fontSize: '1em' }}>
-            Viewing read-only participant data. No edits can be made from this view.
+      <>
+        <div className="fft-participants-section">
+          <div className="fft-participants-section-header">
+            <h3 style={{ fontSize: '2rem', fontWeight: 700, color: '#212121', margin: 0, whiteSpace: 'nowrap' }}>Access Master Data (View Only)</h3>
+            <hr style={{ margin: '12px 0' }} />
+            <div className="fft-participants-section-desc" style={{ marginBottom: '12px', color: '#555', fontSize: '1em' }}>
+              Viewing read-only participant data. No edits can be made from this view.
+            </div>
           </div>
+
+          {loading && <p style={{ color: '#555', padding: '16px 0' }}>Loading data…</p>}
+          {error   && <p style={{ color: '#d32f2f', padding: '16px 0' }}>{error}</p>}
+
+          {!loading && !error && rowData.length === 0 && (
+            <p style={{ color: '#888', padding: '16px 0' }}>No data found for this event.</p>
+          )}
+
+          {!loading && rowData.length > 0 && (
+            <div
+              className="grid-container fft-upload-grid"
+              style={{ width: '100%', maxWidth: '100%', height: '500px', marginLeft: 0 }}
+            >
+              <AgGridReact
+                ref={this.gridRef}
+                columnDefs={columnDefs}
+                rowData={rowData}
+                domLayout="normal"
+                pagination={true}
+                paginationPageSize={rowData.length}
+                paginationPageSizeSelector={[25, 50, 75, 100, rowData.length]}
+                defaultColDef={{ sortable: true, resizable: true, minWidth: 80 }}
+                suppressCellFocus={true}
+              />
+            </div>
+          )}
         </div>
-
-        {loading && <p style={{ color: '#555', padding: '16px 0' }}>Loading data…</p>}
-        {error   && <p style={{ color: '#d32f2f', padding: '16px 0' }}>{error}</p>}
-
-        {!loading && !error && rowData.length === 0 && (
-          <p style={{ color: '#888', padding: '16px 0' }}>No data found for this event.</p>
-        )}
-
-        {!loading && rowData.length > 0 && (
-          <div
-            className="grid-container fft-upload-grid"
-            style={{ width: '100%', maxWidth: '100%', height: '500px', marginLeft: 0 }}
-          >
-            <AgGridReact
-              ref={this.gridRef}
-              columnDefs={columnDefs}
-              rowData={rowData}
-              domLayout="normal"
-              pagination={true}
-              paginationPageSize={rowData.length}
-              paginationPageSizeSelector={[25, 50, 75, 100, rowData.length]}
-              defaultColDef={{ sortable: true, resizable: true, minWidth: 80 }}
-              suppressCellFocus={true}
-            />
-          </div>
-        )}
-      </div>
+        <LoadingModal visible={loading} message="Loading data..." />
+      </>
     );
   }
 }

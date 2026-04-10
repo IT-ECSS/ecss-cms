@@ -90,3 +90,35 @@
     font-size: 1.25em;
   }
 }
+
+@media (max-width: 480px) {
+  .fft-staff-options-buttons {
+    gap: 12px;
+  }
+
+  .fft-staff-options-title {
+    font-size: 1.3em;
+  }
+
+  .fft-staff-option-btn {
+    padding: 24px 16px;
+  }
+
+  .fft-staff-option-btn-name {
+    font-size: 1.5em;
+  }
+}
+
+@media (max-width: 360px) {
+  .fft-staff-options-title {
+    font-size: 1.15em;
+  }
+
+  .fft-staff-option-btn {
+    padding: 18px 14px;
+  }
+
+  .fft-staff-option-btn-name {
+    font-size: 1.35em;
+  }
+}

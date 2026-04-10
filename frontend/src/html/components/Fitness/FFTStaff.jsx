@@ -3,6 +3,7 @@ import EventSelection from './EventSelection';
 import StaffUses from './StaffUses';
 import UploadResultModal from './UploadResultModal';
 import HomeConfirmModal from './HomeConfirmModal';
+import { SelectionBadgesBar } from './SelectionBadges';
 import '../../../css/fftParticipants.css';
 import '../../../css/fftStaff.css';
 
@@ -31,6 +32,8 @@ class FFTStaff extends Component {
       event: restoredEvent,
       section: restoredSection,
       showHomeConfirm: false,
+      staffView: null,
+      reselectingBadge: null,
     };
     this.bulkUploadRef = React.createRef();
     this.staffUsesRef = React.createRef();
@@ -42,8 +45,27 @@ class FFTStaff extends Component {
       try {
         localStorage.setItem('fftStaffSession', JSON.stringify({ section, event }));
       } catch (e) {}
+      if (prevState.event !== event) {
+        this.props.onSelectionChange?.(event);
+      }
+    }
+    // Clear reselecting badge once a new event arrives back via props
+    if (this.state.reselectingBadge === 'event' && !prevProps.badgeEvent && this.props.badgeEvent) {
+      this.setState({ reselectingBadge: null });
     }
   }
+
+  // ── Public reset method (called from FFTPage via ref) ──
+  resetEvent = () => {
+    try {
+      const stored = localStorage.getItem('reviewParticipantsState');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        localStorage.setItem('reviewParticipantsState', JSON.stringify({ ...parsed, entryNumber: null }));
+      }
+    } catch (e) {}
+    this.setState({ section: 'selectEvent', event: null });
+  };
 
   handleBack = () => {
     const { section } = this.state;
@@ -75,7 +97,7 @@ class FFTStaff extends Component {
     const { event, section } = this.state;
 
     return (
-      <div className="fft-participants-wrapper">
+      <div className="fft-staff-wrapper" style={this.state.staffView === 'masterData' ? { maxWidth: '80vw' } : undefined}>
         <div className="fft-staff-form">
 
           {/* Nav row: back + home buttons + event badge */}
@@ -96,31 +118,11 @@ class FFTStaff extends Component {
             >
               <i className="fas fa-home"></i>
             </button>
-            
-            {/* Event Badge - Show when event is selected */}
-            {event && (
-              <div style={{ marginLeft: '20px', flex: 1 }}>
-                <div
-                  className="fft-staff-event-badge"
-                  onClick={() => {
-                    // Reset participant lookup so Review Results starts at entry screen
-                    try {
-                      const stored = localStorage.getItem('reviewParticipantsState');
-                      if (stored) {
-                        const parsed = JSON.parse(stored);
-                        localStorage.setItem('reviewParticipantsState', JSON.stringify({ ...parsed, entryNumber: null }));
-                      }
-                    } catch (e) {}
-                    this.setState({ section: 'selectEvent', event: null });
-                  }}
-                  style={{ cursor: 'pointer' }}
-                  title="Change event"
-                >
-                  <span className="fft-staff-event-badge-label">Event</span>
-                  <span className="fft-staff-event-badge-name">{event.name}</span>
-                </div>
-              </div>
-            )}
+            <SelectionBadgesBar
+              event={this.props.badgeEvent}
+              onEventClick={() => { this.setState({ reselectingBadge: 'event' }); this.props.onBadgeEventClick?.(); }}
+              showEventPlaceholder={this.state.reselectingBadge === 'event'}
+            />
           </div>
 
           {/* Landing - Show sections one at a time */}
@@ -139,6 +141,7 @@ class FFTStaff extends Component {
                 initialEntryNumber={this.props.initialEntryNumber}
                 bulkUploadRef={this.bulkUploadRef}
                 onFilesChange={() => this.forceUpdate()}
+                onViewChange={(v) => this.setState({ staffView: v })}
                 onBack={() => this.setState({ section: 'selectEvent', event: null })}
                 onHome={() => {
                   localStorage.removeItem('fftStaffSession');

@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import axios from 'axios';
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
+import LoadingModal from '../Common/LoadingModal';
 import '../../../css/ag-grid-custom-theme.css';
 import '../../../css/fftEditParticipants.css';
 
@@ -66,7 +67,13 @@ class EditParticipants extends Component {
       const response = await axios.post(`${BACKEND_URL}/googleDrive/getParticipants`, {
         fileId: event.id,
       });
-      this.setState({ loading: false, participants: response.data || [] });
+      const participants = Array.isArray(response.data)
+        ? response.data.map((participant, index) => ({
+            ...participant,
+            __originalIndex: participant?.__originalIndex ?? index,
+          }))
+        : [];
+      this.setState({ loading: false, participants });
     } catch (err) {
       console.error('Failed to fetch participants:', err);
       this.setState({ loading: false, error: 'Failed to load participants. Please try again.' });
@@ -98,7 +105,7 @@ class EditParticipants extends Component {
   };
 
   onCellValueChanged = (params) => {
-    const rowIndex = params.node.rowIndex;
+    const rowIndex = params.data?.__originalIndex ?? params.node.rowIndex;
     const field = params.colDef.colId || params.colDef.field;
     const oldValue = params.oldValue;
     const newValue = params.newValue;
@@ -158,8 +165,10 @@ class EditParticipants extends Component {
         changedIndexes.map((idx) =>
           axios.post(`${BACKEND_URL}/googleDrive/updateParticipant`, {
             fileId: event.id,
-            rowIndex: parseInt(idx),
-            participantData: participants[parseInt(idx)],
+            rowIndex: parseInt(idx, 10),
+            participantData:
+              participants.find((participant) => participant.__originalIndex === parseInt(idx, 10)) ||
+              participants[parseInt(idx, 10)],
           })
         )
       );
@@ -173,7 +182,7 @@ class EditParticipants extends Component {
   getColumnDefs = () => [
     {
       headerName: 'Participant Number',
-      valueGetter: (params) => params.node.rowIndex + 1,
+      valueGetter: (params) => (params.data?.__originalIndex ?? params.node.rowIndex) + 1,
       width: 250,
       editable: false,
       sortable: false,
@@ -189,17 +198,9 @@ class EditParticipants extends Component {
       valueSetter: (params) => { if (params.data) { params.data['Name'] = params.newValue; } return true; },
     },
     {
-      colId: 'Chinese Name',
-      headerName: 'Chinese Name',
-      width: 160,
-      editable: true,
-      valueGetter: (params) => params.data ? params.data['Chinese Name'] || '' : '',
-      valueSetter: (params) => { if (params.data) { params.data['Chinese Name'] = params.newValue; } return true; },
-    },
-    {
       colId: 'Phone Number',
       headerName: 'Contact Number',
-      width: 200,
+      width: 250,
       editable: true,
       valueGetter: (params) => params.data ? params.data['Phone Number'] || '' : '',
       valueSetter: (params) => { if (params.data) { params.data['Phone Number'] = params.newValue; } return true; },
@@ -217,14 +218,16 @@ class EditParticipants extends Component {
     {
       colId: 'DateOfBirth',
       headerName: 'Date of Birth',
-      width: 160,
+      width: 200,
       editable: true,
       valueGetter: (params) => {
         if (!params.data) return '';
-        const dd = String(params.data['DD'] || '').padStart(2, '0');
-        const mm = String(params.data['MM'] || '').padStart(2, '0');
+        const ddRaw = params.data['DD'];
+        const mmRaw = params.data['MM'];
         const yyyy = params.data['YYYY'] || '';
-        if (!dd || !mm || !yyyy) return '';
+        if (!ddRaw || !mmRaw || !yyyy) return '';
+        const dd = String(ddRaw).padStart(2, '0');
+        const mm = String(mmRaw).padStart(2, '0');
         return `${dd}/${mm}/${yyyy}`;
       },
       valueSetter: (params) => {
@@ -240,7 +243,7 @@ class EditParticipants extends Component {
     {
       colId: 'Start Time',
       headerName: 'Start Time',
-      width: 130,
+      width: 150,
       editable: true,
       valueGetter: (params) => params.data ? params.data['Start Time'] || '' : '',
       valueSetter: (params) => { if (params.data) { params.data['Start Time'] = params.newValue; } return true; },
@@ -248,7 +251,7 @@ class EditParticipants extends Component {
     {
       colId: 'End Time',
       headerName: 'End Time',
-      width: 130,
+      width: 150,
       editable: true,
       valueGetter: (params) => params.data ? params.data['End Time'] || '' : '',
       valueSetter: (params) => { if (params.data) { params.data['End Time'] = params.newValue; } return true; },
@@ -278,7 +281,8 @@ class EditParticipants extends Component {
     const showErrors = saveAttempted && hasValidationErrors;
 
     return (
-      <div className="fft-edit-participants">
+      <>
+        <div className="fft-edit-participants">
         {/* Header */}
         <div className="fft-edit-header">
           <h4 className="fft-edit-title">Edit Participants</h4>
@@ -310,7 +314,7 @@ class EditParticipants extends Component {
 
         {/* AG Grid */}
         {!loading && participants.length > 0 && (
-          <div className="grid-container fft-upload-grid fft-edit-grid" style={{ width: '100%', maxWidth: '100%', height: '450px', marginLeft: 0 }}>
+          <div className="grid-container fft-upload-grid fft-edit-grid" style={{ width: '100%', maxWidth: '100%', height: 'clamp(320px, 55vh, 450px)', marginLeft: 0 }}>
             <AgGridReact
               ref={this.gridRef}
               columnDefs={this.getColumnDefs()}
@@ -321,7 +325,7 @@ class EditParticipants extends Component {
               stopEditingWhenCellsLoseFocus={true}
               onCellValueChanged={this.onCellValueChanged}
               getRowStyle={(params) => {
-                const idx = params.node.rowIndex;
+                const idx = params.data?.__originalIndex ?? params.node.rowIndex;
                 if (showErrors && validationErrors[idx]) return { background: '#ffebee' };
                 if (pendingChanges[idx]) return { background: '#fff8e1' };
                 return undefined;
@@ -359,7 +363,7 @@ class EditParticipants extends Component {
                       <span className="fft-edit-changes-rownum">Row {parseInt(rowIdx) + 1}</span>
                       {Object.entries(fields).map(([field, { oldValue, newValue }]) => (
                         <span key={field} className="fft-edit-changes-field">
-                          <strong>{field}:</strong> <span className="fft-edit-old">{oldValue || '—'}</span> → <span className="fft-edit-new">{newValue || '—'}</span>
+                          <strong>{field}:</strong> <span className="fft-edit-old">—</span> → <span className="fft-edit-new">{newValue || '—'}</span>
                         </span>
                       ))}
                       {Object.values(errors).map((msg, i) => (
@@ -382,7 +386,7 @@ class EditParticipants extends Component {
         {hasPending && !saveAttempted && (
           <button
             className="fft-edit-btn fft-edit-btn--save"
-            style={{ margin: '16px auto 0', width: 'fit-content', display: 'block' }}
+            style={{ margin: '16px auto 0', width: '100%', maxWidth: '240px', display: 'block' }}
             onClick={this.handleSaveAll}
             disabled={saving}
           >
@@ -397,7 +401,9 @@ class EditParticipants extends Component {
             <i className="fas fa-check-circle"></i> Changes saved successfully.
           </div>
         )}
-      </div>
+        </div>
+        <LoadingModal visible={loading} message="Loading participants..." />
+      </>
     );
   }
 }

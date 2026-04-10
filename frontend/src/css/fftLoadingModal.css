@@ -1,33 +1,47 @@
 .fft-loading-modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
+  inset: 0;
+  padding: clamp(12px, 3vw, 24px);
   width: 100vw;
   height: 100vh;
-  background: rgba(0,0,0,0.3);
+  background: rgba(0, 0, 0, 0.3);
   z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
 }
 
 .fft-loading-modal-content {
   background: #fff;
   border-radius: 12px;
-  padding: 32px 48px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+  padding: clamp(20px, 4vw, 32px) clamp(18px, 5vw, 48px);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: min(92vw, 420px);
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  text-align: center;
+  box-sizing: border-box;
 }
 
 .fft-loading-modal-spinner {
-  font-size: 2.5rem;
+  font-size: clamp(2rem, 4vw, 2.5rem);
   color: #0066cc;
   margin-bottom: 18px;
 }
 
 .fft-loading-modal-message {
-  font-size: 1.25rem;
+  font-size: clamp(1rem, 2.5vw, 1.25rem);
   color: #333;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+@media (max-width: 480px) {
+  .fft-loading-modal-content {
+    border-radius: 10px;
+  }
 }

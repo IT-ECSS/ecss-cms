@@ -22,8 +22,8 @@ class ParticipantEntryNumber extends Component {
               </div>
             </div>
 
-            {/* Entry number card — hidden on public form */}
-            {showParticipantNumber && entryNumber != null && (
+            {/* Entry number card — always shown after successful submission */}
+            {entryNumber != null && (
               <div
                 style={{
                   display: 'inline-block',

@@ -192,6 +192,10 @@ class CreateFFTEventTimeSlots extends React.Component {
 
     const participantsInvalid = participantsPerTimeslot.trim() === '' || isNaN(parsedParticipants) || parsedParticipants < 1;
     const slotsInvalid = numberOfTimeslots.trim() === '' || isNaN(parsedSlots) || parsedSlots < 1;
+    const fieldRowStyle = { display: 'flex', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px 16px' };
+    const fieldLabelStyle = { flex: '1 1 240px', minWidth: 0, margin: 0, display: 'flex', alignItems: 'center' };
+    const fieldInputStyle = { flex: '1 1 220px', minWidth: 0, width: '100%' };
+    const fieldErrorStyle = { color: '#d32f2f', fontSize: '0.9em', marginTop: '6px', paddingLeft: 0 };
 
     return (
       <div className="fft-participants-wrapper">
@@ -206,19 +210,19 @@ class CreateFFTEventTimeSlots extends React.Component {
 
           {/* Participants Per Time Slot */}
           <div style={{ marginTop: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <label className="fft-create-event-label" style={{ width: '300px', flexShrink: 0, margin: 0, display: 'flex', alignItems: 'center' }}>Number of Participants per Time Slot</label>
+            <div style={fieldRowStyle}>
+              <label className="fft-create-event-label" style={fieldLabelStyle}>Number of Participants per Time Slot</label>
               <input
                 type="text"
                 placeholder="e.g., 10"
                 value={participantsPerTimeslot}
                 onChange={(e) => this.setState({ participantsPerTimeslot: e.target.value })}
                 className="fft-create-event-input"
-                style={{ flex: 1, borderColor: submitted && participantsInvalid ? '#d32f2f' : undefined }}
+                style={{ ...fieldInputStyle, borderColor: submitted && participantsInvalid ? '#d32f2f' : undefined }}
               />
             </div>
             {submitted && participantsInvalid && (
-              <div style={{ color: '#d32f2f', fontSize: '0.9em', marginTop: '4px', paddingLeft: '316px' }}>
+              <div style={fieldErrorStyle}>
                 Please enter a valid number of participants (minimum 1).
               </div>
             )}
@@ -227,19 +231,19 @@ class CreateFFTEventTimeSlots extends React.Component {
           {/* Number of Time Slots */}
           {(participantsPerTimeslot.trim() !== '' || numberOfTimeslots.trim() !== '') && (
             <div style={{ marginTop: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <label className="fft-create-event-label" style={{ width: '300px', flexShrink: 0, margin: 0, display: 'flex', alignItems: 'center' }}>Number of Time Slots</label>
+              <div style={fieldRowStyle}>
+                <label className="fft-create-event-label" style={fieldLabelStyle}>Number of Time Slots</label>
                 <input
                   type="text"
                   placeholder="e.g., 5"
                   value={numberOfTimeslots}
                   onChange={(e) => this.handleTimeslotsChange(e.target.value)}
                   className="fft-create-event-input"
-                  style={{ flex: 1, borderColor: submitted && slotsInvalid ? '#d32f2f' : undefined }}
+                  style={{ ...fieldInputStyle, borderColor: submitted && slotsInvalid ? '#d32f2f' : undefined }}
                 />
               </div>
               {submitted && slotsInvalid && (
-                <div style={{ color: '#d32f2f', fontSize: '0.9em', marginTop: '4px', paddingLeft: '316px' }}>
+                <div style={fieldErrorStyle}>
                   Please enter a valid number of time slots (minimum 1).
                 </div>
               )}
@@ -258,7 +262,7 @@ class CreateFFTEventTimeSlots extends React.Component {
                   return (
                     <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       <div style={{
-                        display: 'flex', alignItems: 'center', gap: '12px',
+                        display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '12px',
                         background: '#f9f9f9', border: `1px solid ${(startInvalid || endInvalid || endBeforeStart) ? '#d32f2f' : '#e0e0e0'}`,
                         borderRadius: '8px', padding: '12px 16px',
                       }}>
@@ -287,7 +291,7 @@ class CreateFFTEventTimeSlots extends React.Component {
                         <span style={{ color: '#999', fontWeight: 600 }}>–</span>
 
                         {/* End time */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 180px', minWidth: 0 }}>
                           <label style={{ fontSize: '0.9rem', color: '#555', whiteSpace: 'nowrap' }}>End</label>
                           <input
                             type="time"
@@ -349,12 +353,13 @@ class CreateFFTEventTimeSlots extends React.Component {
           )}
 
           {/* Buttons */}
-          <div style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>
+          <div style={{ marginTop: '24px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
             {submitResult ? (
               <button
                 type="button"
                 onClick={this.props.onFinish}
                 className="fft-create-event-btn fft-create-event-btn-finish"
+                style={{ flex: '1 1 180px' }}
               >
                 Finish
               </button>
@@ -365,6 +370,7 @@ class CreateFFTEventTimeSlots extends React.Component {
                   onClick={onBack}
                   disabled={submitting}
                   className="fft-create-event-btn fft-create-event-btn-clear"
+                  style={{ flex: '1 1 180px' }}
                 >
                   Back
                 </button>
@@ -373,6 +379,7 @@ class CreateFFTEventTimeSlots extends React.Component {
                   onClick={this.handleSubmit}
                   disabled={submitting}
                   className="fft-create-event-btn fft-create-event-btn-create"
+                  style={{ flex: '1 1 180px' }}
                 >
                   {submitting ? 'Submitting...' : 'Submit'}
                 </button>

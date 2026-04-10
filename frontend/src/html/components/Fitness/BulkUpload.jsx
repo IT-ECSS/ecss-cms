@@ -134,18 +134,18 @@ class BulkUpload extends Component {
         this.setState({ uploadProgress: currentEntry, totalEntries }, () => this.props.onFilesChange?.());
 
         try {
-          const nameVal = String(row['Full Name (as Per NRIC)'] || row.Name || '').trim();
-          if (!nameVal) {
+          const nameRaw = String(row['Full Name (as Per NRIC)'] || row.Name || '').trim();
+          if (!nameRaw) {
             // Row has no name — skip silently (shouldn't reach here after frontend filtering)
             skipCount++;
             continue;
           }
+          const nameVal = nameRaw.toLowerCase().replace(/(^\w|\s\w)/g, c => c.toUpperCase());
           const startTime = row['Start Time (HH:MM - 24 hrs format)'] || row['Start Time'] || '';
           const endTime = row['End Time (HH:MM - 24 hrs format)'] || row['End Time'] || row['Time End'] || (startTime ? slotMap[startTime] : '') || '';
           const participantData = {
             entryMethod: 'Bulk Registration',
             name: nameVal,
-            chineseName: row['Chinese Name'] || '',
             phone: row['Phone Number (No country code)'] || row['Phone Number'] || '',
             gender: row['Gender (M/F)'] || row.Gender || '',
             dateOfBirth: `${row.DD}/${row.MM}/${row.YYYY}`,
@@ -156,8 +156,6 @@ class BulkUpload extends Component {
             weight: row.Weight || '',
             bmi: row.BMI || '',
             dateOfTest: row['Date of test'] || '',
-            healthDeclaration: row['Health Declaration'] || '',
-            indemnity: row.Indemnity || '',
             sitStand: row['30 secs Sit & Stand'] || '',
             armBanding: row['30 secs Arm Banding'] || '',
             marchingInPlace: row['2 min On-the-spot Marching'] || '',
@@ -169,19 +167,17 @@ class BulkUpload extends Component {
             remarks: row.Remarks || '',
           };
 
-          const response = await axios.post(`${BACKEND_URL}/googleDrive/fftSubmit`, {
+          await axios.post(`${BACKEND_URL}/googleDrive/fftSubmit`, {
             eventName: event.name,
             eventFileId: event.id,
             entryMethod: 'Bulk Registration',
             participantData
           });
 
-          console.log('Participant uploaded:', response.data);
           successCount++;
         } catch (error) {
           // 409 means duplicate — skip silently
           if (error.response && error.response.status === 409 && error.response.data?.alreadyRegistered) {
-            console.log('Duplicate participant skipped:', error.response.data.message);
             skipCount++;
           } else {
             console.error('Failed to upload participant:', error);

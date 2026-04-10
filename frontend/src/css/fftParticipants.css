@@ -98,8 +98,10 @@
 .fft-participants-header-top-row {
   width: 100%;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 10px;
   margin-bottom: 12px;
 }
 
@@ -1452,5 +1454,41 @@
   .fft-participants-nav-btn {
     padding: 10px 18px;
     font-size: 1.3rem;
+  }
+}
+
+/* ── Mobile (≤ 480px) ── */
+@media (max-width: 480px) {
+  .fft-participants-nav-btn {
+    padding: 9px 14px;
+    font-size: 1.15rem;
+  }
+
+  .fft-participant-entry-manual-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .fft-participant-entry-input {
+    width: 100%;
+    max-width: 100%;
+    min-width: unset;
+  }
+
+  .fft-participant-entry-go-btn {
+    width: 100%;
+    flex: unset;
+  }
+}
+
+/* ── Small phones (≤ 360px) ── */
+@media (max-width: 360px) {
+  .fft-participants-nav-btn {
+    padding: 8px 12px;
+    font-size: 1rem;
+  }
+
+  .fft-participants-nav-buttons {
+    gap: 8px;
   }
 }

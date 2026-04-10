@@ -118,8 +118,24 @@ class EventSelection extends Component {
               </div>
             </div>
 
-            {loading && <div>{loadingText}</div>}
-            {error && <div style={{ color: 'red' }}>{error}</div>}
+            {loading && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 0', color: '#555' }}>
+                <i className="fas fa-spinner fa-spin" style={{ fontSize: '1.2rem', color: '#0066cc' }}></i>
+                <span>{loadingText}</span>
+              </div>
+            )}
+            {error && (
+              <div style={{ color: '#d32f2f', padding: '16px 0' }}>
+                {error}
+                <button
+                  type="button"
+                  onClick={this.loadEvents}
+                  style={{ marginLeft: 12, padding: '4px 14px', fontSize: '0.9rem', cursor: 'pointer', border: '1px solid #d32f2f', borderRadius: 4, background: 'none', color: '#d32f2f' }}
+                >
+                  Retry
+                </button>
+              </div>
+            )}
 
             {!loading && !error && events.length === 0 && (
               <div style={{ color: '#888', padding: '16px 0', fontSize: '1em' }}>

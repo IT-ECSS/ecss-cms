@@ -54,7 +54,7 @@ class ParticularsSection extends Component {
     let { value } = e.target;
 
     if (name === 'name') {
-      value = value.replace(/\b\w/g, (char) => char.toUpperCase());
+      value = value.toLowerCase().replace(/(^\w|\s\w)/g, (char) => char.toUpperCase());
     }
 
     const updatedFormData = { [name]: value };
@@ -303,7 +303,11 @@ class ParticularsSection extends Component {
 
   handleSubmit = () => {
     if (this.validateForm()) {
-      this.props.onSubmit?.(this.state.formData);
+      const formData = {
+        ...this.state.formData,
+        name: this.state.formData.name.trim().toLowerCase().replace(/(^\w|\s\w)/g, c => c.toUpperCase()),
+      };
+      this.props.onSubmit?.(formData);
     }
   };
 

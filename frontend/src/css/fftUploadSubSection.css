@@ -161,3 +161,83 @@
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* =====================================================
+   Responsive
+   ===================================================== */
+
+/* ── Tablet (≤ 768px) ── */
+@media (max-width: 768px) {
+  .fft-upload-drop-inner {
+    padding: 28px 16px;
+  }
+
+  .fft-upload-drop-icon {
+    font-size: 2rem;
+  }
+
+  .fft-upload-drop-text {
+    font-size: 1.1rem;
+  }
+
+  .fft-upload-subsection-actions {
+    justify-content: stretch;
+  }
+
+  .fft-upload-btn {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+/* ── Mobile (≤ 480px) ── */
+@media (max-width: 480px) {
+  .fft-upload-subsection {
+    padding: 16px;
+  }
+
+  .fft-upload-subsection-title {
+    font-size: 1.15rem;
+  }
+
+  .fft-upload-drop-inner {
+    padding: 20px 12px;
+  }
+
+  .fft-upload-drop-icon {
+    font-size: 1.75rem;
+  }
+
+  .fft-upload-drop-text {
+    font-size: 1rem;
+  }
+
+  .fft-upload-drop-subtext {
+    font-size: 0.875rem;
+  }
+
+  .fft-upload-btn {
+    padding: 10px 16px;
+    font-size: 0.9rem;
+  }
+}
+
+/* ── Small phones (≤ 360px) ── */
+@media (max-width: 360px) {
+  .fft-upload-subsection {
+    padding: 12px;
+  }
+
+  .fft-upload-subsection-title {
+    font-size: 1.05rem;
+  }
+
+  .fft-upload-drop-text {
+    font-size: 0.9rem;
+  }
+
+  .fft-upload-btn {
+    padding: 9px 12px;
+    font-size: 0.85rem;
+  }
+}

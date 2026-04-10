@@ -261,12 +261,10 @@ class ResultEntry extends Component {
       updates[remarksColumnName] = remarksValue;
     }
 
-    console.log('[FFT] Updates to submit:', updates);
     this.setState({ submitting: true, submitError: null, updatedRemarksValue });
 
     axios.post(`${BACKEND_URL}/googleDrive/updateRow`, { fileId, entryNumber, updates })
       .then((res) => {
-        console.log('[FFT] Response from backend:', res.data);
         if (res.data.success) {
           this.setState({ submitting: false, submitSuccess: true });
         } else {

@@ -39,6 +39,7 @@
   position: relative;
   display: flex;
   align-items: center;
+  width: 100%;
 }
 
 .fft-edit-search-icon {
@@ -51,6 +52,7 @@
 
 .fft-edit-search-input {
   width: 100%;
+  min-height: 44px;
   padding: 8px 36px 8px 34px;
   border: 1px solid #ccc;
   border-radius: 6px;
@@ -229,7 +231,9 @@
 .fft-edit-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
+  min-height: 44px;
   padding: 7px 14px;
   font-size: 0.95rem;
   font-weight: 600;
@@ -238,6 +242,8 @@
   cursor: pointer;
   transition: background 0.2s, opacity 0.2s;
   white-space: nowrap;
+  text-align: center;
+  touch-action: manipulation;
 }
 
 .fft-edit-btn:disabled {
@@ -313,6 +319,8 @@
   height: 450px !important;
   overflow: auto !important;
   margin-left: 0 !important;
+  border-radius: 10px;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ── Changes panel ── */
@@ -401,4 +409,95 @@
   padding: 2px 8px;
   font-size: 0.9rem;
   color: #c62828;
+}
+
+/* =====================================================
+   Responsive
+   ===================================================== */
+
+/* ── Tablet (≤ 768px) ── */
+@media (max-width: 768px) {
+  .fft-edit-participants {
+    padding-bottom: 24px;
+  }
+
+  .fft-edit-title {
+    font-size: 1.4rem;
+  }
+
+  .fft-edit-desc {
+    font-size: 1.1rem;
+  }
+
+  .fft-edit-changes-panel {
+    padding: 14px 16px;
+  }
+
+  .fft-edit-participants .grid-container {
+    height: 400px !important;
+  }
+}
+
+/* ── Mobile (≤ 480px) ── */
+@media (max-width: 480px) {
+  .fft-edit-title {
+    font-size: 1.2rem;
+  }
+
+  .fft-edit-desc {
+    font-size: 1rem;
+  }
+
+  .fft-edit-search-input {
+    font-size: 0.9rem;
+  }
+
+  .fft-edit-changes-title {
+    font-size: 1rem;
+  }
+
+  .fft-edit-changes-row {
+    font-size: 0.85rem;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .fft-edit-changes-rownum {
+    min-width: unset;
+    width: 100%;
+  }
+
+  .fft-edit-changes-field,
+  .fft-edit-validation-msg {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .fft-edit-btn {
+    width: 100%;
+    padding: 6px 10px;
+    font-size: 0.875rem;
+  }
+
+  .fft-edit-participants .grid-container {
+    height: 360px !important;
+  }
+}
+
+/* ── Small phones (≤ 360px) ── */
+@media (max-width: 360px) {
+  .fft-edit-title {
+    font-size: 1.1rem;
+  }
+
+  .fft-edit-btn {
+    padding: 5px 8px;
+    font-size: 0.8rem;
+  }
+
+  .fft-edit-badge {
+    width: 18px;
+    height: 18px;
+    font-size: 0.7rem;
+  }
 }

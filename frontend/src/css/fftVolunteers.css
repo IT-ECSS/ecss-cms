@@ -1038,3 +1038,68 @@
     padding: 11px 18px;
   }
 }
+
+@media (max-width: 480px) {
+  .fft-result-entry-section {
+    padding: 16px 14px 20px;
+    border-radius: 8px;
+  }
+
+  .fft-result-entry-section-title {
+    font-size: 1.35rem;
+  }
+
+  .fft-result-entry-section-number {
+    width: 28px;
+    height: 28px;
+    font-size: 1.2rem;
+  }
+
+  .fft-result-entry-label {
+    font-size: 1.1rem;
+  }
+
+  .fft-result-entry-input {
+    font-size: 1.15rem;
+    padding: 10px 11px;
+  }
+
+  .fft-result-entry-manual-row {
+    flex-direction: column;
+  }
+
+  .fft-result-entry-go-btn {
+    width: 100%;
+    font-size: 1.15rem;
+    padding: 12px;
+  }
+
+  .fft-result-entry-submit-btn {
+    font-size: 1.35rem;
+    padding: 13px;
+  }
+}
+
+@media (max-width: 360px) {
+  .fft-result-entry-section {
+    padding: 14px 12px 18px;
+  }
+
+  .fft-result-entry-section-title {
+    font-size: 1.2rem;
+  }
+
+  .fft-result-entry-input {
+    font-size: 1rem;
+    padding: 9px 10px;
+  }
+
+  .fft-result-entry-label {
+    font-size: 1rem;
+  }
+
+  .fft-result-entry-submit-btn {
+    font-size: 1.2rem;
+    padding: 12px;
+  }
+}

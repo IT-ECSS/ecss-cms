@@ -321,12 +321,14 @@
 .fft-password-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
+  padding: 14px;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
   animation: fftOverlayFadeIn 0.2s ease-out;
+  box-sizing: border-box;
 }
 
 @keyframes fftOverlayFadeIn {
@@ -338,14 +340,18 @@
   background: #fff;
   border-radius: 20px;
   padding: 36px 32px 32px;
-  width: 90%;
+  width: min(92vw, 400px);
   max-width: 400px;
+  max-height: calc(100dvh - 28px);
+  overflow-y: auto;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 20px;
   animation: fftModalSlideUp 0.25s ease-out;
+  box-sizing: border-box;
+  overscroll-behavior: contain;
 }
 
 @keyframes fftModalSlideUp {
@@ -421,6 +427,7 @@
 
 .fft-password-input {
   width: 100%;
+  min-height: 46px;
   padding: 12px 16px;
   border: 1.5px solid #e5e7eb;
   border-radius: 10px;
@@ -468,6 +475,7 @@
   font-size: 0.88rem;
   font-weight: 500;
   margin: -4px 0 0;
+  box-sizing: border-box;
 }
 
 .fft-password-modal-actions {
@@ -475,10 +483,12 @@
   gap: 12px;
   width: 100%;
   margin-top: 4px;
+  flex-wrap: wrap;
 }
 
 .fft-password-btn {
-  flex: 1;
+  flex: 1 1 160px;
+  min-height: 46px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -491,6 +501,7 @@
   cursor: pointer;
   transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
   letter-spacing: 0.01em;
+  touch-action: manipulation;
 }
 
 .fft-password-btn:active {
@@ -520,4 +531,24 @@
 .fft-password-btn--submit:hover:not(:disabled) {
   background: #b91c1c;
   box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
+}
+
+@media (max-width: 480px) {
+  .fft-password-modal {
+    border-radius: 16px;
+    padding: 24px 18px 18px;
+    gap: 16px;
+  }
+
+  .fft-password-modal-title {
+    font-size: 1.2rem;
+  }
+
+  .fft-password-modal-subtitle {
+    font-size: 0.82rem;
+  }
+
+  .fft-password-btn {
+    flex-basis: 100%;
+  }
 }

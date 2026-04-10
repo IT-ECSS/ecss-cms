@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import axios from 'axios';
+import LoadingModal from '../Common/LoadingModal';
 import '../../../css/fftParticipants.css';
 import fftTranslations from './fftTranslations';
 import SlotFullConfirmModal from './SlotFullConfirmModal';
@@ -240,6 +241,7 @@ class TimeSlotSelection extends Component {
             />
           </div>
         </div>
+        <LoadingModal visible={loadingStats} message={t('slotStatsLoading') || 'Loading time slots...'} />
       </div>
     );
   }

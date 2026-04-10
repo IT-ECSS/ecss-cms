@@ -153,3 +153,74 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* =====================================================
+   Responsive
+   ===================================================== */
+
+/* ── Tablet (≤ 768px) ── */
+@media (max-width: 768px) {
+  .fft-download-file-card {
+    gap: 12px;
+    padding: 14px 16px;
+  }
+
+  .fft-download-file-name {
+    font-size: 1rem;
+  }
+
+  .fft-download-subsection-actions {
+    justify-content: stretch;
+  }
+
+  .fft-download-btn {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+/* ── Mobile (≤ 480px) ── */
+@media (max-width: 480px) {
+  .fft-download-subsection {
+    padding: 16px;
+  }
+
+  .fft-download-subsection-title {
+    font-size: 1.15rem;
+  }
+
+  .fft-download-file-card {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .fft-download-file-name {
+    font-size: 0.9rem;
+  }
+
+  .fft-download-btn {
+    padding: 10px 16px;
+    font-size: 0.9rem;
+  }
+}
+
+/* ── Small phones (≤ 360px) ── */
+@media (max-width: 360px) {
+  .fft-download-subsection {
+    padding: 12px;
+  }
+
+  .fft-download-subsection-title {
+    font-size: 1.05rem;
+  }
+
+  .fft-download-file-name {
+    font-size: 0.85rem;
+  }
+
+  .fft-download-btn {
+    padding: 9px 12px;
+    font-size: 0.85rem;
+  }
+}

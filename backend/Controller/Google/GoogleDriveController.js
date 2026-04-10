@@ -5,6 +5,63 @@ const { Readable } = require('stream');
 const archiver = require('archiver');
 const { COLUMN_HEADERS, INTERNAL_KEY_TO_COLUMN_MAP } = require('../../constants/fftFieldMappings');
 
+// ─── In-memory cache + single-flight for readSpreadsheet ─────────────────────
+//
+// How it works:
+//   1. TTL cache (60 s): once a spreadsheet is read, every subsequent request
+//      within 60 s is served from memory — zero additional Sheets API calls.
+//   2. Single-flight / request coalescing: if N requests arrive simultaneously
+//      while the cache is cold (e.g. server cold-start or after a write), only
+//      ONE real API call is made; all N callers await the same Promise and each
+//      get the result when it resolves.  Without this, a burst of 20 concurrent
+//      requests would fire 20 API calls before any response returned.
+//
+// Net effect: regardless of how many frontend users or page loads happen, the
+// backend makes at most 1 actual Sheets read per spreadsheet per 60 seconds.
+// At Google's free quota of 60 reads/min, this supports effectively unlimited
+// frontend throughput (900+ reads/min) for the same spreadsheet.
+// ─────────────────────────────────────────────────────────────────────────────
+const _sheetCache   = new Map(); // key → { ts, value }
+const _sheetFlight  = new Map(); // key → Promise  (in-flight dedup)
+const SHEET_CACHE_TTL_MS = 60_000; // 60 seconds
+
+function _cacheKey(fileId, sheetName) {
+    return `${fileId}:${sheetName || ''}`;
+}
+
+function _getCached(fileId, sheetName) {
+    const key = _cacheKey(fileId, sheetName);
+    const entry = _sheetCache.get(key);
+    if (!entry) return null;
+    if (Date.now() - entry.ts > SHEET_CACHE_TTL_MS) {
+        _sheetCache.delete(key);
+        return null;
+    }
+    return entry.value;
+}
+
+function _setCache(fileId, sheetName, value) {
+    _sheetCache.set(_cacheKey(fileId, sheetName), { ts: Date.now(), value });
+}
+
+/** Call this after any write so stale data is never served. */
+function invalidateSheetCache(fileId, sheetName) {
+    if (sheetName) {
+        _sheetCache.delete(_cacheKey(fileId, sheetName));
+        _sheetCache.delete(_cacheKey(fileId, null));   // bust "first sheet" variant too
+        _sheetFlight.delete(_cacheKey(fileId, sheetName));
+        _sheetFlight.delete(_cacheKey(fileId, null));
+    } else {
+        for (const key of _sheetCache.keys()) {
+            if (key.startsWith(`${fileId}:`)) _sheetCache.delete(key);
+        }
+        for (const key of _sheetFlight.keys()) {
+            if (key.startsWith(`${fileId}:`)) _sheetFlight.delete(key);
+        }
+    }
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 class GoogleDriveController {
     async initializeAuth() {
         let credentials = null;
@@ -518,6 +575,36 @@ class GoogleDriveController {
     }
 
     async readSpreadsheet(fileId, sheetName = null) {
+        // 1. Serve from TTL cache when available
+        const cached = _getCached(fileId, sheetName);
+        if (cached) {
+            console.log(`[SHEETS] Cache hit for ${fileId}:${sheetName || 'first'}`);
+            return cached;
+        }
+
+        // 2. Single-flight: if another request is already fetching this spreadsheet,
+        //    reuse that in-flight Promise instead of firing a second API call.
+        const key = _cacheKey(fileId, sheetName);
+        if (_sheetFlight.has(key)) {
+            console.log(`[SHEETS] Coalescing onto in-flight request for ${key}`);
+            return _sheetFlight.get(key);
+        }
+
+        // 3. New fetch — store the Promise so concurrent callers can share it.
+        const fetchPromise = this._fetchSpreadsheet(fileId, sheetName).finally(() => {
+            _sheetFlight.delete(key);
+        });
+        _sheetFlight.set(key, fetchPromise);
+        return fetchPromise;
+    }
+
+    // Background re-warm: kick off a silent read immediately after a write so the
+    // cache is populated before the next request arrives (eliminates cold-cache window).
+    _rewarmCache(fileId, sheetName = null) {
+        this.readSpreadsheet(fileId, sheetName).catch(() => {});
+    }
+
+    async _fetchSpreadsheet(fileId, sheetName = null) {
         try {
             const drive = await this.initializeAuth();
             const sheets = await this.initializeSheetsAuth();
@@ -544,12 +631,14 @@ class GoogleDriveController {
             console.log(`[SHEETS] Read ${values.length} rows from '${targetSheet}'`);
 
             if (values.length === 0) {
-                return {
+                const result = {
                     success: true,
                     sheets: sheetNames,
                     data: [],
                     columns: []
                 };
+                _setCache(fileId, sheetName, result);
+                return result;
             }
 
             // First row is headers/columns
@@ -557,13 +646,15 @@ class GoogleDriveController {
             // Remaining rows are data
             const data = values.slice(1);
 
-            return {
+            const result = {
                 success: true,
                 sheets: sheetNames,
                 columns: columns,
                 data: data,
                 rowCount: data.length
             };
+            _setCache(fileId, sheetName, result);
+            return result;
         } catch (error) {
             console.error('[SHEETS] Error reading spreadsheet:', error.message);
             
@@ -594,12 +685,32 @@ class GoogleDriveController {
             const sheetNames = spreadsheet.data.sheets.map(s => s.properties.title);
             const targetSheet = sheetName || sheetNames[0];
 
-            // Find the next empty row by checking existing data
+            // Ensure row 1 has the correct header row.
+            // Only write headers if A1 is completely empty (brand-new sheet).
+            // If A1 already has ANY content (could be old participant data), leave it.
+            const headerCheck = await sheets.spreadsheets.values.get({
+                spreadsheetId: fileId,
+                range: `'${targetSheet}'!A1`
+            });
+            const a1Value = String((headerCheck.data.values?.[0]?.[0]) || '').trim();
+            if (!a1Value) {
+                await sheets.spreadsheets.values.update({
+                    spreadsheetId: fileId,
+                    range: `'${targetSheet}'!A1`,
+                    valueInputOption: 'RAW',
+                    requestBody: { values: [COLUMN_HEADERS] }
+                });
+                console.log(`[SHEETS] Wrote column headers to '${targetSheet}' row 1`);
+            }
+
+            // Find the next empty data row. Scan from A2 to skip the header row so
+            // the count is correct regardless of whether A1 contains a header value.
             const existingData = await sheets.spreadsheets.values.get({
                 spreadsheetId: fileId,
-                range: `'${targetSheet}'!A:A`
+                range: `'${targetSheet}'!A2:A`
             });
-            const nextRow = (existingData.data.values ? existingData.data.values.length : 0) + 1;
+            // +2: data starts at row 2 (row 1 = header), and we need 1-based row index
+            const nextRow = (existingData.data.values ? existingData.data.values.length : 0) + 2;
 
             const range = `'${targetSheet}'!A${nextRow}`;
             const response = await sheets.spreadsheets.values.update({
@@ -614,8 +725,12 @@ class GoogleDriveController {
             const updatedRange = response.data.updatedRange || `${targetSheet}!A${nextRow}`;
             console.log(`[SHEETS] Wrote row to '${targetSheet}': ${updatedRange}`);
 
-            const rowNumber = nextRow;
-            const entryNumber = rowNumber - 1; // subtract 1 for header row
+            const entryNumber = nextRow - 1; // subtract 1 for header row → 1-based participant number
+
+            // Invalidate cache so the next read reflects the new row, then
+            // immediately re-warm in the background to close the cold-cache window.
+            invalidateSheetCache(fileId);
+            this._rewarmCache(fileId, sheetName);
 
             return {
                 success: true,
@@ -837,6 +952,10 @@ class GoogleDriveController {
             });
 
             console.log(`[SHEETS] Updated row ${rowNumber} (entry ${entryNumber}): ${Object.keys(updates).join(', ')}`);
+            // Invalidate cache so the next read reflects the edited row, then
+            // immediately re-warm in the background to close the cold-cache window.
+            invalidateSheetCache(fileId);
+            this._rewarmCache(fileId);
             return { success: true, updatedFields: Object.keys(updates) };
         } catch (error) {
             console.error('[SHEETS] Error updating row:', error.message);

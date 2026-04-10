@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import axios from 'axios';
+import LoadingModal from '../Common/LoadingModal';
 import fftTranslations from './fftTranslations';
 import '../../../css/fftParticipants.css';
 
@@ -24,11 +25,8 @@ class ParticipantNumberEntry extends Component {
 
   handleSubmit = async () => {
     const { participantNumber } = this.state;
-    const { language, eventName, eventFileId, onSubmit } = this.props;
-    
-    console.log('Submitting participant number:', participantNumber);
-    console.log('Event name:', eventName);
-    
+    const { language, eventFileId, onSubmit } = this.props;
+
     if (!participantNumber.trim()) {
       this.setState({ error: fftTranslations.errorParticipantRequired[language] || fftTranslations.errorParticipantRequired.en });
       return;
@@ -47,14 +45,9 @@ class ParticipantNumberEntry extends Component {
         return;
       }
 
-      console.log('Retrieved fileId:', fileId);
-
       // Fetch participant data from backend using axios POST
       const response = await axios.post(`${BACKEND_URL}/googleDrive/participant/${participantNumber}`, { fileId });
-      
-      console.log('Full backend response:', response.data);
       const participantData = response.data.data;
-      console.log('Retrieved participant data:', participantData);
 
       // If the row exists but has no name, the participant hasn't registered yet
       if (!participantData || (!participantData.name && !participantData.chineseName)) {
@@ -136,6 +129,7 @@ class ParticipantNumberEntry extends Component {
             )
           )}
         </div>
+        <LoadingModal visible={loading} message={fftTranslations.searching?.[this.props.language] || 'Searching...'} />
       </>
     );
   }

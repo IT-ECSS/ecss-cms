@@ -105,6 +105,7 @@ class FFTFormPage extends Component {
           trilingual
           showParticipantNumber={false}
           hideBackOnLanguage
+          lockEvent
           initialEvent={initialEvent || undefined}
           storageScope="kiosk"
         />

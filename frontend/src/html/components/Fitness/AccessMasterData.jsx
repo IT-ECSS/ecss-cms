@@ -20,6 +20,14 @@ class AccessMasterData extends Component {
     };
   }
 
+  componentDidUpdate(prevProps) {
+    // When the parent switches to a different event (e.g. user re-selects via the
+    // event badge), reset selectedEvent so the table reloads with the new event.
+    if (prevProps.initialEvent?.id !== this.props.initialEvent?.id) {
+      this.setState({ selectedEvent: this.props.initialEvent || null });
+    }
+  }
+
   handleOpenSheet = () => {
     const { selectedEvent } = this.state;
     if (!selectedEvent?.id) return;

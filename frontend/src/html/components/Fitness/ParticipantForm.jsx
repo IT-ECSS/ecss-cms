@@ -77,7 +77,6 @@ class ParticipantForm extends Component {
 
   handleUseSingpass = () => {
     const userData = getSingPassUserDataJSON();
-    console.log('Retrieved SingPass user data from sessionStorage:', userData);
     let singpassFormData = null;
     if (userData) {
       const dob = userData.dob?.formattedDate1 || (typeof userData.dob === 'string' ? userData.dob : '');
@@ -101,11 +100,8 @@ class ParticipantForm extends Component {
   };
 
   handleUseParticipantNumber = (participantNumber, participantData) => {
-    console.log('Participant number entered:', participantNumber);
-    console.log('Retrieved participant data:', participantData);
-    
     const prefillData = participantData ? {
-      name: participantData.name || '',
+      name: participantData.name ? participantData.name.trim().toLowerCase().replace(/(^\w|\s\w)/g, c => c.toUpperCase()) : '',
       dateOfBirth: participantData.dateOfBirth || '',
       age: participantData.age || '',
       gender: participantData.gender || '',

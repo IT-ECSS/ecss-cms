@@ -20,6 +20,7 @@
 @media (max-width: 480px) {
   .fft-page-container {
     padding: 6px;
+    align-items: flex-start;
   }
 }
 

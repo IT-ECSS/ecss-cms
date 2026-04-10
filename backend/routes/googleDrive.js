@@ -6,6 +6,7 @@ var path = require('path');
 const XLSX = require('xlsx');
 const XlsxPopulate = require('xlsx-populate');
 const JSZip = require('jszip');
+const { COLUMN_HEADERS } = require('../constants/fftFieldMappings');
 
 const googleDriveController = new GoogleDriveController();
 
@@ -657,7 +658,7 @@ router.post('/fftSubmit', async (req, res) => {
         }
 
         const {
-            name = '', chineseName = '', phone = '', gender = '',
+            name = '', phone = '', gender = '',
             dateOfBirth = '', age: providedAge = '',
             startTime = '', endTime = '',
             height = '', weight = '', bmi = '',
@@ -668,10 +669,9 @@ router.post('/fftSubmit', async (req, res) => {
         } = participantData;
 
         // Normalise to strings (Excel bulk upload may send numbers)
-        const nameStr       = String(name || '').trim();
-        const chineseNameStr = String(chineseName || '').trim();
-        const phoneStr      = String(phone || '').trim();
-        const genderStr     = String(gender || '').trim();
+        const nameStr  = String(name || '').trim();
+        const phoneStr = String(phone || '').trim();
+        const genderStr = String(gender || '').trim();
 
         // Skip if no name provided
         if (!nameStr) {
@@ -710,14 +710,15 @@ router.post('/fftSubmit', async (req, res) => {
                 const headers = (sheetData.columns || []).map(h => String(h || '').trim());
                 const col = (name) => headers.indexOf(name); // returns -1 if missing
 
-                // Determine last S/N for auto-increment
-                const snIdx = col('S/N');
+                // Determine last Participant Number for auto-increment
+                // Support both new header ('Participant Number') and legacy header ('S/N')
+                const snIdx = col('Participant Number') !== -1 ? col('Participant Number') : col('S/N');
                 if (snIdx !== -1 && sheetData.data.length > 0) {
                     const lastRow = sheetData.data[sheetData.data.length - 1];
                     const lastSnVal = parseInt(String(lastRow[snIdx] || '0').trim(), 10);
                     if (!isNaN(lastSnVal) && lastSnVal > 0) lastSN = lastSnVal;
                 }
-                // Fallback: use row count if no valid S/N found
+                // Fallback: use row count if no valid participant number found
                 if (lastSN === 0) lastSN = currentRowCount;
 
                 const nameIdx      = col('Name')         !== -1 ? col('Name')         : 0;
@@ -782,22 +783,22 @@ router.post('/fftSubmit', async (req, res) => {
         }
 
         // Row order matches sheet headers:
-        // A=S/N | B=Name | C=Phone Number | D=Gender | E=DD | F=MM | G=YYYY |
+        // A=Participant Number | B=Name | C=Phone Number | D=Gender | E=DD | F=MM | G=YYYY |
         // H=Start Time | I=End Time | J=Age |
         // K=Height | L=Weight | M=BMI | N=Date of test |
         // O=30 secs Sit & Stand | P=30 secs Arm Banding | Q=2 min On-the-spot Marching |
         // R=Sit & Reach | S=Back Stretching | T=2.44m Speed Walk | U=Grip test | V=Improvements | W=Remarks
         const nextSN = lastSN + 1;
         const rowData = [
-            String(nextSN),                                                // A: S/N
+            String(nextSN),                                                // A: Participant Number
             nameStr, phoneStr, genderStr,                                  // B C D: Name, Phone Number, Gender
             dd, mm, yyyy,                                                  // E F G: DD, MM, YYYY
             String(startTime || ''), String(endTime || ''),                // H I: Start Time, End Time
             String(age),                                                   // J: Age
             String(height), String(weight), String(bmi),                   // K L M: Height, Weight, BMI
             dateOfTest || String(providedDateOfTest),                      // N: Date of test
-            String(sitStand), String(armBanding), String(marchingInPlace), // O P Q: test results
-            String(sitReach), String(backStretching), String(speedWalk),   // R S T: test results
+            String(sitStand), String(armBanding), String(marchingInPlace), // O P Q: 30s Sit&Stand, 30s Arm Banding, 2min Marching
+            String(sitReach), String(backStretching), String(speedWalk),   // R S T: Sit&Reach, Back Stretching, 2.44m Speed Walk
             String(gripTest), String(improvements), String(remarks),       // U V W: Grip test, Improvements, Remarks
         ];
 
@@ -880,10 +881,24 @@ router.post('/getParticipants', async (req, res) => {
             return res.status(500).json({ success: false, error: result.error || 'Failed to read spreadsheet' });
         }
 
-        const headers = (result.columns || []).map(h => String(h || '').trim());
-        const rows = result.data || [];
+        let headers = (result.columns || []).map(h => String(h || '').trim());
+        let rows = result.data || [];
 
-        if (headers.length === 0 || rows.length === 0) {
+        if (headers.length === 0) {
+            return res.json([]);
+        }
+
+        // Smart fallback: if row 1 of the sheet doesn't have the expected 'Participant Number'
+        // header it means the sheet was created without a header row and participant data was
+        // written directly to row 1 (old appendRow behaviour). Re-interpret all values —
+        // including what was read as "headers" — as data rows, and use COLUMN_HEADERS as
+        // the canonical column schema so the table can still show the data.
+        if (headers[0] !== 'Participant Number') {
+            rows = [headers, ...rows];
+            headers = [...COLUMN_HEADERS];
+        }
+
+        if (rows.length === 0) {
             return res.json([]);
         }
 

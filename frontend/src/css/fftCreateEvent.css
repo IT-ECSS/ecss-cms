@@ -39,6 +39,7 @@
 
 .fft-create-event-input {
   width: 100%;
+  min-height: 48px;
   padding: 14px 16px;
   box-sizing: border-box;
   border: 1px solid #ccc;
@@ -54,6 +55,7 @@
 
 .fft-create-event-location-trigger {
   width: 100%;
+  min-height: 48px;
   padding: 14px 16px;
   box-sizing: border-box;
   border: 1px solid #ccc;
@@ -116,11 +118,13 @@
 .fft-create-event-buttons {
   display: flex;
   gap: 16px;
+  flex-wrap: wrap;
 }
 
 
 .fft-create-event-btn {
-  flex: 1;
+  flex: 1 1 180px;
+  min-height: 48px;
   padding: 16px 28px;
   border: 2px solid #4CAF50;
   border-radius: 8px;
@@ -130,6 +134,13 @@
   font-size: 16px;
   font-weight: 600;
   transition: border-color 0.3s, background 0.3s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.3;
+  word-break: break-word;
+  touch-action: manipulation;
 }
 
 
@@ -192,6 +203,16 @@
   }
 }
 
+@media (max-width: 600px) {
+  .fft-create-event-buttons {
+    flex-direction: column;
+  }
+
+  .fft-create-event-btn {
+    width: 100%;
+  }
+}
+
 /* ── Mobile (≤ 480px) ── */
 @media (max-width: 480px) {
   .fft-create-event-container {
@@ -240,5 +261,36 @@
   .fft-create-event-btn {
     padding: 13px 16px;
     font-size: 14px;
+  }
+}
+
+/* ── Small phones (≤ 360px) ── */
+@media (max-width: 360px) {
+  .fft-create-event-container {
+    padding: 16px 10px;
+  }
+
+  .fft-create-event-title {
+    font-size: 17px;
+    margin-bottom: 16px;
+  }
+
+  .fft-create-event-label {
+    font-size: 13px;
+  }
+
+  .fft-create-event-input {
+    padding: 10px 11px;
+    font-size: 13px;
+  }
+
+  .fft-create-event-location-trigger {
+    padding: 10px 11px;
+    font-size: 13px;
+  }
+
+  .fft-create-event-btn {
+    padding: 11px 12px;
+    font-size: 13px;
   }
 }

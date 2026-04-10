@@ -15,17 +15,40 @@ class HomeConfirmModal extends Component {
     const { visible, onYes, onNo, onCancel, language } = this.props;
     if (!visible) return null;
     const t = (key) => fftTranslations[key]?.[language] || fftTranslations[key]?.en || '';
+    const modalCardStyle = {
+      background: '#fff',
+      borderRadius: 12,
+      width: 'min(92vw, 460px)',
+      maxWidth: '92vw',
+      maxHeight: 'calc(100dvh - 24px)',
+      boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+      overflow: 'auto',
+      display: 'flex',
+      flexDirection: 'column',
+      boxSizing: 'border-box',
+    };
+    const actionButtonBaseStyle = {
+      flex: '1 1 160px',
+      width: '100%',
+      padding: '12px 20px',
+      borderRadius: 8,
+      border: 'none',
+      fontWeight: 700,
+      fontSize: '1rem',
+      cursor: 'pointer',
+      whiteSpace: 'normal',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      textAlign: 'center',
+      lineHeight: 1.35,
+    };
 
     return (
       <div className="modal-overlay" onClick={onCancel}>
         <div
           onClick={(e) => e.stopPropagation()}
-          style={{
-            background: '#fff', borderRadius: 12, width: 'fit-content',
-            maxWidth: '90vw', minWidth: 320,
-            boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
-            overflow: 'hidden', display: 'flex', flexDirection: 'column',
-          }}
+          style={modalCardStyle}
         >
           {/* Header */}
           <div style={{
@@ -46,7 +69,7 @@ class HomeConfirmModal extends Component {
           </div>
 
           {/* Body */}
-          <div style={{ padding: '28px 40px', textAlign: 'center' }}>
+          <div style={{ padding: 'clamp(20px, 4vw, 28px) clamp(18px, 5vw, 40px)', textAlign: 'center' }}>
             <i className="fas fa-home" style={{ fontSize: '2.5rem', color: '#1565c0', marginBottom: 16 }}></i>
             <h3 style={{ color: '#1565c0', fontWeight: 700, fontSize: '1.5rem', margin: '0 0 12px' }}>{t('homeModalTitle')}</h3>
             <p style={{ color: '#555', fontSize: '1rem', margin: 0 }}>
@@ -56,16 +79,15 @@ class HomeConfirmModal extends Component {
 
           {/* Footer */}
           <div style={{
-            display: 'flex', gap: 12, justifyContent: 'center', alignItems: 'center',
+            display: 'flex', gap: 12, justifyContent: 'center', alignItems: 'stretch', flexWrap: 'wrap',
             padding: '16px 24px 24px',
           }}>
             <button
               onClick={onYes}
               style={{
-                padding: '12px 20px', borderRadius: 8, border: 'none',
-                background: '#ef5350', color: '#fff', fontWeight: 700,
-                fontSize: '1rem', cursor: 'pointer', whiteSpace: 'nowrap',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                ...actionButtonBaseStyle,
+                background: '#ef5350',
+                color: '#fff',
               }}
             >
               {t('homeModalYes')}
@@ -73,10 +95,9 @@ class HomeConfirmModal extends Component {
             <button
               onClick={onNo}
               style={{
-                padding: '12px 20px', borderRadius: 8, border: 'none',
-                background: '#1565c0', color: '#fff', fontWeight: 700,
-                fontSize: '1rem', cursor: 'pointer', whiteSpace: 'nowrap',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                ...actionButtonBaseStyle,
+                background: '#1565c0',
+                color: '#fff',
               }}
             >
               {t('homeModalNo')}

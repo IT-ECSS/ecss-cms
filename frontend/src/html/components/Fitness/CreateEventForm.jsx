@@ -132,7 +132,6 @@ class CreateEventForm extends React.Component {
     }
 
     const eventName = `${eventDate} ${eventLocation} FFT Session ${eventSessionNumber}`;
-    console.log('Create Event Submitted:', eventName);
 
     this.setState({ eventSubmitting: true, eventError: null, eventResult: null });
 
