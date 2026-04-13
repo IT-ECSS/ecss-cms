@@ -1559,7 +1559,7 @@ class RegistrationPaymentSection extends Component {
                 return "ECSS-CBO-M-037C";
             case "Community Singing – Mandarin":
                 return "ECSS-CBO-M-003C";
-            case "Self-Care TCM Wellness – Mandarin":
+            case "– Mandarin":
                 return "ECSS-CBO-M-001C";
             case "Hanyu Pinyin for Beginners":
                 return "ECSS-CBO-M-011C";

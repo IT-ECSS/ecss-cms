@@ -69,6 +69,17 @@ class ResultEntry extends Component {
     }
   }
 
+  // ── Auto-calculate BMI for Measurement Station ──
+  computeBmi = (formData) => {
+    const height = parseFloat(formData['Height']);
+    const weight = parseFloat(formData['Weight']);
+    if (height > 0 && weight > 0) {
+      const heightM = height / 100;
+      return (weight / (heightM * heightM)).toFixed(2);
+    }
+    return '';
+  };
+
   // ── Form Input ──
   handleFieldChange = (key, value) => {
     const errors = { [key]: null };
@@ -98,10 +109,26 @@ class ResultEntry extends Component {
       errors[key] = 'Value should be greater than 1 second.';
     }
     
-    this.setState((prev) => ({
-      formData: { ...prev.formData, [key]: value },
-      fieldErrors: { ...prev.fieldErrors, ...errors },
-    }));
+    this.setState((prev) => {
+      const updatedForm = { ...prev.formData, [key]: value };
+      // Clear BMI while user is editing Height or Weight
+      if (key === 'Height' || key === 'Weight') {
+        updatedForm['BMI'] = '';
+      }
+      return {
+        formData: updatedForm,
+        fieldErrors: { ...prev.fieldErrors, ...errors },
+      };
+    });
+  };
+
+  // ── Compute BMI on blur for Height/Weight fields ──
+  handleMeasurementBlur = (key) => {
+    if (key !== 'Height' && key !== 'Weight') return;
+    this.setState((prev) => {
+      const bmi = this.computeBmi(prev.formData);
+      return { formData: { ...prev.formData, BMI: bmi } };
+    });
   };
 
   // ── Extract remark for current station ──
@@ -396,7 +423,8 @@ class ResultEntry extends Component {
                 )}
 
                 <div className="fft-result-entry-form-grid">
-                  {selectedStation.fields.map((field) => (
+                  {selectedStation.fields.map((field) => {
+                    return (
                     <div key={field.key} className="fft-result-entry-field fft-result-entry-field--full">
                       <label className="fft-result-entry-label">
                         {field.label}{' '}
@@ -407,7 +435,13 @@ class ResultEntry extends Component {
                         inputMode={field.type === 'number' ? 'decimal' : 'text'}
                         value={formData[field.key] || ''}
                         placeholder={field.placeholder}
-                        onChange={(e) => this.handleFieldChange(field.key, e.target.value)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const isHeightWeight = (field.key === 'Height' || field.key === 'Weight') && selectedStation.id === 'measurement';
+                          if (isHeightWeight && val !== '' && !/^\d*\.?\d*$/.test(val)) return;
+                          this.handleFieldChange(field.key, val);
+                        }}
+                        onBlur={() => this.handleMeasurementBlur(field.key)}
                         className="fft-result-entry-input"
                         style={fieldErrors[field.key] ? { borderColor: '#d32f2f' } : {}}
                       />
@@ -417,7 +451,8 @@ class ResultEntry extends Component {
                         </div>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
 
                   {/* Per-station remarks */}
                   {selectedStation.remarksKey && (

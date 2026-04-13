@@ -14,10 +14,78 @@ class CreateFFTEventTimeSlots extends React.Component {
       timeslotTimes: [],
       submitted: false,
       submitting: false,
+      verifyingLinks: false,
       submitResult: null,
       submitError: null,
     };
   }
+
+  sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
+
+  isOpenableHttpUrl = (value) => {
+    if (!value) return false;
+    try {
+      const parsed = new URL(value);
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  };
+
+  buildQrPreviewUrl = (fileId, fallbackUrl = '') => {
+    if (fileId) return `https://drive.google.com/uc?export=view&id=${fileId}`;
+    return fallbackUrl || '';
+  };
+
+  verifyUrlCanOpen = async (url, { expectImage = false } = {}) => {
+    if (!this.isOpenableHttpUrl(url)) return false;
+
+    if (expectImage) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        const separator = url.includes('?') ? '&' : '?';
+        img.onload = () => resolve(true);
+        img.onerror = () => resolve(false);
+        img.referrerPolicy = 'no-referrer';
+        img.src = `${url}${separator}ts=${Date.now()}`;
+      });
+    }
+
+    try {
+      await fetch(url, { method: 'GET', mode: 'no-cors', cache: 'no-store' });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  waitForRequiredLinks = async ({ fileUrl, registrationLink, qrCodeImageUrl }) => {
+    let finalStatus = { fileUrl: false, registrationLink: false, qrCodeImageUrl: false };
+
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const [fileOk, registrationOk, qrOk] = await Promise.all([
+        this.verifyUrlCanOpen(fileUrl),
+        this.verifyUrlCanOpen(registrationLink),
+        this.verifyUrlCanOpen(qrCodeImageUrl, { expectImage: true }),
+      ]);
+
+      finalStatus = {
+        fileUrl: fileOk,
+        registrationLink: registrationOk,
+        qrCodeImageUrl: qrOk,
+      };
+
+      if (fileOk && registrationOk && qrOk) {
+        return finalStatus;
+      }
+
+      if (attempt < 3) {
+        await this.sleep(1200);
+      }
+    }
+
+    return finalStatus;
+  };
 
   handleTimeslotsChange = (value) => {
     const count = parseInt(value, 10);
@@ -83,7 +151,7 @@ class CreateFFTEventTimeSlots extends React.Component {
     );
     if (hasSlotErrors) return;
 
-    this.setState({ submitting: true });
+    this.setState({ submitting: true, verifyingLinks: false });
 
     try {
       const eventName = `${eventDate} ${eventLocation} FFT Session ${eventSessionNumber}`;
@@ -134,14 +202,23 @@ class CreateFFTEventTimeSlots extends React.Component {
         destinationFolderId,
       });
 
+      if (!copyResponse.data?.success || !copyResponse.data?.fileId || !copyResponse.data?.fileUrl) {
+        throw new Error('The FFT event sheet was created, but the file link is not ready yet. Please try again in a moment.');
+      }
+
       const FRONTEND_URL = window.location.hostname === 'localhost'
         ? 'http://localhost:3000'
         : 'https://salmon-wave-09f02b100.6.azurestaticapps.net';
       const registrationLink = `${FRONTEND_URL}/fft/form?event=${encodeURIComponent(eventName)}`;
 
+      if (!this.isOpenableHttpUrl(registrationLink)) {
+        throw new Error('The registration link could not be generated correctly.');
+      }
+
       // Generate & upload QR code PNG to the dedicated QR code Drive folder
       const QR_FOLDER_ID = '1pYiCfYdCKGFoAmoQ64IDx05Mf8Omj88R';
       let qrCodeUrl = '';
+      let qrCodeImageUrl = '';
       try {
         const qrRes = await axios.post(`${BACKEND_URL}/qrcode`, {
           purpose: eventName,
@@ -150,6 +227,7 @@ class CreateFFTEventTimeSlots extends React.Component {
         });
         if (qrRes.data.success) {
           qrCodeUrl = qrRes.data.fileUrl || '';
+          qrCodeImageUrl = qrRes.data.previewUrl || this.buildQrPreviewUrl(qrRes.data.fileId, qrCodeUrl);
         }
       } catch (qrErr) {
         console.warn('[FFT] Failed to upload QR code:', qrErr.message);
@@ -168,24 +246,38 @@ class CreateFFTEventTimeSlots extends React.Component {
         }
       }
 
+      this.setState({ verifyingLinks: true });
+
+      const linkStatus = await this.waitForRequiredLinks({
+        fileUrl: copyResponse.data.fileUrl,
+        registrationLink,
+        qrCodeImageUrl,
+      });
+
+      const linksVerified = linkStatus.fileUrl && linkStatus.registrationLink && linkStatus.qrCodeImageUrl;
+
       this.setState({
         submitting: false,
+        verifyingLinks: false,
         submitResult: {
           ...response.data,
           registrationLink,
           fileUrl: copyResponse.data.fileUrl || null,
           fileName: copyResponse.data.fileName || eventName,
+          qrCodeUrl,
+          qrCodeImageUrl,
+          linksVerified,
         },
       });
     } catch (error) {
       const msg = error.response?.data?.error || error.message || 'Failed to create event';
-      this.setState({ submitting: false, submitError: msg });
+      this.setState({ submitting: false, verifyingLinks: false, submitError: msg });
     }
   };
 
   render() {
     const { eventDate, eventLocation, eventSessionNumber, onBack } = this.props;
-    const { numberOfTimeslots, participantsPerTimeslot, timeslotTimes, submitted, submitting, submitResult, submitError } = this.state;
+    const { numberOfTimeslots, participantsPerTimeslot, timeslotTimes, submitted, submitting, verifyingLinks, submitResult, submitError } = this.state;
 
     const parsedParticipants = parseInt(participantsPerTimeslot, 10);
     const parsedSlots = parseInt(numberOfTimeslots, 10);
@@ -321,21 +413,50 @@ class CreateFFTEventTimeSlots extends React.Component {
           {/* Result / Error */}
           {submitResult && (
             <div className="fft-create-result-section">
-              <div className="fft-admin-result fft-admin-result--success">
-                <i className="fas fa-check-circle"></i>
-                <div>
-                  <p className="fft-admin-result-title">FFT Event Created Successfully!</p>
+              <div className={`fft-admin-result ${submitResult.linksVerified ? 'fft-admin-result--success' : 'fft-admin-result--warning'}`}>
+                <i className={submitResult.linksVerified ? 'fas fa-check-circle' : 'fas fa-exclamation-triangle'}></i>
+                <div style={{ minWidth: 0, width: '100%' }}>
+                  <p className="fft-admin-result-title">
+                    {submitResult.linksVerified ? 'FFT Event Created Successfully!' : 'FFT Event Created — waiting for link verification'}
+                  </p>
+                  {!submitResult.linksVerified && (
+                    <p className="fft-admin-result-detail">
+                      The event file was created, but the file, registration link, or QR code image is not fully openable yet.
+                    </p>
+                  )}
                   {submitResult.fileUrl ? (
                     <p className="fft-admin-result-detail">
-                      File name: <a href={submitResult.fileUrl} target="_blank" rel="noopener noreferrer">{submitResult.fileName}</a>
+                      File name: <a href={submitResult.fileUrl} target="_blank" rel="noopener noreferrer" style={{ overflowWrap: 'anywhere' }}>{submitResult.fileName}</a>
                     </p>
                   ) : (
                     <p className="fft-admin-result-detail">File name: {submitResult.fileName}</p>
                   )}
                   {submitResult.registrationLink && (
-                    <p className="fft-admin-result-detail" style={{ marginTop: '4px' }}>
+                    <p className="fft-admin-result-detail" style={{ marginTop: '4px', overflowWrap: 'anywhere' }}>
                       Registration link: <a href={submitResult.registrationLink} target="_blank" rel="noopener noreferrer">{submitResult.registrationLink}</a>
                     </p>
+                  )}
+                  {(submitResult.qrCodeUrl || submitResult.qrCodeImageUrl) && (
+                    <div style={{ marginTop: '12px' }}>
+                      <p className="fft-admin-result-detail" style={{ marginBottom: '8px' }}>
+                        QR code: <a href={submitResult.qrCodeUrl || submitResult.qrCodeImageUrl} target="_blank" rel="noopener noreferrer">Open QR code image</a>
+                      </p>
+                      {submitResult.qrCodeImageUrl && (
+                        <a
+                          href={submitResult.qrCodeUrl || submitResult.qrCodeImageUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ display: 'inline-flex', border: '1px solid #d9e2db', borderRadius: '10px', background: '#fff', padding: '8px' }}
+                        >
+                          <img
+                            src={submitResult.qrCodeImageUrl}
+                            alt={`QR code for ${submitResult.fileName}`}
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                            style={{ width: '160px', maxWidth: '100%', height: '160px', objectFit: 'contain', display: 'block' }}
+                          />
+                        </a>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
@@ -381,7 +502,7 @@ class CreateFFTEventTimeSlots extends React.Component {
                   className="fft-create-event-btn fft-create-event-btn-create"
                   style={{ flex: '1 1 180px' }}
                 >
-                  {submitting ? 'Submitting...' : 'Submit'}
+                  {submitting ? (verifyingLinks ? 'Verifying links...' : 'Submitting...') : 'Submit'}
                 </button>
               </>
             )}

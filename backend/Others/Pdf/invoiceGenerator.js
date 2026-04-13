@@ -293,6 +293,7 @@ class invoiceGenerator {
 
     courseReferenceCode(course) {
         //The Rest Note of Life – Mandarin 14-Feb
+        //course = course.trim().replace(/ [\u2014\u2013\u2012\-] /g, ' \u2013 '); // normalise spaced dashes to en dash only
         course = course.trim();
         console.log("Course Name: ", course);
         
@@ -309,7 +310,7 @@ class invoiceGenerator {
             "Community Ukulele – Mandarin": "TGS-2021008564",
             "Community Singing – Mandarin": "TGS-2021008563",
             "Community Singing": "TGS-2021008563",
-            "Self-Care TCM Wellness – Mandarin": "TGS-2021008561",
+            "Self-care TCM Wellness – Mandarin": "TGS-2021008561",
             "Fall Prevention and Functional Improvement Training": "TGS-2021008562",
             "Hanyu Pinyin for Beginners": "TGS-2021008571",
             "The Rest Note of Life – Mandarin": "TGS-2022015736",

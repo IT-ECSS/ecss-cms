@@ -55,6 +55,7 @@ router.post('/', async (req, res) => {
                 success: true,
                 fileId: result.fileId,
                 fileUrl: result.fileLink,
+                previewUrl: result.fileId ? `https://drive.google.com/uc?export=view&id=${result.fileId}` : '',
             });
 
         } else if (saveToFile) {
