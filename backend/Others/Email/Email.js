@@ -13,13 +13,14 @@ class Email {
     }
 
     // Method to send an email
-    sendEmailToReceipent(to, subject, text) {
+    sendEmailToReceipent(to, subject, text, replyTo) {
         console.log(to);
         const mailOptions = {
-            from: "it@ecss.org.sg", // From address is the user's email
-            to: to, // Recipient email address
+            from: "it@ecss.org.sg", // From address is the system email
+            to: to, // Recipient email address (string or comma-separated)
             subject: subject, // Email subject
             html: text, // Email body
+            ...(replyTo ? { replyTo } : {}),
         };
 
         this.transporter.sendMail(mailOptions, (error, info) => {

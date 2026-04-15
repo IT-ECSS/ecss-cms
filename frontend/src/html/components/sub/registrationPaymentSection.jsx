@@ -41,7 +41,8 @@ class RegistrationPaymentSection extends Component {
         selectedRows: [],
         showBulkUpdateModal: false,
         bulkUpdateStatus: '',
-        bulkUpdateMethod: ''
+        bulkUpdateMethod: '',
+
       };
       this.tableRef = React.createRef();
       this.gridRef = React.createRef();
@@ -1960,10 +1961,29 @@ class RegistrationPaymentSection extends Component {
       return null;
     }
 
+    // Only Admin, Sub Admin, Ops in-charge, Social Worker (for applicable courses), and Site in-charge (for ILP) can toggle confirmation
+    // const swCourseType = params.data?.courseInfo?.courseType;
+    // const swCoursePrice = params.data?.courseInfo?.coursePrice;
+    // const swPriceValue = parseFloat((swCoursePrice || '0').replace(/[^0-9.]/g, ''));
+    // const socialWorkerCanEditConfirmation = this.props.role === 'Social Worker' && (
+    //   (swCourseType === 'Talks And Seminar' && swPriceValue === 0) ||
+    //   (swCourseType === 'Marriage Preparation Programme' && swPriceValue > 0)
+    // );
+    // const siteInChargeCanEditConfirmation = this.props.role === 'Site in-charge' && swCourseType === 'ILP';
+    // const siteInChargeNSABlocked = (this.props.role === 'Site in-charge' || this.props.role === 'NSA in-charge') && swCourseType === 'NSA';
+    // const canEditConfirmation =
+    //   this.props.role === 'Admin' ||
+    //   this.props.role === 'Sub Admin' ||
+    //   this.props.role === 'Ops in-charge' ||
+    //   socialWorkerCanEditConfirmation ||
+    //   siteInChargeCanEditConfirmation;
+    const canEditConfirmation = true;
+
     // Otherwise, return JSX for the slide button (checkbox)
     const checked = params.value;  // Set checkbox state based on the current value of 'confirmed'
     
     const handleChange = (event) => {
+      if (!canEditConfirmation) return;
       const newValue = event.target.checked;
       params.api.getRowNode(params.node.id).setDataValue('confirmed', newValue);
       console.log('Slide button toggled:', newValue);
@@ -1976,6 +1996,14 @@ class RegistrationPaymentSection extends Component {
           className="registration-payment-details-toggle"
           checked={checked}
           onChange={handleChange}
+          onClick={(e) => {
+            // if (siteInChargeNSABlocked) {
+            //   e.preventDefault();
+            //   this.requestNSAApproval(params.data, 'Confirmation');
+            //   return;
+            // }
+            // if (!canEditConfirmation) e.preventDefault();
+          }}
         />
       </div>
     );
@@ -2100,8 +2128,30 @@ class RegistrationPaymentSection extends Component {
       paymentMethods = [];
     }
   
+    // Only Admin, Sub Admin, Ops in-charge, Social Worker (for applicable courses), and Site in-charge (for ILP) can change payment method
+    // const pmCoursePrice = courseInfo?.coursePrice;
+    // const pmPriceValue = parseFloat((pmCoursePrice || '0').replace(/[^0-9.]/g, ''));
+    // const socialWorkerCanEditPaymentMethod = this.props.role === 'Social Worker' && (
+    //   (type === 'Talks And Seminar' && pmPriceValue === 0) ||
+    //   (type === 'Marriage Preparation Programme' && pmPriceValue > 0)
+    // );
+    // const siteInChargeCanEditPaymentMethod = this.props.role === 'Site in-charge' && type === 'ILP';
+    // const siteInChargeNSABlockedPM = (this.props.role === 'Site in-charge' || this.props.role === 'NSA in-charge') && type === 'NSA';
+    // const canEditPaymentMethod =
+    //   this.props.role === 'Admin' ||
+    //   this.props.role === 'Sub Admin' ||
+    //   this.props.role === 'Ops in-charge' ||
+    //   socialWorkerCanEditPaymentMethod ||
+    //   siteInChargeCanEditPaymentMethod;
+    const canEditPaymentMethod = true;
+
     // Handle button click to update the payment method in the row
     const handleButtonClick = (method) => {
+      // if (siteInChargeNSABlockedPM) {
+      //   this.requestNSAApproval(params.data, 'Payment Method');
+      //   return;
+      // }
+      // if (!canEditPaymentMethod) return;
       params.api.getRowNode(params.node.id).setDataValue('paymentMethod', method);
       console.log('Payment method changed to:', method);
     };
@@ -2170,6 +2220,27 @@ class RegistrationPaymentSection extends Component {
   
  getColumnDefs = (optionalRowData = null) => {
   const { role, siteIC, selectedCourseType } = this.props; // Get the role and selectedCourseType from props
+  // const canEdit = role === 'Admin' || role === 'Sub Admin' || role === 'Ops in-charge';
+  const canEdit = true;
+  // Social Worker has full access for free Talks And Seminar and paid Marriage Preparation Programme
+  // const canSocialWorkerEdit = (params) => {
+  //   if (role !== 'Social Worker') return false;
+  //   const courseType = params.data?.courseInfo?.courseType;
+  //   const coursePrice = params.data?.courseInfo?.coursePrice;
+  //   const priceValue = parseFloat((coursePrice || '0').replace(/[^0-9.]/g, ''));
+  //   return (courseType === 'Talks And Seminar' && priceValue === 0) ||
+  //          (courseType === 'Marriage Preparation Programme' && priceValue > 0);
+  // };
+  const canSocialWorkerEdit = () => true;
+  // Site in-charge has full access for ILP courses
+  // const canSiteInChargeEdit = (params) => {
+  //   if (role !== 'Site in-charge') return false;
+  //   return params.data?.courseInfo?.courseType === 'ILP';
+  // };
+  const canSiteInChargeEdit = () => true;
+  // Roles that can interact with Payment Method buttons and Confirmation toggle
+  // const canInteract = role === 'Admin' || role === 'Sub Admin' || role === 'NSA in-charge' || role === 'Site in-charge';
+  const canInteract = true;
   console.log("Props123455:", siteIC);
   
   // Check if we're filtering by ILP or Talks And Seminar course type
@@ -2214,14 +2285,14 @@ class RegistrationPaymentSection extends Component {
       headerName: "Name",
       field: "name",
       width: 300,
-      editable: true,
+      editable: (params) => canEdit || canSocialWorkerEdit(params) || canSiteInChargeEdit(params),
       pinned: "left",
     },
     {
       headerName: "Contact Number",
       field: "contactNo",
       width: 250,
-      editable: true,
+      editable: (params) => canEdit || canSocialWorkerEdit(params) || canSiteInChargeEdit(params),
       pinned: "left",
     },
     {
@@ -2263,6 +2334,7 @@ class RegistrationPaymentSection extends Component {
         );
       },
       editable: false,
+      suppressKeyboardEvent: (params) => !canEdit && !canSocialWorkerEdit(params) && !canSiteInChargeEdit(params), // Block keyboard interaction for non-authorized roles
       width: 500,
       hide: shouldHidePaymentColumns // Hide Payment Method column when filtering by ILP or Talks And Seminar
     },
@@ -2271,6 +2343,7 @@ class RegistrationPaymentSection extends Component {
       field: "confirmed",
       cellRenderer: (params) => this.slideButtonRenderer(params),
       editable: false,
+      suppressKeyboardEvent: (params) => !canEdit && !canSocialWorkerEdit(params) && !canSiteInChargeEdit(params), // Block keyboard interaction for non-authorized roles
       width: 180,
       cellStyle: (params) =>
         params.data.paymentMethod !== "SkillsFuture" ? { display: "none" } : {},
@@ -2286,14 +2359,14 @@ class RegistrationPaymentSection extends Component {
       headerName: "Payment Date",
       field: "paymentDate",
       width: 350,
-      editable: true,
+      editable: (params) => canEdit || canSocialWorkerEdit(params) || canSiteInChargeEdit(params),
       hide: shouldHidePaymentColumns // Hide Payment Date column when filtering by ILP or Talks And Seminar
     },
     {
       headerName: "Refunded Date",
       field: "refundedDate",
       width: 350,
-      editable: true,
+      editable: (params) => canEdit || canSocialWorkerEdit(params) || canSiteInChargeEdit(params),
       hide: shouldHidePaymentColumns // Hide Refunded Date column when filtering by ILP or Talks And Seminar
     },
  {
@@ -2428,13 +2501,7 @@ class RegistrationPaymentSection extends Component {
       headerName: "Remarks",
       field: "remarks",
       width: 300,
-      editable: (params) => {
-        return !(
-          params.data.paymentStatus === "Withdrawn" ||
-          params.data.paymentStatus === "Cancelled" ||
-          params.data.paymentStatus === "Refunded"
-        );
-      },
+      editable: true,
     },
   ];
 
@@ -2901,6 +2968,17 @@ debugMarriagePrepData = () => {
     const rowIndex = event.rowIndex; // Get the clicked row index
     const expandedRowIndex = this.state.expandedRowIndex;
 
+    // Site in-charge / NSA in-charge clicking on NSA rows for editable columns → queue approval change
+    // const nsaEditableColumns = ["Name", "Contact Number", "Payment Date", "Refunded Date", "Registration and Payment Status", "Payment Status", "Registration Status", "Remarks"];
+    // if (
+    //   (this.props.role === 'Site in-charge' || this.props.role === 'NSA in-charge') &&
+    //   event.data?.courseInfo?.courseType === 'NSA' &&
+    //   nsaEditableColumns.includes(columnName)
+    // ) {
+    //   this.requestNSAApproval(event.data, columnName);
+    //   return;
+    // }
+
     try {
       if(columnName === "S/N")
         {
@@ -3171,56 +3249,6 @@ debugMarriagePrepData = () => {
               </div>
             </div>
 
-            <div className="registration-payment-details-section-title" style={{display: 'none'}}>
-              <h4 className="registration-payment-details-section-title">Participant Information</h4>
-              <div className="registration-payment-details-grid">
-                <div className="registration-payment-details-field">
-                  <span className="registration-payment-details-field-label">Name:</span>
-                  <span className="registration-payment-details-field-value">{participantInfo.name}</span>
-                </div>
-                <div className="registration-payment-details-field">
-                  <span className="registration-payment-details-field-label">NRIC:</span>
-                  <span className="registration-payment-details-field-value">{participantInfo.nric}</span>
-                </div>
-                <div className="registration-payment-details-field">
-                  <span className="registration-payment-details-field-label">Contact:</span>
-                  <span className="registration-payment-details-field-value">{participantInfo.contactNumber}</span>
-                </div>
-                <div className="registration-payment-details-field">
-                  <span className="registration-payment-details-field-label">Email:</span>
-                  <span className="registration-payment-details-field-value">{participantInfo.email}</span>
-                </div>
-                <div className="registration-payment-details-field">
-                  <span className="registration-payment-details-field-label">Gender:</span>
-                  <span className="registration-payment-details-field-value">{participantInfo.gender}</span>
-                </div>
-                <div className="registration-payment-details-field">
-                  <span className="registration-payment-details-field-label">DOB:</span>
-                  <span className="registration-payment-details-field-value">{participantInfo.dateOfBirth}</span>
-                </div>
-                <div className="registration-payment-details-field">
-                  <span className="registration-payment-details-field-label">Residential Status:</span>
-                  <span className="registration-payment-details-field-value">{participantInfo.residentialStatus}</span>
-                </div>
-                <div className="registration-payment-details-field">
-                  <span className="registration-payment-details-field-label">Race:</span>
-                  <span className="registration-payment-details-field-value">{participantInfo.race}</span>
-                </div>
-                <div className="registration-payment-details-field">
-                  <span className="registration-payment-details-field-label">Postal Code:</span>
-                  <span className="registration-payment-details-field-value">{participantInfo.postalCode}</span>
-                </div>
-                <div className="registration-payment-details-field">
-                  <span className="registration-payment-details-field-label">Education Level:</span>
-                  <span className="registration-payment-details-field-value">{participantInfo.educationLevel}</span>
-                </div>
-                <div className="registration-payment-details-field">
-                  <span className="registration-payment-details-field-label">Work Status:</span>
-                  <span className="registration-payment-details-field-value">{participantInfo.workStatus}</span>
-                </div>
-              </div>
-            </div>
-
             {/* Marriage Preparation Programme Specific Fields */}
             {isMarriagePrep && marriageDetails && (
               <div style={{marginBottom: '16px'}}>
@@ -3420,24 +3448,6 @@ debugMarriagePrepData = () => {
                 <div className="registration-payment-details-field">
                   <span className="registration-payment-details-field-label">Remarks:</span>
                   <span className="registration-payment-details-field-value">{officialInfo.remarks || 'N/A'}</span>
-                </div>
-              </div>
-            </div>
-
-            <div style={{marginBottom: '16px'}}>
-              <h4 className="registration-payment-details-section-title">Official Use</h4>
-              <div className="registration-payment-details-grid">
-                <div className="registration-payment-details-field">
-                  <span className="registration-payment-details-field-label">Staff Name:</span>
-                  <span className="registration-payment-details-field-value">{officialInfo.name || 'N/A'}</span>
-                </div>
-                <div className="registration-payment-details-field">
-                  <span className="registration-payment-details-field-label">Processed Date:</span>
-                  <span className="registration-payment-details-field-value">{officialInfo.date || 'N/A'}</span>
-                </div>
-                <div className="registration-payment-details-field">
-                  <span className="registration-payment-details-field-label">Processed Time:</span>
-                  <span className="registration-payment-details-field-value">{officialInfo.time || 'N/A'}</span>
                 </div>
               </div>
             </div>
@@ -4318,6 +4328,48 @@ debugMarriagePrepData = () => {
     });
   };
 
+  // NSA Approval Modal methods (for Site in-charge requesting edit access)
+  requestNSAApproval = (rowData, columnName) => {
+    const now = new Date();
+    const dd = String(now.getDate()).padStart(2, '0');
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const yyyy = now.getFullYear();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
+    // Derive the current value for the column being requested
+    const currentValueMap = {
+      'Name': rowData?.participantInfo?.name || rowData?.name || '',
+      'Contact Number': rowData?.contactNo || rowData?.participantInfo?.contactNumber || '',
+      'Payment Date': rowData?.paymentDate || '',
+      'Refunded Date': rowData?.refundedDate || '',
+      'Remarks': rowData?.remarks || '',
+      'Payment Status': rowData?.paymentStatus || '',
+      'Registration Status': rowData?.paymentStatus || '',
+      'Registration and Payment Status': rowData?.paymentStatus || '',
+      'Confirmation': rowData?.confirmed ? 'Yes' : 'No',
+      'Payment Method': rowData?.paymentMethod || '',
+    };
+    this.props.onNSAApprovalRequest({
+      columnName,
+      currentValue: currentValueMap[columnName] || '',
+      currentDate: `${dd}/${mm}/${yyyy}`,
+      currentTime: `${hh}:${min}`,
+      registrationId: rowData?.id || '',
+      sn: rowData?.sn || '',
+      participantName: rowData?.participantInfo?.name || rowData?.name || '',
+      contactNo: rowData?.contactNo || rowData?.participantInfo?.contactNumber || '',
+      courseName: rowData?.courseInfo?.courseEngName || rowData?.course || '',
+      courseLocation: rowData?.courseInfo?.courseLocation || rowData?.location || '',
+      courseType: rowData?.courseInfo?.courseType || 'NSA',
+      paymentMethod: rowData?.paymentMethod || '',
+      paymentStatus: rowData?.paymentStatus || '',
+      paymentDate: rowData?.paymentDate || '',
+      refundedDate: rowData?.refundedDate || '',
+      remarks: rowData?.remarks || '',
+      confirmed: rowData?.confirmed != null ? rowData.confirmed : null,
+    });
+  };
+
   handleBulkUpdate = async () => {
     const { selectedRows, bulkUpdateStatus, bulkUpdateMethod } = this.state;
     
@@ -4705,6 +4757,24 @@ debugMarriagePrepData = () => {
           >
             Bulk Update ({selectedRows.length})
           </button>
+          {/*(this.props.role === 'NSA in-charge' || this.props.role === 'Site in-charge') && (
+            <button
+              className="registration-payment-details-button"
+              style={{ color: '#e65100', borderColor: '#e65100', cursor: 'pointer' }}
+              onClick={() => this.props.onOpenNSAPendingList()}
+              title="View pending approval changes and send email"
+            >
+              Send Approval Email
+              {this.props.nsaPendingCount > 0 && (
+                <span style={{
+                  marginLeft: '6px', background: '#e65100', color: '#fff',
+                  borderRadius: '99px', padding: '1px 7px', fontSize: '11px',
+                }}>
+                  {this.props.nsaPendingCount}
+                </span>
+              )}
+            </button>
+          )*/}
         </div>
 
         <div className="grid-container">
@@ -4764,6 +4834,8 @@ debugMarriagePrepData = () => {
             </div>
           </div>
         )}
+
+        {/* Expanded Row Detail View */}
 
         {/* Expanded Row Detail View */}
         {(() => {

@@ -4,6 +4,8 @@ import React, { Component } from 'react';
   import AccountsSection from './sub/accountsSection';
   import CoursesSection from './sub/courseSection';
   import RegistrationPaymentSection from './sub/registrationPaymentSection';
+  import NSAApprovalModal from './NSAApprovalModal';
+import NSAConsolidatedModal from './NSAConsolidatedModal';
   import Popup from './popup/popupMessage';
   import Search from './sub/searchSection';
   import ViewToggle from './sub/viewToggleSection';
@@ -150,7 +152,10 @@ import React, { Component } from 'react';
         showInvoiceModal: false,
         invoiceModalData: { invoiceNumber: '', orderData: null },
         showGoogleDriveUploadModal: false,
-        showGoogleDriveViewModal: false
+        showGoogleDriveViewModal: false,
+        nsaApprovalData: null,
+        nsaPendingChanges: [],
+        isNSAConsolidatedOpen: false,
       };
   
       // Always reset attendance filter/search state to defaults on page load
@@ -1612,6 +1617,64 @@ import React, { Component } from 'react';
       this.setState({ showGoogleDriveViewModal: false });
     };
 
+    // NSA Approval Modal
+    openNSAApprovalModal = (data) => {
+      this.setState({ nsaApprovalData: data });
+    };
+
+    closeNSAApprovalModal = () => {
+      this.setState({ nsaApprovalData: null });
+    };
+
+    addToNSAPendingList = (changes, additionalNotes, recordData) => {
+      const items = changes.map(c => ({
+        _tempId: Date.now() + Math.random(),
+        registrationId: recordData.registrationId,
+        sn: recordData.sn,
+        participantName: recordData.participantName,
+        contactNo: recordData.contactNo,
+        courseName: recordData.courseName,
+        courseLocation: recordData.courseLocation,
+        courseType: recordData.courseType,
+        paymentStatus: recordData.paymentStatus,
+        paymentMethod: recordData.paymentMethod,
+        columnName: c.columnName,
+        currentValue: c.currentValue || '',
+        newValue: c.newValue,
+        reason: c.reason,
+      }));
+      this.setState(prev => ({
+        nsaPendingChanges: [...prev.nsaPendingChanges, ...items],
+        nsaApprovalData: null,
+      }));
+    };
+
+    openNSAConsolidated = () => {
+      this.setState({ isNSAConsolidatedOpen: true });
+    };
+
+    closeNSAConsolidated = () => {
+      this.setState({ isNSAConsolidatedOpen: false });
+    };
+
+    removeNSAPendingChange = (tempId) => {
+      this.setState(prev => ({
+        nsaPendingChanges: prev.nsaPendingChanges.filter(i => i._tempId !== tempId),
+      }));
+    };
+
+    updateNSAPendingChange = (tempId, field, value) => {
+      this.setState(prev => ({
+        nsaPendingChanges: prev.nsaPendingChanges.map(i =>
+          i._tempId === tempId ? { ...i, [field]: value } : i
+        ),
+      }));
+    };
+
+    clearNSAPendingList = () => {
+      this.setState({ nsaPendingChanges: [] });
+    };
+
     // Open bulk order modal and start loading
     openBulkOrderModal = async () => {
       console.log("Opening bulk order modal and starting to load data...");
@@ -2369,6 +2432,7 @@ import React, { Component } from 'react';
       const userName = this.props.location.state?.name || 'User';
       const role = this.props.location.state?.role;
       const siteIC = this.props.location.state?.siteIC;
+      const userEmail = this.props.location.state?.email || '';
       const {membershipType, membershipTypes, membershipSearchQuery, isMembershipVisible, isFitnessVisible, fitnessSearchQuery, isCourseFlyersVisible, isCourseLinkVisible, isFundraisingTableVisible, isFundraisingInventoryVisible, isInventoryModulesVisible, isInventoryFormVisible, isAuditLogsVisible, inventoryTab, fundraisingSearchQuery, fundraisingPaymentMethod, fundraisingCollectionLocation, fundraisingStatus, fundraisingPaymentMethods, fundraisingCollectionLocations, fundraisingStatuses, showCalendarModal, selectedOrderForCalendar, collectionSchedule, attendanceVisibility, reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo, selectedQuarter, quarters, attendanceFilterType, attendanceFilterCode, attendanceFilterLocation, attendanceSearchQuery, attendanceTypes, activityCodes, attendanceLocations, isSalesReportModalOpen, isPaymentReportModalOpen, isFiscalBalanceReportModalOpen, showItemsModal, selectedItems, selectedRowData, wooCommerceProductDetails, showReceiptModal, selectedReceipt, showInvoiceModal, invoiceModalData} = this.state;
 
       return (
@@ -2844,6 +2908,7 @@ import React, { Component } from 'react';
                         currentPage={currentPage} // Pass current page
                         entriesPerPage={this.state.entriesPerPage} // Pass entries per page
                         userName = {userName}
+                        userEmail = {userEmail}
                         siteIC = {siteIC}
                         role = {role}
                         key={this.state.refreshKey}
@@ -2859,7 +2924,9 @@ import React, { Component } from 'react';
                         closePopupMessage = {this.closePopupMessage}
                         generateDeleteConfirmationPopup = {this.generateDeleteConfirmationPopup}
                         generatePortOverConfirmationPopup = {this.generatePortOverConfirmationPopup}
-                        generateSendDetailsConfirmationPopup = {this.generateSendDetailsConfirmationPopup}
+                        onNSAApprovalRequest={this.openNSAApprovalModal}
+                        onOpenNSAPendingList={this.openNSAConsolidated}
+                        nsaPendingCount={this.state.nsaPendingChanges.length}
                     />
                     </div>
                   </>}                 
@@ -3011,6 +3078,23 @@ import React, { Component } from 'react';
             onClose={this.closeBulkUpdateModal}
             onDownloadInvoices={this.handleDownloadInvoices}
             wooCommerceProductDetails={this.fundraisingTableRef?.current?.state?.wooCommerceProductDetails || []}
+          />
+          <NSAApprovalModal
+            data={this.state.nsaApprovalData}
+            userName={this.props.location.state?.name || 'User'}
+            userEmail={this.props.location.state?.email || ''}
+            onClose={this.closeNSAApprovalModal}
+            onAddToList={this.addToNSAPendingList}
+          />
+          <NSAConsolidatedModal
+            isOpen={this.state.isNSAConsolidatedOpen}
+            changes={this.state.nsaPendingChanges}
+            userName={this.props.location.state?.name || 'User'}
+            userEmail={this.props.location.state?.email || ''}
+            onClose={this.closeNSAConsolidated}
+            onRemove={this.removeNSAPendingChange}
+            onUpdate={this.updateNSAPendingChange}
+            onClearAll={this.clearNSAPendingList}
           />
         </>
       );

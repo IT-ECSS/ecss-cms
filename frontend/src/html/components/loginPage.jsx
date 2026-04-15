@@ -145,7 +145,7 @@ class LoginPage extends Component {
               const siteArray = siteData && siteData.includes(',') 
                 ? siteData.split(',').map(site => site.trim()) 
                 : siteData;
-              this.props.history.push({ pathname: '/home', state: { accountId: loginResponse.data.message.details._id, name: loginResponse.data.message.details.name, role: loginResponse.data.message.details.role, siteIC: siteArray}}); 
+              this.props.history.push({ pathname: '/home', state: { accountId: loginResponse.data.message.details._id, name: loginResponse.data.message.details.name, role: loginResponse.data.message.details.role, siteIC: siteArray, email: loginResponse.data.message.details.email }}); 
             }
         }, 5000);
       } else {

@@ -300,7 +300,7 @@ class invoiceGenerator {
     
         //Therapeutic Basic Line Work
         const courseMap = {
-            "TCM - Don't be a Friend of Chronic Diseases": "TGS-2021008576",
+            "TCM – Don’t be a Friend of Chronic Diseases": "TGS-2021008576",
             "Nagomi Pastel Art Basic Course": "TGS-2022011919",
             "Therapeutic Watercolour Painting for Beginners": "TGS-2022015737",
             "Chinese Calligraphy Intermediate Course": "TGS-2022011921",
