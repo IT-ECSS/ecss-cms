@@ -67,14 +67,6 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: 'Deploy to Azure Web App'
-        id: deploy-to-webapp
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: 'ecss-backend-node'
-          slot-name: 'Production'
-          package: ./node-deploy.zip
-
       - name: Configure Azure App Settings for OneSignal and Google Drive
         run: |
           az webapp config appsettings set \
@@ -88,6 +80,14 @@ jobs:
               NODE_ENV="production" \
               SCM_DO_BUILD_DURING_DEPLOYMENT="true"
           echo "✓ All settings configured in Azure"
+
+      - name: 'Deploy to Azure Web App'
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'ecss-backend-node'
+          slot-name: 'Production'
+          package: ./node-deploy.zip
 
       - name: Configure Google Drive Credentials
         run: |
