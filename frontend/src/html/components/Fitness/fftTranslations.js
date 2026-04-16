@@ -88,6 +88,11 @@ const fftTranslations = {
     zh: '请输入参与者编号。',
     ms: 'Nombor peserta diperlukan.',
   },
+  errorParticipantDigitsOnly: {
+    en: 'Participant number must contain digits only.',
+    zh: '参与者编号只能包含数字。',
+    ms: 'Nombor peserta mesti mengandungi digit sahaja.',
+  },
   errorParticipantNotFound: {
     en: 'Participant not found. Please check the participant number.',
     zh: '找不到参与者，请检查参与者编号。',
@@ -273,29 +278,29 @@ const fftTranslations = {
     ms: 'Sila masukkan tarikh lahir yang sah (hh/bb/tttt)',
   },
   errGenderRequired: {
-    en: 'Please select your gender',
-    zh: '请选择您的性别',
-    ms: 'Sila pilih jantina anda',
+    en: 'Please select gender',
+    zh: '请选择性别',
+    ms: 'Sila pilih jantina',
   },
   errPhoneRequired: {
-    en: 'Please enter your phone number',
-    zh: '请输入您的电话号码',
-    ms: 'Sila masukkan nombor telefon anda',
+    en: 'Please enter contact number',
+    zh: '请输入电话号码',
+    ms: 'Sila masukkan nombor telefon',
   },
   errPhoneInvalidLength: {
-    en: 'Phone number must be 8 digits long',
+    en: 'Contact number must be 8 digits long',
     zh: '电话号码必须是8位数字',
     ms: 'Nombor telefon mestilah 8 digit',
   },
   errPhoneInvalidStart: {
-    en: 'Phone number must start with 8 or 9',
-    zh: '电话号码必须以8或9开头',
-    ms: 'Nombor telefon mestilah bermula dengan 8 atau 9',
+    en: 'Contact number must start with 0, 8 or 9',
+    zh: '电话号码必须以0、8或9开头',
+    ms: 'Nombor telefon mestilah bermula dengan 0, 8 atau 9',
   },
   errPhoneInvalidBoth: {
-    en: 'Phone number must be 8 digits long and start with 8 or 9',
-    zh: '电话号码必须是8位数字且以8或9开头',
-    ms: 'Nombor telefon mestilah 8 digit dan bermula dengan 8 atau 9',
+    en: 'Contact number must be 8 digits long and start with 0, 8 or 9',
+    zh: '电话号码必须是8位数字且以0、8或9开头',
+    ms: 'Nombor telefon mestilah 8 digit dan bermula dengan 0, 8 atau 9',
   },
   errTestDateRequired: {
     en: 'Please enter a valid test date (dd/mm/yyyy)',
@@ -684,6 +689,36 @@ const fftTranslations = {
     en: 'Click on a badge below to re-select your language, event or time slot',
     zh: '点击下方标签可重新选择语言、活动或时间段',
     ms: 'Klik pada label di bawah untuk memilih semula bahasa, acara atau slot masa',
+  },
+  headerDescLanguageOnly: {
+    en: 'Click on a badge below to re-select your language',
+    zh: '点击下方标签可重新选择语言',
+    ms: 'Klik pada label di bawah untuk memilih semula bahasa',
+  },
+  headerDescLanguageEvent: {
+    en: 'Click on a badge below to re-select your language or event',
+    zh: '点击下方标签可重新选择语言或活动',
+    ms: 'Klik pada label di bawah untuk memilih semula bahasa atau acara',
+  },
+  participantRegistration: {
+    en: 'Participant Registration',
+    zh: '参与者注册',
+    ms: 'Pendaftaran Peserta',
+  },
+  registrationMethodDesc: {
+    en: 'Select a registration method to register participants for this event.',
+    zh: '请选择注册方式来为此活动注册参与者。',
+    ms: 'Pilih kaedah pendaftaran untuk mendaftarkan peserta bagi acara ini.',
+  },
+  bulkRegistration: {
+    en: 'Bulk Registration',
+    zh: '批量注册',
+    ms: 'Pendaftaran Pukal',
+  },
+  individualRegistration: {
+    en: 'Individual Registration',
+    zh: '个人注册',
+    ms: 'Pendaftaran Individu',
   },
 };
 

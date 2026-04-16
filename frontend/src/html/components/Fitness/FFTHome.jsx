@@ -7,6 +7,7 @@ const ACCESS_MAP = {
   'Programme Staff': ['registration', 'trainers'],
   'Station Master':  ['volunteers'],
   'Fitness Trainer': ['fitnessTrainers'],
+  'Volunteer':       ['registration'],
 };
 
 const ALL_BUTTONS = [

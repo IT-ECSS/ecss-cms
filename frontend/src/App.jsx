@@ -41,6 +41,16 @@ class App extends Component
       document.documentElement.style.setProperty('--vh', `${vh}px`);
     };
 
+    // Ignore MSAL IndexedDB backing store failures in environments where IndexedDB is blocked
+    this.handleUnhandledRejection = (event) => {
+      const message = event.reason?.message || event.reason || '';
+      if (typeof message === 'string' && message.includes('Internal error opening backing store for indexedDB.open')) {
+        event.preventDefault();
+        console.warn('Ignored benign IndexedDB backing store error:', message);
+      }
+    };
+    window.addEventListener('unhandledrejection', this.handleUnhandledRejection);
+
     // Set initial value
     setVH();
 
@@ -52,6 +62,7 @@ class App extends Component
     this.cleanup = () => {
       window.removeEventListener('resize', setVH);
       window.removeEventListener('orientationchange', setVH);
+      window.removeEventListener('unhandledrejection', this.handleUnhandledRejection);
     };
   }
 

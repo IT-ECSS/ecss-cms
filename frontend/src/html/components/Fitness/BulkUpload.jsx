@@ -167,16 +167,26 @@ class BulkUpload extends Component {
             remarks: row.Remarks || '',
           };
 
-          await axios.post(`${BACKEND_URL}/googleDrive/fftSubmit`, {
+          const response = await axios.post(`${BACKEND_URL}/googleDrive/fftSubmit`, {
             eventName: event.name,
             eventFileId: event.id,
             entryMethod: 'Bulk Registration',
             participantData
           });
 
+          if (response.data?.alreadyRegistered) {
+            skipCount++;
+            continue;
+          }
+
+          if (!response.data?.success) {
+            console.error('Failed to upload participant:', response.data?.error || response.data);
+            failCount++;
+            continue;
+          }
+
           successCount++;
         } catch (error) {
-          // 409 means duplicate — skip silently
           if (error.response && error.response.status === 409 && error.response.data?.alreadyRegistered) {
             skipCount++;
           } else {

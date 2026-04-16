@@ -2063,8 +2063,8 @@ class FormPage extends Component {
         if (formData.cNO && formData.cNO.length !== 8) {
           errors.cNO = this.getErrorMessage('Contact No. must be exactly 8 digits.', '联系号码必须是8位数字。', 'No. Telefon mesti tepat 8 digit.');
         }
-        if (formData.cNO && !/^[89]/.test(formData.cNO)) {
-          errors.cNO = this.getErrorMessage('Contact No. must start with 8 or 9.', '联系号码必须以8或9开头。', 'No. Telefon mesti bermula dengan 8 atau 9.');
+        if (formData.cNO && !/^[089]/.test(formData.cNO)) {
+          errors.cNO = this.getErrorMessage('Contact No. must start with 0, 8 or 9.', '联系号码必须以0、8或9开头。', 'No. Telefon mesti bermula dengan 0, 8 atau 9.');
         }
         if (!formData.dOB) {
           errors.dOB = this.getErrorMessage('Birth Year is required.', '出生年份是必填项。', 'Tahun Lahir diperlukan.');
@@ -2127,8 +2127,8 @@ class FormPage extends Component {
       if (formData.cNO && formData.cNO.length !== 8) {
         errors.cNO = 'Contact No. must be exactly 8 digits. 联系号码必须是8位数字。';
       }
-      if (formData.cNO && !/^[89]/.test(formData.cNO)) {
-        errors.cNO = 'Contact No. must start with 8 or 9. 联系号码必须以8或9开头。';
+      if (formData.cNO && !/^[089]/.test(formData.cNO)) {
+        errors.cNO = 'Contact No. must start with 0, 8 or 9. 联系号码必须以0、8或9开头。';
       }
       if (!formData.eMAIL) {
         errors.eMAIL = 'Email is required. 电子邮件是必填项。';

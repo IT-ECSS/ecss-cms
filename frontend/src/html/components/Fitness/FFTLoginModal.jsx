@@ -6,7 +6,7 @@ const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
   : 'https://ecss-backend-node.azurewebsites.net';
 
-const ROLES = ['Admin', 'Programme Staff', 'Station Master', 'Fitness Trainer'];
+const ROLES = ['Admin', 'Programme Staff', 'Station Master', 'Fitness Trainer', 'Volunteer'];
 
 class FFTLoginModal extends Component {
   /**

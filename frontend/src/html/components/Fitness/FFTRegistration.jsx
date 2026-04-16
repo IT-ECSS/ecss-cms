@@ -7,6 +7,7 @@ import FFTParticipants from './FFTParticipants';
 import HomeConfirmModal from './HomeConfirmModal';
 import UploadResultModal from './UploadResultModal';
 import { SelectionBadgesBar } from './SelectionBadges';
+import fftTranslations from './fftTranslations';
 import '../../../css/fftParticipants.css';
 import '../../../css/fftStaff.css';
 
@@ -149,12 +150,17 @@ class FFTRegistration extends Component {
 
             {/* Right: description + badges stacked */}
             {language && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: '1 1 320px', minWidth: 0, width: '100%' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: '1 1 280px', minWidth: 0 }}>
                 <span style={{ fontSize: '1.3125em', color: '#555' }}>
-                  Click on a badge below to re-select your language{event ? ' or event' : ''}
+                  {event
+                    ? (fftTranslations.headerDescLanguageEvent?.[language] || fftTranslations.headerDescLanguageEvent?.en)
+                    : (fftTranslations.headerDescLanguageOnly?.[language] || fftTranslations.headerDescLanguageOnly?.en)}
                 </span>
                 <SelectionBadgesBar
                   noBorder
+                  sizeMultiplier={1.5625}
+                  disableContainerFlex
+                  badgeVariant="registration"
                   language={language}
                   event={event}
                   onLanguageClick={() => this.setState({ view: 'selectLanguage', reselecting: 'language', previousView: view })}
@@ -178,6 +184,7 @@ class FFTRegistration extends Component {
 
             {view === 'selectEvent' && (
               <EventSelection
+                language={language}
                 onSelectEvent={(selectedEvent) =>
                   this.setState({ event: selectedEvent, view: previousView || 'registrationMenu', reselecting: null, previousView: null })
                 }
@@ -186,8 +193,10 @@ class FFTRegistration extends Component {
 
             {view === 'registrationMenu' && (
               <RegistrationSection
+                language={language}
                 onBulkRegistration={() => this.setState({ view: 'bulkUpload' })}
                 onIndividualRegistration={() => this.setState({ view: 'individualRegistration' })}
+                role={this.props.role}
               />
             )}
 

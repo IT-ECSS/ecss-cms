@@ -248,6 +248,14 @@ class FFTParticipants extends Component {
         entryMethod: data.entryMethod,
         participantNumber: data.participantNumber,
       });
+      if (response.data?.alreadyRegistered) {
+        this.setState({
+          showResultModal: false,
+          showEntryNumber: true,
+          entryNumber: response.data.participantNumber ?? null,
+        });
+        return;
+      }
       if (response.data.success) {
         this.setState({ showResultModal: false, showEntryNumber: true, entryNumber: response.data.entryNumber });
       } else {
@@ -386,7 +394,7 @@ class FFTParticipants extends Component {
 
             {/* Right: description + badges stacked */}
             {language && !this.props.hideStatus && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: '1 1 320px', minWidth: 0, width: '100%' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: '1 1 280px', minWidth: 0 }}>
                 <span style={{ fontSize: '1.3125em', color: '#555' }}>
                   {slot
                     ? (fftTranslations.headerDescWithSlot?.[language] ?? fftTranslations.headerDescWithSlot?.en)
@@ -394,6 +402,9 @@ class FFTParticipants extends Component {
                 </span>
                 <SelectionBadgesBar
                   noBorder
+                  sizeMultiplier={1.5625}
+                  disableContainerFlex
+                  badgeVariant="registration"
                   language={language}
                   event={event}
                   slot={slot}

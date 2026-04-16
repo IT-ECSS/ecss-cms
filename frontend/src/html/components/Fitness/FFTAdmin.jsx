@@ -143,6 +143,7 @@ class FFTAdmin extends Component {
               language={this.props.badgeLanguage}
               event={this.props.badgeEvent}
               slot={this.props.badgeSlot}
+              sizeMultiplier={1.5625}
             />
           </div>
         </div>

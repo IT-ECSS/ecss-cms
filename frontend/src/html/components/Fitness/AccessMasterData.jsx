@@ -42,7 +42,6 @@ class AccessMasterData extends Component {
     const { mode = 'staff' } = this.props;
     const { selectedEvent } = this.state;
 
-    // ── Step 1: no event chosen yet ──────────────────────────────────────────
     if (!selectedEvent) {
       return (
         <EventSelection
@@ -51,7 +50,6 @@ class AccessMasterData extends Component {
       );
     }
 
-    // ── Step 2a: Admin mode – event chosen, show Open Sheet action ────────────
     if (mode === 'admin') {
       return (
         <div className="fft-participants-form">
@@ -92,7 +90,6 @@ class AccessMasterData extends Component {
       );
     }
 
-    // ── Step 2b: Staff mode – event chosen, show read-only AG Grid table ──────
     return (
       <MasterDataTable event={selectedEvent} />
     );

@@ -39,13 +39,17 @@
 
 .fft-create-event-input {
   width: 100%;
-  min-height: 48px;
+  min-height: 58px;
   padding: 14px 16px;
   box-sizing: border-box;
-  border: 1px solid #ccc;
+  border: 2px solid #000;
   border-radius: 4px;
-  font-size: 16px;
+  font-size: 19px;
   font-family: inherit;
+}
+
+.fft-create-event-input::placeholder {
+  font-size: 19px;
 }
 
 /* Location Dropdown */
@@ -55,12 +59,12 @@
 
 .fft-create-event-location-trigger {
   width: 100%;
-  min-height: 48px;
+  min-height: 58px;
   padding: 14px 16px;
   box-sizing: border-box;
-  border: 1px solid #ccc;
+  border: 3px solid #000;
   border-radius: 4px;
-  font-size: 16px;
+  font-size: 19px;
   font-family: inherit;
   background-color: #fff;
   cursor: pointer;
@@ -292,5 +296,93 @@
   .fft-create-event-btn {
     padding: 11px 12px;
     font-size: 13px;
+  }
+}
+
+/* ════════════ TIME SLOT SCHEDULE RESPONSIVE ════════════ */
+
+/* Tablet and below */
+@media (max-width: 768px) {
+  .fft-create-result-section {
+    margin-top: 20px;
+  }
+
+  .fft-admin-result {
+    padding: 14px 16px !important;
+  }
+
+  .fft-admin-result-title {
+    font-size: 18px !important;
+  }
+
+  .fft-admin-result-detail {
+    font-size: 14px !important;
+  }
+}
+
+/* Mobile specific - time slot fields */
+@media (max-width: 600px) {
+  /* Time slot container stacks vertically */
+  div[style*="flex: '1 1 220px'"] {
+    flex: 1 1 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* Ensure time inputs are readable on mobile */
+  input[type="time"] {
+    font-size: 16px !important; /* Prevents zoom on iOS */
+  }
+
+  /* Separator sizing for mobile */
+  div[style*="fontSize: '1.5rem'"] {
+    margin: 8px 0 !important;
+  }
+}
+
+/* Small mobile phones */
+@media (max-width: 480px) {
+  .fft-create-result-section {
+    margin-top: 16px;
+  }
+
+  .fft-admin-result {
+    padding: 12px 13px !important;
+    border-radius: 6px !important;
+  }
+
+  .fft-admin-result-title {
+    font-size: 16px !important;
+  }
+
+  .fft-admin-result-detail {
+    font-size: 13px !important;
+    margin-top: 8px !important;
+    word-break: break-all;
+    overflow-wrap: break-word;
+  }
+
+  /* Improve link readability on mobile */
+  .fft-admin-result-detail a {
+    word-break: break-all;
+  }
+}
+
+/* Extra small phones */
+@media (max-width: 360px) {
+  .fft-create-result-section {
+    margin-top: 12px;
+  }
+
+  .fft-admin-result {
+    padding: 10px 11px !important;
+  }
+
+  .fft-admin-result-title {
+    font-size: 15px !important;
+  }
+
+  .fft-admin-result-detail {
+    font-size: 12px !important;
+    margin-top: 6px !important;
   }
 }

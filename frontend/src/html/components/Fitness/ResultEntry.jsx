@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import axios from 'axios';
 import '../../../css/fftVolunteers.css';
+import '../../../css/fftResultEntry.css';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
@@ -432,7 +433,7 @@ class ResultEntry extends Component {
                       </label>
                       <input
                         type="text"
-                        inputMode={field.type === 'number' ? 'decimal' : 'text'}
+                        inputMode="text"
                         value={formData[field.key] || ''}
                         placeholder={field.placeholder}
                         onChange={(e) => {

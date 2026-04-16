@@ -102,11 +102,20 @@ class CreateFFTEventTimeSlots extends React.Component {
   };
 
   handleTimeChange = (index, field, value) => {
+    // Validate time format: HH:MM where HH is 00-23, MM is 00-59
+    const isValidTime = (time) => {
+      if (!time) return true;
+      const [h, m] = time.split(':').map(Number);
+      return !isNaN(h) && !isNaN(m) && h >= 0 && h <= 23 && m >= 0 && m <= 59;
+    };
+
+    // Allow user input regardless of validity - validation shown via error messages
     this.setState((prev) => {
       const updated = prev.timeslotTimes.map((slot, i) => {
         if (i !== index) return slot;
         const newSlot = { ...slot, [field]: value };
-        if (field === 'start' && value) {
+        // Only auto-cascade end time if the start time is valid
+        if (field === 'start' && value && isValidTime(value)) {
           const [h, m] = value.split(':').map(Number);
           const endH = (h + 1) % 24;
           newSlot.end = `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
@@ -116,7 +125,7 @@ class CreateFFTEventTimeSlots extends React.Component {
 
       // Determine the end time of the changed slot, then cascade through all subsequent slots
       const changedEnd = updated[index].end;
-      if (changedEnd) {
+      if (changedEnd && isValidTime(changedEnd)) {
         let prevEnd = changedEnd;
         for (let i = index + 1; i < updated.length; i++) {
           const [h, m] = prevEnd.split(':').map(Number);
@@ -284,10 +293,13 @@ class CreateFFTEventTimeSlots extends React.Component {
 
     const participantsInvalid = participantsPerTimeslot.trim() === '' || isNaN(parsedParticipants) || parsedParticipants < 1;
     const slotsInvalid = numberOfTimeslots.trim() === '' || isNaN(parsedSlots) || parsedSlots < 1;
-    const fieldRowStyle = { display: 'flex', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px 16px' };
+    const fieldRowStyle = { display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '12px 16px' };
     const fieldLabelStyle = { flex: '1 1 240px', minWidth: 0, margin: 0, display: 'flex', alignItems: 'center' };
     const fieldInputStyle = { flex: '1 1 220px', minWidth: 0, width: '100%' };
     const fieldErrorStyle = { color: '#d32f2f', fontSize: '0.9em', marginTop: '6px', paddingLeft: 0 };
+
+    // Responsive breakpoint check
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 600;
 
     return (
       <div className="fft-participants-wrapper">
@@ -351,14 +363,22 @@ class CreateFFTEventTimeSlots extends React.Component {
                   const startInvalid = submitted && slot.start.trim() === '';
                   const endInvalid = submitted && slot.end.trim() === '';
                   const endBeforeStart = submitted && slot.start && slot.end && slot.end <= slot.start;
+                  
+                  // Validate time format: HH:MM where HH is 00-23, MM is 00-59
+                  const isValidTime = (time) => {
+                    if (!time) return true;
+                    const [h, m] = time.split(':').map(Number);
+                    return !isNaN(h) && !isNaN(m) && h >= 0 && h <= 23 && m >= 0 && m <= 59;
+                  };
+                  const startTimeInvalid = slot.start && !isValidTime(slot.start);
+                  const endTimeInvalid = slot.end && !isValidTime(slot.end);
+                  
                   return (
-                    <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: '#f9f9f9', borderRadius: '8px', padding: '16px', border: '1px solid #e0e0e0' }}>
+                      {/* Slot number header */}
                       <div style={{
-                        display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '12px',
-                        background: '#f9f9f9', border: `1px solid ${(startInvalid || endInvalid || endBeforeStart) ? '#d32f2f' : '#e0e0e0'}`,
-                        borderRadius: '8px', padding: '12px 16px',
+                        display: 'flex', alignItems: 'center', gap: '12px',
                       }}>
-                        {/* Slot number badge */}
                         <div style={{
                           minWidth: '36px', height: '36px', borderRadius: '50%',
                           color: '#1565c0', display: 'flex',
@@ -367,42 +387,35 @@ class CreateFFTEventTimeSlots extends React.Component {
                         }}>
                           {i + 1}
                         </div>
+                        <span style={{ fontSize: '0.95rem', color: '#333', fontWeight: 600 }}>Time Slot {i + 1}</span>
+                      </div>
 
-                        {/* Start time */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-                          <label style={{ fontSize: '0.9rem', color: '#555', whiteSpace: 'nowrap' }}>Start</label>
+                      {/* Start and End time on one line */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', flexDirection: isMobile ? 'column' : 'row' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: isMobile ? '1 1 100%' : '1 1 220px', minWidth: 0 }}>
+                          <label style={{ fontSize: '0.9rem', color: '#555', whiteSpace: 'nowrap' }}>Start Time:</label>
                           <input
                             type="time"
                             value={slot.start}
                             onChange={(e) => this.handleTimeChange(i, 'start', e.target.value)}
                             className="fft-create-event-input"
-                            style={{ flex: 1, padding: '10px 12px', borderColor: startInvalid ? '#d32f2f' : undefined }}
+                            style={{ flex: 1, padding: '10px 12px' }}
                           />
                         </div>
 
-                        <span style={{ color: '#999', fontWeight: 600 }}>–</span>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', fontWeight: 700, fontSize: '1.5rem', margin: isMobile ? '0' : 'auto' }}>−</div>
 
-                        {/* End time */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 180px', minWidth: 0 }}>
-                          <label style={{ fontSize: '0.9rem', color: '#555', whiteSpace: 'nowrap' }}>End</label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: isMobile ? '1 1 100%' : '1 1 220px', minWidth: 0 }}>
+                          <label style={{ fontSize: '0.9rem', color: '#555', whiteSpace: 'nowrap' }}>End Time:</label>
                           <input
                             type="time"
                             value={slot.end}
                             onChange={(e) => this.handleTimeChange(i, 'end', e.target.value)}
                             className="fft-create-event-input"
-                            style={{ flex: 1, padding: '10px 12px', borderColor: (endInvalid || endBeforeStart) ? '#d32f2f' : undefined }}
+                            style={{ flex: 1, padding: '10px 12px' }}
                           />
                         </div>
                       </div>
-                      {startInvalid && (
-                        <div style={{ color: '#d32f2f', fontSize: '0.85em', paddingLeft: '8px' }}>Slot {i + 1}: Start time is required.</div>
-                      )}
-                      {endInvalid && (
-                        <div style={{ color: '#d32f2f', fontSize: '0.85em', paddingLeft: '8px' }}>Slot {i + 1}: End time is required.</div>
-                      )}
-                      {endBeforeStart && (
-                        <div style={{ color: '#d32f2f', fontSize: '0.85em', paddingLeft: '8px' }}>Slot {i + 1}: End time must be after start time.</div>
-                      )}
                     </div>
                   );
                 })}
@@ -413,49 +426,24 @@ class CreateFFTEventTimeSlots extends React.Component {
           {/* Result / Error */}
           {submitResult && (
             <div className="fft-create-result-section">
-              <div className={`fft-admin-result ${submitResult.linksVerified ? 'fft-admin-result--success' : 'fft-admin-result--warning'}`}>
-                <i className={submitResult.linksVerified ? 'fas fa-check-circle' : 'fas fa-exclamation-triangle'}></i>
+              <div className="fft-admin-result fft-admin-result--success">
+                <i className="fas fa-check-circle"></i>
                 <div style={{ minWidth: 0, width: '100%' }}>
-                  <p className="fft-admin-result-title">
-                    {submitResult.linksVerified ? 'FFT Event Created Successfully!' : 'FFT Event Created — waiting for link verification'}
-                  </p>
-                  {!submitResult.linksVerified && (
-                    <p className="fft-admin-result-detail">
-                      The event file was created, but the file, registration link, or QR code image is not fully openable yet.
-                    </p>
-                  )}
-                  {submitResult.fileUrl ? (
+                  {submitResult.fileUrl && (
                     <p className="fft-admin-result-detail">
                       File name: <a href={submitResult.fileUrl} target="_blank" rel="noopener noreferrer" style={{ overflowWrap: 'anywhere' }}>{submitResult.fileName}</a>
                     </p>
-                  ) : (
-                    <p className="fft-admin-result-detail">File name: {submitResult.fileName}</p>
                   )}
                   {submitResult.registrationLink && (
                     <p className="fft-admin-result-detail" style={{ marginTop: '4px', overflowWrap: 'anywhere' }}>
-                      Registration link: <a href={submitResult.registrationLink} target="_blank" rel="noopener noreferrer">{submitResult.registrationLink}</a>
+                      Pre-registration form: <a href={submitResult.registrationLink} target="_blank" rel="noopener noreferrer">{submitResult.registrationLink}</a>
                     </p>
                   )}
                   {(submitResult.qrCodeUrl || submitResult.qrCodeImageUrl) && (
                     <div style={{ marginTop: '12px' }}>
-                      <p className="fft-admin-result-detail" style={{ marginBottom: '8px' }}>
-                        QR code: <a href={submitResult.qrCodeUrl || submitResult.qrCodeImageUrl} target="_blank" rel="noopener noreferrer">Open QR code image</a>
+                      <p className="fft-admin-result-detail">
+                        QR code: <a href={submitResult.qrCodeUrl || submitResult.qrCodeImageUrl} target="_blank" rel="noopener noreferrer">QR Code File</a>
                       </p>
-                      {submitResult.qrCodeImageUrl && (
-                        <a
-                          href={submitResult.qrCodeUrl || submitResult.qrCodeImageUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ display: 'inline-flex', border: '1px solid #d9e2db', borderRadius: '10px', background: '#fff', padding: '8px' }}
-                        >
-                          <img
-                            src={submitResult.qrCodeImageUrl}
-                            alt={`QR code for ${submitResult.fileName}`}
-                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                            style={{ width: '160px', maxWidth: '100%', height: '160px', objectFit: 'contain', display: 'block' }}
-                          />
-                        </a>
-                      )}
                     </div>
                   )}
                 </div>

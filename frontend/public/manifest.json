@@ -1,19 +1,19 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "ECSS FFT",
+  "name": "ECSS FFT",
   "icons": [
     {
-      "src": "favicon.ico",
+      "src": "https://ecss.org.sg/wp-content/uploads/2023/07/En_logo_Final_Large_RGB.png",
       "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
+      "type": "image/png"
     },
     {
-      "src": "logo192.png",
+      "src": "https://ecss.org.sg/wp-content/uploads/2023/07/En_logo_Final_Large_RGB.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "logo512.png",
+      "src": "https://ecss.org.sg/wp-content/uploads/2023/07/En_logo_Final_Large_RGB.png",
       "type": "image/png",
       "sizes": "512x512"
     }

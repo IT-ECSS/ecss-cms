@@ -96,8 +96,8 @@ class ParticularsSection extends Component {
   };
 
   validatePhone = (phoneString) => {
-    // Check if phone starts with 8 or 9 and is 8 digits long (Singapore phone format)
-    const phoneRegex = /^[89][0-9]{7}$/;
+    // Check if phone starts with 0, 8 or 9 and is 8 digits long
+    const phoneRegex = /^[089][0-9]{7}$/;
     return phoneRegex.test(phoneString);
   };
 
@@ -285,7 +285,7 @@ class ParticularsSection extends Component {
     if (!formData.phone.trim()) {
       errors.phone = this.getTrans('errPhoneRequired');
     } else {
-      const startsWithValid = /^[89]/.test(formData.phone);
+      const startsWithValid = /^[089]/.test(formData.phone);
       const isEightDigits = formData.phone.length === 8;
 
       if (startsWithValid && !isEightDigits) {

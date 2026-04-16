@@ -225,7 +225,7 @@ class UploadStatus extends Component {
       errors.push('Gender cannot be empty');
     }
 
-    // Validate Contact Number: starts with 8 or 9, exactly 8 chars, numeric
+    // Validate Contact Number: starts with 0, 8 or 9, exactly 8 chars, numeric
     const phoneNumber = row['Phone Number (No country code)'] || row['Phone Number'] || '';
     if (phoneNumber && String(phoneNumber).trim() !== '') {
       const phoneStr = String(phoneNumber).trim();
@@ -241,9 +241,9 @@ class UploadStatus extends Component {
         errors.push(`Contact Number must be exactly 8 numeric characters`);
       }
       
-      // Check if starts with 8 or 9
-      if (!/^[89]/.test(phoneStr)) {
-        errors.push('Contact Number must start with 8 or 9');
+      // Check if starts with 0, 8 or 9
+      if (!/^[089]/.test(phoneStr)) {
+        errors.push('Contact Number must start with 0, 8 or 9');
       }
     }
 

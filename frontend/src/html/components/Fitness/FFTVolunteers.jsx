@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import axios from 'axios';
 import { io } from 'socket.io-client';
 import '../../../css/fftVolunteers.css';
+import LanguageSelection from './LanguageSelection';
 import EventSelection from './EventSelection';
 import StationSelection from './StationSelection';
 import ResultEntry from './ResultEntry';
@@ -20,6 +21,7 @@ class FFTVolunteers extends Component {
   constructor(props) {
     super(props);
     this.state = {
+      language: null,
       selectedEvent: null,
       selectedStation: null,
       activeFile: null,
@@ -176,13 +178,15 @@ class FFTVolunteers extends Component {
 
   // ── Navigation ──
   handleBack = () => {
-    const { selectedEvent, selectedStation, participantData, lookupError } = this.state;
+    const { language, selectedEvent, selectedStation, participantData, lookupError } = this.state;
     if (participantData || lookupError) {
       this.setState({ participantData: null, entryNumber: null, entryError: null, lookupError: null });
     } else if (selectedStation) {
       this.setState({ selectedStation: null });
     } else if (selectedEvent) {
       this.setState({ selectedEvent: null });
+    } else if (language) {
+      this.setState({ language: null });
     } else {
       this.props.onBack();
     }
@@ -191,7 +195,7 @@ class FFTVolunteers extends Component {
   // ── Render ──
   render() {
     const { onBack, selectedFile } = this.props;
-    const { selectedStation, selectedEvent, activeFile, participantData, loadingParticipant, lookupError, entryNumber } = this.state;
+    const { language, selectedStation, selectedEvent, activeFile, participantData, loadingParticipant, lookupError, entryNumber } = this.state;
     const fileId = (selectedEvent && selectedEvent.id) ||
                    (selectedFile && selectedFile.id) ||
                    (activeFile && activeFile.id);
@@ -211,8 +215,12 @@ class FFTVolunteers extends Component {
               </button>
             </div>
             <SelectionBadgesBar
+              language={language}
               event={this.props.badgeEvent}
               station={this.props.badgeStation}
+              sizeMultiplier={1.5625}
+              stationBadgeClassName="fft-vol-station-header-badge"
+              onLanguageClick={() => this.setState({ language: null })}
               onEventClick={() => { this.setState({ reselectingBadge: 'event' }); this.props.onBadgeEventClick?.(); }}
               onStationClick={() => { this.setState({ reselectingBadge: 'station' }); this.props.onBadgeStationClick?.(); }}
               showEventPlaceholder={this.state.reselectingBadge === 'event'}
@@ -224,9 +232,18 @@ class FFTVolunteers extends Component {
         {/* Content area */}
         <div className="fft-volunteers-form">
 
+          {/* ──── Language Selection Section ──── */}
+          {!language && (
+            <LanguageSelection
+              selectedLanguage={language}
+              onSelectLanguage={(lang) => this.setState({ language: lang })}
+            />
+          )}
+
           {/* ──── Event Selection Section ──── */}
-          {!selectedEvent && (
+          {language && !selectedEvent && (
             <EventSelection
+              language={language}
               onSelectEvent={this.handleSelectEvent}
             />
           )}
@@ -240,6 +257,7 @@ class FFTVolunteers extends Component {
 
           {selectedEvent && selectedStation && !participantData && !lookupError && !loadingParticipant && (
             <VolunteerEntry
+              language={language}
               onLookup={this.handleEntryLookup}
             />
           )}

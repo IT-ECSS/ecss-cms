@@ -200,6 +200,7 @@ class FFTPage extends Component {
             {activeSection === 'registration' && (
               <FFTRegistration
                 onBack={() => this.handleSectionChange('home')}
+                role={loggedInRole}
               />
             )}
             {/* Always mounted to preserve EditParticipants state when navigating home */}

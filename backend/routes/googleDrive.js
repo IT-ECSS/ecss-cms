@@ -7,6 +7,7 @@ const XLSX = require('xlsx');
 const XlsxPopulate = require('xlsx-populate');
 const JSZip = require('jszip');
 const { COLUMN_HEADERS } = require('../constants/fftFieldMappings');
+const REGISTRATION_TEMPLATE_FILE_ID = '1xu3UtY6fm3O09_vwlCk1p_NZM0waWrzUMsDGmJbmNDk';
 
 const googleDriveController = new GoogleDriveController();
 
@@ -308,10 +309,9 @@ router.post('/generateTemplate', async (req, res) => {
         const PREFILL_ROWS = 30; // Dropdown applied to rows 2–31
 
         // Export the Google Sheets template as base
-        const TEMPLATE_FILE_ID = '1xu3UtY6fm3O09_vwlCk1p_NZM0waWrzUMsDGmJbmNDk';
         const drive = await googleDriveController.initializeAuth();
         const exportResponse = await drive.files.export(
-            { fileId: TEMPLATE_FILE_ID, mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+            { fileId: REGISTRATION_TEMPLATE_FILE_ID, mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
             { responseType: 'arraybuffer' }
         );
 
@@ -327,7 +327,8 @@ router.post('/generateTemplate', async (req, res) => {
             const workbook = await XlsxPopulate.fromDataAsync(workbookBuf);
             const sheet = workbook.sheet(0);
             for (let rowNum = 2; rowNum <= PREFILL_ROWS + 1; rowNum++) {
-                // Format E and F as Text so dropdown values stay as typed strings
+                // Format contact number, start time, and end time as Text so Excel preserves leading zeros and dropdown values stay as strings
+                sheet.cell(`B${rowNum}`).style('numberFormat', '@');
                 sheet.cell(`E${rowNum}`).style('numberFormat', '@');
                 sheet.cell(`F${rowNum}`).style('numberFormat', '@');
 
@@ -653,7 +654,8 @@ router.post('/fftSubmit', async (req, res) => {
                 message: 'Pre-registered participant acknowledged',
                 sheetName: sheetFileName,
                 fileId,
-                participantNumber: entryNum,
+                participantNumber: participantNumber,
+                participantNumberIndex: entryNum,
             });
         }
 
@@ -730,37 +732,40 @@ router.post('/fftSubmit', async (req, res) => {
                 const startTimeIdx = col('Start Time')    !== -1 ? col('Start Time')    : -1;
 
                 const existingIndex = sheetData.data.findIndex(row => {
-                    const rowName      = (row[nameIdx]   || '').toString().trim().toLowerCase();
+                    // const rowName      = (row[nameIdx]   || '').toString().trim().toLowerCase();
                     const rowPhone     = (row[phoneIdx]  || '').toString().trim();
-                    const rowGender    = (row[genderIdx] || '').toString().trim().toLowerCase();
-                    const rowDD        = (row[ddIdx]     || '').toString().trim();
-                    const rowMM        = (row[mmIdx]     || '').toString().trim();
-                    const rowYYYY      = (row[yyyyIdx]   || '').toString().trim();
-                    const rowStartTime = startTimeIdx !== -1 ? (row[startTimeIdx] || '').toString().trim() : null;
+                    // const rowGender    = (row[genderIdx] || '').toString().trim().toLowerCase();
+                    // const rowDD        = (row[ddIdx]     || '').toString().trim();
+                    // const rowMM        = (row[mmIdx]     || '').toString().trim();
+                    // const rowYYYY      = (row[yyyyIdx]   || '').toString().trim();
+                    // const rowStartTime = startTimeIdx !== -1 ? (row[startTimeIdx] || '').toString().trim() : null;
 
-                    const sameBasicInfo = (
-                        rowName   === nameStr.toLowerCase() &&
-                        rowPhone  === phoneStr &&
-                        rowGender === genderStr.toLowerCase() &&
-                        parseInt(rowDD, 10) === parseInt(dd, 10) &&
-                        parseInt(rowMM, 10) === parseInt(mm, 10) &&
-                        rowYYYY   === String(yyyy || '').trim()
-                    );
+                    // Duplicate check: phone number only
+                    return rowPhone !== '' && rowPhone === phoneStr;
 
-                    // Only flag as duplicate if both basic info AND start time match.
-                    // If start time column doesn't exist in sheet, fall back to basic info only.
-                    if (!sameBasicInfo) return false;
-                    if (rowStartTime !== null && startTime) {
-                        return rowStartTime === String(startTime).trim();
-                    }
-                    return true;
+                    // const sameBasicInfo = (
+                    //     rowName   === nameStr.toLowerCase() &&
+                    //     rowPhone  === phoneStr &&
+                    //     rowGender === genderStr.toLowerCase() &&
+                    //     parseInt(rowDD, 10) === parseInt(dd, 10) &&
+                    //     parseInt(rowMM, 10) === parseInt(mm, 10) &&
+                    //     rowYYYY   === String(yyyy || '').trim()
+                    // );
+
+                    // // Only flag as duplicate if both basic info AND start time match.
+                    // // If start time column doesn't exist in sheet, fall back to basic info only.
+                    // if (!sameBasicInfo) return false;
+                    // if (rowStartTime !== null && startTime) {
+                    //     return rowStartTime === String(startTime).trim();
+                    // }
+                    // return true;
                 });
 
                 if (existingIndex !== -1) {
                     // +1: convert 0-based data index to 1-based participant number (row 2 = participant 1)
                     const existingEntryNumber = existingIndex + 1;
                     console.log(`[FFT] Participant "${nameStr}" already registered at entry ${existingEntryNumber} in sheet ${fileId}.`);
-                    return res.status(409).json({
+                    return res.json({
                         success: false,
                         alreadyRegistered: true,
                         participantNumber: existingEntryNumber,
@@ -1005,7 +1010,16 @@ router.post('/exportSpreadsheet', async (req, res) => {
             { fileId, mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
             { responseType: 'arraybuffer' }
         );
-        const buffer = Buffer.from(exportResponse.data);
+        let buffer = Buffer.from(exportResponse.data);
+
+        if (fileId === REGISTRATION_TEMPLATE_FILE_ID) {
+            const workbook = await XlsxPopulate.fromDataAsync(buffer);
+            const sheet = workbook.sheet(0);
+            const TEMPLATE_ROWS = 100;
+            sheet.range(`B2:B${TEMPLATE_ROWS}`).style('numberFormat', '@');
+            buffer = await workbook.outputAsync();
+        }
+
         const safeFileName = (fileName || 'spreadsheet').replace(/[^a-zA-Z0-9_\-. ]/g, '_') + '.xlsx';
         res.set({
             'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

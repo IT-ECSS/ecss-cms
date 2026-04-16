@@ -5,6 +5,61 @@ export { default as SelectedLanguageBadge } from './SelectedLanguageBadge';
 export { default as SelectedEventBadge } from './SelectedEventBadge';
 export { default as SelectedSlotBadge } from './SelectedSlotBadge';
 
+const languageLabels = {
+  localized: { en: 'English', zh: '中文', ms: 'Bahasa Melayu' },
+  english: { en: 'English', zh: 'Chinese', ms: 'Malay' },
+};
+const sectionLabels = {
+  language: { en: 'Language', zh: '语言', ms: 'Bahasa' },
+  event: { en: 'Event', zh: '活动', ms: 'Acara' },
+  station: { en: 'Station', zh: '站点', ms: 'Stesen' },
+};
+
+const getBadgeBoxStyle = (sizeMultiplier = 1.5625) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: Math.max(2, 4 * sizeMultiplier),
+  padding: `${Math.max(4, 7 * sizeMultiplier)}px ${Math.max(6, 10 * sizeMultiplier)}px`,
+  minHeight: Math.max(36, 72 * sizeMultiplier),
+  boxSizing: 'border-box',
+  outline: 'none',
+  userSelect: 'none',
+});
+
+const getBadgeHeadingStyle = (sizeMultiplier = 1.5625) => ({
+  fontSize: `${0.72 * sizeMultiplier}rem`,
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+  fontWeight: 700,
+  lineHeight: 1.15,
+});
+
+const getBadgeValueStyle = (sizeMultiplier = 1.5625) => ({
+  fontSize: `${1 * sizeMultiplier}rem`,
+  fontWeight: 700,
+  lineHeight: 1.25,
+  wordBreak: 'break-word',
+});
+
+function getEnglishEventName(event) {
+  const name = typeof event === 'string' ? event : (event?.name || '');
+  return name || '';
+}
+
+function getEnglishStationLabel(station) {
+  if (!station) return '';
+  if (typeof station === 'string') return station;
+
+  const stationNum = station?.num || (typeof station?.key === 'string' ? station.key.match(/^\d+/)?.[0] : '');
+  const title = station?.title || station?.name || station?.label || '';
+
+  if (station?.id === 'measurement') {
+    return `📏 ${title}`;
+  }
+
+  return stationNum ? `${stationNum}: ${title}` : title;
+}
+
 // ─── Global bar shown across all sections when a selection exists ───
 export class SelectionBadgesBar extends Component {
   render() {
@@ -12,7 +67,8 @@ export class SelectionBadgesBar extends Component {
       language, event, slot, station,
       onLanguageClick, onEventClick, onSlotClick, onStationClick,
       showLanguagePlaceholder, showEventPlaceholder, showSlotPlaceholder, showStationPlaceholder,
-      noBorder,
+      noBorder, forceEnglishText, sizeMultiplier, disableContainerFlex, badgeVariant,
+      stationBadgeClassName,
     } = this.props;
 
     const hasLanguage = !!language || !!showLanguagePlaceholder;
@@ -22,36 +78,56 @@ export class SelectionBadgesBar extends Component {
 
     if (!hasLanguage && !hasEvent && !hasSlot && !hasStation) return null;
 
-    const languageLabels = { en: 'English', zh: '中文', ms: 'Bahasa Melayu' };
-    const sectionLabels = { language: { en: 'Language', zh: '语言', ms: 'Bahasa' }, event: { en: 'Event', zh: '活动', ms: 'Acara' } };
-    const slotWord = fftTranslations.timeSlotLabel?.[language] || fftTranslations.timeSlotLabel?.en || 'Time Slot';
+    const isRegistrationVariant = badgeVariant === 'registration';
+    const displayLanguage = forceEnglishText ? 'en' : language;
+    const languageValueLabels = forceEnglishText ? languageLabels.english : languageLabels.localized;
+    const badgeBoxStyle = getBadgeBoxStyle(sizeMultiplier);
+    // For registration variant: lock badge height so all badges (including time slot) match
+    if (isRegistrationVariant) {
+      badgeBoxStyle.height = badgeBoxStyle.minHeight;
+      badgeBoxStyle.overflow = 'hidden';
+    }
+    // For registration variant: strip fontSize from inline styles — use CSS class instead
+    const rawHeadingStyle = getBadgeHeadingStyle(sizeMultiplier);
+    const rawValueStyle = getBadgeValueStyle(sizeMultiplier);
+    const badgeHeadingStyle = isRegistrationVariant ? { ...rawHeadingStyle, fontSize: undefined } : rawHeadingStyle;
+    const badgeValueStyle = isRegistrationVariant ? { ...rawValueStyle, fontSize: undefined } : rawValueStyle;
+    const headingClassName = isRegistrationVariant ? 'fft-reg-badge-heading' : undefined;
+    const valueClassName = isRegistrationVariant ? 'fft-reg-badge-value' : undefined;
+    const badgeFlexBase = {
+      flex: '0 0 calc(50% - 4px)',
+      maxWidth: 'calc(50% - 4px)',
+    };
+    const containerStyle = disableContainerFlex
+      ? { display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 8, minWidth: 0, width: '100%' }
+      : { display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 8, flex: '1 1 280px', minWidth: 0, width: '100%' };
+    const slotWord = fftTranslations.timeSlotLabel?.[displayLanguage] || fftTranslations.timeSlotLabel?.en || 'Time Slot';
+    const englishSlotWord = fftTranslations.timeSlotLabel?.en || 'Time Slot';
     let slotLabel = slot || '';
     if (slot) {
       const normalized = slot.replace(/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/, '$1 - $2');
       const slotMatch = String(normalized).match(/^Slot\s*(\d+)\s*:\s*(.*)$/i);
-      slotLabel = slotMatch ? `${slotWord} ${slotMatch[1]}: ${slotMatch[2]}` : normalized;
+      slotLabel = slotMatch ? `${englishSlotWord} ${slotMatch[1]}: ${slotMatch[2]}` : normalized;
     }
-    const stationNum = station?.num || (typeof station?.key === 'string' ? station.key.match(/^\d+/)?.[0] : '');
-    const stationName = typeof station === 'string' ? station : (station?.title || station?.name || station?.label || '');
-    const stationLabel = stationNum ? `${stationNum}: ${stationName}` : stationName;
+    const stationLabel = getEnglishStationLabel(station);
+    const eventLabel = getEnglishEventName(event);
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 8, flex: '1 1 280px', minWidth: 0, width: '100%' }}>
+      <div style={containerStyle}>
         {hasLanguage && (
           <div
             onClick={onLanguageClick || undefined}
             style={{
-              display: 'flex', flexDirection: 'column', gap: 6, padding: 'clamp(10px, 1.3vw, 14px) clamp(12px, 1.8vw, 20px)',
-              background: '#e3f0ff', borderBottom: '2px solid #c5d9f5', flex: '1 1 calc(50% - 4px)',
-              cursor: onLanguageClick ? 'pointer' : 'default', boxSizing: 'border-box',
-              outline: 'none', userSelect: 'none',
+              ...badgeBoxStyle,
+              background: '#e3f0ff', borderBottom: '2px solid #c5d9f5', ...badgeFlexBase,
+              cursor: onLanguageClick ? 'pointer' : 'default',
             }}
           >
-            <span style={{ fontSize: '1.125em', color: '#1565c0', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700 }}>
-              {sectionLabels.language[language] || 'Language'}
+            <span className={headingClassName} style={{ ...badgeHeadingStyle, color: '#1565c0' }}>
+              {sectionLabels.language[displayLanguage] || 'Language'}
             </span>
-            <span style={{ fontSize: 'clamp(1.15rem, 1.7vw, 1.625rem)', fontWeight: 700, color: '#1565c0' }}>
-              {showLanguagePlaceholder ? '—' : (languageLabels[language] || language)}
+            <span className={valueClassName} style={{ ...badgeValueStyle, color: '#1565c0' }}>
+              {showLanguagePlaceholder ? '—' : (languageValueLabels[language] || language)}
             </span>
           </div>
         )}
@@ -59,34 +135,33 @@ export class SelectionBadgesBar extends Component {
           <div
             onClick={onEventClick || undefined}
             style={{
-              display: 'flex', flexDirection: 'column', gap: 6, padding: 'clamp(10px, 1.3vw, 14px) clamp(12px, 1.8vw, 20px)',
-              background: '#e8f5e9', borderBottom: '2px solid #b2dfcf', flex: '1 1 calc(50% - 4px)', minWidth: 0,
-              cursor: onEventClick ? 'pointer' : 'default', boxSizing: 'border-box',
-              outline: 'none', userSelect: 'none',
+              ...badgeBoxStyle,
+              background: '#e8f5e9', borderBottom: '2px solid #b2dfcf', ...badgeFlexBase, minWidth: 0,
+              cursor: onEventClick ? 'pointer' : 'default',
             }}
           >
-            <span style={{ fontSize: 'clamp(0.85rem, 0.95vw, 1.125rem)', color: '#2e7d32', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700 }}>
-              {sectionLabels.event[language] || 'Event'}
+            <span className={headingClassName} style={{ ...badgeHeadingStyle, color: '#2e7d32' }}>
+              {sectionLabels.event[displayLanguage] || 'Event'}
             </span>
-            <span style={{ fontSize: 'clamp(1.15rem, 1.7vw, 1.625rem)', fontWeight: 700, color: '#2e7d32', wordBreak: 'break-word' }}>
-              {showEventPlaceholder ? '—' : (typeof event === 'string' ? event : (event?.name || ''))}
+            <span className={valueClassName} style={{ ...badgeValueStyle, color: '#2e7d32' }}>
+              {showEventPlaceholder ? '—' : eventLabel}
             </span>
           </div>
         )}
         {hasStation && (
           <div
+            className={stationBadgeClassName || undefined}
             onClick={onStationClick || undefined}
             style={{
-              display: 'flex', flexDirection: 'column', gap: 6, padding: 'clamp(10px, 1.3vw, 14px) clamp(12px, 1.8vw, 20px)',
-              background: '#e3f0ff', borderBottom: '2px solid #c5d9f5', flex: '1 1 calc(50% - 4px)', minWidth: 0,
-              cursor: onStationClick ? 'pointer' : 'default', boxSizing: 'border-box',
-              outline: 'none', userSelect: 'none',
+              ...badgeBoxStyle,
+              background: '#ffebee', borderBottom: '2px solid #ffcdd2', ...badgeFlexBase, minWidth: 0,
+              cursor: onStationClick ? 'pointer' : 'default',
             }}
           >
-            <span style={{ fontSize: '1.125em', color: '#1565c0', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700 }}>
-              Station
+            <span className={headingClassName} style={{ ...badgeHeadingStyle, color: '#c62828' }}>
+              {sectionLabels.station[displayLanguage] || sectionLabels.station.en}
             </span>
-            <span style={{ fontSize: 'clamp(1.15rem, 1.7vw, 1.625rem)', fontWeight: 700, color: '#1565c0', wordBreak: 'break-word' }}>
+            <span className={valueClassName} style={{ ...badgeValueStyle, color: '#b71c1c' }}>
               {showStationPlaceholder ? '—' : stationLabel}
             </span>
           </div>
@@ -95,16 +170,15 @@ export class SelectionBadgesBar extends Component {
           <div
             onClick={onSlotClick || undefined}
             style={{
-              display: 'flex', flexDirection: 'column', gap: 6, padding: 'clamp(10px, 1.3vw, 14px) clamp(12px, 1.8vw, 20px)',
-              background: '#fff3e0', borderBottom: '2px solid #ffe0b2', flex: '1 1 calc(50% - 4px)',
-              cursor: onSlotClick ? 'pointer' : 'default', boxSizing: 'border-box',
-              outline: 'none', userSelect: 'none',
+              ...badgeBoxStyle,
+              background: '#fff3e0', borderBottom: '2px solid #ffe0b2', ...badgeFlexBase,
+              cursor: onSlotClick ? 'pointer' : 'default',
             }}
           >
-            <span style={{ fontSize: 'clamp(0.85rem, 0.95vw, 1.125rem)', color: '#e65100', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700 }}>
+            <span className={headingClassName} style={{ ...badgeHeadingStyle, color: '#e65100' }}>
               {slotWord}
             </span>
-            <span style={{ fontSize: 'clamp(1.15rem, 1.7vw, 1.625rem)', fontWeight: 700, color: '#e65100', wordBreak: 'break-word' }}>
+            <span className={valueClassName} style={{ ...badgeValueStyle, color: '#e65100' }}>
               {showSlotPlaceholder ? '—' : slotLabel}
             </span>
           </div>

@@ -122,6 +122,7 @@ class FFTStaff extends Component {
               event={this.props.badgeEvent}
               onEventClick={() => { this.setState({ reselectingBadge: 'event' }); this.props.onBadgeEventClick?.(); }}
               showEventPlaceholder={this.state.reselectingBadge === 'event'}
+              sizeMultiplier={1.5625}
             />
           </div>
 

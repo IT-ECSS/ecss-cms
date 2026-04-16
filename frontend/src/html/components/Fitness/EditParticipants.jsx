@@ -88,7 +88,7 @@ class EditParticipants extends Component {
     }
     if (field === 'Phone Number') {
       if (!v) return 'Contact Number cannot be empty.';
-      if (!/^[89]\d{7}$/.test(v)) return 'Contact Number must be 8 digits and start with 8 or 9.';
+      if (!/^[089]\d{7}$/.test(v)) return 'Contact Number must be 8 digits and start with 0, 8 or 9.';
     }
     if (field === 'DateOfBirth') {
       if (!v) return 'Date of Birth cannot be empty.';

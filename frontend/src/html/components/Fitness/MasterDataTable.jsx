@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import axios from 'axios';
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
+import * as XLSX from 'xlsx';
 import LoadingModal from '../Common/LoadingModal';
 import '../../../css/ag-grid-custom-theme.css';
 import '../../../css/fftStaff.css';
@@ -83,6 +84,89 @@ class MasterDataTable extends Component {
     }
   }
 
+  exportToExcel = () => {
+    const { event } = this.props;
+    const { rowData, columnDefs } = this.state;
+    const gridApi = this.gridRef.current?.api;
+    const exportRows = [];
+
+    if (gridApi) {
+      gridApi.forEachNodeAfterFilterAndSort(node => {
+        if (node.data) exportRows.push(node.data);
+      });
+    }
+
+    const rowsToExport = exportRows.length > 0 ? exportRows : rowData;
+    if (!rowsToExport.length || !columnDefs.length) return;
+
+    const safeFilename = (name) => name
+      .replace(/[\/\?%*:|"<>]/g, '-')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    const timeSlotKey = (row) => {
+      const start = String(row['Start Time'] || row['start time'] || '').trim();
+      const end = String(row['End Time'] || row['end time'] || '').trim();
+      if (start && end) {
+        return `${start} - ${end}`;
+      }
+      if (start) {
+        return `${start} -`;
+      }
+      if (end) {
+        return `- ${end}`;
+      }
+      return 'Unspecified Slot';
+    };
+
+    const headers = columnDefs.map(col => col.headerName || col.field);
+    const slotOrder = [];
+    const groupedRows = rowsToExport.reduce((groups, row) => {
+      const slot = timeSlotKey(row);
+      if (!groups[slot]) {
+        groups[slot] = [];
+        slotOrder.push(slot);
+      }
+      const exportedRow = {};
+      columnDefs.forEach(col => {
+        const key = col.field;
+        const header = col.headerName || key;
+        exportedRow[header] = row[key] != null ? row[key] : '';
+      });
+      groups[slot].push(exportedRow);
+      return groups;
+    }, {});
+
+    const safeSheetName = (name, usedNames = new Set()) => {
+      const clean = String(name)
+        .replace(/[\:\/\\\?\*\[\]]/g, '-')
+        .replace(/\s+/g, ' ')
+        .trim() || 'Sheet';
+      let finalName = clean.slice(0, 31);
+      let suffix = 1;
+      while (usedNames.has(finalName)) {
+        suffix += 1;
+        const base = clean.slice(0, Math.max(0, 31 - (` (${suffix})`.length)));
+        finalName = `${base} (${suffix})`;
+      }
+      usedNames.add(finalName);
+      return finalName;
+    };
+
+    const workbook = XLSX.utils.book_new();
+    const usedSheetNames = new Set();
+    slotOrder.forEach((slot, index) => {
+      const label = `Slot ${index + 1}: ${slot}`;
+      const sheetName = safeSheetName(label, usedSheetNames);
+      const worksheet = XLSX.utils.json_to_sheet(groupedRows[slot], { header: headers });
+      XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+    });
+
+    const eventName = event?.name ? safeFilename(event.name) : 'Master Data';
+    const filename = `${eventName} Master Data.xlsx`;
+    XLSX.writeFile(workbook, filename);
+  };
+
   fetchData = async () => {
     const { event } = this.props;
     const fileId = event?.id || '';
@@ -147,22 +231,46 @@ class MasterDataTable extends Component {
           )}
 
           {!loading && rowData.length > 0 && (
-            <div
-              className="grid-container fft-upload-grid"
-              style={{ width: '100%', maxWidth: '100%', height: '500px', marginLeft: 0 }}
-            >
-              <AgGridReact
-                ref={this.gridRef}
-                columnDefs={columnDefs}
-                rowData={rowData}
-                domLayout="normal"
-                pagination={true}
-                paginationPageSize={rowData.length}
-                paginationPageSizeSelector={[25, 50, 75, 100, rowData.length]}
-                defaultColDef={{ sortable: true, resizable: true, minWidth: 80 }}
-                suppressCellFocus={true}
-              />
-            </div>
+            <>
+              <div
+                className="grid-container fft-upload-grid"
+                style={{ width: '100%', maxWidth: '100%', height: '500px', marginLeft: 0 }}
+              >
+                <AgGridReact
+                  ref={this.gridRef}
+                  columnDefs={columnDefs}
+                  rowData={rowData}
+                  domLayout="normal"
+                  pagination={true}
+                  paginationPageSize={rowData.length}
+                  paginationPageSizeSelector={[25, 50, 75, 100, rowData.length]}
+                  defaultColDef={{ sortable: true, resizable: true, minWidth: 80 }}
+                  suppressCellFocus={true}
+                />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
+                <button
+                  type="button"
+                  style={{
+                    background: 'transparent',
+                    color: '#43a047',
+                    border: '3px solid #43a047',
+                    borderRadius: 6,
+                    padding: '9px 15px',
+                    cursor: 'pointer',
+                    fontWeight: 700,
+                    fontSize: '0.94rem',
+                    width: 'fit-content',
+                    display: 'inline-flex',
+                    justifyContent: 'center',
+                    textAlign: 'center',
+                  }}
+                  onClick={this.exportToExcel}
+                >
+                  Export Data
+                </button>
+              </div>
+            </>
           )}
         </div>
         <LoadingModal visible={loading} message="Loading data..." />

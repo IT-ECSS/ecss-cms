@@ -27,12 +27,17 @@ class ParticipantNumberEntry extends Component {
     const { participantNumber } = this.state;
     const { language, eventFileId, onSubmit } = this.props;
 
-    if (!participantNumber.trim()) {
-      this.setState({ error: fftTranslations.errorParticipantRequired[language] || fftTranslations.errorParticipantRequired.en });
+    const trimmed = participantNumber.trim();
+    if (!trimmed) {
+      this.setState({ participantNumber: trimmed, error: fftTranslations.errorParticipantRequired[language] || fftTranslations.errorParticipantRequired.en });
+      return;
+    }
+    if (!/^[0-9]+$/.test(trimmed)) {
+      this.setState({ participantNumber: trimmed, error: fftTranslations.errorParticipantDigitsOnly[language] || fftTranslations.errorParticipantDigitsOnly.en });
       return;
     }
 
-    this.setState({ loading: true, error: '' });
+    this.setState({ participantNumber: trimmed, loading: true, error: '' });
 
     try {
       // Use the file ID passed directly from the parent (already resolved in EventSelection)
@@ -119,13 +124,13 @@ class ParticipantNumberEntry extends Component {
 
           {error && (
             error === (fftTranslations.errorNotRegistered[language] || fftTranslations.errorNotRegistered.en) ? (
-              <div style={{ marginTop: '8px', color: '#c0392b', fontWeight: 'bold', fontSize: '1.25rem', lineHeight: '1.6', whiteSpace: 'pre-line', width: '100%', textAlign: 'left' }}>
+              <div role="alert" aria-live="assertive" style={{ marginTop: '8px', color: '#c0392b', fontWeight: 'bold', fontSize: '1.25rem', lineHeight: '1.6', whiteSpace: 'pre-line', width: '100%', textAlign: 'left' }}>
                 {error}
               </div>
             ) : (
-              <p style={{ marginTop: '8px', color: '#c0392b', fontSize: '1rem', width: '100%', textAlign: 'left' }}>
+              <div role="alert" aria-live="assertive" style={{ marginTop: '8px', color: '#c0392b', fontSize: '1rem', width: '100%', textAlign: 'left' }}>
                 {error}
-              </p>
+              </div>
             )
           )}
         </div>
