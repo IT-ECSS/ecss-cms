@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import './skillsfutureCallbackPage.css';
 
 /**
