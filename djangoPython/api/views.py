@@ -147,7 +147,7 @@ def product_by_link(request):
 
         if product:
             # Determine background color based on course type from categories
-            background_color = '#F5F5F5'  # Default light gray
+            background_color = '#FFFFFF'  # Default pure white
             
             if product.get('categories') and isinstance(product['categories'], list):
                 for cat in product['categories']:

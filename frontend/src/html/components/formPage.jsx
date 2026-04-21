@@ -26,7 +26,7 @@ class FormPage extends Component {
       loading: false,
       loadingPhase: 'initial', // 'initial' -> 'background' -> 'form' -> 'complete'
       isAuthenticated: false,
-      bgColor: '#F5F5F5', // Default light gray - will update to course type color
+      bgColor: '#FFFFFF', // Default white - will update to course type color
       formContainerBg: '', // Background for form container
       singPassPopulatedFields: {}, // Add this to track SingPass populated fields
       // Add MyInfo error handling state
@@ -326,7 +326,7 @@ class FormPage extends Component {
         loading: false,  // Form HIDDEN initially - will show after background loads
         loadingPhase: 'background', // Start with background loading
         currentSection: initialSection,
-        bgColor: '#F5F5F5' // Will update to course type when data loads
+        bgColor: '#FFFFFF' // Will update to course type when data loads
       });
       
       // Pre-populate form with SingPass data
@@ -338,7 +338,7 @@ class FormPage extends Component {
         loading: false,  // Form HIDDEN initially - will show after background loads
         loadingPhase: 'background', // Start with background loading
         currentSection: initialSection,
-        bgColor: '#F5F5F5' // Will update to course type when data loads
+        bgColor: '#FFFFFF' // Will update to course type when data loads
       });
     }
 
@@ -477,7 +477,7 @@ class FormPage extends Component {
         console.log("Course Type:", type);
 
         // Get background color from backend response OR use default
-        let bgColor = matchedCourse.background_color || '#F5F5F5';
+        let bgColor = matchedCourse.background_color || '#FFFFFF';
         let formContainerBg = '';
         
         // Apply special styling for Marriage Prep if needed
