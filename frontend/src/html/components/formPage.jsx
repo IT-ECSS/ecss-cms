@@ -322,7 +322,7 @@ class FormPage extends Component {
       console.log('User already authenticated with SingPass');
       this.setState({ 
         isAuthenticated: true, 
-        loading: true,  // Form ready to show immediately
+        loading: false,  // Form HIDDEN initially - will show after background loads
         currentSection: initialSection,
         bgColor: '#F5F5F5' // Will update to course type when data loads
       });
@@ -333,25 +333,32 @@ class FormPage extends Component {
       console.log('User not authenticated, proceeding without SingPass data');
       this.setState({ 
         isAuthenticated: false,
-        loading: true,
+        loading: false,  // Form HIDDEN initially - will show after background loads
         currentSection: initialSection,
         bgColor: '#F5F5F5' // Will update to course type when data loads
       });
     }
 
-    // Load course data in PARALLEL (background) - NO delay
-    console.log('🎯 [Form] Form displayed instantly with CORRECT background color');
+    // Load course data FIRST, then show form
+    console.log('🎯 [Form] Loading background color first...');
     
     Promise.resolve().then(() => {
-      console.log('⏳ [Form] Loading course data...');
+      console.log('⏳ [Form] Loading course data for background...');
       return this.loadCourseData(link, hasSectionParam);
     })
     .then(() => {
-      console.log('✅ [Form] Course data loaded - background color set to course type');
+      console.log('✅ [Form] Course data loaded - background ready, now showing form');
+      // Now that background is set, show the form
+      if (this._isMounted) {
+        this.setState({ loading: true });
+      }
     })
     .catch(err => {
       console.error('❌ [Form] Course load error:', err);
       // Still display form with default color even if load fails
+      if (this._isMounted) {
+        this.setState({ loading: true });
+      }
     });
   };
 
