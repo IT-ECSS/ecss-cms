@@ -336,10 +336,16 @@ class FormPage extends Component {
       });
     }
 
-    // Load course data in parallel (don't await, let form show immediately)
-    this.loadCourseData(link, hasSectionParam).catch(err => 
-      console.error('Background course load error:', err)
-    );
+    // Start parallel course data loading immediately (truly non-blocking)
+    console.log('🎯 [Form] Form displayed instantly - course data loading in parallel');
+    
+    // Use Promise.resolve to ensure this runs asynchronously in the background
+    Promise.resolve().then(() => {
+      console.log('⏳ [Form] Starting background course data fetch...');
+      return this.loadCourseData(link, hasSectionParam);
+    })
+    .then(() => console.log('✅ [Form] Course data loaded in background successfully'))
+    .catch(err => console.error('❌ [Form] Background course load error:', err));
   };
 
 
@@ -628,13 +634,14 @@ class FormPage extends Component {
         const shouldStartAtSection1 = type === 'Marriage Preparation Programme' && !hasSectionParam;
 
         if (this._isMounted) {
+          console.log('📝 [Form] Updating form with course data:', { type, price: courseData.price, courseMode });
           this.setState((prevState) => ({
             formData: { ...prevState.formData, ...courseData },
             loading: true,
             bgColor: bgColor,
             formContainerBg: formContainerBg,
             currentSection: shouldStartAtSection1 ? 1 : prevState.currentSection
-          }));
+          }), () => console.log('✨ [Form] State updated - form will re-render with course details'));
         } else {
           this.state = {
             ...this.state,
@@ -655,7 +662,9 @@ class FormPage extends Component {
       }
     } else {
       console.log("No course link provided, loading form without course data");
+      // Still set loading to true so form displays (this is instant)
       this.setState({ loading: true });
+      console.log('✅ [Form] No course data needed - form displays with defaults');
     }
   };
 

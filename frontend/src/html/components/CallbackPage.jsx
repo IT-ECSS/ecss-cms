@@ -202,17 +202,18 @@ class CallbackPage extends Component {
 
   redirectToForm = () => {
     try {
-      const redirectLink = sessionStorage.getItem('singpass_return_path');
       const baseUrl = 'https://salmon-wave-09f02b100.6.azurestaticapps.net';
-      const url = redirectLink ? `${baseUrl}${redirectLink}` : `${baseUrl}/form`;
+      // After SingPass callback, go directly to Personal Particulars section (section=1)
+      // This skips the course info page and shows form with pre-filled SingPass data
+      const url = `${baseUrl}/form?section=1`;
       
-      console.log('[SingPass] Redirecting to:', url);
+      console.log('[SingPass] Redirecting directly to Personal Particulars (section 1):', url);
       
       // Instant redirect
       window.location.href = url;
     } catch (error) {
       console.error('[SingPass] Redirect error:', error);
-      window.location.href = 'https://salmon-wave-09f02b100.6.azurestaticapps.net/form';
+      window.location.href = 'https://salmon-wave-09f02b100.6.azurestaticapps.net/form?section=1';
     }
   };
 
