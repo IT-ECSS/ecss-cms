@@ -24,6 +24,7 @@ class FormPage extends Component {
     this.state = {
       currentSection: 0,
       loading: false,
+      loadingPhase: 'initial', // 'initial' -> 'background' -> 'form' -> 'complete'
       isAuthenticated: false,
       bgColor: '#F5F5F5', // Default light gray - will update to course type color
       formContainerBg: '', // Background for form container
@@ -323,6 +324,7 @@ class FormPage extends Component {
       this.setState({ 
         isAuthenticated: true, 
         loading: false,  // Form HIDDEN initially - will show after background loads
+        loadingPhase: 'background', // Start with background loading
         currentSection: initialSection,
         bgColor: '#F5F5F5' // Will update to course type when data loads
       });
@@ -334,6 +336,7 @@ class FormPage extends Component {
       this.setState({ 
         isAuthenticated: false,
         loading: false,  // Form HIDDEN initially - will show after background loads
+        loadingPhase: 'background', // Start with background loading
         currentSection: initialSection,
         bgColor: '#F5F5F5' // Will update to course type when data loads
       });
@@ -344,20 +347,35 @@ class FormPage extends Component {
     
     Promise.resolve().then(() => {
       console.log('⏳ [Form] Loading course data for background...');
+      this.setState({ loadingPhase: 'background' });
       return this.loadCourseData(link, hasSectionParam);
     })
     .then(() => {
       console.log('✅ [Form] Course data loaded - background ready, now showing form');
       // Now that background is set, show the form
       if (this._isMounted) {
-        this.setState({ loading: true });
+        this.setState({ 
+          loadingPhase: 'form',
+          loading: true 
+        });
       }
+    })
+    .then(() => {
+      // After form is shown, mark as complete
+      setTimeout(() => {
+        if (this._isMounted) {
+          this.setState({ loadingPhase: 'complete' });
+        }
+      }, 600); // Match the form fade-in duration
     })
     .catch(err => {
       console.error('❌ [Form] Course load error:', err);
       // Still display form with default color even if load fails
       if (this._isMounted) {
-        this.setState({ loading: true });
+        this.setState({ 
+          loadingPhase: 'complete',
+          loading: true 
+        });
       }
     });
   };
@@ -2365,11 +2383,33 @@ class FormPage extends Component {
   };
 
   render() {
-    const { currentSection, formData, validationErrors, bgColor, loading, isAuthenticated, age } = this.state;
+    const { currentSection, formData, validationErrors, bgColor, loading, isAuthenticated, age, loadingPhase } = this.state;
     console.log('Current Age:', age);
 
     // Show form immediately - course data loads in background (no loading spinner)
-    // This ensures the form appears instantly for better UX     
+    // This ensures the form appears instantly for better UX
+    
+    // Render loading indicator with phases
+    const renderLoadingIndicator = () => {
+      if (loadingPhase === 'complete' || (loading && loadingPhase === 'form')) {
+        return null; // Hide when loading is done
+      }
+
+      const phaseMessages = {
+        'initial': 'Loading...',
+        'background': '🎨 Loading background...',
+        'form': '📝 Loading form...'
+      };
+
+      return (
+        <div className="loading-overlay">
+          <div className="loading-content">
+            <div className="loading-spinner"></div>
+            <p className="loading-text">{phaseMessages[loadingPhase] || 'Loading...'}</p>
+          </div>
+        </div>
+      );
+    };
 
     // Helper function to get language-appropriate button labels for Talks And Seminar
     const getButtonLabel = (english, chinese, malay) => {
@@ -2382,6 +2422,7 @@ class FormPage extends Component {
   
     return (
       <div className="formwholepage" style={{ backgroundColor: bgColor }}>
+        {renderLoadingIndicator()}
         <div className="form-page">
           <div className={`form-container ${(formData.type === 'NSA' || formData.type === 'ILP') ? 'nsa-ilp-form' : ''}`} style={this.state.formContainerBg ? { backgroundColor: this.state.formContainerBg } : {}}>
             {/* MyInfo Service Status Indicator */}
