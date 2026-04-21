@@ -20,6 +20,8 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '22.x'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
 
       - name: Validate Required Secrets
         run: |
@@ -47,11 +49,10 @@ jobs:
           
           echo "✓ All required secrets are configured"
 
-      - name: Install and build (backend)
+      - name: Install dependencies and build (backend)
         working-directory: backend
         run: |
-          npm ci
-          npm install
+          npm ci --prefer-offline --no-audit
           npm run build --if-present
 
       - name: Create deployment package
@@ -60,7 +61,13 @@ jobs:
           zip -r ../node-deploy.zip . \
             --exclude "node_modules/*" \
             --exclude "*.log" \
-            --exclude ".DS_Store"
+            --exclude ".DS_Store" \
+            --exclude ".git/*" \
+            --exclude "*.map" \
+            --exclude ".env*" \
+            --exclude "test/*" \
+            --exclude "*.md"
+          echo "Package size: $(du -h ../node-deploy.zip | cut -f1)"
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -78,8 +85,14 @@ jobs:
               GOOGLE_DRIVE_FOLDER_ID="1DF81mvA5pv8_X-_uP8528Vb1xNfs1D8M" \
               GOOGLE_SERVICE_ACCOUNT_NORSE='${{ secrets.GOOGLE_SERVICE_ACCOUNT_NORSE }}' \
               NODE_ENV="production" \
-              SCM_DO_BUILD_DURING_DEPLOYMENT="true"
+              SCM_DO_BUILD_DURING_DEPLOYMENT="false"
           echo "✓ All settings configured in Azure"
+
+      - name: Configure Google Drive Credentials
+        run: |
+          mkdir -p ./backend/config
+          echo "${{ secrets.GOOGLE_SERVICE_ACCOUNT_NORSE }}" > ./backend/config/norse-study-479913-b7-00b6903f8f4f.json
+          echo "✓ Google Drive credentials file created"
 
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
@@ -88,10 +101,28 @@ jobs:
           app-name: 'ecss-backend-node'
           slot-name: 'Production'
           package: ./node-deploy.zip
+        timeout-minutes: 10
 
-      - name: Configure Google Drive Credentials
+      - name: Verify deployment health
         run: |
-          mkdir -p ./backend/config
-          echo "${{ secrets.GOOGLE_SERVICE_ACCOUNT_NORSE }}" > ./backend/config/norse-study-479913-b7-00b6903f8f4f.json
-          echo "✓ Google Drive credentials file created"
-          ls -la ./backend/config/
+          echo "Waiting for app to be ready..."
+          sleep 30
+          
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://ecss-backend-node.azurewebsites.net/health 2>/dev/null || echo "000")
+          
+          if [ "$RESPONSE" = "200" ]; then
+            echo "✓ Deployment verified - App is running"
+          elif [ "$RESPONSE" = "404" ]; then
+            echo "✓ App is running (health endpoint not found - expected)"
+          else
+            echo "⚠ Warning: Unexpected response code: $RESPONSE"
+          fi
+        continue-on-error: true
+
+      - name: Output deployment summary
+        run: |
+          echo "========== Deployment Summary =========="
+          echo "App Name: ecss-backend-node"
+          echo "URL: https://ecss-backend-node.azurewebsites.net"
+          echo "Resource Group: ECSS-Course-Management-System"
+          echo "========================================"
