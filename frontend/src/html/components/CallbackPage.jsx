@@ -7,13 +7,23 @@ class CallbackPage extends Component {
   abortController = new AbortController();
 
   componentDidMount() {
+    // SAFETY: Always redirect within 3 seconds (even if something fails)
+    const safetyTimeout = setTimeout(() => {
+      console.warn('[SingPass] Safety timeout - forcing redirect to form');
+      this.redirectToForm();
+    }, 3000);
+
     // Start timeout for <1s response
     const timeout = setTimeout(() => {
       this.abortController.abort();
+      clearTimeout(safetyTimeout); // Cancel safety timeout
       this.redirectToForm();
     }, 900); // 900ms timeout
 
-    this.handleCallback().finally(() => clearTimeout(timeout));
+    this.handleCallback().finally(() => {
+      clearTimeout(timeout);
+      clearTimeout(safetyTimeout);
+    });
   }
 
   handleCallback = async () => {
@@ -23,22 +33,43 @@ class CallbackPage extends Component {
       const returnedState = urlParams.get('state');
       const error = urlParams.get('error');
 
+      console.log('[SingPass Callback] Received params:', {
+        hasCode: !!authorizationCode,
+        hasState: !!returnedState,
+        hasError: !!error,
+        error: error || 'none'
+      });
+
       // Fail fast on errors
-      if (error || !authorizationCode) {
+      if (error) {
+        console.error('[SingPass] Error from SingPass:', error);
+        this.redirectToForm();
+        return;
+      }
+
+      if (!authorizationCode) {
+        console.error('[SingPass] No authorization code received');
         this.redirectToForm();
         return;
       }
 
       // Validate state (CSRF check) - synchronous, no blocking
-      if (returnedState !== sessionStorage.getItem('singpass_state')) {
+      const storedState = sessionStorage.getItem('singpass_state');
+      if (returnedState !== storedState) {
+        console.error('[SingPass] State mismatch - CSRF check failed', {
+          received: returnedState,
+          stored: storedState
+        });
         this.redirectToForm();
         return;
       }
 
+      console.log('[SingPass] CSRF check passed - exchanging code for token');
       // Start token exchange immediately (non-blocking)
       this.callBackendTokenExchange(authorizationCode, returnedState);
 
     } catch (error) {
+      console.error('[SingPass] Exception in handleCallback:', error);
       this.redirectToForm();
     }
   };
@@ -47,6 +78,12 @@ class CallbackPage extends Component {
     try {
       const codeVerifier = sessionStorage.getItem('singpass_code_verifier');
       const nonce = sessionStorage.getItem('singpass_nonce');
+
+      console.log('[SingPass] Starting token exchange with backend...', {
+        codeLength: authorizationCode?.length,
+        hasCodeVerifier: !!codeVerifier,
+        hasNonce: !!nonce
+      });
 
       // Fast request with minimal timeout
       const response = await axios.post(
@@ -65,21 +102,32 @@ class CallbackPage extends Component {
         }
       );
 
+      console.log('[SingPass] Backend response:', {
+        status: response.status,
+        success: response.data?.success,
+        hasData: !!response.data?.data
+      });
+
       // Validate response quickly
       if (response.status !== 200 || !response.data?.success) {
+        console.error('[SingPass] Token exchange failed:', response.data);
         this.redirectToForm();
         return;
       }
 
       const { data } = response.data;
 
+      console.log('[SingPass] User data received, storing locally...');
+
       // Store all data in batch (parallel operations)
       this.batchStoreUserData(data);
 
       // Redirect immediately (don't wait for storage)
+      console.log('[SingPass] Redirecting to form...');
       this.redirectToForm();
 
     } catch (error) {
+      console.error('[SingPass] Token exchange error:', error.message);
       this.redirectToForm();
     }
   };
@@ -140,24 +188,24 @@ class CallbackPage extends Component {
       const baseUrl = 'https://salmon-wave-09f02b100.6.azurestaticapps.net';
       const url = redirectLink ? `${baseUrl}${redirectLink}` : `${baseUrl}/form`;
       
+      console.log('[SingPass] Redirecting to:', url);
+      
       // Instant redirect
       window.location.href = url;
     } catch (error) {
+      console.error('[SingPass] Redirect error:', error);
       window.location.href = 'https://salmon-wave-09f02b100.6.azurestaticapps.net/form';
     }
   };
 
   render() {
+    // No loading page - redirect happens immediately in componentDidMount
+    // If user sees this, redirect failed. Show error and redirect after 2s
     return (
-      <div className="singpass-callback-container">
-        <h2 className="singpass-callback-title">
-          Processing Singpass Authentication<span className="singpass-loading-dots">...</span>
-        </h2>
-        
-        <div className="singpass-spinner" aria-hidden="true"></div>
-        
+      <div className="singpass-callback-container error">
+        <h2 className="singpass-callback-title">Authentication Complete</h2>
         <p className="singpass-callback-message">
-          Please wait while we process your authentication...
+          Redirecting to form...
         </p>
       </div>
     );
