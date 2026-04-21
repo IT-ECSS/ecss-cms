@@ -99,14 +99,10 @@ html, body {
     text-align: center;
 }
 
-/* Background transition - smooth color change */
-.formwholepage {
-    transition: background-color 0.8s ease-in-out;
-}
-
 .formwholepage {
     font-family: 'Arial', sans-serif;
     /* Background color is set by JavaScript based on course type */
+    /* Color appears instantly - no transition delay */
     /* Do NOT set a default background-color here */
     padding: 20px;
     min-height: 100vh; /* Ensure it covers the full viewport height */
