@@ -140,13 +140,28 @@ class CallbackPage extends Component {
         name, uinfin, residentialstatus, race, sex, dob, mobileno, email, regadd
       } = data;
 
+      // Store combined user data JSON (for form to retrieve)
+      const userDataJson = {
+        uuid,
+        name,
+        uinfin,
+        residentialstatus,
+        race,
+        sex,
+        dob,
+        mobileno,
+        email,
+        regadd
+      };
+
       // Store in chunks to avoid blocking
       const batch1 = {
         'singpass_access_token': access_token || '',
         'singpass_token_type': token_type || 'Bearer',
         'singpass_user_uuid': uuid || '',
         'singpass_user_name': name || '',
-        'singpass_user_uinfin': uinfin || ''
+        'singpass_user_uinfin': uinfin || '',
+        'singpass_user_data_json': JSON.stringify(userDataJson)  // Combined JSON for form
       };
 
       const batch2 = {
@@ -175,10 +190,13 @@ class CallbackPage extends Component {
             (Date.now() + expires_in * 1000).toString()
           );
         }
+
+        console.log('[SingPass] All user data stored in sessionStorage');
       }, { timeout: 5000 });
 
     } catch (error) {
       // Silently fail - redirect already happened
+      console.error('[SingPass] Error storing user data:', error);
     }
   };
 
