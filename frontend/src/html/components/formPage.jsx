@@ -323,10 +323,10 @@ class FormPage extends Component {
       console.log('User already authenticated with SingPass');
       this.setState({ 
         isAuthenticated: true, 
-        loading: false,  // Form HIDDEN initially
-        loadingPhase: 'background',
+        loading: false,  // Form HIDDEN initially - will show after background loads
+        loadingPhase: 'background', // Start with background loading
         currentSection: initialSection,
-        bgColor: '#F5F5F5' // Will update immediately from backend
+        bgColor: '#F5F5F5' // Will update to course type when data loads
       });
       
       // Pre-populate form with SingPass data
@@ -335,35 +335,35 @@ class FormPage extends Component {
       console.log('User not authenticated, proceeding without SingPass data');
       this.setState({ 
         isAuthenticated: false,
-        loading: false,  // Form HIDDEN initially
-        loadingPhase: 'background',
+        loading: false,  // Form HIDDEN initially - will show after background loads
+        loadingPhase: 'background', // Start with background loading
         currentSection: initialSection,
-        bgColor: '#F5F5F5' // Will update immediately from backend
+        bgColor: '#F5F5F5' // Will update to course type when data loads
       });
     }
 
-    // IMMEDIATELY fetch course data to get background color (not deferred)
-    console.log('🎯 [Form] Fetching background color from backend immediately...');
+    // Load course data IMMEDIATELY (no Promise.resolve delay) to get background color ASAP
+    console.log('🎯 [Form] Fetching course data for background color immediately...');
     
     this.loadCourseData(link, hasSectionParam)
-      .then(() => {
-        console.log('✅ [Form] Background color set from backend - showing form with correct color');
-        // Now that background is set from backend, show the form with correct color
+    .then(() => {
+      console.log('✅ [Form] Course data loaded - background color set, now showing form');
+      // Now that background is set, show the form
+      if (this._isMounted) {
+        this.setState({ 
+          loadingPhase: 'form',
+          loading: true 
+        });
+      }
+    })
+    .then(() => {
+      // After form is shown, mark as complete
+      setTimeout(() => {
         if (this._isMounted) {
-          this.setState({ 
-            loadingPhase: 'form',
-            loading: true  // Form now displays with correct background color already applied
-          });
+          this.setState({ loadingPhase: 'complete' });
         }
-      })
-      .then(() => {
-        // After form is shown, mark as complete
-        setTimeout(() => {
-          if (this._isMounted) {
-            this.setState({ loadingPhase: 'complete' });
-          }
-        }, 600); // Match the form fade-in duration
-      })
+      }, 600); // Match the form fade-in duration
+    })
     .catch(err => {
       console.error('❌ [Form] Course load error:', err);
       // Still display form with default color even if load fails
