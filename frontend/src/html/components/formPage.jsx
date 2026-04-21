@@ -321,7 +321,7 @@ class FormPage extends Component {
       console.log('User already authenticated with SingPass');
       this.setState({ 
         isAuthenticated: true, 
-        loading: false,
+        loading: true,  // Form ready to show
         currentSection: initialSection // Set section from URL parameter
       });
       
@@ -331,12 +331,15 @@ class FormPage extends Component {
       console.log('User not authenticated, proceeding without SingPass data');
       this.setState({ 
         isAuthenticated: false,
+        loading: true,  // Form ready to show immediately
         currentSection: initialSection // Set section from URL parameter
       });
     }
 
-    // Load course data with the decoded link, passing hasSectionParam to preserve explicit sections
-    await this.loadCourseData(link, hasSectionParam);
+    // Load course data in parallel (don't await, let form show immediately)
+    this.loadCourseData(link, hasSectionParam).catch(err => 
+      console.error('Background course load error:', err)
+    );
   };
 
 
@@ -2342,15 +2345,8 @@ class FormPage extends Component {
     const { currentSection, formData, validationErrors, bgColor, loading, isAuthenticated, age } = this.state;
     console.log('Current Age:', age);
 
-    // Render the loading spinner or content depending on loading state
-    if (loading === false) {
-      return (
-        <div className="loading-spinner1" style={{ textAlign: 'center', marginTop: '20px' }}>
-          <div className="spinner1"></div>
-          <p style={{ fontSize: '18px', color: '#333', fontWeight: '600', marginTop: '10px' }}>Loading...</p>
-        </div>
-      );
-    }     
+    // Show form immediately - course data loads in parallel (no blocking on loading state)
+    // This ensures the form appears instantly for better UX     
 
     // Helper function to get language-appropriate button labels for Talks And Seminar
     const getButtonLabel = (english, chinese, malay) => {
