@@ -1,0 +1,239 @@
+/* Preload fonts */
+@font-face {
+  font-family: 'Poppins';
+  src: url('/Noto_Sans,Poppins/Poppins/Poppins-Bold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Poppins';
+  src: url('/Noto_Sans,Poppins/Poppins/Poppins-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Noto Sans CJK';
+  src: url('/Noto_Sans,Poppins/Noto_Sans/NotoSansCJK-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+4E00-9FFF, U+3400-4DBF, U+20000-2A6DF, U+2A700-2B73F, U+2B740-2B81F, U+2B820-2CEAF, U+2CEB0-2EBEF, U+30000-3134F;
+}
+
+@font-face {
+  font-family: 'Noto Sans CJK';
+  src: url('/Noto_Sans,Poppins/Noto_Sans/NotoSansCJK-Bold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+4E00-9FFF, U+3400-4DBF, U+20000-2A6DF, U+2A700-2B73F, U+2B740-2B81F, U+2B820-2CEAF, U+2CEB0-2EBEF, U+30000-3134F;
+}
+
+.singpass-page-container {
+  max-width: 400px;
+  margin: 50px auto;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  font-family: 'Poppins', 'Segoe UI', sans-serif;
+  text-align: center;
+  background-color: white;
+  contain: layout style paint;
+}
+
+.singpass-page-title {
+  color: #333;
+  margin-bottom: 30px;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  letter-spacing: 0.3px;
+  margin-top: 0;
+}
+
+.singpass-error-alert {
+  background-color: #ffebee;
+  border: 1px solid #ffcdd2;
+  border-radius: 4px;
+  padding: 12px;
+  margin: 0 0 20px 0;
+  color: #c62828;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.singpass-redirect-alert {
+  background-color: #e3f2fd;
+  border: 1px solid #bbdefb;
+  border-radius: 4px;
+  padding: 12px;
+  margin: 0 0 20px 0;
+  color: #1565c0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.singpass-redirect-alert p {
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+}
+
+.singpass-redirect-label {
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.singpass-redirect-url {
+  font-size: 12px;
+  font-family: 'Noto Sans CJK', 'Poppins', sans-serif;
+  word-break: break-word;
+  line-height: 1.4;
+  text-align: left;
+  padding: 4px 8px;
+  background-color: rgba(255,255,255,0.7);
+  border-radius: 3px;
+  border: 1px solid rgba(25, 101, 192, 0.2);
+  margin-bottom: 8px;
+}
+
+.singpass-redirect-notice {
+  font-size: 12px;
+  margin: 0;
+}
+
+.singpass-login-button {
+  background-color: #F4333D;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  font-family: 'Poppins', sans-serif;
+  font-weight: bold;
+  min-width: 280px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 24px;
+  margin: 0 auto;
+  transition: background-color 0.2s ease;
+  letter-spacing: 0.025em;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.singpass-login-button:hover:not(:disabled) {
+  background-color: #B0262D;
+}
+
+.singpass-login-button:active:not(:disabled) {
+  background-color: #8A1E24;
+  transform: scale(0.98);
+}
+
+.singpass-login-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.singpass-login-button:focus-visible {
+  outline: 2px solid #F4333D;
+  outline-offset: 2px;
+}
+
+.singpass-logo {
+  height: 1ex;
+  width: auto;
+  min-height: 14px;
+  filter: brightness(0) invert(1);
+  vertical-align: baseline;
+  display: inline-block;
+  margin-left: 2px;
+}
+
+.singpass-button-text {
+  font-family: 'Poppins', bold, sans-serif;
+  font-size: 16px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.singpass-description {
+  margin-top: 20px;
+  font-size: 12px;
+  color: #888;
+  line-height: 1.4;
+  font-family: 'Poppins', sans-serif;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  .singpass-login-button {
+    transition: none;
+  }
+  
+  .singpass-login-button:active:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* Optimize for mobile */
+@media (max-width: 480px) {
+  .singpass-page-container {
+    margin: 30px 15px;
+    padding: 20px;
+  }
+  
+  .singpass-login-button {
+    min-width: 260px;
+    height: 44px;
+    font-size: 14px;
+  }
+  
+  .singpass-page-title {
+    font-size: 16px;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .singpass-page-container {
+    background-color: #1e1e1e;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  }
+  
+  .singpass-page-title {
+    color: #e3e3e3;
+  }
+  
+  .singpass-description {
+    color: #b0b0b0;
+  }
+  
+  .singpass-redirect-alert {
+    background-color: #0d47a1;
+    border-color: #1565c0;
+    color: #64b5f6;
+  }
+  
+  .singpass-redirect-url {
+    background-color: rgba(0,0,0,0.3);
+    border-color: rgba(100, 181, 246, 0.2);
+  }
+}
+
+/* Preconnect to backend for faster requests */
+link[rel="preconnect"] {
+  display: none;
+}

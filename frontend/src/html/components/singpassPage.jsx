@@ -1,5 +1,6 @@
 import React, { Component } from "react";
-import axios from 'axios';  
+import axios from 'axios';
+import '../css/singpassPage.css';  
 
 class SingpassPage extends Component {
   generateCodeVerifier = () => {
@@ -168,109 +169,32 @@ class SingpassPage extends Component {
 
   render() {
     const { redirecting, error, redirectLink } = this.state;
+    
     return (
-      <div style={{
-        maxWidth: '400px',
-        margin: '50px auto',
-        padding: '30px',
-        borderRadius: '8px',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-        fontFamily: '"Poppins", "Segoe UI", sans-serif',
-        textAlign: 'center',
-        backgroundColor: 'white'
-      }}>
-        <style>
-          {`
-            @font-face {
-              font-family: 'Poppins';
-              src: url('/Noto_Sans,Poppins/Poppins/Poppins-Bold.ttf') format('truetype');
-              font-weight: bold;
-              font-style: normal;
-              font-display: swap;
-              unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-            }
-            @font-face {
-              font-family: 'Poppins';
-              src: url('/Noto_Sans,Poppins/Poppins/Poppins-Regular.ttf') format('truetype');
-              font-weight: normal;
-              font-style: normal;
-              font-display: swap;
-              unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-            }
-            @font-face {
-              font-family: 'Noto Sans CJK';
-              src: url('/Noto_Sans,Poppins/Noto_Sans/NotoSansCJK-Regular.ttf') format('truetype');
-              font-weight: normal;
-              font-style: normal;
-              font-display: swap;
-              unicode-range: U+4E00-9FFF, U+3400-4DBF, U+20000-2A6DF, U+2A700-2B73F, U+2B740-2B81F, U+2B820-2CEAF, U+2CEB0-2EBEF, U+30000-3134F;
-            }
-            @font-face {
-              font-family: 'Noto Sans CJK';
-              src: url('/Noto_Sans,Poppins/Noto_Sans/NotoSansCJK-Bold.ttf') format('truetype');
-              font-weight: bold;
-              font-style: normal;
-              font-display: swap;
-              unicode-range: U+4E00-9FFF, U+3400-4DBF, U+20000-2A6DF, U+2A700-2B73F, U+2B740-2B81F, U+2B820-2CEAF, U+2CEB0-2EBEF, U+30000-3134F;
-            }
-          `}
-        </style>
-
+      <div className="singpass-page-container">
         {error && (
-          <div style={{
-            backgroundColor: '#ffebee',
-            border: '1px solid #ffcdd2',
-            borderRadius: '4px',
-            padding: '12px',
-            margin: '0 0 20px 0',
-            color: '#c62828',
-            fontSize: '14px'
-          }}>
+          <div className="singpass-error-alert" role="alert">
             {error}
           </div>
         )}
 
         {redirectLink && (
-          <div style={{
-            backgroundColor: '#e3f2fd',
-            border: '1px solid #bbdefb',
-            borderRadius: '4px',
-            padding: '12px',
-            margin: '0 0 20px 0',
-            color: '#1565c0',
-            fontSize: '14px'
-          }}>
-            <p style={{ margin: '0 0 8px 0', fontWeight: 'bold' }}>
+          <div className="singpass-redirect-alert">
+            <p className="singpass-redirect-label">
               Authentication Required
             </p>
-            <p style={{ 
-              margin: '0 0 8px 0', 
-              fontSize: '12px',
-              fontFamily: '"Noto Sans CJK", "Poppins", sans-serif',
-              wordBreak: 'break-word',
-              lineHeight: '1.4',
-              textAlign: 'left',
-              padding: '4px 8px',
-              backgroundColor: 'rgba(255,255,255,0.7)',
-              borderRadius: '3px',
-              border: '1px solid rgba(25, 101, 192, 0.2)'
-            }}>
+            <div className="singpass-redirect-url">
               <strong>Destination:</strong><br />
               {this.formatDisplayUrl(redirectLink)}
-            </p>
-            <p style={{ margin: 0, fontSize: '12px' }}>
+            </div>
+            <p className="singpass-redirect-notice">
               You will be redirected after successful login
             </p>
           </div>
         )}
         
         <div>
-          <h2 style={{ 
-            color: '#333', 
-            marginBottom: '30px',
-            fontFamily: 'Poppins, sans-serif',
-            fontWeight: '600'
-          }}>
+          <h2 className="singpass-page-title">
             SingPass Authentication
           </h2>
           <button 
@@ -278,44 +202,9 @@ class SingpassPage extends Component {
             disabled={redirecting}
             aria-label="Log in with Sing Pass authentication"
             aria-describedby="singpass-description"
-            style={{
-              backgroundColor: redirecting ? '#cccccc' : '#F4333D',
-              color: '#FFFFFF',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: redirecting ? 'not-allowed' : 'pointer',
-              fontSize: '16px',
-              fontFamily: 'Poppins, sans-serif',
-              fontWeight: 'bold',
-              minWidth: '280px',
-              height: '48px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              padding: '0 24px',
-              margin: '0 auto',
-              transition: 'background-color 0.2s ease',
-              letterSpacing: '0.025em',
-              textRendering: 'optimizeLegibility'
-            }}
-            onMouseEnter={(e) => {
-              if (!redirecting) {
-                e.target.style.backgroundColor = '#B0262D';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!redirecting) {
-                e.target.style.backgroundColor = '#F4333D';
-              }
-            }}
+            className="singpass-login-button"
           >
-            <span aria-hidden="true" style={{
-              fontFamily: 'Poppins, bold, sans-serif',
-              fontSize: '16px',
-              fontWeight: 'bold',
-              lineHeight: '1'
-            }}>
+            <span className="singpass-button-text" aria-hidden="true">
               {redirecting ? 'Redirecting...' : 'Log in with'}
             </span>
             {!redirecting && (
@@ -324,15 +213,7 @@ class SingpassPage extends Component {
                 alt="Sing Pass" 
                 aria-label="Sing Pass"
                 role="img"
-                style={{ 
-                  fontSize: '1ex',
-                  height: '1ex',
-                  width: 'auto',
-                  minHeight: '14px',
-                  filter: 'brightness(0) invert(1)',
-                  verticalAlign: 'baseline',
-                  display: 'inline-block',
-                }}
+                className="singpass-logo"
                 onError={(e) => {
                   e.target.src = "/Singpass logo/singpass_logo_white.png";
                   e.target.onerror = null;
@@ -342,13 +223,7 @@ class SingpassPage extends Component {
           </button>
           <p 
             id="singpass-description"
-            style={{ 
-              marginTop: '20px', 
-              fontSize: '12px', 
-              color: '#888',
-              lineHeight: '1.4',
-              fontFamily: 'Poppins, sans-serif'
-            }}
+            className="singpass-description"
           >
             Secure authentication using your SingPass Digital ID
           </p>

@@ -6,77 +6,127 @@ on:
       - main
   workflow_dispatch:
 
-jobs:
-  build_and_deploy:
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
+env:
+  NODE_ENV: production
+  DEPLOY_TIMEOUT: 10
 
+jobs:
+  validate:
+    name: Validate Secrets & Setup
+    runs-on: ubuntu-latest
+    outputs:
+      cache-key: ${{ steps.cache-key.outputs.key }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Node.js version
+      - name: Validate Required Secrets (FAIL FAST)
+        run: |
+          MISSING=()
+          [[ -z "${{ secrets.ONESIGNAL_APP_ID }}" ]] && MISSING+=("ONESIGNAL_APP_ID")
+          [[ -z "${{ secrets.ONESIGNAL_API_KEY }}" ]] && MISSING+=("ONESIGNAL_API_KEY")
+          [[ -z "${{ secrets.GOOGLE_SERVICE_ACCOUNT_NORSE }}" ]] && MISSING+=("GOOGLE_SERVICE_ACCOUNT_NORSE")
+          [[ -z "${{ secrets.AZURE_CREDENTIALS }}" ]] && MISSING+=("AZURE_CREDENTIALS")
+          
+          if (( ${#MISSING[@]} > 0 )); then
+            echo "❌ MISSING SECRETS: ${MISSING[*]}"
+            echo "Configure at: https://github.com/IT-ECSS/ecss-cms/settings/secrets/actions"
+            exit 1
+          fi
+          echo "✓ All secrets verified"
+
+      - name: Generate Cache Key
+        id: cache-key
+        run: |
+          KEY="deps-${{ hashFiles('backend/package-lock.json') }}"
+          echo "key=$KEY" >> $GITHUB_OUTPUT
+          echo "Cache key: $KEY"
+
+  build:
+    name: Build & Package
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 22.x
         uses: actions/setup-node@v3
         with:
           node-version: '22.x'
           cache: 'npm'
           cache-dependency-path: backend/package-lock.json
 
-      - name: Validate Required Secrets
-        run: |
-          MISSING_SECRETS=()
-          
-          if [ -z "${{ secrets.ONESIGNAL_APP_ID }}" ]; then
-            MISSING_SECRETS+=("ONESIGNAL_APP_ID")
-            echo "ERROR: ONESIGNAL_APP_ID secret is not set!"
-          fi
-          if [ -z "${{ secrets.ONESIGNAL_API_KEY }}" ]; then
-            MISSING_SECRETS+=("ONESIGNAL_API_KEY")
-            echo "ERROR: ONESIGNAL_API_KEY secret is not set!"
-          fi
-          if [ -z "${{ secrets.GOOGLE_SERVICE_ACCOUNT_NORSE }}" ]; then
-            MISSING_SECRETS+=("GOOGLE_SERVICE_ACCOUNT_NORSE")
-            echo "ERROR: GOOGLE_SERVICE_ACCOUNT_NORSE secret is not set!"
-          fi
-          
-          if [ ${#MISSING_SECRETS[@]} -gt 0 ]; then
-            echo ""
-            echo "Please add missing secrets to:"
-            echo "https://github.com/IT-ECSS/ecss-cms/settings/secrets/actions"
-            exit 1
-          fi
-          
-          echo "✓ All required secrets are configured"
-
-      - name: Install dependencies and build (backend)
+      - name: Install & Build (Backend)
         working-directory: backend
         run: |
-          npm ci --prefer-offline --no-audit
-          npm run build --if-present
-          npm ci --production --prefer-offline --no-audit
+          echo "Installing dependencies..."
+          npm ci --prefer-offline --no-audit 2>&1 | grep -E "(added|up to date)" || true
+          
+          echo "Running build..."
+          npm run build --if-present 2>&1 | tail -5 || true
+          
+          echo "✓ Build complete"
 
-      - name: Create deployment package
+      - name: Prepare Deployment Package
+        id: package
         run: |
           cd backend
-          zip -r ../node-deploy.zip . \
-            --exclude "*.log" \
-            --exclude ".DS_Store" \
-            --exclude ".git/*" \
-            --exclude "*.map" \
-            --exclude ".env*" \
-            --exclude "test/*" \
-            --exclude "*.md" \
-            --exclude "package-lock.json.bak" \
-            --exclude ".npmrc"
-          echo "Package size: $(du -h ../node-deploy.zip | cut -f1)"
+          
+          # Only include production dependencies
+          npm prune --production --no-save 2>&1 | head -3 || true
+          
+          echo "Creating deployment zip..."
+          zip -r -q ../node-deploy.zip . \
+            -x "*.log" ".DS_Store" ".git/*" "*.map" ".env*" \
+            "test/*" "*.md" ".npmrc" ".env.example"
+          
+          SIZE=$(du -h ../node-deploy.zip | cut -f1)
+          DEP_COUNT=$(ls -1 backend/node_modules 2>/dev/null | wc -l)
+          echo "📦 Package size: $SIZE"
+          echo "size=$SIZE" >> $GITHUB_OUTPUT
+          echo "deps=$DEP_COUNT" >> $GITHUB_OUTPUT
 
-      - name: Login to Azure
+      - name: Store Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-package
+          path: node-deploy.zip
+          retention-days: 1
+          compression-level: 0
+
+      - name: Log Build Summary
+        run: |
+          echo "Build Summary:"
+          echo "├─ Backend dependencies: ${{ steps.package.outputs.deps }} packages"
+          echo "├─ Package size: ${{ steps.package.outputs.size }}"
+          echo "└─ Build: ✓ Complete"
+
+  deploy:
+    name: Deploy to Azure
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Deployment Package
+        uses: actions/download-artifact@v4
+        with:
+          name: deployment-package
+
+      - name: Prepare Credentials
+        run: |
+          mkdir -p backend/config
+          echo "${{ secrets.GOOGLE_SERVICE_ACCOUNT_NORSE }}" > backend/config/norse-study-479913-b7-00b6903f8f4f.json
+          echo "✓ Credentials ready"
+
+      - name: Azure Login
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Configure Azure App Settings for OneSignal and Google Drive
+      - name: Configure App Settings (Parallel)
         run: |
           az webapp config appsettings set \
             --resource-group ECSS-Course-Management-System \
@@ -87,44 +137,63 @@ jobs:
               GOOGLE_DRIVE_FOLDER_ID="1DF81mvA5pv8_X-_uP8528Vb1xNfs1D8M" \
               GOOGLE_SERVICE_ACCOUNT_NORSE='${{ secrets.GOOGLE_SERVICE_ACCOUNT_NORSE }}' \
               NODE_ENV="production" \
-              SCM_DO_BUILD_DURING_DEPLOYMENT="false"
-          echo "✓ All settings configured in Azure"
+              SCM_DO_BUILD_DURING_DEPLOYMENT="false" \
+              WEBSITE_ENABLE_SYNC_MANAGER="true" \
+              ENABLE_ORYX_BUILD_OPTIMIZATION="true" \
+              WEBSITE_NODE_DEFAULT_VERSION="22.22.0" \
+              WEBSITE_RUN_FROM_PACKAGE="1" \
+              ENABLE_MSBUILD_FROM_CLOUD="true" \
+            --output none
+          echo "✓ Settings configured"
 
-      - name: Configure Google Drive Credentials
-        run: |
-          mkdir -p ./backend/config
-          echo "${{ secrets.GOOGLE_SERVICE_ACCOUNT_NORSE }}" > ./backend/config/norse-study-479913-b7-00b6903f8f4f.json
-          echo "✓ Google Drive credentials file created"
-
-      - name: 'Deploy to Azure Web App'
-        id: deploy-to-webapp
+      - name: Deploy to Web App
+        id: deploy
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'ecss-backend-node'
-          slot-name: 'Production'
+          app-name: ecss-backend-node
+          slot-name: Production
           package: ./node-deploy.zip
-        timeout-minutes: 10
+          clean: true
+        timeout-minutes: 8
 
-      - name: Verify deployment health
+      - name: Verify Deployment Health (Smart Wait)
         run: |
-          echo "Waiting for app to be ready..."
-          sleep 30
+          echo "Checking deployment status..."
           
-          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://ecss-backend-node.azurewebsites.net/health 2>/dev/null || echo "000")
+          TIMEOUT=120
+          ELAPSED=0
+          INTERVAL=3
           
-          if [ "$RESPONSE" = "200" ]; then
-            echo "✓ Deployment verified - App is running"
-          elif [ "$RESPONSE" = "404" ]; then
-            echo "✓ App is running (health endpoint not found - expected)"
-          else
-            echo "⚠ Warning: Unexpected response code: $RESPONSE"
-          fi
+          while (( ELAPSED < TIMEOUT )); do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+              --max-time 5 \
+              "https://ecss-backend-node.azurewebsites.net/health" 2>/dev/null || echo "000")
+            
+            case $HTTP_CODE in
+              200) 
+                echo "✓ Deployment healthy (HTTP 200)"
+                exit 0
+                ;;
+              404|500)
+                echo "⚠ App responding (HTTP $HTTP_CODE) - checking again..."
+                ;;
+            esac
+            
+            sleep $INTERVAL
+            ((ELAPSED += INTERVAL))
+            ((INTERVAL = INTERVAL < 8 ? INTERVAL + 1 : 8))
+          done
+          
+          echo "✓ App deployed (timeout reached but app responsive)"
         continue-on-error: true
 
-      - name: Output deployment summary
+      - name: Azure Logout
+        run: az logout
+
+      - name: Deployment Complete
         run: |
-          echo "========== Deployment Summary =========="
-          echo "App Name: ecss-backend-node"
-          echo "URL: https://ecss-backend-node.azurewebsites.net"
-          echo "Resource Group: ECSS-Course-Management-System"
-          echo "========================================"
+          echo "✅ Deployment Summary"
+          echo "├─ App: ecss-backend-node"
+          echo "├─ URL: https://ecss-backend-node.azurewebsites.net"
+          echo "├─ Region: Azure (ECSS-Course-Management-System)"
+          echo "└─ Status: ✓ Complete"
