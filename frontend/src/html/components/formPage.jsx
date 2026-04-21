@@ -2390,26 +2390,26 @@ class FormPage extends Component {
     // This ensures the form appears instantly for better UX
     
     // Render loading indicator with phases
-    const renderLoadingIndicator = () => {
-      if (loadingPhase === 'complete' || (loading && loadingPhase === 'form')) {
-        return null; // Hide when loading is done
-      }
+    // const renderLoadingIndicator = () => {
+    //   if (loadingPhase === 'complete' || (loading && loadingPhase === 'form')) {
+    //     return null; // Hide when loading is done
+    //   }
 
-      const phaseMessages = {
-        'initial': 'Loading...',
-        'background': '🎨 Loading background...',
-        'form': '📝 Loading form...'
-      };
+    //   const phaseMessages = {
+    //     'initial': 'Loading...',
+    //     'background': '🎨 Loading background...',
+    //     'form': '📝 Loading form...'
+    //   };
 
-      return (
-        <div className="loading-overlay">
-          <div className="loading-content">
-            <div className="loading-spinner"></div>
-            <p className="loading-text">{phaseMessages[loadingPhase] || 'Loading...'}</p>
-          </div>
-        </div>
-      );
-    };
+    //   return (
+    //     <div className="loading-overlay">
+    //       <div className="loading-content">
+    //         <div className="loading-spinner"></div>
+    //         <p className="loading-text">{phaseMessages[loadingPhase] || 'Loading...'}</p>
+    //       </div>
+    //     </div>
+    //   );
+    // };
 
     // Helper function to get language-appropriate button labels for Talks And Seminar
     const getButtonLabel = (english, chinese, malay) => {
@@ -2422,7 +2422,7 @@ class FormPage extends Component {
   
     return (
       <div className="formwholepage" style={{ backgroundColor: bgColor }}>
-        {renderLoadingIndicator()}
+        {/* {renderLoadingIndicator()} */}
         <div className="form-page">
           <div className={`form-container ${(formData.type === 'NSA' || formData.type === 'ILP') ? 'nsa-ilp-form' : ''}`} style={this.state.formContainerBg ? { backgroundColor: this.state.formContainerBg } : {}}>
             {/* MyInfo Service Status Indicator */}
