@@ -26,7 +26,7 @@ class FormPage extends Component {
       loading: false,
       loadingPhase: 'initial', // 'initial' -> 'background' -> 'form' -> 'complete'
       isAuthenticated: false,
-      bgColor: '#FFFFFF', // Default white - will update to course type color
+      bgColor: '#F5F5F5', // Default light gray - will update to course type color
       formContainerBg: '', // Background for form container
       singPassPopulatedFields: {}, // Add this to track SingPass populated fields
       // Add MyInfo error handling state
@@ -323,10 +323,10 @@ class FormPage extends Component {
       console.log('User already authenticated with SingPass');
       this.setState({ 
         isAuthenticated: true, 
-        loading: false,  // Form HIDDEN initially - will show after background loads
-        loadingPhase: 'background', // Start with background loading
+        loading: false,  // Form HIDDEN initially
+        loadingPhase: 'background',
         currentSection: initialSection,
-        bgColor: '#FFFFFF' // Will update to course type when data loads
+        bgColor: '#F5F5F5' // Will update immediately from backend
       });
       
       // Pre-populate form with SingPass data
@@ -335,39 +335,35 @@ class FormPage extends Component {
       console.log('User not authenticated, proceeding without SingPass data');
       this.setState({ 
         isAuthenticated: false,
-        loading: false,  // Form HIDDEN initially - will show after background loads
-        loadingPhase: 'background', // Start with background loading
+        loading: false,  // Form HIDDEN initially
+        loadingPhase: 'background',
         currentSection: initialSection,
-        bgColor: '#FFFFFF' // Will update to course type when data loads
+        bgColor: '#F5F5F5' // Will update immediately from backend
       });
     }
 
-    // Load course data FIRST, then show form
-    console.log('🎯 [Form] Loading background color first...');
+    // IMMEDIATELY fetch course data to get background color (not deferred)
+    console.log('🎯 [Form] Fetching background color from backend immediately...');
     
-    Promise.resolve().then(() => {
-      console.log('⏳ [Form] Loading course data for background...');
-      this.setState({ loadingPhase: 'background' });
-      return this.loadCourseData(link, hasSectionParam);
-    })
-    .then(() => {
-      console.log('✅ [Form] Course data loaded - background ready, now showing form');
-      // Now that background is set, show the form
-      if (this._isMounted) {
-        this.setState({ 
-          loadingPhase: 'form',
-          loading: true 
-        });
-      }
-    })
-    .then(() => {
-      // After form is shown, mark as complete
-      setTimeout(() => {
+    this.loadCourseData(link, hasSectionParam)
+      .then(() => {
+        console.log('✅ [Form] Background color set from backend - showing form with correct color');
+        // Now that background is set from backend, show the form with correct color
         if (this._isMounted) {
-          this.setState({ loadingPhase: 'complete' });
+          this.setState({ 
+            loadingPhase: 'form',
+            loading: true  // Form now displays with correct background color already applied
+          });
         }
-      }, 600); // Match the form fade-in duration
-    })
+      })
+      .then(() => {
+        // After form is shown, mark as complete
+        setTimeout(() => {
+          if (this._isMounted) {
+            this.setState({ loadingPhase: 'complete' });
+          }
+        }, 600); // Match the form fade-in duration
+      })
     .catch(err => {
       console.error('❌ [Form] Course load error:', err);
       // Still display form with default color even if load fails
@@ -477,7 +473,7 @@ class FormPage extends Component {
         console.log("Course Type:", type);
 
         // Get background color from backend response OR use default
-        let bgColor = matchedCourse.background_color || '#FFFFFF';
+        let bgColor = matchedCourse.background_color || '#F5F5F5';
         let formContainerBg = '';
         
         // Apply special styling for Marriage Prep if needed
