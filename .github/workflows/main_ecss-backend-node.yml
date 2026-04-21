@@ -1,4 +1,4 @@
-name: ECSS CMS - Node
+name: ECSS CMS - Node #ok
 
 on:
   push:
