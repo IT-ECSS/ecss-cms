@@ -18,7 +18,7 @@ class QRCodeGenerator {
             const buffer = await QRCode.toBuffer(this.text, this.options);
 
             // Save the buffer to a JPG file
-            const filename = `中级疗愈水彩班 Enhanced Therapeutic Intermediate Watercolour (Pasir Ris West Wellness Centre).jpg`;
+            const filename = `Healthy Eating For Golden Years (CT Hub) .jpg`;
             fs.writeFileSync(filename, buffer);
             console.log(`QR code generated and saved as ${filename}`);
         } catch (error) {
@@ -28,5 +28,5 @@ class QRCodeGenerator {
 }
 
 // Usage const filename = `https://ecss.org.sg/product/crafting-connectionspasir-ris-west-wellness-centre/`;
-const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/%e4%b8%ad%e7%ba%a7%e7%96%97%e6%84%88%e6%b0%b4%e5%bd%a9%e7%8f%adenhanced-therapeutic-intermediate-watercolourpasir-ris-west-wellness-centre/`);
+const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/healthy-eating-for-golden-years-ct-hub/`);
 qrCodeGenerator.generate();

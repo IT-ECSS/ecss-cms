@@ -18,7 +18,8 @@ const FFT_FOLDER_ID = '1EsnCGO1QfPrqfmDtsy-cELUO3UyZKCci';
 
 class SubmitResultModal extends Component {
   render() {
-    const { language, entryNumber, error, onHome, onRetry } = this.props;
+    const { language, entryNumber, alreadyRegisteredNumber, error, onHome, onRetry } = this.props;
+    const isAlreadyRegistered = !!alreadyRegisteredNumber && error === (fftTranslations.errorAlreadyRegistered?.[language] || fftTranslations.errorAlreadyRegistered?.en);
     return (
       <div style={{
         position: 'fixed', inset: 0, zIndex: 1000,
@@ -35,32 +36,35 @@ class SubmitResultModal extends Component {
         }}>
           {error ? (
             <>
-              <div style={{ fontSize: '2.2em', marginBottom: '12px' }}>❌</div>
+              <div style={{ fontSize: '2.2em', marginBottom: '12px' }}>
+                {isAlreadyRegistered ? '⚠️' : '❌'}
+              </div>
               <h3 style={{ color: '#d32f2f', marginBottom: '8px', fontWeight: 700 }}>
-                {language === 'zh' ? '提交失败' : language === 'ms' ? 'Gagal Dihantar' : 'Submission Failed'}
+                {isAlreadyRegistered 
+                  ? (language === 'zh' ? '已注册' : language === 'ms' ? 'Sudah Didaftar' : 'Already Registered')
+                  : (language === 'zh' ? '提交失败' : language === 'ms' ? 'Gagal Dihantar' : 'Submission Failed')
+                }
               </h3>
-              <p style={{ color: '#666', fontSize: '0.9em', marginBottom: entryNumber != null ? '16px' : '24px', wordBreak: 'break-word' }}>{error}</p>
-              {entryNumber != null && (
+              <p style={{ color: '#666', fontSize: '0.9em', marginBottom: '20px', wordBreak: 'break-word', whiteSpace: 'pre-line' }}>{error}</p>
+              {isAlreadyRegistered && alreadyRegisteredNumber && (
                 <div style={{
-                  display: 'inline-block', padding: '12px 28px',
-                  borderRadius: '12px', background: '#fff3e0',
-                  border: '2px solid #e65100', marginBottom: '20px',
+                  display: 'inline-block', padding: '16px 32px',
+                  borderRadius: '12px', background: '#fff3cd',
+                  border: '2px solid #ffc107', marginBottom: '24px',
                 }}>
-                  <div style={{ fontSize: '0.75em', color: '#777', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px', fontWeight: 600 }}>
-                    {language === 'zh' ? '已注册编号' : language === 'ms' ? 'Nombor Peserta Sedia Ada' : 'Existing Participant #'}
+                  <div style={{ fontSize: '0.75em', color: '#856404', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px', fontWeight: 600 }}>
+                    {language === 'zh' ? '您的参与者编号' : language === 'ms' ? 'Nombor Peserta Anda' : 'Your Entry Number'}
                   </div>
-                  <div style={{ fontSize: '2.5em', fontWeight: 800, color: '#e65100', lineHeight: 1 }}>{entryNumber}</div>
+                  <div style={{ fontSize: '2.5em', fontWeight: 800, color: '#d39e00', lineHeight: 1 }}>{alreadyRegisteredNumber}</div>
                 </div>
               )}
               <button
                 type="button"
                 className="fft-create-event-btn fft-create-event-btn-clear"
                 style={{ width: '100%' }}
-                onClick={entryNumber != null ? onHome : onRetry}
+                onClick={onHome}
               >
-                {entryNumber != null
-                  ? (language === 'zh' ? '查看编号' : language === 'ms' ? 'Lihat Nombor' : 'View My Number')
-                  : (language === 'zh' ? '重试' : language === 'ms' ? 'Cuba semula' : 'Try Again')}
+                {language === 'zh' ? '返回' : language === 'ms' ? 'Kembali' : 'Back'}
               </button>
             </>
           ) : (
@@ -225,7 +229,7 @@ class FFTParticipants extends Component {
     }
 
     try {
-      const { event, slot } = this.state;
+      const { event, slot, language } = this.state;
       const eventName = event?.name || '';
       const eventFileId = event?.id || '';
 
@@ -249,28 +253,41 @@ class FFTParticipants extends Component {
         participantNumber: data.participantNumber,
       });
       if (response.data?.alreadyRegistered) {
-        this.setState({
-          showResultModal: false,
-          showEntryNumber: true,
-          entryNumber: response.data.participantNumber ?? null,
+        // Show already registered message inline in form
+        const errorMsg = fftTranslations.errorAlreadyRegistered?.[language] || fftTranslations.errorAlreadyRegistered?.en;
+        this.formRef.current?.setState({
+          isSubmitting: false,
+          showAlreadyRegisteredMessage: true,
+          alreadyRegisteredNumber: response.data.participantNumber ?? null,
+          submissionError: errorMsg,
         });
         return;
       }
       if (response.data.success) {
-        this.setState({ showResultModal: false, showEntryNumber: true, entryNumber: response.data.entryNumber });
+        // Show success entry number inline in form
+        this.formRef.current?.setState({
+          isSubmitting: false,
+          showRegistrationSuccess: true,
+          successEntryNumber: response.data.entryNumber,
+        });
       } else {
+        this.formRef.current?.setState({ isSubmitting: false });
         this.setState({ showResultModal: true, submitError: response.data.error || 'Submission failed.' });
       }
     } catch (err) {
       const errData = err.response?.data;
+      const { language } = this.state;
       if (errData?.alreadyRegistered) {
-        // Participant already registered — go directly to entry number screen
-        this.setState({
-          showResultModal: false,
-          showEntryNumber: true,
-          entryNumber: errData.participantNumber ?? null,
+        // Show already registered message inline in form
+        const errorMsg = fftTranslations.errorAlreadyRegistered?.[language] || fftTranslations.errorAlreadyRegistered?.en;
+        this.formRef.current?.setState({
+          isSubmitting: false,
+          showAlreadyRegisteredMessage: true,
+          alreadyRegisteredNumber: errData.participantNumber ?? null,
+          submissionError: errorMsg,
         });
       } else {
+        this.formRef.current?.setState({ isSubmitting: false });
         this.setState({ showResultModal: true, submitError: errData?.error || err.message || 'Submission failed.' });
       }
     }
@@ -489,9 +506,10 @@ class FFTParticipants extends Component {
             <SubmitResultModal
               language={language}
               entryNumber={entryNumber}
+              alreadyRegisteredNumber={alreadyRegisteredNumber}
               error={submitError}
-              onHome={() => this.setState({ showResultModal: false, showEntryNumber: true })}
-              onRetry={() => this.setState({ showResultModal: false, submitError: null })}
+              onHome={() => this.setState({ showResultModal: false, showEntryNumber: true, alreadyRegisteredNumber: null })}
+              onRetry={() => this.setState({ showResultModal: false, submitError: null, alreadyRegisteredNumber: null })}
             />
           )}
 
@@ -514,6 +532,7 @@ class FFTParticipants extends Component {
             onCancel={() => this.setState({ showHomeConfirm: false })}
           />
         </div>
+        )}
       </div>
     );
   }

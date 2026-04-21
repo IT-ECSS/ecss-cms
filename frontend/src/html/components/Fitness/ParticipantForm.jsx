@@ -5,6 +5,8 @@ import ParticipantNumberEntry from './ParticipantNumberEntry';
 import ParticularsSection from './ParticularsSection';
 import HealthDeclarationSection from './HealthDeclarationSection';
 import IndemnitySection from './IndemnitySection';
+import RegistrationSuccessResult from './RegistrationSuccessResult';
+import AlreadyRegisteredResult from './AlreadyRegisteredResult';
 import { getSingPassUserDataJSON } from '../../../utils/singpassData';
 
 class ParticipantForm extends Component {
@@ -17,6 +19,11 @@ class ParticipantForm extends Component {
     singpassFormData: null,
     participantNumber: null,
     isSubmitting: false,
+    submissionError: null,
+    alreadyRegisteredNumber: null,
+    showRegistrationSuccess: false,
+    showAlreadyRegisteredMessage: false,
+    successEntryNumber: null,
   };
 
   constructor(props) {
@@ -200,7 +207,8 @@ class ParticipantForm extends Component {
     const submittedEntryMethod = (entryMethod === 'manual' || entryMethod === 'singpass')
       ? 'Individual Registration'
       : entryMethod;
-    await this.props.onSubmit({ 
+    // Don't await - let FFTParticipants handle the response and manage isSubmitting state
+    this.props.onSubmit({ 
       ...particularsData, 
       ...healthData, 
       ...indemnityData, 
@@ -208,8 +216,29 @@ class ParticipantForm extends Component {
       entryMethod: submittedEntryMethod,
       participantNumber
     });
-    this.setState({ isSubmitting: false });
+    // isSubmitting will be managed by FFTParticipants via ref when response is received
     // Clear saved data after successful submission
+    localStorage.removeItem(this.storageKey);
+    localStorage.removeItem('fftParticularsSectionData');
+  }
+
+  handleResetForm = () => {
+    // Reset to initial state - clears everything
+    this.setState({
+      entryMethod: null,
+      currentStep: 1,
+      particularsData: null,
+      healthData: null,
+      indemnityData: null,
+      singpassFormData: null,
+      participantNumber: null,
+      isSubmitting: false,
+      submissionError: null,
+      showRegistrationSuccess: false,
+      showAlreadyRegisteredMessage: false,
+      successEntryNumber: null,
+      alreadyRegisteredNumber: null,
+    });
     localStorage.removeItem(this.storageKey);
     localStorage.removeItem('fftParticularsSectionData');
     localStorage.removeItem(this.particularsStorageKey);
@@ -227,7 +256,7 @@ class ParticipantForm extends Component {
   };
 
   render() {
-    const { currentStep, entryMethod, singpassFormData, isSubmitting } = this.state;
+    const { currentStep, entryMethod, singpassFormData, isSubmitting, showRegistrationSuccess, showAlreadyRegisteredMessage, successEntryNumber, submissionError, alreadyRegisteredNumber } = this.state;
     const { language, event, onBack, onHome, isLoading } = this.props;
     const eventName = event ? (typeof event === 'string' ? event : event.name) : '';
 
@@ -286,26 +315,50 @@ class ParticipantForm extends Component {
         )}
 
         {/* Step 2: Particulars section (manual or SingPass pre-filled) */}
-        {isParticularsStep && (
-          <ParticularsSection
-            ref={this.particularsRef}
+        {isParticularsStep && !showRegistrationSuccess && !showAlreadyRegisteredMessage && (
+          <>
+            {/* Error display removed — shown in dedicated section */}
+            
+            <ParticularsSection
+              ref={this.particularsRef}
+              language={language}
+              formData={this.state.particularsData || singpassFormData || this.props.formData}
+              singpassLocked={entryMethod === 'singpass'}
+              participantNumberLocked={entryMethod === 'participantNumber'}
+              storageKey={this.particularsStorageKey}
+              onSubmit={(data) => {
+                this.setState({ particularsData: data }, () => {
+                  this.handleFinalSubmit({});
+                });
+              }}
+              onBack={() => this.setState(
+                entryMethod === 'participantNumber'
+                  ? { currentStep: 1.5 }
+                  : { currentStep: 1, entryMethod: null }
+              )}
+              onHome={() => onHome?.()}
+              trilingual={this.props.trilingual}
+            />
+          </>
+        )}
+
+        {/* Show success result inline */}
+        {isParticularsStep && showRegistrationSuccess && successEntryNumber != null && (
+          <RegistrationSuccessResult
             language={language}
-            formData={this.state.particularsData || singpassFormData || this.props.formData}
-            singpassLocked={entryMethod === 'singpass'}
-            participantNumberLocked={entryMethod === 'participantNumber'}
-            storageKey={this.particularsStorageKey}
-            onSubmit={(data) => {
-              this.setState({ particularsData: data }, () => {
-                this.handleFinalSubmit({});
-              });
-            }}
-            onBack={() => this.setState(
-              entryMethod === 'participantNumber'
-                ? { currentStep: 1.5 }
-                : { currentStep: 1, entryMethod: null }
-            )}
-            onHome={() => onHome?.()}
-            trilingual={this.props.trilingual}
+            entryNumber={successEntryNumber}
+            onResetForm={this.handleResetForm}
+            onFinish={() => onHome?.()}
+          />
+        )}
+
+        {/* Show already registered result inline */}
+        {isParticularsStep && showAlreadyRegisteredMessage && (
+          <AlreadyRegisteredResult
+            language={language}
+            errorMessage={submissionError}
+            onResetForm={this.handleResetForm}
+            onFinish={() => onHome?.()}
           />
         )}
 
@@ -337,7 +390,7 @@ class ParticipantForm extends Component {
       </>
     );
 
-      const showFooter = currentStep >= 2 || isParticularsStep;
+      const showFooter = (currentStep >= 2 || isParticularsStep) && !showRegistrationSuccess && !showAlreadyRegisteredMessage;
 
       return (
         <div className="fft-create-file-form">
@@ -348,8 +401,8 @@ class ParticipantForm extends Component {
             {/* Loading modal during submission */}
             {isSubmitting && (
               <div style={{
-                position: 'absolute', inset: 0, zIndex: 1000,
-                background: 'rgba(255,255,255,0.8)',
+                position: 'fixed', inset: 0, zIndex: 1000,
+                background: 'rgba(0,0,0,0.65)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
                 <div style={{
@@ -374,7 +427,7 @@ class ParticipantForm extends Component {
             {/* Centralized footer buttons */}
             {showFooter && (
               <div className="fft-form-footer">
-                {isParticularsStep && (
+                {isParticularsStep && !showRegistrationSuccess && !showAlreadyRegisteredMessage && (
                   <>
                     <button
                       type="button"

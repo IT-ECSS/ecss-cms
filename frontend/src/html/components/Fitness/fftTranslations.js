@@ -103,6 +103,11 @@ const fftTranslations = {
     zh: '您尚未注册此 FFT。\n请点击返回按钮进行注册。',
     ms: 'Anda belum mendaftar untuk FFT ini.\nSila klik butang kembali untuk mendaftar.',
   },
+  errorAlreadyRegistered: {
+    en: 'You have already registered for this FFT Event.',
+    zh: '您已经注册了此 FFT 活动.',
+    ms: 'Anda telah mendaftar untuk FFT ini.',
+  },
   errorParticipantFetch: {
     en: 'Error retrieving participant data. Please try again.',
     zh: '获取参与者资料时出错，请重试。',
@@ -274,8 +279,8 @@ const fftTranslations = {
   },
   errDobRequired: {
     en: 'Please enter a valid date of birth (dd/mm/yyyy)',
-    zh: '请输入有效的出生日期（日/月/年）',
-    ms: 'Sila masukkan tarikh lahir yang sah (hh/bb/tttt)',
+    zh: '请输入有效的出生日期 (dd/mm/yyyy)',
+    ms: 'Sila masukkan tarikh lahir yang sah (dd/mm/yyyy)',
   },
   errGenderRequired: {
     en: 'Please select gender',

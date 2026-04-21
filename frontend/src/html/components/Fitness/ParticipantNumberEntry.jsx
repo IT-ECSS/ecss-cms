@@ -54,6 +54,15 @@ class ParticipantNumberEntry extends Component {
       const response = await axios.post(`${BACKEND_URL}/googleDrive/participant/${participantNumber}`, { fileId });
       const participantData = response.data.data;
 
+      // If the row exists and has a name, the participant has already registered
+      if (participantData && (participantData.name || participantData.chineseName)) {
+        this.setState({
+          error: fftTranslations.errorAlreadyRegistered[language] || fftTranslations.errorAlreadyRegistered.en,
+          loading: false,
+        });
+        return;
+      }
+
       // If the row exists but has no name, the participant hasn't registered yet
       if (!participantData || (!participantData.name && !participantData.chineseName)) {
         this.setState({
