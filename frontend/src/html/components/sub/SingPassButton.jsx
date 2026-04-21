@@ -263,6 +263,20 @@ class SingPassButton extends Component {
       
       console.log('FAPI 2.0 Authorization URL:', authorizationUrl);
       
+      // Save course link from current URL to sessionStorage before redirect
+      // This way after SingPass callback, we can redirect back with the same course
+      const currentParams = new URLSearchParams(window.location.search);
+      const courseLink = currentParams.get('link');
+      if (courseLink) {
+        try {
+          const decodedLink = decodeURIComponent(courseLink);
+          sessionStorage.setItem('courseLink', decodedLink);
+          console.log('[SingPass] Saved course link for post-callback redirect:', decodedLink);
+        } catch (error) {
+          console.warn('[SingPass] Could not save course link:', error);
+        }
+      }
+      
       // Call optional pre-redirect callback
       if (this.props.onBeforeRedirect) {
         await this.props.onBeforeRedirect(authorizationUrl);

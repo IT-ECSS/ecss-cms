@@ -203,9 +203,17 @@ class CallbackPage extends Component {
   redirectToForm = () => {
     try {
       const baseUrl = 'https://salmon-wave-09f02b100.6.azurestaticapps.net';
+      
+      // Get the course link from sessionStorage (set by formPage.jsx before SingPass login)
+      const courseLink = sessionStorage.getItem('courseLink');
+      
       // After SingPass callback, go directly to Personal Particulars section (section=1)
-      // This skips the course info page and shows form with pre-filled SingPass data
-      const url = `${baseUrl}/form?section=1`;
+      // Preserve the course link so background color loads correctly
+      let url = `${baseUrl}/form?section=1`;
+      if (courseLink) {
+        url += `&link=${encodeURIComponent(courseLink)}`;
+        console.log('[SingPass] Preserving course link in redirect:', courseLink);
+      }
       
       console.log('[SingPass] Redirecting directly to Personal Particulars (section 1):', url);
       
