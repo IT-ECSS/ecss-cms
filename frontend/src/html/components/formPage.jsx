@@ -319,33 +319,42 @@ class FormPage extends Component {
     
     if (isAuthenticatedWithSingPass) {
       console.log('User already authenticated with SingPass');
-      this.setState({ 
-        isAuthenticated: true, 
-        loading: true,  // Form ready to show
-        currentSection: initialSection // Set section from URL parameter
-      });
-      
       // Pre-populate form with SingPass data
       this.populateFormWithSingPassData();
     } else {
       console.log('User not authenticated, proceeding without SingPass data');
-      this.setState({ 
-        isAuthenticated: false,
-        loading: true,  // Form ready to show immediately
-        currentSection: initialSection // Set section from URL parameter
-      });
     }
 
-    // Start parallel course data loading immediately (truly non-blocking)
-    console.log('🎯 [Form] Form displayed instantly - course data loading in parallel');
-    
-    // Use Promise.resolve to ensure this runs asynchronously in the background
-    Promise.resolve().then(() => {
-      console.log('⏳ [Form] Starting background course data fetch...');
-      return this.loadCourseData(link, hasSectionParam);
-    })
-    .then(() => console.log('✅ [Form] Course data loaded in background successfully'))
-    .catch(err => console.error('❌ [Form] Background course load error:', err));
+    // Start with loading: false to show loading spinner
+    this.setState({ 
+      loading: false,
+      isAuthenticated: isAuthenticatedWithSingPass,
+      currentSection: initialSection
+    });
+
+    // Load course data FIRST (blocking), then display form
+    console.log('⏳ [Form] Fetching course data before displaying form...');
+    this.loadCourseData(link, hasSectionParam)
+      .then(() => {
+        console.log('✅ [Form] Course data loaded - now displaying form with data');
+        // Set form ready to display AFTER data loads
+        if (this._isMounted) {
+          this.setState({ 
+            loading: true,
+            bgColor: this.state.bgColor || '#F5F5F5'
+          });
+        }
+      })
+      .catch(err => {
+        console.error('❌ [Form] Error loading course data:', err);
+        // Still display form even if data fails to load
+        if (this._isMounted) {
+          this.setState({ 
+            loading: true,
+            bgColor: this.state.bgColor || '#F5F5F5'
+          });
+        }
+      });
   };
 
 
@@ -2354,7 +2363,17 @@ class FormPage extends Component {
     const { currentSection, formData, validationErrors, bgColor, loading, isAuthenticated, age } = this.state;
     console.log('Current Age:', age);
 
-    // Show form immediately - course data loads in parallel (no blocking on loading state)
+    // Show loading spinner while data is being fetched
+    if (!loading) {
+      return (
+        <div className="loading-spinner1" style={{ textAlign: 'center', marginTop: '20px' }}>
+          <div className="spinner1"></div>
+          <p style={{ fontSize: '18px', color: '#333', fontWeight: '600', marginTop: '10px' }}>Loading course data...</p>
+        </div>
+      );
+    }
+
+    // Form displays ONLY after data arrives (loading === true)
     // This ensures the form appears instantly for better UX     
 
     // Helper function to get language-appropriate button labels for Talks And Seminar
