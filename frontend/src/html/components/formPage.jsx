@@ -476,17 +476,12 @@ class FormPage extends Component {
         }
         console.log("Course Type:", type);
 
-        // Prepare background color based on course type
-        let bgColor = '';
+        // Get background color from backend response OR use default
+        let bgColor = matchedCourse.background_color || '#F5F5F5';
         let formContainerBg = '';
-        if (type === 'ILP') {
-          bgColor = '#006400';
-        } else if (type === 'NSA') {
-          bgColor = '#003366';
-        } else if (type === 'Talks And Seminar') {
-          bgColor = '#DAA520';
-        } else if (type === 'Marriage Preparation Programme') {
-          bgColor = '#800000';
+        
+        // Apply special styling for Marriage Prep if needed
+        if (type === 'Marriage Preparation Programme') {
           formContainerBg = '#40E0D0';
         }
 

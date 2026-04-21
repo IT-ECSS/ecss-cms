@@ -146,6 +146,31 @@ def product_by_link(request):
         product = woo_api.get_product_by_slug(slug)
 
         if product:
+            # Determine background color based on course type from categories
+            background_color = '#F5F5F5'  # Default light gray
+            
+            if product.get('categories') and isinstance(product['categories'], list):
+                for cat in product['categories']:
+                    cat_name = cat.get('name', '')
+                    
+                    # Map course types to background colors
+                    if cat_name == 'Talks And Seminar':
+                        background_color = '#DAA520'  # Gold
+                        break
+                    elif cat_name == 'Marriage Preparation Programme':
+                        background_color = '#800000'  # Maroon
+                        break
+                    elif 'NSA' in cat_name:
+                        background_color = '#003366'  # Dark Blue
+                        break
+                    elif 'ILP' in cat_name:
+                        background_color = '#006400'  # Dark Green
+                        break
+            
+            # Add background_color to the product response
+            product['background_color'] = background_color
+            print(f"Added background_color: {background_color} for product: {product.get('name')}")
+            
             return JsonResponse({"course": product})
         else:
             return JsonResponse({"course": None, "message": "No product found for this link."})
