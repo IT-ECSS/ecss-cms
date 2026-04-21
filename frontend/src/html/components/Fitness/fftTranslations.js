@@ -1,7 +1,7 @@
 /**
  * Translations for FFTParticipants form
  * Languages: English (en), Chinese (zh), Malay (ms)
- ok*/
+ */
 const fftTranslations = {
   // ── Header ──
   back: {
