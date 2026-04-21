@@ -24,7 +24,9 @@ class FormPage extends Component {
     this.state = {
       currentSection: 0,
       loading: false,
-      isAuthenticated: false, // Remove the hardcoded true value
+      isAuthenticated: false,
+      bgColor: '#F5F5F5', // Default light gray - will update to course type color
+      formContainerBg: '', // Background for form container
       singPassPopulatedFields: {}, // Add this to track SingPass populated fields
       // Add MyInfo error handling state
       myInfoError: false,
@@ -53,7 +55,6 @@ class FormPage extends Component {
         wORKING: '',
         courseDate: '',
         agreement: '',
-        bgColor: '',
         courseMode: '',
         courseTime: '',
         courseLocation: '', // Add courseLocation to store venue location from course data
@@ -319,42 +320,39 @@ class FormPage extends Component {
     
     if (isAuthenticatedWithSingPass) {
       console.log('User already authenticated with SingPass');
+      this.setState({ 
+        isAuthenticated: true, 
+        loading: true,  // Form ready to show immediately
+        currentSection: initialSection,
+        bgColor: '#F5F5F5' // Will update to course type when data loads
+      });
+      
       // Pre-populate form with SingPass data
       this.populateFormWithSingPassData();
     } else {
       console.log('User not authenticated, proceeding without SingPass data');
+      this.setState({ 
+        isAuthenticated: false,
+        loading: true,
+        currentSection: initialSection,
+        bgColor: '#F5F5F5' // Will update to course type when data loads
+      });
     }
 
-    // Start with loading: false to show loading spinner
-    this.setState({ 
-      loading: false,
-      isAuthenticated: isAuthenticatedWithSingPass,
-      currentSection: initialSection
+    // Load course data in PARALLEL (background) - NO delay
+    console.log('🎯 [Form] Form displayed instantly with CORRECT background color');
+    
+    Promise.resolve().then(() => {
+      console.log('⏳ [Form] Loading course data...');
+      return this.loadCourseData(link, hasSectionParam);
+    })
+    .then(() => {
+      console.log('✅ [Form] Course data loaded - background color set to course type');
+    })
+    .catch(err => {
+      console.error('❌ [Form] Course load error:', err);
+      // Still display form with default color even if load fails
     });
-
-    // Load course data FIRST (blocking), then display form
-    console.log('⏳ [Form] Fetching course data before displaying form...');
-    this.loadCourseData(link, hasSectionParam)
-      .then(() => {
-        console.log('✅ [Form] Course data loaded - now displaying form with data');
-        // Set form ready to display AFTER data loads
-        if (this._isMounted) {
-          this.setState({ 
-            loading: true,
-            bgColor: this.state.bgColor || '#F5F5F5'
-          });
-        }
-      })
-      .catch(err => {
-        console.error('❌ [Form] Error loading course data:', err);
-        // Still display form even if data fails to load
-        if (this._isMounted) {
-          this.setState({ 
-            loading: true,
-            bgColor: this.state.bgColor || '#F5F5F5'
-          });
-        }
-      });
   };
 
 
@@ -2363,17 +2361,7 @@ class FormPage extends Component {
     const { currentSection, formData, validationErrors, bgColor, loading, isAuthenticated, age } = this.state;
     console.log('Current Age:', age);
 
-    // Show loading spinner while data is being fetched
-    if (!loading) {
-      return (
-        <div className="loading-spinner1" style={{ textAlign: 'center', marginTop: '20px' }}>
-          <div className="spinner1"></div>
-          <p style={{ fontSize: '18px', color: '#333', fontWeight: '600', marginTop: '10px' }}>Loading course data...</p>
-        </div>
-      );
-    }
-
-    // Form displays ONLY after data arrives (loading === true)
+    // Show form immediately - course data loads in background (no loading spinner)
     // This ensures the form appears instantly for better UX     
 
     // Helper function to get language-appropriate button labels for Talks And Seminar

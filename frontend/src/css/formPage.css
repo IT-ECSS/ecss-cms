@@ -13,7 +13,8 @@ html, body {
 
 .formwholepage {
     font-family: 'Arial', sans-serif;
-    background-color: rgba(121, 62, 84, 0.4);
+    /* Background color is set by JavaScript based on course type */
+    /* Do NOT set a default background-color here */
     padding: 20px;
     min-height: 100vh; /* Ensure it covers the full viewport height */
     min-height: calc(var(--vh, 1vh) * 100); /* Fallback for older browsers */
