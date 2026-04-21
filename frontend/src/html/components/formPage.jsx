@@ -474,6 +474,9 @@ class FormPage extends Component {
 
         // Get background color from backend response OR use default
         let bgColor = matchedCourse.background_color || '#F5F5F5';
+        console.log('🎨 [BackgroundColor] Received from backend:', matchedCourse.background_color);
+        console.log('🎨 [BackgroundColor] Using color:', bgColor);
+        
         let formContainerBg = '';
         
         // Apply special styling for Marriage Prep if needed
@@ -657,14 +660,15 @@ class FormPage extends Component {
         const shouldStartAtSection1 = type === 'Marriage Preparation Programme' && !hasSectionParam;
 
         if (this._isMounted) {
-          console.log('📝 [Form] Updating form with course data:', { type, price: courseData.price, courseMode });
+          console.log('📝 [Form] Updating form with course data:', { type, price: courseData.price, courseMode, bgColor: bgColor });
+          console.log('🎨 [Form] Setting background color to:', bgColor);
           this.setState((prevState) => ({
             formData: { ...prevState.formData, ...courseData },
             loading: true,
             bgColor: bgColor,
             formContainerBg: formContainerBg,
             currentSection: shouldStartAtSection1 ? 1 : prevState.currentSection
-          }), () => console.log('✨ [Form] State updated - form will re-render with course details'));
+          }), () => console.log('✨ [Form] State updated - bgColor now:', this.state.bgColor));
         } else {
           this.state = {
             ...this.state,
@@ -2376,6 +2380,8 @@ class FormPage extends Component {
   render() {
     const { currentSection, formData, validationErrors, bgColor, loading, isAuthenticated, age, loadingPhase } = this.state;
     console.log('Current Age:', age);
+    console.log('🎨 [Render] Current bgColor:', bgColor);
+    console.log('📋 [Render] Loading:', loading);
 
     // Show form immediately - course data loads in background (no loading spinner)
     // This ensures the form appears instantly for better UX
