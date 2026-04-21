@@ -54,19 +54,21 @@ jobs:
         run: |
           npm ci --prefer-offline --no-audit
           npm run build --if-present
+          npm ci --production --prefer-offline --no-audit
 
       - name: Create deployment package
         run: |
           cd backend
           zip -r ../node-deploy.zip . \
-            --exclude "node_modules/*" \
             --exclude "*.log" \
             --exclude ".DS_Store" \
             --exclude ".git/*" \
             --exclude "*.map" \
             --exclude ".env*" \
             --exclude "test/*" \
-            --exclude "*.md"
+            --exclude "*.md" \
+            --exclude "package-lock.json.bak" \
+            --exclude ".npmrc"
           echo "Package size: $(du -h ../node-deploy.zip | cut -f1)"
 
       - name: Login to Azure
