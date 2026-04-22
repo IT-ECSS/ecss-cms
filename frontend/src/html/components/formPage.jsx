@@ -472,10 +472,20 @@ class FormPage extends Component {
         }
         console.log("Course Type:", type);
 
-        // Get background color from backend response OR use default
-        let bgColor = matchedCourse.background_color || '#F5F5F5';
-        console.log('🎨 [BackgroundColor] Received from backend:', matchedCourse.background_color);
-        console.log('🎨 [BackgroundColor] Using color:', bgColor);
+        // Determine background color based on course type
+        let bgColor = '';
+        if (type === 'ILP') {
+          bgColor = '#006400'; // Dark Green
+        } else if (type === 'NSA') {
+          bgColor = '#003366'; // Dark Blue
+        } else if (type === 'Talks And Seminar') {
+          bgColor = '#DAA520'; // Gold
+        } else if (type === 'Marriage Preparation Programme') {
+          bgColor = '#800000'; // Maroon
+        } else {
+          bgColor = '#F5F5F5'; // Default gray
+        }
+        console.log('🎨 [BackgroundColor] Set to:', bgColor, 'for course type:', type);
         
         let formContainerBg = '';
         
@@ -660,7 +670,7 @@ class FormPage extends Component {
         const shouldStartAtSection1 = type === 'Marriage Preparation Programme' && !hasSectionParam;
 
         if (this._isMounted) {
-          console.log('📝 [Form] Updating form with course data:', { type, price: courseData.price, courseMode, bgColor: bgColor });
+          console.log('📝 [Form] Updating form with course data:', { type, price: courseData.price, courseMode });
           console.log('🎨 [Form] Setting background color to:', bgColor);
           this.setState((prevState) => ({
             formData: { ...prevState.formData, ...courseData },
@@ -668,7 +678,7 @@ class FormPage extends Component {
             bgColor: bgColor,
             formContainerBg: formContainerBg,
             currentSection: shouldStartAtSection1 ? 1 : prevState.currentSection
-          }), () => console.log('✨ [Form] State updated - bgColor now:', this.state.bgColor));
+          }), () => console.log('✨ [Form] State updated'));
         } else {
           this.state = {
             ...this.state,
