@@ -7,6 +7,8 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var cors = require("cors");
+const cron = require('node-cron');
+const { expireOldFFTEvents } = require('./services/fftExpiryService');
 
 var app = express(); // Initialize the Express app
 
@@ -95,7 +97,7 @@ app.use("/googleDrive", googleDriveRouter);
 app.use("/inventory", inventoryRouter);
 app.use("/logs", LogsRouter);
 app.use("/qrcode", qrcodeRouter);
-app.use("/api/skillsfuture", skillsfutureRouter);
+app.use("/skillsfuture", skillsfutureRouter);
 
 
 // catch 404 and forward to error handler
@@ -113,5 +115,17 @@ app.use(function(err, req, res, next) {
   res.status(err.status || 500);
   res.render('error');
 });
+
+// ── FFT Event Expiry: run daily at 16:00 UTC = 00:00 SGT (midnight Singapore time) ───
+/*cron.schedule('0 16 * * *', () => {
+  console.log('[FFT Expiry] 00:00 SGT (16:00 UTC) — running expiry job...');
+  expireOldFFTEvents();
+}, { timezone: 'UTC' });*/
+
+cron.schedule('03 13 * * *', () => {
+  console.log('[FFT Expiry] 12:19 SGT — running expiry job...');
+  expireOldFFTEvents();
+}, { timezone: 'Asia/Singapore' });
+
 
 module.exports = app;

@@ -474,14 +474,14 @@ const fftTranslations = {
     {
       id: 'station2',
       num: 'Station 2',
-      title: '30 sec Arm Banding',
-      titleZh: '30 秒手臂卷起',
+      title: '30 secs Dumbbell Curl',
+      titleZh: '30 秒哑铃弯举',
       icon: 'fa-dumbbell',
       color: '#2563eb',
       bg: '#eff6ff',
       unit: '',
       fields: [
-        { key: '30 secs Arm Banding', label: 'Number of Bicep Curls', labelZh: '次数', type: 'number', placeholder: 'e.g. 15', unit: '', columnName: '30 secs Arm Banding' },
+        { key: '30 secs Dumbbell Curl', label: 'Number of Dumbbell Curls', labelZh: '次数', type: 'number', placeholder: 'e.g. 15', unit: '', columnName: '30 secs Dumbbell Curl' },
       ],
       remarksKey: 'Remarks',
       remarksColumnName: 'Remarks',

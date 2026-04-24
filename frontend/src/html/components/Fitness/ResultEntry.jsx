@@ -95,9 +95,9 @@ class ResultEntry extends Component {
       errors[key] = 'Enter measurement in number of squats.';
     }
     
-    // Validate 30 sec Arm Banding for decimal places
-    if (key === '30 secs Arm Banding' && value && value.includes('.')) {
-      errors[key] = 'Enter measurement in number of bicep curls.';
+    // Validate 30 sec Dumbbell Curl for decimal places
+    if (key === '30 secs Dumbbell Curl' && value && value.includes('.')) {
+      errors[key] = 'Enter measurement in number of dumbbell curls.';
     }
     
     // Validate 2 min On-the-spot Marching for decimal places
@@ -211,9 +211,9 @@ class ResultEntry extends Component {
       fieldErrors['30 secs Sit & Stand'] = 'Enter measurement in number of squats.';
     }
     
-    // Check 30 sec Arm Banding for decimal places
-    if (formData['30 secs Arm Banding'] && formData['30 secs Arm Banding'].includes('.')) {
-      fieldErrors['30 secs Arm Banding'] = 'Enter measurement in number of bicep curls.';
+    // Check 30 sec Dumbbell Curl for decimal places
+    if (formData['30 secs Dumbbell Curl'] && formData['30 secs Dumbbell Curl'].includes('.')) {
+      fieldErrors['30 secs Dumbbell Curl'] = 'Enter measurement in number of dumbbell curls.';
     }
     
     // Check 2 min On-the-spot Marching for decimal places

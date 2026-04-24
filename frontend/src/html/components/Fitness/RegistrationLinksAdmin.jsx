@@ -75,24 +75,21 @@ class RegistrationLinksAdmin extends Component {
   loadEvents = async () => {
     this.setState({ loading: true, error: null });
     try {
-      const res = await axios.post(`${BACKEND_URL}/googleDrive/readSpreadsheet`, {
-        fileId: INDEX_SHEET_ID,
-        sheetName: 'Sheet1',
-      });
+      const res = await axios.post(`${BACKEND_URL}/googleDrive/getIndexSheet`);
 
       if (!res.data.success) {
         throw new Error(res.data.error || 'Failed to read index sheet');
       }
 
-      // Sheet columns: A=S/N, B=Event Name, C=Time Slots, D=Max Participants,
-      //                E=Created On, F=File ID, G=Registration Link, H=QR Code
+      // Sheet columns: A=S/N, B=Event Name, C=Status, D=Time Slots, E=Max Participants,
+      //                F=Created On, G=File ID, H=Registration Link, I=QR Code
       const rowData = (res.data.data || [])
         .filter(row => row[1])
         .map((row, idx) => ({
           sn:               row[0] || idx + 1,
           name:             (row[1] || '').trim(),
-          registrationLink: (row[6] || '').trim(),
-          qrCode:           (row[7] || '').trim(),
+          registrationLink: (row[7] || '').trim(),
+          qrCode:           (row[8] || '').trim(),
         }));
 
       this.setState({ rowData, loading: false });

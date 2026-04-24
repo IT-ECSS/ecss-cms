@@ -6,6 +6,7 @@ import CreateEventForm from './CreateEventForm';
 import CreateFFTEventTimeSlots from './CreateFFTEventTimeSlots';
 import CreateFileForm from './CreateFileForm';
 import ChooseFileForm from './ChooseFileForm';
+import DeleteEventForm from './DeleteEventForm';
 import { SelectionBadgesBar } from './SelectionBadges';
 import HomeConfirmModal from './HomeConfirmModal';
 import AccessMasterData from './AccessMasterData';
@@ -198,6 +199,16 @@ class FFTAdmin extends Component {
                 </div>
                 <span className="fft-admin-menu-btn-label">Registration Links &amp; QR Codes</span>
               </button>
+              <button
+                type="button"
+                className="fft-admin-menu-btn"
+                onClick={() => this.handleMenuSelect('deleteEvent')}
+              >
+                <div className="fft-admin-menu-btn-icon">
+                  <i className="fas fa-trash"></i>
+                </div>
+                <span className="fft-admin-menu-btn-label">Delete Events</span>
+              </button>
             </div>
           </div>
         )}
@@ -223,6 +234,11 @@ class FFTAdmin extends Component {
         {/* ════════════ REGISTRATION LINKS VIEW ════════════ */}
         {activeView === 'registrationLinks' && (
           <RegistrationLinksAdmin />
+        )}
+
+        {/* ════════════ DELETE EVENT VIEW ════════════ */}
+        {activeView === 'deleteEvent' && (
+          <DeleteEventForm onCancel={() => this.handleMenuSelect(null)} />
         )}
 
         {/* ════════════ EVENT VIEW ════════════ */}

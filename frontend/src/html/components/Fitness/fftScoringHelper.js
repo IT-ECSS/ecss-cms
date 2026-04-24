@@ -17,7 +17,7 @@
 //
 //   { veryWeak: A, weak: B, normal: C, good: D }
 //
-// For HIGHER-IS-BETTER stations ('30 secs Sit & Stand', '30 secs Arm Banding', '2 min On-the-spot Marching', 'Sit & Reach', 'Back Stretching', 'Grip test'):
+// For HIGHER-IS-BETTER stations ('30 secs Sit & Stand', '30 secs Dumbbell Curl', '2 min On-the-spot Marching', 'Sit & Reach', 'Back Stretching', 'Grip test'):
 //   score < veryWeak  → "Very weak"
 //   score >= veryWeak  → "Weak"
 //   score >= weak      → "Normal"
@@ -35,7 +35,7 @@
 
 const STATION_DIRECTION = {
   '30 secs Sit & Stand':        'higher',
-  '30 secs Arm Banding':        'higher',
+  '30 secs Dumbbell Curl':      'higher',
   '2 min On-the-spot Marching': 'higher',
   'Sit & Reach':                'higher',
   'Back Stretching':            'higher',
@@ -57,8 +57,8 @@ const FEMALE_SCORING = {
     '> 90':  { veryWeak: 8,  weak: 9,  normal: 11, good: 12 },
   },
 
-  // ── Station 2: 30-Sec Arm Curl (higher is better) ──
-  '30 secs Arm Banding': {
+  // ── Station 2: 30-Sec Dumbbell Curl (higher is better) ──
+  '30 secs Dumbbell Curl': {
     '< 69':  { veryWeak: 16, weak: 19, normal: 21, good: 22 },
     '70-74': { veryWeak: 15, weak: 18, normal: 20, good: 21 },
     '75-79': { veryWeak: 15, weak: 17, normal: 19, good: 20 },
@@ -132,8 +132,8 @@ const MALE_SCORING = {
     '> 90':  { veryWeak: 9,  weak: 11, normal: 13, good: 14 },
   },
 
-  // ── Station 2: 30-Sec Arm Curl (higher is better) ──
-  '30 secs Arm Banding': {
+  // ── Station 2: 30-Sec Dumbbell Curl (higher is better) ──
+  '30 secs Dumbbell Curl': {
     '< 69':  { veryWeak: 17, weak: 20, normal: 23, good: 25 },
     '70-74': { veryWeak: 16, weak: 19, normal: 22, good: 24 },
     '75-79': { veryWeak: 15, weak: 17, normal: 20, good: 22 },
@@ -257,7 +257,7 @@ function parseScore(raw) {
  * Lower-is-better:   > veryWeak → Very weak | <= veryWeak → Weak |
  *                    < weak → Normal | < normal → Good | < good → Very good
  *
- * @param {string} station   – One of: '30 secs Sit & Stand', '30 secs Arm Banding', '2 min On-the-spot Marching', 'Sit & Reach', 'Back Stretching', '2.44m Speed Walk', 'Grip test'
+ * @param {string} station   – One of: '30 secs Sit & Stand', '30 secs Dumbbell Curl', '2 min On-the-spot Marching', 'Sit & Reach', 'Back Stretching', '2.44m Speed Walk', 'Grip test'
  * @param {number} age       – Participant's age (≥ 65)
  * @param {string|number} rawScore – The score value (can be a string like "5 / 3")
  * @param {string} [gender='female'] – 'male' or 'female'

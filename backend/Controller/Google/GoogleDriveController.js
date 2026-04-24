@@ -861,8 +861,8 @@ class GoogleDriveController {
             const nextSN = dataRows + 1;
             const nextRow = dataRows + 2; // 1-indexed + header
 
-            // Columns: A=S/N, B=Event Name, C=Time Slots, D=Maximum Of Participants, E=Created On, F=File ID
-            const rowData = [nextSN.toString(), eventName, timeSlots, maxParticipants.toString(), createdOn];
+            // Columns: A=S/N, B=Event Name, C=Status, D=Time Slots, E=Maximum Of Participants, F=Created On
+            const rowData = [nextSN.toString(), eventName, 'Upcoming', timeSlots, maxParticipants.toString(), createdOn];
 
             await sheets.spreadsheets.values.update({
                 spreadsheetId,
@@ -891,11 +891,11 @@ class GoogleDriveController {
             const rowNumber = parseInt(serialNumber, 10) + 1; // +1 for header row
             await sheets.spreadsheets.values.update({
                 spreadsheetId: INDEX_SHEET_ID,
-                range: `Sheet1!F${rowNumber}:H${rowNumber}`, // F=File ID, G=Registration Link, H=QR Code
+                range: `Sheet1!G${rowNumber}:I${rowNumber}`, // G=File ID, H=Registration Link, I=QR Code
                 valueInputOption: 'RAW',
                 requestBody: { values: [[fileId, registrationLink, qrCodeUrl]] }
             });
-            console.log(`[SHEETS] Updated index sheet row ${rowNumber} columns F-H with fileId, registrationLink, qrCodeUrl`);
+            console.log(`[SHEETS] Updated index sheet row ${rowNumber} columns G-I with fileId, registrationLink, qrCodeUrl`);
             return { success: true };
         } catch (error) {
             console.error('[SHEETS] Error updating index file ID:', error.message);
@@ -965,35 +965,22 @@ class GoogleDriveController {
 
     async getRow(fileId, entryNumber) {
         try {
-            const sheets = await this.initializeSheetsAuth();
-            const rowNumber = entryNumber + 1; // +1 for header row
+            // Use the cached readSpreadsheet path to avoid per-row quota hits
+            const cached = await this._fetchSpreadsheet(fileId);
+            if (!cached.success) {
+                return { success: false, error: cached.error };
+            }
 
-            const spreadsheet = await sheets.spreadsheets.get({
-                spreadsheetId: fileId,
-                fields: 'sheets.properties'
-            });
-            const targetSheet = spreadsheet.data.sheets[0].properties.title;
-
-            // Read header row + data row together
-            const response = await sheets.spreadsheets.values.get({
-                spreadsheetId: fileId,
-                range: `'${targetSheet}'!A1:Z${rowNumber}`
-            });
-
-            const allRows = response.data.values || [];
+            const allRows = cached.data || [];
             const headers = allRows[0] || [];
-            const row = allRows[rowNumber - 1] || [];
+            const row = allRows[entryNumber] || []; // entryNumber is 1-based row index after header
 
-            // Build data object by matching actual sheet headers
             const data = {};
             headers.forEach((header, idx) => {
                 if (header) data[header] = row[idx] || '';
             });
 
-            return {
-                success: true,
-                data: data
-            };
+            return { success: true, data };
         } catch (error) {
             console.error('[SHEETS] Error getting row:', error.message);
             return { success: false, error: error.message };
@@ -1356,6 +1343,82 @@ class GoogleDriveController {
             return { success: false, error: error.message };
         }
     }
+
+    /**
+     * Delete a file from Google Drive (permanently remove from trash)
+     * @param {string} fileId - File ID to delete
+     */
+    async deleteFile(fileId) {
+        try {
+            const drive = await this.initializeAuth();
+            
+            // Move to trash first
+            await drive.files.update({
+                fileId: fileId,
+                resource: { trashed: true },
+                supportsAllDrives: true
+            });
+            
+            console.log(`[DRIVE] File ${fileId} moved to trash`);
+            return { success: true, message: 'File deleted successfully' };
+        } catch (error) {
+            console.error('[DRIVE] Error deleting file:', error.message);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * Remove a row from a Google Sheet and shift rows up
+     * @param {string} fileId - Spreadsheet ID
+     * @param {number} rowIndex - Row index to delete (0-based)
+     * @param {string} sheetName - Sheet name
+     */
+    async deleteRow(fileId, rowIndex, sheetName = null) {
+        try {
+            const sheets = await this.initializeSheetsAuth();
+
+            // Get sheet ID
+            const spreadsheet = await sheets.spreadsheets.get({
+                spreadsheetId: fileId,
+                fields: 'sheets.properties'
+            });
+
+            const sheetNames = spreadsheet.data.sheets.map(s => s.properties.title);
+            const targetSheet = sheetName || sheetNames[0];
+            const targetSheetId = spreadsheet.data.sheets.find(s => s.properties.title === targetSheet)?.properties.sheetId;
+
+            if (targetSheetId === undefined) {
+                return { success: false, error: `Sheet "${targetSheet}" not found` };
+            }
+
+            // Delete the row
+            const batchUpdateRequest = {
+                requests: [{
+                    deleteDimension: {
+                        range: {
+                            sheetId: targetSheetId,
+                            dimension: 'ROWS',
+                            startIndex: rowIndex,
+                            endIndex: rowIndex + 1
+                        }
+                    }
+                }]
+            };
+
+            await sheets.spreadsheets.batchUpdate({
+                spreadsheetId: fileId,
+                requestBody: batchUpdateRequest
+            });
+
+            invalidateSheetCache(fileId, targetSheet);
+            console.log(`[SHEETS] Row ${rowIndex} deleted from sheet "${targetSheet}"`);
+            return { success: true, message: 'Row deleted successfully' };
+        } catch (error) {
+            console.error('[SHEETS] Error deleting row:', error.message);
+            return { success: false, error: error.message };
+        }
+    }
 }
 
 module.exports = GoogleDriveController;
+module.exports.invalidateSheetCache = invalidateSheetCache;

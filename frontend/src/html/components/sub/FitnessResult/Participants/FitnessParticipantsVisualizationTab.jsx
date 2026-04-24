@@ -14,7 +14,7 @@ class DataVisualization extends Component {
     // key matches the exact column name in spreadsheet
     this.fitnessMetrics = [
       { key: '30 secs Sit & Stand',          label: '30 Secs Sit & Stand',          unit: 'squats', higherIsBetter: true },
-      { key: '30 secs Arm Banding',           label: '30 Secs Arm Banding',          unit: 'bicep curls', higherIsBetter: true },
+      { key: '30 secs Dumbbell Curl',           label: '30 Secs Dumbbell Curl',       unit: 'dumbbell curls', higherIsBetter: true },
       { key: '2 min On-the-spot Marching',    label: '2 Min On-the-spot Marching',   unit: 'Sets of steps', higherIsBetter: true },
       { key: 'Sit & Reach',                   label: 'Sit & Reach',                  unit: 'cm',   higherIsBetter: true },
       { key: 'Back Stretching',               label: 'Back Stretching',              unit: 'cm',   higherIsBetter: true },

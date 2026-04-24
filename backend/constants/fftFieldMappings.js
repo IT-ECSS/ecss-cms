@@ -20,7 +20,7 @@ const INTERNAL_KEY_TO_COLUMN_MAP = {
     'BMI': 'M',
     'Date of test': 'N',
     '30 secs Sit & Stand': 'O',
-    '30 secs Arm Banding': 'P',
+    '30 secs Dumbbell Curl': 'P',
     '2 min On-the-spot Marching': 'Q',
     'Sit & Reach': 'R',
     'Back Stretching': 'S',

@@ -32,6 +32,8 @@ class FFTVolunteers extends Component {
       entryNumber: null,
       showHomeConfirm: false,
       reselectingBadge: null,
+      reselectingLanguage: false,
+      savedStation: null,
     };
   }
 
@@ -90,7 +92,7 @@ class FFTVolunteers extends Component {
     }
     // Clear reselecting badge once a new event arrives back via props
     if (this.state.reselectingBadge === 'event' && !prevProps.badgeEvent && this.props.badgeEvent) {
-      this.setState({ reselectingBadge: null });
+      this.setState({ reselectingBadge: null, savedStation: null });
     }
     if (this.state.reselectingBadge === 'station' && !prevProps.badgeStation && this.props.badgeStation) {
       this.setState({ reselectingBadge: null });
@@ -104,10 +106,10 @@ class FFTVolunteers extends Component {
 
   // ── Event Selection ──
   handleSelectEvent = (eventObj) => {
-    this.setState({
+    this.setState((prevState) => ({
       selectedEvent: eventObj || null,
-      selectedStation: null,
-    });
+      selectedStation: prevState.savedStation || null,
+    }));
   };
 
   // ── Participant Lookup ──
@@ -217,12 +219,13 @@ class FFTVolunteers extends Component {
             <SelectionBadgesBar
               language={language}
               event={this.props.badgeEvent}
-              station={this.props.badgeStation}
+              station={this.state.reselectingBadge === 'event' ? this.state.savedStation : this.props.badgeStation}
               sizeMultiplier={1.5625}
               stationBadgeClassName="fft-vol-station-header-badge"
-              onLanguageClick={() => this.setState({ language: null })}
-              onEventClick={() => { this.setState({ reselectingBadge: 'event' }); this.props.onBadgeEventClick?.(); }}
+              onLanguageClick={() => this.setState({ reselectingLanguage: true })}
+              onEventClick={() => { const currentStation = this.state.selectedStation; this.setState({ reselectingBadge: 'event', savedStation: currentStation }); this.props.onBadgeEventClick?.(); }}
               onStationClick={() => { this.setState({ reselectingBadge: 'station' }); this.props.onBadgeStationClick?.(); }}
+              showLanguagePlaceholder={this.state.reselectingLanguage}
               showEventPlaceholder={this.state.reselectingBadge === 'event'}
               showStationPlaceholder={this.state.reselectingBadge === 'station'}
             />
@@ -233,15 +236,15 @@ class FFTVolunteers extends Component {
         <div className="fft-volunteers-form">
 
           {/* ──── Language Selection Section ──── */}
-          {!language && (
+          {(!language || this.state.reselectingLanguage) && !this.state.reselectingBadge && (
             <LanguageSelection
               selectedLanguage={language}
-              onSelectLanguage={(lang) => this.setState({ language: lang })}
+              onSelectLanguage={(lang) => this.setState({ language: lang, reselectingLanguage: false })}
             />
           )}
 
           {/* ──── Event Selection Section ──── */}
-          {language && !selectedEvent && (
+          {language && !selectedEvent && !this.state.reselectingLanguage && (
             <EventSelection
               language={language}
               onSelectEvent={this.handleSelectEvent}
@@ -249,20 +252,20 @@ class FFTVolunteers extends Component {
           )}
 
           {/* ──── Station Selection Section ──── */}
-          {selectedEvent && !selectedStation && (
+          {language && selectedEvent && !selectedStation && !this.state.reselectingLanguage && (
             <StationSelection
               onSelectStation={this.handleSelectStation}
             />
           )}
 
-          {selectedEvent && selectedStation && !participantData && !lookupError && !loadingParticipant && (
+          {selectedEvent && selectedStation && !participantData && !lookupError && !loadingParticipant && !this.state.reselectingLanguage && (
             <VolunteerEntry
               language={language}
               onLookup={this.handleEntryLookup}
             />
           )}
 
-          {selectedEvent && selectedStation && (loadingParticipant || participantData || lookupError) && (
+          {selectedEvent && selectedStation && (loadingParticipant || participantData || lookupError) && !this.state.reselectingLanguage && (
             <ResultEntry
               selectedStation={selectedStation}
               fileId={fileId}

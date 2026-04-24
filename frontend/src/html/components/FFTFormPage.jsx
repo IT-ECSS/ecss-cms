@@ -30,24 +30,37 @@ class FFTFormPage extends Component {
   loadEvent = async (targetName) => {
     this.setState({ loadingEvent: true, eventError: null });
     try {
-      const res = await axios.post(`${BACKEND_URL}/googleDrive/readSpreadsheet`, {
-        fileId: INDEX_SHEET_ID,
-        sheetName: 'Sheet1',
-      });
+      const res = await axios.post(`${BACKEND_URL}/googleDrive/getIndexSheet`);
       if (!res.data.success) throw new Error(res.data.error || 'Failed to load events');
       const events = (res.data.data || [])
-        .filter(row => row[1] && row[5])
+        .filter(row => row[1] && row[6])
         .map(row => ({
           name: row[1].trim(),
-          id: row[5].trim(),
-          timeSlots: row[2] ? row[2].trim() : '',
-          maxParticipants: row[3] ? row[3].trim() : '',
+          id: row[6].trim(),
+          timeSlots: row[3] ? row[3].trim() : '',
+          maxParticipants: row[4] ? row[4].trim() : '',
+          status: row[2] ? String(row[2]).trim() : '',
         }));
       const found = events.find(e => e.name === targetName);
       if (found) {
+        // Block access if the event is marked Past in the sheet.
+        if (found.status === 'Past') {
+          this.setState({ eventError: 'This event has ended. Registration is no longer available.', loadingEvent: false });
+          return;
+        }
+        // Fallback date check for events not yet processed by the expiry job.
+        const dateMatch = /^(\d{4})\/(\d{2})\/(\d{2})/.exec(found.name || '');
+        if (dateMatch) {
+          const eventDate = new Date(`${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}T00:00:00+08:00`);
+          const todaySGT = new Date(new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' }) + 'T00:00:00+08:00');
+          if (eventDate < todaySGT) {
+            this.setState({ eventError: 'This event has ended. Registration is no longer available.', loadingEvent: false });
+            return;
+          }
+        }
         this.setState({ initialEvent: found, loadingEvent: false });
       } else {
-        this.setState({ eventError: `Event "${targetName}" not found or Google Sheet not yet created.`, loadingEvent: false });
+        this.setState({ eventError: `Event "${targetName}" not found or registration is no longer available.`, loadingEvent: false });
       }
     } catch (err) {
       this.setState({ eventError: err.message, loadingEvent: false });

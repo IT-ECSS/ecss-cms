@@ -44,7 +44,7 @@ const COLUMN_WIDTHS = {
   'Phone Number': 250,
   'Gender': 200,
   '30 secs Sit & Stand': 250,
-  '30 secs Arm Banding': 250,
+  '30 secs Dumbbell Curl': 250,
   '2 min On-the-spot Marching': 350,
   'Sit & Reach': 150,
   'Back Stretching': 200,
@@ -135,7 +135,7 @@ const MEASUREMENT_COLUMNS = [];
 // Station columns shown per-year WITH comparison colouring
 const STATION_COLUMNS = [
   '30 secs Sit & Stand',
-  '30 secs Arm Banding',
+  '30 secs Dumbbell Curl',
   '2 min On-the-spot Marching',
   'Sit & Reach',
   'Back Stretching',

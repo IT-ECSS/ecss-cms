@@ -38,23 +38,32 @@ class EventSelection extends Component {
     this.setState({ loading: true, error: null });
 
     try {
-      const res = await axios.post(`${BACKEND_URL}/googleDrive/readSpreadsheet`, {
-        fileId: INDEX_SHEET_ID,
-        sheetName: 'Sheet1',
-      });
+      const res = await axios.post(`${BACKEND_URL}/googleDrive/getIndexSheet`);
 
       if (!res.data.success) {
         throw new Error(res.data.error || 'Failed to read index sheet');
       }
 
-      // Sheet columns: A=S/N, B=Event Name, C=Time Slots, D=Max Participants, E=Created On, F=File ID
+      // Sheet columns: A=S/N, B=Event Name, C=Status, D=Time Slots, E=Max Participants, F=Created On, G=File ID, H=Registration Link, I=QR Code
+      const todaySGT = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Singapore' }));
+      todaySGT.setHours(0, 0, 0, 0);
+
       const events = (res.data.data || [])
-        .filter(row => row[1] && row[5]) // must have event name and file ID
+        .filter(row => {
+          if (!row[1] || !row[6]) return false;
+          // Hide events whose date has already passed.
+          const m = /^(\d{4})\/(\d{2})\/(\d{2})/.exec(String(row[1]).trim());
+          if (m) {
+            const eventDate = new Date(`${m[1]}-${m[2]}-${m[3]}T00:00:00+08:00`);
+            if (eventDate < todaySGT) return false;
+          }
+          return true;
+        })
         .map(row => ({
           name: row[1].trim(),
-          id: row[5].trim(),
-          timeSlots: row[2] ? row[2].trim() : '',
-          maxParticipants: row[3] ? row[3].trim() : '',
+          id: row[6].trim(),
+          timeSlots: row[3] ? row[3].trim() : '',
+          maxParticipants: row[4] ? row[4].trim() : '',
         }));
 
       this.setState({ events, loading: false });

@@ -92,7 +92,7 @@ class App extends Component
           <Route path="/myinfo-error-test" component={MyInfoErrorTest} />
           <Route path="/fft/form" component={FFTFormPage} />
           <Route exact path="/fft" component={FFTPage} />
-          <Route path="/skillsfuture/callback" component={SkillsFutureCallbackPage} />
+          <Route path="/skillsfuture" component={SkillsFutureCallbackPage} />
           <Route component={ErrorPage} />
         </Switch>
       </Router>

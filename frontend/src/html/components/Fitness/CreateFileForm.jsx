@@ -28,24 +28,21 @@ class CreateFileForm extends React.Component {
   fetchEvents = async () => {
     this.setState({ loadingEvents: true, eventError: null });
     try {
-      const response = await axios.post(`${BACKEND_URL}/googleDrive/readSpreadsheet`, {
-        fileId: SPREADSHEET_ID,
-        sheetName: 'Sheet1',
-      });
+      const response = await axios.post(`${BACKEND_URL}/googleDrive/getIndexSheet`);
 
       if (response.data.success && response.data.data) 
     {
         const rows = response.data.data;
-        // Sheet columns: A=S/N, B=Event Name, C=Time Slots, D=Max Participants, E=Created On, F=File ID
-        // "Created" = column F has a File ID
+        // Sheet columns: A=S/N, B=Event Name, C=Status, D=Time Slots, E=Max Participants, F=Created On, G=File ID
+        // "Created" = column G has a File ID
         const eventList = rows.filter(row => row.length > 0).map((row) => ({
           sn: row[0] || '',
           eventName: row[1] || '',
-          timeSlots: row[2] || '',
-          maxParticipants: row[3] || '',
-          createdOn: row[4] || '',
-          participantFileId: row[5] || '',
-          status: row[5] ? 'Created' : 'Not Created',
+          status: row[2] || '',
+          timeSlots: row[3] || '',
+          maxParticipants: row[4] || '',
+          createdOn: row[5] || '',
+          participantFileId: row[6] || '',
         }));
 
         this.setState({ events: eventList, loadingEvents: false });
