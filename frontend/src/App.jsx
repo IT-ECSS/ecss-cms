@@ -13,7 +13,7 @@ import MyInfoResultsPage from './html/components/MyInfoResultsPage';
 import MyInfoErrorTest from './html/pages/MyInfoErrorTest'; // Import the test page
 import FFTPage from './html/components/FFTPage';
 import FFTFormPage from './html/components/FFTFormPage';
-import SkillsFutureCallbackPage from './html/components/skillsfutureCallbackPage';
+// import SkillsFutureCallbackPage from './html/components/skillsfutureCallbackPage';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import { AuthProvider  } from './AuthContext';
 import ProtectedRoute from './ProtectedRoute';
@@ -92,7 +92,7 @@ class App extends Component
           <Route path="/myinfo-error-test" component={MyInfoErrorTest} />
           <Route path="/fft/form" component={FFTFormPage} />
           <Route exact path="/fft" component={FFTPage} />
-          <Route path="/skillsfuture" component={SkillsFutureCallbackPage} />
+          {/* <Route path="/skillsfuture" component={SkillsFutureCallbackPage} /> */}
           <Route component={ErrorPage} />
         </Switch>
       </Router>
