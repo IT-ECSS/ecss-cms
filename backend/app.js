@@ -117,15 +117,15 @@ app.use(function(err, req, res, next) {
 });
 
 // ── FFT Event Expiry: run daily at 16:00 UTC = 00:00 SGT (midnight Singapore time) ───
-/*cron.schedule('0 16 * * *', () => {
+cron.schedule('0 16 * * *', () => {
   console.log('[FFT Expiry] 00:00 SGT (16:00 UTC) — running expiry job...');
   expireOldFFTEvents();
-}, { timezone: 'UTC' });*/
+}, { timezone: 'UTC' });
 
-cron.schedule('03 13 * * *', () => {
+/*cron.schedule('03 13 * * *', () => {
   console.log('[FFT Expiry] 12:19 SGT — running expiry job...');
   expireOldFFTEvents();
-}, { timezone: 'Asia/Singapore' });
+}, { timezone: 'Asia/Singapore' });*/
 
 
 module.exports = app;

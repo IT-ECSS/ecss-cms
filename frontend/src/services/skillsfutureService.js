@@ -1,156 +1,87 @@
 /**
- * SkillsFuture API Service
- * Handles communication with SkillsFuture backend endpoints
+ * SkillsFuture Credit Pay — Frontend Service
+ *
+ * Mirrors the 7-step SSG flow:
+ *   encryptPaymentRequest    → Step 2  (backend calls SSG Encryption API)
+ *   decryptPaymentResponse   → Step 5  (backend calls SSG Decryption API)
+ *   uploadSupportingDocuments → Step 6
+ *   getClaimDetails          → Step 7a
+ *   cancelClaim              → Step 7b
  */
 
-const BACKEND_URL = 'http://localhost:3001';
+const BACKEND_URL = window.location.hostname === 'localhost'
+  ? 'http://localhost:3001'
+  : 'https://ecss-backend-node.azurewebsites.net';
+
 const API_BASE = `${BACKEND_URL}/skillsfuture`;
 
-/**
- * Build request options with proper headers
- */
-function getRequestOptions(method = 'GET', body = null) {
-  const options = {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include' // Include cookies for session
-  };
-
-  if (body) {
-    options.body = JSON.stringify(body);
-  }
-
-  return options;
+async function post(purpose, body) {
+  const res = await fetch(API_BASE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ purpose, ...body }),
+  });
+  return res.json();
 }
 
 /**
- * Handle API response
+ * Step 2 — encrypt payment request payload via SSG API
+ * @param {{
+ *   nric: string,
+ *   courseRunId: string,
+ *   courseFee: number,
+ *   courseStartDate: string,  // YYYY-MM-DD
+ *   courseEndDate: string,    // YYYY-MM-DD
+ *   trainingPartnerUen: string,
+ *   supportingDocId?: string
+ * }} payload
+ * @returns {{ success: boolean, encryptedPayload: string, formUrl: string }}
  */
-async function handleResponse(response) {
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Unknown error' }));
-    throw new Error(error.message || `HTTP ${response.status}`);
-  }
-
-  // For redirects, return the redirected URL
-  if (response.redirected) {
-    return {
-      success: true,
-      redirectUrl: response.url
-    };
-  }
-
-  return response.json();
+export async function encryptPaymentRequest(payload) {
+  return post('encrypt', payload);
 }
 
 /**
- * Parse callback URL parameters
+ * Step 5 — decrypt SSG callback response
+ * @param {string} encryptedPayload  — value of ?encryptedPayload= from SSG redirect
+ * @returns {{ success: boolean, claim: object }}
  */
-export function parseCallbackParams() {
-  const params = new URLSearchParams(window.location.search);
-  
-  return {
-    status: params.get('status'), // 'success' or 'error'
-    claimId: params.get('claimId'),
-    courseId: params.get('courseId'),
-    transactionId: params.get('transactionId'),
-    error: params.get('error')
-  };
+export async function decryptPaymentResponse(encryptedPayload) {
+  return post('decrypt', { encryptedPayload });
 }
 
 /**
- * Get claim details from backend
- * @param {string} claimId - Claim ID
- * @returns {Promise<object>}
+ * Step 6 — upload supporting documents
+ * @param {string} claimRequestCode
+ * @param {Array<{ fileName: string, fileContent: string }>} documents  — base64 content
+ * @returns {{ success: boolean, result: object }}
  */
-export async function getClaimDetails(claimId) {
-  try {
-    const response = await fetch(
-      `${API_BASE}/claim/${claimId}/details`,
-      getRequestOptions('GET')
-    );
-
-    return handleResponse(response);
-  } catch (error) {
-    console.error('[SkillsFuture] Failed to fetch claim details:', error.message);
-    return {
-      success: false,
-      error: error.message
-    };
-  }
+export async function uploadSupportingDocuments(claimRequestCode, documents) {
+  return post('upload-documents', { claimRequestCode, documents });
 }
 
 /**
- * Create payment request to backend
- * @param {object} paymentData - { courseId, userId, creditAmount }
- * @returns {Promise<object>}
+ * Step 7a — view claim details
+ * @param {string} claimRequestCode
+ * @returns {{ success: boolean, claim: object }}
  */
-export async function createPaymentRequest(paymentData) {
-  try {
-    if (!paymentData.courseId || !paymentData.userId || !paymentData.creditAmount) {
-      throw new Error('Missing required fields: courseId, userId, creditAmount');
-    }
-
-    if (paymentData.creditAmount <= 0) {
-      throw new Error('creditAmount must be positive');
-    }
-
-    const response = await fetch(
-      `${API_BASE}/payment/request`,
-      getRequestOptions('POST', paymentData)
-    );
-
-    return handleResponse(response);
-  } catch (error) {
-    console.error('[SkillsFuture] Failed to create payment request:', error.message);
-    return {
-      success: false,
-      error: error.message
-    };
-  }
+export async function getClaimDetails(claimRequestCode) {
+  return post('claim-details', { claimRequestCode });
 }
 
 /**
- * Redirect to SkillsFuture payment page
- * @param {string} requestId - Payment request ID
+ * Step 7b — cancel pending claim
+ * @param {string} claimRequestCode
+ * @returns {{ success: boolean, result: object }}
  */
-export function redirectToSkillsFuture(requestId) {
-  // This would be replaced with actual SkillsFuture redirect logic
-  const skillsfutureUrl = `https://ssg-wsg.gov.sg/skillsfuture/pay/${requestId}`;
-  window.location.href = skillsfutureUrl;
-}
-
-/**
- * Format claim data for display
- */
-export function formatClaimData(claimData) {
-  if (!claimData) return null;
-
-  return {
-    claimId: claimData.claimId || 'N/A',
-    courseId: claimData.courseId || 'N/A',
-    creditAmount: claimData.creditAmount || 0,
-    status: claimData.status || 'UNKNOWN',
-    creditUsed: claimData.creditUsed || 0,
-    remainingCredit: claimData.remainingCredit || 0,
-    processingDate: claimData.processingDate ? new Date(claimData.processingDate).toLocaleString() : 'N/A'
-  };
-}
-
-/**
- * Check if callback is successful
- */
-export function isSuccessfulCallback(callbackParams) {
-  return callbackParams.status === 'success' && callbackParams.claimId;
+export async function cancelClaim(claimRequestCode) {
+  return post('cancel-claim', { claimRequestCode });
 }
 
 export default {
-  parseCallbackParams,
+  encryptPaymentRequest,
+  decryptPaymentResponse,
+  uploadSupportingDocuments,
   getClaimDetails,
-  createPaymentRequest,
-  redirectToSkillsFuture,
-  formatClaimData,
-  isSuccessfulCallback
+  cancelClaim,
 };

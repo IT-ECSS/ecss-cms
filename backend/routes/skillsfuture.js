@@ -2,76 +2,48 @@ var express = require('express');
 var router = express.Router();
 var SkillsFutureController = require('../Controller/SkillsFuture/skillsfutureController');
 
+// POST /skillsfuture
+// Single entry point — purpose field selects the action
+// ---------------------------------------------------------------------------
+// purpose: 'encrypt'            → Step 2: encrypt payment request payload
+// purpose: 'decrypt'            → Step 5: decrypt SSG callback response
+// purpose: 'upload-documents'   → Step 6: upload supporting documents
+// purpose: 'claim-details'      → Step 7a: view claim status
+// purpose: 'cancel-claim'       → Step 7b: cancel pending claim
+// ---------------------------------------------------------------------------
 router.post('/', async function(req, res) {
+  const { purpose } = req.body;
+
+  if (!purpose) {
+    return res.status(400).json({ success: false, error: 'purpose is required' });
+  }
+
   try {
-    const purpose = req.body.purpose;
+    const ctrl = new SkillsFutureController();
 
-    if (purpose === 'callback') {
-      // Handle SSG SkillsFuture callback
-      // Receives encrypted response and verifies signature
-      const { responseSignature, encryptedResponse, transactionId } = req.body;
-
-      if (!responseSignature || !encryptedResponse) {
-        return res.status(400).json({
-          success: false,
-          message: 'Missing required fields: responseSignature, encryptedResponse'
-        });
-      }
-
-      var controller = new SkillsFutureController();
-      var result = await controller.handleCallback(req, res);
-      return result;
-    } 
-    else if (purpose === 'payment-request') {
-      // Create payment request for frontend
-      const { courseId, userId, creditAmount } = req.body;
-
-      if (!courseId || !userId || !creditAmount) {
-        return res.status(400).json({
-          success: false,
-          message: 'Missing required fields: courseId, userId, creditAmount'
-        });
-      }
-
-      if (typeof creditAmount !== 'number' || creditAmount <= 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'creditAmount must be a positive number'
-        });
-      }
-
-      var controller = new SkillsFutureController();
-      var result = await controller.createPaymentRequest(req, res);
-      return result;
-    } 
-    else if (purpose === 'claim-details') {
-      // Get claim details by claimId
-      const { claimId } = req.body;
-
-      if (!claimId) {
-        return res.status(400).json({
-          success: false,
-          message: 'Missing required field: claimId'
-        });
-      }
-
-      req.params.claimId = claimId;
-      var controller = new SkillsFutureController();
-      var result = await controller.getClaimDetails(req, res);
-      return result;
-    } 
-    else {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid purpose. Expected 'callback', 'payment-request', or 'claim-details'"
-      });
+    if (purpose === 'encrypt') {
+      return await ctrl.encryptPaymentRequest(req, res);
     }
+    if (purpose === 'decrypt') {
+      return await ctrl.decryptPaymentResponse(req, res);
+    }
+    if (purpose === 'upload-documents') {
+      return await ctrl.uploadSupportingDocuments(req, res);
+    }
+    if (purpose === 'claim-details') {
+      return await ctrl.getClaimDetails(req, res);
+    }
+    if (purpose === 'cancel-claim') {
+      return await ctrl.cancelClaim(req, res);
+    }
+
+    return res.status(400).json({
+      success: false,
+      error: `Unknown purpose "${purpose}". Valid values: encrypt, decrypt, upload-documents, claim-details, cancel-claim`
+    });
   } catch (error) {
     console.error('[SkillsFuture] Route error:', error.message);
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 
