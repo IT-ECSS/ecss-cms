@@ -191,9 +191,6 @@ class SpouseInfo extends Component {
 
     return (
       <div>
-        <h3 style={{ marginBottom: '20px', color: '#333', borderBottom: '2px solid #eee', paddingBottom: '10px' }}>
-          Spouse Information
-        </h3>
         
         {spouseFields.map((field) => (
           <div key={field.name} className="input-group1">

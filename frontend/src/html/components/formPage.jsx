@@ -1721,6 +1721,20 @@ class FormPage extends Component {
     }
 
     if (formData.type !== 'Marriage Preparation Programme') {
+      // Talks And Seminar section 1 — Personal Info required fields
+      if (formData.type === 'Talks And Seminar' && currentSection === 1) {
+        const required = ['pName', 'cNO', 'dOB', 'rESIDENTIALSTATUS', 'postalCode'];
+        return required.every(f => formData[f] !== '' && formData[f] !== null && formData[f] !== undefined);
+      }
+      // ILP / NSA section 1 — Personal Info required fields
+      if ((formData.type === 'ILP' || formData.type === 'NSA') && currentSection === 1) {
+        const required = ['pName', 'nRIC', 'rESIDENTIALSTATUS', 'rACE', 'gENDER', 'dOB', 'cNO', 'eMAIL', 'address', 'eDUCATION', 'wORKING'];
+        return required.every(f => formData[f] !== '' && formData[f] !== null && formData[f] !== undefined);
+      }
+      // ILP / NSA section 3 — Agreement required
+      if ((formData.type === 'ILP' || formData.type === 'NSA') && currentSection === 3) {
+        return !!(formData.agreement);
+      }
       // Non-marriage-prep flows validate on click.
       return true;
     }
@@ -2852,6 +2866,101 @@ class FormPage extends Component {
           <div className="formwholepage" style={{ backgroundColor: bgColor }}>
             {/* {renderLoadingIndicator()} */}
             <div className="form-page">
+              {/* Section stepper — shown after section 0 for ILP, NSA, and Talks And Seminar, outside form-container */}
+              {currentSection > 0 && (formData.type === 'ILP' || formData.type === 'NSA' || formData.type === 'Talks And Seminar') && (() => {
+                const steps = formData.type === 'Talks And Seminar'
+                  ? [
+                      { num: 1, label: 'Personal Info', chinese: '个人资料' },
+                      { num: 2, label: 'Course Details', chinese: '课程详情' },
+                      { num: 3, label: 'Submit', chinese: '提交' },
+                    ]
+                  : [
+                      { num: 1, label: 'Personal Info', chinese: '个人资料' },
+                      { num: 2, label: 'Course Details', chinese: '课程详情' },
+                      { num: 3, label: 'Agreement', chinese: '协议' },
+                      { num: 4, label: 'Submit', chinese: '提交' },
+                    ];
+                return (
+                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: 0, marginBottom: 24, marginTop: 8, position: 'relative' }}>
+                    {steps.map((step, idx) => {
+                      const isActive = currentSection === step.num;
+                      const isDone = currentSection > step.num;
+                      const circleColor = '#000000';
+                      const lineColor = currentSection > step.num ? '#000000' : '#e0e0e0';
+                      return (
+                        <React.Fragment key={step.num}>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 96 }}>
+                            <span style={{ fontSize: '1.08rem', fontWeight: 800, color: circleColor, marginBottom: 4, textAlign: 'center', whiteSpace: 'nowrap' }}>
+                              {step.label}
+                            </span>
+                            <div style={{
+                              width: 54, height: 54, borderRadius: '50%',
+                              backgroundColor: isActive ? circleColor : isDone ? circleColor : '#e0e0e0',
+                              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontWeight: 800, fontSize: '1.43rem',
+                              boxShadow: isActive ? '0 0 0 3px #888' : 'none',
+                              transition: 'background-color 0.2s',
+                            }}>
+                              {isDone ? '✓' : step.num}
+                            </div>
+                            <span style={{ fontSize: '1.02rem', fontWeight: 800, color: circleColor, marginTop: 4, textAlign: 'center', whiteSpace: 'nowrap' }}>
+                              {step.chinese}
+                            </span>
+                          </div>
+                          {idx < steps.length - 1 && (
+                            <div style={{ flex: 1, height: 2, backgroundColor: lineColor, alignSelf: 'center', marginBottom: 24, minWidth: 20 }} />
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+              {/* Section stepper — shown from section 0 for Marriage Preparation Programme, outside form-container */}
+              {formData.type === 'Marriage Preparation Programme' && (() => {
+                const mppSteps = [
+                  { num: 0, label: 'Personal Info', chinese: '个人资料' },
+                  { num: 2, label: 'Spouse Info', chinese: '配偶资料' },
+                  { num: 3, label: 'Course Details', chinese: '课程详情' },
+                  { num: 4, label: 'Agreement', chinese: '协议' },
+                  { num: 5, label: 'Submit', chinese: '提交' },
+                ];
+                return (
+                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: 0, marginBottom: 24, marginTop: 8, position: 'relative' }}>
+                    {mppSteps.map((step, idx) => {
+                      const isActive = currentSection === step.num || (step.num === 0 && currentSection === 1);
+                      const isDone = currentSection > step.num && !(step.num === 0 && currentSection === 1);
+                      const circleColor = '#000000';
+                      const lineColor = isDone ? '#000000' : '#e0e0e0';
+                      return (
+                        <React.Fragment key={step.num}>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 96 }}>
+                            <span style={{ fontSize: '1.08rem', fontWeight: 800, color: circleColor, marginBottom: 4, textAlign: 'center', whiteSpace: 'nowrap' }}>
+                              {step.label}
+                            </span>
+                            <div style={{
+                              width: 54, height: 54, borderRadius: '50%',
+                              backgroundColor: isActive ? circleColor : isDone ? circleColor : '#e0e0e0',
+                              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontWeight: 800, fontSize: '1.43rem',
+                              boxShadow: isActive ? '0 0 0 3px #888' : 'none',
+                              transition: 'background-color 0.2s',
+                            }}>
+                              {isDone ? '✓' : idx + 1}
+                            </div>
+                            <span style={{ fontSize: '1.02rem', fontWeight: 800, color: circleColor, marginTop: 4, textAlign: 'center', whiteSpace: 'nowrap' }}>
+                              {step.chinese}
+                            </span>
+                          </div>
+                          {idx < mppSteps.length - 1 && (
+                            <div style={{ flex: 1, height: 2, backgroundColor: lineColor, alignSelf: 'center', marginBottom: 24, minWidth: 20 }} />
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
           <div className={`form-container ${(formData.type === 'NSA' || formData.type === 'ILP') ? 'nsa-ilp-form' : ''}`} style={this.state.formContainerBg ? { backgroundColor: this.state.formContainerBg } : {}}>
             {/* MyInfo Service Status Indicator */}
             <MyInfoStatusIndicator 

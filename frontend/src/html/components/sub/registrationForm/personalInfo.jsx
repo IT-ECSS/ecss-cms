@@ -790,9 +790,7 @@ class PersonalInfo extends Component {
       <div>
         {/* Title for Marriage Preparation Programme only */}
         {isMarriagePreparation && (
-          <h3 style={{ marginBottom: '20px', color: '#333', borderBottom: '2px solid #eee', paddingBottom: '10px' }}>
-            Personal Information
-          </h3>
+          <></>
         )}
         
         {/* Clear SingPass Data Button - Only show for non-Marriage Preparation Programme */}
