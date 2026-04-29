@@ -58,9 +58,13 @@ jobs:
       - name: Create deployment package
         run: |
           cd backend
-          # Include node_modules in deployment to avoid npm install on Azure
+          # Exclude only node_modules - let Azure install fresh dependencies
           zip -r ../node-deploy.zip . \
-            -x "*.log" ".DS_Store" ".git*" ".env*" "*.local"
+            --exclude "node_modules/*" \
+            --exclude "*.log" \
+            --exclude ".DS_Store" \
+            --exclude ".git*" \
+            --exclude ".env*"
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -78,7 +82,7 @@ jobs:
               GOOGLE_DRIVE_FOLDER_ID="1DF81mvA5pv8_X-_uP8528Vb1xNfs1D8M" \
               GOOGLE_SERVICE_ACCOUNT_NORSE='${{ secrets.GOOGLE_SERVICE_ACCOUNT_NORSE }}' \
               NODE_ENV="production" \
-              SCM_DO_BUILD_DURING_DEPLOYMENT="false"
+              SCM_DO_BUILD_DURING_DEPLOYMENT="true"
           echo "✓ All settings configured in Azure"
 
       - name: Configure Google Drive Credentials
@@ -88,6 +92,15 @@ jobs:
           echo "✓ Google Drive credentials file created"
           ls -la ./backend/config/
 
+      - name: Stop App Service before deployment
+        run: |
+          echo "Stopping App Service to release deployment lock..."
+          az webapp stop \
+            --resource-group ECSS-Course-Management-System \
+            --name ecss-backend-node
+          sleep 5
+          echo "✓ App Service stopped"
+
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
@@ -95,6 +108,14 @@ jobs:
           app-name: 'ecss-backend-node'
           slot-name: 'Production'
           package: ./node-deploy.zip
+
+      - name: Start App Service after deployment
+        run: |
+          echo "Starting App Service..."
+          az webapp start \
+            --resource-group ECSS-Course-Management-System \
+            --name ecss-backend-node
+          echo "✓ App Service started"
 
       - name: Verify deployment health
         run: |
