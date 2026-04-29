@@ -58,13 +58,12 @@ jobs:
       - name: Create deployment package
         run: |
           cd backend
-          # Exclude only node_modules - let Azure install fresh dependencies
+          # Include node_modules built in Linux environment (matches Azure Linux)
           zip -r ../node-deploy.zip . \
-            --exclude "node_modules/*" \
-            --exclude "*.log" \
-            --exclude ".DS_Store" \
-            --exclude ".git*" \
-            --exclude ".env*"
+            -x "*.log" ".DS_Store" ".git*" ".env*" "*.local"
+          
+          echo "✓ Deployment package created"
+          ls -lh ../node-deploy.zip
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -82,7 +81,8 @@ jobs:
               GOOGLE_DRIVE_FOLDER_ID="1DF81mvA5pv8_X-_uP8528Vb1xNfs1D8M" \
               GOOGLE_SERVICE_ACCOUNT_NORSE='${{ secrets.GOOGLE_SERVICE_ACCOUNT_NORSE }}' \
               NODE_ENV="production" \
-              SCM_DO_BUILD_DURING_DEPLOYMENT="true"
+              SCM_DO_BUILD_DURING_DEPLOYMENT="false" \
+              NPM_BUILD_PRODUCTION="true"
           echo "✓ All settings configured in Azure"
 
       - name: Configure Google Drive Credentials
