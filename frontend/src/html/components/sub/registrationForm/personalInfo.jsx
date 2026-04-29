@@ -208,6 +208,7 @@ class PersonalInfo extends Component {
         
         // Update input value live
         this.setState({ manualDate: value });
+        this.props.onChange({ [name]: value });
         
         // Set cursor position after the newly typed character
         setTimeout(() => {
@@ -219,14 +220,10 @@ class PersonalInfo extends Component {
           const year = parseInt(value, 10);
           if (year >= 1900 && year <= new Date().getFullYear() + 10) {
             console.log("✅ Valid year:", value);
-            this.props.onChange({ [name]: value });
             this.setState({ selectedDate: new Date(year, 0, 1) });
           } else {
             console.warn("❌ Invalid year. Expected range 1900 to current year + 10");
           }
-        } else if (value === '') {
-          // Allow clearing the field
-          this.props.onChange({ [name]: '' });
         }
       } else {
         // For other course types: Allow full date format (dd/mm/yyyy) with persistent slashes
@@ -254,6 +251,7 @@ class PersonalInfo extends Component {
 
           // Update input value live
           this.setState({ manualDate: formattedValue });
+          this.props.onChange({ [name]: formattedValue });
 
           // Set cursor to end for bulk operations
           setTimeout(() => {
@@ -266,14 +264,10 @@ class PersonalInfo extends Component {
             
             if (this.isValidDDMMYYYY(fullDate)) {
               console.log("✅ Valid date:", fullDate);
-              this.props.onChange({ [name]: fullDate });
               this.setState({ selectedDate: new Date(fullDate.split('/').reverse().join('-')) });
             } else {
               console.warn("❌ Invalid date format. Expected valid dd/mm/yyyy");
             }
-          } else if (digitsOnly.length === 0) {
-            // Allow clearing the field
-            this.props.onChange({ [name]: '' });
           }
           
           return; // Exit early for selection-based operations
@@ -301,6 +295,7 @@ class PersonalInfo extends Component {
 
         // Update input value live
         this.setState({ manualDate: formattedValue });
+        this.props.onChange({ [name]: formattedValue });
 
         // Calculate cursor position based on where the user was typing
         let newCursorPos;
@@ -363,14 +358,10 @@ class PersonalInfo extends Component {
           
           if (this.isValidDDMMYYYY(fullDate)) {
             console.log("✅ Valid date:", fullDate);
-            this.props.onChange({ [name]: fullDate });
             this.setState({ selectedDate: new Date(fullDate.split('/').reverse().join('-')) });
           } else {
             console.warn("❌ Invalid date format. Expected valid dd/mm/yyyy");
           }
-        } else if (digitsOnly.length === 0) {
-          // Allow clearing the field
-          this.props.onChange({ [name]: '' });
         }
       }
     }
@@ -402,15 +393,12 @@ class PersonalInfo extends Component {
         if (inputDate.length > 0 && cursorPosition > 0) {
           const newValue = inputDate.slice(0, cursorPosition - 1) + inputDate.slice(cursorPosition);
           this.setState({ manualDate: newValue });
+            this.props.onChange({ dOB: newValue });
           
           // Set cursor position after state update
           setTimeout(() => {
             input.selectionStart = input.selectionEnd = cursorPosition - 1;
           }, 0);
-          
-          if (newValue === '') {
-            this.props.onChange({ dOB: '' });
-          }
         }
       } else {
         // For other course types: Handle backspace with persistent slash formatting based on cursor position
@@ -460,15 +448,12 @@ class PersonalInfo extends Component {
           }
           
           this.setState({ manualDate: formattedValue });
+          this.props.onChange({ dOB: formattedValue });
           
           // Keep cursor at the position where the digit was deleted (stay at same position)
           setTimeout(() => {
             input.selectionStart = input.selectionEnd = digitPosition;
           }, 0);
-          
-          if (formattedValue === '') {
-            this.props.onChange({ dOB: '' });
-          }
           
         } else {
           // Deleting a digit (not a slash) - maintain section structure
@@ -506,6 +491,7 @@ class PersonalInfo extends Component {
           }
           
           this.setState({ manualDate: formattedValue });
+          this.props.onChange({ dOB: formattedValue });
           
           // Keep cursor at the exact position where backspace was pressed
           let newCursorPos = cursorPosition - 1;
@@ -525,10 +511,6 @@ class PersonalInfo extends Component {
           setTimeout(() => {
             input.selectionStart = input.selectionEnd = Math.max(0, newCursorPos);
           }, 0);
-          
-          if (formattedValue === '') {
-            this.props.onChange({ dOB: '' });
-          }
         }
         
       }
@@ -806,8 +788,8 @@ class PersonalInfo extends Component {
 
     return (
       <div>
-        {/* Title for Marriage Preparation Programme and Talks And Seminar */}
-        {(isMarriagePreparation || isTalksAndSeminar) && (
+        {/* Title for Marriage Preparation Programme only */}
+        {isMarriagePreparation && (
           <h3 style={{ marginBottom: '20px', color: '#333', borderBottom: '2px solid #eee', paddingBottom: '10px' }}>
             Personal Information
           </h3>

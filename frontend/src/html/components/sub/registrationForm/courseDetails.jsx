@@ -32,6 +32,12 @@ class CourseDetailsSection extends Component {
     return decodedString;
   }
 
+  // Remove location in parentheses from course name (e.g., "Course Name (CT Hub)" -> "Course Name")
+  removeLocationFromCourseName(courseName) {
+    if (!courseName) return courseName;
+    return courseName.replace(/\s*\([^)]*\)\s*$/, '').trim();
+  }
+
   render() {
     const { selectedPayment, paymentTouched } = this.state;
     const { courseType, courseLocation, courseEnglishName, courseChineseName, isMalayLanguage } = this.props;
@@ -39,8 +45,22 @@ class CourseDetailsSection extends Component {
     const isILP = courseType === 'ILP';
     const isMarriagePrep = courseType === 'Marriage Preparation Programme';
     const isTalksAndSeminar = courseType === 'Talks And Seminar';
-    const talksPrice = parseFloat(this.props.coursePrice?.replace('$', '') || '0');
+    const numericCoursePrice = parseFloat(this.props.coursePrice?.replace('$', '') || '0');
+    const hasDisplayablePrice = numericCoursePrice > 0;
+    const talksPrice = numericCoursePrice;
     const isPaidTalks = isTalksAndSeminar && talksPrice > 0;
+    const extractedAddress = (this.props.extractedLocation || '')
+      .replace(/^(?:地点\s*)?(?:Lokasi\s*)?Location:\s*/i, '')
+      .replace(/^(?:地点|Lokasi):\s*/i, '')
+      .trim();
+    const normalizedCourseLocation = (courseLocation || '').trim().toLowerCase();
+    const normalizedExtractedAddress = extractedAddress.toLowerCase();
+    const addressHasStreetNumber = /^\d+[a-z]?\s/i.test(extractedAddress);
+    const addressAddsMoreThanVenue =
+      normalizedExtractedAddress &&
+      normalizedExtractedAddress !== normalizedCourseLocation &&
+      !normalizedExtractedAddress.startsWith(`${normalizedCourseLocation}, singapore`);
+    const shouldShowTalksAddress = isTalksAndSeminar && extractedAddress && (addressHasStreetNumber || addressAddsMoreThanVenue);
     //Marriage Preparation Programme
     console.log('CourseDetailsSection props:', this.props);
 
@@ -55,12 +75,7 @@ class CourseDetailsSection extends Component {
 
     return (
       <div className="course-details-section1">
-        {/* Title for Talks And Seminar */}
-        {isTalksAndSeminar && (
-          <h3 style={{ marginBottom: '20px', color: '#333', borderBottom: '2px solid #eee', paddingBottom: '10px' }}>
-            {getLabel('Course Details', '', '')}
-          </h3>
-        )}
+        {/* Hide title for Talks And Seminar */}
         
         {!isTalksAndSeminar && (
           <div className="input-group1">
@@ -73,11 +88,11 @@ class CourseDetailsSection extends Component {
         <div className="input-group1">
           <label htmlFor="courseName">{getLabel('Course Name', '课程名称', 'Nama Kursus')}</label>
           <span className="course-detail-text" id="courseName">
-            {this.decodeHtmlEntities(this.props.courseEnglishName)}
+            {this.decodeHtmlEntities(this.removeLocationFromCourseName(this.props.courseEnglishName))}
           </span>
           <br />
           <span className="course-detail-text" id="courseName">
-           {this.decodeHtmlEntities(this.props.courseChineseName)}
+           {this.decodeHtmlEntities(this.removeLocationFromCourseName(this.props.courseChineseName))}
           </span>
         </div>
         
@@ -88,12 +103,17 @@ class CourseDetailsSection extends Component {
           </span>
         </div>
         
-        {isTalksAndSeminar && (
+        {shouldShowTalksAddress && (
           <div className="input-group1">
             <label htmlFor="courseAddress">{getLabel('Course Address', '课程地址', 'Alamat Kursus')}</label>
             <span className="course-detail-text" id="courseAddress">
               {(() => {
-                const address = this.props.extractedLocation;
+                const address = extractedAddress;
+
+                if (!address) {
+                  return '';
+                }
+
                 // Check if address contains a 6-digit postal code
                 const postalCodeMatch = address.match(/(.+?)\s*(Singapore\s+)?(\d{6})$/i);
                 if (postalCodeMatch) {
@@ -113,7 +133,7 @@ class CourseDetailsSection extends Component {
           </div>
         )}
         
-        {(isNSA || isPaidTalks) && (  
+        {hasDisplayablePrice && (  
         <div className="input-group1">
           <label htmlFor="coursePrice">{getLabel('Course Price', '价格', 'Harga Kursus')}</label>
           <span className="course-detail-text" id="coursePrice">
@@ -159,15 +179,15 @@ class CourseDetailsSection extends Component {
           </span>
         </div>)}
   
-        {(isNSA || isILP || isMarriagePrep || isPaidTalks) && (  // Payment Options Section for NSA, ILP, Marriage Preparation Programme, and paid Talks And Seminar
+        {(isNSA || isMarriagePrep || isPaidTalks) && (  // Payment Options Section for NSA, Marriage Preparation Programme, and paid Talks And Seminar (NOT ILP)
           <div className="input-group1">
             <label>{getLabel('I wish to pay by:', '我希望通过以下方式付款：', 'Saya ingin membayar dengan:')}</label>
             <div className="subheading-text">
               {getLabel('Click to select your payment method 点击选择您的付款方式', '点击选择您的付款方式', 'Klik untuk memilih kaedah pembayaran anda')}
             </div>
             <div className="payment-button-group">
-              {/* For NSA/ILP, keep existing logic. For Marriage Prep and paid Talks, always show Cash option if applicable. */}
-              {((isNSA || isILP) && courseLocation !== 'Pasir Ris West Wellness Centre') || isMarriagePrep || isPaidTalks ? (
+              {/* For NSA, keep existing logic. For Marriage Prep and paid Talks, always show Cash option if applicable. */}
+              {(isNSA && courseLocation !== 'Pasir Ris West Wellness Centre') || isMarriagePrep || isPaidTalks ? (
                 <button
                   type="button"
                   className={`payment-button ${selectedPayment === 'Cash' ? 'payment-button--selected' : ''}`}
@@ -183,9 +203,9 @@ class CourseDetailsSection extends Component {
               >
                 PayNow
               </button>
-              {/* NSA/ILP: Conditionally render SkillsFuture. Marriage Prep: always show. Paid Talks: exclude SkillsFuture. */}
+              {/* NSA: Conditionally render SkillsFuture. Marriage Prep: always show. Paid Talks: exclude SkillsFuture. */}
               {(
-                (isNSA || isILP) && (
+                isNSA && (
                   // SkillsFuture not available for Community Ukulele Level 2 per request
                   // so we remove the explicit equality check and only exclude the
                   // mandarin variants and the forbidden chinese name.
@@ -204,8 +224,8 @@ class CourseDetailsSection extends Component {
                 </button>
               ) : null}
             </div>
-            {/* Display error message if no payment option is selected, paymentTouched is true, and courseType is NSA, ILP, Marriage Prep, or paid Talks */}
-            {(isNSA || isILP || isMarriagePrep || isPaidTalks) && !selectedPayment && paymentTouched && (
+            {/* Display error message if no payment option is selected, paymentTouched is true, and courseType is NSA, Marriage Prep, or paid Talks */}
+            {(isNSA || isMarriagePrep || isPaidTalks) && !selectedPayment && paymentTouched && (
               <span className="field-validation-message" id="validation-error-payment">
                 {isMalayLanguage ? 'Sila pilih pilihan pembayaran.' : 'Please select a payment option. 请选择付款方式。'}
               </span>

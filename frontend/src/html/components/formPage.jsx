@@ -632,10 +632,13 @@ class FormPage extends Component {
 
           for (let line of lines) {
             const cleanLine = line.replace(/<[^>]*>/g, '').trim();
-            if (cleanLine.match(/(?:Lokasi|Location):\s*(.+)/i)) {
-              const locationMatch = cleanLine.match(/(?:Lokasi|Location):\s*(.+)/i);
+            if (cleanLine.match(/(?:地点\s*)?(?:Lokasi\s*)?Location:\s*(.+)|(?:地点|Lokasi):\s*(.+)/i)) {
+              const locationMatch = cleanLine.match(/(?:地点\s*)?(?:Lokasi\s*)?Location:\s*(.+)|(?:地点|Lokasi):\s*(.+)/i);
               if (locationMatch && locationMatch[1]) {
                 courseLocation = locationMatch[1].trim();
+                break;
+              } else if (locationMatch && locationMatch[2]) {
+                courseLocation = locationMatch[2].trim();
                 break;
               }
             }
@@ -712,29 +715,30 @@ class FormPage extends Component {
 
         const isChineseLanguage = languageOptions.some(option => option.includes('Mandarin'));
         const isMalayLanguage = languageOptions.some(option => option.includes('Malay'));
+        const categoryCourseLocation = selectedLocation;
 
         // Build courseData based on name parts and language
         let courseData = {};
 
         if (courseParts.length === 3) {
           if (isChineseLanguage) {
-            courseData = { chineseName: courseParts[0], englishName: courseParts[1], location: selectedLocation, price: formattedPrice, type, courseDuration, courseTime, courseMode, courseLocation };
+            courseData = { chineseName: courseParts[0], englishName: courseParts[1], location: selectedLocation, price: formattedPrice, type, courseDuration, courseTime, courseMode, courseLocation: categoryCourseLocation };
           } else if (isMalayLanguage) {
-            courseData = { englishName: courseParts[1], chineseName: courseParts[0], isMalayLanguage: true, location: selectedLocation, price: formattedPrice, type, courseDuration, courseTime, courseMode, courseLocation };
+            courseData = { englishName: courseParts[1], chineseName: courseParts[0], isMalayLanguage: true, location: selectedLocation, price: formattedPrice, type, courseDuration, courseTime, courseMode, courseLocation: categoryCourseLocation };
           } else {
-            courseData = { chineseName: courseParts[0], englishName: courseParts[1], location: selectedLocation, price: formattedPrice, type, courseDuration, courseTime, courseMode, courseLocation };
+            courseData = { chineseName: courseParts[0], englishName: courseParts[1], location: selectedLocation, price: formattedPrice, type, courseDuration, courseTime, courseMode, courseLocation: categoryCourseLocation };
           }
         } else if (courseParts.length === 2) {
           if (isChineseLanguage) {
-            courseData = { englishName: courseParts[0] || '', chineseName: courseParts[1] || '', location: selectedLocation, price: formattedPrice, type, courseDuration, courseTime, courseMode, courseLocation };
+            courseData = { englishName: courseParts[0] || '', chineseName: courseParts[1] || '', location: selectedLocation, price: formattedPrice, type, courseDuration, courseTime, courseMode, courseLocation: categoryCourseLocation };
           } else if (isMalayLanguage) {
-            courseData = { englishName: courseParts[0] || '', chineseName: courseParts[1] || '', isMalayLanguage: true, location: selectedLocation, price: formattedPrice, type, courseDuration, courseTime, courseMode, courseLocation };
+            courseData = { englishName: courseParts[0] || '', chineseName: courseParts[1] || '', isMalayLanguage: true, location: selectedLocation, price: formattedPrice, type, courseDuration, courseTime, courseMode, courseLocation: categoryCourseLocation };
           } else {
             const processedNames = this.processCourseName(courseParts);
-            courseData = { englishName: processedNames.englishName, chineseName: processedNames.chineseName || '', location: selectedLocation, price: formattedPrice, type, courseDuration, courseTime, courseMode, courseLocation };
+            courseData = { englishName: processedNames.englishName, chineseName: processedNames.chineseName || '', location: selectedLocation, price: formattedPrice, type, courseDuration, courseTime, courseMode, courseLocation: categoryCourseLocation };
           }
         } else if (courseParts.length === 1) {
-          courseData = { englishName: courseParts[0], chineseName: '', location: selectedLocation, price: formattedPrice, type, courseDuration, courseTime, courseMode, courseLocation };
+          courseData = { englishName: courseParts[0], chineseName: '', location: selectedLocation, price: formattedPrice, type, courseDuration, courseTime, courseMode, courseLocation: categoryCourseLocation };
         }
 
         const shouldStartAtSection1 = type === 'Marriage Preparation Programme' && !hasSectionParam;
@@ -1024,11 +1028,15 @@ class FormPage extends Component {
             const cleanLine = line.replace(/<[^>]*>/g, '').trim();
             
             // Look for "Lokasi Location:" pattern followed by address
-            if (cleanLine.match(/(?:Lokasi|Location):\s*(.+)/i)) {
-              const locationMatch = cleanLine.match(/(?:Lokasi|Location):\s*(.+)/i);
+            if (cleanLine.match(/(?:地点\s*)?(?:Lokasi\s*)?Location:\s*(.+)|(?:地点|Lokasi):\s*(.+)/i)) {
+              const locationMatch = cleanLine.match(/(?:地点\s*)?(?:Lokasi\s*)?Location:\s*(.+)|(?:地点|Lokasi):\s*(.+)/i);
               if (locationMatch && locationMatch[1]) {
                 courseLocation = locationMatch[1].trim();
                 console.log("Successfully extracted location from Lokasi/Location pattern:", courseLocation);
+                break;
+              } else if (locationMatch && locationMatch[2]) {
+                courseLocation = locationMatch[2].trim();
+                console.log("Successfully extracted location from 地点/Lokasi pattern:", courseLocation);
                 break;
               }
             }
@@ -1695,107 +1703,64 @@ class FormPage extends Component {
     }
   };
 
-  // Update the isCurrentSectionValid method to handle Marriage Preparation Programme
   isCurrentSectionValid = () => {
     const { currentSection, formData } = this.state;
-    
-    console.log("isCurrentSectionValid check - currentSection:", currentSection, "formData.type:", formData.type);
-    console.log("Current formData:", formData);
-    
-    // Helper function to check if all required fields are filled (not empty)
-    const allFieldsFilled = (fieldsArray) => {
-      return fieldsArray.every(fieldValue => fieldValue && fieldValue !== '');
-    };
-    
-    // Marriage Preparation Programme validation
-    if (formData.type === 'Marriage Preparation Programme') {
-      if (currentSection === 0 || currentSection === 1) {
-        // Section 0 and 1: Personal information and marriage details
-        const requiredFields = [
-          formData.pName, formData.nRIC, formData.dOB, 
-          formData.rESIDENTIALSTATUS, formData.gENDER, formData.rACE, 
-          formData.mARITALSTATUS, formData.postalCode,
-          formData.hOUSINGTYPE, formData.gROSSMONTHLYINCOME, 
-          formData.mARRIAGEDURATION, formData.tYPEOFMARRIAGE, 
-          formData.hASCHILDREN
-        ];
-        const isValid = allFieldsFilled(requiredFields);
-        console.log('Marriage Prep Section 0/1:', isValid ? '✅ All fields filled' : '❌ Some fields empty');
-        return isValid;
-      } else if (currentSection === 2) {
-        // Section 2: Spouse information
-        const requiredFields = [
-          formData.spouseName, formData.spouseNRIC, formData.spouseDOB,
-          formData.spouseResidentialStatus, formData.spouseSex, formData.spouseEthnicity,
-          formData.spouseMaritalStatus, formData.spousePostalCode, formData.spouseMobile,
-          formData.spouseEmail, formData.spouseEducation, formData.spouseHousingType
-        ];
-        const isValid = allFieldsFilled(requiredFields);
-        console.log('Marriage Prep Section 2 (Spouse):', isValid ? '✅ All fields filled' : '❌ Some fields empty');
-        return isValid;
-      } else if (currentSection === 3) {
-        // Section 3: Course Details (payment)
-        const isValid = formData.payment !== '';
-        console.log('Marriage Prep Section 3 (Payment):', isValid ? '✅ Payment selected' : '❌ Payment not selected');
-        return isValid;
-      } else if (currentSection === 4) {
-        // Section 4: Agreement
-        return true;
-      }
+
+    const isPaidTalks =
+      formData.type === 'Talks And Seminar' &&
+      parseFloat((formData.price || '0').replace('$', '')) > 0;
+
+    // NSA payment step
+    if (formData.type === 'NSA' && currentSection === 2) {
+      return !!formData.payment;
+    }
+
+    // Paid Talks payment step (button is Submit on section 2)
+    if (isPaidTalks && currentSection === 2) {
+      return !!formData.payment;
+    }
+
+    if (formData.type !== 'Marriage Preparation Programme') {
+      // Non-marriage-prep flows validate on click.
       return true;
     }
-    
-    // Talks And Seminar validation
-    if (formData.type === 'Talks And Seminar') {
-      if (currentSection === 0 || currentSection === 1) {
-        // Validate name, contact, DOB, residential status, postal code
-        const requiredFields = [
-          formData.pName, formData.cNO, formData.dOB, 
-          formData.rESIDENTIALSTATUS, formData.postalCode
-        ];
-        const isValid = allFieldsFilled(requiredFields);
-        console.log('Talks And Seminar Section 0/1:', isValid ? '✅ All fields filled' : '❌ Some fields empty');
-        return isValid;
-      } else if (currentSection === 2) {
-        // Course Details section (payment optional if free)
-        const coursePrice = parseFloat(this.state.courseData?.price?.replace('$', '') || '0');
-        const isValid = formData.payment !== '' || coursePrice === 0;
-        console.log('Talks And Seminar Section 2 (Payment):', isValid ? '✅ Valid' : '❌ Invalid');
-        return isValid;
-      }
-      return true;
-    }
-    
-    // NSA/ILP validation (default course types)
-    if (currentSection === 0) {
-      // FormDetails section - always valid
-      return true;
-    } else if (currentSection === 1) {
-      // Personal Info section
+
+    const effectiveSection = currentSection === 0 ? 1 : currentSection;
+
+    if (effectiveSection === 1) {
       const requiredFields = [
-        formData.pName, formData.nRIC, formData.rESIDENTIALSTATUS, 
-        formData.rACE, formData.gENDER, formData.dOB, 
-        formData.cNO, formData.eMAIL, formData.address, 
-        formData.eDUCATION, formData.wORKING
+        'pName', 'nRIC', 'dOB', 'cNO', 'rESIDENTIALSTATUS', 'gENDER', 'rACE',
+        'mARITALSTATUS', 'postalCode', 'hOUSINGTYPE', 'gROSSMONTHLYINCOME',
+        'mARRIAGEDURATION', 'tYPEOFMARRIAGE', 'hASCHILDREN'
       ];
-      const isValid = allFieldsFilled(requiredFields);
-      console.log('NSA/ILP Section 1:', isValid ? '✅ All fields filled' : '❌ Some fields empty');
-      return isValid;
-    } else if (currentSection === 2) {
-      // Course Details section
-      if (formData.type === 'NSA' || formData.type === 'ILP') {
-        const isValid = formData.payment !== '';
-        console.log('NSA/ILP Section 2 (Payment):', isValid ? '✅ Payment selected' : '❌ Payment not selected');
-        return isValid;
-      }
-      return true;
-    } else if (currentSection === 3) {
-      // Agreement section
-      const isValid = formData.agreement;
-      console.log('NSA/ILP Section 3 (Agreement):', isValid ? '✅ Agreement accepted' : '❌ Agreement not accepted');
-      return isValid;
+
+      return requiredFields.every((field) => {
+        const value = formData[field];
+        return value !== '' && value !== null && value !== undefined;
+      });
     }
-    
+
+    if (effectiveSection === 2) {
+      const requiredFields = [
+        'spouseName', 'spouseNRIC', 'spouseDOB', 'spouseResidentialStatus',
+        'spouseSex', 'spouseEthnicity', 'spouseMaritalStatus', 'spousePostalCode',
+        'spouseMobile', 'spouseEmail', 'spouseEducation', 'spouseHousingType'
+      ];
+
+      return requiredFields.every((field) => {
+        const value = formData[field];
+        return value !== '' && value !== null && value !== undefined;
+      });
+    }
+
+    if (effectiveSection === 3) {
+      return !!formData.payment;
+    }
+
+    if (effectiveSection === 4) {
+      return !!formData.marriagePrepConsent1 && !!formData.marriagePrepConsent2;
+    }
+
     return true;
   };
 
@@ -1828,7 +1793,10 @@ class FormPage extends Component {
     
     // If we have a clean location string that already looks like a proper address, use it
     if (location) {
-      const cleanLocation = location.trim();
+      const cleanLocation = location
+        .replace(/^(?:地点\s*)?(?:Lokasi\s*)?Location:\s*/i, '')
+        .replace(/^(?:地点|Lokasi):\s*/i, '')
+        .trim();
       
       // Check if it already has a good format (contains street number, name, and postal code)
       const hasStreetNumber = /^\d+[A-Z]?\s/.test(cleanLocation);
@@ -2063,7 +2031,7 @@ class FormPage extends Component {
     if (formData.type === 'Marriage Preparation Programme') {
       // Marriage Prep: Check sections 0/1 and 2 personal info
       const section0_1Fields = [
-        'pName', 'nRIC', 'dOB', 'rESIDENTIALSTATUS', 'gENDER', 'rACE', 
+        'pName', 'nRIC', 'dOB', 'cNO', 'rESIDENTIALSTATUS', 'gENDER', 'rACE', 
         'mARITALSTATUS', 'postalCode', 'hOUSINGTYPE', 'gROSSMONTHLYINCOME', 
         'mARRIAGEDURATION', 'tYPEOFMARRIAGE', 'hASCHILDREN'
       ];
@@ -2097,13 +2065,7 @@ class FormPage extends Component {
           requiredFieldErrors[field] = `${field} is required`;
         }
       });
-      
-      // Check payment if paid course
-      const coursePrice = parseFloat(this.state.courseData?.price?.replace('$', '') || '0');
-      if (coursePrice > 0 && (!formData.payment || formData.payment === '')) {
-        requiredFieldErrors.payment = 'Payment method is required';
-      }
-    } else {
+    } else if (formData.type === 'NSA' || formData.type === 'ILP') {
       // NSA/ILP: Check section 1 personal info
       const requiredFields = [
         'pName', 'nRIC', 'rESIDENTIALSTATUS', 'rACE', 'gENDER', 'dOB', 
@@ -2115,14 +2077,18 @@ class FormPage extends Component {
         }
       });
       
-      // Check payment
-      if (!formData.payment || formData.payment === '') {
+      // Check payment for NSA only (ILP doesn't show payment section)
+      if (formData.type === 'NSA' && (!formData.payment || formData.payment === '')) {
         requiredFieldErrors.payment = 'Payment method is required';
       }
     }
     
-    // Check agreement
-    if (!formData.agreement || formData.agreement === '') {
+    // Check agreement/consent based on course type
+    if (formData.type === 'Marriage Preparation Programme') {
+      if (!formData.marriagePrepConsent1 || !formData.marriagePrepConsent2) {
+        requiredFieldErrors.agreement = 'Both consent options must be selected to proceed.';
+      }
+    } else if (formData.type !== 'Talks And Seminar' && (!formData.agreement || formData.agreement === '')) {
       requiredFieldErrors.agreement = 'You must agree to proceed';
     }
     
@@ -2458,8 +2424,13 @@ class FormPage extends Component {
     const { currentSection, formData } = this.state;
     const errors = {};
     
-    // For Marriage Preparation Programme and Talks And Seminar, treat section 0 as section 1 for validation
-    const effectiveSection = ((formData.type === 'Marriage Preparation Programme' || formData.type === 'Talks And Seminar') && currentSection === 0) ? 1 : currentSection;
+    // For Talks And Seminar section 0, skip validation (it's just intro/FormDetails with no form fields)
+    if (formData.type === 'Talks And Seminar' && currentSection === 0) {
+      return errors; // No validation needed for FormDetails section
+    }
+    
+    // For Marriage Preparation Programme, treat section 0 as section 1 for validation
+    const effectiveSection = (formData.type === 'Marriage Preparation Programme' && currentSection === 0) ? 1 : currentSection;
     
     if (effectiveSection === 0) {
       return errors;
@@ -2491,6 +2462,15 @@ class FormPage extends Component {
           if (!extractedPostalCode) {
             errors.postalCode = 'Postal Code must contain 6 digits. 邮编必须包含6位数字。';
           }
+        }
+        if (formData.cNO && !/^\d+$/.test(formData.cNO)) {
+          errors.cNO = 'Mobile Number must contain only numbers. 手机号码只能包含数字。';
+        }
+        if (formData.cNO && formData.cNO.length !== 8) {
+          errors.cNO = 'Mobile Number must be exactly 8 digits (e.g., 81234567). 手机号码必须恰好是 8 位数字（例如 81234567）。';
+        }
+        if (formData.cNO && !/^[89]/.test(formData.cNO)) {
+          errors.cNO = 'Mobile Number must start with 8 or 9. 手机号码必须以 8 或 9 开头。';
         }
         return errors;
       }
@@ -2529,6 +2509,41 @@ class FormPage extends Component {
       }
       
       // NSA/ILP validation only - format validation for non-empty fields
+      if (!formData.pName || formData.pName === '') {
+        errors.pName = 'Name is required. 名字是必填项。';
+      }
+      if (!formData.nRIC || formData.nRIC === '') {
+        errors.nRIC = 'NRIC is required. NRIC 是必填项。';
+      }
+      if (!formData.rESIDENTIALSTATUS || formData.rESIDENTIALSTATUS === '') {
+        errors.rESIDENTIALSTATUS = 'Residential Status is required. 居住状态是必填项。';
+      }
+      if (!formData.rACE || formData.rACE === '') {
+        errors.rACE = 'Race is required. 种族是必填项。';
+      }
+      if (!formData.gENDER || formData.gENDER === '') {
+        errors.gENDER = 'Gender is required. 性别是必填项。';
+      }
+      if (!formData.dOB || formData.dOB === '') {
+        errors.dOB = 'Date of Birth is required. 出生日期是必填项。';
+      }
+      if (!formData.cNO || formData.cNO === '') {
+        errors.cNO = 'Contact Number is required. 联系号码是必填项。';
+      }
+      if (!formData.eMAIL || formData.eMAIL === '') {
+        errors.eMAIL = 'Email is required. 电子邮件是必填项。';
+      }
+      if (!formData.address || formData.address === '') {
+        errors.address = 'Address is required. 地址是必填项。';
+      }
+      if (!formData.eDUCATION || formData.eDUCATION === '') {
+        errors.eDUCATION = 'Education Level is required. 教育水平是必填项。';
+      }
+      if (!formData.wORKING || formData.wORKING === '') {
+        errors.wORKING = 'Work Status is required. 工作状态是必填项。';
+      }
+
+      // Format validation only if field is filled
       if (formData.nRIC) {
         const { isValid, error } = this.isValidNRIC(formData.nRIC);
         if (!isValid) {
@@ -2591,8 +2606,8 @@ class FormPage extends Component {
       if (formData.spouseMobile && !/^\d+$/.test(formData.spouseMobile)) {
         errors.spouseMobile = 'Spouse Mobile Number must contain only numbers. 配偶手机号码只能包含数字。';
       }
-      if (formData.spouseMobile && formData.spouseMobile.length !== 9) {
-        errors.spouseMobile = 'Spouse Mobile Number must be exactly 9 digits (e.g., 81234567). 配偶手机号码必须恰好是 9 位数字（例如 81234567）。';
+      if (formData.spouseMobile && formData.spouseMobile.length !== 8) {
+        errors.spouseMobile = 'Spouse Mobile Number must be exactly 8 digits (e.g., 81234567). 配偶手机号码必须恰好是 8 位数字（例如 81234567）。';
       }
       if (formData.spouseMobile && !/^[89]/.test(formData.spouseMobile)) {
         errors.spouseMobile = 'Spouse Mobile Number must start with 8 or 9. 配偶手机号码必须以 8 或 9 开头。';
@@ -2900,7 +2915,7 @@ class FormPage extends Component {
                     ref={(ref) => (this.courseDetailsRef = ref)}
                     courseEnglishName={formData.englishName}
                     courseChineseName={formData.chineseName}
-                    extractedLocation={formData.location}
+                    extractedLocation={formData.courseLocation}
                     coursePrice={formData.price}
                     courseType={formData.type}
                     courseDuration={formData.courseDuration}
