@@ -394,7 +394,7 @@ class AgreementDetailsSection extends Component {
                 </label>
               </div>
               {marriagePrepInteracted && !marriagePrepConsent1 && (
-                <span className="error-message3">This consent must be selected to proceed</span>
+                <span className="field-validation-message" id="validation-error-marriagePrepConsent1">This consent must be selected to proceed</span>
               )}
             </div>
 
@@ -411,7 +411,7 @@ class AgreementDetailsSection extends Component {
                 </label>
               </div>
               {marriagePrepInteracted && !marriagePrepConsent2 && (
-                <span className="error-message3">This consent must be selected to proceed</span>
+                <span className="field-validation-message" id="validation-error-marriagePrepConsent2">This consent must be selected to proceed</span>
               )}
             </div>
           </>
@@ -419,26 +419,24 @@ class AgreementDetailsSection extends Component {
       </div>
 
       
-      {/* Standard agreement radio button for NSA/ILP courses only */}
+      {/* Standard agreement button for NSA/ILP courses only */}
       {!isMarriagePrep && (
         <div className="input-group1">
           <label>I agree to privacy policy</label>
           <div className="agreement-options">
-            <label>
-              <input
-                type="radio"
-                value="Agree 我同意"
-                checked={selectedChoice === 'Agree 我同意'}
-                onChange={this.handleAgreementChange}
-              />
+            <button
+              type="button"
+              className={`agreement-button ${selectedChoice === 'Agree 我同意' ? 'agreement-button--selected' : ''}`}
+              onClick={() => this.handleAgreementChange({ target: { value: 'Agree 我同意' } })}
+            >
               Agree 我同意
-            </label>
+            </button>
           </div>
           <br/>
           {!selectedChoice && isSelected && (
             <>
-              <span className="error-message3">Please select the declaration</span>
-              <span className="error-message3">请选择声明</span>
+              <span className="field-validation-message" id="validation-error-agreement-talkseminar">Please select the declaration</span>
+              <span className="field-validation-message" id="validation-error-agreement-talkseminar-cn">请选择声明</span>
             </>
           )}
         </div>

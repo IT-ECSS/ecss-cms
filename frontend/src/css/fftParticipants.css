@@ -1495,7 +1495,7 @@
 
 /* ── Registration section header badge text (variant classnames) ── */
 .fft-reg-badge-heading {
-  font-size: 1.125rem;
+  font-size: 0.9rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-weight: 700;
@@ -1503,7 +1503,7 @@
 }
 
 .fft-reg-badge-value {
-  font-size: 1.5625rem;
+  font-size: 1.25rem;
   font-weight: 700;
   line-height: 1.25;
   word-break: break-word;

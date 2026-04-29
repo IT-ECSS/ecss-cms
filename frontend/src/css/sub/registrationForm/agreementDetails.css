@@ -6,7 +6,7 @@
 /* Input Group */
 .input-group1 {
   margin-bottom: 25px;
-  padding: 0;
+  padding: 0 1.2rem;
 }
 
 /* Label Styling */
@@ -16,6 +16,7 @@
   color: #333;
   margin-bottom: 12px;
   display: block;
+  padding: 0 0.8rem;
 }
 
 /* Terms and Conditions Container */
@@ -128,28 +129,46 @@
 /* Standard Agreement Options (for NSA/ILP courses) */
 .agreement-options {
   margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  padding-left: 0.8rem;
+  align-items: center;
 }
 
-.agreement-options label {
-  display: flex;
-  align-items: center;
-  margin-bottom: 10px;
-  font-size: clamp(1.2rem, 3.5vw, 2rem);
-  color: #333;
+.agreement-button {
+  padding: 0.6rem 1rem;
+  border: none;
+  border-radius: 25px;
+  background-color: transparent;
   cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: clamp(1.7rem, 5.0625vw, 2.25rem);
+  font-weight: bold;
+  color: #333;
+  white-space: nowrap;
+  display: inline-block;
+  width: fit-content;
+}
+
+.agreement-button:hover {
+  background-color: transparent;
+}
+
+.agreement-button:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+.agreement-button--selected {
+  border: 4px solid #333;
+  background-color: transparent;
+  color: #333;
   font-weight: bold;
 }
 
-.agreement-options input[type="radio"] {
-  margin-right: 10px;
-  width: clamp(16px, 1.8vw, 22px);
-  height: clamp(16px, 1.8vw, 22px);
-  accent-color: #3498db;
-  cursor: pointer;
-}
-
 /* Error Messages */
-.error-message3 {
+.field-validation-message {
   color: #e74c3c;
   font-size: clamp(1rem, 3vw, 1.6rem);
   font-weight: 500;

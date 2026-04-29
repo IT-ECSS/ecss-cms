@@ -1034,7 +1034,8 @@ class DatabaseConnectivity {
                 let update = null;
                 
                 console.log("Update Payment Official Use:", status);
-                if (status === "Paid" || status === "SkillsFuture Done" || status === "Generating SkillsFuture Invoice") {
+                // COMMENTED OUT: SkillsFuture - if (status === "Paid" || status === "SkillsFuture Done" || status === "Generating SkillsFuture Invoice") {
+                if (status === "Paid") {
                     console.log("OK");
                     update = {
                         $set: {
@@ -1328,7 +1329,8 @@ class DatabaseConnectivity {
             }).filter(num => num !== null);
             
             console.log("SNM Debug - courseLocation:", courseLocation, "centreReceiptNumbers:", centreReceiptNumbers, "centreLocation:", centreLocation, "currentYear:", currentYear);
-            formattedReceiptNumber = this.getNextReceiptNumberForSkillsFuture(courseLocation, centreReceiptNumbers, centreLocation, currentYear);
+            // COMMENTED OUT: SkillsFuture
+            // formattedReceiptNumber = this.getNextReceiptNumberForSkillsFuture(courseLocation, centreReceiptNumbers, centreLocation, currentYear);
         } 
         else 
         {
@@ -2193,7 +2195,8 @@ class DatabaseConnectivity {
                     updateFields["official.time"] = time;
 
                     // Reset certain fields based on status
-                    if (paymentStatus === "Paid" || paymentStatus === "SkillsFuture Done" || paymentStatus === "Generating SkillsFuture Invoice") {
+                    // COMMENTED OUT: SkillsFuture - if (paymentStatus === "Paid" || paymentStatus === "SkillsFuture Done" || paymentStatus === "Generating SkillsFuture Invoice") {
+                    if (paymentStatus === "Paid") {
                         // Keep existing official data for successful payments
                     } else if (paymentStatus === "Cancelled") {
                         updateFields["official.confirmed"] = false;

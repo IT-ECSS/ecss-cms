@@ -29,6 +29,8 @@ class FormPage extends Component {
       bgColor: '#F5F5F5', // Default light gray - will update to course type color
       formContainerBg: '', // Background for form container
       singPassPopulatedFields: {}, // Add this to track SingPass populated fields
+      courseCategories: [], // Store course categories for section 0
+      courseData: null, // Store full course data for pre-loading
       // Add MyInfo error handling state
       myInfoError: false,
       showMyInfoErrorModal: false,
@@ -55,6 +57,7 @@ class FormPage extends Component {
         eDUCATION: '',
         wORKING: '',
         courseDate: '',
+        payment: '',
         agreement: '',
         courseMode: '',
         courseTime: '',
@@ -87,7 +90,8 @@ class FormPage extends Component {
         marriagePrepConsent2: false
       },
       validationErrors: {},
-      age: 0
+      age: 0,
+      courseDataLoaded: false // Flag to prevent duplicate API calls
     };
 
     // Initialize real-time error handler
@@ -263,6 +267,35 @@ class FormPage extends Component {
     return '';
   };
 
+  // Helper function to extract category from URL parameter
+  getCategoryFromURL = () => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const category = params.get('category');
+      console.log('📦 Category from URL parameter:', category);
+      return category ? decodeURIComponent(category) : null;
+    } catch (error) {
+      console.error('Error extracting category from URL:', error);
+      return null;
+    }
+  };
+
+  // Helper function to map category to course type
+  mapCategoryToType = (category) => {
+    if (!category) return null;
+    
+    const categoryMap = {
+      'ILP': 'ILP',
+      'NSA': 'NSA',
+      'Talks And Seminar': 'Talks And Seminar',
+      'Marriage Preparation Programme': 'Marriage Preparation Programme'
+    };
+    
+    const type = categoryMap[category];
+    console.log(`📦 Mapped category "${category}" to type "${type}"`);
+    return type || null;
+  };
+
   componentDidMount = async () => {
     // Set mounted flag to prevent setState warnings
     this._isMounted = true;
@@ -283,10 +316,15 @@ class FormPage extends Component {
       console.log('🧪 Development mode: Press Ctrl+Shift+E to simulate MyInfo error');
     }
     
-    // Check URL parameters for section override and course link
+    // Check URL parameters for section override, course link, and category
     const params = new URLSearchParams(window.location.search);
     let link = decodeURIComponent(params.get("link"));
     const sectionParam = params.get('section');
+    console.log('📦 Section parameter from URL:', sectionParam);
+    const categoryFromURL = this.getCategoryFromURL();
+    const courseTypeFromCategory = categoryFromURL ? this.mapCategoryToType(categoryFromURL) : null;
+    
+    console.log('📦 Course type from category:', courseTypeFromCategory);
     
     // Decode the link if it exists in URL
     if (link) {
@@ -345,7 +383,7 @@ class FormPage extends Component {
     // Load course data IMMEDIATELY (no Promise.resolve delay) to get background color ASAP
     console.log('🎯 [Form] Fetching course data for background color immediately...');
     
-    this.loadCourseData(link, hasSectionParam)
+    this.loadCourseData(link, hasSectionParam, courseTypeFromCategory)
     .then(() => {
       console.log('✅ [Form] Course data loaded - background color set, now showing form');
       // Now that background is set, show the form
@@ -357,12 +395,10 @@ class FormPage extends Component {
       }
     })
     .then(() => {
-      // After form is shown, mark as complete
-      setTimeout(() => {
-        if (this._isMounted) {
-          this.setState({ loadingPhase: 'complete' });
-        }
-      }, 600); // Match the form fade-in duration
+      // Mark as complete immediately - no fade-in delay
+      if (this._isMounted) {
+        this.setState({ loadingPhase: 'complete' });
+      }
     })
     .catch(err => {
       console.error('❌ [Form] Course load error:', err);
@@ -400,18 +436,37 @@ class FormPage extends Component {
   async fetchCourseByLink(link) {
     try {
       const baseUrl = window.location.hostname === "localhost" ? "http://localhost:3002" : "https://ecss-backend-django.azurewebsites.net";
+      console.log(`🔍 Fetching course from: ${baseUrl}/course_by_link/`);
+      console.log(`📍 Link parameter: ${link}`);
       const response = await axios.post(`${baseUrl}/course_by_link/`, { link });
+      console.log("📊 Backend response status:", response.status);
+      console.log("📦 Backend response data:", response.data);
       const course = response.data.course;
-      console.log("Fetched course by link:", course);
+      console.log("✅ Fetched course by link:", course);
+      if (!course) {
+        console.warn("⚠️ Backend returned null course");
+      }
       return course || null;
     } catch (error) {
-      console.error("Error fetching course by link:", error);
+      console.error("❌ Error fetching course by link:", error);
+      console.error("Error details:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        headers: error.response?.headers
+      });
       return null;
     }
   }
 
   // Optimised loadCourseData — fetches a single course by link/slug instead of loading ALL courses
-  loadCourseData = async (link, hasSectionParam = false) => {
+  loadCourseData = async (link, hasSectionParam = false, courseTypeFromCategory = null) => {
+    // Prevent duplicate API calls
+    if (this.state.courseDataLoaded) {
+      console.log('⚠️  Course data already loaded, skipping duplicate fetch');
+      return;
+    }
+
     // Use provided link or try to get from sessionStorage
     if (!link) {
       link = sessionStorage.getItem("courseLink");
@@ -419,6 +474,7 @@ class FormPage extends Component {
 
     console.log('Loading course data with link:', link);
     console.log('Has section param:', hasSectionParam);
+    console.log('Course type from category:', courseTypeFromCategory);
 
     if (link) {
       // Ensure the link is properly decoded
@@ -439,6 +495,16 @@ class FormPage extends Component {
       console.log("Matched Course:", matchedCourse);
 
       if (matchedCourse) {
+        // Store categories for section 0 IMMEDIATELY and cache full course data
+        if (this._isMounted) {
+          this.setState({ 
+            courseCategories: matchedCourse.categories || [], 
+            courseData: matchedCourse,
+            courseDataLoaded: true // Mark course data as loaded
+          });
+          console.log('✅ [Section 0] Categories and course data loaded and cached');
+        }
+        
         // Robust extraction of course type - search ALL categories for known type patterns
         let type = '';
         if (
@@ -470,7 +536,11 @@ class FormPage extends Component {
             }
           }
         }
-        console.log("Course Type:", type);
+        console.log("✅ Matched Course Name:", matchedCourse.name);
+        console.log("🏷️ Course Type:", type);
+        console.log("📋 Course Categories:", matchedCourse.categories);
+        console.log("💰 Course Price:", matchedCourse.price);
+        console.log("📝 Course Attributes:", matchedCourse.attributes);
 
         // Determine background color based on course type
         let bgColor = '';
@@ -481,7 +551,7 @@ class FormPage extends Component {
         } else if (type === 'Talks And Seminar') {
           bgColor = '#DAA520'; // Gold
         } else if (type === 'Marriage Preparation Programme') {
-          bgColor = '#800000'; // Maroon
+          bgColor = '#DBDBDC'; // Maroon
         } else {
           bgColor = '#F5F5F5'; // Default gray
         }
@@ -670,7 +740,15 @@ class FormPage extends Component {
         const shouldStartAtSection1 = type === 'Marriage Preparation Programme' && !hasSectionParam;
 
         if (this._isMounted) {
-          console.log('📝 [Form] Updating form with course data:', { type, price: courseData.price, courseMode });
+          console.log('📝 [Form] About to update formData with:');
+          console.log('   - englishName:', courseData.englishName);
+          console.log('   - chineseName:', courseData.chineseName);
+          console.log('   - courseLocation:', courseData.courseLocation);
+          console.log('   - price:', courseData.price);
+          console.log('   - type:', courseData.type);
+          console.log('   - courseDuration:', courseData.courseDuration);
+          console.log('   - courseTime:', courseData.courseTime);
+          console.log('   - courseMode:', courseData.courseMode);
           console.log('🎨 [Form] Setting background color to:', bgColor);
           this.setState((prevState) => ({
             formData: { ...prevState.formData, ...courseData },
@@ -678,7 +756,10 @@ class FormPage extends Component {
             bgColor: bgColor,
             formContainerBg: formContainerBg,
             currentSection: shouldStartAtSection1 ? 1 : prevState.currentSection
-          }), () => console.log('✨ [Form] State updated'));
+          }), () => {
+            console.log('✨ [Form] State updated');
+            console.log('Current formData after update:', this.state.formData);
+          });
         } else {
           this.state = {
             ...this.state,
@@ -694,13 +775,103 @@ class FormPage extends Component {
           console.log('Marriage Preparation Programme detected, starting from section 1');
         }
       } else {
-        console.log("No matching course found for link:", decodedLink);
-        this.setState({ loading: true });
+        console.log("❌ No matching course found for link:", decodedLink);
+        console.log("📌 Attempted link:", decodedLink);
+        console.log("🔄 Fallback: Using course type from category:", courseTypeFromCategory);
+        
+        // Fallback: Use course type from category if available
+        if (courseTypeFromCategory) {
+          // Determine background color based on category
+          let bgColor = '';
+          if (courseTypeFromCategory === 'ILP') {
+            bgColor = '#006400'; // Dark Green
+          } else if (courseTypeFromCategory === 'NSA') {
+            bgColor = '#003366'; // Dark Blue
+          } else if (courseTypeFromCategory === 'Talks And Seminar') {
+            bgColor = '#DAA520'; // Gold
+          } else if (courseTypeFromCategory === 'Marriage Preparation Programme') {
+            bgColor = '#800000'; // Maroon
+          } else {
+            bgColor = '#F5F5F5'; // Default gray
+          }
+          
+          let formContainerBg = '';
+          if (courseTypeFromCategory === 'Marriage Preparation Programme') {
+            formContainerBg = '#40E0D0';
+          }
+          
+          const shouldStartAtSection1 = courseTypeFromCategory === 'Marriage Preparation Programme' && !hasSectionParam;
+          
+          if (this._isMounted) {
+            this.setState((prevState) => ({
+              formData: { ...prevState.formData, type: courseTypeFromCategory },
+              loading: true,
+              bgColor: bgColor,
+              formContainerBg: formContainerBg,
+              currentSection: shouldStartAtSection1 ? 1 : prevState.currentSection
+            }), () => console.log('✨ [Form] State updated with category fallback'));
+          } else {
+            this.state = {
+              ...this.state,
+              formData: { ...this.state.formData, type: courseTypeFromCategory },
+              loading: true,
+              bgColor: bgColor,
+              formContainerBg: formContainerBg,
+              currentSection: shouldStartAtSection1 ? 1 : this.state.currentSection
+            };
+          }
+        } else {
+          this.setState({ loading: true });
+        }
       }
     } else {
       console.log("No course link provided, loading form without course data");
-      // Still set loading to true so form displays (this is instant)
-      this.setState({ loading: true });
+      
+      // Fallback: Use course type from category if available and no link
+      if (courseTypeFromCategory) {
+        console.log('📦 Using course type from category (no link provided):', courseTypeFromCategory);
+        
+        let bgColor = '';
+        if (courseTypeFromCategory === 'ILP') {
+          bgColor = '#006400';
+        } else if (courseTypeFromCategory === 'NSA') {
+          bgColor = '#003366';
+        } else if (courseTypeFromCategory === 'Talks And Seminar') {
+          bgColor = '#DAA520';
+        } else if (courseTypeFromCategory === 'Marriage Preparation Programme') {
+          bgColor = '#800000';
+        } else {
+          bgColor = '#F5F5F5';
+        }
+        
+        let formContainerBg = '';
+        if (courseTypeFromCategory === 'Marriage Preparation Programme') {
+          formContainerBg = '#40E0D0';
+        }
+        
+        const shouldStartAtSection1 = courseTypeFromCategory === 'Marriage Preparation Programme' && !hasSectionParam;
+        
+        if (this._isMounted) {
+          this.setState((prevState) => ({
+            formData: { ...prevState.formData, type: courseTypeFromCategory },
+            loading: true,
+            bgColor: bgColor,
+            formContainerBg: formContainerBg,
+            currentSection: shouldStartAtSection1 ? 1 : prevState.currentSection
+          }), () => console.log('✨ [Form] State updated with category fallback (no link)'));
+        } else {
+          this.state = {
+            ...this.state,
+            formData: { ...this.state.formData, type: courseTypeFromCategory },
+            loading: true,
+            bgColor: bgColor,
+            formContainerBg: formContainerBg,
+            currentSection: shouldStartAtSection1 ? 1 : this.state.currentSection
+          };
+        }
+      } else {
+        this.setState({ loading: true });
+      }
       console.log('✅ [Form] No course data needed - form displays with defaults');
     }
   };
@@ -1153,6 +1324,18 @@ class FormPage extends Component {
             ...newData,
           };
           
+          // Auto-extract postal codes from any format (e.g., "Singapore 123456" → "123456")
+          const postalCodeFields = ['postalCode', 'spousePostalCode'];
+          for (const field of postalCodeFields) {
+            if (newData[field]) {
+              const extracted = this.extractPostalCode(newData[field]);
+              if (extracted) {
+                updatedFormData[field] = extracted;
+                console.log(`✅ Extracted postal code from ${field}: "${newData[field]}" → "${extracted}"`);
+              }
+            }
+          }
+          
           const key = Object.keys(newData)[0];
           const updatedValidationErrors = { ...prevState.validationErrors };
       
@@ -1406,6 +1589,14 @@ class FormPage extends Component {
     // For all other cases, run validation
     const errors = this.validateForm();
     console.log("Validation Errors:", errors);
+    
+    // Debug: Show which fields are missing/invalid
+    if (Object.keys(errors).length > 0) {
+      console.warn('❌ Validation failed for fields:', Object.keys(errors));
+      Object.entries(errors).forEach(([key, value]) => {
+        console.warn(`   - ${key}: ${value}`);
+      });
+    }
 
     // For Marriage Preparation Programme and Talks And Seminar, treat section 0 as section 1 for validation
     const effectiveSection = ((formData.type === 'Marriage Preparation Programme' || formData.type === 'Talks And Seminar') && currentSection === 0) ? 1 : currentSection;
@@ -1460,7 +1651,31 @@ class FormPage extends Component {
       window.scrollTo(0, 0);
     } else {
       if (this._isMounted) {
-        this.setState({ validationErrors: errors });
+        this.setState({ validationErrors: errors }, () => {
+          // Scroll to first error field
+          const firstErrorField = Object.keys(errors)[0];
+          console.log('🔴 First validation error field:', firstErrorField);
+          
+          // Try multiple ways to find the error element
+          let errorElement = document.getElementById(`validation-error-${firstErrorField}`);
+          if (!errorElement) {
+            errorElement = document.getElementById(firstErrorField);
+          }
+          if (!errorElement) {
+            // Try to find the input field and scroll to it
+            errorElement = document.querySelector(`input[name="${firstErrorField}"], select[name="${firstErrorField}"], textarea[name="${firstErrorField}"]`);
+          }
+          
+          if (errorElement) {
+            errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            errorElement.focus && errorElement.focus();
+            console.log('📍 Scrolled to error field:', firstErrorField);
+          } else {
+            console.warn('⚠️  Could not find error element for field:', firstErrorField);
+            // Fallback: scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        });
       }
     }
   };
@@ -1485,35 +1700,103 @@ class FormPage extends Component {
     const { currentSection, formData } = this.state;
     
     console.log("isCurrentSectionValid check - currentSection:", currentSection, "formData.type:", formData.type);
+    console.log("Current formData:", formData);
     
-    // For Marriage Preparation Programme and Talks And Seminar, allow navigation without validation
-    if (formData.type === 'Marriage Preparation Programme' || formData.type === 'Talks And Seminar') {
-      console.log("Returning true for Marriage Prep or Talks And Seminar");
+    // Helper function to check if all required fields are filled (not empty)
+    const allFieldsFilled = (fieldsArray) => {
+      return fieldsArray.every(fieldValue => fieldValue && fieldValue !== '');
+    };
+    
+    // Marriage Preparation Programme validation
+    if (formData.type === 'Marriage Preparation Programme') {
+      if (currentSection === 0 || currentSection === 1) {
+        // Section 0 and 1: Personal information and marriage details
+        const requiredFields = [
+          formData.pName, formData.nRIC, formData.dOB, 
+          formData.rESIDENTIALSTATUS, formData.gENDER, formData.rACE, 
+          formData.mARITALSTATUS, formData.postalCode,
+          formData.hOUSINGTYPE, formData.gROSSMONTHLYINCOME, 
+          formData.mARRIAGEDURATION, formData.tYPEOFMARRIAGE, 
+          formData.hASCHILDREN
+        ];
+        const isValid = allFieldsFilled(requiredFields);
+        console.log('Marriage Prep Section 0/1:', isValid ? '✅ All fields filled' : '❌ Some fields empty');
+        return isValid;
+      } else if (currentSection === 2) {
+        // Section 2: Spouse information
+        const requiredFields = [
+          formData.spouseName, formData.spouseNRIC, formData.spouseDOB,
+          formData.spouseResidentialStatus, formData.spouseSex, formData.spouseEthnicity,
+          formData.spouseMaritalStatus, formData.spousePostalCode, formData.spouseMobile,
+          formData.spouseEmail, formData.spouseEducation, formData.spouseHousingType
+        ];
+        const isValid = allFieldsFilled(requiredFields);
+        console.log('Marriage Prep Section 2 (Spouse):', isValid ? '✅ All fields filled' : '❌ Some fields empty');
+        return isValid;
+      } else if (currentSection === 3) {
+        // Section 3: Course Details (payment)
+        const isValid = formData.payment !== '';
+        console.log('Marriage Prep Section 3 (Payment):', isValid ? '✅ Payment selected' : '❌ Payment not selected');
+        return isValid;
+      } else if (currentSection === 4) {
+        // Section 4: Agreement
+        return true;
+      }
       return true;
     }
     
-    switch (currentSection) {
-      case 0: // FormDetails section
-        return true; // Remove authentication requirement for other course types
-    
-      case 1: // Personal Info section
-        return formData.pName && formData.nRIC && formData.rESIDENTIALSTATUS && 
-               formData.rACE && formData.gENDER && formData.dOB && 
-               formData.cNO && formData.eMAIL && formData.address && 
-               formData.eDUCATION && formData.wORKING;
-    
-      case 2: // Course Details section
-        if (formData.type === 'NSA') {
-          return formData.payment; // NSA courses need payment selection
-        }
-        return true; // ILP courses don't need payment selection
-    
-      case 3: // Agreement section
-        return formData.agreement;
-    
-      default:
-        return true;
+    // Talks And Seminar validation
+    if (formData.type === 'Talks And Seminar') {
+      if (currentSection === 0 || currentSection === 1) {
+        // Validate name, contact, DOB, residential status, postal code
+        const requiredFields = [
+          formData.pName, formData.cNO, formData.dOB, 
+          formData.rESIDENTIALSTATUS, formData.postalCode
+        ];
+        const isValid = allFieldsFilled(requiredFields);
+        console.log('Talks And Seminar Section 0/1:', isValid ? '✅ All fields filled' : '❌ Some fields empty');
+        return isValid;
+      } else if (currentSection === 2) {
+        // Course Details section (payment optional if free)
+        const coursePrice = parseFloat(this.state.courseData?.price?.replace('$', '') || '0');
+        const isValid = formData.payment !== '' || coursePrice === 0;
+        console.log('Talks And Seminar Section 2 (Payment):', isValid ? '✅ Valid' : '❌ Invalid');
+        return isValid;
+      }
+      return true;
     }
+    
+    // NSA/ILP validation (default course types)
+    if (currentSection === 0) {
+      // FormDetails section - always valid
+      return true;
+    } else if (currentSection === 1) {
+      // Personal Info section
+      const requiredFields = [
+        formData.pName, formData.nRIC, formData.rESIDENTIALSTATUS, 
+        formData.rACE, formData.gENDER, formData.dOB, 
+        formData.cNO, formData.eMAIL, formData.address, 
+        formData.eDUCATION, formData.wORKING
+      ];
+      const isValid = allFieldsFilled(requiredFields);
+      console.log('NSA/ILP Section 1:', isValid ? '✅ All fields filled' : '❌ Some fields empty');
+      return isValid;
+    } else if (currentSection === 2) {
+      // Course Details section
+      if (formData.type === 'NSA' || formData.type === 'ILP') {
+        const isValid = formData.payment !== '';
+        console.log('NSA/ILP Section 2 (Payment):', isValid ? '✅ Payment selected' : '❌ Payment not selected');
+        return isValid;
+      }
+      return true;
+    } else if (currentSection === 3) {
+      // Agreement section
+      const isValid = formData.agreement;
+      console.log('NSA/ILP Section 3 (Agreement):', isValid ? '✅ Agreement accepted' : '❌ Agreement not accepted');
+      return isValid;
+    }
+    
+    return true;
   };
 
   decodeHtmlEntities(text) 
@@ -1773,6 +2056,88 @@ class FormPage extends Component {
   handleSubmit = () => {
     const { formData } = this.state;
 
+    // Comprehensive validation - check all required fields before submission
+    const requiredFieldErrors = {};
+    
+    // Check personal information fields based on course type
+    if (formData.type === 'Marriage Preparation Programme') {
+      // Marriage Prep: Check sections 0/1 and 2 personal info
+      const section0_1Fields = [
+        'pName', 'nRIC', 'dOB', 'rESIDENTIALSTATUS', 'gENDER', 'rACE', 
+        'mARITALSTATUS', 'postalCode', 'hOUSINGTYPE', 'gROSSMONTHLYINCOME', 
+        'mARRIAGEDURATION', 'tYPEOFMARRIAGE', 'hASCHILDREN'
+      ];
+      const section2Fields = [
+        'spouseName', 'spouseNRIC', 'spouseDOB', 'spouseResidentialStatus', 
+        'spouseSex', 'spouseEthnicity', 'spouseMaritalStatus', 'spousePostalCode', 
+        'spouseMobile', 'spouseEmail', 'spouseEducation', 'spouseHousingType'
+      ];
+      
+      section0_1Fields.forEach(field => {
+        if (!formData[field] || formData[field] === '') {
+          requiredFieldErrors[field] = `${field} is required`;
+        }
+      });
+      
+      section2Fields.forEach(field => {
+        if (!formData[field] || formData[field] === '') {
+          requiredFieldErrors[field] = `${field} is required`;
+        }
+      });
+      
+      // Check payment
+      if (!formData.payment || formData.payment === '') {
+        requiredFieldErrors.payment = 'Payment method is required';
+      }
+    } else if (formData.type === 'Talks And Seminar') {
+      // Talks And Seminar: Check sections 0/1
+      const requiredFields = ['pName', 'cNO', 'dOB', 'rESIDENTIALSTATUS', 'postalCode'];
+      requiredFields.forEach(field => {
+        if (!formData[field] || formData[field] === '') {
+          requiredFieldErrors[field] = `${field} is required`;
+        }
+      });
+      
+      // Check payment if paid course
+      const coursePrice = parseFloat(this.state.courseData?.price?.replace('$', '') || '0');
+      if (coursePrice > 0 && (!formData.payment || formData.payment === '')) {
+        requiredFieldErrors.payment = 'Payment method is required';
+      }
+    } else {
+      // NSA/ILP: Check section 1 personal info
+      const requiredFields = [
+        'pName', 'nRIC', 'rESIDENTIALSTATUS', 'rACE', 'gENDER', 'dOB', 
+        'cNO', 'eMAIL', 'address', 'eDUCATION', 'wORKING'
+      ];
+      requiredFields.forEach(field => {
+        if (!formData[field] || formData[field] === '') {
+          requiredFieldErrors[field] = `${field} is required`;
+        }
+      });
+      
+      // Check payment
+      if (!formData.payment || formData.payment === '') {
+        requiredFieldErrors.payment = 'Payment method is required';
+      }
+    }
+    
+    // Check agreement
+    if (!formData.agreement || formData.agreement === '') {
+      requiredFieldErrors.agreement = 'You must agree to proceed';
+    }
+    
+    // If there are missing required fields, show error and don't submit
+    if (Object.keys(requiredFieldErrors).length > 0) {
+      console.error('❌ Form submission blocked - missing required fields:', requiredFieldErrors);
+      this.setState({ 
+        validationErrors: requiredFieldErrors,
+        showSubmissionInProgress: false 
+      });
+      alert('Please fill in all required fields before submitting.');
+      this.isSubmitting = false;
+      return;
+    }
+
     // Prevent double submission
     if (this.isSubmitting) {
       console.warn('⚠️ Form submission already in progress. Ignoring duplicate submission.');
@@ -1966,15 +2331,15 @@ class FormPage extends Component {
   isValidNRIC(nric) {
     // Check if NRIC is empty
     if (!nric) {
-        return { isValid: false, error: 'NRIC Number is required. 身份证号码是必填项。' };
+        return { isValid: false, error: 'NRIC/FIN is required (9 characters, e.g., S1234567D). NRIC/FIN 是必填项（9 个字符，例如 S1234567D）。' };
     }
     // Check if NRIC is exactly 9 characters long
     if (nric.length !== 9) {
-        return { isValid: false, error: 'NRIC must be exactly 9 characters. NRIC 必须是9个字符。' };
+        return { isValid: false, error: 'NRIC/FIN must be exactly 9 characters (e.g., S1234567D). NRIC/FIN 必须恰好是 9 个字符（例如 S1234567D）。' };
     }
     // Check if NRIC follows the correct format (first letter + 7 digits + last letter)
     if (!/^[STFG]\d{7}[A-Z]$/.test(nric)) {
-        return { isValid: false, error: 'Invalid NRIC format. 必须符合新加坡身份证格式，例如 S1234567D。' };
+        return { isValid: false, error: 'Invalid NRIC format. Must start with S, T, F or G, followed by 7 digits, and end with a letter (e.g., S1234567D). NRIC 格式无效。必须以 S、T、F 或 G 开头，后跟 7 位数字，以字母结尾（例如 S1234567D）。' };
     }
     // If the format is correct, return as valid
     return { isValid: true, error: null }; // NRIC format is valid, but checksum is not checked
@@ -1998,72 +2363,71 @@ class FormPage extends Component {
       return { isValid: true, error: null };
     }
     
-    // Only enforce 50+ age restriction for ILP and NSA
-    if (courseType !== 'ILP' && courseType !== 'NSA') {
-      // For Marriage Preparation Programme and other types, just check DOB is present and valid format
-      if (!dob) {
-        return { isValid: false, error: 'Date of Birth is required. 出生日期是必填项。' };
-      }
-      // Accept any valid date format (dd/mm/yyyy or yyyy/mm/dd)
-      const dateParts = dob.split('/');
-      let dobDate;
-      if (dob.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
-        dobDate = new Date(`${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`);
-      } else if (dob.match(/^\d{4}\/\d{2}\/\d{2}$/)) {
-        dobDate = new Date(`${dateParts[0]}-${dateParts[1]}-${dateParts[2]}`);
-      } else {
-        return { isValid: false, error: 'Invalid Date of Birth format. 日期格式无效，必须符合：dd/mm/yyyy, yyyy/mm/dd, yyyy/dd/mm, mm/dd/yyyy。' };
-      }
-      if (isNaN(dobDate.getTime())) {
-        return { isValid: false, error: 'Invalid Date of Birth format. 日期格式无效。' };
-      }
-      return { isValid: true, error: null };
+    // For Marriage Preparation Programme and NSA/ILP - just check basic format, no component validation yet
+    if (!dob) {
+      return { isValid: false, error: 'Date of Birth is required (dd/mm/yyyy format). 出生日期是必填项（dd/mm/yyyy 格式）。' };
     }
-    // First, check if dob is a non-empty string
-    if (typeof dob === 'string') {
-      const dateParts = dob.split('/');
-      let dobDate;
-      if (dob.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
-        dobDate = new Date(`${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`);
-      } else if (dob.match(/^\d{4}\/\d{2}\/\d{2}$/)) {
-        dobDate = new Date(`${dateParts[0]}-${dateParts[1]}-${dateParts[2]}`);
-      } else {
-        return { isValid: false, error: 'Invalid Date of Birth format. 日期格式无效，必须符合：dd/mm/yyyy, yyyy/mm/dd, yyyy/dd/mm, mm/dd/yyyy。' };
-      }
-      const currentYear = new Date().getFullYear();
-      const birthYear = dobDate.getFullYear();
-      const age = currentYear - birthYear;
-      if (this._isMounted) {
-        this.setState({ age });
-      } else {
-        this.state.age = age;
-      }
-      /*if (age < 50) {
-        return { isValid: false, error: 'Age must be at least 50 years. 年龄必须至少为50岁。' };
-      }*/
-     if (age < 50) {
-        return { isValid: true, error: null };
-      }
-      return { isValid: true, error: null };
+    
+    // Check basic format only (no component validation here - that's in validateForm)
+    if (!dob.match(/^\d{2}\/\d{2}\/\d{4}$/) && !dob.match(/^\d{4}\/\d{2}\/\d{2}$/)) {
+      return { isValid: false, error: 'Date of Birth must be in dd/mm/yyyy or yyyy/mm/dd format. 出生日期必须采用 dd/mm/yyyy 或 yyyy/mm/dd 格式。' };
     }
-    if (dob.formattedDate1) {
-      const currentYear = new Date().getFullYear();
-      const birthYear = new Date(dob.formattedDate1).getFullYear();
-      const age = currentYear - birthYear;
-      if (this._isMounted) {
-        this.setState({ age });
-      } else {
-        this.state.age = age;
-      }
-      /*if (age < 50) {
-        return { isValid: false, error: 'Age must be at least 50 years. 年龄必须至少为50岁。' };
-      }*/
-      if (age < 50) {
-        return { isValid: true, error: null };
-      }
-      return { isValid: true, error: null };
+    
+    // Basic date validity check
+    const dateParts = dob.split('/');
+    let dobDate;
+    if (dob.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+      dobDate = new Date(`${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`);
+    } else {
+      dobDate = new Date(`${dateParts[0]}-${dateParts[1]}-${dateParts[2]}`);
     }
-    return { isValid: false, error: 'Date of Birth is required. 出生日期是必填项。' };
+    
+    if (isNaN(dobDate.getTime())) {
+      return { isValid: false, error: 'Invalid Date of Birth. 出生日期无效。' };
+    }
+    
+    const currentYear = new Date().getFullYear();
+    const birthYear = dobDate.getFullYear();
+    const age = currentYear - birthYear;
+    if (this._isMounted) {
+      this.setState({ age });
+    } else {
+      this.state.age = age;
+    }
+    return { isValid: true, error: null };
+  }
+  
+  // Validate DOB date components (day 01-31, month 01-12) - only for form validation
+  isValidDOBComponents(dob) {
+    if (!dob) return { isValid: true, error: null };
+    
+    const dateParts = dob.split('/');
+    
+    if (dob.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+      // dd/mm/yyyy format
+      const dd = parseInt(dateParts[0], 10);
+      const mm = parseInt(dateParts[1], 10);
+      
+      if (dd < 1 || dd > 31) {
+        return { isValid: false, error: 'Date of Birth day must be between 01 and 31 (e.g., 15/01/1990). 出生日期的日期必须在 01 到 31 之间（例如 15/01/1990）。' };
+      }
+      if (mm < 1 || mm > 12) {
+        return { isValid: false, error: 'Date of Birth month must be between 01 and 12 (e.g., 15/01/1990). 出生日期的月份必须在 01 到 12 之间（例如 15/01/1990）。' };
+      }
+    } else if (dob.match(/^\d{4}\/\d{2}\/\d{2}$/)) {
+      // yyyy/mm/dd format
+      const mm = parseInt(dateParts[1], 10);
+      const dd = parseInt(dateParts[2], 10);
+      
+      if (mm < 1 || mm > 12 || dd < 1 || dd > 31) {
+        return { isValid: false, error: 'Date of Birth is invalid. 出生日期的月份必须在 01 到 12 之间。' };
+      }
+      if (dd < 1 || dd > 31) {
+        return { isValid: false, error: 'Date of Birth day must be between 01 and 31. 出生日期的日期必须在 01 到 31 之间。' };
+      }
+    }
+    
+    return { isValid: true, error: null };
   }
 
   // Helper function to get language-appropriate error messages for Talks And Seminar
@@ -2080,6 +2444,16 @@ class FormPage extends Component {
     }
   };
 
+  // Helper function to extract postal code (6 digits) from any format
+  // Accepts: "123456", "Singapore 123456", "Blk 123 Clementi Ave Singapore 123456", etc.
+  // Returns: "123456" or null if not found
+  extractPostalCode = (postalCodeInput) => {
+    if (!postalCodeInput) return null;
+    const match = postalCodeInput.toString().match(/\b(\d{6})\b/);
+    console.log("Postal Code:", match ? match[1] : null)
+    return match ? match[1] : null;
+  };
+
   validateForm = () => {
     const { currentSection, formData } = this.state;
     const errors = {};
@@ -2091,21 +2465,39 @@ class FormPage extends Component {
       return errors;
     }
     if (effectiveSection === 1) {
-      // Skip all validation for Marriage Preparation Programme - allow direct navigation
+      // Validation for Marriage Preparation Programme - Sections 0 & 1 (Personal Info)
       if (formData.type === 'Marriage Preparation Programme') {
-        // No validation required for Marriage Preparation Programme
+        // Only validate format for non-empty fields (empty fields are already blocked by disabled Next button)
+        if (formData.nRIC) {
+          const { isValid, error } = this.isValidNRIC(formData.nRIC);
+          if (!isValid) {
+            errors.nRIC = error;
+          }
+        }
+        if (formData.dOB) {
+          const { isValid, error } = this.isValidDOB(formData.dOB, formData.type);
+          if (!isValid) {
+            errors.dOB = error;
+          } else {
+            // Check date components (day 01-31, month 01-12)
+            const { isValid: isComponentValid, error: componentError } = this.isValidDOBComponents(formData.dOB);
+            if (!isComponentValid) {
+              errors.dOB = componentError;
+            }
+          }
+        }
+        if (formData.postalCode) {
+          const extractedPostalCode = this.extractPostalCode(formData.postalCode);
+          if (!extractedPostalCode) {
+            errors.postalCode = 'Postal Code must contain 6 digits. 邮编必须包含6位数字。';
+          }
+        }
         return errors;
       }
       
       // Validation for Talks And Seminar courses
       if (formData.type === 'Talks And Seminar') {
-        // Required fields for Talks And Seminar: Name, Contact No., Birth Year, Residential Status, Postal Code
-        if (!formData.pName) {
-          errors.pName = this.getErrorMessage('Name is required.', '姓名是必填项。', 'Nama diperlukan.');
-        }
-        if (!formData.cNO) {
-          errors.cNO = this.getErrorMessage('Contact No. is required.', '联系号码是必填项。', 'No. Telefon diperlukan.');
-        }
+        // Only validate format for non-empty fields (empty fields are already blocked by disabled Next button)
         if (formData.cNO && !/^\d+$/.test(formData.cNO)) {
           errors.cNO = this.getErrorMessage('Contact No. must contain only numbers.', '联系号码只能包含数字。', 'No. Telefon hanya boleh mengandungi nombor.');
         }
@@ -2113,88 +2505,100 @@ class FormPage extends Component {
           errors.cNO = this.getErrorMessage('Contact No. must be exactly 8 digits.', '联系号码必须是8位数字。', 'No. Telefon mesti tepat 8 digit.');
         }
         if (formData.cNO && !/^[089]/.test(formData.cNO)) {
-          errors.cNO = this.getErrorMessage('Contact No. must start with 0, 8 or 9.', '联系号码必须以0、8或9开头。', 'No. Telefon mesti bermula dengan 0, 8 atau 9.');
-        }
-        if (!formData.dOB) {
-          errors.dOB = this.getErrorMessage('Birth Year is required.', '出生年份是必填项。', 'Tahun Lahir diperlukan.');
+          errors.cNO = this.getErrorMessage('Contact No. must start with 8 or 9.', '联系号码必须8或9开头。', 'No. Telefon mesti bermula dengan 8 atau 9.');
         }
         if (formData.dOB) {
           const { isValid, error } = this.isValidDOB(formData.dOB, formData.type);
           if (!isValid) {
             errors.dOB = error;
+          } else {
+            // Check date components (day 01-31, month 01-12)
+            const { isValid: isComponentValid, error: componentError } = this.isValidDOBComponents(formData.dOB);
+            if (!isComponentValid) {
+              errors.dOB = componentError;
+            }
           }
         }
-        if (!formData.rESIDENTIALSTATUS) {
-          errors.rESIDENTIALSTATUS = this.getErrorMessage('Residential Status is required.', '居民身份是必填项。', 'Status Kediaman diperlukan.');
-        }
-        if (!formData.postalCode) {
-          errors.postalCode = this.getErrorMessage('Postal Code is required.', '邮编是必填项。', 'Poskod diperlukan.');
-        }
-        if (formData.postalCode && !/^\d{6}$/.test(formData.postalCode)) {
-          errors.postalCode = this.getErrorMessage('Postal Code must be exactly 6 digits.', '邮编必须是6位数字。', 'Poskod mesti tepat 6 digit.');
+        if (formData.postalCode) {
+          const extractedPostalCode = this.extractPostalCode(formData.postalCode);
+          if (!extractedPostalCode) {
+            errors.postalCode = this.getErrorMessage('Postal Code must contain 6 digits (e.g., "Singapore 123456" or "123456").', '邮编必须包含6位数字。', 'Poskod mesti mengandungi 6 digit.');
+          }
         }
         return errors;
       }
       
-      // NSA/ILP validation only
-      if (!formData.pName) {
-        errors.pName = 'Name is required. 姓名是必填项。';
-      }
-      if (!formData.nRIC) {
-        errors.nRIC = 'NRIC Number is required. 身份证号码是必填项。';
-      }
+      // NSA/ILP validation only - format validation for non-empty fields
       if (formData.nRIC) {
         const { isValid, error } = this.isValidNRIC(formData.nRIC);
         if (!isValid) {
           errors.nRIC = error;
         }
       }
-      if (!formData.rESIDENTIALSTATUS) {
-        errors.rESIDENTIALSTATUS = 'Residential Status is required. 居民身份是必填项。';
+      if (formData.dOB && !/^\d{2}\/\d{2}\/\d{4}$/.test(formData.dOB)) {
+        errors.dOB = 'Date of Birth must be in dd/mm/yyyy format (e.g., 15/01/1990). 出生日期必须采用 dd/mm/yyyy 格式（例如 15/01/1990）。';
       }
-      if (!formData.rACE) {
-        errors.rACE = 'Race is required. 种族是必填项。';
-      }
-      if (!formData.gENDER) {
-        errors.gENDER = 'Gender is required. 性别是必填项。';
-      }
-      if (!formData.dOB) {
-        errors.dOB = 'Date of Birth is required. 出生日期是必填项。';
-      }
-      if (formData.dOB) {
+      if (formData.dOB && !errors.dOB) {
         const { isValid, error } = this.isValidDOB(formData.dOB, formData.type);
         if (!isValid) {
           errors.dOB = error;
+        } else {
+          // Check date components (day 01-31, month 01-12)
+          const { isValid: isComponentValid, error: componentError } = this.isValidDOBComponents(formData.dOB);
+          if (!isComponentValid) {
+            errors.dOB = componentError;
+          }
         }
       }
-      if (!formData.cNO) {
-        errors.cNO = 'Contact No. is required. 联系号码是必填项。';
-      }
       if (formData.cNO && !/^\d+$/.test(formData.cNO)) {
-        errors.cNO = 'Contact No. must contain only numbers. 联系号码只能包含数字。';
+        errors.cNO = 'Contact Number must contain only numbers. 联系号码只能包含数字。';
       }
       if (formData.cNO && formData.cNO.length !== 8) {
-        errors.cNO = 'Contact No. must be exactly 8 digits. 联系号码必须是8位数字。';
+        errors.cNO = 'Contact Number must be exactly 8 digits (e.g., 81234567). 联系号码必须恰好是 8 位数字（例如 81234567）。';
       }
-      if (formData.cNO && !/^[089]/.test(formData.cNO)) {
-        errors.cNO = 'Contact No. must start with 0, 8 or 9. 联系号码必须以0、8或9开头。';
-      }
-      if (!formData.eMAIL) {
-        errors.eMAIL = 'Email is required. 电子邮件是必填项。';
-      }
-      if (!formData.location) {
-        errors.location = 'Location is required. 地点是必填项。';
-      }
-      if (!formData.address) {
-        errors.address = 'Address is required. 地址是必填项。';
-      }
-      if (!formData.eDUCATION) {
-        errors.eDUCATION = 'Education Level is required. 教育水平是必填项。';
-      }
-      if (!formData.wORKING) {
-        errors.wORKING = 'Work Status is required. 工作状态是必填项。';
+      if (formData.cNO && !/^[89]/.test(formData.cNO)) {
+        errors.cNO = 'Contact Number must start with 8 or 9. 联系号码必须以 8 或 9 开头。';
       }
     }
+    
+    // Section 2 validation for Marriage Preparation Programme (Spouse Info)
+    if (effectiveSection === 2 && formData.type === 'Marriage Preparation Programme') {
+      // Only validate format for non-empty fields (empty fields are already blocked by disabled Next button)
+      if (formData.spouseNRIC) {
+        const { isValid, error } = this.isValidNRIC(formData.spouseNRIC);
+        if (!isValid) {
+          errors.spouseNRIC = error;
+        }
+      }
+      if (formData.spouseDOB) {
+        const { isValid, error } = this.isValidDOB(formData.spouseDOB, formData.type);
+        if (!isValid) {
+          errors.spouseDOB = error;
+        } else {
+          // Check date components (day 01-31, month 01-12)
+          const { isValid: isComponentValid, error: componentError } = this.isValidDOBComponents(formData.spouseDOB);
+          if (!isComponentValid) {
+            errors.spouseDOB = componentError;
+          }
+        }
+      }
+      if (formData.spousePostalCode) {
+        const extractedPostalCode = this.extractPostalCode(formData.spousePostalCode);
+        if (!extractedPostalCode) {
+          errors.spousePostalCode = 'Spouse Postal Code must contain 6 digits (e.g., 123456 or Singapore 123456). 配偶邮编必须包含6位数字（例如123456或Singapore123456）。';
+        }
+      }
+      if (formData.spouseMobile && !/^\d+$/.test(formData.spouseMobile)) {
+        errors.spouseMobile = 'Spouse Mobile Number must contain only numbers. 配偶手机号码只能包含数字。';
+      }
+      if (formData.spouseMobile && formData.spouseMobile.length !== 9) {
+        errors.spouseMobile = 'Spouse Mobile Number must be exactly 9 digits (e.g., 81234567). 配偶手机号码必须恰好是 9 位数字（例如 81234567）。';
+      }
+      if (formData.spouseMobile && !/^[89]/.test(formData.spouseMobile)) {
+        errors.spouseMobile = 'Spouse Mobile Number must start with 8 or 9. 配偶手机号码必须以 8 或 9 开头。';
+      }
+    }
+    
     return errors;
   };
 
@@ -2428,9 +2832,11 @@ class FormPage extends Component {
     };
   
     return (
-      <div className="formwholepage" style={{ backgroundColor: bgColor }}>
-        {/* {renderLoadingIndicator()} */}
-        <div className="form-page">
+      <>
+        {formData.type && (
+          <div className="formwholepage" style={{ backgroundColor: bgColor }}>
+            {/* {renderLoadingIndicator()} */}
+            <div className="form-page">
           <div className={`form-container ${(formData.type === 'NSA' || formData.type === 'ILP') ? 'nsa-ilp-form' : ''}`} style={this.state.formContainerBg ? { backgroundColor: this.state.formContainerBg } : {}}>
             {/* MyInfo Service Status Indicator */}
             <MyInfoStatusIndicator 
@@ -2439,95 +2845,101 @@ class FormPage extends Component {
               recommendations={this.state.serviceRecommendations}
               compact={true}
             />
-            {currentSection === 0 && formData.type !== 'Marriage Preparation Programme' && (
-              <FormDetails 
-                courseType={formData.type} 
-                isAuthenticated={isAuthenticated}
-                onAuthenticationChange={(authStatus) => this.setState({ isAuthenticated: authStatus })}
-                onProceedWithoutSingPass={this.handleProceedWithoutSingPass}
-                validationErrors={validationErrors}
-                hideSingPass={formData.type === 'Talks And Seminar'}
-              />
+            {formData.type && (
+              <>
+                {currentSection === 0 && formData.type !== 'Marriage Preparation Programme' && (
+                  <FormDetails 
+                    courseType={formData.type} 
+                    courseCategories={this.state.courseCategories}
+                    isAuthenticated={isAuthenticated}
+                    onAuthenticationChange={(authStatus) => this.setState({ isAuthenticated: authStatus })}
+                    onProceedWithoutSingPass={this.handleProceedWithoutSingPass}
+                    validationErrors={validationErrors}
+                    hideSingPass={formData.type === 'Talks And Seminar'}
+                  />
+                )}
+                {(currentSection === 1 || (currentSection === 0 && formData.type === 'Marriage Preparation Programme')) && (
+                  <PersonalInfo
+                    data={formData}
+                    onChange={this.handleDataChange}
+                    errors={validationErrors}
+                    singPassPopulatedFields={formData.type === 'Marriage Preparation Programme' || formData.type === 'Talks And Seminar' ? {} : this.state.singPassPopulatedFields}
+                    onClearSingPassData={formData.type === 'Marriage Preparation Programme' || formData.type === 'Talks And Seminar' ? null : this.clearSingPassData}
+                    hideMyInfoOptions={formData.type === 'Marriage Preparation Programme' || formData.type === 'Talks And Seminar'}
+                    showLimitedFields={formData.type === 'Talks And Seminar'}
+                    isMalayLanguage={formData.isMalayLanguage || false} // Pass Malay language flag
+                  />
+                )}
+                {currentSection === 2 && formData.type === 'Marriage Preparation Programme' && (
+                  <SpouseInfo
+                    data={formData}
+                    onChange={this.handleDataChange}
+                    errors={validationErrors}
+                  />
+                )}
+                {currentSection === 2 && formData.type !== 'Marriage Preparation Programme' && (
+                  <CourseDetails
+                    ref={(ref) => (this.courseDetailsRef = ref)}
+                    courseEnglishName={formData.englishName}
+                    courseChineseName={formData.chineseName}
+                    extractedLocation={formData.courseLocation}
+                    coursePrice={formData.price}
+                    courseType={formData.type}
+                    courseDuration={formData.courseDuration}
+                    courseMode={formData.courseMode}
+                    courseTime={formData.courseTime}
+                    courseLocation={formData.location}
+                    payment={formData.payment}
+                    onChange={this.handleDataChange}
+                    age={this.state.age}
+                    isMalayLanguage={formData.isMalayLanguage || false}
+                  />
+                )}
+                {currentSection === 3 && formData.type === 'Marriage Preparation Programme' && (
+                  <CourseDetails
+                    ref={(ref) => (this.courseDetailsRef = ref)}
+                    courseEnglishName={formData.englishName}
+                    courseChineseName={formData.chineseName}
+                    extractedLocation={formData.location}
+                    coursePrice={formData.price}
+                    courseType={formData.type}
+                    courseDuration={formData.courseDuration}
+                    courseMode={formData.courseMode}
+                    courseTime={formData.courseTime}
+                    courseLocation={formData.courseLocation}
+                    payment={formData.payment}
+                    onChange={this.handleDataChange}
+                    isMalayLanguage={formData.isMalayLanguage || false}
+                  />
+                )}
+                {currentSection === 3 && formData.type !== 'Marriage Preparation Programme' && formData.type !== 'Talks And Seminar' && (
+                  <AgreementDetailsSection
+                    ref={(ref) => (this.agreementDetailsRef = ref)}
+                    agreement={formData.agreement}
+                    onChange={this.handleDataChange}
+                    errors={validationErrors}
+                    courseType={formData.type}
+                  />
+                )}
+                {currentSection === 4 && formData.type === 'Marriage Preparation Programme' && (
+                  <AgreementDetailsSection
+                    ref={(ref) => (this.agreementDetailsRef = ref)}
+                    agreement={formData.agreement}
+                    onChange={this.handleDataChange}
+                    errors={validationErrors}
+                    courseType={formData.type}
+                  />
+                )}
+                {((currentSection === 4 && formData.type !== 'Marriage Preparation Programme' && formData.type !== 'Talks And Seminar') ||
+                  (currentSection === 5 && formData.type === 'Marriage Preparation Programme') ||
+                  (currentSection === 3 && formData.type === 'Talks And Seminar')) && 
+                  <SubmitDetailsSection 
+                    courseType={formData.type}
+                    isMalayLanguage={formData.isMalayLanguage || false}
+                  />
+                }
+              </>
             )}
-            {(currentSection === 1 || (currentSection === 0 && formData.type === 'Marriage Preparation Programme')) && (
-              <PersonalInfo
-                data={formData}
-                onChange={this.handleDataChange}
-                errors={validationErrors}
-                singPassPopulatedFields={formData.type === 'Marriage Preparation Programme' || formData.type === 'Talks And Seminar' ? {} : this.state.singPassPopulatedFields}
-                onClearSingPassData={formData.type === 'Marriage Preparation Programme' || formData.type === 'Talks And Seminar' ? null : this.clearSingPassData}
-                hideMyInfoOptions={formData.type === 'Marriage Preparation Programme' || formData.type === 'Talks And Seminar'}
-                showLimitedFields={formData.type === 'Talks And Seminar'}
-                isMalayLanguage={formData.isMalayLanguage || false} // Pass Malay language flag
-              />
-            )}
-            {currentSection === 2 && formData.type === 'Marriage Preparation Programme' && (
-              <SpouseInfo
-                data={formData}
-                onChange={this.handleDataChange}
-                errors={validationErrors}
-              />
-            )}
-            {currentSection === 2 && formData.type !== 'Marriage Preparation Programme' && (
-              <CourseDetails
-                ref={(ref) => (this.courseDetailsRef = ref)}
-                courseEnglishName={formData.englishName}
-                courseChineseName={formData.chineseName}
-                extractedLocation={formData.courseLocation}
-                coursePrice={formData.price}
-                courseType={formData.type}
-                courseDuration={formData.courseDuration}
-                courseMode={formData.courseMode}
-                courseTime={formData.courseTime}
-                courseLocation={formData.location}
-                payment={formData.payment}
-                onChange={this.handleDataChange}
-                age={this.state.age}
-                isMalayLanguage={formData.isMalayLanguage || false}
-              />
-            )}
-            {currentSection === 3 && formData.type === 'Marriage Preparation Programme' && (
-              <CourseDetails
-                ref={(ref) => (this.courseDetailsRef = ref)}
-                courseEnglishName={formData.englishName}
-                courseChineseName={formData.chineseName}
-                extractedLocation={formData.location}
-                coursePrice={formData.price}
-                courseType={formData.type}
-                courseDuration={formData.courseDuration}
-                courseMode={formData.courseMode}
-                courseTime={formData.courseTime}
-                courseLocation={formData.courseLocation}
-                payment={formData.payment}
-                onChange={this.handleDataChange}
-                isMalayLanguage={formData.isMalayLanguage || false}
-              />
-            )}
-            {currentSection === 3 && formData.type !== 'Marriage Preparation Programme' && formData.type !== 'Talks And Seminar' && (
-              <AgreementDetailsSection
-                ref={(ref) => (this.agreementDetailsRef = ref)}
-                agreement={formData.agreement}
-                onChange={this.handleDataChange}
-                errors={validationErrors}
-                courseType={formData.type}
-              />
-            )}
-            {currentSection === 4 && formData.type === 'Marriage Preparation Programme' && (
-              <AgreementDetailsSection
-                ref={(ref) => (this.agreementDetailsRef = ref)}
-                agreement={formData.agreement}
-                onChange={this.handleDataChange}
-                errors={validationErrors}
-                courseType={formData.type}
-              />
-            )}
-            {((currentSection === 4 && formData.type !== 'Marriage Preparation Programme' && formData.type !== 'Talks And Seminar') ||
-              (currentSection === 5 && formData.type === 'Marriage Preparation Programme') ||
-              (currentSection === 3 && formData.type === 'Talks And Seminar')) && 
-              <SubmitDetailsSection 
-                courseType={formData.type}
-                isMalayLanguage={formData.isMalayLanguage || false}
-              />}
           </div>
         </div>
 
@@ -2665,7 +3077,9 @@ class FormPage extends Component {
         <SubmissionInProgressPopup 
           isOpen={this.state.showSubmissionInProgress}
         />
-      </div>
+          </div>
+        )}
+      </>
     );
   }  
 }

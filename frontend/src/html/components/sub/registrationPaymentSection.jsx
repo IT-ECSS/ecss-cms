@@ -10,9 +10,12 @@ import { AgGridReact } from 'ag-grid-react'; // React Data Grid Component
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community'; 
 import { io } from 'socket.io-client';
 import { logRegistrationUpdate, logRegistrationBulkUpdate, logExportAction, logReceiptGeneration, logMessageSend } from '../../../utils/auditLog';
+import getCourseReferenceCode from '../../constants/courseReferenceMap';
+// COMMENTED OUT: SkillsFuture integration
+// import { fetchAndUpdateClaimStatus, encryptPaymentRequest } from '../../../services/skillsfutureService';
 
 // Register the community modules
-ModuleRegistry.registerModules([AllCommunityModule]);
+ModuleRegistry.registerModules([AllCommunityModule]); 
 
 class RegistrationPaymentSection extends Component {
     constructor(props) {
@@ -458,8 +461,9 @@ class RegistrationPaymentSection extends Component {
     updateWooCommerceForRegistrationPayment = async (chi, eng, location, updatedStatus) => {
       console.log("Updated Status:", updatedStatus); 
       try {
-        // Check if the value is "Paid" or "Generate SkillsFuture Invoice"
-        if (updatedStatus === "Paid" || updatedStatus === "SkillsFuture Done" || updatedStatus === "Cancelled" || updatedStatus === "Withdrawn" || updatedStatus === "Confirmed") {
+        // COMMENTED OUT: SkillsFuture integration - Check if the value is "Paid" or "Generate SkillsFuture Invoice"
+        // COMMENTED OUT: SkillsFuture - if (updatedStatus === "Paid" || updatedStatus === "SkillsFuture Done" || updatedStatus === "Cancelled" || updatedStatus === "Withdrawn" || updatedStatus === "Confirmed") {
+        if (updatedStatus === "Paid" || updatedStatus === "Cancelled" || updatedStatus === "Withdrawn" || updatedStatus === "Confirmed") {
           // Proceed to update WooCommerce stock
           const stockResponse = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3002" : "https://ecss-backend-django.azurewebsites.net"}/update_stock/`, { type: 'update', page: { "courseChiName": chi, "courseEngName": eng, "courseLocation": location }, status: updatedStatus, location: location });
 
@@ -538,7 +542,8 @@ class RegistrationPaymentSection extends Component {
 
       generateReceiptNumber = async (course, newMethod, courseType, courseEngName, courseDuration) => 
       {
-        const courseLocation = newMethod === "SkillsFuture" ? "ECSS/SFC/" : course.courseLocation;
+        // COMMENTED OUT: SkillsFuture - const courseLocation = newMethod === "SkillsFuture" ? "ECSS/SFC/" : course.courseLocation;
+        const courseLocation = course.courseLocation;
         console.log("Course Location123:", courseLocation);
         const centreLocation = course.courseLocation;
         console.log("Centre Location123:", centreLocation);
@@ -761,8 +766,10 @@ class RegistrationPaymentSection extends Component {
           participantName: participant.name,
           contactNumber: participant.contactNumber || "N/A",
           courseName: course.courseEngName || course.courseName || "N/A",
-          paymentType: "SkillsFuture",
-          triggerSource: "Payment Status Change (SkillsFuture Invoice)"
+          // COMMENTED OUT: SkillsFuture - paymentType: "SkillsFuture",
+          // COMMENTED OUT: SkillsFuture - triggerSource: "Payment Status Change (SkillsFuture Invoice)"
+          paymentType: "Other",
+          triggerSource: "Payment Status Change (Other)"
         });
 
         return pdfResponse;
@@ -837,17 +844,18 @@ class RegistrationPaymentSection extends Component {
             }
           }
         } 
-        else if (value === "Generating SkillsFuture Invoice") {
-            try {
-              console.log("Generating SkillsFuture invoice for course:", course);
-              const invoiceNo = await this.generateReceiptNumber(course, "", "", "", "");
-              console.log("Invoice No:", invoiceNo);
-              await this.generatePDFInvoice(id, participant, course, invoiceNo, value);  
-              await this.createReceiptInDatabase(invoiceNo, course.courseLocation, id, ""); 
-            } catch (error) {
-              console.error("Error during SkillsFuture invoice generation:", error);
-            }
-        }
+        // COMMENTED OUT: SkillsFuture invoice generation
+        // else if (value === "Generating SkillsFuture Invoice") {
+        //     try {
+        //       console.log("Generating SkillsFuture invoice for course:", course);
+        //       const invoiceNo = await this.generateReceiptNumber(course, "", "", "", "");
+        //       console.log("Invoice No:", invoiceNo);
+        //       await this.generatePDFInvoice(id, participant, course, invoiceNo, value);  
+        //       await this.createReceiptInDatabase(invoiceNo, course.courseLocation, id, ""); 
+        //     } catch (error) {
+        //       console.error("Error during SkillsFuture invoice generation:", error);
+        //     }
+        // }
       };
 
       //this.autoReceiptGenerator(id, participantInfo, courseInfo, officialInfo, newValue, "Paid")
@@ -887,23 +895,24 @@ class RegistrationPaymentSection extends Component {
             }
           }
         } 
-        else if(newMethod === "SkillsFuture")
-        {
-          try 
-          {
-            console.log("Generating receipt for course:", course);
-    
-            const registration_id = id;
-            const invoiceNo = await this.generateReceiptNumber(course, newMethod, "", "", "");
-            console.log("Invoice No:", invoiceNo);
-            await this.generatePDFReceipt(id, participant, course, invoiceNo, value);
-            await this.createReceiptInDatabase(invoiceNo, course.courseLocation, id, "");    
-          } 
-          catch (error) 
-          {
-            console.error("Error during receipt generation:", error);
-          }
-        }
+        // COMMENTED OUT: SkillsFuture payment method handling
+        // else if(newMethod === "SkillsFuture")
+        // {
+        //   try 
+        //   {
+        //     console.log("Generating receipt for course:", course);
+        //
+        //     const registration_id = id;
+        //     const invoiceNo = await this.generateReceiptNumber(course, newMethod, "", "", "");
+        //     console.log("Invoice No:", invoiceNo);
+        //     await this.generatePDFReceipt(id, participant, course, invoiceNo, value);
+        //     await this.createReceiptInDatabase(invoiceNo, course.courseLocation, id, "");    
+        //   } 
+        //   catch (error) 
+        //   {
+        //     console.error("Error during receipt generation:", error);
+        //   }
+        // }
       };
       
       
@@ -1103,8 +1112,9 @@ class RegistrationPaymentSection extends Component {
         // Filter to only include rows with specific payment statuses
         const filteredRows = selectedRows.filter(row => {
           const paymentStatus = row.paymentStatus;
+          // COMMENTED OUT: SkillsFuture - removed "SkillsFuture Done" status
           if (firstType === "NSA") {
-            return paymentStatus === "Paid" || paymentStatus === "SkillsFuture Done";
+            return paymentStatus === "Paid";
           } else {
             return paymentStatus === "Confirmed";
           }
@@ -1164,7 +1174,7 @@ class RegistrationPaymentSection extends Component {
     
             let courseEngName = detail.courseInfo.courseEngName;
             let courseChiName = detail.courseInfo.courseChiName;
-            let courseCode = this.ecssChineseCourseCode(courseChiName) || this.ecssEnglishCourseCode(courseEngName);
+            let courseCode = getCourseReferenceCode(courseEngName);
             sourceSheet.getCell(`O${rowIndex}`).value = courseCode.trim();
             // Only remove language suffixes like Mandarin, English, Malay - keep full name for other cases
             const languageSuffixes = ['Mandarin', 'English', 'Malay'];
@@ -1191,7 +1201,8 @@ class RegistrationPaymentSection extends Component {
             sourceSheet.getCell(`U${rowIndex}`).value = detail.courseInfo.courseMode === "Face-to-Face" ? "F2F" : detail.courseInfo.courseMode;
     
             sourceSheet.getCell(`W${rowIndex}`).value = detail.courseInfo.coursePrice;
-            sourceSheet.getCell(`X${rowIndex}`).value = detail.courseInfo.payment === "SkillsFuture" ? "SFC" : detail.courseInfo.payment;
+            // COMMENTED OUT: SkillsFuture - sourceSheet.getCell(`X${rowIndex}`).value = detail.courseInfo.payment === "SkillsFuture" ? "SFC" : detail.courseInfo.payment;
+            sourceSheet.getCell(`X${rowIndex}`).value = detail.courseInfo.payment;
             sourceSheet.getCell(`AD${rowIndex}`).value = detail.officialInfo.receiptNo;
             sourceSheet.getCell(`V${rowIndex}`).value = detail.courseInfo.courseLocation === "Pasir Ris West Wellness Centre" ? "510605," : "";
     
@@ -1463,7 +1474,7 @@ class RegistrationPaymentSection extends Component {
     }
   };
 
-  ecssChineseCourseCode(course)
+    exportAttendance = async () => {
   {
     if (!course) return "";
     course = course.trim();
@@ -1535,86 +1546,6 @@ class RegistrationPaymentSection extends Component {
 }
       
 
-      ecssEnglishCourseCode(course) {
-        if (!course) return "";
-        course = course.trim();
-    
-        switch (course) {
-            case "Fall Prevention & Functional Improvement Training":
-              return "ECSS-CBO-M-002C";
-            case "TCM – Don’t be a friend of Chronic Diseases":
-                return "ECSS-CBO-M-016C";
-            case "Nagomi Pastel Art Basic Course":
-                return "ECSS-CBO-M-019C";
-            case "Nagomi Pastel Art Appreciation Course":
-                return "ECSS-CBO-M-018C";
-            case "Therapeutic Watercolour Painting for Beginners":
-                return "ECSS-CBO-M-024E";
-            case "Chinese Calligraphy Intermediate Course":
-                return "ECSS-CBO-M-021C";
-            case "Chinese Calligraphy Basic Course":
-                return "ECSS-CBO-M-020C";
-            case "Community Ukulele – Mandarin":
-                return "ECSS-CBO-M-004C";
-            case "Community Ukulele Level 2 – Mandarin":
-                return "ECSS-CBO-M-037C";
-            case "Community Singing – Mandarin":
-                return "ECSS-CBO-M-003C";
-            case "– Mandarin":
-                return "ECSS-CBO-M-001C";
-            case "Hanyu Pinyin for Beginners":
-                return "ECSS-CBO-M-011C";
-            case "Hanyu Pinyin - Intermediate":
-                return "ECSS-CBO-M-025C";
-            case "Hanyu Pinyin & The Three Hundred Tang Poems":
-                return "ECSS-CBO-M-036C";
-            case "The Rest Note of Life – Mandarin":
-                return "ECSS-CBO-M-023C";
-            case "TCM Diet & Therapy":
-                return "ECSS-CBO-M-010C";
-            case "Therapeutic Basic Line Work Course":
-                return "ECSS-CBO-M-030C";
-            case "Healthy Minds, Healthy Lives – Mandarin":
-                return "ECSS-CBO-M-028C";
-            case "C3A AgeMAP – Healthy Minds for Healthy Lives":
-                return "ECSS-CBO-M-028E";
-            case "Smartphone Photography":
-                return "ECSS-CBO-M-038C";
-            case "Art of Positive Communication builds happy homes":
-                return "ECSS-CBO-M-031C";
-            case "Nagomi Basic Level 2":
-                return "ECSS-CBO-M-039C";
-            case "Enhanced Therapeutic Intermediate Watercolour":
-                return "ECSS-CBO-M-040C";
-            case "My Growth":
-                return "ECSS-CBO-M-013C";
-            case "My Story":
-                return "ECSS-CBO-M-007C";
-            case "How to Retire & Live Wonderfully":
-                return "ECSS-CBO-M-006C";
-            case "Active Ageing Ambassadors":
-                return "ECSS-CBO-M-005C";
-            case "Fall Prevention & Functional Improvement Training":
-                return "ECSS-CBO-M-002E";
-            case "C3A Mental Wellbeing Curriculum – Riding the Waves of Change Smiling":
-                return "ECSS-CBO-M-017E";
-            case "C3A Mental Wellbeing Curriculum – Riding the Waves of Change Smiling (Malay)":
-                return "ECSS-CBO-M-017M";
-            case "Basics of Smart Money Management":
-                return "ECSS-CBO-M-029E";
-            case "The Art of Paper Quilling":
-                return "ECSS-CBO-M-032E";
-            case "Community Cajon Foundation 1":
-                return "ECSS-CBO-M-033E";
-            case "Bonsai Learning (Elementary)":
-                return "ECSS-CBO-M-034C";
-            case "Happy Grandparenting":
-                return "ECSS-CBO-M-035C";
-            case "TCM – Don't be a Friend of Chronic Diseases":
-              return "ECSS-CBO-M-016C";
-            default:
-                return "";
-        }
       }
     
     exportAttendance = async () => {
@@ -1640,7 +1571,7 @@ class RegistrationPaymentSection extends Component {
       // Check if there are any filtered rows
       if (filteredRows.length === 0) {
         const statusMessage = firstType === "NSA" 
-          ? "No rows with payment status 'Paid' or 'SkillsFuture Done' found." 
+          ? "No rows with payment status 'Paid' found." 
           : "No rows with payment status 'Confirmed' found.";
         return this.props.warningPopUpMessage(statusMessage);
       }
@@ -1956,18 +1887,10 @@ class RegistrationPaymentSection extends Component {
   slideButtonRenderer = (params) => {
     const paymentMethod = params.data.paymentMethod; // Get payment method for the row
 
-    // Return null or empty if the payment method is not 'SkillsFuture'
-    if (paymentMethod !== 'SkillsFuture') {
-      return null;
-    }
-
-    // Only Admin, Sub Admin, Ops in-charge, Social Worker (for applicable courses), and Site in-charge (for ILP) can toggle confirmation
-    // const swCourseType = params.data?.courseInfo?.courseType;
-    // const swCoursePrice = params.data?.courseInfo?.coursePrice;
-    // const swPriceValue = parseFloat((swCoursePrice || '0').replace(/[^0-9.]/g, ''));
-    // const socialWorkerCanEditConfirmation = this.props.role === 'Social Worker' && (
-    //   (swCourseType === 'Talks And Seminar' && swPriceValue === 0) ||
-    //   (swCourseType === 'Marriage Preparation Programme' && swPriceValue > 0)
+    // COMMENTED OUT: SkillsFuture - Return null or empty if the payment method is not 'SkillsFuture'
+    // if (paymentMethod !== 'SkillsFuture') {
+    //   return null; // Don't render if not SkillsFuture
+    // }
     // );
     // const siteInChargeCanEditConfirmation = this.props.role === 'Site in-charge' && swCourseType === 'ILP';
     // const siteInChargeNSABlocked = (this.props.role === 'Site in-charge' || this.props.role === 'NSA in-charge') && swCourseType === 'NSA';
@@ -2087,7 +2010,9 @@ class RegistrationPaymentSection extends Component {
       {
         if((courseName !== "Community Ukulele – Mandarin") && (courseName !== "My Story – Mandarin"))
         {
-          paymentMethods = ['PayNow', 'SkillsFuture'];
+          // COMMENTED OUT: SkillsFuture
+          // paymentMethods = ['PayNow', 'SkillsFuture'];
+          paymentMethods = ['PayNow'];
         }
         else
         {
@@ -2098,7 +2023,9 @@ class RegistrationPaymentSection extends Component {
       {
         if((courseName !== "Community Ukulele – Mandarin") && (courseName !== "My Story – Mandarin"))
         {
-          paymentMethods = ['Cash', 'PayNow', 'SkillsFuture'];
+          // COMMENTED OUT: SkillsFuture
+          // paymentMethods = ['Cash', 'PayNow', 'SkillsFuture'];
+          paymentMethods = ['Cash', 'PayNow'];
         }
         else
         {
@@ -2116,7 +2043,8 @@ class RegistrationPaymentSection extends Component {
       const coursePrice = parseFloat((courseInfo?.coursePrice || '0').replace('$', ''));
       if(coursePrice > 0)
       {
-        paymentMethods = ['Cash', 'PayNow']; // No SkillsFuture for paid Talks And Seminar
+        // COMMENTED OUT: SkillsFuture - No SkillsFuture for paid Talks And Seminar
+        paymentMethods = ['Cash', 'PayNow'];
       }
       else
       {
@@ -2400,16 +2328,18 @@ class RegistrationPaymentSection extends Component {
         let initialOptions;
         
         if (courseType === "NSA") {
-          initialOptions = paymentMethod === "SkillsFuture"
-            ? [
-                "Pending",
-                "Generating SkillsFuture Invoice",
-                "SkillsFuture Done",
-                "Cancelled",
-                "Withdrawn",
-                "Refunded",
-              ]
-            : ["Pending", "Paid", "Cancelled", "Withdrawn", "Refunded", "Not Successful"];
+          // COMMENTED OUT: SkillsFuture status options
+          // initialOptions = paymentMethod === "SkillsFuture"
+          //   ? [
+          //       "Pending",
+          //       "Generating SkillsFuture Invoice",
+          //       "SkillsFuture Done",
+          //       "Cancelled",
+          //       "Withdrawn",
+          //       "Refunded",
+          //     ]
+          //   : ["Pending", "Paid", "Cancelled", "Withdrawn", "Refunded", "Not Successful"];
+          initialOptions = ["Pending", "Paid", "Cancelled", "Withdrawn", "Refunded", "Not Successful"];
         } else if (courseType === "ILP" || (courseType === "Talks And Seminar" && parseFloat((coursePrice || '0').replace('$', '')) === 0)) {
           initialOptions = ["Pending", "Confirmed", "Withdrawn", "Not Successful"];
         } else if (courseType === "Talks And Seminar" && parseFloat((coursePrice || '0').replace('$', '')) > 0) {
@@ -2440,8 +2370,9 @@ class RegistrationPaymentSection extends Component {
       cellRenderer: (params) => {
         const statusStyles = {
           Pending: "#FFA500",
-          "Generating SkillsFuture Invoice": "#00CED1",
-          "SkillsFuture Done": "#008000",
+          // COMMENTED OUT: SkillsFuture status colors
+          // "Generating SkillsFuture Invoice": "#00CED1",
+          // "SkillsFuture Done": "#008000",
           Cancelled: "#FF0000",
           Withdrawn: "#800000",
           Paid: "#008000",
@@ -2534,6 +2465,118 @@ class RegistrationPaymentSection extends Component {
       }
     );
   }
+
+  // COMMENTED OUT: SkillsFuture columns (only for SkillsFuture payments)
+  // columnDefs.push(
+  //   {
+  //     headerName: "Claim Reference Number",
+  //     field: "skillsfutureClaimCode",
+  //     width: 250,
+  //     cellRenderer: (params) => {
+  //       const claimCode = params.value || '-';
+  //       return (
+  //         <span style={{ padding: '5px', fontFamily: 'monospace', fontWeight: 'bold' }}>
+  //           {claimCode}
+  //         </span>
+  //       );
+  //     },
+  //     hide: (params) => params.data?.paymentMethod !== "SkillsFuture"
+  //   },
+  //   {
+  //     headerName: "Claim Status",
+  //     field: "skillsfutureClaimStatus",
+  //     width: 200,
+  //     cellRenderer: (params) => {
+  //       const status = params.value || '-';
+  //       const statusColors = {
+  //         'APPROVED': '#008000',
+  //         'PENDING': '#FFA500',
+  //         'REJECTED': '#FF0000',
+  //         'WITHDRAWN': '#800000',
+  //         '-': '#D3D3D3'
+  //       };
+  //       const bgColor = statusColors[status] || '#D3D3D3';
+  //       
+  //       return (
+  //         <span style={{
+  //           display: 'inline-block',
+  //           padding: '5px 10px',
+  //           borderRadius: '4px',
+  //           backgroundColor: bgColor,
+  //           color: '#fff',
+  //           fontWeight: 'bold',
+  //           textAlign: 'center',
+  //           minWidth: '80px'
+  //         }}>
+  //           {status}
+  //         </span>
+  //       );
+  //     },
+  //     hide: (params) => params.data?.paymentMethod !== "SkillsFuture"
+  //   },
+  //   {
+  //     headerName: "SkillsFuture Actions",
+  //     field: "skillsfutureActions",
+  //     width: 450,
+  //     cellRenderer: (params) => {
+  //       const { paymentMethod, id } = params.data;
+  //       
+  //       if (paymentMethod !== "SkillsFuture") {
+  //         return null;
+  //       }
+  //
+  //       // Create button container
+  //       const buttonDiv = document.createElement('div');
+  //       buttonDiv.style.display = 'flex';
+  //       buttonDiv.style.gap = '8px';
+  //       buttonDiv.style.padding = '5px';
+  //       buttonDiv.style.flexWrap = 'wrap';
+  //
+  //       // Generate Payment Link Button
+  //       const genPaymentBtn = document.createElement('button');
+  //       genPaymentBtn.textContent = '🔗 Generate Link';
+  //       genPaymentBtn.style.padding = '6px 10px';
+  //       genPaymentBtn.style.backgroundColor = '#2196F3';
+  //       genPaymentBtn.style.color = 'white';
+  //       genPaymentBtn.style.border = 'none';
+  //       genPaymentBtn.style.borderRadius = '4px';
+  //       genPaymentBtn.style.cursor = 'pointer';
+  //       genPaymentBtn.style.fontSize = '12px';
+  //       genPaymentBtn.style.fontWeight = 'bold';
+  //       genPaymentBtn.style.whiteSpace = 'nowrap';
+  //       genPaymentBtn.onclick = () => {
+  //         const componentInstance = params.context?.componentInstance;
+  //         if (componentInstance && componentInstance.handleGeneratePaymentLink) {
+  //           componentInstance.handleGeneratePaymentLink(params.data);
+  //         }
+  //       };
+  //
+  //       // Refresh Status Button
+  //       const refreshBtn = document.createElement('button');
+  //       refreshBtn.textContent = '🔄 Refresh';
+  //       refreshBtn.style.padding = '6px 10px';
+  //       refreshBtn.style.backgroundColor = '#4CAF50';
+  //       refreshBtn.style.color = 'white';
+  //       refreshBtn.style.border = 'none';
+  //       refreshBtn.style.borderRadius = '4px';
+  //       refreshBtn.style.cursor = 'pointer';
+  //       refreshBtn.style.fontSize = '12px';
+  //       refreshBtn.style.fontWeight = 'bold';
+  //       refreshBtn.style.whiteSpace = 'nowrap';
+  //       refreshBtn.onclick = () => {
+  //         const componentInstance = params.context?.componentInstance;
+  //         if (componentInstance && componentInstance.handleRefreshSkillsFutureStatus) {
+  //           componentInstance.handleRefreshSkillsFutureStatus(id);
+  //         }
+  //       };
+  //
+  //       buttonDiv.appendChild(genPaymentBtn);
+  //       buttonDiv.appendChild(refreshBtn);
+  //       return buttonDiv;
+  //     },
+  //     hide: (params) => params.data?.paymentMethod !== "SkillsFuture"
+  //   }
+  // );
 
   // Always add checkbox column (essential for selection)
   columnDefs.push({
@@ -2895,6 +2938,9 @@ debugMarriagePrepData = () => {
       refundedDate: item.official?.refundedDate || "",
       remarks: item.official?.remarks || "",
       paymentDate: item.official?.date || "",
+      // COMMENTED OUT: SkillsFuture fields
+      // skillsfutureClaimCode: item.skillsfuture?.claimRequestCode || '-',
+      // skillsfutureClaimStatus: item.skillsfuture?.claimStatus || '-',
       // Marriage Preparation Programme specific fields - include all nested data
       marriageDetails: item.marriageDetails || null,
       spouse: item.spouse || null,
@@ -2954,6 +3000,81 @@ debugMarriagePrepData = () => {
     });
   };
 
+
+  // COMMENTED OUT: SkillsFuture - handleRefreshSkillsFutureStatus method
+  // handleRefreshSkillsFutureStatus = async (registrationId) => {
+  //   try {
+  //     const response = await fetchAndUpdateClaimStatus(registrationId);
+  //     
+  //     if (response && response.success) {
+  //       alert(`✅ Claim Status Updated\n\nStatus: ${response.claimStatus}\nCredit Used: ${response.creditUsed || 'N/A'}`);
+  //       // Refresh table to show updated status
+  //       setTimeout(() => {
+  //         this.fetchAndSetRegistrationData();
+  //       }, 500);
+  //     } else {
+  //       alert(`❌ Error: ${response?.error || 'Failed to fetch claim status'}`);
+  //     }
+  //   } catch (error) {
+  //     console.error('Error refreshing SkillsFuture status:', error);
+  //     alert('❌ Failed to refresh claim status. Please try again.');
+  //   }
+  // }
+
+  // COMMENTED OUT: SkillsFuture - handleGeneratePaymentLink method
+  // handleGeneratePaymentLink = async (registrationData) => {
+  //   try {
+  //     const { courseInfo, participantInfo, id: registrationId } = registrationData;
+  //     
+  //     if (!courseInfo || !participantInfo) {
+  //       alert('❌ Missing course or participant information');
+  //       return;
+  //     }
+  //
+  //     // Extract required fields
+  //     const nric = participantInfo.nric || participantInfo.idNumber || '';
+  //     const courseRunId = courseInfo.courseCode || courseInfo.courseEngName || '';
+  //     const courseFee = courseInfo.courseFee || 0;
+  //     const courseStartDate = courseInfo.courseStartDate || '';
+  //     const courseEndDate = courseInfo.courseEndDate || '';
+  //     const trainingPartnerUen = 'T03SS0051L'; // ECSS Training Partner UEN
+  //
+  //     // Validate required fields
+  //     if (!nric || !courseRunId || !courseFee || !courseStartDate || !courseEndDate) {
+  //       alert(`❌ Missing required information:\n${!nric ? '- Participant NRIC\n' : ''}${!courseRunId ? '- Course Code\n' : ''}${!courseFee ? '- Course Fee\n' : ''}${!courseStartDate ? '- Course Start Date\n' : ''}${!courseEndDate ? '- Course End Date\n' : ''}`);
+  //       return;
+  //     }
+  //
+  //     // Show loading indicator
+  //     alert('🔄 Generating payment link... Please wait.');
+  //
+  //     // Call encryptPaymentRequest
+  //     const response = await encryptPaymentRequest({
+  //       nric,
+  //       courseRunId,
+  //       courseFee: Number(courseFee),
+  //       courseStartDate,
+  //       courseEndDate,
+  //       trainingPartnerUen,
+  //       supportingDocId: ''
+  //     });
+  //
+  //     if (response.success) {
+  //       // Build the full payment URL
+  //       const paymentUrl = `${response.formUrl}?encryptedPayload=${encodeURIComponent(response.encryptedPayload)}`;
+  //       
+  //       // Copy to clipboard
+  //       navigator.clipboard.writeText(paymentUrl);
+  //       
+  //       alert(`✅ Payment Link Generated!\n\n📋 Link copied to clipboard.\n\nYou can now send this link to the participant to complete their SkillsFuture payment.\n\nCourse: ${courseInfo.courseEngName}\nParticipant: ${participantInfo.name}`);
+  //     } else {
+  //       alert(`❌ Error generating payment link:\n${response.error || 'Unknown error'}`);
+  //     }
+  //   } catch (error) {
+  //     console.error('Error generating payment link:', error);
+  //     alert(`❌ Failed to generate payment link:\n${error.message}`);
+  //   }
+  // }
 
   handleValueClick = async (event) =>
   {
@@ -4792,6 +4913,7 @@ debugMarriagePrepData = () => {
             paginationPageSize={this.state.rowData.length}
             domLayout="normal"
             getRowStyle={this.getRowStyle}
+            context={{ componentInstance: this }}
           />
         </div>
         

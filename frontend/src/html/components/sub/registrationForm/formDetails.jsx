@@ -4,9 +4,15 @@ import '../../../../css/sub/registrationForm/formDetails.css';
 
 class FormDetailsSection extends Component {
   render() {
-    const { courseType } = this.props;
+    const { courseType, courseCategories } = this.props;
     const isMarriagePrep = courseType === 'Marriage Preparation Programme';
     const isTalksAndSeminar = courseType === 'Talks And Seminar';
+    
+    // Log categories for debugging
+    if (courseCategories && courseCategories.length > 0) {
+      console.log('📚 [Section 0] Course Categories loaded:', courseCategories);
+    }
+    
     return (
       <div className="form-details-section">
         {/* Hide intro, description, and image if Marriage Preparation Programme */}

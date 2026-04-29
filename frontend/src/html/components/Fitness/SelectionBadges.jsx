@@ -15,7 +15,7 @@ const sectionLabels = {
   station: { en: 'Station', zh: '站点', ms: 'Stesen' },
 };
 
-const getBadgeBoxStyle = (sizeMultiplier = 1.5625) => ({
+const getBadgeBoxStyle = (sizeMultiplier = 1) => ({
   display: 'flex',
   flexDirection: 'column',
   gap: Math.max(2, 4 * sizeMultiplier),
@@ -26,16 +26,16 @@ const getBadgeBoxStyle = (sizeMultiplier = 1.5625) => ({
   userSelect: 'none',
 });
 
-const getBadgeHeadingStyle = (sizeMultiplier = 1.5625) => ({
-  fontSize: `${0.72 * sizeMultiplier}rem`,
+const getBadgeHeadingStyle = () => ({
+  fontSize: '0.72rem',
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
   fontWeight: 700,
   lineHeight: 1.15,
 });
 
-const getBadgeValueStyle = (sizeMultiplier = 1.5625) => ({
-  fontSize: `${1 * sizeMultiplier}rem`,
+const getBadgeValueStyle = () => ({
+  fontSize: '1rem',
   fontWeight: 700,
   lineHeight: 1.25,
   wordBreak: 'break-word',
@@ -68,7 +68,6 @@ export class SelectionBadgesBar extends Component {
       onLanguageClick, onEventClick, onSlotClick, onStationClick,
       showLanguagePlaceholder, showEventPlaceholder, showSlotPlaceholder, showStationPlaceholder,
       noBorder, forceEnglishText, sizeMultiplier, disableContainerFlex, badgeVariant,
-      stationBadgeClassName,
     } = this.props;
 
     const hasLanguage = !!language || !!showLanguagePlaceholder;
@@ -88,16 +87,15 @@ export class SelectionBadgesBar extends Component {
       badgeBoxStyle.overflow = 'hidden';
     }
     // For registration variant: strip fontSize from inline styles — use CSS class instead
-    const rawHeadingStyle = getBadgeHeadingStyle(sizeMultiplier);
-    const rawValueStyle = getBadgeValueStyle(sizeMultiplier);
+    const rawHeadingStyle = getBadgeHeadingStyle();
+    const rawValueStyle = getBadgeValueStyle();
     const badgeHeadingStyle = isRegistrationVariant ? { ...rawHeadingStyle, fontSize: undefined } : rawHeadingStyle;
     const badgeValueStyle = isRegistrationVariant ? { ...rawValueStyle, fontSize: undefined } : rawValueStyle;
     const headingClassName = isRegistrationVariant ? 'fft-reg-badge-heading' : undefined;
     const valueClassName = isRegistrationVariant ? 'fft-reg-badge-value' : undefined;
-    const badgeFlexBase = {
-      flex: '0 0 calc(50% - 4px)',
-      maxWidth: 'calc(50% - 4px)',
-    };
+    const badgeFlexBase = isRegistrationVariant
+      ? { flex: '0 1 calc(50% - 4px)', maxWidth: 'calc(50% - 4px)' }
+      : { flex: '1 1 calc(50% - 4px)' };
     const containerStyle = disableContainerFlex
       ? { display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 8, minWidth: 0, width: '100%' }
       : { display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 8, flex: '1 1 280px', minWidth: 0, width: '100%' };
@@ -150,18 +148,17 @@ export class SelectionBadgesBar extends Component {
         )}
         {hasStation && (
           <div
-            className={stationBadgeClassName || undefined}
             onClick={onStationClick || undefined}
             style={{
               ...badgeBoxStyle,
-              background: '#ffebee', borderBottom: '2px solid #ffcdd2', ...badgeFlexBase, minWidth: 0,
+              background: '#e3f0ff', borderBottom: '2px solid #c5d9f5', ...badgeFlexBase, minWidth: 0,
               cursor: onStationClick ? 'pointer' : 'default',
             }}
           >
-            <span className={headingClassName} style={{ ...badgeHeadingStyle, color: '#c62828' }}>
+            <span className={headingClassName} style={{ ...badgeHeadingStyle, color: '#1565c0' }}>
               {sectionLabels.station[displayLanguage] || sectionLabels.station.en}
             </span>
-            <span className={valueClassName} style={{ ...badgeValueStyle, color: '#b71c1c' }}>
+            <span className={valueClassName} style={{ ...badgeValueStyle, color: '#1565c0' }}>
               {showStationPlaceholder ? '—' : stationLabel}
             </span>
           </div>

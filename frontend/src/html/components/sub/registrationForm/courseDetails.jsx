@@ -159,34 +159,33 @@ class CourseDetailsSection extends Component {
           </span>
         </div>)}
   
-        {(isNSA || isMarriagePrep || isPaidTalks) && (  // Payment Options Section for NSA, Marriage Preparation Programme, and paid Talks And Seminar
+        {(isNSA || isILP || isMarriagePrep || isPaidTalks) && (  // Payment Options Section for NSA, ILP, Marriage Preparation Programme, and paid Talks And Seminar
           <div className="input-group1">
             <label>{getLabel('I wish to pay by:', '我希望通过以下方式付款：', 'Saya ingin membayar dengan:')}</label>
-            <div className="payment-options">
-              {/* For NSA, keep existing logic. For Marriage Prep and paid Talks, always show Cash option if applicable. */}
-              {(isNSA && courseLocation !== 'Pasir Ris West Wellness Centre') || isMarriagePrep || isPaidTalks ? (
-                <label>
-                  <input
-                    type="radio"
-                    value="Cash"
-                    checked={selectedPayment === 'Cash'}
-                    onChange={this.handlePaymentChange}
-                  />
+            <div className="subheading-text">
+              {getLabel('Click to select your payment method 点击选择您的付款方式', '点击选择您的付款方式', 'Klik untuk memilih kaedah pembayaran anda')}
+            </div>
+            <div className="payment-button-group">
+              {/* For NSA/ILP, keep existing logic. For Marriage Prep and paid Talks, always show Cash option if applicable. */}
+              {((isNSA || isILP) && courseLocation !== 'Pasir Ris West Wellness Centre') || isMarriagePrep || isPaidTalks ? (
+                <button
+                  type="button"
+                  className={`payment-button ${selectedPayment === 'Cash' ? 'payment-button--selected' : ''}`}
+                  onClick={() => this.handlePaymentChange({ target: { value: 'Cash' } })}
+                >
                   Cash
-                </label>
+                </button>
               ) : null}
-              <label>
-                <input
-                  type="radio"
-                  value="PayNow"
-                  checked={selectedPayment === 'PayNow'}
-                  onChange={this.handlePaymentChange}
-                />
+              <button
+                type="button"
+                className={`payment-button ${selectedPayment === 'PayNow' ? 'payment-button--selected' : ''}`}
+                onClick={() => this.handlePaymentChange({ target: { value: 'PayNow' } })}
+              >
                 PayNow
-              </label>
-              {/* NSA: Conditionally render SkillsFuture. Marriage Prep: always show. Paid Talks: exclude SkillsFuture. */}
+              </button>
+              {/* NSA/ILP: Conditionally render SkillsFuture. Marriage Prep: always show. Paid Talks: exclude SkillsFuture. */}
               {(
-                isNSA && (
+                (isNSA || isILP) && (
                   // SkillsFuture not available for Community Ukulele Level 2 per request
                   // so we remove the explicit equality check and only exclude the
                   // mandarin variants and the forbidden chinese name.
@@ -196,21 +195,18 @@ class CourseDetailsSection extends Component {
                   courseChineseName !== "音乐祝福社区四弦琴班"
                 )
               ) && !isMarriagePrep && !isPaidTalks ? (
-                <label>
-                  <input
-                    type="radio"
-                    value="SkillsFuture"
-                    checked={selectedPayment === 'SkillsFuture'}
-                    onChange={this.handlePaymentChange}
-                  />
+                <button
+                  type="button"
+                  className={`payment-button ${selectedPayment === 'SkillsFuture' ? 'payment-button--selected' : ''}`}
+                  onClick={() => this.handlePaymentChange({ target: { value: 'SkillsFuture' } })}
+                >
                   SkillsFuture
-                </label>
+                </button>
               ) : null}
-              
             </div>
-            {/* Display error message if no payment option is selected, paymentTouched is true, and courseType is NSA, Marriage Prep, or paid Talks */}
-            {(isNSA || isMarriagePrep || isPaidTalks) && !selectedPayment && paymentTouched && (
-              <span className="error-message3">
+            {/* Display error message if no payment option is selected, paymentTouched is true, and courseType is NSA, ILP, Marriage Prep, or paid Talks */}
+            {(isNSA || isILP || isMarriagePrep || isPaidTalks) && !selectedPayment && paymentTouched && (
+              <span className="field-validation-message" id="validation-error-payment">
                 {isMalayLanguage ? 'Sila pilih pilihan pembayaran.' : 'Please select a payment option. 请选择付款方式。'}
               </span>
             )}

@@ -1169,14 +1169,18 @@ def generate_invoice_view_react(request):
 
     p = inflect.engine()
 
+    # COMMENTED OUT: SkillsFuture filtering
     # Query for filtering documents
-    query = {
-        "course.payment": "SkillsFuture",
-        "status": "Paid",
-        "official.receiptNo": {"$ne": ""}
-    }
-
-    documents = list(collection.find(query))
+    # query = {
+    #     "course.payment": "SkillsFuture",
+    #     "status": "Paid",
+    #     "official.receiptNo": {"$ne": ""}
+    # }
+    #
+    # documents = list(collection.find(query))
+    
+    # For now, return empty list or skip this functionality
+    documents = []
 
     # Aggregation dictionary to store data
     course_data = defaultdict(lambda: {

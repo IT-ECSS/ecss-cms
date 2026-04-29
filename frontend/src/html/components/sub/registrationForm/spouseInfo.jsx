@@ -265,7 +265,7 @@ class SpouseInfo extends Component {
                 className="personal-info-input1"
               />
             )}
-            {errors[field.name] && <span className="error-message3">{errors[field.name]}</span>}
+            {errors[field.name] && <span className="field-validation-message" id={`validation-error-${field.name}`}>{errors[field.name]}</span>}
           </div>
         ))}
 
@@ -282,7 +282,7 @@ class SpouseInfo extends Component {
               onChange={this.handleChange}
               className="personal-info-input1"
             />
-            {errors.howFoundOutOthers && <span className="error-message3">{errors.howFoundOutOthers}</span>}
+            {errors.howFoundOutOthers && <span className="field-validation-message" id="validation-error-howFoundOutOthers">{errors.howFoundOutOthers}</span>}
           </div>
         )}
       </div>

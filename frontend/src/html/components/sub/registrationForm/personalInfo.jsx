@@ -836,21 +836,36 @@ class PersonalInfo extends Component {
         {sections.map((section) => (
           <div key={section.name} className="input-group1">
             <label htmlFor={section.name}>{section.label}</label>
+            {/* Subheadings for all field types */}
+            <div className="subheading-text">
+              {section.name === 'pName' && 'Click and type your full name 点击并输入您的全名'}
+              {section.name === 'nRIC' && 'Click and type your NRIC/FIN 点击并输入您的身份证/身份号码'}
+              {section.name === 'rESIDENTIALSTATUS' && 'Click to select your residential status 点击选择您的居民身份'}
+              {section.name === 'rACE' && 'Click to select your ethnicity 点击选择您的种族'}
+              {section.name === 'gENDER' && 'Click to select your gender 点击选择您的性别'}
+              {section.name === 'dOB' && 'Click and type your date of birth 点击并输入您的出生日期'}
+              {section.name === 'eDUCATION' && 'Click to select your highest educational attainment 点击选择您最高的教育程度'}
+              {section.name === 'wORKING' && 'Click to select your work status 点击选择您的工作状态'}
+              {section.name === 'address' && 'Click and type your residential address 点击并输入您的住宅地址'}
+              {section.name === 'cNO' && 'Click and type your contact number 点击并输入您的联络号码'}
+              {section.name === 'eMAIL' && 'Click and type your email 点击并输入您的电子邮件'}
+              {section.name === 'postalCode' && 'Click and type your postal code 点击并输入您的邮编'}
+            </div>
             {section.isRadio ? (
-              <div className="radio-group1">
+              <div className="button-option-group">
                 {optionMappings[section.name]?.map((option) => (
-                  <label key={option} className="radio-option1">
-                    <input
-                      type="radio"
-                      name={section.name}
-                      value={option}
-                      checked={data[section.name] === option}
-                      onChange={this.handleChange}
-                      onClick={this.closeCalendar}
-                      disabled={singPassPopulatedFields?.[section.name]} // Disable if populated by SingPass
-                    />
+                  <button
+                    key={option}
+                    type="button"
+                    className={`button-option ${data[section.name] === option ? 'button-option--selected' : ''}`}
+                    onClick={() => {
+                      this.props.onChange({ [section.name]: option });
+                      this.closeCalendar();
+                    }}
+                    disabled={singPassPopulatedFields?.[section.name]}
+                  >
                     {option}
-                  </label>
+                  </button>
                 ))}
               </div>
             ) : section.isDropdown || (section.isSelect && !section.isRadio && !section.isDate) ? (
@@ -960,15 +975,17 @@ class PersonalInfo extends Component {
                 disabled={singPassPopulatedFields?.[section.name]}
               />
             )}
-            {errors[section.name] && <span className="error-message3">{errors[section.name]}</span>}
+            {errors[section.name] && <span className="field-validation-message" id={`validation-error-${section.name}`}>{errors[section.name]}</span>}
           </div>
-        ))}
-        
+        ))}        
         {/* Contact Number and Email - Only show for NSA/ILP (not Marriage Preparation Programme or Talks And Seminar) */}
         {!isMarriagePreparation && !isTalksAndSeminar && (
           <>
             <div className="input-group1">
               <label htmlFor="cNO">Contact No. 联络号码</label>
+              <div className="subheading-text">
+                Click and type your contact number 点击并输入您的联络号码
+              </div>
               <input
                 type="text"
                 id="cNO"
@@ -980,11 +997,14 @@ class PersonalInfo extends Component {
                 onClick={this.closeCalendar}
                 disabled={false}
               />
-              {errors.cNO && <span className="error-message3">{errors.cNO}</span>}
+              {errors.cNO && <span className="field-validation-message" id="validation-error-cNO">{errors.cNO}</span>}
             </div>
             
             <div className="input-group1">
               <label htmlFor="eMAIL">Email 电子邮件</label>
+              <div className="subheading-text">
+                Click and type your email 点击并输入您的电子邮件
+              </div>
               <input
                 type="email"
                 id="eMAIL"
@@ -996,7 +1016,7 @@ class PersonalInfo extends Component {
                 onClick={this.closeCalendar}
                 disabled={false}
               />
-              {errors.eMAIL && <span className="error-message3">{errors.eMAIL}</span>}
+              {errors.eMAIL && <span className="field-validation-message" id="validation-error-eMAIL">{errors.eMAIL}</span>}
             </div>
           </>
         )}

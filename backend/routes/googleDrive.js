@@ -1,7 +1,6 @@
 var express = require('express');
 var router = express.Router();
 var GoogleDriveController = require('../Controller/Google/GoogleDriveController');
-const { invalidateSheetCache } = require('../Controller/Google/GoogleDriveController');
 var fs = require('fs');
 var path = require('path');
 const XLSX = require('xlsx');
@@ -107,48 +106,6 @@ router.post('/downloadZip', async (req, res) => {
         res.send(result.fileBuffer);
     } catch (error) {
         console.error('Error in POST /downloadZip:', error.message);
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-/**
- * POST /googleDrive/listFFTDriveFiles
- * Recursively list all files in the FFT Drive folder and its subfolders.
- */
-router.post('/listFFTDriveFiles', async (req, res) => {
-    try {
-        const FFT_FOLDER_ID = '1EsnCGO1QfPrqfmDtsy-cELUO3UyZKCci';
-        const allFiles = [];
-
-        // Only collect files from subfolders, not the root FFT folder itself
-        async function collectSubfolderFiles(folderId) {
-            const result = await googleDriveController.listFilesInFolder(folderId);
-            if (!result.success) return;
-            allFiles.push(...result.files);
-            for (const folder of result.folders) {
-                await collectSubfolderFiles(folder.id);
-            }
-        }
-
-        const rootResult = await googleDriveController.listFilesInFolder(FFT_FOLDER_ID);
-        if (rootResult.success) {
-            for (const folder of rootResult.folders) {
-                await collectSubfolderFiles(folder.id);
-            }
-        }
-
-        const SPREADSHEET_MIME = 'application/vnd.google-apps.spreadsheet';
-        const files = allFiles
-            .filter(f => f.mimeType === SPREADSHEET_MIME)
-            .map(f => ({
-                id: f.id,
-                name: f.name,
-                createdTime: f.createdTime || '',
-            }));
-
-        res.json({ success: true, files });
-    } catch (error) {
-        console.error('[FFT] Error listing FFT Drive files:', error.message);
         res.status(500).json({ success: false, error: error.message });
     }
 });
@@ -438,33 +395,27 @@ router.post('/generateTemplate', async (req, res) => {
 });
 
 // POST endpoint to retrieve all events from the index sheet
-// Returns: { success, data (raw array of arrays), rows (mapped objects) }
+// Returns: { rows: [{serialNumber, eventName, timeSlots, maxParticipants, createdOn, fileId, registrationLink, qrCodeUrl}] }
 router.post('/getIndexSheet', async (req, res) => {
     try {
         const INDEX_SHEET_ID = '1fMyjRlqj3ZEj9OcWCP_HtViLbgYG2zW4i-qZUdVOMXo';
-        // Always bust the cache so the admin sees the latest sheet data.
-        invalidateSheetCache(INDEX_SHEET_ID);
         const result = await googleDriveController.readSpreadsheet(INDEX_SHEET_ID);
         if (!result.success) {
             return res.status(500).json({ success: false, error: 'Failed to read index sheet' });
         }
-        // New column order: A=S/N, B=Event Name, C=Status, D=Time Slots, E=Max Participants,
-        //                   F=Created On, G=File ID, H=Registration Link, I=QR Code
         const rows = (result.data || [])
             .filter(row => row[1] && String(row[1]).trim()) // must have event name
             .map(row => ({
                 serialNumber:     String(row[0] || '').trim(),
                 eventName:        String(row[1] || '').trim(),
-                status:           String(row[2] || '').trim(),
-                timeSlots:        String(row[3] || '').trim(),
-                maxParticipants:  String(row[4] || '').trim(),
-                createdOn:        String(row[5] || '').trim(),
-                fileId:           String(row[6] || '').trim(),
-                registrationLink: String(row[7] || '').trim(),
-                qrCodeUrl:        String(row[8] || '').trim(),
+                timeSlots:        String(row[2] || '').trim(),
+                maxParticipants:  String(row[3] || '').trim(),
+                createdOn:        String(row[4] || '').trim(),
+                fileId:           String(row[5] || '').trim(),
+                registrationLink: String(row[6] || '').trim(),
+                qrCodeUrl:        String(row[7] || '').trim(),
             }));
-        // Also expose raw data so frontend components can use row index access
-        res.json({ success: true, data: result.data, rows });
+        res.json({ success: true, rows });
     } catch (error) {
         console.error('[FFT] Error in POST /getIndexSheet:', error.message);
         res.status(500).json({ success: false, error: error.message });
@@ -643,9 +594,6 @@ router.post('/updateRow', async (req, res) => {
             return res.status(500).json(result);
         }
 
-        // Bust sheet cache so subsequent getRow calls see the updated data
-        invalidateSheetCache(fileId);
-
         // Emit Socket.IO event with actual data for live updates
         const io = req.app.get('io');
         if (io) {
@@ -711,27 +659,16 @@ router.post('/fftSubmit', async (req, res) => {
             });
         }
 
-        // Extract field data from participantData
-        // Frontend sends field names as-is from the form (e.g., '30 secs Dumbbell Curl')
         const {
             name = '', phone = '', gender = '',
             dateOfBirth = '', age: providedAge = '',
             startTime = '', endTime = '',
             height = '', weight = '', bmi = '',
             dateOfTest: providedDateOfTest = '',
-            entryMethod: _entryMethodFromData = '',
+            sitStand = '', armBanding = '', marchingInPlace = '',
+            sitReach = '', backStretching = '', speedWalk = '',
+            gripTest = '', improvements = '', remarks = '',
         } = participantData;
-
-        // Extract fitness station values using display names
-        const sitStand = participantData['30 secs Sit & Stand'] || '';
-        const dumbbellCurl = participantData['30 secs Dumbbell Curl'] || '';
-        const marchingInPlace = participantData['2 min On-the-spot Marching'] || '';
-        const sitReach = participantData['Sit & Reach'] || '';
-        const backStretching = participantData['Back Stretching'] || '';
-        const speedWalk = participantData['2.44m Speed Walk'] || '';
-        const gripTest = participantData['Grip test'] || '';
-        const improvements = participantData.Improvements || '';
-        const remarks = participantData.Remarks || '';
 
         // Normalise to strings (Excel bulk upload may send numbers)
         const nameStr  = String(name || '').trim();
@@ -854,7 +791,7 @@ router.post('/fftSubmit', async (req, res) => {
         // A=Participant Number | B=Name | C=Phone Number | D=Gender | E=DD | F=MM | G=YYYY |
         // H=Start Time | I=End Time | J=Age |
         // K=Height | L=Weight | M=BMI | N=Date of test |
-        // O=30 secs Sit & Stand | P=30 secs Dumbbell Curl | Q=2 min On-the-spot Marching |
+        // O=30 secs Sit & Stand | P=30 secs Arm Banding | Q=2 min On-the-spot Marching |
         // R=Sit & Reach | S=Back Stretching | T=2.44m Speed Walk | U=Grip test | V=Improvements | W=Remarks
         const nextSN = lastSN + 1;
         const rowData = [
@@ -865,7 +802,7 @@ router.post('/fftSubmit', async (req, res) => {
             String(age),                                                   // J: Age
             String(height), String(weight), String(bmi),                   // K L M: Height, Weight, BMI
             dateOfTest || String(providedDateOfTest),                      // N: Date of test
-            String(sitStand), String(dumbbellCurl), String(marchingInPlace), // O P Q: 30s Sit&Stand, 30s Dumbbell Curl, 2min Marching
+            String(sitStand), String(armBanding), String(marchingInPlace), // O P Q: 30s Sit&Stand, 30s Arm Banding, 2min Marching
             String(sitReach), String(backStretching), String(speedWalk),   // R S T: Sit&Reach, Back Stretching, 2.44m Speed Walk
             String(gripTest), String(improvements), String(remarks),       // U V W: Grip test, Improvements, Remarks
         ];
@@ -1128,59 +1065,6 @@ router.post('/validateAccessRights', async (req, res) => {
         return res.json({ success: true, accountRole: (match[1] || '').trim() });
     } catch (error) {
         console.error('[FFT] Error in POST /validateAccessRights:', error.message);
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-// ════════════ DELETE EVENT ════════════
-/**
- * DELETE /googleDrive/deleteEvent
- * Delete an FFT event file from Google Drive
- */
-router.post('/deleteEvent', async (req, res) => {
-    try {
-        const { fileId } = req.body;
-
-        if (!fileId) {
-            return res.status(400).json({ success: false, error: 'File ID is required' });
-        }
-
-        console.log(`[FFT] Deleting event file: ${fileId}`);
-        
-        const result = await googleDriveController.deleteFile(fileId);
-        if (!result.success) {
-            return res.status(400).json(result);
-        }
-
-        res.json({ success: true, message: 'Event deleted successfully' });
-    } catch (error) {
-        console.error('[FFT] Error deleting event:', error.message);
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-/**
- * DELETE /googleDrive/deleteEventEntry
- * Delete an entry from master data spreadsheet and move up one row
- */
-router.post('/deleteEventEntry', async (req, res) => {
-    try {
-        const { spreadsheetId, eventName, rowIndex, sheetName } = req.body;
-
-        if (!spreadsheetId || rowIndex === undefined) {
-            return res.status(400).json({ success: false, error: 'Spreadsheet ID and row index are required' });
-        }
-
-        console.log(`[FFT] Deleting entry at row ${rowIndex} from master sheet`);
-
-        const result = await googleDriveController.deleteRow(spreadsheetId, rowIndex, sheetName);
-        if (!result.success) {
-            return res.status(400).json(result);
-        }
-
-        res.json({ success: true, message: 'Entry deleted successfully' });
-    } catch (error) {
-        console.error('[FFT] Error deleting entry:', error.message);
         res.status(500).json({ success: false, error: error.message });
     }
 });

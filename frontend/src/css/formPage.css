@@ -137,8 +137,6 @@ h2 {
     background-color: rgba(238, 74, 74, 0.37);
     display: flex;
     flex-direction: column;
-    animation: formFadeIn 0.6s ease-out;
-}
     min-height: 200px; /* Set a minimum height for the form container */
     box-sizing: border-box;
 }
@@ -644,7 +642,7 @@ h2 {
 }
 
 /* Error Messages */
-.error-message, .error-message3 {
+.error-message, .field-validation-message {
     color: red;
     font-weight: bold;
     font-size: 1.2rem; /* Reduce font size for smaller screens */
@@ -718,7 +716,7 @@ h2 {
         width: 100%; /* Make buttons full width on small screens */
     }
 
-    .error-message, .error-message3 {
+    .error-message, .field-validation-message {
         font-size: 1rem; /* Adjust error message size for small screens */
     }
 
@@ -786,7 +784,7 @@ h2 {
         width: 100%;
     }
 
-    .error-message, .error-message3 {
+    .error-message, .field-validation-message {
         font-size: 1rem; /* Adjust error size */
     }
 

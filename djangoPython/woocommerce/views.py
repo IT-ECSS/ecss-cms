@@ -304,15 +304,19 @@ def generate_invoice_view(request):
 
     p = inflect.engine()
 
+    # COMMENTED OUT: SkillsFuture filtering
     # Filter for course.payment = "SkillsFuture", status = "Paid", and receiptNo is not empty
-    query = {
-        "course.payment": "SkillsFuture",
-        "status": "Paid",
-        "official.receiptNo": {"$ne": ""}
-    }
-
-    # Retrieve the filtered documents
-    documents = list(collection.find(query))
+    # query = {
+    #     "course.payment": "SkillsFuture",
+    #     "status": "Paid",
+    #     "official.receiptNo": {"$ne": ""}
+    # }
+    #
+    # # Retrieve the filtered documents
+    # documents = list(collection.find(query))
+    
+    # For now, return empty list
+    documents = []
 
     # Aggregation dictionary to store the data in the desired format
     course_data = defaultdict(lambda: {
