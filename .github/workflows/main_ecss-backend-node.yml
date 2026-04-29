@@ -20,6 +20,8 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '22.x'
+          cache: 'npm'
+          cache-dependency-path: 'backend/package-lock.json'
 
       - name: Validate Required Secrets
         run: |
@@ -50,17 +52,15 @@ jobs:
       - name: Install and build (backend)
         working-directory: backend
         run: |
-          npm ci
-          npm install
+          npm ci --omit=dev
           npm run build --if-present
 
       - name: Create deployment package
         run: |
           cd backend
+          # Include node_modules in deployment to avoid npm install on Azure
           zip -r ../node-deploy.zip . \
-            --exclude "node_modules/*" \
-            --exclude "*.log" \
-            --exclude ".DS_Store"
+            -x "*.log" ".DS_Store" ".git*" ".env*" "*.local"
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -78,7 +78,7 @@ jobs:
               GOOGLE_DRIVE_FOLDER_ID="1DF81mvA5pv8_X-_uP8528Vb1xNfs1D8M" \
               GOOGLE_SERVICE_ACCOUNT_NORSE='${{ secrets.GOOGLE_SERVICE_ACCOUNT_NORSE }}' \
               NODE_ENV="production" \
-              SCM_DO_BUILD_DURING_DEPLOYMENT="true"
+              SCM_DO_BUILD_DURING_DEPLOYMENT="false"
           echo "✓ All settings configured in Azure"
 
       - name: Configure Google Drive Credentials
@@ -99,17 +99,24 @@ jobs:
       - name: Verify deployment health
         run: |
           echo "Waiting for app to be ready..."
-          sleep 30
+          MAX_RETRIES=30
+          RETRY=0
           
-          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://ecss-backend-node.azurewebsites.net/health 2>/dev/null || echo "000")
+          while [ $RETRY -lt $MAX_RETRIES ]; do
+            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://ecss-backend-node.azurewebsites.net/health 2>/dev/null || echo "000")
+            
+            if [ "$RESPONSE" = "200" ] || [ "$RESPONSE" = "404" ]; then
+              echo "✓ Deployment verified - App is running (HTTP $RESPONSE)"
+              exit 0
+            fi
+            
+            RETRY=$((RETRY + 1))
+            if [ $RETRY -lt $MAX_RETRIES ]; then
+              sleep 1
+            fi
+          done
           
-          if [ "$RESPONSE" = "200" ]; then
-            echo "✓ Deployment verified - App is running"
-          elif [ "$RESPONSE" = "404" ]; then
-            echo "✓ App is running (health endpoint not found - expected)"
-          else
-            echo "⚠ Warning: Unexpected response code: $RESPONSE"
-          fi
+          echo "⚠ Warning: Deployment health check timed out after ${MAX_RETRIES}s"
         continue-on-error: true
 
       - name: Output deployment summary

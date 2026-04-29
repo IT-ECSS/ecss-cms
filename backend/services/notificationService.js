@@ -20,9 +20,16 @@ if (!ONESIGNAL_APP_ID || !ONESIGNAL_API_KEY) {
 /**
  * Send a OneSignal push notification to all users except those on the form page.
  * The notification URL is always set to the Azure SWA URL.
+ * For localhost development, this function will skip sending notifications.
  */
 async function sendOneSignalNotification({ title, message }) {
-  try {    
+  try {
+    // Skip OneSignal for localhost development
+    if (process.env.NODE_ENV !== 'production' && !ONESIGNAL_APP_ID) {
+      console.log("⚠️ Skipping OneSignal notification (localhost development mode)");
+      return { success: false, reason: "Localhost development - OneSignal disabled" };
+    }
+    
     // Always use Azure SWA URL for notifications
     const url = "https://salmon-wave-09f02b100.6.azurestaticapps.net/";
 
