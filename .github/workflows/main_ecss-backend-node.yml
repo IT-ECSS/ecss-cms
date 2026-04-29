@@ -108,6 +108,8 @@ jobs:
           app-name: 'ecss-backend-node'
           slot-name: 'Production'
           package: ./node-deploy.zip
+          clean: true
+          restart: true
 
       - name: Start App Service after deployment
         run: |
