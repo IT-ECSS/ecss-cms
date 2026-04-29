@@ -30,7 +30,7 @@ DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 # Allow all hosts for maximum accessibility
 #TS = ['127.0.0.1', 'localhost','*']
 # Original specific hosts (kept for reference):
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'ecss-backend-django-backup.azurewebsites.net', 'ecss-backend-django.azurewebsites.net', 'ecss.org.sg', '169.254.130.2', '169.254.131.2', '169.254.130.3', '169.254.130.4', '169.254.129.2', '169.254.129.4']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'ecss-backend-django-backup.azurewebsites.net', 'ecss-backend-django.azurewebsites.net', 'ecss.org.sg', '169.254.130.2', '169.254.131.2', '169.254.130.3', '169.254.130.4', '169.254.129.2', '169.254.129.4', '169.254.129.3']
 
 WOOCOMMERCE_API_URL = os.environ.get('WOOCOMMERCE_API_URL', 'https://ecss.org.sg/wp-json/wc/v3/')
 WOOCOMMERCE_CONSUMER_KEY = os.environ.get('WOOCOMMERCE_CONSUMER_KEY', 'ck_439198907a526a5a9e3f8391dfb5f4eea970b9d7')
@@ -78,7 +78,8 @@ CSRF_TRUSTED_ORIGINS = [
       'https://169.254.130.4',
       'https://169.254.129.2',
       'https://ecss.org.sg',
-      'https://169.254.129.4'
+      'https://169.254.129.4',
+      'https://169.254.129.3'
   ]
 # 
 CORS_ALLOWED_ORIGINS = [
@@ -93,7 +94,8 @@ CORS_ALLOWED_ORIGINS = [
       'https://169.254.130.4',
       'https://169.254.129.2',
       'https://ecss.org.sg',
-      'https://169.254.129.4'
+      'https://169.254.129.4',
+      'https://169.254.129.3'
   ]
 
 MIDDLEWARE = [
