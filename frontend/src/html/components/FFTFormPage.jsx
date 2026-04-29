@@ -32,23 +32,38 @@ class FFTFormPage extends Component {
     try {
       const res = await axios.post(`${BACKEND_URL}/googleDrive/getIndexSheet`);
       if (!res.data.success) throw new Error(res.data.error || 'Failed to load events');
-      const events = (res.data.data || [])
-        .filter(row => row[1] && row[6])
-        .map(row => ({
-          name: row[1].trim(),
-          id: row[6].trim(),
-          timeSlots: row[3] ? row[3].trim() : '',
-          maxParticipants: row[4] ? row[4].trim() : '',
-          status: row[2] ? String(row[2]).trim() : '',
-        }));
-      const found = events.find(e => e.name === targetName);
+      const rows = res.data.rows || res.data.data || [];
+
+      const events = rows
+        .map((row) => {
+          // Current API shape: object rows from /getIndexSheet
+          if (row && typeof row === 'object' && !Array.isArray(row)) {
+            return {
+              name: String(row.eventName || '').trim(),
+              id: String(row.fileId || '').trim(),
+              registrationLink: String(row.registrationLink || '').trim(),
+              timeSlots: String(row.timeSlots || '').trim(),
+              maxParticipants: String(row.maxParticipants || '').trim(),
+              status: String(row.status || '').trim(),
+            };
+          }
+
+          // Legacy fallback: array rows
+          return {
+            name: row && row[1] ? String(row[1]).trim() : '',
+            id: row && row[6] ? String(row[6]).trim() : '',
+            registrationLink: row && row[7] ? String(row[7]).trim() : '',
+            timeSlots: row && row[3] ? String(row[3]).trim() : '',
+            maxParticipants: row && row[4] ? String(row[4]).trim() : '',
+            status: row && row[2] ? String(row[2]).trim() : '',
+          };
+        })
+        .filter((e) => e.name);
+
+      const normalizedTargetName = String(targetName || '').trim();
+      const found = events.find((e) => e.name === normalizedTargetName);
       if (found) {
-        // Block access if the event is marked Past in the sheet.
-        if (found.status === 'Past') {
-          this.setState({ eventError: 'This event has ended. Registration is no longer available.', loadingEvent: false });
-          return;
-        }
-        // Fallback date check for events not yet processed by the expiry job.
+        // Block access only if the event date has strictly passed (before today).
         const dateMatch = /^(\d{4})\/(\d{2})\/(\d{2})/.exec(found.name || '');
         if (dateMatch) {
           const eventDate = new Date(`${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}T00:00:00+08:00`);
@@ -57,6 +72,10 @@ class FFTFormPage extends Component {
             this.setState({ eventError: 'This event has ended. Registration is no longer available.', loadingEvent: false });
             return;
           }
+        } else if (found.status === 'Past') {
+          // No parseable date — fall back to status flag only when date cannot be determined.
+          this.setState({ eventError: 'This event has ended. Registration is no longer available.', loadingEvent: false });
+          return;
         }
         this.setState({ initialEvent: found, loadingEvent: false });
       } else {

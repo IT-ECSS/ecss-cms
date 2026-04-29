@@ -37,15 +37,33 @@ class FFTVolunteers extends Component {
 
   storageKey = 'fftVolunteersSelection';
 
-  componentDidMount() {
+  componentDidMount = async () => {
     // Restore previously selected event/station from localStorage
     try {
       const saved = localStorage.getItem(this.storageKey);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && typeof parsed === 'object') {
+          let restoredEvent = parsed.selectedEvent || null;
+
+          // Backward compatibility: older saved state may store registrationLink in event.id.
+          if (restoredEvent && /^https?:\/\//i.test(String(restoredEvent.id || '')) && restoredEvent.name) {
+            try {
+              const resolveRes = await axios.post(`${BACKEND_URL}/googleDrive/getEventFileId`, {
+                eventName: restoredEvent.name,
+              });
+              if (resolveRes.data?.success && resolveRes.data?.fileId) {
+                restoredEvent = { ...restoredEvent, id: resolveRes.data.fileId };
+              } else {
+                restoredEvent = null;
+              }
+            } catch (e) {
+              restoredEvent = null;
+            }
+          }
+
           this.setState({
-            selectedEvent: parsed.selectedEvent || null,
+            selectedEvent: restoredEvent,
             selectedStation: parsed.selectedStation || null,
           }, () => {
             if (parsed.entryNumber != null && parsed.selectedStation) {
@@ -129,7 +147,7 @@ class FFTVolunteers extends Component {
     this.setState({ entryNumber, loadingParticipant: true, entryError: null, lookupError: null });
     
     try {
-      const res = await axios.post(`${BACKEND_URL}/googleDrive/getRow`, { fileId, entryNumber });
+      const res = await axios.post(`${BACKEND_URL}/googleDrive/getRow`, { fileId, entryNumber, eventName: selectedEvent?.name });
       
       if (res.data.success) {
         const data = res.data.data;

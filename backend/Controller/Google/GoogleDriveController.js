@@ -971,9 +971,12 @@ class GoogleDriveController {
                 return { success: false, error: cached.error };
             }
 
+            // _fetchSpreadsheet returns headers in cached.columns and
+            // data rows (header already stripped) in cached.data.
+            // entryNumber is 1-based: participant #1 = data[0], #2 = data[1], etc.
+            const headers = cached.columns || [];
             const allRows = cached.data || [];
-            const headers = allRows[0] || [];
-            const row = allRows[entryNumber] || []; // entryNumber is 1-based row index after header
+            const row = allRows[entryNumber - 1] || [];
 
             const data = {};
             headers.forEach((header, idx) => {

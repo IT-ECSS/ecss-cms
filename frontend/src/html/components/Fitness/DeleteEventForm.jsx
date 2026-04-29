@@ -43,8 +43,9 @@ const CheckboxCell = ({ node }) => {
     <input
       type="checkbox"
       checked={checked}
+      onClick={(e) => e.stopPropagation()}
       onChange={() => node.setSelected(!node.isSelected())}
-      style={{ cursor: 'pointer', width: 24, height: 24 }}
+      style={{ cursor: 'pointer', width: 18, height: 18 }}
     />
   );
 };
@@ -65,18 +66,17 @@ class DeleteEventForm extends Component {
     };
 
     this.columnDefs = [
-      { field: 'sn',        headerName: 'S/N',        width: 100,  sortable: true, pinned: 'left' },
-      { field: 'name',      headerName: 'Event Name', width: 300,    sortable: true, pinned: 'left'  },
-      { field: 'createdOn', headerName: 'Created On', width: 200, sortable: true },
+      { field: 'sn',        headerName: 'S/N',        width: 80,   sortable: true },
+      { field: 'name',      headerName: 'Event Name', flex: 1,     sortable: true },
+      { field: 'createdOn', headerName: 'Created On', width: 200,  sortable: true },
       {
         headerName: '',
-        width: 100,
-        pinned: 'right',
+        width: 60,
         sortable: false,
         suppressHeaderMenuButton: true,
         suppressMovable: true,
+        resizable: false,
         headerComponent: CheckboxHeader,
-        headerComponentParams: {},
         cellRenderer: CheckboxCell,
         cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
       },
@@ -163,14 +163,18 @@ class DeleteEventForm extends Component {
         // Step 2: Delete master sheet row
         try {
           const masterData = await axios.post(`${BACKEND_URL}/googleDrive/getIndexSheet`);
-          if (masterData.data.success && masterData.data.data) {
-            const eventRowIndex = masterData.data.data.findIndex(
-              row => row && row[1] && row[1].toString().trim() === event.name.trim()
-            );
+          if (masterData.data.success) {
+            const rows = masterData.data.rows || masterData.data.data || [];
+            const eventRowIndex = rows.findIndex((row) => {
+              if (row && typeof row === 'object' && !Array.isArray(row)) {
+                return String(row.eventName || '').trim() === event.name.trim();
+              }
+              return row && row[1] && row[1].toString().trim() === event.name.trim();
+            });
             if (eventRowIndex !== -1) {
               await axios.post(`${BACKEND_URL}/googleDrive/deleteEventEntry`, {
                 spreadsheetId: MASTER_SHEET_ID,
-                rowIndex: eventRowIndex + 1,
+                rowIndex: eventRowIndex,
                 eventName: event.name,
               });
             }
@@ -186,11 +190,14 @@ class DeleteEventForm extends Component {
     if (errors.length) {
       this.setState({ deleting: false, deleteError: errors.join('\n'), selectedRows: [] });
     } else {
-      this.setState({ deleting: false, deleteSuccess: true, selectedRows: [] });
-      setTimeout(() => {
-        this.loadEvents();
-        this.setState({ deleteSuccess: false });
-      }, 2000);
+      const deletedNames = new Set(selectedRows.map(e => e.name));
+      this.setState(prev => ({
+        deleting: false,
+        deleteSuccess: true,
+        selectedRows: [],
+        rowData: prev.rowData.filter(r => !deletedNames.has(r.name)),
+      }));
+      setTimeout(() => this.setState({ deleteSuccess: false }), 2000);
     }
   };
 
@@ -246,10 +253,10 @@ class DeleteEventForm extends Component {
                   fontWeight: 600,
                   width: 'fit-content',
                   cursor: deleting ? 'not-allowed' : 'pointer',
-                  opacity: deleting ? 0.4 : 1,
+                  opacity: deleting ? 0.5 : 1,
                 }}
               >
-                Delete
+                {deleting ? 'Deleting…' : 'Delete'}
               </button>
             </div>
           )}
@@ -261,7 +268,8 @@ class DeleteEventForm extends Component {
                 columnDefs={this.columnDefs}
                 rowData={rowData}
                 defaultColDef={this.defaultColDef}
-                rowSelection={{ mode: 'multiRow', checkboxes: false, headerCheckbox: false, enableClickSelection: true }}
+                rowSelection={{ mode: 'multiRow', checkboxes: false, headerCheckbox: false, enableClickSelection: false }}
+                onRowClicked={(e) => { if (e.event.target.type !== 'checkbox') e.node.setSelected(!e.node.isSelected()); }}
                 onSelectionChanged={this.handleSelectionChanged}
                 domLayout="normal"
                 pagination={true}

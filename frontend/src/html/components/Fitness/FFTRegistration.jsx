@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import axios from 'axios';
 import EventSelection from './EventSelection';
 import LanguageSelection from './LanguageSelection';
 import RegistrationSection from './RegistrationSection';
@@ -10,6 +11,10 @@ import { SelectionBadgesBar } from './SelectionBadges';
 import fftTranslations from './fftTranslations';
 import '../../../css/fftParticipants.css';
 import '../../../css/fftStaff.css';
+
+const BACKEND_URL = window.location.hostname === 'localhost'
+  ? 'http://localhost:3001'
+  : 'https://ecss-backend-node.azurewebsites.net';
 
 class FFTRegistration extends Component {
   constructor(props) {
@@ -27,16 +32,34 @@ class FFTRegistration extends Component {
 
   storageKey = 'fftRegistrationSelection';
 
-  componentDidMount() {
+  componentDidMount = async () => {
     try {
       const saved = localStorage.getItem(this.storageKey);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && typeof parsed === 'object') {
+          let restoredEvent = parsed.event || null;
+
+          // Backward compatibility: older saved state may store registrationLink in event.id.
+          if (restoredEvent && /^https?:\/\//i.test(String(restoredEvent.id || '')) && restoredEvent.name) {
+            try {
+              const resolveRes = await axios.post(`${BACKEND_URL}/googleDrive/getEventFileId`, {
+                eventName: restoredEvent.name,
+              });
+              if (resolveRes.data?.success && resolveRes.data?.fileId) {
+                restoredEvent = { ...restoredEvent, id: resolveRes.data.fileId };
+              } else {
+                restoredEvent = null;
+              }
+            } catch (e) {
+              restoredEvent = null;
+            }
+          }
+
           this.setState({
             view: parsed.view || 'selectLanguage',
             language: parsed.language || null,
-            event: parsed.event || null,
+            event: restoredEvent,
           });
         }
       }

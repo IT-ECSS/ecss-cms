@@ -30,20 +30,37 @@ class CreateFileForm extends React.Component {
     try {
       const response = await axios.post(`${BACKEND_URL}/googleDrive/getIndexSheet`);
 
-      if (response.data.success && response.data.data) 
+      if (response.data.success) 
     {
-        const rows = response.data.data;
-        // Sheet columns: A=S/N, B=Event Name, C=Status, D=Time Slots, E=Max Participants, F=Created On, G=File ID
+        const rows = response.data.rows || response.data.data || [];
+        // Sheet columns: A=S/N, B=Event Name, C=Status, D=Time Slots, E=Max Participants,
+        // F=Created On, G=File ID, H=Registration Link, I=QR Code
         // "Created" = column G has a File ID
-        const eventList = rows.filter(row => row.length > 0).map((row) => ({
-          sn: row[0] || '',
-          eventName: row[1] || '',
-          status: row[2] || '',
-          timeSlots: row[3] || '',
-          maxParticipants: row[4] || '',
-          createdOn: row[5] || '',
-          participantFileId: row[6] || '',
-        }));
+        const eventList = rows
+          .map((row) => {
+            if (row && typeof row === 'object' && !Array.isArray(row)) {
+              return {
+                sn: row.serialNumber || '',
+                eventName: row.eventName || '',
+                status: row.status || '',
+                timeSlots: row.timeSlots || '',
+                maxParticipants: row.maxParticipants || '',
+                createdOn: row.createdOn || '',
+                participantFileId: row.fileId || '',
+              };
+            }
+
+            return {
+              sn: row && row[0] ? row[0] : '',
+              eventName: row && row[1] ? row[1] : '',
+              status: row && row[2] ? row[2] : '',
+              timeSlots: row && row[3] ? row[3] : '',
+              maxParticipants: row && row[4] ? row[4] : '',
+              createdOn: row && row[5] ? row[5] : '',
+              participantFileId: row && row[6] ? row[6] : '',
+            };
+          })
+          .filter((row) => row.eventName);
 
         this.setState({ events: eventList, loadingEvents: false });
       } else {

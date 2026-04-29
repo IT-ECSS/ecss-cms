@@ -81,7 +81,7 @@ async function expireOldFFTEvents() {
             const eventDate = parseEventDate(eventName);
             if (!eventDate) continue; // date not parseable, leave untouched
 
-            if (eventDate <= today) {
+            if (eventDate < today) {
                 const sheetRow = i + 2; // 1-based + header offset
 
                 // ── Step 1: Set Status=Past (column C), clear Registration Link (column H) and QR Code (column I) ──

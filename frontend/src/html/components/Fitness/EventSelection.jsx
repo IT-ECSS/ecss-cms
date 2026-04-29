@@ -48,23 +48,37 @@ class EventSelection extends Component {
       const todaySGT = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Singapore' }));
       todaySGT.setHours(0, 0, 0, 0);
 
-      const events = (res.data.data || [])
-        .filter(row => {
-          if (!row[1] || !row[6]) return false;
+      const rows = res.data.rows || res.data.data || [];
+      const events = rows
+        .map((row) => {
+          if (row && typeof row === 'object' && !Array.isArray(row)) {
+            return {
+              name: String(row.eventName || '').trim(),
+              id: String(row.fileId || '').trim(),
+              registrationLink: String(row.registrationLink || '').trim(),
+              timeSlots: String(row.timeSlots || '').trim(),
+              maxParticipants: String(row.maxParticipants || '').trim(),
+            };
+          }
+
+          return {
+            name: row && row[1] ? String(row[1]).trim() : '',
+            id: row && row[6] ? String(row[6]).trim() : '',
+            registrationLink: row && row[7] ? String(row[7]).trim() : '',
+            timeSlots: row && row[3] ? String(row[3]).trim() : '',
+            maxParticipants: row && row[4] ? String(row[4]).trim() : '',
+          };
+        })
+        .filter((event) => {
+          if (!event.name || !event.id) return false;
           // Hide events whose date has already passed.
-          const m = /^(\d{4})\/(\d{2})\/(\d{2})/.exec(String(row[1]).trim());
+          const m = /^(\d{4})\/(\d{2})\/(\d{2})/.exec(event.name);
           if (m) {
             const eventDate = new Date(`${m[1]}-${m[2]}-${m[3]}T00:00:00+08:00`);
             if (eventDate < todaySGT) return false;
           }
           return true;
-        })
-        .map(row => ({
-          name: row[1].trim(),
-          id: row[6].trim(),
-          timeSlots: row[3] ? row[3].trim() : '',
-          maxParticipants: row[4] ? row[4].trim() : '',
-        }));
+        });
 
       this.setState({ events, loading: false });
     } catch (err) {

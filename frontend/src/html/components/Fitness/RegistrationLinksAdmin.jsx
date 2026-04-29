@@ -32,6 +32,11 @@ class RegistrationLinksAdmin extends Component {
       loading: true,
       error: null,
       qrModal: null, // { value, eventName }
+      fileIdModal: null, // { eventName }
+      fileIdInput: '',
+      fileIdSaving: false,
+      fileIdError: null,
+      fileIdSuccess: null,
     };
 
     this.columnDefs = [
@@ -59,7 +64,7 @@ class RegistrationLinksAdmin extends Component {
       {
         field: 'qrCode',
         headerName: 'QR Code',
-        width: 500,
+        width: 420,
         sortable: false,
         wrapText: true,
         autoHeight: true,
@@ -83,14 +88,28 @@ class RegistrationLinksAdmin extends Component {
 
       // Sheet columns: A=S/N, B=Event Name, C=Status, D=Time Slots, E=Max Participants,
       //                F=Created On, G=File ID, H=Registration Link, I=QR Code
-      const rowData = (res.data.data || [])
-        .filter(row => row[1])
-        .map((row, idx) => ({
-          sn:               row[0] || idx + 1,
-          name:             (row[1] || '').trim(),
-          registrationLink: (row[7] || '').trim(),
-          qrCode:           (row[8] || '').trim(),
-        }));
+      const rows = res.data.rows || res.data.data || [];
+      const rowData = rows
+        .map((row, idx) => {
+          if (row && typeof row === 'object' && !Array.isArray(row)) {
+            return {
+              sn: row.serialNumber || idx + 1,
+              name: String(row.eventName || '').trim(),
+              fileId: String(row.fileId || '').trim(),
+              registrationLink: String(row.registrationLink || '').trim(),
+              qrCode: String(row.qrCodeUrl || '').trim(),
+            };
+          }
+
+          return {
+            sn: row && row[0] ? row[0] : idx + 1,
+            name: row && row[1] ? String(row[1]).trim() : '',
+            fileId: row && row[6] ? String(row[6]).trim() : '',
+            registrationLink: row && row[7] ? String(row[7]).trim() : '',
+            qrCode: row && row[8] ? String(row[8]).trim() : '',
+          };
+        })
+        .filter((row) => row.name);
 
       this.setState({ rowData, loading: false });
     } catch (err) {
@@ -106,8 +125,41 @@ class RegistrationLinksAdmin extends Component {
     this.setState({ qrModal: null });
   };
 
+  handleSetFileId = (eventName) => {
+    this.setState({ fileIdModal: { eventName }, fileIdInput: '', fileIdError: null, fileIdSuccess: null });
+  };
+
+  handleCloseFileIdModal = () => {
+    this.setState({ fileIdModal: null, fileIdInput: '', fileIdError: null, fileIdSuccess: null });
+  };
+
+  handleSaveFileId = async () => {
+    const { fileIdModal, fileIdInput } = this.state;
+    if (!fileIdInput.trim()) {
+      this.setState({ fileIdError: 'Please enter a Google Sheets URL or File ID.' });
+      return;
+    }
+    this.setState({ fileIdSaving: true, fileIdError: null, fileIdSuccess: null });
+    try {
+      const res = await axios.post(`${BACKEND_URL}/googleDrive/setEventFileId`, {
+        eventName: fileIdModal.eventName,
+        sheetsUrl: fileIdInput.trim(),
+        fileId: fileIdInput.trim(),
+      });
+      if (res.data.success) {
+        this.setState({ fileIdSuccess: `File ID set to: ${res.data.fileId}`, fileIdSaving: false });
+        // Refresh the grid
+        await this.loadEvents();
+      } else {
+        this.setState({ fileIdError: res.data.error || 'Failed to set file ID.', fileIdSaving: false });
+      }
+    } catch (err) {
+      this.setState({ fileIdError: err.response?.data?.error || err.message || 'Error saving file ID.', fileIdSaving: false });
+    }
+  };
+
   render() {
-    const { rowData, loading, error, qrModal } = this.state;
+    const { rowData, loading, error, qrModal, fileIdModal, fileIdInput, fileIdSaving, fileIdError, fileIdSuccess } = this.state;
 
     const isImageUrl = (v) =>
       v.startsWith('http://') || v.startsWith('https://') || v.startsWith('data:image');
@@ -144,11 +196,69 @@ class RegistrationLinksAdmin extends Component {
                 paginationPageSize={rowData.length}
                 paginationPageSizeSelector={[25, 50, 75, 100, rowData.length]}
                 suppressCellFocus={true}
-                context={{ onViewQR: this.handleViewQR }}
+                context={{ onViewQR: this.handleViewQR, onSetFileId: this.handleSetFileId }}
               />
             </div>
           )}
         </div>
+
+        {/* ── Set File ID Modal ── */}
+        {fileIdModal && (
+          <div
+            onClick={this.handleCloseFileIdModal}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 9999,
+              background: 'rgba(0,0,0,0.55)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{
+                background: '#fff', borderRadius: 12, padding: 32,
+                maxWidth: 480, width: '90%',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+              }}
+            >
+              <h4 style={{ marginBottom: 8, fontSize: '1.05rem', fontWeight: 700, color: '#222' }}>
+                Set File ID
+              </h4>
+              <p style={{ fontSize: '0.88rem', color: '#555', marginBottom: 16 }}>
+                <strong>{fileIdModal.eventName}</strong><br />
+                Paste the Google Sheets URL (e.g. <em>https://docs.google.com/spreadsheets/d/…/edit</em>) or just the File ID.
+              </p>
+              <input
+                type="text"
+                value={fileIdInput}
+                onChange={e => this.setState({ fileIdInput: e.target.value, fileIdError: null, fileIdSuccess: null })}
+                placeholder="Google Sheets URL or File ID"
+                style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #ccc', fontSize: '0.9rem', marginBottom: 10, boxSizing: 'border-box' }}
+                onKeyDown={e => { if (e.key === 'Enter') this.handleSaveFileId(); }}
+              />
+              {fileIdError && <p style={{ color: '#d32f2f', fontSize: '0.85rem', marginBottom: 8 }}>{fileIdError}</p>}
+              {fileIdSuccess && <p style={{ color: '#2e7d32', fontSize: '0.85rem', marginBottom: 8 }}>{fileIdSuccess}</p>}
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
+                <button
+                  type="button"
+                  onClick={this.handleCloseFileIdModal}
+                  style={{ padding: '8px 20px', background: '#f5f5f5', border: '1px solid #ccc', borderRadius: 6, cursor: 'pointer', fontSize: '0.9rem' }}
+                >
+                  {fileIdSuccess ? 'Close' : 'Cancel'}
+                </button>
+                {!fileIdSuccess && (
+                  <button
+                    type="button"
+                    onClick={this.handleSaveFileId}
+                    disabled={fileIdSaving}
+                    style={{ padding: '8px 20px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: 6, cursor: fileIdSaving ? 'not-allowed' : 'pointer', fontSize: '0.9rem', fontWeight: 600 }}
+                  >
+                    {fileIdSaving ? 'Saving…' : 'Save'}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── QR Code Modal ── */}
         {qrModal && (

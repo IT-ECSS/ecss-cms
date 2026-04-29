@@ -8,8 +8,40 @@ const XlsxPopulate = require('xlsx-populate');
 const JSZip = require('jszip');
 const { COLUMN_HEADERS } = require('../constants/fftFieldMappings');
 const REGISTRATION_TEMPLATE_FILE_ID = '1xu3UtY6fm3O09_vwlCk1p_NZM0waWrzUMsDGmJbmNDk';
+const FFT_INDEX_SHEET_ID = '1fMyjRlqj3ZEj9OcWCP_HtViLbgYG2zW4i-qZUdVOMXo';
 
 const googleDriveController = new GoogleDriveController();
+
+function isUrlLike(value) {
+    return /^https?:\/\//i.test(String(value || '').trim());
+}
+
+// Resolves URL-shaped registration links to the corresponding FFT participant file ID.
+// Accepts either a direct fileId or a registrationLink URL; falls back to eventName matching.
+async function resolveFFTFileId(inputFileId, eventName = '') {
+    const raw = String(inputFileId || '').trim();
+    if (!raw) return '';
+    if (!isUrlLike(raw)) return raw;
+
+    // If the URL is a direct Google Sheets link, extract the file ID from it
+    const sheetsMatch = /\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/.exec(raw);
+    if (sheetsMatch) return sheetsMatch[1];
+
+    const result = await googleDriveController.readSpreadsheet(FFT_INDEX_SHEET_ID);
+    if (!result.success) return '';
+
+    const rows = result.data || [];
+    const normalizedEventName = String(eventName || '').trim();
+    const matched = rows.find((row) => {
+        const rowEventName = String(row[1] || '').trim();
+        const rowRegistrationLink = String(row[7] || '').trim();
+        if (rowRegistrationLink && rowRegistrationLink === raw) return true;
+        if (normalizedEventName && rowEventName === normalizedEventName) return true;
+        return false;
+    });
+
+    return matched ? String(matched[6] || '').trim() : '';
+}
 
 
 
@@ -287,10 +319,13 @@ router.post('/generateTemplate', async (req, res) => {
             const allRows = result.data || [];
             console.log(`[generateTemplate] Total rows in index sheet: ${allRows.length}`);
             console.log(`[generateTemplate] Looking for event: "${eventName}"`);
-            allRows.forEach((row, i) => console.log(`[generateTemplate] Row ${i}: B="${row[1]}", C="${row[2]}"`));
+            allRows.forEach((row, i) => console.log(`[generateTemplate] Row ${i}: B="${row[1]}", C(Status)="${row[2]}", D(Time Slots)="${row[3]}"`));
 
             const eventRow = allRows.find(row => (row[1] || '').trim() === eventName.trim());
-            const timeSlotsStr = eventRow ? (eventRow[2] || '') : '';
+            // New order: C=Status, D=Time Slots. Keep fallback to C for legacy rows.
+            const candidateSlots = eventRow ? String(eventRow[3] || '').trim() : '';
+            const legacySlots = eventRow ? String(eventRow[2] || '').trim() : '';
+            const timeSlotsStr = candidateSlots || legacySlots;
             console.log(`[generateTemplate] Found event row: ${!!eventRow}, timeSlotsStr: "${timeSlotsStr}"`);
 
             if (timeSlotsStr) {
@@ -395,7 +430,7 @@ router.post('/generateTemplate', async (req, res) => {
 });
 
 // POST endpoint to retrieve all events from the index sheet
-// Returns: { rows: [{serialNumber, eventName, timeSlots, maxParticipants, createdOn, fileId, registrationLink, qrCodeUrl}] }
+// Returns: { rows: [{serialNumber, eventName, status, timeSlots, maxParticipants, createdOn, fileId, registrationLink, qrCodeUrl}] }
 router.post('/getIndexSheet', async (req, res) => {
     try {
         const INDEX_SHEET_ID = '1fMyjRlqj3ZEj9OcWCP_HtViLbgYG2zW4i-qZUdVOMXo';
@@ -403,18 +438,35 @@ router.post('/getIndexSheet', async (req, res) => {
         if (!result.success) {
             return res.status(500).json({ success: false, error: 'Failed to read index sheet' });
         }
+
+        // Extract Google Sheets file ID from a URL like:
+        // https://docs.google.com/spreadsheets/d/FILE_ID/edit...
+        const extractFileIdFromUrl = (url) => {
+            const m = /\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/.exec(String(url || ''));
+            return m ? m[1] : '';
+        };
+
         const rows = (result.data || [])
             .filter(row => row[1] && String(row[1]).trim()) // must have event name
-            .map(row => ({
-                serialNumber:     String(row[0] || '').trim(),
-                eventName:        String(row[1] || '').trim(),
-                timeSlots:        String(row[2] || '').trim(),
-                maxParticipants:  String(row[3] || '').trim(),
-                createdOn:        String(row[4] || '').trim(),
-                fileId:           String(row[5] || '').trim(),
-                registrationLink: String(row[6] || '').trim(),
-                qrCodeUrl:        String(row[7] || '').trim(),
-            }));
+            .map(row => {
+                const registrationLink = String(row[7] || '').trim();
+                let fileId = String(row[6] || '').trim();
+                // If File ID column is empty but registration link is a Sheets URL, derive it
+                if (!fileId && registrationLink) {
+                    fileId = extractFileIdFromUrl(registrationLink);
+                }
+                return {
+                    serialNumber:     String(row[0] || '').trim(),
+                    eventName:        String(row[1] || '').trim(),
+                    status:           String(row[2] || '').trim(),
+                    timeSlots:        String(row[3] || '').trim(),
+                    maxParticipants:  String(row[4] || '').trim(),
+                    createdOn:        String(row[5] || '').trim(),
+                    fileId,
+                    registrationLink,
+                    qrCodeUrl:        String(row[8] || '').trim(),
+                };
+            });
         res.json({ success: true, rows });
     } catch (error) {
         console.error('[FFT] Error in POST /getIndexSheet:', error.message);
@@ -436,6 +488,59 @@ router.post('/updateEventFileId', async (req, res) => {
         res.json({ success: true });
     } catch (error) {
         console.error('[FFT] Error in POST /updateEventFileId:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// POST endpoint to set the File ID for an event by event name (repair/manual entry)
+// Accepts sheetsUrl (full Google Sheets URL) OR fileId directly
+router.post('/setEventFileId', async (req, res) => {
+    try {
+        const { eventName, sheetsUrl, fileId: rawFileId } = req.body;
+        if (!eventName) {
+            return res.status(400).json({ success: false, error: 'eventName is required' });
+        }
+
+        // Resolve file ID from URL or direct value
+        let fileId = rawFileId ? String(rawFileId).trim() : '';
+        if (!fileId && sheetsUrl) {
+            const m = /\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/.exec(String(sheetsUrl));
+            if (m) fileId = m[1];
+        }
+        if (!fileId) {
+            return res.status(400).json({ success: false, error: 'Provide a valid Google Sheets URL or fileId' });
+        }
+
+        // Find matching row in index sheet by event name
+        const sheetResult = await googleDriveController.readSpreadsheet(FFT_INDEX_SHEET_ID);
+        if (!sheetResult.success) {
+            return res.status(500).json({ success: false, error: 'Failed to read index sheet' });
+        }
+
+        const rows = sheetResult.data || [];
+        const normalizedTarget = String(eventName).trim().toLowerCase();
+        const rowIndex = rows.findIndex(row => String(row[1] || '').trim().toLowerCase() === normalizedTarget);
+        if (rowIndex === -1) {
+            return res.status(404).json({ success: false, error: `Event "${eventName}" not found in index sheet` });
+        }
+
+        // serialNumber = row[0] or use rowIndex+1 as fallback
+        const serialNumber = String(rows[rowIndex][0] || rowIndex + 1).trim();
+        const existingRegLink = String(rows[rowIndex][7] || '').trim();
+        const existingQrCode  = String(rows[rowIndex][8] || '').trim();
+
+        const updateResult = await googleDriveController.updateIndexFileId(
+            serialNumber, fileId, existingRegLink, existingQrCode
+        );
+        if (!updateResult.success) {
+            return res.status(500).json(updateResult);
+        }
+
+        // Invalidate cache so next getIndexSheet returns fresh data
+        console.log(`[FFT] setEventFileId: set fileId="${fileId}" for event "${eventName}" (S/N ${serialNumber})`);
+        res.json({ success: true, fileId, serialNumber });
+    } catch (error) {
+        console.error('[FFT] Error in POST /setEventFileId:', error.message);
         res.status(500).json({ success: false, error: error.message });
     }
 });
@@ -516,13 +621,31 @@ router.post('/copySpreadsheet', async (req, res) => {
     }
 });
 
+// Helper: if fileId looks like a URL, resolve it to an actual Google Sheets file ID by event name
+async function resolveFileId(rawId, eventName) {
+    if (!rawId || !/^https?:\/\//i.test(String(rawId))) return rawId;
+    if (!eventName) return rawId;
+    try {
+        const folderId = '1EsnCGO1QfPrqfmDtsy-cELUO3UyZKCci';
+        const findResult = await googleDriveController.findSheetByEventName(folderId, eventName);
+        if (findResult.success && findResult.file && findResult.file.id) {
+            console.log('[FFT] resolveFileId: resolved URL to', findResult.file.id);
+            return findResult.file.id;
+        }
+    } catch (e) {
+        console.error('[FFT] resolveFileId error:', e.message);
+    }
+    return rawId;
+}
+
 // POST request to get a specific row by entry number
 router.post('/getRow', async (req, res) => {
     try {
-        const { fileId, entryNumber } = req.body;
+        let { fileId, entryNumber, eventName } = req.body;
         if (!fileId || !entryNumber) {
             return res.status(400).json({ success: false, error: 'fileId and entryNumber are required' });
         }
+        fileId = await resolveFileId(fileId, eventName);
         const result = await googleDriveController.getRow(fileId, parseInt(entryNumber, 10));
         if (!result.success) {
             return res.status(500).json(result);
@@ -537,13 +660,14 @@ router.post('/getRow', async (req, res) => {
 // POST update specific columns in a row
 router.post('/updateRow', async (req, res) => {
     try {
-        const { fileId, entryNumber, updates } = req.body;
+        let { fileId, entryNumber, updates, eventName } = req.body;
         console.log('[FFT] updateRow received - entryNumber:', entryNumber, 'updates:', updates);
         
         if (!fileId || entryNumber == null || !updates) {
             return res.status(400).json({ success: false, error: 'fileId, entryNumber, and updates are required' });
         }
 
+        fileId = await resolveFileId(fileId, eventName);
         const en = parseInt(entryNumber, 10);
 
         // Read current row to check for existing remarks
@@ -626,7 +750,10 @@ router.post('/fftSubmit', async (req, res) => {
 
         if (eventFileId) {
             // File ID already known — skip the Drive lookup
-            fileId = eventFileId;
+            fileId = await resolveFFTFileId(eventFileId, eventName);
+            if (!fileId) {
+                return res.status(400).json({ success: false, error: 'Invalid eventFileId. Please reselect the event.' });
+            }
             sheetFileName = eventName;
             console.log(`[FFT] Using provided fileId: ${fileId}`);
         } else {
@@ -876,12 +1003,17 @@ router.post('/participant/:entryNumber', async (req, res) => {
 // POST endpoint to list all participants in a spreadsheet
 router.post('/getParticipants', async (req, res) => {
     try {
-        const { fileId } = req.body;
+        const { fileId, eventName } = req.body;
         if (!fileId) {
             return res.status(400).json({ success: false, error: 'fileId is required' });
         }
 
-        const result = await googleDriveController.readSpreadsheet(fileId);
+        const resolvedFileId = await resolveFFTFileId(fileId, eventName);
+        if (!resolvedFileId) {
+            return res.status(400).json({ success: false, error: 'Invalid fileId. Please reselect the event.' });
+        }
+
+        const result = await googleDriveController.readSpreadsheet(resolvedFileId);
         if (!result.success) {
             return res.status(500).json({ success: false, error: result.error || 'Failed to read spreadsheet' });
         }
@@ -998,21 +1130,68 @@ router.post('/createFFTEvent', async (req, res) => {
     }
 });
 
-// POST endpoint to export a Google Sheet as .xlsx
-router.post('/exportSpreadsheet', async (req, res) => {
+// POST endpoint to delete a Drive file (spreadsheet or QR code image)
+router.post('/deleteEvent', async (req, res) => {
     try {
-        const { fileId, fileName } = req.body;
+        const { fileId } = req.body;
         if (!fileId) {
             return res.status(400).json({ success: false, error: 'fileId is required' });
         }
+        const result = await googleDriveController.deleteFile(fileId);
+        if (!result.success) {
+            return res.status(500).json(result);
+        }
+        res.json(result);
+    } catch (error) {
+        console.error('[FFT] Error in POST /deleteEvent:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// POST endpoint to delete a row from the index sheet by event name
+// rowIndex is the 0-based data-row index (i.e. physical sheet row = rowIndex + 2)
+router.post('/deleteEventEntry', async (req, res) => {
+    try {
+        const { spreadsheetId, rowIndex, eventName } = req.body;
+        if (!spreadsheetId || rowIndex == null) {
+            return res.status(400).json({ success: false, error: 'spreadsheetId and rowIndex are required' });
+        }
+        // deleteRow uses 0-based index where row 0 = first data row after header.
+        // rowIndex from the client is already 0-based data-row index.
+        // Physical sheet row = rowIndex + 1 (header) + 1 (1-based) = rowIndex + 2.
+        // controller.deleteRow expects a 0-based sheet row (0 = header), so pass rowIndex + 1.
+        const sheetRowIndex = parseInt(rowIndex, 10) + 1; // +1 to skip header row
+        const result = await googleDriveController.deleteRow(spreadsheetId, sheetRowIndex, null);
+        if (!result.success) {
+            return res.status(500).json(result);
+        }
+        console.log(`[FFT] Deleted index sheet row ${sheetRowIndex} for event "${eventName}"`);
+        res.json(result);
+    } catch (error) {
+        console.error('[FFT] Error in POST /deleteEventEntry:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// POST endpoint to export a Google Sheet as .xlsx
+router.post('/exportSpreadsheet', async (req, res) => {
+    try {
+        const { fileId, fileName, eventName } = req.body;
+        if (!fileId) {
+            return res.status(400).json({ success: false, error: 'fileId is required' });
+        }
+        const resolvedFileId = await resolveFFTFileId(fileId, eventName || fileName || '');
+        if (!resolvedFileId) {
+            return res.status(400).json({ success: false, error: 'Invalid fileId. Please reselect the event.' });
+        }
         const drive = await googleDriveController.initializeAuth();
         const exportResponse = await drive.files.export(
-            { fileId, mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+            { fileId: resolvedFileId, mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
             { responseType: 'arraybuffer' }
         );
         let buffer = Buffer.from(exportResponse.data);
 
-        if (fileId === REGISTRATION_TEMPLATE_FILE_ID) {
+        if (resolvedFileId === REGISTRATION_TEMPLATE_FILE_ID) {
             const workbook = await XlsxPopulate.fromDataAsync(buffer);
             const sheet = workbook.sheet(0);
             const TEMPLATE_ROWS = 100;
