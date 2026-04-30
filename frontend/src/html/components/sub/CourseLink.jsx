@@ -130,14 +130,14 @@ class CourseLink extends Component {
     }
     // If role is Site in-charge or Ops in-charge, only show NSA, ILP, and Talks And Seminar
     if (role === 'Site in-charge' || role === 'Ops in-charge') {
-      return ['NSA', 'ILP', 'Talks And Seminar'];
+      return ['NSA', 'ILP', 'Talks And Seminar', 'Others'];
     }
     // If role is Social Worker, only show Marriage Preparation Programme and Talks And Seminar
     if (role === 'Social Worker') {
-      return ['Marriage Preparation Programme', 'Talks And Seminar'];
+      return ['Marriage Preparation Programme', 'Talks And Seminar', 'Others'];
     }
     // Default categories for other roles
-    return ['ILP', 'NSA', 'Marriage Preparation Programme', 'Talks And Seminar'];
+    return ['ILP', 'NSA', 'Marriage Preparation Programme', 'Talks And Seminar', 'Others'];
   }
 
   applyFilters = () => {
@@ -236,7 +236,8 @@ class CourseLink extends Component {
         'NSA': 'FFD4F1D4',           // Soft pastel green
         'ILP': 'FFFFD4D4',           // Soft pastel red
         'Marriage Preparation Programme': 'FFFFFD4', // Soft pastel yellow
-        'Talks And Seminar': 'FFD4E8FF'  // Soft pastel blue
+        'Talks And Seminar': 'FFD4E8FF',  // Soft pastel blue
+        'Others': 'FFE8D5B7'         // Soft pastel brown
       };
 
       // Helper function to extract and filter categories (same as table)
@@ -467,7 +468,8 @@ class CourseLink extends Component {
       'NSA': '#D4F1D4',           // Soft pastel green
       'ILP': '#FFD4D4',           // Soft pastel red
       'Marriage Preparation Programme': '#FFFFD4', // Soft pastel yellow
-      'Talks And Seminar': '#D4E8FF'  // Soft pastel blue
+      'Talks And Seminar': '#D4E8FF',  // Soft pastel blue
+      'Others': '#E8D5B7'         // Soft pastel brown
     };
 
     if (!params.data || !params.data.categories) return {};

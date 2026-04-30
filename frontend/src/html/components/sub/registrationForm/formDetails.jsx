@@ -4,9 +4,10 @@ import '../../../../css/sub/registrationForm/formDetails.css';
 
 class FormDetailsSection extends Component {
   render() {
-    const { courseType, courseCategories } = this.props;
+    const { courseType, courseCategories, rawCategoryFromURL } = this.props;
+    const isOthers = rawCategoryFromURL === 'Others';
     const isMarriagePrep = courseType === 'Marriage Preparation Programme';
-    const isTalksAndSeminar = courseType === 'Talks And Seminar';
+    const isTalksAndSeminar = courseType === 'Talks And Seminar' && !isOthers;
     
     // Log categories for debugging
     if (courseCategories && courseCategories.length > 0) {
@@ -51,6 +52,22 @@ class FormDetailsSection extends Component {
             </div>
             <div className="image-container">
               <img src={"https://ecss.org.sg/wp-content/uploads/2024/09/NSA-En.jpg"} alt="Description of the image" className="registration-image" />
+            </div>
+          </>
+        )}
+        {isOthers && (
+          <>
+            <div className="introduction" style={{borderLeft: '5px solid #8B4513', paddingLeft: '16px'}}>
+              <h1 style={{color: '#8B4513'}}>ECSS Others Registration Page</h1>
+              <p className="description">
+                By submitting this form, I consent to En Community Services Society (ECSS) in collecting, using, and disclosing my personal data for purposes related to programme administration, communications, and publicity, in accordance with the Personal Data Protection Act 2012 and our data protection policy, which is available upon request.
+              </p>
+              <p className="description">
+                I understand that photographs, audio, and videos which include me may be taken during ECSS events and activities, and I consent to the use of such media for publicity and promotional purposes, which include but is not limited to printed publications, websites, and official social media channels. ECSS, its affiliates, employees, representatives and agents are released from any and all claims, demands, costs, and liability that may arise from the use of such media as described above.
+              </p>
+            </div>
+            <div className="image-container" style={{textAlign: "center"}}>
+              <img src={"https://ecss.org.sg/wp-content/uploads/2023/07/En_logo_Final_Large_RGB.png"} alt="Others" className="registration-image" style={{width: "25%", height: "auto"}} />
             </div>
           </>
         )}

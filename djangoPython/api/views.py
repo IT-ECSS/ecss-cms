@@ -100,6 +100,8 @@ def product_list(request):
             products = woo_api.get_marriage_prep_products()
         elif courseType == "Talks And Seminar":
             products = woo_api.get_talks_and_seminar_products()
+        elif courseType == "Others":
+            products = woo_api.get_others_products()
         else:
             # Handle cases where no valid courseType is provided - fetch all published products
             products = woo_api.get_all_published_products()

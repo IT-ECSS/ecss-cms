@@ -40,11 +40,12 @@ class CourseDetailsSection extends Component {
 
   render() {
     const { selectedPayment, paymentTouched } = this.state;
-    const { courseType, courseLocation, courseEnglishName, courseChineseName, isMalayLanguage } = this.props;
+    const { courseType, courseLocation, courseEnglishName, courseChineseName, isMalayLanguage, rawCategoryFromURL } = this.props;
+    const isOthers = rawCategoryFromURL === 'Others';
     const isNSA = courseType === 'NSA';
     const isILP = courseType === 'ILP';
     const isMarriagePrep = courseType === 'Marriage Preparation Programme';
-    const isTalksAndSeminar = courseType === 'Talks And Seminar';
+    const isTalksAndSeminar = courseType === 'Talks And Seminar' && !isOthers;
     const numericCoursePrice = parseFloat(this.props.coursePrice?.replace('$', '') || '0');
     const hasDisplayablePrice = numericCoursePrice > 0;
     const talksPrice = numericCoursePrice;
@@ -77,11 +78,11 @@ class CourseDetailsSection extends Component {
       <div className="course-details-section1">
         {/* Hide title for Talks And Seminar */}
         
-        {!isTalksAndSeminar && (
+        {(!isTalksAndSeminar || isOthers) && (
           <div className="input-group1">
             <label htmlFor="courseType">{getLabel('Course Type', '课程类型', 'Jenis Kursus')}</label>
             <span className="course-detail-text" id="courseType">
-              {courseType}
+              {isOthers ? 'Others' : courseType}
             </span>
           </div>
         )}
@@ -162,7 +163,7 @@ class CourseDetailsSection extends Component {
           </span>
         </div>
 
-        {isTalksAndSeminar && (
+        {(isTalksAndSeminar || isOthers) && (
           <div className="input-group1">
             <label htmlFor="courseTime">{getLabel('Time', '时间', 'Masa')}</label>
             <span className="course-detail-text" id="courseTime">

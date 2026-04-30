@@ -529,6 +529,8 @@ class RegistrationPaymentSection extends Component {
 // Method to get all course types (no role filtering)
     getAllTypes = async (datas) => {
       const allTypes = [...new Set(datas.map(data => data.course?.courseType).filter(Boolean))];
+      // Always include 'Others' so it appears in the dropdown for filtering even before any Others records exist
+      if (!allTypes.includes('Others')) allTypes.push('Others');
       return allTypes;
     }
   
@@ -2174,7 +2176,8 @@ class RegistrationPaymentSection extends Component {
   // Check if we're filtering by ILP or Talks And Seminar course type
   const isFilteringILP = selectedCourseType === 'ILP';
   const isFilteringTalksAndSeminar = selectedCourseType === 'Talks And Seminar';
-  const shouldHidePaymentColumns = isFilteringILP || isFilteringTalksAndSeminar;
+  const isFilteringOthers = selectedCourseType === 'Others';
+  const shouldHidePaymentColumns = isFilteringILP || isFilteringTalksAndSeminar || isFilteringOthers;
   
   // Check if we should hide Course Time column for NSA, ILP, and Marriage Preparation Programme
   const isFilteringNSA = selectedCourseType === 'NSA';
@@ -2310,7 +2313,7 @@ class RegistrationPaymentSection extends Component {
           // If filtering by specific course type
           if (selectedCourseType === 'NSA' || selectedCourseType === 'Marriage Preparation Programme') {
             return "Payment Status";
-          } else if (selectedCourseType === 'ILP' || selectedCourseType === 'Talks And Seminar') {
+          } else if (selectedCourseType === 'ILP' || selectedCourseType === 'Talks And Seminar' || selectedCourseType === 'Others') {
             return "Registration Status";
           }
         }
@@ -2340,9 +2343,9 @@ class RegistrationPaymentSection extends Component {
           //     ]
           //   : ["Pending", "Paid", "Cancelled", "Withdrawn", "Refunded", "Not Successful"];
           initialOptions = ["Pending", "Paid", "Cancelled", "Withdrawn", "Refunded", "Not Successful"];
-        } else if (courseType === "ILP" || (courseType === "Talks And Seminar" && parseFloat((coursePrice || '0').replace('$', '')) === 0)) {
+        } else if (courseType === "ILP" || (courseType === "Talks And Seminar" && parseFloat((coursePrice || '0').replace('$', '')) <= 0) || (courseType === "Others" && parseFloat((coursePrice || '0').replace('$', '')) <= 0)) {
           initialOptions = ["Pending", "Confirmed", "Withdrawn", "Not Successful"];
-        } else if (courseType === "Talks And Seminar" && parseFloat((coursePrice || '0').replace('$', '')) > 0) {
+        } else if ((courseType === "Talks And Seminar" || courseType === "Others") && parseFloat((coursePrice || '0').replace('$', '')) > 0) {
           initialOptions = ["Pending", "Paid", "Cancelled", "Withdrawn", "Refunded", "Not Successful"];
         } else {
           initialOptions = ["Pending", "Paid", "Withdrawn", "Refunded", "Not Successful"];

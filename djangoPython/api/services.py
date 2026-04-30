@@ -244,6 +244,41 @@ class WooCommerceAPI:
         return all_products
 
 
+    def get_others_products(self):
+        """Fetch and filter Others products from WooCommerce."""
+        print("Fetching Others products from WooCommerce...")
+        all_products = []
+        page = 1
+        per_page = 100
+
+        while True:
+            try:
+                url = f"{self.base_url}products"
+                params = {
+                    'per_page': per_page,
+                    'page': page
+                }
+                response = requests.get(url, params=params, auth=self.auth, headers=self.headers)
+                response.raise_for_status()
+
+                products = response.json()
+                if not products:
+                    break
+                # Filter products where any category is 'Others'
+                filtered_products = [
+                    product for product in products
+                    if product.get('status') == 'publish'
+                    and 'categories' in product
+                    and any(cat.get('name') == 'Others' for cat in product['categories'])
+                ]
+                all_products.extend(filtered_products)
+                page += 1
+            except requests.exceptions.RequestException as e:
+                print(f"Error while fetching products: {e}")
+                break
+        return all_products
+
+
     def get_fundraising_products(self):
         """Fetch and filter fundraising products from WooCommerce."""
         all_products = []

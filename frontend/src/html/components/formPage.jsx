@@ -21,6 +21,7 @@ class FormPage extends Component {
   constructor(props) {
     super(props);
     this.isSubmitting = false; // Prevent duplicate submissions
+    this.formTopRef = React.createRef(); // Sentinel ref for scrolling to top on section change
     this.state = {
       currentSection: 0,
       loading: false,
@@ -288,7 +289,8 @@ class FormPage extends Component {
       'ILP': 'ILP',
       'NSA': 'NSA',
       'Talks And Seminar': 'Talks And Seminar',
-      'Marriage Preparation Programme': 'Marriage Preparation Programme'
+      'Marriage Preparation Programme': 'Marriage Preparation Programme',
+      'Others': 'Talks And Seminar'
     };
     
     const type = categoryMap[category];
@@ -322,6 +324,7 @@ class FormPage extends Component {
     const sectionParam = params.get('section');
     console.log('📦 Section parameter from URL:', sectionParam);
     const categoryFromURL = this.getCategoryFromURL();
+    this.rawCategoryFromURL = categoryFromURL; // Preserve raw URL category (e.g. 'Others') for display
     const courseTypeFromCategory = categoryFromURL ? this.mapCategoryToType(categoryFromURL) : null;
     
     console.log('📦 Course type from category:', courseTypeFromCategory);
@@ -428,7 +431,11 @@ class FormPage extends Component {
     const newUrl = `${window.location.pathname}?${decodeURIComponent(params.toString())}`;
     window.history.pushState(null, '', newUrl);
     if (this._isMounted) {
-      this.setState({ currentSection: section });
+      this.setState({ currentSection: section }, () => {
+        if (this.formTopRef && this.formTopRef.current) {
+          this.formTopRef.current.scrollIntoView();
+        }
+      });
     }
   };
 
@@ -536,6 +543,12 @@ class FormPage extends Component {
             }
           }
         }
+        // If type could not be extracted from categories, fall back to the URL category parameter
+        if (!type && courseTypeFromCategory) {
+          type = courseTypeFromCategory;
+          console.log(`🔄 Type overridden from URL category param: ${type}`);
+        }
+
         console.log("✅ Matched Course Name:", matchedCourse.name);
         console.log("🏷️ Course Type:", type);
         console.log("📋 Course Categories:", matchedCourse.categories);
@@ -554,6 +567,10 @@ class FormPage extends Component {
           bgColor = '#DBDBDC'; // Maroon
         } else {
           bgColor = '#F5F5F5'; // Default gray
+        }
+        // Override: 'Others' URL category gets its own brown color
+        if (this.getCategoryFromURL() === 'Others') {
+          bgColor = '#8B4513'; // Saddle Brown for Others
         }
         console.log('🎨 [BackgroundColor] Set to:', bgColor, 'for course type:', type);
         
@@ -798,6 +815,9 @@ class FormPage extends Component {
           } else {
             bgColor = '#F5F5F5'; // Default gray
           }
+          if (this.getCategoryFromURL() === 'Others') {
+            bgColor = '#8B4513'; // Saddle Brown for Others
+          }
           
           let formContainerBg = '';
           if (courseTypeFromCategory === 'Marriage Preparation Programme') {
@@ -846,6 +866,9 @@ class FormPage extends Component {
           bgColor = '#800000';
         } else {
           bgColor = '#F5F5F5';
+        }
+        if (this.getCategoryFromURL() === 'Others') {
+          bgColor = '#8B4513'; // Saddle Brown for Others
         }
         
         let formContainerBg = '';
@@ -2146,6 +2169,10 @@ class FormPage extends Component {
 
     // Course 
     var courseType = formData.type;
+    // Override courseType for Others category registrations so they are stored distinctly
+    if (this.rawCategoryFromURL === 'Others') {
+      courseType = 'Others';
+    }
     var courseEngName = this.decodeHtmlEntities(formData.englishName);
     // courseChiName contains either Chinese name or Malay name depending on language
     var courseChiName = this.decodeHtmlEntities(formData.chineseName);
@@ -2863,8 +2890,9 @@ class FormPage extends Component {
     return (
       <>
         {formData.type && (
-          <div className="formwholepage" style={{ backgroundColor: bgColor }}>
-            {/* {renderLoadingIndicator()} */}
+          <div className="formwholepage" ref={this.formPageRef} style={{ backgroundColor: bgColor }}>
+            {/* Scroll-to-top sentinel */}
+            <div ref={this.formTopRef} style={{ position: 'absolute', top: 0 }} />
             <div className="form-page">
               {/* Section stepper — shown after section 0 for ILP, NSA, and Talks And Seminar, outside form-container */}
               {currentSection > 0 && (formData.type === 'ILP' || formData.type === 'NSA' || formData.type === 'Talks And Seminar') && (() => {
@@ -2980,6 +3008,7 @@ class FormPage extends Component {
                     onProceedWithoutSingPass={this.handleProceedWithoutSingPass}
                     validationErrors={validationErrors}
                     hideSingPass={formData.type === 'Talks And Seminar'}
+                    rawCategoryFromURL={this.rawCategoryFromURL}
                   />
                 )}
                 {(currentSection === 1 || (currentSection === 0 && formData.type === 'Marriage Preparation Programme')) && (
@@ -3009,6 +3038,7 @@ class FormPage extends Component {
                     extractedLocation={formData.courseLocation}
                     coursePrice={formData.price}
                     courseType={formData.type}
+                    rawCategoryFromURL={this.rawCategoryFromURL}
                     courseDuration={formData.courseDuration}
                     courseMode={formData.courseMode}
                     courseTime={formData.courseTime}
@@ -3027,6 +3057,7 @@ class FormPage extends Component {
                     extractedLocation={formData.courseLocation}
                     coursePrice={formData.price}
                     courseType={formData.type}
+                    rawCategoryFromURL={this.rawCategoryFromURL}
                     courseDuration={formData.courseDuration}
                     courseMode={formData.courseMode}
                     courseTime={formData.courseTime}

@@ -833,15 +833,16 @@ class DatabaseConnectivity {
                     }
                 } 
                 else if (role === "NSA in-charge") {
-                    console.log("Processing Social Worker filtering...");
-                    // Social Workers can only see Talks And Seminar and Marriage Preparation Programme courses
+                    console.log("Processing NSA in-charge filtering...");
+                    // NSA in-charge can see NSA, Talks And Seminar, and Others courses
                     query["course.courseType"] = {
                         $in: [
                             "NSA",
-                            "Talks And Seminar"
+                            "Talks And Seminar",
+                            "Others"
                         ]
                     };
-                    console.log("Filtering for Talks And Seminar and Marriage Preparation Programme courses only");
+                    console.log("Filtering for NSA, Talks And Seminar, and Others courses only");
                 }else if (role === "Social Worker") {
                     console.log("Processing Social Worker filtering...");
                     // Social Workers can only see Talks And Seminar and Marriage Preparation Programme courses
