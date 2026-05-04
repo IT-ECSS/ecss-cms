@@ -3,9 +3,9 @@ import React, { Component } from 'react';
   import '../../css/homePage.css'; // Ensure your CSS paths are correct
   import AccountsSection from './sub/accountsSection';
   import CoursesSection from './sub/courseSection';
-  import RegistrationPaymentSection from './sub/registrationPaymentSection';
+  import RegistrationPaymentSection from './RegistrationAndPayment';
   import NSAApprovalModal from './NSAApprovalModal';
-import NSAConsolidatedModal from './NSAConsolidatedModal';
+  import NSAConsolidatedModal from './NSAConsolidatedModal';
   import Popup from './popup/popupMessage';
   import Search from './sub/searchSection';
   import ViewToggle from './sub/viewToggleSection';

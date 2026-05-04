@@ -11,21 +11,16 @@ class ReceiptController {
     }
 
     // Method to handle generating a new receipt number
-    async newReceiptNo(courseLocation, centreLocation, courseType, courseEngName, courseDuration) 
-    { // Accept courseLocation as a parameter
+    async newReceiptNo(course, paymentMethod) {
         try {
-            console.log("New Receipt Number123:", courseLocation, centreLocation, courseType, courseEngName);
             const dbConnection = this.getDatabaseConnection();
             await dbConnection.ensureConnection();
             
             const databaseName = "Company-Management-System";
             const collectionName = "Receipts";
 
-            // Find the highest existing receipt number for the given course location
-            const newReceiptNumber = await dbConnection.getNextReceiptNumber(databaseName, collectionName, courseLocation, centreLocation, courseType, courseEngName, courseDuration);
-            console.log("New Receipt Number:", newReceiptNumber);
+            const newReceiptNumber = await dbConnection.getNextReceiptNumber(databaseName, collectionName, course, paymentMethod);
 
-            // Return the newly generated receipt number
             return {
                 success: true,
                 message: "New receipt number generated successfully",
@@ -41,7 +36,6 @@ class ReceiptController {
             };
         } 
         finally {
-            // No cleanup needed - connection pool handles this
             console.log("New receipt number request completed");
         }
     }

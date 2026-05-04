@@ -29,18 +29,8 @@ router.post('/', async function(req, res, next)
     if(req.body.purpose === "getReceiptNo")
     {   
         var controller = new ReceiptController();
-        console.log("Body data123:", req.body);
-        if(req.body.courseType === "Marriage Preparation Programme")
-        {
-            // Handle specific logic for Marriage Preparation Programme
-           var result = await controller.newReceiptNo(req.body.courseLocation, req.body.centreLocation, req.body.courseType, req.body.courseEngName, req.body.courseDuration);
-        }
-        else
-        {
-            var result = await controller.newReceiptNo(req.body.courseLocation, req.body.centreLocation);
-        }
-
-        //console.log("New Receipt No:", result);
+        var result = await controller.newReceiptNo(req.body.course, req.body.paymentMethod);
+        console.log("New Receipt No:", result);
         return res.json({"result": result});
     }
     else if(req.body.purpose === "createReceipt")

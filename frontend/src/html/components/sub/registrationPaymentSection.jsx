@@ -846,23 +846,22 @@ class RegistrationPaymentSection extends Component {
             }
           }
         } 
-        // COMMENTED OUT: SkillsFuture invoice generation
-        // else if (value === "Generating SkillsFuture Invoice") {
-        //     try {
-        //       console.log("Generating SkillsFuture invoice for course:", course);
-        //       const invoiceNo = await this.generateReceiptNumber(course, "", "", "", "");
-        //       console.log("Invoice No:", invoiceNo);
-        //       await this.generatePDFInvoice(id, participant, course, invoiceNo, value);  
-        //       await this.createReceiptInDatabase(invoiceNo, course.courseLocation, id, ""); 
-        //     } catch (error) {
-        //       console.error("Error during SkillsFuture invoice generation:", error);
-        //     }
-        // }
+        else if (value === "Generating SkillsFuture Invoice") {
+             try {
+               console.log("Generating SkillsFuture invoice for course:", course);
+               const invoiceNo = await this.generateReceiptNumber(course, "", "", "", "");
+               console.log("Invoice No:", invoiceNo);
+               await this.generatePDFInvoice(id, participant, course, invoiceNo, value);  
+               await this.createReceiptInDatabase(invoiceNo, course.courseLocation, id, ""); 
+             } catch (error) {
+               console.error("Error during SkillsFuture invoice generation:", error);
+             }
+       }
       };
 
       //this.autoReceiptGenerator(id, participantInfo, courseInfo, officialInfo, newValue, "Paid")
       autoReceiptGenerator = async (id, participant, course, official, newMethod, value) => {
-        console.log("Selected Parameters:", { course, official, newMethod, value });
+        console.log("/:", { course, official, newMethod, value });
     
         if (newMethod === "Cash" || newMethod === "PayNow") 
         {
@@ -897,24 +896,22 @@ class RegistrationPaymentSection extends Component {
             }
           }
         } 
-        // COMMENTED OUT: SkillsFuture payment method handling
-        // else if(newMethod === "SkillsFuture")
-        // {
-        //   try 
-        //   {
-        //     console.log("Generating receipt for course:", course);
-        //
-        //     const registration_id = id;
-        //     const invoiceNo = await this.generateReceiptNumber(course, newMethod, "", "", "");
-        //     console.log("Invoice No:", invoiceNo);
-        //     await this.generatePDFReceipt(id, participant, course, invoiceNo, value);
-        //     await this.createReceiptInDatabase(invoiceNo, course.courseLocation, id, "");    
-        //   } 
-        //   catch (error) 
-        //   {
-        //     console.error("Error during receipt generation:", error);
-        //   }
-        // }
+        else if(newMethod === "SkillsFuture")
+        {
+          try 
+          {
+            console.log("Generating receipt for course:", course);
+
+            const invoiceNo = await this.generateReceiptNumber(course, newMethod, "", "", "");
+            console.log("Invoice No:", invoiceNo);
+            await this.generatePDFReceipt(id, participant, course, invoiceNo, value);
+            await this.createReceiptInDatabase(invoiceNo, course.courseLocation, id, "");    
+          } 
+          catch (error) 
+          {
+            console.error("Error during receipt generation:", error);
+          }
+        }
       };
       
       
@@ -1888,11 +1885,8 @@ class RegistrationPaymentSection extends Component {
   // Custom cell renderer for Slide Button
   slideButtonRenderer = (params) => {
     const paymentMethod = params.data.paymentMethod; // Get payment method for the row
+    console.log('Rendering slide button for payment method:', paymentMethod);
 
-    // Return null if the payment method is not 'SkillsFuture'
-    if (paymentMethod !== 'SkillsFuture') {
-      return null; // Don't render if not SkillsFuture
-    }
     // );
     // const siteInChargeCanEditConfirmation = this.props.role === 'Site in-charge' && swCourseType === 'ILP';
     // const siteInChargeNSABlocked = (this.props.role === 'Site in-charge' || this.props.role === 'NSA in-charge') && swCourseType === 'NSA';
@@ -1906,12 +1900,22 @@ class RegistrationPaymentSection extends Component {
 
     // Otherwise, return JSX for the slide button (checkbox)
     const checked = params.value;  // Set checkbox state based on the current value of 'confirmed'
+    console.log('Slide button checked state for row', params.node.id, ':', checked);
     
     const handleChange = (event) => {
       if (!canEditConfirmation) return;
       const newValue = event.target.checked;
-      params.api.getRowNode(params.node.id).setDataValue('confirmed', newValue);
       console.log('Slide button toggled:', newValue);
+      // Directly invoke onCellValueChanged so backend update runs reliably
+      // (setDataValue on editable:false columns may not fire onCellValueChanged in AG Grid v33)
+      this.onCellValueChanged({
+        colDef: params.colDef,
+        node: params.node,
+        data: params.data,
+        value: newValue,
+        newValue: newValue,
+        oldValue: params.data.confirmed,
+      });
     };
 
     return (
@@ -1923,8 +1927,8 @@ class RegistrationPaymentSection extends Component {
           onChange={handleChange}
           onClick={(e) => {
             // if (siteInChargeNSABlocked) {
-            //   e.preventDefault();
-            //   this.requestNSAApproval(params.data, 'Confirmation');
+            //    e.preventDefault();
+            //    this.requestNSAApproval(params.data, 'Confirmation');
             //   return;
             // }
             // if (!canEditConfirmation) e.preventDefault();
@@ -2279,7 +2283,7 @@ class RegistrationPaymentSection extends Component {
     {
       headerName: "Receipt/Invoice Number",
       field: "recinvNo",
-      width: 300,
+      width: 800,
       hide: shouldHidePaymentColumns // Hide Receipt/Invoice Number column when filtering by ILP or Talks And Seminar
     },
     {
@@ -3717,6 +3721,7 @@ debugMarriagePrepData = () => {
           const oldConfirmation = event.oldValue;
           this.props.showUpdatePopup("Updating in progress... Please wait ...")
           console.log('Cell clicked', event);
+          console.log("newConfirmation:", newValue);
           const response = await axios.post(
             `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
             { 
@@ -3741,6 +3746,7 @@ debugMarriagePrepData = () => {
           });
           
           console.log(`${columnName}: ${newValue}`);
+          console.log("Response for Confirmation:", response, paymentMethod, newValue);
           if(paymentMethod === "SkillsFuture" && newValue === true)
           {
               if (response.data.result === true) 
@@ -3757,7 +3763,7 @@ debugMarriagePrepData = () => {
                   }
                 );
                 if (response.data.result === true) 
-                  {
+                {
                       // Audit log for auto-update of Payment Status for SkillsFuture
                       await logRegistrationUpdate({
                         userName: this.props.userName,
@@ -3787,6 +3793,17 @@ debugMarriagePrepData = () => {
               }
           }
           console.log("Change SkillsFuture Confirmation");
+
+         // Update originalData so future filter calls don't revert the toggle
+          const updatedOriginalData = this.state.originalData.map(item => {
+            const itemId = item._id?._id || item._id;
+            if (String(itemId) === String(id)) {
+              return { ...item, official: { ...item.official, confirmed: newValue } };
+            }
+            return item;
+          });
+          this.setState({ originalData: updatedOriginalData });
+          this.props.closePopup();
         }
         else if (columnName === "Registration and Payment Status" || columnName === "Registration Status" || columnName === "Payment Status") 
         {
