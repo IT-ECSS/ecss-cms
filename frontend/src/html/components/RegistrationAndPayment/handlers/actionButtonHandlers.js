@@ -29,7 +29,7 @@ import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
 import { logExportAction, logRegistrationBulkUpdate } from '../../../../utils/auditLog';
-import getCourseReferenceCode from '../../constants/courseReferenceMap';
+import getCourseReferenceCode from '../../../constants/courseReferenceMap';
 
 import {
   convertDateFormat1,
