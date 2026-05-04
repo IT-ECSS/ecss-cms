@@ -1889,10 +1889,10 @@ class RegistrationPaymentSection extends Component {
   slideButtonRenderer = (params) => {
     const paymentMethod = params.data.paymentMethod; // Get payment method for the row
 
-    // COMMENTED OUT: SkillsFuture - Return null or empty if the payment method is not 'SkillsFuture'
-    // if (paymentMethod !== 'SkillsFuture') {
-    //   return null; // Don't render if not SkillsFuture
-    // }
+    // Return null if the payment method is not 'SkillsFuture'
+    if (paymentMethod !== 'SkillsFuture') {
+      return null; // Don't render if not SkillsFuture
+    }
     // );
     // const siteInChargeCanEditConfirmation = this.props.role === 'Site in-charge' && swCourseType === 'ILP';
     // const siteInChargeNSABlocked = (this.props.role === 'Site in-charge' || this.props.role === 'NSA in-charge') && swCourseType === 'NSA';
@@ -2012,9 +2012,7 @@ class RegistrationPaymentSection extends Component {
       {
         if((courseName !== "Community Ukulele – Mandarin") && (courseName !== "My Story – Mandarin"))
         {
-          // COMMENTED OUT: SkillsFuture
-          // paymentMethods = ['PayNow', 'SkillsFuture'];
-          paymentMethods = ['PayNow'];
+          paymentMethods = ['PayNow', 'SkillsFuture'];
         }
         else
         {
@@ -2025,9 +2023,7 @@ class RegistrationPaymentSection extends Component {
       {
         if((courseName !== "Community Ukulele – Mandarin") && (courseName !== "My Story – Mandarin"))
         {
-          // COMMENTED OUT: SkillsFuture
-          // paymentMethods = ['Cash', 'PayNow', 'SkillsFuture'];
-          paymentMethods = ['Cash', 'PayNow'];
+          paymentMethods = ['Cash', 'PayNow', 'SkillsFuture'];
         }
         else
         {
@@ -2087,11 +2083,11 @@ class RegistrationPaymentSection extends Component {
     };
   
     return (
-      <div className="registration-payment-details-payment-methods">
+      <div className="payment-method-group">
         {paymentMethods.map((method) => (
           <button
             key={method}
-            className={`registration-payment-details-payment-btn ${method === currentPaymentMethod ? 'active' : ''}`}
+            className={`payment-method-btn payment-method-btn--${method.toLowerCase().replace(/\s+/g, '-')} ${method === currentPaymentMethod ? 'active' : ''}`}
             onClick={() => handleButtonClick(method)}
           >
             {method}
@@ -2229,7 +2225,7 @@ class RegistrationPaymentSection extends Component {
     {
       headerName: "Course Name",
       field: "course",
-      width: 350,
+      width: 700,
     },
     {
       headerName: "Course Mode",
@@ -2239,7 +2235,7 @@ class RegistrationPaymentSection extends Component {
     {
       headerName: "Course Duration",
       field: "courseDuration",
-      width: 300,
+      width: 500,
       cellRenderer: (params) => {
         // Fallback to courseInfo if direct field is empty
         return params.value || params.data?.courseInfo?.courseDuration || '';
@@ -2248,7 +2244,7 @@ class RegistrationPaymentSection extends Component {
     {
       headerName: "Course Time",
       field: "courseTime",
-      width: 200,
+      width: 500,
       hide: shouldHideCourseTimeColumn, // Always visible now
     },
     {
@@ -2300,7 +2296,7 @@ class RegistrationPaymentSection extends Component {
       editable: (params) => canEdit || canSocialWorkerEdit(params) || canSiteInChargeEdit(params),
       hide: shouldHidePaymentColumns // Hide Refunded Date column when filtering by ILP or Talks And Seminar
     },
- {
+  {
       headerName: (() => {
         // Determine header name based on course types in the data
         if (dataToCheck && dataToCheck.length > 0) {
@@ -2331,18 +2327,16 @@ class RegistrationPaymentSection extends Component {
         let initialOptions;
         
         if (courseType === "NSA") {
-          // COMMENTED OUT: SkillsFuture status options
-          // initialOptions = paymentMethod === "SkillsFuture"
-          //   ? [
-          //       "Pending",
-          //       "Generating SkillsFuture Invoice",
-          //       "SkillsFuture Done",
-          //       "Cancelled",
-          //       "Withdrawn",
-          //       "Refunded",
-          //     ]
-          //   : ["Pending", "Paid", "Cancelled", "Withdrawn", "Refunded", "Not Successful"];
-          initialOptions = ["Pending", "Paid", "Cancelled", "Withdrawn", "Refunded", "Not Successful"];
+          initialOptions = paymentMethod === "SkillsFuture"
+            ? [
+                "Pending",
+                "Generating SkillsFuture Invoice",
+                "SkillsFuture Done",
+                "Cancelled",
+                "Withdrawn",
+                "Refunded",
+              ]
+            : ["Pending", "Paid", "Cancelled", "Withdrawn", "Refunded", "Not Successful"];
         } else if (courseType === "ILP" || (courseType === "Talks And Seminar" && parseFloat((coursePrice || '0').replace('$', '')) <= 0) || (courseType === "Others" && parseFloat((coursePrice || '0').replace('$', '')) <= 0)) {
           initialOptions = ["Pending", "Confirmed", "Withdrawn", "Not Successful"];
         } else if ((courseType === "Talks And Seminar" || courseType === "Others") && parseFloat((coursePrice || '0').replace('$', '')) > 0) {
@@ -2368,14 +2362,14 @@ class RegistrationPaymentSection extends Component {
 
         const filteredOptions = options.filter((status) => status !== paymentStatus);
 
-        return { values: filteredOptions };
+        // Put current status first so clicking away without selecting keeps the existing value
+        return { values: [paymentStatus, ...filteredOptions] };
       },
       cellRenderer: (params) => {
         const statusStyles = {
           Pending: "#FFA500",
-          // COMMENTED OUT: SkillsFuture status colors
-          // "Generating SkillsFuture Invoice": "#00CED1",
-          // "SkillsFuture Done": "#008000",
+          "Generating SkillsFuture Invoice": "#00CED1",
+          "SkillsFuture Done": "#008000",
           Cancelled: "#FF0000",
           Withdrawn: "#800000",
           Paid: "#008000",
@@ -2389,15 +2383,14 @@ class RegistrationPaymentSection extends Component {
         return (
           <span
             style={{
-              display: "inline-block",
+              display: "block",
               padding: "0.25em 1.2em",
               borderRadius: "999px",
               fontWeight: "bold",
               color: "#fff",
-              fontSize: "0.95em",
+              fontSize: "0.85em",
               textAlign: "center",
-             
-              minWidth: "100px",
+              width: "100%",
               backgroundColor,
               boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
               letterSpacing: "0.02em",
@@ -2407,6 +2400,13 @@ class RegistrationPaymentSection extends Component {
             {statusText}
           </span>
         );
+      },
+      valueSetter: (params) => {
+        if (params.newValue && params.newValue !== params.oldValue) {
+          params.data.paymentStatus = params.newValue;
+          return true;
+        }
+        return false;
       },
       editable: true,
       width:  400,
@@ -2425,8 +2425,8 @@ class RegistrationPaymentSection extends Component {
           <img
             src={imageSrc}
             alt={isSent ? "Sent" : "Not Sent"}
-            width="20"
-            height="20"
+            width="30"
+            height="30"
           />
         );
       },
@@ -2434,7 +2434,7 @@ class RegistrationPaymentSection extends Component {
     {
       headerName: "Remarks",
       field: "remarks",
-      width: 300,
+      width: 900,
       editable: true,
     },
   ];
@@ -4910,11 +4910,16 @@ debugMarriagePrepData = () => {
             onGridReady={this.onGridReady}
             onSelectionChanged={this.onSelectionChanged}
             onCellValueChanged={this.onCellValueChanged}
+            stopEditingWhenCellsLoseFocus={true}
+            onCellEditingStopped={(params) => {
+              params.api.refreshCells({ rowNodes: [params.node], columns: [params.column.getId()], force: true });
+            }}
             onCellClicked={this.handleValueClick}
             suppressRowClickSelection={true}
             pagination={true}
             paginationPageSize={this.state.rowData.length}
             domLayout="normal"
+            rowHeight={90}
             getRowStyle={this.getRowStyle}
             context={{ componentInstance: this }}
           />
