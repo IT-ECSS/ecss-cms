@@ -27,7 +27,7 @@ const getBadgeBoxStyle = (sizeMultiplier = 1) => ({
 });
 
 const getBadgeHeadingStyle = () => ({
-  fontSize: '0.72rem',
+  fontSize: '1.08rem',
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
   fontWeight: 700,
@@ -35,7 +35,7 @@ const getBadgeHeadingStyle = () => ({
 });
 
 const getBadgeValueStyle = () => ({
-  fontSize: '1rem',
+  fontSize: '1.5rem',
   fontWeight: 700,
   lineHeight: 1.25,
   wordBreak: 'break-word',
