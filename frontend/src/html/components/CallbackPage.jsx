@@ -134,13 +134,12 @@ class CallbackPage extends Component {
 
   batchStoreUserData = (data) => {
     try {
-      // Batch all storage operations for speed
       const {
         uuid, access_token, token_type, expires_in, scope,
         name, uinfin, residentialstatus, race, sex, dob, mobileno, email, regadd
       } = data;
 
-      // Store combined user data JSON (for form to retrieve)
+      // Store combined user data JSON (read by ParticipantForm on mount to auto-fill fields)
       const userDataJson = {
         uuid,
         name,
@@ -151,51 +150,32 @@ class CallbackPage extends Component {
         dob,
         mobileno,
         email,
-        regadd
+        regadd,
+        source: 'singpass',
       };
 
-      // Store in chunks to avoid blocking
-      const batch1 = {
-        'singpass_access_token': access_token || '',
-        'singpass_token_type': token_type || 'Bearer',
-        'singpass_user_uuid': uuid || '',
-        'singpass_user_name': name || '',
-        'singpass_user_uinfin': uinfin || '',
-        'singpass_user_data_json': JSON.stringify(userDataJson)  // Combined JSON for form
-      };
+      // Must be synchronous — redirect happens immediately after this returns,
+      // so requestIdleCallback would fire too late (after navigation).
+      sessionStorage.setItem('singpass_user_data_json', JSON.stringify(userDataJson));
+      sessionStorage.setItem('singpass_access_token', access_token || '');
+      sessionStorage.setItem('singpass_token_type', token_type || 'Bearer');
+      sessionStorage.setItem('singpass_user_uuid', uuid || '');
+      sessionStorage.setItem('singpass_user_name', name || '');
+      sessionStorage.setItem('singpass_user_uinfin', uinfin || '');
+      sessionStorage.setItem('singpass_user_residentialstatus', residentialstatus || '');
+      sessionStorage.setItem('singpass_user_race', race || '');
+      sessionStorage.setItem('singpass_user_sex', sex || '');
+      sessionStorage.setItem('singpass_user_dob', dob || '');
+      sessionStorage.setItem('singpass_user_mobileno', mobileno || '');
+      sessionStorage.setItem('singpass_user_email', email || '');
+      sessionStorage.setItem('singpass_user_regadd', regadd ? JSON.stringify(regadd) : '');
+      sessionStorage.setItem('singpass_scope', scope || '');
+      if (expires_in) {
+        sessionStorage.setItem('singpass_token_expires', (Date.now() + expires_in * 1000).toString());
+      }
 
-      const batch2 = {
-        'singpass_user_residentialstatus': residentialstatus || '',
-        'singpass_user_race': race || '',
-        'singpass_user_sex': sex || '',
-        'singpass_user_dob': dob || '',
-        'singpass_user_mobileno': mobileno || ''
-      };
-
-      const batch3 = {
-        'singpass_user_email': email || '',
-        'singpass_user_regadd': regadd ? JSON.stringify(regadd) : '',
-        'singpass_scope': scope || ''
-      };
-
-      // Async storage in background (don't wait)
-      requestIdleCallback(() => {
-        Object.entries(batch1).forEach(([k, v]) => sessionStorage.setItem(k, v));
-        Object.entries(batch2).forEach(([k, v]) => sessionStorage.setItem(k, v));
-        Object.entries(batch3).forEach(([k, v]) => sessionStorage.setItem(k, v));
-
-        if (expires_in) {
-          sessionStorage.setItem(
-            'singpass_token_expires',
-            (Date.now() + expires_in * 1000).toString()
-          );
-        }
-
-        console.log('[SingPass] All user data stored in sessionStorage');
-      }, { timeout: 5000 });
-
+      console.log('[SingPass] All user data stored in sessionStorage');
     } catch (error) {
-      // Silently fail - redirect already happened
       console.error('[SingPass] Error storing user data:', error);
     }
   };
