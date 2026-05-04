@@ -18,7 +18,7 @@ class QRCodeGenerator {
             const buffer = await QRCode.toBuffer(this.text, this.options);
 
             // Save the buffer to a JPG file
-            const filename = `3D Printing Made Simple (CT Hub).jpg`
+            const filename = `3D Printing Made Simple (Pasir Ris West Wellnes Centre).jpg`
             fs.writeFileSync(filename, buffer);
             console.log(`QR code generated and saved as ${filename}`);
         } catch (error) {
@@ -28,5 +28,5 @@ class QRCodeGenerator {
 }
 
 // Usage const filename = `https://ecss.org.sg/product/crafting-connectionspasir-ris-west-wellness-centre/`;
-const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/3d-printing-made-simple-ct-hub/`);
+const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/3d-printing-made-simple-pasir-ris-west-wellnes-centre/`);
 qrCodeGenerator.generate();

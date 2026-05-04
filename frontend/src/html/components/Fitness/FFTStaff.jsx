@@ -97,7 +97,7 @@ class FFTStaff extends Component {
     const { event, section } = this.state;
 
     return (
-      <div className="fft-staff-wrapper" style={this.state.staffView === 'masterData' ? { maxWidth: '80vw' } : undefined}>
+      <div className={`fft-staff-wrapper${this.state.staffView === 'masterData' ? ' fft-staff-wrapper--master-data' : ''}`}>
         <div className="fft-staff-form">
 
           {/* Nav row: back + home buttons + event badge */}

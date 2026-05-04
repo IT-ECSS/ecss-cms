@@ -203,21 +203,30 @@ class CallbackPage extends Component {
   redirectToForm = () => {
     try {
       const baseUrl = 'https://salmon-wave-09f02b100.6.azurestaticapps.net';
-      
-      // Get the course link from sessionStorage (set by formPage.jsx before SingPass login)
+
+      // Check if this is an FFT SingPass flow:
+      // SingPassButton saves the full path+query before redirect (e.g. /fft or /fft/form?event=...)
+      const returnPath = sessionStorage.getItem('singpass_return_path');
+      const fftReturnState = sessionStorage.getItem('fft_singpass_return_state');
+
+      if ((returnPath && returnPath.startsWith('/fft')) || fftReturnState) {
+        const fftPath = (returnPath && returnPath.startsWith('/fft')) ? returnPath : '/fft';
+        console.log('[SingPass] FFT flow detected, redirecting to:', fftPath);
+        window.location.href = `${baseUrl}${fftPath}`;
+        return;
+      }
+
+      // Regular form flow — get the course link saved before redirect
       const courseLink = sessionStorage.getItem('courseLink');
-      
-      // After SingPass callback, go directly to Personal Particulars section (section=1)
-      // Preserve the course link so background color loads correctly
+
+      // Go directly to Personal Particulars section (section=1)
       let url = `${baseUrl}/form?section=1`;
       if (courseLink) {
         url += `&link=${encodeURIComponent(courseLink)}`;
         console.log('[SingPass] Preserving course link in redirect:', courseLink);
       }
-      
+
       console.log('[SingPass] Redirecting directly to Personal Particulars (section 1):', url);
-      
-      // Instant redirect
       window.location.href = url;
     } catch (error) {
       console.error('[SingPass] Redirect error:', error);
