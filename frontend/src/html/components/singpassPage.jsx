@@ -61,10 +61,22 @@ class SingpassPage extends Component {
       let redirectLink = urlParams.get('link');
       if (redirectLink) {
         var decodedLink = this.decodeUrlSafely(redirectLink);
-        //redirectLink = `http://localhost:3000/form`;
         if (decodedLink && decodedLink.includes('/fft')) {
-          redirectLink = `https://salmon-wave-09f02b100.6.azurestaticapps.net/fft?section=participants`;
-          sessionStorage.setItem('singpass_return_path', '/fft?section=participants');
+          // Extract just the path (and query) from the link so we return to /fft or /fft/form?event=...
+          let fftPath;
+          try {
+            const url = new URL(decodedLink);
+            fftPath = url.pathname + url.search;
+          } catch (e) {
+            // decodedLink is already a relative path
+            fftPath = decodedLink.startsWith('/') ? decodedLink : '/' + decodedLink;
+          }
+          // Fallback to /fft if extraction failed somehow
+          if (!fftPath || !fftPath.startsWith('/fft')) {
+            fftPath = '/fft';
+          }
+          redirectLink = `https://salmon-wave-09f02b100.6.azurestaticapps.net${fftPath}`;
+          sessionStorage.setItem('singpass_return_path', fftPath);
         } else {
           redirectLink = `https://salmon-wave-09f02b100.6.azurestaticapps.net/form`;
           sessionStorage.setItem('singpass_return_path', '/form');
