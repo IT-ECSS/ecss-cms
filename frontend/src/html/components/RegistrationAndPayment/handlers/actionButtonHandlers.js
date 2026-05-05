@@ -29,7 +29,7 @@ import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
 import { logExportAction, logRegistrationBulkUpdate } from '../../../../utils/auditLog';
-import getCourseReferenceCode from '../../../constants/courseReferenceMap';
+import getEcssCourseCode, { getEcssCanonicalName } from '../constants/courseCodeMapping';
 
 import {
   convertDateFormat1,
@@ -88,7 +88,8 @@ export async function exportToLOP(context) {
         )
       );
 
-    filteredRows.forEach((detail, index) => {
+    for (let index = 0; index < filteredRows.length; index++) {
+      const detail     = filteredRows[index];
       const rowIndex   = startRow + index;
       const newDataRow = sourceSheet.getRow(rowIndex);
       newDataRow.height = originalRow.height;
@@ -132,24 +133,15 @@ export async function exportToLOP(context) {
           workParts.length === 3 ? workParts[0] + ' ' + workParts[1] : workParts[0];
 
         const courseEngName = detail.courseInfo.courseEngName;
-        const courseCode    = getCourseReferenceCode(courseEngName);
+        const price         = parseFloat(detail.courseInfo.coursePrice.replace('$', ''));
+
+        // Course code is returned only when BOTH name and price match the Excel sheet
+        const courseCode    = await getEcssCourseCode(courseEngName, price);
+        const canonicalName = await getEcssCanonicalName(courseEngName, price);
+
         sourceSheet.getCell(`O${rowIndex}`).value = courseCode.trim();
+        sourceSheet.getCell(`P${rowIndex}`).value = canonicalName || courseEngName;
 
-        const languageSuffixes = ['Mandarin', 'English', 'Malay'];
-        let courseNameForP = courseEngName;
-        for (const sep of [' – ', ' - ']) {
-          if (courseEngName.includes(sep)) {
-            const parts    = courseEngName.split(sep);
-            const lastPart = parts[parts.length - 1].trim();
-            if (languageSuffixes.includes(lastPart)) {
-              courseNameForP = parts.slice(0, -1).join(sep);
-            }
-            break;
-          }
-        }
-        sourceSheet.getCell(`P${rowIndex}`).value = courseNameForP;
-
-        const price = parseFloat(detail.courseInfo.coursePrice.replace('$', ''));
         sourceSheet.getCell(`Q${rowIndex}`).value = `$${(price * 5).toFixed(2)}`;
         sourceSheet.getCell(`R${rowIndex}`).value = `$${(price * 4).toFixed(2)}`;
 
@@ -211,7 +203,7 @@ export async function exportToLOP(context) {
           newDataRow.getCell(col).style = cell.style;
         });
       }
-    });
+    }
 
     if (firstType === 'NSA') {
       const total = filteredRows.reduce((sum, item) => {
