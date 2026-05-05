@@ -79,7 +79,7 @@ export async function exportToLOP(context) {
     const filteredRows = selectedRows
       .filter((row) =>
         firstType === 'NSA'
-          ? row.paymentStatus === 'Paid'
+          ? row.paymentStatus === 'Paid' || row.paymentStatus === 'SkillsFuture Done'
           : row.paymentStatus === 'Confirmed'
       )
       .sort((a, b) =>
