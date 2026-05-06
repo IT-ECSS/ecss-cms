@@ -54,7 +54,8 @@ class ParticularsSection extends Component {
     let { value } = e.target;
 
     if (name === 'name') {
-      value = value.toLowerCase().replace(/(^\w|\s\w)/g, (char) => char.toUpperCase());
+      value = value.replace(/[0-9]/g, '');
+      value = value.toLowerCase().replace(/(^|\s)([a-z])/g, (_, space, letter) => space + letter.toUpperCase());
     }
 
     const updatedFormData = { [name]: value };
