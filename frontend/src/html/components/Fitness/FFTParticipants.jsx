@@ -117,6 +117,7 @@ class FFTParticipants extends Component {
       showLoadingModal: false,
       showResultModal: false,
       showEntryNumber: false,
+      isAlreadyRegistered: false,
       submitError: null,
       entryNumber: null,
       pendingReturnTo: null,
@@ -207,16 +208,16 @@ class FFTParticipants extends Component {
         this.props.onHome();
         return;
       }
-      this.setState({ language: null, event: null, slot: null, formData: null, showEntryNumber: false, entryNumber: null, showLoadingModal: false, showResultModal: false, submitError: null, showHomeConfirm: false });
+      this.setState({ language: null, event: null, slot: null, formData: null, showEntryNumber: false, isAlreadyRegistered: false, entryNumber: null, showLoadingModal: false, showResultModal: false, submitError: null, showHomeConfirm: false });
       return;
     }
-    this.setState({ language: null, event: null, slot: null, formData: null, showEntryNumber: false, entryNumber: null, showLoadingModal: false, showResultModal: false, submitError: null, showHomeConfirm: false });
+    this.setState({ language: null, event: null, slot: null, formData: null, showEntryNumber: false, isAlreadyRegistered: false, entryNumber: null, showLoadingModal: false, showResultModal: false, submitError: null, showHomeConfirm: false });
     const goHome = this.props.onHome || this.props.onBack;
     goHome?.();
   };
 
   handleFormSubmit = async (data) => {
-    this.setState({ showResultModal: false, submitError: null, entryNumber: null });
+    this.setState({ showResultModal: false, submitError: null, entryNumber: null, isAlreadyRegistered: false });
     
     // For pre-registered participants, skip backend submission
     if (data.entryMethod === 'participantNumber' && data.participantNumber) {
@@ -253,6 +254,7 @@ class FFTParticipants extends Component {
           showResultModal: false,
           showEntryNumber: true,
           entryNumber: response.data.participantNumber ?? null,
+          isAlreadyRegistered: true,
         });
         return;
       }
@@ -269,6 +271,7 @@ class FFTParticipants extends Component {
           showResultModal: false,
           showEntryNumber: true,
           entryNumber: errData.participantNumber ?? null,
+          isAlreadyRegistered: true,
         });
       } else {
         this.setState({ showResultModal: true, submitError: errData?.error || err.message || 'Submission failed.' });
@@ -358,7 +361,7 @@ class FFTParticipants extends Component {
   }
 
   render() {
-    const { language, event, slot, reselecting, formData, showLoadingModal, showResultModal, showEntryNumber, submitError, entryNumber, showHomeConfirm } = this.state;
+    const { language, event, slot, reselecting, formData, showLoadingModal, showResultModal, showEntryNumber, isAlreadyRegistered, submitError, entryNumber, showHomeConfirm } = this.state;
     const step = reselecting || (!language ? 'language' : !event ? 'event' : !slot ? 'slot' : 'form');
     const backTitle = language === 'zh' ? '返回' : language === 'ms' ? 'Kembali' : 'Back';
     const homeTitle = language === 'zh' ? '主页' : language === 'ms' ? 'Rumah' : 'Home';
@@ -500,6 +503,7 @@ class FFTParticipants extends Component {
             <ParticipantEntryNumber
               language={language}
               entryNumber={entryNumber}
+              isAlreadyRegistered={isAlreadyRegistered}
               onHome={this.handleHome}
               onFinish={this.handleFinish}
               showParticipantNumber={this.props.showParticipantNumber !== false}

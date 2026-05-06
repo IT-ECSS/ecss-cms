@@ -24,6 +24,8 @@ class StaffUses extends Component {
       view: null,
       formSubmitSuccess: false,
       submittedParticipantNumber: null,
+      formAlreadyRegistered: false,
+      alreadyRegisteredNumber: null,
     };
     this.editParticipantsRef = React.createRef();
     this.participantFormRef = React.createRef();
@@ -59,7 +61,7 @@ class StaffUses extends Component {
     localStorage.removeItem('fftParticularsSectionData');
     localStorage.removeItem('fftHealthDeclarationData');
     localStorage.removeItem('fftIndemnityData');
-    this.setState({ view: null, formSubmitSuccess: false, submittedParticipantNumber: null });
+    this.setState({ view: null, formSubmitSuccess: false, submittedParticipantNumber: null, formAlreadyRegistered: false, alreadyRegisteredNumber: null });
   };
 
   handleBack = () => {
@@ -72,7 +74,7 @@ class StaffUses extends Component {
       if (view === 'reviewResults') {
         this._reviewRef?.reset?.();
       }
-      this.setState({ view: null, formSubmitSuccess: false, submittedParticipantNumber: null });
+      this.setState({ view: null, formSubmitSuccess: false, submittedParticipantNumber: null, formAlreadyRegistered: false, alreadyRegisteredNumber: null });
       return;
     }
 
@@ -81,7 +83,7 @@ class StaffUses extends Component {
       if (this.participantFormRef.current) {
         this.participantFormRef.current.handleBack();
       } else {
-        this.setState({ view: null, formSubmitSuccess: false, submittedParticipantNumber: null });
+        this.setState({ view: null, formSubmitSuccess: false, submittedParticipantNumber: null, formAlreadyRegistered: false, alreadyRegisteredNumber: null });
       }
       return;
     }
@@ -106,9 +108,15 @@ class StaffUses extends Component {
         entryMethod: data.entryMethod,
         participantNumber: data.participantNumber,
       });
-      if (response.data.success) {
+      if (response.data.alreadyRegistered) {
+        this.setState({
+          formAlreadyRegistered: true,
+          alreadyRegisteredNumber: response.data.participantNumber ?? null,
+          formSubmitSuccess: false,
+        });
+      } else if (response.data.success) {
         const pNum = response.data.participantNumber ?? data.participantNumber ?? null;
-        this.setState({ formSubmitSuccess: true, submittedParticipantNumber: pNum });
+        this.setState({ formSubmitSuccess: true, submittedParticipantNumber: pNum, formAlreadyRegistered: false });
       }
     } catch (err) {
       console.error('[StaffUses] Form submit error:', err);

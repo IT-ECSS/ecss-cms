@@ -4,7 +4,64 @@ import fftTranslations from './fftTranslations';
 
 class ParticipantEntryNumber extends Component {
   render() {
-    const { entryNumber, language, onHome, onFinish, showParticipantNumber = true } = this.props;
+    const { entryNumber, language, onHome, onFinish, showParticipantNumber = true, isAlreadyRegistered = false } = this.props;
+
+    if (isAlreadyRegistered) {
+      const alreadyTitle = language === 'zh' ? '已注册' : language === 'ms' ? 'Sudah Didaftarkan' : 'Already Registered';
+      const alreadyLabel = language === 'zh' ? '已注册参与者编号' : language === 'ms' ? 'Nombor Peserta Sedia Ada' : 'Existing Participant #';
+      const alreadyDesc = fftTranslations.errorAlreadyRegistered?.[language] || fftTranslations.errorAlreadyRegistered?.en;
+
+      return (
+        <div className="fft-create-file-form">
+          <div className="fft-participants-wrapper">
+            {/* Already-registered content section */}
+            <div className="fft-participants-section" style={{ textAlign: 'center', padding: '48px 24px 32px' }}>
+              <div className="fft-participants-section-header" style={{ textAlign: 'left' }}>
+                <h2 style={{ margin: 0, fontWeight: 700, color: '#e65100' }}>
+                  {alreadyTitle}
+                </h2>
+                <hr style={{ margin: '12px 0 12px 0', border: 'none', borderTop: '1px solid #ddd' }} />
+                <div style={{ margin: '0', color: '#444' }}>
+                  {alreadyDesc}
+                </div>
+              </div>
+
+              {entryNumber != null && (
+                <div
+                  style={{
+                    display: 'inline-block',
+                    marginTop: '32px',
+                    padding: '24px 48px',
+                    borderRadius: '16px',
+                    backgroundColor: '#fff3e0',
+                    border: '2px solid #e65100',
+                  }}
+                >
+                  <div style={{ fontSize: '0.85em', color: '#777', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                    {alreadyLabel}
+                  </div>
+                  <div style={{ fontSize: '3em', fontWeight: 800, color: '#e65100', lineHeight: 1 }}>
+                    {entryNumber}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Finish section */}
+            <div className="fft-participants-section" style={{ textAlign: 'center', padding: '24px' }}>
+              <button
+                type="button"
+                className="fft-create-event-btn fft-create-event-btn-clear"
+                onClick={() => onFinish?.()}
+                style={{ width: 'fit-content', fontSize: '1.05em', padding: '14px 32px' }}
+              >
+                {language === 'zh' ? '完成' : language === 'ms' ? 'Selesai' : 'Finish'}
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="fft-create-file-form">
