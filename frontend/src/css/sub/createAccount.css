@@ -29,3 +29,22 @@
     align-items: center; /* Vertically center-aligns the radio button and text */
     white-space: nowrap;
 }
+
+.site-btn {
+    flex: 0 0 calc(50% - 5px);
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 21px;
+    /* font-weight: 700; */
+    background: transparent;
+    border: 2px solid transparent !important;
+    color: #333 !important;
+    transition: border 0.15s, color 0.15s;
+    box-sizing: border-box;
+    outline: none;
+}
+
+.site-btn.site-btn--selected {
+    border: 3px solid #333 !important;
+}

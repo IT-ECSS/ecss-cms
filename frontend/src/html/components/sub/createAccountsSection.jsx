@@ -261,7 +261,7 @@ class CreateAccountsSection extends Component {
                         />
                         {this.state.emailError && <p className="error-message1">{this.state.emailError}</p>}
                         </div>
-                        <div className="form-group1">
+                        <div className="form-group">
                             <label htmlFor="password">Password:</label>
                             <div className="password-group">
                                 <div className="password-input-wrapper">
@@ -319,48 +319,19 @@ class CreateAccountsSection extends Component {
                         </div>
                         {this.state.role === "Site in-charge" && (
                             <div className="form-group">
-                                <label>Ssite:</label>
-                                <div className="radio-group">
-                                    <label>
-                                        <input 
-                                            type="radio" 
-                                            name="site" 
-                                            value="Tampines 253 Centre" 
-                                            checked={this.state.site === "Tampines 253 Centre"}
-                                            onChange={this.handleChange} 
-                                        />
-                                        Tampines 253 Centre
-                                    </label>
-                                    <label>
-                                        <input 
-                                            type="radio" 
-                                            name="site" 
-                                            value="CT Hub" 
-                                            checked={this.state.site === "CT Hub"}
-                                            onChange={this.handleChange} 
-                                        />
-                                        CT Hub
-                                    </label>
-                                    <label>
-                                        <input 
-                                            type="radio" 
-                                            name="site" 
-                                            value="Tampines North Community Centre" 
-                                            checked={this.state.site === "Tampines North Community Centre"}
-                                            onChange={this.handleChange} 
-                                        />
-                                        Tampines North Community Centre
-                                    </label>
-                                    <label>
-                                        <input 
-                                            type="radio" 
-                                            name="site" 
-                                            value="Pasir Ris West Wellness Centre" 
-                                            checked={this.state.site === "Pasir Ris West Wellness Centre"}
-                                            onChange={this.handleChange} 
-                                        />
-                                        Pasir Ris West Wellness Centre
-                                    </label>
+                                <label>Site:</label>
+                                <p style={{ margin: '4px 0 8px 0', fontSize: '19.5px', color: '#666' }}>Please select the site this account will be in-charge of.</p>
+                                <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: '10px', marginTop: '6px' }}>
+                                    {[/*'Tampines 253 Centre',*/ 'CT Hub', 'Tampines North Community Centre', 'Pasir Ris West Wellness Centre'].map((s) => (
+                                        <button
+                                            key={s}
+                                            type="button"
+                                            onClick={() => this.setState({ site: s, siteError: '' })}
+                                            className={`site-btn${this.state.site === s ? ' site-btn--selected' : ''}`}
+                                        >
+                                            {s}
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
                         )}

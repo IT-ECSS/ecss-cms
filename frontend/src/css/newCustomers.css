@@ -75,19 +75,21 @@ button {
     display: flex; /* Ensure the label, input wrapper, and button are in a flex row */
     align-items: center; /* Center items vertically */
     margin-bottom: 15px; /* Add space between form groups */
+    width: 100%;
 }
 
 .password-input-wrapper {
     position: relative; /* Position relative for the icon */
     display: flex; /* Use flexbox to align items */
     align-items: center; /* Center items vertically */
-    width: auto; /* Let the input take its natural width */
+    flex: 1; /* Take up remaining space */
 }
 
 .password-input-wrapper input[type=password],
 .password-input-wrapper input[type=text] {
     padding-right: 30px; /* Space for the icon */
-    width: 15rem; /* Set a fixed width for the input */
+    width: 100%; /* Fill the wrapper */
+    height: 42px;
     box-sizing: border-box; /* Include padding in width */
 }
 
@@ -99,10 +101,24 @@ button {
     z-index: 1; /* Ensure icon is above input */
 }
 
+.passwordInput:disabled {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+}
+
 .generate-password-button {
-    margin-left: 10px; /* Space between the input and button */
-    width: 15rem; /* Adjust width as needed, or keep it as is */
-    padding: 10px; /* Keep padding consistent */
+    margin-left: 10px;
+    width: 15rem;
+    height: 42px;
+    padding: 0 10px;
+    background-color: transparent;
+    color: #007bff;
+    border: 2px solid #007bff;
+    border-radius: 4px;
+    cursor: pointer;
+    box-sizing: border-box;
+    font-weight: bold;
+    font-size: 15px;
 }
 
 .button-container {
@@ -115,17 +131,18 @@ button {
 .button-container .submit-form-button, .button-container .clear-form-button {
     flex: 1; /* Makes both buttons the same width */
     padding: 10px; /* Keep padding consistent */
-    border: none; /* No border */
     border-radius: 5px; /* Rounded corners */
     cursor: pointer; /* Pointer cursor */
+    background-color: transparent;
+    font-weight: bold;
 }
 
 .button-container .submit-form-button {
-    background-color: #4CAF50 !important; /* Green color for the submit button */
-    color: white; /* Text color */
+    border: 2px solid #4CAF50 !important;
+    color: #4CAF50 !important;
 }
 
 .button-container .clear-form-button {
-    background-color: #f44336 !important; /* Red color for the clear button */
-    color: white; /* Text color */
+    border: 2px solid #f44336 !important;
+    color: #f44336 !important;
 }
