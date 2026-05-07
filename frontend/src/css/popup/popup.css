@@ -319,6 +319,136 @@
   }
 }
 
+/* Popup Modal with Header, Body, Footer */
+.popup-modal {
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+  border-radius: 0.625rem; /* 10px */
+  overflow: hidden;
+  width: 450px;
+  max-width: 90vw;
+  box-shadow: none;
+}
+
+.popup-modal--compact {
+  width: 620px;
+  max-width: 95vw;
+}
+
+.popup-modal--approval-requests {
+  width: 760px;
+  max-width: 95vw;
+}
+
+.popup-header {
+  padding: 20px 20px 10px;
+  text-align: left;
+  border-bottom: none;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.popup-header h2 {
+  margin: 0;
+  font-size: 2.25rem;
+  color: #000000;
+  font-weight: 600;
+}
+
+.popup-header__close-btn {
+  position: static;
+  width: fit-content;
+  min-width: fit-content;
+  border: none;
+  background: transparent;
+  color: #111827;
+  font-size: 2.25rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  flex: 0 0 auto;
+}
+
+.popup-header__close-btn:hover {
+  color: #000000;
+}
+
+.popup-body {
+  padding: 30px 20px 20px;
+  flex: 1;
+  text-align: left;
+}
+
+.popup-body p {
+  margin: 10px 0;
+  color: #333333;
+  font-size: 1.425rem;
+  line-height: 1.5;
+}
+
+.popup-body p:first-child {
+  margin-top: 0;
+}
+
+.popup-body p:last-child {
+  margin-bottom: 0;
+}
+
+.popup-modal--compact .popup-body p {
+  white-space: nowrap;
+}
+
+.popup-footer {
+  padding: 20px;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  border-top: none;
+}
+
+.popup-footer__button,
+.popup-footer button {
+  flex: 1;
+  padding: 10px 20px;
+  border: 3px solid transparent;
+  border-radius: 4px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1.425rem;
+  background-color: transparent;
+  white-space: nowrap;
+}
+
+.popup-footer__button--secondary,
+.popup-footer button:first-child {
+  border-color: #76c7c0;
+  color: #76c7c0;
+}
+
+.popup-footer__button--secondary:hover,
+.popup-footer button:first-child:hover {
+  background-color: transparent;
+  border-color: #5ab8b1;
+  color: #5ab8b1;
+}
+
+.popup-footer__button--primary,
+.popup-footer button:last-child {
+  border-color: #e74c3c;
+  color: #e74c3c;
+}
+
+.popup-footer__button--primary:hover,
+.popup-footer button:last-child:hover {
+  background-color: transparent;
+  border-color: #c0392b;
+  color: #c0392b;
+}
 @keyframes color-change {
   0% {
     background-color: #90EE90; /* Light green */

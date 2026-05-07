@@ -1,0 +1,176 @@
+/* ── Overlay ─────────────────────────────────────────────────────────── */
+.approval-status-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+/* ── Modal shell ─────────────────────────────────────────────────────── */
+.approval-status-modal {
+  width: min(1100px, 96vw);
+  max-height: 88vh;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────── */
+.approval-status-modal__header {
+  padding: 18px 24px 14px;
+  border-bottom: 1px solid #e0e4ea;
+  background: #f8f9fb;
+}
+
+.approval-status-modal__title {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 700;
+  color: #1a3a6b;
+  letter-spacing: 0.01em;
+}
+
+/* ── Body / scrollable area ──────────────────────────────────────────── */
+.approval-status-modal__body {
+  padding: 16px 20px;
+  overflow: auto;
+  flex: 1;
+}
+
+.approval-status-modal__empty {
+  font-size: 21px;
+  color: #666;
+  margin: 12px 0;
+  text-align: center;
+}
+
+/* ── Table wrapper ───────────────────────────────────────────────────── */
+.approval-status-modal__table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e0e4ea;
+  border-radius: 6px;
+}
+
+/* ── Table ───────────────────────────────────────────────────────────── */
+.approval-status-modal__table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  min-width: 720px;
+  font-size: 19px;
+}
+
+.approval-status-modal__table thead th {
+  background: #f2f5fa;
+  color: #374151;
+  font-weight: 600;
+  font-size: 18px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 10px 12px;
+  border-bottom: 2px solid #d1d9e6;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  text-align: left;
+  white-space: nowrap;
+}
+
+/* Column widths */
+.approval-status-modal__table .col-sn    { width: 46px;  text-align: center; white-space: nowrap; }
+.approval-status-modal__table .col-field { width: 120px; }
+.approval-status-modal__table .col-value { width: 16%;   }
+.approval-status-modal__table .col-new   { background: #f0faf2; }
+.approval-status-modal__table .col-status{ width: 100px; text-align: center; }
+
+.approval-status-modal__table td {
+  padding: 9px 12px;
+  vertical-align: middle;
+  border-bottom: 1px solid #eeeff2;
+  word-break: break-word;
+  color: #374151;
+  line-height: 1.4;
+}
+
+/* Alternating rows */
+.approval-status-modal__table .row-odd  td { background: #ffffff; }
+.approval-status-modal__table .row-even td { background: #f8f9fb; }
+
+/* Keep col-new tint on alternating rows */
+.approval-status-modal__table .row-odd  td.col-new { background: #f0faf2; }
+.approval-status-modal__table .row-even td.col-new { background: #e8f5eb; }
+
+/* ── Group header row ────────────────────────────────────────────────── */
+.approval-status-modal__group-row td {
+  background: #e8f0ff !important;
+  padding: 7px 12px;
+  border-bottom: 1px solid #c9d7f5;
+  line-height: 1.4;
+}
+
+.approval-status-modal__group-row .group-name {
+  font-weight: 700;
+  font-size: 19px;
+  color: #1a3a6b;
+}
+
+.approval-status-modal__group-row .group-email {
+  font-weight: 400;
+  font-size: 18px;
+  color: #4a5568;
+}
+
+.approval-status-modal__group-row .group-course {
+  font-weight: 400;
+  font-size: 18px;
+  color: #555;
+}
+
+/* ── Status pills ────────────────────────────────────────────────────── */
+.approval-status-pill {
+  display: inline-block;
+  padding: 4px 13px;
+  border-radius: 999px;
+  font-size: 18px;
+  font-weight: 600;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.approval-status-pill.is-pending  { background: #fff3e0; color: #c45c00; border: 1px solid #ffc77d; }
+.approval-status-pill.is-approved { background: #e8f5e9; color: #256029; border: 1px solid #a5d6a7; }
+.approval-status-pill.is-rejected { background: #ffebee; color: #b71c1c; border: 1px solid #ef9a9a; }
+.approval-status-pill.is-expired  { background: #f5f5f5; color: #757575; border: 1px solid #cfcfcf; }
+
+/* ── Footer ──────────────────────────────────────────────────────────── */
+.approval-status-modal__footer {
+  padding: 12px 24px 16px;
+  border-top: 1px solid #e0e4ea;
+  display: flex;
+  justify-content: center;
+  background: #f8f9fb;
+}
+
+.approval-status-modal__btn {
+  border: 1px solid #b0b8c4;
+  background: #ffffff;
+  color: #374151;
+  font-size: 21px;
+  font-weight: 500;
+  padding: 8px 36px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.approval-status-modal__btn:hover {
+  background: #f0f2f5;
+  border-color: #8a96a8;
+}

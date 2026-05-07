@@ -46,6 +46,9 @@ const SYSTEM_NAME_ALIASES = {
   'fall prevention and functional improvement training': 'Fall Prevention & Functional Improvement Training',
   // TCM course: system uses em-dash, Excel uses hyphen (handled by normalizeName, alias as safety net)
   "tcm - don't be a friend of chronic diseases": 'TCM - Don\'t be a Friend of Chronic Diseases',
+  // Quilling course: system may store misspelled/without-article variants
+  'art of paper quiliing':                    'The Art of Paper Quilling',
+  'art of paper quilling':                    'The Art of Paper Quilling',
 };
 
 /** Returns true if the string contains at least one CJK character. */
@@ -178,7 +181,9 @@ function _pickEntry(entries, price) {
   if (price !== null) {
     const exact = entries.find(e => e.netPrice !== null && Math.abs(e.netPrice - price) <= 0.01);
     if (exact) return exact;
-    // Price was given but nothing matched — do not fall back to wrong entry
+    // If only one code exists for this name, use it even when price is slightly off.
+    if (entries.length === 1) return entries[0];
+    // Multiple codes share the same name and no price match was found.
     return null;
   }
   return entries[0];

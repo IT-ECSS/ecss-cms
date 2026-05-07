@@ -124,12 +124,14 @@ async function _generateCashPayNowReceipt(id, participant, course, userName, pay
   const receiptNo = await fetchReceiptNumber(course, paymentMethod);
   await generatePDFReceipt(id, participant, course, userName, receiptNo, status);
   await saveReceiptToDatabase(receiptNo, course.courseLocation, id, '', userName);
+  return receiptNo;
 }
 
 async function _generateSkillsFutureInvoice(id, participant, course, userName, paymentMethod, status) {
   const invoiceNo = await fetchReceiptNumber(course, paymentMethod);
   await generatePDFInvoice(id, participant, course, userName, invoiceNo, status);
   await saveReceiptToDatabase(invoiceNo, course.courseLocation, id, '', userName);
+  return invoiceNo;
 }
 
 // ─── receipt generator (on status change) ────────────────────────────────────
@@ -142,21 +144,23 @@ async function _generateSkillsFutureInvoice(id, participant, course, userName, p
 export async function receiptGenerator(id, participant, course, official, value, userName) {
   if (value === 'Generating SkillsFuture Invoice') {
     try {
-      await _generateSkillsFutureInvoice(id, participant, course, userName, 'SkillsFuture', value);
+      return await _generateSkillsFutureInvoice(id, participant, course, userName, 'SkillsFuture', value);
     } catch (error) {
       console.error('Error during SkillsFuture invoice generation:', error);
     }
-    return;
+    return null;
   }
 
-  if (value !== 'Paid') return;
-  if (course.payment !== 'Cash' && course.payment !== 'PayNow') return;
+  if (value !== 'Paid') return null;
+  if (course.payment !== 'Cash' && course.payment !== 'PayNow') return null;
 
   try {
-    await _generateCashPayNowReceipt(id, participant, course, userName, course.payment, value);
+    return await _generateCashPayNowReceipt(id, participant, course, userName, course.payment, value);
   } catch (error) {
     console.error('Error during receipt generation:', error);
   }
+
+  return null;
 }
 
 // ─── auto receipt generator (on payment method change) ───────────────────────
@@ -168,17 +172,19 @@ export async function receiptGenerator(id, participant, course, official, value,
  */
 export async function autoReceiptGenerator(id, participant, course, official, newMethod, value, userName) {
   if (newMethod === 'Cash' || newMethod === 'PayNow') {
-    if (value !== 'Paid') return;
+    if (value !== 'Paid') return null;
     try {
-      await _generateCashPayNowReceipt(id, participant, course, userName, newMethod, value);
+      return await _generateCashPayNowReceipt(id, participant, course, userName, newMethod, value);
     } catch (error) {
       console.error('Error during receipt generation:', error);
     }
   } else if (newMethod === 'SkillsFuture') {
     try {
-      await _generateSkillsFutureInvoice(id, participant, course, userName, 'SkillsFuture', value);
+      return await _generateSkillsFutureInvoice(id, participant, course, userName, 'SkillsFuture', value);
     } catch (error) {
       console.error('Error during SkillsFuture invoice generation:', error);
     }
   }
+
+  return null;
 }

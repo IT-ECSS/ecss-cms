@@ -13,6 +13,7 @@ function ExpandedRowDetail({ rowData }) {
     participantInfo,
     courseInfo,
     officialInfo,
+    confirmed,
     status,
     marriageDetails,
     spouse,
@@ -21,6 +22,15 @@ function ExpandedRowDetail({ rowData }) {
     registrationDate,
     sendDetails,
   } = rowData;
+
+  const normalizedConfirmed = (() => {
+    const raw = confirmed ?? officialInfo?.confirmed;
+    if (raw === true || raw === false) return raw;
+    const v = String(raw ?? '').trim().toLowerCase();
+    if (v === 'confirmed' || v === 'true' || v === '1' || v === 'yes') return true;
+    if (v === 'not confirmed' || v === 'false' || v === '0' || v === 'no') return false;
+    return false;
+  })();
 
   const isMarriagePrep = courseInfo?.courseType === 'Marriage Preparation Programme';
 
@@ -120,7 +130,7 @@ function ExpandedRowDetail({ rowData }) {
         <Section title="Payment Information">
           <Field label="Payment Method"        value={courseInfo?.payment} />
           <Field label="Payment Status"        value={status} />
-          <Field label="Confirmation Status"   value={officialInfo?.confirmed ? 'Confirmed' : 'Not Confirmed'} />
+          <Field label="Confirmation Status"   value={normalizedConfirmed ? 'Confirmed' : 'Not Confirmed'} />
           <Field label="Receipt/Invoice Number" value={officialInfo?.receiptNo} />
           {officialInfo?.refundedDate && (
             <Field label="Refunded Date" value={officialInfo.refundedDate} />

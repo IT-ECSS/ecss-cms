@@ -70,7 +70,6 @@ class LoginPage extends Component {
     e.preventDefault();
     var { email, password } = this.state;
     const { auth } = this.props; // Access auth context here
-    email = email.toLowerCase();
 
     const emailError = this.validateEmail(email);
     const passwordError = this.validatePassword(password);
@@ -87,7 +86,8 @@ class LoginPage extends Component {
       // Replace with your API endpoint and payload
       /*const response = await axios.post(`${window.location.hostname === "localhost" ? 
                         "http://localhost:3001" : 
-                        "https://ecss-backend-node.azurewebsites.net"}/login`, { email, password });*/
+                        "https://ecss-backend-node.azurewebsites.net"}/login`, { email, password });
+                        */
 
         const axiosInstance = axios.create({
           baseURL: window.location.hostname === "localhost"

@@ -35,6 +35,10 @@ function getConfiguredYear() {
     return now.getFullYear();
 }
 
+function sanitizeStaffName(value) {
+    return String(value ?? '').replace(/\s*\(Approved\)\s*$/i, '').trim();
+}
+
 class DatabaseConnectivity {
     constructor() {
         this.client = new MongoClient(uri, mongoOptions);
@@ -956,29 +960,24 @@ class DatabaseConnectivity {
     
                 // Declare update variable outside conditionals
                 let update;
+
+                const fieldPathMap = {
+                    name: 'participant.name',
+                    contactNo: 'participant.contactNumber',
+                    remarks: 'official.remarks',
+                    paymentDate: 'official.date',
+                    refundedDate: 'official.refundedDate',
+                    location: 'course.courseLocation',
+                    course: 'course.courseEngName',
+                };
     
                 // Dynamically construct the update object with dot notation
-                if(field === "paymentDate") {
-                    update = {
-                        $set: {
-                           "official.date": editedParticulars,
-                        },
-                    };
-                }
-                else if(field === "refundedDate") {
-                    update = {
-                        $set: {
-                           "official.refundedDate": editedParticulars,
-                        },
-                    };
-                }
-                else {
-                    update = {
-                        $set: {
-                            [`participant.${field}`]: editedParticulars, // Use bracket notation for dynamic field
-                        },
-                    };
-                }
+                const mappedPath = fieldPathMap[field] || `participant.${field}`;
+                update = {
+                    $set: {
+                        [mappedPath]: editedParticulars,
+                    },
+                };
     
                 // Call updateOne
                 const result = await table.updateOne(filter, update);
@@ -1022,6 +1021,7 @@ class DatabaseConnectivity {
     
     
     async updatePaymentOfficialUse(dbname, id, name, date, time, status) {
+        name = sanitizeStaffName(name);
         var db = this.client.db(dbname); // return the db object
         try {
             if (db) {
@@ -1038,6 +1038,17 @@ class DatabaseConnectivity {
                 // COMMENTED OUT: SkillsFuture - if (status === "Paid" || status === "SkillsFuture Done" || status === "Generating SkillsFuture Invoice") {
                 if (status === "Paid") {
                     console.log("OK");
+                    update = {
+                        $set: {
+                            "status": status,
+                            "official.name": name,
+                            "official.date": date,
+                            "official.time": time
+                        }
+                    };
+                }
+                else if (status === "Generating SkillsFuture Invoice" || status === "SkillsFuture Done") {
+                    // Keep official.confirmed unchanged for SkillsFuture lifecycle states.
                     update = {
                         $set: {
                             "status": status,
@@ -1080,6 +1091,7 @@ class DatabaseConnectivity {
 
     async updateConfirmationOfficialUse(dbname, id, name, date, time, status) {
         console.log("Update Confirmation Official Use:", id, name, date, time, status);
+        name = sanitizeStaffName(name);
         var db = this.client.db(dbname); // return the db object
         try {
             if (db) {
@@ -1093,11 +1105,19 @@ class DatabaseConnectivity {
                 // - Confirming (true): only update official fields; leave status and receiptNo untouched
                 //   (frontend's subsequent updatePaymentStatus call handles the status change)
                 // - Un-confirming (false): update official fields AND reset status to Pending + clear receiptNo
+                const normalizedStatus = (() => {
+                    if (status === true || status === false) return status;
+                    const normalized = String(status ?? '').trim().toLowerCase();
+                    if (normalized === 'confirmed' || normalized === 'yes' || normalized === 'true' || normalized === '1') return true;
+                    if (normalized === 'not confirmed' || normalized === 'no' || normalized === 'false' || normalized === '0') return false;
+                    return false;
+                })();
+
                 let update;
-                if (status === true) {
+                if (normalizedStatus === true) {
                     update = {
                         $set: {
-                            "official.confirmed": status,
+                            "official.confirmed": true,
                             "official.name": name,
                             "official.date": date,
                             "official.time": time,
@@ -1106,7 +1126,7 @@ class DatabaseConnectivity {
                 } else {
                     update = {
                         $set: {
-                            "official.confirmed": status,
+                            "official.confirmed": false,
                             "official.name": name,
                             "official.date": date,
                             "official.time": time,
@@ -1130,6 +1150,7 @@ class DatabaseConnectivity {
 
     async updatePaymentMethod(dbname, id, newPaymentMethod, staff, date, time) 
     {
+        staff = sanitizeStaffName(staff);
         var db = this.client.db(dbname); // return the db object ok
         try {
             console.log("Id:", id);
@@ -1751,16 +1772,49 @@ class DatabaseConnectivity {
         try {
             const db = this.client.db(databaseName);
             const table = db.collection(collectionName);
+
+            const filter = { _id: new ObjectId(id) };
+            const incoming = String(remarks ?? '').trim();
+
+            // Explicit clear path.
+            if (!incoming) {
+                const clearResult = await table.updateOne(filter, { $set: { "official.remarks": '' } });
+                console.log("Update Result:", clearResult);
+                return clearResult;
+            }
+
+            const row = await table.findOne(filter, { projection: { "official.remarks": 1 } });
+            const existing = String(row?.official?.remarks || '').trim();
+
+            let nextRemarks;
+            if (!existing) {
+                nextRemarks = `1) ${incoming}`;
+            } else {
+                const lines = existing
+                    .split(/\r?\n/)
+                    .map((line) => String(line || '').trim())
+                    .filter(Boolean);
+
+                let maxNo = 0;
+                for (const line of lines) {
+                    const m = line.match(/^(\d+)\)\s+/);
+                    if (m) maxNo = Math.max(maxNo, parseInt(m[1], 10) || 0);
+                }
+
+                // If incoming is already fully numbered text, keep as-is.
+                if (/^\d+\)\s+/.test(incoming)) {
+                    nextRemarks = incoming;
+                } else {
+                    nextRemarks = `${existing}\n${maxNo + 1}) ${incoming}`;
+                }
+            }
     
-            const result = await table.updateOne(
-                { _id: new ObjectId(id) }, // Convert `id` to ObjectId
-                { $set: { "official.remarks": remarks } } // Add `official.refundedDate`
-            );
+            const result = await table.updateOne(filter, { $set: { "official.remarks": nextRemarks } });
     
             console.log("Update Result:", result);
             return result;
         } catch (error) {
-            console.error("Error updating refunded date:", error);
+            console.error("Error updating cancellation remarks:", error);
             throw error;
         }
     }
@@ -2085,6 +2139,7 @@ class DatabaseConnectivity {
     async bulkUpdateRegistrations(databaseName, updates, staff, date, time) {
         const db = this.client.db(databaseName);
         const table = db.collection("Registration Forms");
+        staff = sanitizeStaffName(staff);
 
         try {
             if (!updates || !Array.isArray(updates) || updates.length === 0) {

@@ -63,6 +63,18 @@ function calculateAge(dateOfBirth) {
     return currentYear - birthYear;
 }
 
+function parseConfirmationBoolean(value) {
+    if (value === true || value === false) return value;
+    const normalized = String(value ?? '').trim().toLowerCase();
+    if (normalized === 'confirmed' || normalized === 'yes' || normalized === 'true' || normalized === '1') return true;
+    if (normalized === 'not confirmed' || normalized === 'no' || normalized === 'false' || normalized === '0') return false;
+    return false;
+}
+
+function sanitizeStaffName(value) {
+    return String(value ?? '').replace(/\s*\(Approved\)\s*$/i, '').trim();
+}
+
 // Example usage in your existing code:
 // const age = calculateAge(participantsParticulars.participant.dateOfBirth);
 // console.log("Participant age:", age);
@@ -321,6 +333,14 @@ router.post('/', async function(req, res, next)
         var editedValue = req.body.editedValue;
         console.log("Body:", req.body)
         var result = await registrationController.updateParticipantParticulars(id, field, editedValue);
+        if (io) {
+            io.emit('registration', {
+                type: 'registration-edit',
+                id,
+                field,
+                value: editedValue,
+            });
+        }
         //console.log("Update Particulars:", result) 
         return res.json({"result": result}); 
     }
@@ -328,12 +348,19 @@ router.post('/', async function(req, res, next)
     {
         console.log("Official Use", req.body);
         var id = req.body.id;  
-        var name = req.body.staff;
+        var name = sanitizeStaffName(req.body.staff);
         var status = req.body.newUpdateStatus;
         const currentDateTime = getCurrentDateTime();
         var date = currentDateTime.date;
         var time = currentDateTime.time;
         const message = await registrationController.updateOfficialUse(id, name, date, time, status);
+        if (io) {
+            io.emit('registration', {
+                type: 'registration-payment-status',
+                id,
+                status,
+            });
+        }
         return res.json({"result": message});
         //console.log("Message:", message);
         // After the PDF is sent, you can send a confirmation response if necessary
@@ -343,18 +370,26 @@ router.post('/', async function(req, res, next)
     {
         console.log("Update Confirmation Status:", req.body);
         var id = req.body.id;  
-        var name = req.body.staff;
-        var status = req.body.newConfirmation;
+        var name = sanitizeStaffName(req.body.staff);
+        var status = parseConfirmationBoolean(req.body.newConfirmation);
         const currentDateTime = getCurrentDateTime();
         var date = currentDateTime.date;
         var time = currentDateTime.time;
         const message = await registrationController.updateConfirmationUse(id, name, date, time, status);
+        if (io) {
+            io.emit('registration', {
+                type: 'registration-confirmation',
+                id,
+                status,
+            });
+        }
         //console.log(message);
         return res.json({"result": message});
     }
     else if(req.body.purpose === "addReceiptNumber")
     {
         console.log("Receipt body:", req.body); 
+        var staffName = sanitizeStaffName(req.body.staff);
                 
         // Update the receipt number
         var result = await registrationController.updateReceiptNumber(req.body.id, req.body.receiptNo);
@@ -368,10 +403,10 @@ router.post('/', async function(req, res, next)
         var date = currentDateTime.date;
         var time = currentDateTime.time;
 
-        console.log("Check:", req.body._id, req.body.staff, date, time, req.body.status);
+        console.log("Check:", req.body._id, staffName, date, time, req.body.status);
 
         // Update the official use details
-        await registrationController.updateOfficialUse(req.body._id, req.body.staff, date, time, req.body.status);
+        await registrationController.updateOfficialUse(req.body._id, staffName, date, time, req.body.status);
 
         // Return the result message
         return res.json({ "result": "Success" }); // Replace "Success" with a proper message if needed
@@ -379,6 +414,7 @@ router.post('/', async function(req, res, next)
     else if(req.body.purpose === "receipt")
     {
         console.log("Body trasffered:", req.body);
+        var staffName = sanitizeStaffName(req.body.staff);
         //console.log("OfficialInfo:", req.body.officialInfo);
 
         var receipt = new receiptGenerator();
@@ -390,24 +426,26 @@ router.post('/', async function(req, res, next)
             official: req.body.officialInfo
         });
         console.log("Array:", array);
-        await receipt.generateReceipt(res, array, req.body.staff, req.body.receiptNo);
+        await receipt.generateReceipt(res, array, staffName, req.body.receiptNo);
     }
     else if(req.body.purpose === "addInvoiceNumber")
     {
         console.log("Receipt body:", req.body); 
+        var staffName = sanitizeStaffName(req.body.staff);
         var result = await registrationController.updateReceiptNumber(req.body.id, req.body.receiptNo);
         console.log("updateReceiptNumber:", result); 
         console.log("Array:", req.body.rowData);
         const currentDateTime = getCurrentDateTime();
         var date = currentDateTime.date;
         var time = currentDateTime.time;
-        console.log("Check:", req.body._id,  req.body.staff, date, time, req.body.status);
-        await registrationController.updateOfficialUse(req.body._id, req.body.staff, date, time, req.body.status);
+        console.log("Check:", req.body._id,  staffName, date, time, req.body.status);
+        await registrationController.updateOfficialUse(req.body._id, staffName, date, time, req.body.status);
         return res.json({ "result": "Success" }); 
     }
     else if(req.body.purpose === "invoice")
     {
         console.log("Invoice:",req.body);
+        var staffName = sanitizeStaffName(req.body.staff);
         var age = calculateAge(req.body.participant.dateOfBirth);
         console.log("Participant age:", age);
 
@@ -418,7 +456,7 @@ router.post('/', async function(req, res, next)
             participant: req.body.participant,
             course: req.body.course
         });
-        await invoice.generateInvoice(res, array, req.body.staff, req.body.receiptNo, age);
+        await invoice.generateInvoice(res, array, staffName, req.body.receiptNo, age);
     }
     else if(req.body.purpose === "updatePaymentMethod")
     {
@@ -426,7 +464,14 @@ router.post('/', async function(req, res, next)
         const currentDateTime = getCurrentDateTime();
         var date = currentDateTime.date;
         var time = currentDateTime.time;
-        var result = await registrationController.updatePaymentMethod(req.body.id, req.body.newUpdatePayment, req.body.staff, date, time);
+        var result = await registrationController.updatePaymentMethod(req.body.id, req.body.newUpdatePayment, sanitizeStaffName(req.body.staff), date, time);
+        if (io) {
+            io.emit('registration', {
+                type: 'registration-payment-method',
+                id: req.body.id,
+                paymentMethod: req.body.newUpdatePayment,
+            });
+        }
         //console.log("Update Remarks:". result);
         return res.json({"result": result}); 
     }
@@ -436,6 +481,13 @@ router.post('/', async function(req, res, next)
         const currentDateTime = getCurrentDateTime();
         var date = currentDateTime.date;
         var result = await registrationController.addRefundedDate(req.body.id, date);
+        if (io) {
+            io.emit('registration', {
+                type: 'registration-refunded-date',
+                id: req.body.id,
+                refundedDate: date,
+            });
+        }
         return res.json({"result": result});
     }
     else if(req.body.purpose === "removedRefundedDate")
@@ -443,6 +495,13 @@ router.post('/', async function(req, res, next)
         //console.log("Add Refunded Date:", req.body);
         const currentDateTime = getCurrentDateTime();
         var result = await registrationController.addRefundedDate(req.body.id, "");
+        if (io) {
+            io.emit('registration', {
+                type: 'registration-refunded-date',
+                id: req.body.id,
+                refundedDate: '',
+            });
+        }
         return res.json({"result": result});
     }
     else if(req.body.purpose === "sendDetails")
@@ -454,6 +513,13 @@ router.post('/', async function(req, res, next)
     {
         //console.log(req.body);
         var result = await registrationController.addCancellationRemarks(req.body.id, req.body.editedValue);
+        if (io) {
+            io.emit('registration', {
+                type: 'registration-remarks',
+                id: req.body.id,
+                remarks: req.body.editedValue || '',
+            });
+        }
         return res.json({"result": result});
     }
     else if(req.body.purpose === "bulkUpdate")

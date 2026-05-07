@@ -8,12 +8,22 @@ const PAYMENT_STATUS_OPTIONS_SF = [
 const PAYMENT_STATUS_OPTIONS = [
   'Pending', 'Paid', 'Cancelled', 'Withdrawn', 'Refunded', 'Not Successful',
 ];
-const CONFIRMATION_OPTIONS = ['Yes', 'No'];
+const CONFIRMATION_OPTIONS = ['Not Confirmed', 'Confirmed'];
 const PAYMENT_METHOD_OPTIONS = ['Cash', 'PayNow', 'SkillsFuture'];
 const NSA_EDITABLE_COLUMNS = [
   'Name', 'Contact Number', 'Payment Date', 'Refunded Date', 'Remarks',
   'Registration and Payment Status', 'Confirmation', 'Payment Method',
 ];
+
+function formatDisplayValue(val, columnName) {
+  if (val === null || val === undefined || val === '') return '—';
+  if (columnName === 'Confirmation Status' || columnName === 'Confirmation') {
+    const v = String(val).toLowerCase();
+    if (v === 'true' || v === '1' || v === 'yes' || v === 'confirmed') return 'Confirmed';
+    if (v === 'false' || v === '0' || v === 'no' || v === 'not confirmed') return 'Not Confirmed';
+  }
+  return String(val);
+}
 
 function ButtonPills({ options, value, onChange }) {
   // Chunk into rows of max 3
@@ -70,8 +80,12 @@ function ValueCell({ item, onChange }) {
       />
     );
   }
-  if (columnName === 'Confirmation') {
-    return <ButtonPills options={CONFIRMATION_OPTIONS} value={newValue} onChange={v => onChange('newValue', v)} />;
+  if (columnName === 'Confirmation Status' || columnName === 'Confirmation') {
+    // Normalize boolean incoming value to Yes/No for the pills
+    let normalized = newValue;
+    if (newValue === true || newValue === 'true' || newValue === 1 || newValue === '1' || String(newValue || '').toLowerCase() === 'confirmed' || String(newValue || '').toLowerCase() === 'yes') normalized = 'Confirmed';
+    else if (newValue === false || newValue === 'false' || newValue === 0 || newValue === '0' || String(newValue || '').toLowerCase() === 'not confirmed' || String(newValue || '').toLowerCase() === 'no') normalized = 'Not Confirmed';
+    return <ButtonPills options={CONFIRMATION_OPTIONS} value={normalized} onChange={v => onChange('newValue', v)} />;
   }
   if (columnName === 'Payment Method') {
     return <ButtonPills options={PAYMENT_METHOD_OPTIONS} value={newValue} onChange={v => onChange('newValue', v)} />;
@@ -107,10 +121,10 @@ class NSAConsolidatedModal extends React.Component {
       return;
     }
 
-    // Validate
+    // Validate — treat false as valid (Confirmation Status = Not Confirmed)
     for (let i = 0; i < changes.length; i++) {
       const c = changes[i];
-      if (!c.newValue || !String(c.newValue).trim()) {
+      if (c.newValue === null || c.newValue === undefined || c.newValue === '') {
         alert(`Change ${i + 1} (${c.columnName} for ${c.participantName}) is missing a new value.`);
         return;
       }
@@ -136,7 +150,7 @@ class NSAConsolidatedModal extends React.Component {
       const min = String(now.getMinutes()).padStart(2, '0');
 
       // Send a single email containing all changes across all participants
-      await axios.post(`${baseUrl}/accountDetails`, {
+      await axios.post(`${baseUrl}/nsaApproval`, {
         purpose: 'sendApprovalEmail',
         fromName: userName,
         fromEmail: userEmail || '',
@@ -304,7 +318,7 @@ class NSAConsolidatedModal extends React.Component {
                                     background: localIdx % 2 === 0 ? '#fff' : '#fafafa',
                                   }}
                                 >
-                                  <td style={{ ...td, width: 32, color: '#000', textAlign: 'center', fontWeight: '600' }}>
+                                  <td style={{ ...td, width: 32, color: '#000', textAlign: 'center', fontWeight: '600', whiteSpace: 'nowrap' }}>
                                     {item.sn || globalIdx}
                                   </td>
                                   <td style={{ ...td, width: '140px' }}>
@@ -323,7 +337,7 @@ class NSAConsolidatedModal extends React.Component {
                                     </span>
                                   </td>
                                   <td style={{ ...td, color: '#000', fontStyle: 'italic', maxWidth: '100px' }}>
-                                    {item.currentValue || '—'}
+                                    {formatDisplayValue(item.currentValue, item.columnName)}
                                   </td>
                                   <td style={{ ...td, minWidth: '160px' }}>
                                     <ValueCell

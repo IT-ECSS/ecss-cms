@@ -31,6 +31,8 @@ var googleDriveRouter = require('./routes/googleDrive');
 var inventoryRouter = require('./routes/inventory');
 var LogsRouter = require('./routes/logs');
 var qrcodeRouter = require('./routes/qrcode');
+var nsaApprovalRouter = require('./routes/nsaApproval');
+var nsaNotifierRouter = require('./routes/nsaNotifier');
 
 
 // Set up views
@@ -94,6 +96,8 @@ app.use("/googleDrive", googleDriveRouter);
 app.use("/inventory", inventoryRouter);
 app.use("/logs", LogsRouter);
 app.use("/qrcode", qrcodeRouter);
+app.use("/nsaApproval", nsaApprovalRouter);
+app.use("/nsaNotifier", nsaNotifierRouter);
 
 
 // catch 404 and forward to error handler

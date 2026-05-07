@@ -1,5 +1,6 @@
 import React, { Component } from "react";
 import '../../../css/popup/popup.css'; // Corrected import path for modal popup styles
+import '../../../css/popup/changePasswordModal.css';
 import axios from 'axios';
 
 class Popup extends Component {
@@ -513,9 +514,9 @@ class Popup extends Component {
     this.props.closePopup();
   }
 
-  goBackHome = async() =>
+  goBackHome = async(queueDecision = null) =>
   {
-    this.props.goBackLoginPage();
+    this.props.goBackLoginPage(queueDecision);
   }
 
   enterUsername = (e) => {
@@ -774,6 +775,9 @@ class Popup extends Component {
       popupTypeClass = type;
     }
 
+    const approvalRequestsMessage = message || 'You have pending approval requests.';
+    const pendingRequestsMatch = approvalRequestsMessage.match(/(\d+\s+pending approval request(?:s)?)/i);
+
     return (
       <div className="popup-overlay" onClick={onClose}>
         <div className={popupTypeClass} onClick={(e) => e.stopPropagation()}>
@@ -803,49 +807,58 @@ class Popup extends Component {
             <p>{message}</p>
           </div>
           ): type === "change-password" ? (
-            // Layout for error type
-            <div className="change-password-message">
+            <div className="cp-modal">
+              <div className="cp-modal__header">
+                <h2 className="cp-modal__title">Change Password</h2>
+                <button type="button" className="cp-modal__close-btn" onClick={onClose}>&times;</button>
+              </div>
               <form onSubmit={this.changePassword}>
-                <div className="form-group">
-                  <label htmlFor="new-password">New Password</label>
-                  <div className="password-input-container">
-                    <input
-                      type={showNewPassword ? "text" : "password"}
-                      id="new-password"
-                      name="newPassword"
-                      value={newPassword}
-                      onChange={this.handlePasswordChange}
-                      onClick={this.clickPasswordChange}
-                    />
-                    <i
-                      className={`fa ${showNewPassword ? 'fa-eye-slash' : 'fa-eye'} password-toggle-icon`}
-                      onClick={this.toggleNewPasswordVisibility}
-                    ></i>
+                <div className="cp-modal__body">
+                  <div className="cp-modal__field">
+                    <label className="cp-modal__label" htmlFor="new-password">New Password</label>
+                    <div className="cp-modal__input-wrapper">
+                      <input
+                        className="cp-modal__input"
+                        type={showNewPassword ? "text" : "password"}
+                        id="new-password"
+                        name="newPassword"
+                        value={newPassword}
+                        onChange={this.handlePasswordChange}
+                        onClick={this.clickPasswordChange}
+                      />
+                      <i
+                        className={`fa ${showNewPassword ? 'fa-eye-slash' : 'fa-eye'} cp-modal__eye-icon`}
+                        onClick={this.toggleNewPasswordVisibility}
+                      ></i>
+                    </div>
+                    {newPasswordError && <p className="cp-modal__error">{newPasswordError}</p>}
                   </div>
-                  {newPasswordError && <p className="error-message1">{newPasswordError}</p>}
-                </div>
-                <div className="form-group">
-                  <label htmlFor="confirm-password">Confirm New Password</label>
-                  <div className="password-input-container">
-                    <input
-                      type={showConfirmPassword ? "text" : "password"}
-                      id="confirm-password"
-                      name="confirmPassword"
-                      value={confirmPassword}
-                      onChange={this.handleConfirmPasswordChange}
-                      onClick={this.clickConfirmPasswordChange}
-                    />
-                    <i
-                      className={`fa ${showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'} password-toggle-icon`}
-                      onClick={this.toggleConfirmPasswordVisibility}
-                    ></i>
+                  <div className="cp-modal__field">
+                    <label className="cp-modal__label" htmlFor="confirm-password">Confirm New Password</label>
+                    <div className="cp-modal__input-wrapper">
+                      <input
+                        className="cp-modal__input"
+                        type={showConfirmPassword ? "text" : "password"}
+                        id="confirm-password"
+                        name="confirmPassword"
+                        value={confirmPassword}
+                        onChange={this.handleConfirmPasswordChange}
+                        onClick={this.clickConfirmPasswordChange}
+                      />
+                      <i
+                        className={`fa ${showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'} cp-modal__eye-icon`}
+                        onClick={this.toggleConfirmPasswordVisibility}
+                      ></i>
+                    </div>
+                    {confirmPasswordError && <p className="cp-modal__error">{confirmPasswordError}</p>}
                   </div>
-                  {confirmPasswordError && <p className="error-message1">{confirmPasswordError}</p>}
+                  {formErrorMessage && <p className="cp-modal__error">{formErrorMessage}</p>}
                 </div>
-                {formErrorMessage && <p className="error-message1">{formErrorMessage}</p>}
-                <button type="submit" className="submit-btn">Change Password</button>
+                <div className="cp-modal__footer">
+                  <button type="submit" className="cp-modal__submit-btn">Change Password</button>
+                </div>
               </form>
-        </div>
+            </div>
           ):  type === "forgot-password" ? (
             // Layout for success type
             <div className="forgot-password-message">
@@ -885,13 +898,51 @@ class Popup extends Component {
             </form>
           </div>
           ):  type === "logout" ? (
-            // Layout for success type
+            <div className="popup-modal popup-modal--compact">
+              <div className="popup-header">
+                <h2>Logout</h2>
+                <button type="button" className="popup-header__close-btn" onClick={this.cancel} aria-label="Close">&times;</button>
+              </div>
+              <div className="popup-body">
+                <p>{message}</p>
+              </div>
+              <div className="popup-footer">
+                <button type="button" className="popup-footer__button popup-footer__button--secondary" onClick={this.cancel}>No</button>
+                <button type="button" className="popup-footer__button popup-footer__button--primary" onClick={() => this.goBackHome()}>Yes</button>
+              </div>
+            </div>
+):  type === "logout-queue-choice" ? (
+            <div className="popup-modal popup-modal--approval-requests">
+              <div className="popup-header">
+                <h2>Approval Requests</h2>
+                <button type="button" className="popup-header__close-btn" onClick={this.cancel} aria-label="Close">&times;</button>
+              </div>
+              <div className="popup-body">
+                <p>
+                  {pendingRequestsMatch ? (
+                    <>
+                      {approvalRequestsMessage.slice(0, pendingRequestsMatch.index)}
+                      <strong>{pendingRequestsMatch[0]}</strong>
+                      {approvalRequestsMessage.slice((pendingRequestsMatch.index || 0) + pendingRequestsMatch[0].length)}
+                    </>
+                  ) : (
+                    approvalRequestsMessage
+                  )}
+                </p>
+                <p>Do you want to continue storing approval requests or clear them before logout?</p>
+              </div>
+              <div className="popup-footer">
+                <button type="button" className="popup-footer__button popup-footer__button--secondary" onClick={() => this.props.goBackLoginPage && this.props.goBackLoginPage('keep')}>Continue Storing Requests</button>
+                <button type="button" className="popup-footer__button popup-footer__button--primary" onClick={() => this.props.goBackLoginPage && this.props.goBackLoginPage('clear')}>Clear Requests & Logout</button>
+              </div>
+            </div>
+          ):  type === "login-queue-pending" ? (
             <div className="logout-message">
-              <h2 className="logout-title">Logout</h2>
-              <p>{message}</p>
+              <h2 className="logout-title">Pending Approvals</h2>
+              <p>{message || 'You have pending approval changes.'}</p>
               <div className="button-container1">
-                <button onClick={this.cancel}>No</button>
-                <button onClick={this.goBackHome}>Yes</button>
+                <button onClick={() => this.props.onLoginQueueDecision && this.props.onLoginQueueDecision('open')}>Open Now</button>
+                <button onClick={() => this.props.onLoginQueueDecision && this.props.onLoginQueueDecision('later')}>Later</button>
               </div>
             </div>
           ):  type === "no-activity" ? (

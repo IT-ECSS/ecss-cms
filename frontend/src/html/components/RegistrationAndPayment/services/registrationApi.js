@@ -245,3 +245,38 @@ export const updateWooCommerceStock = async (chi, eng, location, status) => {
   });
   return response;
 };
+
+/**
+ * Submit NSA approval email request to backend.
+ */
+export const sendNsaApprovalEmail = async ({
+  fromName,
+  fromEmail,
+  currentDate,
+  currentTime,
+  allChanges,
+  additionalNotes,
+}) => {
+  const response = await axios.post(`${NODE_BASE_URL}/nsaApproval`, {
+    purpose: "sendApprovalEmail",
+    fromName,
+    fromEmail,
+    currentDate,
+    currentTime,
+    allChanges,
+    additionalNotes,
+  });
+  return response;
+};
+
+/**
+ * Load requester-side NSA approval status list from backend.
+ */
+export const fetchNsaApprovalStatusList = async ({ requesterEmail, requesterName }) => {
+  const response = await axios.post(`${NODE_BASE_URL}/nsaApproval`, {
+    purpose: "getApprovalRequestStatusList",
+    requesterEmail,
+    requesterName,
+  });
+  return response;
+};

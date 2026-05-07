@@ -5,6 +5,10 @@ const path = require('path');
 
 class receiptGenerator {
     constructor() {}
+
+    sanitizeStaffName(value) {
+        return String(value ?? '').replace(/\s*\(Approved\)\s*$/i, '').trim();
+    }
     
     getCurrentDateTime() {
         const now = new Date();
@@ -277,8 +281,8 @@ class receiptGenerator {
          this.createTable(doc, array);
 
 
-        //var staffName = `Issue By: ${name}`;
-        var staffName = `Issue By: ${array[0].official.name}`;
+        var issueBy = this.sanitizeStaffName(array?.[0]?.official?.name || name);
+        var staffName = `Issue By: ${issueBy}`;
         doc.font(fontPathTimesRegular).fontSize(12).text(staffName, leftMargin, doc.y, {
             align: 'right' // Align the date to the left
         });
@@ -998,6 +1002,10 @@ class receiptGenerator {
         console.log(array, name, receiptNo);
         return new Promise((resolve, reject) => {
             try {
+                name = this.sanitizeStaffName(name);
+                if (array && array[0] && array[0].official) {
+                    array[0].official.name = this.sanitizeStaffName(array[0].official.name || name);
+                }
                 console.log("Staff Name:", name);
                 // Set headers for PDF
                 const filename = `Moses.pdf`; 

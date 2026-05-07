@@ -1,10 +1,12 @@
 import React from 'react';
+import { isNsaNotifier } from '../constants/accessControl';
 
 /**
  * The toolbar row of action buttons displayed above the AG-Grid.
  *
  * Props:
  *   role                      {string}   – user role from props
+ *   userEmail                 {string}   – user email for access control
  *   selectedCourseType        {string}   – currently selected course-type filter
  *   selectedRowCount          {number}   – number of currently selected grid rows
  *   hasMarriagePrepData       {boolean}  – true when rowData contains Marriage Prep rows
@@ -18,6 +20,7 @@ import React from 'react';
  */
 const ActionButtonsRow = ({
   role,
+  userEmail,
   selectedCourseType,
   selectedRowCount,
   hasMarriagePrepData,
@@ -28,6 +31,13 @@ const ActionButtonsRow = ({
   onExportAttendance,
   onExportMarriagePrep,
   onOpenBulkUpdate,
+  isReadOnly,
+  approvalQueueCount,
+  onOpenApprovalQueue,
+  onOpenApprovalStatus,
+  approvalStatusCount,
+  notifierQueueCount,
+  onOpenNotifierQueue,
 }) => {
   const showMarriagePrepToggle =
     hasMarriagePrepData && selectedCourseType !== 'Marriage Preparation Programme';
@@ -90,6 +100,36 @@ const ActionButtonsRow = ({
       >
         Bulk Update ({selectedRowCount})
       </button>
+
+      {isReadOnly && (
+        <button
+          className="registration-payment-details-button"
+          style={{ color: '#795548', borderColor: '#795548', fontWeight: 600 }}
+          onClick={onOpenApprovalQueue}
+        >
+          Approval ({approvalQueueCount ?? 0})
+        </button>
+      )}
+
+      {isReadOnly && (
+        <button
+          className="registration-payment-details-button"
+          style={{ color: '#1565C0', borderColor: '#1565C0', fontWeight: 600 }}
+          onClick={onOpenApprovalStatus}
+        >
+          Approval Status
+        </button>
+      )}
+
+      {isNsaNotifier(userEmail) && (
+        <button
+          className="registration-payment-details-button"
+          style={{ color: '#0d47a1', borderColor: '#0d47a1', fontWeight: 600 }}
+          onClick={onOpenNotifierQueue}
+        >
+          NSA Notifier
+        </button>
+      )}
     </div>
   );
 };

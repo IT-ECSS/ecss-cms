@@ -3,7 +3,7 @@
   <head>
      <meta charset="utf-8" />
     <link rel="icon" href="https://ecss.org.sg/wp-content/uploads/2023/07/En_logo_Final_Large_RGB.png" />
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.35.3.min.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#000000" />
     <meta
@@ -31,6 +31,11 @@
     <script>
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       OneSignalDeferred.push(async function(OneSignal) {
+        if (window.location.hostname !== 'salmon-wave-09f02b100.6.azurestaticapps.net') {
+          console.info('OneSignal skipped for host:', window.location.hostname);
+          return;
+        }
+
         try {
           await OneSignal.init({
             appId: "01b56852-4a5c-4ccc-9733-11aa47d27400",

@@ -6,6 +6,10 @@ const getCourseReferenceCode = require('../../constants/courseCodeMapping');
 
 class invoiceGenerator {
     constructor() {}
+
+    sanitizeStaffName(value) {
+        return String(value ?? '').replace(/\s*\(Approved\)\s*$/i, '').trim();
+    }
     
     getCurrentDateTime() {
         const now = new Date();
@@ -967,6 +971,7 @@ class invoiceGenerator {
         console.log(array, name, receiptNo);
     
         try {
+            name = this.sanitizeStaffName(name);
             console.log("Staff Name:", name);
             // Set headers for PDF
             const filename = `Moses.pdf`;
@@ -1018,6 +1023,7 @@ class invoiceGenerator {
         console.log(array, name, receiptNo);
     
         try {
+            name = this.sanitizeStaffName(name);
             console.log("Staff Name:", name);
     
             // Set paper orientation to landscape

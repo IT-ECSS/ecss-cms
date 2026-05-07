@@ -79,8 +79,10 @@ export async function handlePaymentMethodChange(event, context) {
     newValue,
   }));
 
+  let generatedNo = '';
+
   if (newValue === 'Cash' || newValue === 'PayNow') {
-    await handleAutoSetPaidStatus({
+    generatedNo = await handleAutoSetPaidStatus({
       id, sn, userName,
       courseName, courseChiName, courseLocation,
       participantInfo, courseInfo, officialInfo,
@@ -92,6 +94,7 @@ export async function handlePaymentMethodChange(event, context) {
   }
 
   closePopup();
+  return { generatedNo };
 }
 
 /**
@@ -107,7 +110,7 @@ async function handleAutoSetPaidStatus({
 }) {
   const res = await updatePaymentStatus(id, 'Paid', userName);
 
-  if (res.data.result !== true) return;
+  if (res.data.result !== true) return '';
 
   await logRegistrationUpdate(buildLogPayload({
     userName, sn, id, participantInfo,
@@ -116,10 +119,12 @@ async function handleAutoSetPaidStatus({
     newValue: 'Paid',
   }));
 
-  await Promise.all([
+  const [, generatedNo] = await Promise.all([
     updateWooCommerce(courseChiName, courseName, courseLocation, 'Paid'),
     autoReceiptGenerator(id, participantInfo, courseInfo, officialInfo, newPaymentMethod, 'Paid'),
   ]);
+
+  return generatedNo || '';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -152,8 +157,9 @@ export async function handleConfirmationStatusChange(event, context) {
     newValue: newValue ? 'Confirmed' : 'Not Confirmed',
   }));
 
+  let generatedNo = '';
   if (paymentMethod === 'SkillsFuture'/* && newValue === true*/ && res.data.result === true) {
-    await handleSkillsFutureConfirmation({
+    generatedNo = await handleSkillsFutureConfirmation({
       id, sn, userName,
       participantInfo, courseInfo, officialInfo,
       paymentMethod, paymentStatus,
@@ -162,6 +168,7 @@ export async function handleConfirmationStatusChange(event, context) {
   }
 
   closePopup();
+  return { generatedNo };
 }
 
 /**
@@ -175,7 +182,7 @@ async function handleSkillsFutureConfirmation({
 }) {
   const sfRes = await updatePaymentStatus(id, 'Generating SkillsFuture Invoice', userName);
 
-  if (sfRes.data.result !== true) return;
+  if (sfRes.data.result !== true) return '';
 
   await logRegistrationUpdate(buildLogPayload({
     userName, sn, id, participantInfo,
@@ -184,7 +191,8 @@ async function handleSkillsFutureConfirmation({
     newValue: 'Generating SkillsFuture Invoice',
   }));
 
-  await autoReceiptGenerator(id, participantInfo, courseInfo, officialInfo, paymentMethod, 'Generating SkillsFuture Invoice');
+  const generatedNo = await autoReceiptGenerator(id, participantInfo, courseInfo, officialInfo, paymentMethod, 'Generating SkillsFuture Invoice');
+  return generatedNo || '';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -215,8 +223,10 @@ export async function handlePaymentStatusChange(event, context) {
 
   if (res.data.result !== true) {
     closePopup();
-    return;
+    return { generatedNo: '' };
   }
+
+  let generatedNo = '';
 
   await logRegistrationUpdate(buildLogPayload({
     userName, sn, id, participantInfo,
@@ -226,7 +236,7 @@ export async function handlePaymentStatusChange(event, context) {
   }));
 
   if (paymentMethod === 'Cash' || paymentMethod === 'PayNow') {
-    await handleCashPayNowStatusChange({
+    generatedNo = await handleCashPayNowStatusChange({
       id, courseName, courseChiName, courseLocation,
       newValue, oldPaymentStatus,
       participantInfo, courseInfo, officialInfo,
@@ -247,6 +257,7 @@ export async function handlePaymentStatusChange(event, context) {
   }
 
   closePopup();
+  return { generatedNo };
 }
 
 /**
@@ -261,14 +272,19 @@ async function handleCashPayNowStatusChange({
   if (newValue === 'Withdrawn' && oldPaymentStatus === 'Paid') {
     await updateWooCommerce(courseChiName, courseName, courseLocation, newValue);
     await removeRefundedDate(id);
+    return '';
   } else if (newValue === 'Refunded') {
     await addRefundedDate(id);
+    return '';
   } else {
-    await Promise.all([
+    const [, generatedNo] = await Promise.all([
       updateWooCommerce(courseChiName, courseName, courseLocation, newValue),
       receiptGenerator(id, participantInfo, courseInfo, officialInfo, newValue),
     ]);
+    return generatedNo || '';
   }
+
+  return '';
 }
 
 /**
@@ -317,13 +333,17 @@ export async function handleRemarksChange(event, context) {
   const sn          = event.data.sn;
   const newValue    = event.value;
   const participantInfo = event.data.participantInfo;
+  const forceClearThenAppendReason = Boolean(event?.forceClearThenAppendReason);
 
-  if (!newValue) {
-    alert('No remarks added');
-    return;
+  // Keep legacy append behavior for non-empty remarks, but allow explicit clear.
+  if (forceClearThenAppendReason) {
+    await editRegistrationField(id, event.colDef.field, '');
+    await addCancelRemarks(id, String(newValue ?? '').trim());
+  } else if (String(newValue ?? '').trim() === '') {
+    await editRegistrationField(id, event.colDef.field, '');
+  } else {
+    await addCancelRemarks(id, newValue);
   }
-
-  await addCancelRemarks(id, newValue);
 
   await logRegistrationUpdate(buildLogPayload({
     userName, sn, id, participantInfo,

@@ -269,6 +269,58 @@
   position: relative;
 }
 
+/* Show pending marker at the right side of the affected cell */
+.grid-container .ag-cell {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  overflow: hidden;
+}
+
+.grid-container .ag-cell-wrapper {
+  width: 100%;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center;
+  overflow: hidden;
+  height: 100%;
+  padding: 0 8px;
+  box-sizing: border-box;
+}
+
+.grid-container .ag-cell-value {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.2;
+  text-align: center !important;
+}
+
+/* Prevent duplicate text layers when a cell enters edit/focus state */
+.grid-container .ag-cell-inline-editing {
+  overflow: hidden !important;
+}
+
+.grid-container .ag-cell-inline-editing .ag-cell-value {
+  display: none !important;
+}
+
+.grid-container .ag-cell-inline-editing .ag-cell-edit-wrapper,
+.grid-container .ag-cell-inline-editing .ag-cell-editor,
+.grid-container .ag-cell-inline-editing .ag-cell-editor input {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  box-sizing: border-box;
+  overflow: hidden !important;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .registration-payment-details-toggle::before {
   content: '';
   position: absolute;

@@ -277,6 +277,11 @@ const fftTranslations = {
     zh: '请输入您的姓名 (根据身份证)',
     ms: 'Sila masukkan nama anda (mengikut Kad Pengenalan)',
   },
+  errNameNumbersNotAllowed: {
+    en: 'Please enter your name, numbers are not allowed.',
+    zh: '请输入您的姓名，不允许输入数字。',
+    ms: 'Sila masukkan nama anda, nombor tidak dibenarkan.',
+  },
   errDobRequired: {
     en: 'Please enter a valid date of birth (dd/mm/yyyy)',
     zh: '请输入有效的出生日期 (dd/mm/yyyy)',

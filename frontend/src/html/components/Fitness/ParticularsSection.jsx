@@ -52,10 +52,15 @@ class ParticularsSection extends Component {
   handleInputChange = (e) => {
     const { name } = e.target;
     let { value } = e.target;
+    let nameNumberError = null;
 
     if (name === 'name') {
+      const hadNumbers = /\d/.test(value);
       value = value.replace(/[0-9]/g, '');
       value = value.toLowerCase().replace(/(^|\s)([a-z])/g, (_, space, letter) => space + letter.toUpperCase());
+      if (hadNumbers) {
+        nameNumberError = this.getTrans('errNameNumbersNotAllowed');
+      }
     }
 
     const updatedFormData = { [name]: value };
@@ -72,7 +77,7 @@ class ParticularsSection extends Component {
       },
       errors: {
         ...prevState.errors,
-        [name]: false,
+        [name]: name === 'name' ? (nameNumberError || false) : false,
       },
     }));
   };

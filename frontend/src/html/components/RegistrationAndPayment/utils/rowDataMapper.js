@@ -7,6 +7,16 @@
  * @returns {Object} flat row data object for AG-Grid
  */
 export function mapRegistrationToRowData(item, index) {
+  const normalizeConfirmed = (value) => {
+    if (value === true || value === false) return value;
+    const normalized = String(value ?? '').trim().toLowerCase();
+    if (normalized === 'confirmed' || normalized === 'true' || normalized === '1' || normalized === 'yes') return true;
+    if (normalized === 'not confirmed' || normalized === 'false' || normalized === '0' || normalized === 'no' || normalized === '') return false;
+    return false;
+  };
+
+  const confirmedValue = normalizeConfirmed(item.official?.confirmed);
+
   return {
     // Identity
     id:               item._id,
@@ -30,12 +40,12 @@ export function mapRegistrationToRowData(item, index) {
     paymentMethod:    item.course?.payment               || '',
     paymentStatus:    item.status                        || '',
     status:           item.status                        || '',
-    confirmed:        item.official?.confirmed           || false,
+    confirmed:        confirmedValue,
     recinvNo:         item.official?.receiptNo           || '',
     paymentDate:      item.official?.date                || '',
     refundedDate:     item.official?.refundedDate        || '',
     remarks:          item.official?.remarks             || '',
-    officialInfo:     item.official                      || {},
+    officialInfo:     { ...(item.official || {}), confirmed: confirmedValue },
 
     // Registration metadata
     agreement:        item.agreement                     || '',

@@ -24,6 +24,10 @@ function getCurrentDateTime() {
     };
 }
 
+function sanitizeStaffName(value) {
+    return String(value ?? '').replace(/\s*\(Approved\)\s*$/i, '').trim();
+}
+
 router.post('/', async function(req, res, next) 
 {
     if(req.body.purpose === "getReceiptNo")
@@ -37,6 +41,7 @@ router.post('/', async function(req, res, next)
     {
        console.log("Create Reciept:", req.body);
         var {receiptNo, registration_id, url, staff, location} = req.body;
+        staff = sanitizeStaffName(staff);
         var currentDateTime = getCurrentDateTime();
         var date = currentDateTime.date;
         var time = currentDateTime.time;

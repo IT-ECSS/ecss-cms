@@ -8,7 +8,7 @@
     <link rel="dns-prefetch" href="https://ecss.org.sg" />
     
     <link rel="icon" href="https://ecss.org.sg/wp-content/uploads/2023/07/En_logo_Final_Large_RGB.png" />
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.35.3.min.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#000000" />
     <meta
@@ -62,29 +62,38 @@
     <script>
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       OneSignalDeferred.push(async function(OneSignal) {
-        await OneSignal.init({
-          appId: "e215cf65-e110-4f8c-9e40-90e1f1e85d8e",
-          allowLocalhostAsSecureOrigin: true,
+        if (window.location.hostname !== 'salmon-wave-09f02b100.6.azurestaticapps.net') {
+          console.info('OneSignal skipped for host:', window.location.hostname);
+          return;
+        }
+
+        try {
+          await OneSignal.init({
+            appId: "e215cf65-e110-4f8c-9e40-90e1f1e85d8e",
+            allowLocalhostAsSecureOrigin: true,
+            
+            // Add path tracking for notification filtering
+            notifyButton: {
+              enable: true,
+            }
+          });
           
-          // Add path tracking for notification filtering
-          notifyButton: {
-            enable: true,
-          }
-        });
-        
-        // Set tag for current path
-        const currentPath = window.location.pathname;
-        console.log('Setting OneSignal path tag:', currentPath);
-        OneSignal.sendTag('current_path', currentPath);
-        
-        // Track path changes
-        const originalPushState = history.pushState;
-        history.pushState = function() {
-          originalPushState.apply(this, arguments);
-          const newPath = window.location.pathname;
-          console.log('Path changed, updating OneSignal tag:', newPath);
-          OneSignal.sendTag('current_path', newPath);
-        };
+          // Set tag for current path
+          const currentPath = window.location.pathname;
+          console.log('Setting OneSignal path tag:', currentPath);
+          OneSignal.sendTag('current_path', currentPath);
+          
+          // Track path changes
+          const originalPushState = history.pushState;
+          history.pushState = function() {
+            originalPushState.apply(this, arguments);
+            const newPath = window.location.pathname;
+            console.log('Path changed, updating OneSignal tag:', newPath);
+            OneSignal.sendTag('current_path', newPath);
+          };
+        } catch (error) {
+          console.error('OneSignal init error:', error);
+        }
       });
     </script>
   </body>

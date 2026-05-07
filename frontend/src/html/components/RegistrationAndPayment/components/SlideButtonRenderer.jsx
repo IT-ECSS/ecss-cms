@@ -13,6 +13,17 @@ import React from 'react';
  *   params.context.componentInstance – ref to the parent class component
  */
 const SlideButtonRenderer = (params) => {
+  // Only render the toggle for SkillsFuture payment method
+  if (params.data?.paymentMethod !== 'SkillsFuture') return null;
+
+  const parseConfirmed = (value) => {
+    if (value === true || value === false) return value;
+    const v = String(value ?? '').trim().toLowerCase();
+    if (v === 'confirmed' || v === 'true' || v === '1' || v === 'yes') return true;
+    if (v === 'not confirmed' || v === 'false' || v === '0' || v === 'no' || v === '') return false;
+    return false;
+  };
+
   const handleChange = (e) => {
     const instance = params.context?.componentInstance;
     if (!instance) return;
@@ -22,7 +33,7 @@ const SlideButtonRenderer = (params) => {
       data: params.data,
       value: e.target.checked,
       newValue: e.target.checked,
-      oldValue: params.data.confirmed,
+      oldValue: parseConfirmed(params.data.confirmed),
     });
   };
 
@@ -31,7 +42,7 @@ const SlideButtonRenderer = (params) => {
       <input
         type="checkbox"
         className="registration-payment-details-toggle"
-        checked={!!params.value}
+        checked={parseConfirmed(params.value)}
         onChange={handleChange}
       />
     </div>

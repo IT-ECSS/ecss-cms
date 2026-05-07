@@ -19,7 +19,7 @@ const PAYMENT_STATUS_OPTIONS_SF = [
 const PAYMENT_STATUS_OPTIONS = [
   'Pending', 'Paid', 'Cancelled', 'Withdrawn', 'Refunded', 'Not Successful',
 ];
-const CONFIRMATION_OPTIONS = ['Yes', 'No'];
+const CONFIRMATION_OPTIONS = ['Not Confirmed', 'Confirmed'];
 const PAYMENT_METHOD_OPTIONS = ['Cash', 'PayNow', 'SkillsFuture'];
 
 function getCurrentValueForColumn(columnName, data) {
@@ -33,7 +33,8 @@ function getCurrentValueForColumn(columnName, data) {
     'Registration and Payment Status': data.paymentStatus || '',
     'Payment Status': data.paymentStatus || '',
     'Registration Status': data.paymentStatus || '',
-    'Confirmation': data.confirmed != null ? (data.confirmed ? 'Yes' : 'No') : '',
+    'Confirmation': data.confirmed != null ? (data.confirmed ? 'Confirmed' : 'Not Confirmed') : '',
+    'Confirmation Status': data.confirmed != null ? (data.confirmed ? 'Confirmed' : 'Not Confirmed') : '',
     'Payment Method': data.paymentMethod || '',
   };
   return map[columnName] || '';
@@ -71,8 +72,11 @@ function ValueInput({ columnName, value, onChange, paymentMethod }) {
   if (columnName === 'Registration and Payment Status' || columnName === 'Payment Status' || columnName === 'Registration Status') {
     return <ButtonPills options={isSF ? PAYMENT_STATUS_OPTIONS_SF : PAYMENT_STATUS_OPTIONS} value={value} onChange={onChange} />;
   }
-  if (columnName === 'Confirmation') {
-    return <ButtonPills options={CONFIRMATION_OPTIONS} value={value} onChange={onChange} />;
+  if (columnName === 'Confirmation' || columnName === 'Confirmation Status') {
+    let normalized = value;
+    if (value === true || value === 'true' || value === 1 || value === '1' || String(value || '').toLowerCase() === 'confirmed' || String(value || '').toLowerCase() === 'yes') normalized = 'Confirmed';
+    else if (value === false || value === 'false' || value === 0 || value === '0' || String(value || '').toLowerCase() === 'not confirmed' || String(value || '').toLowerCase() === 'no') normalized = 'Not Confirmed';
+    return <ButtonPills options={CONFIRMATION_OPTIONS} value={normalized} onChange={onChange} />;
   }
   if (columnName === 'Payment Method') {
     return <ButtonPills options={PAYMENT_METHOD_OPTIONS} value={value} onChange={onChange} />;
@@ -104,7 +108,7 @@ class NSAApprovalModal extends React.Component {
       this.setState({
         changes: [{
           columnName: firstColumn,
-          currentValue: data.columnName ? (data.currentValue || '') : getCurrentValueForColumn(firstColumn, data),
+          currentValue: data.columnName ? (data.currentValue ?? '') : getCurrentValueForColumn(firstColumn, data),
           newValue: '',
           reason: '',
           isFirst: !!data.columnName, // fixed label only when a column was pre-selected (per-row); dropdown when opened from toolbar
@@ -149,7 +153,11 @@ class NSAApprovalModal extends React.Component {
     const { changes, additionalNotes } = this.state;
     for (let i = 0; i < changes.length; i++) {
       const c = changes[i];
-      if (!c.newValue || (typeof c.newValue === 'string' && !c.newValue.trim())) {
+      const isMissingNewValue =
+        c.newValue === null ||
+        c.newValue === undefined ||
+        (typeof c.newValue === 'string' && !c.newValue.trim());
+      if (isMissingNewValue) {
         alert(`Please enter a new value for change ${i + 1}: "${c.columnName}".`);
         return;
       }
@@ -160,6 +168,16 @@ class NSAApprovalModal extends React.Component {
     }
     onAddToList(changes, additionalNotes, data);
     this.setState({ changes: [], additionalNotes: '' });
+  };
+
+  _formatValueForTable = (val, columnName) => {
+    if (val === null || val === undefined || val === '') return '—';
+    if (columnName === 'Confirmation' || columnName === 'Confirmation Status') {
+      const v = String(val).toLowerCase();
+      if (v === 'true' || v === '1' || v === 'yes' || v === 'confirmed') return 'Confirmed';
+      if (v === 'false' || v === '0' || v === 'no' || v === 'not confirmed') return 'Not Confirmed';
+    }
+    return String(val);
   };
 
   handleClose = () => {
@@ -214,7 +232,7 @@ class NSAApprovalModal extends React.Component {
                   <tbody>
                     <tr>
                       <td style={{ padding: '6px 10px', border: '1px solid #ddd', color: '#000', width: '36%', whiteSpace: 'nowrap' }}>Current Value</td>
-                      <td style={{ padding: '6px 10px', border: '1px solid #ddd', color: '#000' }}>{change.currentValue || '—'}</td>
+                      <td style={{ padding: '6px 10px', border: '1px solid #ddd', color: '#000' }}>{this._formatValueForTable(change.currentValue, change.columnName)}</td>
                     </tr>
                     <tr>
                       <td style={{ padding: '6px 10px', border: '1px solid #ddd', color: '#000' }}>New Value <span style={{ color: 'red' }}>*</span></td>
