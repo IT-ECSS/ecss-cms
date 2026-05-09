@@ -757,7 +757,10 @@ class RegistrationPaymentSection extends Component {
   exportToLOP = () => exportToLOPFn({
     selectedRows: this.state.selectedRows,
     userName: this.props.userName,
+    userEmail: this.props.userEmail,
     warningPopUpMessage: this.props.warningPopUpMessage,
+    onPendingExportApproval: this.props.onPendingExportApproval,
+    onSupervisorExportConfirm: this.props.onSupervisorExportConfirm,
   });
 
   exportToMarriagePreparationProgramme = () => exportToMarriagePrepFn({
@@ -769,7 +772,10 @@ class RegistrationPaymentSection extends Component {
   exportAttendance = () => exportAttendanceFn({
     selectedRows: this.state.selectedRows,
     userName: this.props.userName,
+    userEmail: this.props.userEmail,
     warningPopUpMessage: this.props.warningPopUpMessage,
+    onPendingExportApproval: this.props.onPendingExportApproval,
+    onSupervisorExportConfirm: this.props.onSupervisorExportConfirm,
   });
 
   archiveData = () => archiveDataFn({

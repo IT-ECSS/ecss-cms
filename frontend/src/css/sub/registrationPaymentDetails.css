@@ -259,6 +259,21 @@
   background-color: #0056b3;
 }
 
+/* Increase AG-Grid row-selection checkbox size by 1.25x in Registration & Payment table */
+.registration-payment-details-wrapper .ag-selection-checkbox .ag-checkbox-input-wrapper,
+.registration-payment-details-wrapper .ag-checkbox-input-wrapper {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+}
+
+.registration-payment-details-wrapper .ag-selection-checkbox .ag-checkbox-input-wrapper::before,
+.registration-payment-details-wrapper .ag-checkbox-input-wrapper::before {
+  transform: scale(1.25);
+  transform-origin: center;
+}
+
 /* Toggle/Slide button styling */
 .registration-payment-details-toggle-container {
   display: flex;

@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { Readable } = require('stream');
 const archiver = require('archiver');
+const XLSX = require('xlsx');
 const { COLUMN_HEADERS, INTERNAL_KEY_TO_COLUMN_MAP } = require('../../constants/fftFieldMappings');
 
 // ─── In-memory cache + single-flight for readSpreadsheet ─────────────────────
@@ -656,13 +657,77 @@ class GoogleDriveController {
             _setCache(fileId, sheetName, result);
             return result;
         } catch (error) {
-            console.error('[SHEETS] Error reading spreadsheet:', error.message);
+            const errorMessage = String(error?.message || error || 'Unknown error');
+            const unsupportedOfficeFile =
+                /not supported for this document/i.test(errorMessage) ||
+                /must not be an office file/i.test(errorMessage);
+
+            if (unsupportedOfficeFile) {
+                console.warn('[SHEETS] Source is an Office file; switching to Drive download + XLSX parsing');
+                return await this.readOfficeSpreadsheet(fileId, sheetName);
+            }
+
+            console.error('[SHEETS] Error reading spreadsheet:', errorMessage);
             
             // If it's not a Google Sheets file, try to export it
-            if (error.message.includes('not found') || error.code === 404) {
+            if (errorMessage.includes('not found') || error.code === 404) {
                 return await this.readExportedSpreadsheet(fileId);
             }
             
+            return {
+                success: false,
+                error: errorMessage
+            };
+        }
+    }
+
+    async readOfficeSpreadsheet(fileId, sheetName = null) {
+        try {
+            const downloaded = await this.downloadFile(fileId);
+            if (!downloaded.success || !downloaded.fileBuffer) {
+                return {
+                    success: false,
+                    error: downloaded.error || 'Unable to download Office spreadsheet from Drive'
+                };
+            }
+
+            const workbook = XLSX.read(downloaded.fileBuffer, { type: 'buffer' });
+            const sheetNames = workbook.SheetNames || [];
+            const targetSheet = sheetName && sheetNames.includes(sheetName)
+                ? sheetName
+                : sheetNames[0];
+
+            if (!targetSheet) {
+                const emptyResult = {
+                    success: true,
+                    sheets: [],
+                    columns: [],
+                    data: [],
+                    rowCount: 0,
+                    source: 'office-file'
+                };
+                _setCache(fileId, sheetName, emptyResult);
+                return emptyResult;
+            }
+
+            const worksheet = workbook.Sheets[targetSheet];
+            const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+            const columns = rows[0] || [];
+            const data = rows.slice(1);
+
+            const result = {
+                success: true,
+                sheets: sheetNames,
+                columns,
+                data,
+                rowCount: data.length,
+                source: 'office-file'
+            };
+
+            _setCache(fileId, sheetName, result);
+            return result;
+        } catch (error) {
+            console.error('[SHEETS] Error parsing Office spreadsheet:', error.message);
             return {
                 success: false,
                 error: error.message

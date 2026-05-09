@@ -33,6 +33,8 @@ var LogsRouter = require('./routes/logs');
 var qrcodeRouter = require('./routes/qrcode');
 var nsaApprovalRouter = require('./routes/nsaApproval');
 var nsaNotifierRouter = require('./routes/nsaNotifier');
+var exportApprovalRouter = require('./routes/exportApproval');
+var exportNotificationRouter = require('./routes/exportNotification');
 
 
 // Set up views
@@ -98,6 +100,8 @@ app.use("/logs", LogsRouter);
 app.use("/qrcode", qrcodeRouter);
 app.use("/nsaApproval", nsaApprovalRouter);
 app.use("/nsaNotifier", nsaNotifierRouter);
+app.use("/exportApproval", exportApprovalRouter);
+app.use("/exportNotification", exportNotificationRouter);
 
 
 // catch 404 and forward to error handler

@@ -51,10 +51,55 @@ import {
   removeRefundedDate,
 } from '../services/registrationApi';
 
+const TESTING_EXPORT_APPROVAL_EMAILS = ['testinga@ecss.org.sg', 'testingb@ecss.org.sg', 'mossleegermany@gmail.com'];
+const TESTING_EXPORT_APPROVAL_NAMES = ['testing a', 'testingb', 'testing b', 'testinga', 'lee xuan yao moseds', 'lee xuan yao moses'];
+
+function normalizeIdentityEmail(email) {
+  const raw = String(email || '').trim().toLowerCase();
+  const extracted = raw.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/);
+  return extracted ? extracted[0] : raw;
+}
+
+function normalizeIdentityName(name) {
+  return String(name || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isTestingExportApprovalUser(email, userName) {
+  const normalizedEmail = normalizeIdentityEmail(email);
+  const normalizedName = normalizeIdentityName(userName);
+
+  if (normalizedName.includes('lee xuan yao') && (normalizedName.includes('moses') || normalizedName.includes('moseds'))) {
+    return true;
+  }
+
+  return TESTING_EXPORT_APPROVAL_EMAILS.includes(normalizedEmail)
+    || TESTING_EXPORT_APPROVAL_NAMES.includes(normalizedName);
+}
+
+const SUPERVISOR_EXPORT_EMAILS = ['moses_lee@ecss.org.sg', 'peipei_low@ecss.org.sg', 'rosalind_ong@ecss.org.sg'];
+
+function isSupervisorExportUser(email) {
+  return SUPERVISOR_EXPORT_EMAILS.includes(normalizeIdentityEmail(email));
+}
+
+function arrayBufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return window.btoa(binary);
+}
+
 // ── Export to LOP ─────────────────────────────────────────────────────────────
 
 export async function exportToLOP(context) {
-  const { selectedRows, userName, warningPopUpMessage } = context;
+  const { selectedRows, userName, userEmail, warningPopUpMessage, onPendingExportApproval, onSupervisorExportConfirm } = context;
   try {
     if (!selectedRows.length) {
       return warningPopUpMessage('No rows selected. Please select rows to export.');
@@ -268,6 +313,31 @@ export async function exportToLOP(context) {
     }
 
     const buffer = await workbook.xlsx.writeBuffer();
+
+    if (isSupervisorExportUser(userEmail) && onSupervisorExportConfirm) {
+      const excelBase64 = arrayBufferToBase64(buffer);
+      onSupervisorExportConfirm({
+        excelBase64,
+        exportType:  'LOP',
+        courseType:  firstType,
+        recordCount: selectedRows.length,
+        fileName:    outputFileName,
+      });
+      return;
+    }
+
+    if (isTestingExportApprovalUser(userEmail, userName) && onPendingExportApproval) {
+      const excelBase64 = arrayBufferToBase64(buffer);
+      onPendingExportApproval({
+        excelBase64,
+        exportType:  'LOP',
+        courseType:  firstType,
+        recordCount: filteredRows.length,
+        fileName:    outputFileName,
+      });
+      return;
+    }
+
     saveAs(
       new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
       outputFileName
@@ -412,13 +482,14 @@ export async function exportToMarriagePreparationProgramme(context) {
 // ── Export Attendance ─────────────────────────────────────────────────────────
 
 export async function exportAttendance(context) {
-  const { selectedRows, warningPopUpMessage, userName } = context;
+  const { selectedRows, warningPopUpMessage, userName, userEmail, onPendingExportApproval, onSupervisorExportConfirm } = context;
 
   if (!selectedRows.length) {
     return warningPopUpMessage('No rows selected. Please select rows to export.');
   }
 
-  const firstType = selectedRows[0]?.courseInfo?.courseType;
+  const rawType = selectedRows[0]?.courseInfo?.courseType || selectedRows[0]?.course?.courseType || '';
+  const firstType = String(rawType).trim().toUpperCase();
 
   const filteredRows = selectedRows.filter((row) => {
     const s = row.paymentStatus;
@@ -436,9 +507,11 @@ export async function exportAttendance(context) {
 
   try {
     if (firstType === 'NSA') {
-      await _exportAttendanceNSA(filteredRows, userName, warningPopUpMessage);
+      await _exportAttendanceNSA(filteredRows, userName, warningPopUpMessage, userEmail, onPendingExportApproval, onSupervisorExportConfirm);
     } else if (firstType === 'ILP') {
-      await _exportAttendanceILP(filteredRows, userName, warningPopUpMessage);
+      await _exportAttendanceILP(filteredRows, userName, warningPopUpMessage, userEmail, onPendingExportApproval, onSupervisorExportConfirm);
+    } else {
+      return warningPopUpMessage(`Unsupported course type for Attendance export: ${rawType || 'Unknown'}`);
     }
   } catch (error) {
     console.error('Error exporting attendance:', error);
@@ -446,7 +519,7 @@ export async function exportAttendance(context) {
   }
 }
 
-async function _exportAttendanceNSA(filteredRows, userName, warningPopUpMessage) {
+async function _exportAttendanceNSA(filteredRows, userName, warningPopUpMessage, userEmail, onPendingExportApproval, onSupervisorExportConfirm) {
   const response = await fetch('/external/Attendance.xlsx');
   if (!response.ok) {
     return warningPopUpMessage('Error fetching the Excel file.');
@@ -526,9 +599,35 @@ async function _exportAttendanceNSA(filteredRows, userName, warningPopUpMessage)
   const buffer = await workbook.xlsx.writeBuffer();
   const safeCourseName = sanitizeForFileName(courseName, 'Unknown Course');
   const safeLocation = sanitizeForFileName(courseLocation, 'Unknown Location');
+  const attendanceFileName = `Attendance (Course) ECSS${formatDateToDDMMYYYY1(start)} ${safeLocation} ${safeCourseName}.xlsx`;
+
+  if (isSupervisorExportUser(userEmail) && onSupervisorExportConfirm) {
+    const excelBase64 = arrayBufferToBase64(buffer);
+    onSupervisorExportConfirm({
+      excelBase64,
+      exportType:  'Attendance',
+      courseType:  'NSA',
+      recordCount: filteredRows.length,
+      fileName:    attendanceFileName,
+    });
+    return;
+  }
+
+  if (isTestingExportApprovalUser(userEmail, userName) && onPendingExportApproval) {
+    const excelBase64 = arrayBufferToBase64(buffer);
+    onPendingExportApproval({
+      excelBase64,
+      exportType:  'Attendance',
+      courseType:  'NSA',
+      recordCount: filteredRows.length,
+      fileName:    attendanceFileName,
+    });
+    return;
+  }
+
   saveAs(
     new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
-    `Attendance (Course) ECSS${formatDateToDDMMYYYY1(start)} ${safeLocation} ${safeCourseName}.xlsx`
+    attendanceFileName
   );
 
   logExportAction({
@@ -546,7 +645,7 @@ async function _exportAttendanceNSA(filteredRows, userName, warningPopUpMessage)
   });
 }
 
-async function _exportAttendanceILP(filteredRows, userName, warningPopUpMessage) {
+async function _exportAttendanceILP(filteredRows, userName, warningPopUpMessage, userEmail, onPendingExportApproval, onSupervisorExportConfirm) {
   const response = await fetch('/external/2025 ILP Course Name Site Name Date of event.xlsx');
   if (!response.ok) return warningPopUpMessage('Error fetching the Excel file.');
 
@@ -597,9 +696,35 @@ async function _exportAttendanceILP(filteredRows, userName, warningPopUpMessage)
   const safeCourseName = sanitizeForFileName(courseName, 'Unknown Course');
   const safeLocation = sanitizeForFileName(courseLocation, 'Unknown Location');
   const safeCommenceDate = sanitizeForFileName(commenceDate, formatDateToDDMMYYYY2(new Date()));
+  const ilpFileName = `2025 ILP ${safeCourseName} ${safeLocation} ${safeCommenceDate}.xlsx`;
+
+  if (isSupervisorExportUser(userEmail) && onSupervisorExportConfirm) {
+    const excelBase64 = arrayBufferToBase64(buffer);
+    onSupervisorExportConfirm({
+      excelBase64,
+      exportType:  'Attendance',
+      courseType:  'ILP',
+      recordCount: filteredRows.length,
+      fileName:    ilpFileName,
+    });
+    return;
+  }
+
+  if (isTestingExportApprovalUser(userEmail, userName) && onPendingExportApproval) {
+    const excelBase64 = arrayBufferToBase64(buffer);
+    onPendingExportApproval({
+      excelBase64,
+      exportType:  'Attendance',
+      courseType:  'ILP',
+      recordCount: filteredRows.length,
+      fileName:    ilpFileName,
+    });
+    return;
+  }
+
   saveAs(
     new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
-    `2025 ILP ${safeCourseName} ${safeLocation} ${safeCommenceDate}.xlsx`
+    ilpFileName
   );
 
   logExportAction({
