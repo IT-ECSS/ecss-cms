@@ -63,54 +63,61 @@ class ApprovalQueueModal extends Component {
                     </tr>
                   </thead>
                   <tbody>
-                    {queue.map((item, index) => (
-                      <React.Fragment key={index}>
-                        <tr className="appr-queue-modal__group-row">
-                          <td className="appr-queue-modal__group-cell" colSpan={6}>
-                            <strong>{item.event.data?.participantInfo?.name || '-'}</strong>
-                            {' '}
-                            <span>
-                              {(item.event.data?.courseInfo?.courseEngName || '-')}
-                              {' · '}
-                              {(item.event.data?.courseInfo?.courseLocation || '-')}
-                            </span>
-                          </td>
-                        </tr>
-                        <tr>
-                          <td className="appr-queue-modal__td appr-queue-modal__td--sn">
-                            {item.event.data?.sn ?? index + 1}
-                          </td>
-                          <td className="appr-queue-modal__td appr-queue-modal__td--field">
-                            <div className="appr-queue-modal__field-content">
-                              <span>{item.event.colDef.headerName}</span>
-                            </div>
-                          </td>
-                          <td className="appr-queue-modal__td">
-                            {this._formatValue(item.event.oldValue, item.event.colDef.headerName)}
-                          </td>
-                          <td className="appr-queue-modal__td appr-queue-modal__td--new">
-                            {this._formatValue(item.event.newValue ?? item.event.value, item.event.colDef.headerName)}
-                          </td>
-                          <td className="appr-queue-modal__td appr-queue-modal__td--reason">
-                            <input
-                              className="appr-queue-modal__reason-input"
-                              type="text"
-                              placeholder="Enter reason..."
-                              value={item.reason || ''}
-                              onChange={(e) => onUpdateReason && onUpdateReason(index, e.target.value)}
-                            />
-                          </td>
-                          <td className="appr-queue-modal__td appr-queue-modal__td--action">
-                            <button
-                              className="appr-queue-modal__btn-row-delete"
-                              onClick={() => onRemove && onRemove(index)}
-                            >
-                              Delete
-                            </button>
-                          </td>
-                        </tr>
-                      </React.Fragment>
-                    ))}
+                    {queue.map((item, index) => {
+                      const approvalKey = item.approvalKey || `${item.event.data?.id || item.event.data?.sn || index}_${item.event.colDef.field || item.event.colDef.headerName || ''}_${String(item.event.newValue ?? item.event.value ?? '')}`;
+
+                      return (
+                        <React.Fragment key={index}>
+                          <tr className="appr-queue-modal__group-row">
+                            <td className="appr-queue-modal__group-cell" colSpan={6}>
+                              <strong>{item.event.data?.participantInfo?.name || '-'}</strong>
+                              {' '}
+                              <span>
+                                {(item.event.data?.courseInfo?.courseEngName || '-')}
+                                {' · '}
+                                {(item.event.data?.courseInfo?.courseLocation || '-')}
+                              </span>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td className="appr-queue-modal__td appr-queue-modal__td--sn">
+                              {item.event.data?.sn ?? index + 1}
+                            </td>
+                            <td className="appr-queue-modal__td appr-queue-modal__td--field">
+                              <div className="appr-queue-modal__field-content">
+                                <span>{item.event.colDef.headerName}</span>
+                              </div>
+                            </td>
+                            <td className="appr-queue-modal__td">
+                              {this._formatValue(item.event.oldValue, item.event.colDef.headerName)}
+                            </td>
+                            <td className="appr-queue-modal__td appr-queue-modal__td--new">
+                              {this._formatValue(item.event.newValue ?? item.event.value, item.event.colDef.headerName)}
+                            </td>
+                            <td className="appr-queue-modal__td appr-queue-modal__td--reason">
+                              <input
+                                className="appr-queue-modal__reason-input"
+                                type="text"
+                                placeholder="Enter reason..."
+                                autoComplete="off"
+                                name={`approval-reason-${approvalKey}`}
+                                value={item.reason || ''}
+                                onChange={(e) => onUpdateReason && onUpdateReason(approvalKey, e.target.value)}
+                              />
+                            </td>
+                            <td className="appr-queue-modal__td appr-queue-modal__td--action">
+                              <button
+                                className="appr-queue-modal__btn-row-delete"
+                                type="button"
+                                onClick={() => onRemove && onRemove(index)}
+                              >
+                                Delete
+                              </button>
+                            </td>
+                          </tr>
+                        </React.Fragment>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

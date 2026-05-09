@@ -15,6 +15,23 @@ class NSANotifierModal extends React.Component {
     };
   }
 
+  componentDidUpdate(prevProps) {
+    if (prevProps.changes !== this.props.changes) {
+      this.setState((prevState) => {
+        const nextReasons = { ...prevState.reasons };
+        (this.props.changes || []).forEach((change, idx) => {
+          const existing = String(nextReasons[idx] || '').trim();
+          if (existing) return;
+          const prefilled = String(change?.reason || '').trim();
+          if (prefilled) {
+            nextReasons[idx] = prefilled;
+          }
+        });
+        return { reasons: nextReasons };
+      });
+    }
+  }
+
   openNotice = (title, message, closeMain = false) => {
     this.setState({
       noticeOpen: true,
@@ -50,7 +67,11 @@ class NSANotifierModal extends React.Component {
 
   handleSend = async () => {
     const { changes, userName, userEmail, onClose, onClearAll, onApplyChanges } = this.props;
-    const { reasons } = this.state;
+    const { reasons, isSending } = this.state;
+
+    if (isSending) {
+      return;
+    }
 
     if (!changes || changes.length === 0) {
       this.openNotice('No Changes', 'No changes to send.');
@@ -61,7 +82,7 @@ class NSANotifierModal extends React.Component {
       .map((change, idx) => ({ change, idx }))
       .map(item => ({
         ...item.change,
-        reason: reasons[item.idx] || '',
+        reason: reasons[item.idx] ?? item.change?.reason ?? '',
       }));
 
     const missingReasons = selectedChanges
@@ -183,7 +204,7 @@ class NSANotifierModal extends React.Component {
           >
             <div>
               <div style={{ fontSize: '23px', fontWeight: '700', color: '#000', lineHeight: 1.2, whiteSpace: 'nowrap' }}>
-                NSA Notifier Queue
+                NSA Notifier
               </div>
             </div>
             <button
@@ -229,14 +250,14 @@ class NSANotifierModal extends React.Component {
               <>
                 {/* Table with vertical scroll */}
                 <div style={{ flex: 1, overflow: 'auto', border: '1px solid #e0e0e0', borderRadius: '6px' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '15px', minWidth: '760px' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '15px', minWidth: '980px' }}>
                     <thead>
                       <tr style={{ background: '#f2f2f2', position: 'sticky', top: 0, zIndex: 10 }}>
                         <th style={{ ...th, width: '40px' }}>S/N</th>
                         <th style={{ ...th, width: '110px' }}>Field</th>
-                        <th style={{ ...th, width: '120px' }}>Old Value</th>
-                        <th style={{ ...th, width: '120px' }}>New Value</th>
-                        <th style={{ ...th, width: '360px' }}>Reason</th>
+                        <th style={{ ...th, width: '160px' }}>Old Value</th>
+                        <th style={{ ...th, width: '260px' }}>New Value</th>
+                        <th style={{ ...th, width: '410px' }}>Reason</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -269,9 +290,9 @@ class NSANotifierModal extends React.Component {
                             <td style={{ ...td, maxWidth: '110px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', background: '#fff3cd', fontWeight: '600', color: '#8a5a00' }} title={change.columnName || ''}>
                               {change.columnName}
                             </td>
-                            <td style={{ ...td, maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={change.oldValue || '—'}>{change.oldValue || '—'}</td>
+                            <td style={{ ...td, maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={change.oldValue || '—'}>{change.oldValue || '—'}</td>
                             <td
-                              style={{ ...td, maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', background: '#e8f5e9', fontWeight: '600', color: '#2e7d32' }}
+                              style={{ ...td, minWidth: '260px', maxWidth: '260px', whiteSpace: 'normal', overflowWrap: 'anywhere', wordBreak: 'break-word', background: '#e8f5e9', fontWeight: '600', color: '#2e7d32' }}
                               title={
                                 (String(change.columnField || '').toLowerCase() === 'remarks' || String(change.columnName || '').toLowerCase() === 'remarks')
                                   ? '—'
@@ -282,15 +303,15 @@ class NSANotifierModal extends React.Component {
                                 ? '—'
                                 : (change.newValue || '—')}
                             </td>
-                            <td style={td}>
+                            <td style={{ ...td, minWidth: '410px' }}>
                               <input
                                 type="text"
-                                value={reasons[idx] || ''}
+                                value={reasons[idx] ?? change.reason ?? ''}
                                 onChange={e => this.handleReasonChange(idx, e.target.value)}
                                 placeholder="Enter reason..."
                                 style={{
                                   width: '100%',
-                                  minWidth: '240px',
+                                  minWidth: '260px',
                                   padding: '6px 10px',
                                   border: reasonErrors[idx] ? '1px solid #f5c6cb' : '1px solid #ccc',
                                   borderRadius: '4px',
@@ -332,35 +353,32 @@ class NSANotifierModal extends React.Component {
           >
             <button
               onClick={onClose}
-              disabled={isSending}
               style={{
                 padding: '8px 20px',
-                border: '2px solid #dc3545',
+                border: '4px solid #dc3545',
                 borderRadius: '6px',
                 background: 'transparent',
                 color: '#dc3545',
                 fontSize: '24px',
                 fontWeight: 700,
                 width: 'fit-content',
-                cursor: isSending ? 'not-allowed' : 'pointer',
-                opacity: isSending ? 0.6 : 1,
+                cursor: 'pointer',
               }}
             >
               Cancel
             </button>
             <button
               onClick={this.handleSend}
-              disabled={isSending || !hasChanges}
               style={{
                 padding: '8px 22px',
-                border: `2px solid ${isSending || !hasChanges ? '#999' : '#28a745'}`,
+                border: '4px solid #28a745',
                 borderRadius: '6px',
                 background: 'transparent',
-                color: isSending || !hasChanges ? '#999' : '#28a745',
+                color: '#28a745',
                 fontSize: '24px',
                 fontWeight: 700,
                 width: 'fit-content',
-                cursor: isSending || !hasChanges ? 'not-allowed' : 'pointer',
+                cursor: 'pointer',
               }}
             >
               {isSending ? 'Sending...' : 'Send Notifier'}

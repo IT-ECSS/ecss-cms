@@ -72,9 +72,7 @@ export function getAllLocations(datas) {
  * Returns all unique course types. Always includes 'Others'.
  */
 export function getAllTypes(datas) {
-  const allTypes = [...new Set(datas.map(d => d.course?.courseType).filter(Boolean))];
-  if (!allTypes.includes('Others')) allTypes.push('Others');
-  return allTypes;
+  return [...new Set(datas.map(d => d.course?.courseType).filter(Boolean))];
 }
 
 /**

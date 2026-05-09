@@ -198,7 +198,7 @@ class NSAApprovalModal extends React.Component {
           style={{ maxWidth: '600px' }}
         >
           <div className="registration-payment-details-modal-header">
-            <h3>Add Change to Approval List</h3>
+            <h3>Approval List</h3>
           </div>
           <div className="registration-payment-details-modal-body">
 

@@ -27,18 +27,18 @@ function sendNsaNotifierEmail({ recipientEmails, changedByName, changedByEmail, 
 
     var changeRows = changes.map(change => `
         <tr>
-          <td style="padding:7px 10px;border:1px solid #ddd;text-align:center;color:#888;">${escapeHtml(change.sn || '')}</td>
-          <td style="padding:7px 10px;border:1px solid #ddd;">${escapeHtml(change.participantName || '')}</td>
+          <td style="padding:7px 10px;border:1px solid #ddd;text-align:center;color:#888;white-space:nowrap;">${escapeHtml(change.sn || '')}</td>
+          <td style="padding:7px 10px;border:1px solid #ddd;white-space:nowrap;">${escapeHtml(change.participantName || '')}</td>
           <td style="padding:7px 10px;border:1px solid #ddd;">${escapeHtml(change.courseName || '')}${change.courseLocation ? ` &middot; ${escapeHtml(change.courseLocation)}` : ''}</td>
-          <td style="padding:7px 10px;border:1px solid #ddd;background:#fff3cd;color:#856404;font-weight:bold;">${escapeHtml(change.columnName || '')}</td>
-          <td style="padding:7px 10px;border:1px solid #ddd;color:#555;">${escapeHtml(change.oldValue ?? '—')}</td>
+          <td style="padding:7px 10px;border:1px solid #ddd;background:#fff3cd;color:#856404;font-weight:bold;white-space:nowrap;">${escapeHtml(change.columnName || '')}</td>
+          <td style="padding:7px 10px;border:1px solid #ddd;color:#555;white-space:nowrap;">${escapeHtml(change.oldValue ?? '—')}</td>
           <td style="padding:7px 10px;border:1px solid #ddd;background:#e8f5e9;color:#2e7d32;font-weight:bold;">${escapeHtml(change.newValue ?? '')}</td>
           <td style="padding:7px 10px;border:1px solid #ddd;color:#444;">${escapeHtml(change.reason ?? '—')}</td>
         </tr>
     `).join('');
 
     var body = `
-<div style="font-family:Arial,sans-serif;font-size:13px;color:#333;max-width:760px;">
+<div style="font-family:Arial,sans-serif;font-size:13px;color:#333;">
   <p style="margin:0 0 6px;">Dear Approval Team,</p>
   <p style="margin:0 0 12px;">
     <strong>${escapeHtml(changedByName || 'Staff')}</strong>${changedByEmail ? ` (&lt;${escapeHtml(changedByEmail)}&gt;)` : ''}
@@ -50,24 +50,22 @@ function sendNsaNotifierEmail({ recipientEmails, changedByName, changedByEmail, 
     Time: <strong>${escapeHtml(changeTime)}</strong>
   </p>
 
-  <div style="max-height:400px;overflow-y:auto;border:1px solid #ccc;margin-bottom:8px;">
-    <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:860px;">
-      <thead>
-        <tr style="background:#f2f2f2;">
-          <th style="padding:7px 10px;border:1px solid #ccc;text-align:center;width:32px;">S/N</th>
-          <th style="padding:7px 10px;border:1px solid #ccc;text-align:left;">Participant</th>
-          <th style="padding:7px 10px;border:1px solid #ccc;text-align:left;">Course</th>
-          <th style="padding:7px 10px;border:1px solid #ccc;text-align:left;">Field</th>
-          <th style="padding:7px 10px;border:1px solid #ccc;text-align:left;">Old Value</th>
-          <th style="padding:7px 10px;border:1px solid #ccc;text-align:left;">New Value</th>
-          <th style="padding:7px 10px;border:1px solid #ccc;text-align:left;">Reason</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${changeRows}
-      </tbody>
-    </table>
-  </div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;table-layout:auto;">
+    <thead>
+      <tr style="background:#f2f2f2;">
+        <th style="padding:7px 10px;border:1px solid #ccc;text-align:center;white-space:nowrap;">S/N</th>
+        <th style="padding:7px 10px;border:1px solid #ccc;text-align:left;white-space:nowrap;">Participant</th>
+        <th style="padding:7px 10px;border:1px solid #ccc;text-align:left;">Course</th>
+        <th style="padding:7px 10px;border:1px solid #ccc;text-align:left;white-space:nowrap;">Field</th>
+        <th style="padding:7px 10px;border:1px solid #ccc;text-align:left;white-space:nowrap;">Old Value</th>
+        <th style="padding:7px 10px;border:1px solid #ccc;text-align:left;">New Value</th>
+        <th style="padding:7px 10px;border:1px solid #ccc;text-align:left;">Reason</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${changeRows}
+    </tbody>
+  </table>
 
   <p style="font-size:11px;color:#888;margin-top:16px;">This is an automated NSA notifier alert from the Registration & Payment system.</p>
 </div>`;

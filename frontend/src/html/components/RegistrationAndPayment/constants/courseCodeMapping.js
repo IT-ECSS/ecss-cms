@@ -1,35 +1,21 @@
 /**
  * ECSS Course Code Mapping
- * Dynamically loaded from:
- *   /external/Final Approval for NSA course titles_FY25 (ECSS).xlsx
- *
- * The sheet "ECSS - FY2025" has the structure (row 8 onward, 1-based):
- *   Col A: Course code  (e.g. "ECSS-CBO-M-001C")
- *   Col B: Course Title (Chinese only, bilingual inline, or English-only)
- *
- * English names appear either:
- *   - On the same row inline as "Chinese (English name)"
- *   - On the next row in Col B as "(English name)"
- *   - As a standalone English-only string in Col B
- *
- * The parser builds a map of  normalizedName → { code, canonicalName }
- * Lookup also tries stripping language suffixes (e.g. "– Mandarin L1").
+ * Loaded from backend endpoint which reads Google Sheet:
+ *   Final Approval for NSA course titles_FY25 (ECSS)
+ * Sheet name:
+ *   ECSS Course Code (LOP)
  */
 
-import ExcelJS from 'exceljs';
-
-const EXCEL_PATH   = '/external/Final Approval for NSA course titles_FY25 (ECSS).xlsx';
-const SHEET_NAME   = 'ECSS - FY2025';
-const DATA_START_ROW = 8; // 1-based row in ExcelJS
+const NODE_BASE_URL =
+  window.location.hostname === 'localhost'
+    ? 'http://localhost:3001'
+    : 'https://ecss-backend-node.azurewebsites.net';
 
 // Language suffixes added by the system but absent in the Excel sheet
 const LANGUAGE_SUFFIXES = [
   ' – Mandarin L1', ' – Mandarin L2', ' – Mandarin', ' – English', ' – Malay',
   ' - Mandarin L1', ' - Mandarin L2', ' - Mandarin', ' - English', ' - Malay',
 ];
-
-// Bare single-word language labels that should NOT be treated as course names
-const BARE_LANGUAGE_WORDS = new Set(['malay', 'english', 'mandarin', 'chinese']);
 
 /**
  * Aliases for course names stored in the system that differ from the Excel sheet.
@@ -51,45 +37,6 @@ const SYSTEM_NAME_ALIASES = {
   'art of paper quilling':                    'The Art of Paper Quilling',
 };
 
-/** Returns true if the string contains at least one CJK character. */
-function hasChinese(str) {
-  return /[\u4e00-\u9fa5]/.test(str);
-}
-
-/**
- * Extract the English portion from a cell value.
- * Handles:
- *   - Plain English-only strings
- *   - "Chinese (English name)"  — takes from first ( to last )
- *   - "(English name)"          — same
- *   - Fullwidth parens （）       — normalised to ASCII first
- *   - Nested parens like "(Bonsai Learning (Elementary))"
- *   - Double spaces             — collapsed to single space
- */
-function extractEnglish(raw) {
-  if (!raw) return '';
-  const str = raw.toString().trim()
-    .replace(/（/g, '(')
-    .replace(/）/g, ')');
-
-  const first = str.indexOf('(');
-  const last  = str.lastIndexOf(')');
-
-  if (first !== -1 && last > first) {
-    const inner = str.slice(first + 1, last).trim();
-    if (!hasChinese(inner)) {
-      return inner.replace(/\s+/g, ' ');
-    }
-  }
-
-  // No parens or inner text is Chinese — only return if the whole string is English
-  if (!hasChinese(str)) {
-    return str.replace(/\s+/g, ' ');
-  }
-
-  return '';
-}
-
 /**
  * Normalise a course name for map lookup:
  *   - Trim whitespace
@@ -109,66 +56,32 @@ function normalizeName(name) {
 let _cache = null; // map after first load
 
 /**
- * Loads the Excel file and builds the lookup map.
- * Cached after first call — the file is only fetched once per page load.
+ * Loads parsed LOP course-code map from backend.
+ * Cached after first call to avoid repeated API calls during batch export.
  * @returns {Promise<Object>}  normalizedName → { code, canonicalName }
  */
 export async function loadCourseCodeMap() {
   if (_cache) return _cache;
 
-  const response = await fetch(EXCEL_PATH);
-  if (!response.ok) throw new Error(`Failed to fetch course code Excel: ${response.status}`);
-
-  const buffer   = await response.arrayBuffer();
-  const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(buffer);
-
-  const sheet = workbook.getWorksheet(SHEET_NAME);
-  if (!sheet) throw new Error(`Sheet "${SHEET_NAME}" not found in course code Excel`);
-
-  // map: normalizedName → Array<{ code, canonicalName, netPrice }>
-  // An array allows multiple course codes to share the same English name
-  // (e.g. -002C and -002E both called "Fall Prevention & Functional Improvement Training")
-  // and be distinguished later by price.
-  const map = {};
-  let lastCode     = null;
-  let lastNetPrice = null; // Full Course - Subsidy (Col D - Col E)
-
-  const addEntry = (eng, code, netPrice) => {
-    const key   = normalizeName(eng);
-    const entry = { code, canonicalName: eng, netPrice };
-    if (!map[key]) {
-      map[key] = [entry];
-    } else {
-      map[key].push(entry);
-    }
-  };
-
-  sheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
-    if (rowNumber < DATA_START_ROW) return;
-
-    const colA    = row.getCell(1).value?.toString().trim() || '';
-    const colB    = row.getCell(2).value?.toString().trim() || '';
-    const colDRaw = row.getCell(4).value;
-    const colERaw = row.getCell(5).value;
-    const colD    = colDRaw !== null && colDRaw !== '' ? Number(colDRaw) : null;
-    const colE    = colERaw !== null && colERaw !== '' ? Number(colERaw) : null;
-
-    if (/^ECSS-CBO-M-\d+[A-Z]$/.test(colA)) {
-      lastCode = colA;
-      if (colD !== null && !isNaN(colD) && colE !== null && !isNaN(colE)) {
-        lastNetPrice = Math.round((colD - colE) * 100) / 100; // round to 2dp
-      }
-      const eng = extractEnglish(colB);
-      if (eng && !BARE_LANGUAGE_WORDS.has(eng.toLowerCase())) addEntry(eng, lastCode, lastNetPrice);
-    } else if (!colA && lastCode && colB) {
-      const eng = extractEnglish(colB);
-      if (eng && !BARE_LANGUAGE_WORDS.has(eng.toLowerCase())) addEntry(eng, lastCode, lastNetPrice);
-    }
+  const response = await fetch(`${NODE_BASE_URL}/googleDrive/lopCourseCodeMap`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({})
   });
 
-  _cache = map;
-  return map;
+  if (!response.ok) {
+    throw new Error(`Failed to fetch LOP course code map: ${response.status}`);
+  }
+
+  const payload = await response.json();
+  if (!payload?.success || !payload?.map || typeof payload.map !== 'object') {
+    throw new Error(payload?.error || 'Invalid LOP course code map response from backend');
+  }
+
+  _cache = payload.map;
+  return _cache;
 }
 
 /**

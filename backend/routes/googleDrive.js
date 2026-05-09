@@ -9,8 +9,337 @@ const JSZip = require('jszip');
 const { COLUMN_HEADERS } = require('../constants/fftFieldMappings');
 const REGISTRATION_TEMPLATE_FILE_ID = '1xu3UtY6fm3O09_vwlCk1p_NZM0waWrzUMsDGmJbmNDk';
 const FFT_INDEX_SHEET_ID = '1fMyjRlqj3ZEj9OcWCP_HtViLbgYG2zW4i-qZUdVOMXo';
+const LOP_ECSS_SPREADSHEET_ID = '1ammcMoHZmhJFEu-O_xtrq9wpPc1dlzuc';
+const LOP_ECSS_SHEET_NAME = 'ECSS Course Code (LOP)';
+const LOP_MAP_CACHE_TTL_MS = 5 * 60 * 1000;
+const LOP_LOCAL_FILE_PATH = path.join(
+    __dirname,
+    '../../frontend/public/external/Final Approval for NSA course titles_FY25 (ECSS).xlsx'
+);
 
 const googleDriveController = new GoogleDriveController();
+
+const LANGUAGE_SUFFIXES = [
+    ' - Mandarin L1', ' - Mandarin L2', ' - Mandarin', ' - English', ' - Malay'
+];
+
+const SYSTEM_NAME_ALIASES = {
+    'hanyu pinyin for intermediate': 'hanyu pinyin - intermediate',
+    'healthy minds, healthy lives': 'c3a agemap - healthy minds for healthy lives',
+    'fall prevention and functional improvement training': 'fall prevention & functional improvement training',
+    "tcm - don't be a friend of chronic diseases": "tcm - don't be a friend of chronic diseases",
+    'art of paper quiliing': 'the art of paper quilling',
+    'art of paper quilling': 'the art of paper quilling'
+};
+
+const BARE_LANGUAGE_WORDS = new Set(['malay', 'english', 'mandarin', 'chinese']);
+let lopCourseCodeMapCache = {
+    ts: 0,
+    key: '',
+    map: null
+};
+
+function parseSpreadsheetId(input) {
+    const raw = String(input || '').trim();
+    if (!raw) return '';
+    if (!/^https?:\/\//i.test(raw)) return raw;
+
+    const sheetsMatch = /\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/.exec(raw);
+    if (sheetsMatch) return sheetsMatch[1];
+
+    const driveFileMatch = /\/file\/d\/([a-zA-Z0-9_-]+)/.exec(raw);
+    if (driveFileMatch) return driveFileMatch[1];
+
+    return '';
+}
+
+function getLopSourceConfig(requestBody = {}) {
+    const spreadsheetId =
+        parseSpreadsheetId(requestBody.spreadsheetId) ||
+        parseSpreadsheetId(requestBody.fileId) ||
+        parseSpreadsheetId(requestBody.spreadsheetUrl) ||
+        parseSpreadsheetId(requestBody.fileUrl) ||
+        parseSpreadsheetId(process.env.LOP_ECSS_SPREADSHEET_ID) ||
+        LOP_ECSS_SPREADSHEET_ID;
+
+    const sheetName = String(
+        requestBody.sheetName ||
+        process.env.LOP_ECSS_SHEET_NAME ||
+        LOP_ECSS_SHEET_NAME
+    ).trim();
+
+    return { spreadsheetId, sheetName: sheetName || LOP_ECSS_SHEET_NAME };
+}
+
+function getGoogleServiceAccountEmail() {
+    try {
+        if (process.env.GOOGLE_SERVICE_ACCOUNT_NORSE) {
+            const parsed = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_NORSE);
+            if (parsed?.client_email) return parsed.client_email;
+        }
+
+        if (process.env.GOOGLE_DRIVE_CREDENTIALS) {
+            try {
+                const parsed = JSON.parse(process.env.GOOGLE_DRIVE_CREDENTIALS);
+                if (parsed?.client_email) return parsed.client_email;
+            } catch {
+                const decoded = Buffer.from(process.env.GOOGLE_DRIVE_CREDENTIALS, 'base64').toString('utf8');
+                const parsed = JSON.parse(decoded);
+                if (parsed?.client_email) return parsed.client_email;
+            }
+        }
+
+        const keyFile = path.join(__dirname, '../config/norse-study-479913-b7-00b6903f8f4f.json');
+        if (fs.existsSync(keyFile)) {
+            const parsed = JSON.parse(fs.readFileSync(keyFile, 'utf8'));
+            if (parsed?.client_email) return parsed.client_email;
+        }
+    } catch {
+        // Ignore and return fallback below.
+    }
+
+    return 'Google service account email not available from current config';
+}
+
+function enrichLopError(error, spreadsheetId) {
+    const message = String(error?.message || error || 'Unknown error');
+    const notFoundOrNoAccess = /file not found|not found:|insufficient|permission|forbidden|404/i.test(message);
+    if (!notFoundOrNoAccess) return message;
+
+    const serviceAccountEmail = getGoogleServiceAccountEmail();
+    return `Cannot access LOP source file ${spreadsheetId}. Share the Excel file with this service account email: ${serviceAccountEmail}. Original error: ${message}`;
+}
+
+function normalizeCourseName(name = '') {
+    return String(name)
+        .trim()
+        .replace(/\s+/g, ' ')
+        .replace(/[\u2013\u2014]/g, '-')
+        .replace(/[\u2018\u2019\u201A]/g, "'")
+        .replace(/[\u201C\u201D]/g, '"')
+        .toLowerCase();
+}
+
+function hasChinese(str = '') {
+    return /[\u4e00-\u9fa5]/.test(String(str));
+}
+
+function extractEnglish(raw) {
+    if (!raw) return '';
+
+    const str = String(raw).trim()
+        .replace(/（/g, '(')
+        .replace(/）/g, ')');
+
+    const first = str.indexOf('(');
+    const last = str.lastIndexOf(')');
+
+    if (first !== -1 && last > first) {
+        const inner = str.slice(first + 1, last).trim();
+        if (!hasChinese(inner)) {
+            return inner.replace(/\s+/g, ' ');
+        }
+    }
+
+    if (!hasChinese(str)) {
+        return str.replace(/\s+/g, ' ');
+    }
+
+    return '';
+}
+
+function toNumberOrNull(value) {
+    if (value === null || value === undefined || value === '') return null;
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : null;
+}
+
+function buildLopCourseCodeMap(rows = []) {
+    const map = {};
+    let lastCode = null;
+    let lastNetPrice = null;
+
+    const addEntry = (engName, code, netPrice) => {
+        const key = normalizeCourseName(engName);
+        if (!key) return;
+        const entry = {
+            code,
+            canonicalName: engName,
+            netPrice
+        };
+        if (!map[key]) {
+            map[key] = [entry];
+            return;
+        }
+        map[key].push(entry);
+    };
+
+    for (const row of rows) {
+        const colA = String(row?.[0] || '').trim();
+        const colB = String(row?.[1] || '').trim();
+        const colD = toNumberOrNull(row?.[3]);
+        const colE = toNumberOrNull(row?.[4]);
+
+        if (/^ECSS-CBO-M-\d+[A-Z]$/i.test(colA)) {
+            lastCode = colA.toUpperCase();
+            if (colD !== null && colE !== null) {
+                lastNetPrice = Math.round((colD - colE) * 100) / 100;
+            } else {
+                lastNetPrice = null;
+            }
+
+            const eng = extractEnglish(colB);
+            if (eng && !BARE_LANGUAGE_WORDS.has(eng.toLowerCase())) {
+                addEntry(eng, lastCode, lastNetPrice);
+            }
+            continue;
+        }
+
+        if (!colA && lastCode && colB) {
+            const eng = extractEnglish(colB);
+            if (eng && !BARE_LANGUAGE_WORDS.has(eng.toLowerCase())) {
+                addEntry(eng, lastCode, lastNetPrice);
+            }
+        }
+    }
+
+    return map;
+}
+
+async function getLopCourseCodeMap(sourceConfig = {}) {
+    const spreadsheetId = sourceConfig.spreadsheetId || LOP_ECSS_SPREADSHEET_ID;
+    const sheetName = sourceConfig.sheetName || LOP_ECSS_SHEET_NAME;
+    const cacheKey = `${spreadsheetId}:${sheetName}`;
+    const now = Date.now();
+    if (
+        lopCourseCodeMapCache.map &&
+        lopCourseCodeMapCache.key === cacheKey &&
+        now - lopCourseCodeMapCache.ts < LOP_MAP_CACHE_TTL_MS
+    ) {
+        return lopCourseCodeMapCache.map;
+    }
+
+    const rows = await readLopRowsFromDrive(spreadsheetId, sheetName);
+
+    const map = buildLopCourseCodeMap(rows);
+    lopCourseCodeMapCache = { ts: now, key: cacheKey, map };
+    return map;
+}
+
+async function readLopRowsFromDrive(spreadsheetId, sheetName) {
+    const sheetResult = await googleDriveController.readSpreadsheet(spreadsheetId, sheetName);
+    if (sheetResult.success) {
+        const rows = [];
+        if (Array.isArray(sheetResult.columns) && sheetResult.columns.length) {
+            rows.push(sheetResult.columns);
+        }
+        if (Array.isArray(sheetResult.data) && sheetResult.data.length) {
+            rows.push(...sheetResult.data);
+        }
+        return rows;
+    }
+
+    const readError = String(sheetResult.error || '');
+    const unsupportedOfficeFile =
+        /not supported for this document/i.test(readError) ||
+        /must not be an office file/i.test(readError);
+
+    if (!unsupportedOfficeFile) {
+        if (/file not found|not found:|permission|forbidden|insufficient/i.test(readError)) {
+            return readLopRowsFromLocalWorkbook(sheetName);
+        }
+        throw new Error(readError || 'Unable to read LOP course code sheet');
+    }
+
+    const downloaded = await googleDriveController.downloadFile(spreadsheetId);
+    if (!downloaded.success || !downloaded.fileBuffer) {
+        const downloadError = String(downloaded.error || 'Unable to download LOP Excel workbook');
+        if (/file not found|not found:|permission|forbidden|insufficient/i.test(downloadError)) {
+            return readLopRowsFromLocalWorkbook(sheetName);
+        }
+        throw new Error(downloadError);
+    }
+
+    const workbook = XLSX.read(downloaded.fileBuffer, { type: 'buffer' });
+    const targetSheetName = workbook.SheetNames.includes(sheetName)
+        ? sheetName
+        : workbook.SheetNames[0];
+
+    if (!targetSheetName) {
+        return [];
+    }
+
+    const worksheet = workbook.Sheets[targetSheetName];
+    return XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+}
+
+function readLopRowsFromLocalWorkbook(sheetName) {
+    if (!fs.existsSync(LOP_LOCAL_FILE_PATH)) {
+        throw new Error('LOP source file is not accessible in Google Drive and local fallback file is missing');
+    }
+
+    console.warn(`[LOP] Using local fallback workbook: ${LOP_LOCAL_FILE_PATH}`);
+    const workbook = XLSX.readFile(LOP_LOCAL_FILE_PATH);
+    const targetSheetName = workbook.SheetNames.includes(sheetName)
+        ? sheetName
+        : workbook.SheetNames[0];
+
+    if (!targetSheetName) return [];
+
+    const worksheet = workbook.Sheets[targetSheetName];
+    return XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+}
+
+function pickLopEntry(entries, price = null) {
+    if (!Array.isArray(entries) || entries.length === 0) return null;
+    if (price !== null) {
+        const exact = entries.find((entry) => entry.netPrice !== null && Math.abs(entry.netPrice - price) <= 0.01);
+        if (exact) return exact;
+        if (entries.length === 1) return entries[0];
+        return null;
+    }
+    return entries[0];
+}
+
+function buildLookupCandidates(courseName) {
+    const norm = normalizeCourseName(courseName || '');
+    if (!norm) return [];
+
+    const candidates = [norm];
+
+    const alias = SYSTEM_NAME_ALIASES[norm];
+    if (alias) candidates.push(normalizeCourseName(alias));
+
+    const andVariant = norm.replace(/\band\b/g, '&');
+    if (andVariant !== norm) candidates.push(andVariant);
+
+    for (const suffix of LANGUAGE_SUFFIXES) {
+        const normalizedSuffix = normalizeCourseName(suffix);
+        if (!norm.endsWith(normalizedSuffix)) continue;
+
+        const stripped = norm.slice(0, -normalizedSuffix.length).trim();
+        if (!stripped) continue;
+
+        candidates.push(stripped);
+
+        const strippedAlias = SYSTEM_NAME_ALIASES[stripped];
+        if (strippedAlias) candidates.push(normalizeCourseName(strippedAlias));
+
+        const strippedAndVariant = stripped.replace(/\band\b/g, '&');
+        if (strippedAndVariant !== stripped) candidates.push(strippedAndVariant);
+    }
+
+    return [...new Set(candidates)];
+}
+
+function lookupLopCourseCode(map, courseName, price = null) {
+    const candidates = buildLookupCandidates(courseName);
+    for (const key of candidates) {
+        const entry = pickLopEntry(map[key], price);
+        if (entry) return entry;
+    }
+    return null;
+}
 
 function isUrlLike(value) {
     return /^https?:\/\//i.test(String(value || '').trim());
@@ -212,6 +541,63 @@ router.post('/readSpreadsheet', async (req, res) => {
         res.status(500).json({
             success: false,
             error: error.message
+        });
+    }
+});
+
+// POST endpoint to return parsed ECSS LOP course-code map from Google Sheets.
+router.post('/lopCourseCodeMap', async (req, res) => {
+    try {
+        const sourceConfig = getLopSourceConfig(req.body || {});
+        const map = await getLopCourseCodeMap(sourceConfig);
+        return res.json({
+            success: true,
+            spreadsheetId: sourceConfig.spreadsheetId,
+            sheetName: sourceConfig.sheetName,
+            map
+        });
+    } catch (error) {
+        const sourceConfig = getLopSourceConfig(req.body || {});
+        const friendlyError = enrichLopError(error, sourceConfig.spreadsheetId);
+        console.error('Error in POST /lopCourseCodeMap:', friendlyError);
+        return res.status(500).json({
+            success: false,
+            error: friendlyError
+        });
+    }
+});
+
+// POST endpoint to look up a single ECSS LOP course code by course name and optional price.
+router.post('/lopCourseCode', async (req, res) => {
+    try {
+        const { courseName, price } = req.body || {};
+        if (!courseName || !String(courseName).trim()) {
+            return res.status(400).json({
+                success: false,
+                error: 'courseName is required'
+            });
+        }
+
+        const sourceConfig = getLopSourceConfig(req.body || {});
+        const map = await getLopCourseCodeMap(sourceConfig);
+        const normalizedPrice = price === null || price === undefined || price === '' ? null : Number(price);
+        const lookupPrice = Number.isFinite(normalizedPrice) ? normalizedPrice : null;
+        const entry = lookupLopCourseCode(map, courseName, lookupPrice);
+
+        return res.json({
+            success: true,
+            courseName,
+            code: entry?.code || '',
+            canonicalName: entry?.canonicalName || null,
+            netPrice: entry?.netPrice ?? null
+        });
+    } catch (error) {
+        const sourceConfig = getLopSourceConfig(req.body || {});
+        const friendlyError = enrichLopError(error, sourceConfig.spreadsheetId);
+        console.error('Error in POST /lopCourseCode:', friendlyError);
+        return res.status(500).json({
+            success: false,
+            error: friendlyError
         });
     }
 });

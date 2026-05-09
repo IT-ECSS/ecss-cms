@@ -10,21 +10,32 @@
   padding: 0;
   z-index: 0;
   margin-top: -9rem;
+  width: 90%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.registration-payment-details-content-shell {
   width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+  box-sizing: border-box;
 }
 
 /* Heading section styling */
 .registration-payment-details-heading {
+  display: flex;
+  justify-content: center;
   text-align: center;
-  width: calc(100% - 250px);
-  margin-left: 250px;
+  width: 100%;
+  margin-left: 0;
   height: auto;
   margin-bottom: 1.5rem;
 }
 
 .registration-payment-details-heading h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-size: 1.875rem;
+  font-weight: 700;
   color: #333;
   margin: 0;
 }
@@ -120,8 +131,9 @@
   margin-bottom: 1rem;
   gap: 1rem;
   flex-wrap: wrap;
-  width: calc(100% - 250px);
-  margin-left: 250px;
+  width: 100%;
+  margin-left: 0;
+  box-sizing: border-box;
 }
 
 /* Base button styling */
@@ -131,18 +143,18 @@
 .registration-payment-details-btn-view,
 .registration-payment-details-btn-import {
   width: auto;
-  min-width: 7rem;
-  height: 2rem;
-  padding: 0.5rem 1rem;
+  min-width: 8.75rem;
+  min-height: 2.5rem;
+  padding: 0.625rem 1.25rem;
   display: flex;
   justify-content: center;
   align-items: center;
   cursor: pointer;
-  border: 2px solid #ccc;
+  border: 3.5px solid #ccc;
   border-radius: 0.25rem;
   text-align: center;
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-size: 1.125rem;
+  font-weight: 700;
   transition: all 0.3s ease;
   white-space: nowrap;
   background-color: transparent;
@@ -450,21 +462,23 @@
 }
 
 /* Grid container for AgGrid */
-.grid-container {
-  width: calc(100% - 250px);
-  margin-left: 250px;
+.registration-payment-details-content-shell .grid-container {
+  width: 100%;
+  margin-left: 0;
+  box-sizing: border-box;
 }
 
 /* Expanded row detail styling */
 .registration-payment-details-expanded-row {
-  width: 80%;
-  margin-left: 8rem;
+  width: 100%;
+  margin-left: 0;
   margin-top: 1rem;
   margin-right: 0;
   margin-bottom: 0;
   display: flex;
   justify-content: flex-start;
   padding: 0;
+  box-sizing: border-box;
 }
 
 .registration-payment-details-expanded-content {
@@ -485,7 +499,7 @@
 }
 
 .registration-payment-details-section-title {
-  font-size: 1rem;
+  font-size: 1.5rem;
   font-weight: 600;
   color: #333;
   border-bottom: 2px solid #4CAF50;
@@ -510,7 +524,7 @@
 }
 
 .registration-payment-details-field-label {
-  font-size: 0.8rem;
+  font-size: 1.2rem;
   color: #666;
   font-weight: 600;
   text-transform: uppercase;
@@ -518,11 +532,12 @@
 }
 
 .registration-payment-details-field-value {
-  font-size: 0.95rem;
+  font-size: 1.425rem;
   color: #222;
   font-weight: 500;
   word-break: break-word;
   padding: 0.25rem 0;
+  line-height: 1.3;
 }
 
 /* Status badge styling */
@@ -587,7 +602,364 @@
 .registration-payment-details-modal-header h3 {
   margin: 0;
   color: #333;
-  font-size: 1.25rem;
+  font-size: 1.875rem;
+}
+
+.registration-payment-bulk-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.registration-payment-bulk-modal-content {
+  width: 96%;
+  max-width: 1100px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.registration-payment-bulk-modal-header,
+.registration-payment-bulk-modal-footer {
+  flex-shrink: 0;
+}
+
+.registration-payment-bulk-modal-header {
+  border-bottom: 1px solid #dfe6ef;
+  padding-bottom: 1rem;
+}
+
+.registration-payment-bulk-modal-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+  padding-right: 0.25rem;
+}
+
+.registration-payment-bulk-modal-footer {
+  border-top: 1px solid #dfe6ef;
+  padding-top: 1rem;
+}
+
+.registration-payment-bulk-modal-subtitle {
+  margin: 0.35rem 0 0;
+  color: #5c5c5c;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.registration-payment-bulk-modal-count {
+  min-width: 6.25rem;
+  border: 2px solid #0d47a1;
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: #f4f8ff;
+  text-align: center;
+}
+
+.registration-payment-bulk-modal-count span {
+  display: block;
+  color: #0d47a1;
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.registration-payment-bulk-modal-count small {
+  color: #0d47a1;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.registration-payment-bulk-modal-body {
+  gap: 1rem;
+}
+
+.registration-payment-bulk-modal-panel {
+  border: 1px solid #d7dce2;
+  border-radius: 0.75rem;
+  background: #fbfdff;
+  padding: 1rem;
+}
+
+.registration-payment-bulk-modal-panel-title {
+  margin: 0 0 0.85rem;
+  color: #243447;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.registration-payment-bulk-modal-form-row {
+  margin-bottom: 0.6rem;
+}
+
+.registration-payment-bulk-modal-label {
+  display: block;
+  color: #2f2f2f;
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-bottom: 0.2rem;
+}
+
+.registration-payment-bulk-modal-help {
+  margin: 0;
+  color: #606c7a;
+  font-size: 0.9rem;
+}
+
+.registration-payment-bulk-modal-select {
+  width: 100%;
+  border: 2px solid #8aa2bd;
+  border-radius: 0.55rem;
+  min-height: 2.7rem;
+  padding: 0.4rem 0.65rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #223243;
+  background: #fff;
+}
+
+.registration-payment-bulk-modal-input,
+.registration-payment-bulk-modal-textarea {
+  width: 100%;
+  border: 2px solid #8aa2bd;
+  border-radius: 0.55rem;
+  padding: 0.55rem 0.65rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #223243;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.registration-payment-bulk-modal-input[readonly] {
+  background: #f5f8fc;
+}
+
+.registration-payment-bulk-modal-textarea {
+  min-height: 6.5rem;
+  resize: vertical;
+}
+
+.registration-payment-bulk-modal-method-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.8rem;
+}
+
+.registration-payment-bulk-modal-method-btn {
+  border: 2px solid #0b8a3e;
+  border-radius: 0.45rem;
+  padding: 0.45rem 0.8rem;
+  background: #fff;
+  color: #0b8a3e;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.registration-payment-bulk-modal-method-btn.active {
+  background: #0b8a3e;
+  color: #fff;
+}
+
+.registration-payment-bulk-modal-summary-grid {
+  margin-top: 0.9rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.registration-payment-bulk-modal-summary-card {
+  border: 1px solid #dce4ef;
+  border-radius: 0.6rem;
+  background: #fff;
+  padding: 0.65rem 0.75rem;
+}
+
+.registration-payment-bulk-modal-summary-title {
+  display: block;
+  color: #6a7583;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.registration-payment-bulk-modal-summary-value {
+  margin-top: 0.2rem;
+  display: block;
+  color: #1e2a36;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.registration-payment-bulk-modal-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.registration-payment-bulk-modal-chip {
+  border: 1px solid #c8d4e4;
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  background: #eef4fb;
+  color: #2a4566;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.registration-payment-bulk-modal-table-wrap {
+  border: 1px solid #d8dfe8;
+  border-radius: 0.6rem;
+  overflow: auto;
+  max-height: 15rem;
+  background: #fff;
+}
+
+.registration-payment-bulk-modal-table {
+  width: 100%;
+  min-width: 1280px;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+.registration-payment-bulk-modal-table th,
+.registration-payment-bulk-modal-table td {
+  padding: 0.55rem 0.95rem;
+  border-bottom: 1px solid #edf1f6;
+  text-align: left;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: visible;
+  vertical-align: middle;
+}
+
+.registration-payment-bulk-modal-table th:not(:last-child),
+.registration-payment-bulk-modal-table td:not(:last-child) {
+  padding-right: 1.2rem;
+}
+
+.registration-payment-bulk-modal-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f1f6fc;
+  color: #334e68;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.registration-payment-bulk-modal-col-new {
+  width: 380px;
+  min-width: 380px;
+}
+
+.registration-payment-bulk-modal-col-reason {
+  width: 360px;
+  min-width: 360px;
+}
+
+.registration-payment-bulk-modal-empty {
+  text-align: center !important;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.registration-payment-bulk-modal-note {
+  margin: 0.55rem 0 0;
+  color: #4f5b6a;
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.registration-payment-bulk-modal-per-row-note {
+  margin-top: 0.8rem;
+  font-weight: 600;
+}
+
+.registration-payment-bulk-modal-row-note {
+  color: #66758a;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.registration-payment-bulk-modal-row-input,
+.registration-payment-bulk-modal-row-select,
+.registration-payment-bulk-modal-row-textarea {
+  width: 100%;
+  border: 1.5px solid #9fb2c9;
+  border-radius: 0.45rem;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.85rem;
+  color: #223243;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.registration-payment-bulk-modal-row-textarea {
+  min-height: 3.2rem;
+  resize: vertical;
+}
+
+.registration-payment-bulk-modal-row-input-error {
+  border-color: #d14343;
+}
+
+.registration-payment-bulk-modal-row-error {
+  margin-top: 0.3rem;
+  color: #c62828;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.registration-payment-bulk-modal-affected-rows {
+  margin-bottom: 0.75rem;
+}
+
+.registration-payment-bulk-modal-affected-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: #243447;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.registration-payment-bulk-modal-affected-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.registration-payment-bulk-modal-affected-item {
+  border: 1.5px solid #8aa2bd;
+  border-radius: 999px;
+  background: #f2f7ff;
+  color: #29415f;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.registration-payment-bulk-modal-affected-item.active {
+  border-color: #0d47a1;
+  background: #dbe9fb;
+  color: #0d47a1;
+}
+
+.registration-payment-bulk-modal-row-active {
+  background: #eef6ff;
 }
 
 .registration-payment-details-modal-body {
@@ -603,14 +975,19 @@
   gap: 1rem;
 }
 
+.registration-payment-details-modal-footer.registration-payment-bulk-modal-footer {
+  justify-content: center;
+  align-items: center;
+}
+
 .registration-payment-details-modal-btn {
-  flex: 1;
+  width: fit-content;
   padding: 0.75rem 1.5rem;
-  border: 2px solid #ccc;
+  border: 3px solid #ccc;
   border-radius: 0.25rem;
   cursor: pointer;
   font-size: 1rem;
-  font-weight: 500;
+  font-weight: 700;
   transition: all 0.2s ease;
   background-color: transparent;
 }
@@ -664,9 +1041,14 @@
 
 /* Responsive design adjustments */
 @media (max-width: 1024px) {
+  .registration-payment-details-content-shell {
+    width: 100%;
+    margin-left: 0;
+  }
+
   .registration-payment-details-heading {
-    width: calc(100% - 250px);
-    margin-left: 250px;
+    width: 100%;
+    margin-left: 0;
   }
 
   .registration-payment-details-input-container {
@@ -680,8 +1062,8 @@
   }
 
   .registration-payment-details-button-row {
-    width: calc(100% - 250px);
-    margin-left: 250px;
+    width: 100%;
+    margin-left: 0;
   }
 
   .registration-payment-details-grid-container {
@@ -689,9 +1071,9 @@
     margin-left: 250px;
   }
 
-  .grid-container {
-    width: calc(100% - 250px);
-    margin-left: 250px;
+  .registration-payment-details-content-shell .grid-container {
+    width: 100%;
+    margin-left: 0;
   }
 
   .registration-payment-details-grid {
@@ -700,9 +1082,14 @@
 }
 
 @media (max-width: 768px) {
+  .registration-payment-details-content-shell {
+    width: 100%;
+    margin-left: 0;
+  }
+
   .registration-payment-details-heading {
-    width: calc(100% - 200px);
-    margin-left: 200px;
+    width: 100%;
+    margin-left: 0;
   }
 
   .registration-payment-details-input-container {
@@ -717,18 +1104,18 @@
   }
 
   .registration-payment-details-button-row {
-    width: calc(100% - 200px);
-    margin-left: 200px;
+    width: 100%;
+    margin-left: 0;
   }
 
-  .grid-container {
-    width: calc(100% - 200px);
-    margin-left: 200px;
+  .registration-payment-details-content-shell .grid-container {
+    width: 100%;
+    margin-left: 0;
   }
 
   .registration-payment-details-expanded-row {
-    width: calc(100% - 200px);
-    margin-left: 200px;
+    width: 100%;
+    margin-left: 0;
   }
 
   .registration-payment-details-payment-methods {
@@ -760,6 +1147,19 @@
 
   .registration-payment-details-expanded-content {
     padding: 1rem;
+  }
+
+  .registration-payment-bulk-modal-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .registration-payment-bulk-modal-count {
+    width: 100%;
+  }
+
+  .registration-payment-bulk-modal-summary-grid {
+    grid-template-columns: 1fr;
   }
 }
 

@@ -14,7 +14,6 @@ import {
 } from '../../../utils/auditLog';
 
 // Sub-components
-import BulkUpdateModal        from './components/BulkUpdateModal';
 import ExpandedRowDetail      from './components/ExpandedRowDetail';
 import SlideButtonRenderer    from './components/SlideButtonRenderer';
 import PaymentMethodRenderer  from './components/PaymentMethodRenderer';
@@ -136,8 +135,11 @@ class RegistrationPaymentSection extends Component {
       isAlertShown: false,
       selectedRows: [],
       showBulkUpdateModal: false,
+      bulkUpdateField: '',
       bulkUpdateStatus: '',
       bulkUpdateMethod: '',
+      bulkUpdateValue: '',
+      bulkUpdateRowValues: {},
       pendingChange: null,
       approvalQueue: [],
       approvalStatusList: [],
@@ -293,6 +295,15 @@ class RegistrationPaymentSection extends Component {
       console.error('Failed to persist approval status list:', error);
     }
   }
+  
+  _getApprovalQueueItemKey = (item) => {
+    const event = item?.event || {};
+    const row = event?.data || {};
+    const rowId = row?.id || row?._id || row?.sn || '';
+    const field = event?.colDef?.field || event?.colDef?.headerName || '';
+    const value = String(event?.newValue ?? event?.value ?? '');
+    return `${rowId}_${field}_${value}`;
+  };
 
   _appendApprovalStatusEntries = (queue) => {
     if (!Array.isArray(queue) || queue.length === 0) return;
@@ -499,7 +510,7 @@ class RegistrationPaymentSection extends Component {
       const id = item?._id?._id || item?._id || item?.id;
       if (id) unique.set(id, item);
     });
-    const data = Array.from(unique.values());
+    const data = this._filterByRoleCourseAccess(Array.from(unique.values()));
 
     // Build filter dropdown options
     const types     = getAllTypes(data);
@@ -550,6 +561,66 @@ class RegistrationPaymentSection extends Component {
   }
 
   // ── Filter helpers (pure, no setState) ────────────────────────────────────
+
+  _normalizeCourseType(type) {
+    return (type || '').toString().trim().toLowerCase();
+  }
+
+  _getAllowedCourseTypesForRole(role) {
+    const normalizedRole = (role || '').toString().trim().toLowerCase();
+    const normalizedEmail = (this.props.userEmail || '').toString().trim().toLowerCase();
+    const normalizedUserName = (this.props.userName || '').toString().trim().toLowerCase();
+    const isTestingAAccount =
+      normalizedEmail === 'testinga@ecss.org.sg' ||
+      normalizedEmail === 'testingb@ecss.org.sg' ||
+      normalizedUserName === 'testing a' ||
+      normalizedUserName === 'testinga' ||
+      normalizedUserName === 'testing b' ||
+      normalizedUserName === 'testingb';
+    const isNsaInChargeRole = normalizedRole.includes('nsa');
+
+    // Explicit business rule: Testing A/Testing B with NSA in-charge role can only see NSA course type.
+    if (isTestingAAccount && isNsaInChargeRole) {
+      return new Set(['nsa']);
+    }
+
+    if (!normalizedRole) return null;
+    if (
+      normalizedRole === 'admin' ||
+      normalizedRole === 'sub admin' ||
+      normalizedRole === 'subadmin' ||
+      normalizedRole === 'social worker'
+    ) {
+      return null;
+    }
+
+    if (normalizedRole.includes('nsa')) {
+      return new Set(['nsa']);
+    }
+    if (normalizedRole.includes('marriage')) {
+      return new Set(['marriage preparation programme']);
+    }
+    if (normalizedRole.includes('ilp')) {
+      return new Set(['ilp']);
+    }
+    if (normalizedRole.includes('talk') || normalizedRole.includes('seminar')) {
+      return new Set(['talks and seminar']);
+    }
+    if (normalizedRole.includes('other')) {
+      return new Set(['others']);
+    }
+
+    return null;
+  }
+
+  _filterByRoleCourseAccess(data, role = this.props.role) {
+    const allowedTypes = this._getAllowedCourseTypesForRole(role);
+    if (!allowedTypes) return Array.isArray(data) ? data : [];
+
+    return (data || []).filter((item) =>
+      allowedTypes.has(this._normalizeCourseType(item?.course?.courseType))
+    );
+  }
 
   _filterByCourseType(data, courseType) {
     if (!courseType || courseType === 'All Courses Types') return data;
@@ -760,7 +831,8 @@ class RegistrationPaymentSection extends Component {
       {
         headerName: 'Course Name',
         field: 'course',
-        width: 700,
+        minWidth: 1200,
+        flex: 4,
       },
       {
         headerName: 'Course Mode',
@@ -802,7 +874,7 @@ class RegistrationPaymentSection extends Component {
       {
         headerName: 'Receipt/Invoice Number',
         field: 'recinvNo',
-        width: 300,
+        width: 600,
         hide: shouldHidePaymentColumns,
       },
       {
@@ -1381,7 +1453,11 @@ class RegistrationPaymentSection extends Component {
     );
     const nextQueue = alreadyQueued
       ? this.state.approvalQueue
-      : [...this.state.approvalQueue, { event: this._serializeQueueEvent(event), reason }];
+      : [...this.state.approvalQueue, {
+        event: this._serializeQueueEvent(event),
+        reason,
+        approvalKey: this._getApprovalQueueItemKey({ event: this._serializeQueueEvent(event) }),
+      }];
 
     // Queue the change (with reason) but keep old value visible in-grid
     // until the approval is granted.
@@ -1432,10 +1508,14 @@ class RegistrationPaymentSection extends Component {
     }
   };
 
-  _updateApprovalQueueReason = (index, reason) => {
+  _updateApprovalQueueReason = (approvalKeyOrIndex, reason) => {
     this.setState((prev) => {
       const nextQueue = prev.approvalQueue.map((item, i) =>
-        i === index ? { ...item, reason } : item
+        (typeof approvalKeyOrIndex === 'string'
+          ? (item?.approvalKey || this._getApprovalQueueItemKey(item)) === approvalKeyOrIndex
+          : i === approvalKeyOrIndex)
+          ? { ...item, reason }
+          : item
       );
       if (this.props.onApprovalQueueRequired) {
         this._publishApprovalQueueToParent(nextQueue);
@@ -1688,7 +1768,7 @@ class RegistrationPaymentSection extends Component {
 
     const q = (searchQuery || '').toLowerCase().trim();
 
-    let filtered = [...originalData];
+    let filtered = this._filterByRoleCourseAccess([...(originalData || [])]);
 
     if (selectedLocation && selectedLocation !== 'All Locations') {
       filtered = filtered.filter((d) => d.course?.courseLocation === selectedLocation);
@@ -1727,13 +1807,17 @@ class RegistrationPaymentSection extends Component {
     const rowData   = filtered.map((item, index) => mapRegistrationToRowData(item, index));
     const newColDefs = this.getColumnDefs(rowData);
 
-    // Keep dropdown options from full dataset to avoid options disappearing mid-filter
-    const base          = this.state.originalData || [];
-    const allTypes      = getAllTypes(base);
-    const allLocations  = getAllLocations(base);
-    const allNames      = getAllNames(base);
-    const allQuarters   = getAllQuarters(base);
-    this.props.passDataToParent(allLocations, allTypes, allNames, allQuarters);
+    // Keep dropdown options cascading by selection order:
+    // Type -> Location -> Quarter -> Course
+    const base = this._filterByRoleCourseAccess(this.state.originalData || []);
+    const types = getAllTypes(base);
+    const byType = this._filterByCourseType(base, selectedCourseType);
+    const locations = getAllLocations(byType);
+    const byLoc = this._filterByLocation(byType, selectedLocation);
+    const quarters = getAllQuarters(byLoc);
+    const byQtr = this._filterByQuarter(byLoc, selectedQuarter);
+    const names = getAllNames(byQtr);
+    this.props.passDataToParent(locations, types, names, quarters);
 
     this.setState(
       { registerationDetails: filtered, rowData, columnDefs: newColDefs },
@@ -1746,29 +1830,292 @@ class RegistrationPaymentSection extends Component {
 
   // ── Bulk update ───────────────────────────────────────────────────────────
 
-  openBulkUpdateModal = () => {
-    openBulkUpdateModalFn({
-    selectedRows: this.state.selectedRows,
-    setShowBulkUpdateModal: (val) => this.setState({ showBulkUpdateModal: val }),
+  _setShowBulkUpdateModal = (val) => {
+    this.setState({ showBulkUpdateModal: val });
+    if (!val && this.props.onBulkUpdateModalDismiss) {
+      this.props.onBulkUpdateModalDismiss();
+    }
+  };
+
+  _handleBulkUpdateStatusChange = (val) => {
+    const nextRowValues = {};
+    (this.state.selectedRows || []).forEach((row, index) => {
+      const key = String(row?.id || `row-${index}`);
+      nextRowValues[key] = val;
+    });
+
+    this.setState({
+      bulkUpdateStatus: val,
+      bulkUpdateRowValues: nextRowValues,
+    });
+
+    if (this.props.onBulkUpdateModalSync) {
+      this.props.onBulkUpdateModalSync({
+        bulkUpdateStatus: val,
+        bulkUpdateRowValues: nextRowValues,
+        selectedRows: this.state.selectedRows,
+      });
+    }
+  };
+
+  _handleBulkUpdateFieldChange = (field) => {
+    const rowValues = {};
+    if (field !== 'paymentStatus' && field !== 'paymentMethod') {
+      (this.state.selectedRows || []).forEach((row) => {
+        const key = String(row?.id || '');
+        if (!key) return;
+
+        let current = '';
+        if (field === 'confirmationStatus') {
+          const raw = row?.confirmed;
+          current = raw === true ? 'Confirmed' : raw === false ? 'Not Confirmed' : '';
+        } else if (field === 'paymentDate') {
+          current = row?.paymentDate || '';
+        } else if (field === 'remarks') {
+          current = row?.remarks || '';
+        } else if (field === 'contactNo') {
+          current = row?.contactNo || row?.participantInfo?.contactNumber || '';
+        } else if (field === 'name') {
+          current = row?.participantInfo?.name || row?.name || '';
+        }
+
+        rowValues[key] = current;
+      });
+    }
+
+    const nextState = {
+      bulkUpdateField: field,
+      bulkUpdateStatus: '',
+      bulkUpdateMethod: '',
+      bulkUpdateValue: '',
+      bulkUpdateRowValues: rowValues,
+    };
+    this.setState(nextState);
+
+    if (this.props.onBulkUpdateModalSync) {
+      this.props.onBulkUpdateModalSync({
+        ...nextState,
+        selectedRows: this.state.selectedRows,
+      });
+    }
+  };
+
+  _handleBulkUpdateMethodChange = (val) => {
+    const nextRowValues = {};
+    (this.state.selectedRows || []).forEach((row, index) => {
+      const key = String(row?.id || `row-${index}`);
+      nextRowValues[key] = val;
+    });
+
+    this.setState({
+      bulkUpdateMethod: val,
+      bulkUpdateRowValues: nextRowValues,
+    });
+
+    if (this.props.onBulkUpdateModalSync) {
+      this.props.onBulkUpdateModalSync({
+        bulkUpdateMethod: val,
+        bulkUpdateRowValues: nextRowValues,
+        selectedRows: this.state.selectedRows,
+      });
+    }
+  };
+
+  _handleBulkUpdateValueChange = (val) => {
+    const nextRowValues = {};
+    (this.state.selectedRows || []).forEach((row, index) => {
+      const key = String(row?.id || `row-${index}`);
+      nextRowValues[key] = val;
+    });
+
+    this.setState({
+      bulkUpdateValue: val,
+      bulkUpdateRowValues: nextRowValues,
+    });
+
+    if (this.props.onBulkUpdateModalSync) {
+      this.props.onBulkUpdateModalSync({
+        bulkUpdateValue: val,
+        bulkUpdateRowValues: nextRowValues,
+        selectedRows: this.state.selectedRows,
+      });
+    }
+  };
+
+  _handleBulkUpdateRowValueChange = (rowId, val) => {
+    this.setState((prevState) => {
+      const nextRowValues = {
+        ...(prevState.bulkUpdateRowValues || {}),
+        [String(rowId)]: val,
+      };
+
+      if (this.props.onBulkUpdateModalSync) {
+        this.props.onBulkUpdateModalSync({
+          bulkUpdateRowValues: nextRowValues,
+          selectedRows: this.state.selectedRows,
+        });
+      }
+
+      return { bulkUpdateRowValues: nextRowValues };
     });
   };
 
+  openBulkUpdateModal = () => {
+    if (!this.state.selectedRows.length) {
+      openBulkUpdateModalFn({
+        selectedRows: this.state.selectedRows,
+        setShowBulkUpdateModal: this._setShowBulkUpdateModal,
+      });
+      return;
+    }
+
+    openBulkUpdateModalFn({
+      selectedRows: this.state.selectedRows,
+      setShowBulkUpdateModal: this._setShowBulkUpdateModal,
+    });
+
+    if (this.props.onBulkUpdateModalRequired) {
+      this.props.onBulkUpdateModalRequired({
+        selectedRows: this.state.selectedRows,
+        bulkUpdateField: this.state.bulkUpdateField,
+        bulkUpdateStatus: this.state.bulkUpdateStatus,
+        bulkUpdateMethod: this.state.bulkUpdateMethod,
+        bulkUpdateValue: this.state.bulkUpdateValue,
+        bulkUpdateRowValues: this.state.bulkUpdateRowValues,
+        onFieldChange: this._handleBulkUpdateFieldChange,
+        onStatusChange: this._handleBulkUpdateStatusChange,
+        onMethodChange: this._handleBulkUpdateMethodChange,
+        onValueChange: this._handleBulkUpdateValueChange,
+        onRowValueChange: this._handleBulkUpdateRowValueChange,
+        onUpdate: this.handleBulkUpdate,
+        onClose: this.closeBulkUpdateModal,
+      });
+    }
+  };
+
   closeBulkUpdateModal = () => closeBulkUpdateModalFn({
-    setShowBulkUpdateModal: (val) => this.setState({ showBulkUpdateModal: val }),
+    setShowBulkUpdateModal: this._setShowBulkUpdateModal,
     setBulkUpdateFields: (fields) => this.setState(fields),
   });
 
-  handleBulkUpdate = () => {
+  handleBulkUpdate = (reason) => {
     handleBulkUpdateFn({
     selectedRows: this.state.selectedRows,
+    bulkUpdateField: this.state.bulkUpdateField,
     bulkUpdateStatus: this.state.bulkUpdateStatus,
     bulkUpdateMethod: this.state.bulkUpdateMethod,
+    bulkUpdateValue: this.state.bulkUpdateValue,
+    bulkUpdateRowValues: this.state.bulkUpdateRowValues,
     userName: this.props.userName,
     showUpdatePopup: this.props.showUpdatePopup,
     closePopup: this.props.closePopup,
-    setShowBulkUpdateModal: (val) => this.setState({ showBulkUpdateModal: val }),
+    setShowBulkUpdateModal: this._setShowBulkUpdateModal,
     setBulkUpdateFields: (fields) => this.setState(fields),
     updateWooCommerce: this.updateWooCommerceForRegistrationPayment,
+    isNsaNotifierUser: isNsaNotifier(this.props.userEmail),
+    onNSAApprovalRequest: this.props.onNSAApprovalRequest,
+    onApprovalQueueRequest: this._enqueueBulkApprovalRequest,
+    onNotifierQueueRequest: this._enqueueBulkNotifierRequest,
+    reason: reason || '',
+    });
+  };
+
+  _enqueueBulkApprovalRequest = ({ row, columnName, oldValue, newValue, reason }) => {
+    if (!row || !columnName) return;
+
+    const headerName = String(columnName || '').trim();
+    const field = this._resolveFieldFromHeader(headerName) || headerName;
+    const syntheticEvent = {
+      value: newValue,
+      newValue,
+      oldValue,
+      rowIndex: 0,
+      data: row,
+      colDef: {
+        field,
+        headerName,
+      },
+    };
+
+    const queueItem = {
+      event: this._serializeQueueEvent(syntheticEvent),
+      reason: reason || '',
+      approvalKey: this._getApprovalQueueItemKey({ event: this._serializeQueueEvent(syntheticEvent) }),
+    };
+    const dedupeKey = `${row?.id || row?.sn || ''}_${field}_${String(newValue ?? '')}`;
+
+    this.setState((prev) => {
+      const alreadyQueued = (prev.approvalQueue || []).some((item) => {
+        const itemKey = `${item?.event?.data?.id || item?.event?.data?.sn || ''}_${item?.event?.colDef?.field || ''}_${String(item?.event?.newValue ?? item?.event?.value ?? '')}`;
+        return itemKey === dedupeKey;
+      });
+
+      const nextQueue = alreadyQueued ? prev.approvalQueue : [...(prev.approvalQueue || []), queueItem];
+      return { approvalQueue: nextQueue };
+    }, () => {
+      if (this.props.onApprovalQueueRequired) {
+        this._publishApprovalQueueToParent(this.state.approvalQueue || []);
+      }
+    });
+  };
+
+  _enqueueBulkNotifierRequest = ({ row, columnName, oldValue, newValue, reason }) => {
+    if (!row || !columnName) return;
+
+    const headerName = String(columnName || '').trim();
+    const field = this._resolveFieldFromHeader(headerName) || headerName;
+    const syntheticEvent = {
+      value: newValue,
+      newValue,
+      oldValue,
+      rowIndex: 0,
+      data: row,
+      colDef: {
+        field,
+        headerName,
+      },
+    };
+
+    const queueItem = {
+      _tempId: `${Math.random()}-${Date.now()}-${String(row?.id || row?.sn || '')}`,
+      registrationId: row?.id || '',
+      sn: row?.sn || '',
+      participantName: row?.participantInfo?.name || row?.name || '',
+      participantEmail: row?.participantInfo?.email || '',
+      courseName: row?.courseInfo?.courseEngName || row?.course || '',
+      courseLocation: row?.courseInfo?.courseLocation || row?.location || '',
+      columnField: field,
+      columnName: headerName,
+      oldValue: String(oldValue ?? ''),
+      newValue: String(newValue ?? ''),
+      reason: String(reason || '').trim(),
+      _queuedEvent: this._serializeQueueEvent(syntheticEvent),
+    };
+
+    const dedupeKey = `${row?.id || row?.sn || ''}_${field}_${String(newValue ?? '')}`;
+
+    this.setState((prev) => {
+      const queue = prev.notifierQueue || [];
+      const existingIndex = queue.findIndex((item) => {
+        const itemKey = `${item?.registrationId || item?.sn || ''}_${item?.columnField || item?.columnName || ''}_${String(item?.newValue ?? '')}`;
+        return itemKey === dedupeKey;
+      });
+
+      if (existingIndex >= 0) {
+        const nextQueue = [...queue];
+        nextQueue[existingIndex] = {
+          ...nextQueue[existingIndex],
+          ...queueItem,
+          _tempId: nextQueue[existingIndex]._tempId,
+        };
+        return { notifierQueue: nextQueue };
+      }
+
+      return { notifierQueue: [...queue, queueItem] };
+    }, () => {
+      if (this.props.onNotifierQueueRequired) {
+        this._openNotifierModal();
+      }
     });
   };
 
@@ -1835,7 +2182,6 @@ class RegistrationPaymentSection extends Component {
   render() {
     const {
       selectedRows,
-      showBulkUpdateModal,
       bulkUpdateStatus,
       expandedRowIndex,
       pendingChange,
@@ -1850,75 +2196,66 @@ class RegistrationPaymentSection extends Component {
           <h2>Registration &amp; Payment Table</h2>
         </div>
 
-        {/* ── Action buttons ─────────────────────────────────────── */}
-        <ActionButtonsRow
-          role={this.props.role}
-          userEmail={this.props.userEmail}
-          selectedCourseType={this.props.selectedCourseType}
-          selectedRowCount={selectedRows.length}
-          hasMarriagePrepData={this.state.rowData?.some(
-            (r) => r.courseInfo?.courseType === 'Marriage Preparation Programme'
-          )}
-          hideMarriagePrepFields={this.state.hideMarriagePrepFields}
-          onToggleMarriagePrep={this.toggleHideMarriagePrepFields}
-          onArchive={this.archiveData}
-          onExportLOP={this.exportToLOP}
-          onExportAttendance={this.exportAttendance}
-          onExportMarriagePrep={this.exportToMarriagePreparationProgramme}
-          onOpenBulkUpdate={this.openBulkUpdateModal}
-          isReadOnly={isReadOnlyUser(this.props.userEmail)}
-          approvalQueueCount={approvalQueue.length}
-          onOpenApprovalQueue={this._openApprovalQueueModal}
-          onOpenApprovalStatus={this._openApprovalStatusModal}
-          approvalStatusCount={approvalStatusList.length}
-          notifierQueueCount={this.state.notifierQueue.length}
-          onOpenNotifierQueue={this._openNotifierModal}
-        />
-
-        {/* ── AG-Grid ────────────────────────────────────────────── */}
-        <div className="grid-container">
-          <AgGridReact
-            ref={this.gridRef}
-            rowData={this.state.rowData}
-            columnDefs={this.state.columnDefs}
-            rowSelection="multiple"
-            onGridReady={this.onGridReady}
-            onSelectionChanged={this.onSelectionChanged}
-            onCellValueChanged={this.onCellValueChanged}
-            stopEditingWhenCellsLoseFocus={true}
-            onCellEditingStopped={(params) => {
-              params.api.refreshCells({
-                rowNodes: [params.node],
-                columns: [params.column.getId()],
-                force: true,
-              });
-            }}
-            onCellClicked={this.handleValueClick}
-            suppressRowClickSelection={true}
-            pagination={true}
-            paginationPageSize={this.state.rowData.length}
-            domLayout="normal"
-            rowHeight={90}
-            getRowStyle={this.getRowStyle}
-            context={{ 
-              componentInstance: this, 
-              isReadOnly: isReadOnlyUser(this.props.userEmail)
-            }}
+        <div className="registration-payment-details-content-shell">
+          {/* ── Action buttons ─────────────────────────────────────── */}
+          <ActionButtonsRow
+            role={this.props.role}
+            userEmail={this.props.userEmail}
+            selectedCourseType={this.props.selectedCourseType}
+            selectedRowCount={selectedRows.length}
+            hasMarriagePrepData={this.state.rowData?.some(
+              (r) => r.courseInfo?.courseType === 'Marriage Preparation Programme'
+            )}
+            hideMarriagePrepFields={this.state.hideMarriagePrepFields}
+            onToggleMarriagePrep={this.toggleHideMarriagePrepFields}
+            onArchive={this.archiveData}
+            onExportLOP={this.exportToLOP}
+            onExportAttendance={this.exportAttendance}
+            onExportMarriagePrep={this.exportToMarriagePreparationProgramme}
+            onOpenBulkUpdate={this.openBulkUpdateModal}
+            isReadOnly={isReadOnlyUser(this.props.userEmail)}
+            approvalQueueCount={approvalQueue.length}
+            onOpenApprovalQueue={this._openApprovalQueueModal}
+            onOpenApprovalStatus={this._openApprovalStatusModal}
+            approvalStatusCount={approvalStatusList.length}
+            notifierQueueCount={this.state.notifierQueue.length}
+            onOpenNotifierQueue={this._openNotifierModal}
           />
+
+          {/* ── AG-Grid ────────────────────────────────────────────── */}
+          <div className="grid-container">
+            <AgGridReact
+              ref={this.gridRef}
+              rowData={this.state.rowData}
+              columnDefs={this.state.columnDefs}
+              rowSelection="multiple"
+              onGridReady={this.onGridReady}
+              onSelectionChanged={this.onSelectionChanged}
+              onCellValueChanged={this.onCellValueChanged}
+              stopEditingWhenCellsLoseFocus={true}
+              onCellEditingStopped={(params) => {
+                params.api.refreshCells({
+                  rowNodes: [params.node],
+                  columns: [params.column.getId()],
+                  force: true,
+                });
+              }}
+              onCellClicked={this.handleValueClick}
+              suppressRowClickSelection={true}
+              pagination={true}
+              paginationPageSize={this.state.rowData.length}
+              domLayout="normal"
+              rowHeight={90}
+              getRowStyle={this.getRowStyle}
+              context={{ 
+                componentInstance: this, 
+                isReadOnly: isReadOnlyUser(this.props.userEmail)
+              }}
+            />
+          </div>
         </div>
 
         {/* ApprovalPopup is rendered in homePage.jsx */}
-
-        {/* ── Bulk Update Modal ──────────────────────────────────── */}
-        {showBulkUpdateModal && (
-          <BulkUpdateModal
-            selectedRows={selectedRows}
-            bulkUpdateStatus={bulkUpdateStatus}
-            onStatusChange={(val) => this.setState({ bulkUpdateStatus: val })}
-            onUpdate={this.handleBulkUpdate}
-            onClose={this.closeBulkUpdateModal}
-          />
-        )}
 
         {/* ── Expanded Row Detail ────────────────────────────────── */}
         {expandedRowIndex !== null &&

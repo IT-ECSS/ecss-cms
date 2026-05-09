@@ -838,15 +838,9 @@ class DatabaseConnectivity {
                 } 
                 else if (role === "NSA in-charge") {
                     console.log("Processing NSA in-charge filtering...");
-                    // NSA in-charge can see NSA, Talks And Seminar, and Others courses
-                    query["course.courseType"] = {
-                        $in: [
-                            "NSA",
-                            "Talks And Seminar",
-                            "Others"
-                        ]
-                    };
-                    console.log("Filtering for NSA, Talks And Seminar, and Others courses only");
+                    // NSA in-charge can only see NSA courses
+                    query["course.courseType"] = "NSA";
+                    console.log("Filtering for NSA courses only");
                 }else if (role === "Social Worker") {
                     console.log("Processing Social Worker filtering...");
                     // Social Workers can only see Talks And Seminar and Marriage Preparation Programme courses

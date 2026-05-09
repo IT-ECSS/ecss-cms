@@ -8,7 +8,6 @@ import { isNsaNotifier } from '../constants/accessControl';
  *   role                      {string}   – user role from props
  *   userEmail                 {string}   – user email for access control
  *   selectedCourseType        {string}   – currently selected course-type filter
- *   selectedRowCount          {number}   – number of currently selected grid rows
  *   hasMarriagePrepData       {boolean}  – true when rowData contains Marriage Prep rows
  *   hideMarriagePrepFields    {boolean}  – current toggle state for Marriage Prep columns
  *   onToggleMarriagePrep      {function} – toggleHideMarriagePrepFields handler
@@ -22,7 +21,6 @@ const ActionButtonsRow = ({
   role,
   userEmail,
   selectedCourseType,
-  selectedRowCount,
   hasMarriagePrepData,
   hideMarriagePrepFields,
   onToggleMarriagePrep,
@@ -32,7 +30,6 @@ const ActionButtonsRow = ({
   onExportMarriagePrep,
   onOpenBulkUpdate,
   isReadOnly,
-  approvalQueueCount,
   onOpenApprovalQueue,
   onOpenApprovalStatus,
   approvalStatusCount,
@@ -51,12 +48,12 @@ const ActionButtonsRow = ({
           style={{
             backgroundColor: 'transparent',
             color: hideMarriagePrepFields ? '#4CAF50' : '#ff6b6b',
-            border: `2px solid ${hideMarriagePrepFields ? '#4CAF50' : '#ff6b6b'}`,
-            padding: '10px 15px',
+            border: `3.5px solid ${hideMarriagePrepFields ? '#4CAF50' : '#ff6b6b'}`,
+            padding: '12.5px 18.75px',
             borderRadius: '4px',
             cursor: 'pointer',
             marginRight: '10px',
-            fontSize: '14px',
+            fontSize: '17.5px',
             whiteSpace: 'nowrap',
           }}
         >
@@ -98,23 +95,23 @@ const ActionButtonsRow = ({
         style={{ color: '#9C27B0', borderColor: '#9C27B0' }}
         onClick={onOpenBulkUpdate}
       >
-        Bulk Update ({selectedRowCount})
+        Bulk Update
       </button>
 
       {isReadOnly && (
         <button
           className="registration-payment-details-button"
-          style={{ color: '#795548', borderColor: '#795548', fontWeight: 600 }}
+          style={{ color: '#795548', borderColor: '#795548', fontWeight: 700 }}
           onClick={onOpenApprovalQueue}
         >
-          Approval ({approvalQueueCount ?? 0})
+          Approval
         </button>
       )}
 
       {isReadOnly && (
         <button
           className="registration-payment-details-button"
-          style={{ color: '#1565C0', borderColor: '#1565C0', fontWeight: 600 }}
+          style={{ color: '#1565C0', borderColor: '#1565C0', fontWeight: 700 }}
           onClick={onOpenApprovalStatus}
         >
           Approval Status
@@ -124,7 +121,7 @@ const ActionButtonsRow = ({
       {isNsaNotifier(userEmail) && (
         <button
           className="registration-payment-details-button"
-          style={{ color: '#0d47a1', borderColor: '#0d47a1', fontWeight: 600 }}
+          style={{ color: '#0d47a1', borderColor: '#0d47a1', fontWeight: 700 }}
           onClick={onOpenNotifierQueue}
         >
           NSA Notifier

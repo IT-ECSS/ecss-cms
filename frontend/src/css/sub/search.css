@@ -23,6 +23,10 @@
   position: relative; /* Ensures the icon is positioned correctly */
 }
 
+.ss-dropdown-wrap.open {
+  z-index: 50;
+}
+
 .ss-chevron-icon {
   position: absolute; /* Positions the icon inside the input field */
   right: 0.5rem; /* Adjust as needed */
@@ -71,6 +75,7 @@
 
 .ss-options-list li {
   padding: 0.5rem; /* Adds padding inside each list item */
+  font-size: 1.25rem; /* Increase dropdown option text size by 1.25x */
   cursor: pointer; /* Changes cursor to pointer for list items */
   pointer-events: auto; /* Ensure list items are clickable */
 }
@@ -133,11 +138,141 @@
   display: inline-block;
   width: fit-content; /* Allow the button to size to its content */
   padding: 0.45rem 0.9rem; /* ~10% smaller */
-  border: 3px solid #0b8a3e; /* Thicker green border */
+  border: 5px solid #0b8a3e; /* Extra-thick green border */
   border-radius: 4px;
   background: transparent; /* No background color */
   cursor: pointer;
   font-weight: 800; /* Bolder font */
   font-size: 0.9rem; /* ~20% smaller */
   color: #0b8a3e; /* More green text */
+}
+
+.ss-filter-wrapper-registration {
+  width: 100%;
+  margin: 2.5rem 0 2rem;
+}
+
+.ss-controls-row-registration {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(24rem, 1fr));
+  align-items: flex-end;
+  row-gap: 1.25rem;
+  column-gap: 1.25rem;
+}
+
+.ss-controls-row-registration .ss-field-group {
+  min-width: 0;
+  max-width: none;
+}
+
+.ss-controls-row-registration .ss-field-group-registration-course {
+  grid-column: span 2;
+}
+
+.ss-controls-row-registration .ss-field-group-registration-search {
+  grid-column: span 2;
+}
+
+.ss-controls-row-registration .ss-field-group-registration-course input[type="text"] {
+  font-size: 1.35rem;
+}
+
+.ss-controls-row-registration .ss-field-group label {
+  margin-bottom: 0.35rem;
+  font-weight: 500;
+  font-size: 1.65rem;
+}
+
+.ss-controls-row-registration .ss-field-group input[type="text"] {
+  height: 3.75rem;
+  margin-top: 0;
+  padding: 0.75rem 2.75rem 0.75rem 0.75rem;
+  border: none;
+  font-size: 1.5rem;
+}
+
+.ss-controls-row-registration .ss-search-wrap {
+  width: 100%;
+}
+
+.ss-controls-row-registration .ss-field-group-clear {
+  grid-column: auto;
+  min-width: auto;
+  max-width: none;
+  align-self: flex-end;
+  justify-self: start;
+}
+
+.ss-controls-row-registration .ss-clear-filters-button {
+  min-height: 3.75rem;
+  padding: 0.675rem 1.35rem;
+  font-size: 1.5rem;
+  white-space: nowrap;
+  border: 5px solid #0b8a3e;
+}
+
+.ss-controls-row-registration .ss-chevron-icon,
+.ss-controls-row-registration .ss-magnifier-icon {
+  font-size: 1.125rem;
+}
+
+@media (max-width: 1024px) {
+  .ss-filter-wrapper-registration {
+    width: 100%;
+  }
+
+  .ss-controls-row-registration {
+    grid-template-columns: repeat(2, minmax(16rem, 1fr));
+  }
+
+  .ss-controls-row-registration .ss-field-group {
+    min-width: 0;
+    max-width: none;
+  }
+
+  .ss-controls-row-registration .ss-field-group-registration-course {
+    grid-column: span 2;
+  }
+
+  .ss-controls-row-registration .ss-field-group-registration-search {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 768px) {
+  .ss-filter-wrapper-registration {
+    width: 100%;
+  }
+
+  .ss-controls-row-registration {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .ss-controls-row-registration .ss-field-group {
+    min-width: 0;
+    max-width: none;
+  }
+
+  .ss-controls-row-registration .ss-field-group-registration-course {
+    grid-column: auto;
+  }
+
+  .ss-controls-row-registration .ss-field-group-registration-search {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .ss-controls-row-registration .ss-field-group {
+    min-width: 0;
+  }
+
+  .ss-controls-row-registration .ss-field-group-clear {
+    width: 100%;
+  }
+
+  .ss-controls-row-registration .ss-clear-filters-button {
+    width: 100%;
+  }
 }

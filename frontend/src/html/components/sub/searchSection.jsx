@@ -13,11 +13,11 @@ class SearchSection extends Component {
   constructor(props) {
     super(props);
     this.state = {
-    searchQuery: '',
-    centreLocation: '',
+    searchQuery: props.selectedSearchQuery || '',
+    centreLocation: props.selectedLocation || '',
     language: '',
     status: '',
-    courseType: '',
+    courseType: props.selectedCourseType || '',
     course: '',
     locations: [], // Default to props if available
     languages: [], // Default to props if available
@@ -32,6 +32,7 @@ class SearchSection extends Component {
     filteredTypes: [],
     filteredRoles: [],
     filteredCoursesName: [],
+    filteredQuarters: [],
     filteredCoursesQuarters: [],
     showLocationDropdown: false,
     showLanguageDropdown: false,
@@ -41,7 +42,8 @@ class SearchSection extends Component {
     showQuarterDropdown: false,
     role: '',
     staffName: '',
-    quarter: '',
+    courseName: props.selectedCourseName || '',
+    quarter: props.selectedQuarter || '',
     attendanceType: '',
     activityCode: '',
     attendanceLocation: '',
@@ -97,6 +99,50 @@ class SearchSection extends Component {
   this.statusDropdownRef = React.createRef(); // Add this ref for the status dropdown
   this.searchInputRef = React.createRef(); // Make sure the search field has a ref
 }
+
+hasSpecificSelection = (value) => {
+  const text = String(value || '').trim();
+  return !!text && !/^all\b/i.test(text);
+};
+
+shouldHideOthersInRegistration = () => {
+  if (this.props.section !== 'registration') return false;
+
+  const role = String(this.props.role || '').trim().toLowerCase();
+  return role.includes('nsa');
+};
+
+getRegistrationTypes = (inputTypes) => {
+  const source = Array.isArray(inputTypes) ? inputTypes : [];
+  const withoutOthers = this.shouldHideOthersInRegistration()
+    ? source.filter((type) => String(type || '').trim().toLowerCase() !== 'others')
+    : source;
+
+  const unique = [...new Set(withoutOthers)];
+  return ['All Courses Types', ...unique];
+};
+
+isTestingAAccount = () => {
+  const email = String(this.props.userEmail || '').trim().toLowerCase();
+  const userName = String(this.props.userName || '').trim().toLowerCase();
+  return (
+    email === 'testinga@ecss.org.sg' ||
+    email === 'testingb@ecss.org.sg' ||
+    userName === 'testing a' ||
+    userName === 'testinga' ||
+    userName === 'testing b' ||
+    userName === 'testingb'
+  );
+};
+
+shouldAutoFillSingleRegistrationFilters = () => {
+  return this.props.section === 'registration' && this.isTestingAAccount();
+};
+
+getSpecificOptions = (options) => {
+  const list = Array.isArray(options) ? options : [];
+  return list.filter((item) => !/^all\b/i.test(String(item || '').trim()));
+};
 
 
 // Translate languages to Chinese if the selected language is 'zh'
@@ -283,7 +329,13 @@ handleClearFilters = () => {
       if (this.props.passSearchedValueToParent) {
         this.props.passSearchedValueToParent('');
       }
-      if (this.props.passSelectedValueToParent) {
+      if (this.props.section === 'registration' && this.props.passSelectedValueToParent) {
+        this.props.passSelectedValueToParent({ courseType: '' }, 'showTypeDropdown');
+        this.props.passSelectedValueToParent({ centreLocation: '' }, 'showLocationDropdown');
+        this.props.passSelectedValueToParent({ quarter: '' }, 'showQuarterDropdown');
+        this.props.passSelectedValueToParent({ courseName: '' }, 'showCourseDropdown');
+        this.props.passSelectedValueToParent({ clear: true }, 'clearFilters');
+      } else if (this.props.passSelectedValueToParent) {
         this.props.passSelectedValueToParent({ clear: true }, 'clearFilters');
       }
       if (typeof this.props.onClearFilters === 'function') {
@@ -356,6 +408,10 @@ handleOptionSelect = (value, dropdown) => {
     if (dropdown === 'showLocationDropdown') {
       updatedState = {
         centreLocation: value,
+        quarter: '',
+        courseName: '',
+        filteredQuarters: this.state.quarters,
+        filteredCoursesName: [],
         showLocationDropdown: false, // Close the location dropdown
         showLanguageDropdown: false,
         showTypeDropdown: false,
@@ -376,6 +432,12 @@ handleOptionSelect = (value, dropdown) => {
     } else if (dropdown === 'showTypeDropdown') {
       updatedState = {
         courseType: value,
+        centreLocation: '',
+        quarter: '',
+        courseName: '',
+        filteredLocations: this.state.locations,
+        filteredQuarters: [],
+        filteredCoursesName: [],
         showLocationDropdown: false,
         showLanguageDropdown: false,
         showTypeDropdown: false,
@@ -413,6 +475,8 @@ handleOptionSelect = (value, dropdown) => {
         console.log("Setting quarter filter to", value);
         updatedState = ({
           quarter: value,
+          courseName: '',
+          filteredCoursesName: this.state.coursesName,
           showLocationDropdown: false,
           showLanguageDropdown: false,
           showTypeDropdown: false,
@@ -528,112 +592,31 @@ handleOptionSelect = (value, dropdown) => {
 }
 
 handleClickOutside = (event) => {
-  // Only close dropdowns if click is outside their respective refs
-  if (
-    this.locationDropdownRef.current &&
-    !this.locationDropdownRef.current.contains(event.target) &&
-    this.languageDropdownRef.current &&
-    !this.languageDropdownRef.current.contains(event.target) &&  
-    this.typeDropdownRef.current &&
-    !this.typeDropdownRef.current.contains(event.target) &&
-    this.courseDropdownRef.current &&
-    !this.courseDropdownRef.current.contains(event.target) &&
-    this.accountTypeDropdownRef.current &&
-    !this.accountTypeDropdownRef.current.contains(event.target) &&
-    this.quarterDropdownRef.current &&
-    !this.quarterDropdownRef.current.contains(event.target) &&
-    this.attendanceTypeDropdownRef.current &&
-    !this.attendanceTypeDropdownRef.current.contains(event.target) &&
-    this.attendanceLocationDropdownRef.current &&
-    !this.attendanceLocationDropdownRef.current.contains(event.target) &&
-    this.activityCodeDropdownRef.current &&
-    !this.activityCodeDropdownRef.current.contains(event.target) &&
-    this.membershipTypeDropdownRef.current &&
-    !this.membershipTypeDropdownRef.current.contains(event.target) &&
-    (!this.paymentMethodDropdownRef.current || !this.paymentMethodDropdownRef.current.contains(event.target)) &&
-    // (!this.collectionModeDropdownRef.current || !this.collectionModeDropdownRef.current.contains(event.target)) &&
-    (!this.collectionLocationDropdownRef.current || !this.collectionLocationDropdownRef.current.contains(event.target)) &&
-    (!this.statusDropdownRef.current || !this.statusDropdownRef.current.contains(event.target))
-  ) {
-    this.setState({
-      showLocationDropdown: false,
-      showLanguageDropdown: false,
-      showTypeDropdown: false,
-      showAccountTypeDropdown: false,
-      showCourseDropdown: false,
-      showQuarterDropdown: false,
-      showAttendanceTypeDropdown: false,
-      showAttendanceLocationDropdown: false,
-      showActivityCodeDropdown: false,
-      showMembershipTypeDropdown: false,
-      showPaymentMethodDropdown: false,
-      // showCollectionModeDropdown: false,
-      showCollectionLocationDropdown: false,
-      showStatusDropdown: false
-    });
-  }
+  const isOutside = (ref) => !ref?.current || !ref.current.contains(event.target);
+  const nextState = {};
 
-  if (
-    this.attendanceTypeDropdownRef.current &&
-    !this.attendanceTypeDropdownRef.current.contains(event.target)
-  ) {
-    this.setState({ showAttendanceTypeDropdown: false });
-  }
-  if (
-    this.attendanceLocationDropdownRef &&
-    this.attendanceLocationDropdownRef.current &&
-    !this.attendanceLocationDropdownRef.current.contains(event.target)
-  ) {
-    this.setState({ showAttendanceLocationDropdown: false });
-  }
-  if (
-    this.activityCodeDropdownRef &&
-    this.activityCodeDropdownRef.current &&
-    !this.activityCodeDropdownRef.current.contains(event.target)
-  ) {
-    this.setState({ showActivityCodeDropdown: false });
-  }
-  if (
-    this.membershipTypeDropdownRef &&
-    this.membershipTypeDropdownRef.current &&
-    !this.membershipTypeDropdownRef.current.contains(event.target)
-  ) {
-    this.setState({ showMembershipTypeDropdown: false });
-  }
-  if (
-    this.paymentMethodDropdownRef &&
-    this.paymentMethodDropdownRef.current &&
-    !this.paymentMethodDropdownRef.current.contains(event.target)
-  ) {
-    this.setState({ showPaymentMethodDropdown: false });
-  }
-  /*
-  if (
-    this.collectionModeDropdownRef &&
-    this.collectionModeDropdownRef.current &&
-    !this.collectionModeDropdownRef.current.contains(event.target)
-  ) {
-    this.setState({ showCollectionModeDropdown: false });
-  }
-  */
-  if (
-    this.collectionLocationDropdownRef &&
-    this.collectionLocationDropdownRef.current &&
-    !this.collectionLocationDropdownRef.current.contains(event.target)
-  ) {
-    this.setState({ showCollectionLocationDropdown: false });
-  }
-  if (
-    this.statusDropdownRef &&
-    this.statusDropdownRef.current &&
-    !this.statusDropdownRef.current.contains(event.target)
-  ) {
-    this.setState({ showStatusDropdown: false });
+  if (isOutside(this.locationDropdownRef)) nextState.showLocationDropdown = false;
+  if (isOutside(this.languageDropdownRef)) nextState.showLanguageDropdown = false;
+  if (isOutside(this.typeDropdownRef)) nextState.showTypeDropdown = false;
+  if (isOutside(this.courseDropdownRef)) nextState.showCourseDropdown = false;
+  if (isOutside(this.accountTypeDropdownRef)) nextState.showAccountTypeDropdown = false;
+  if (isOutside(this.quarterDropdownRef)) nextState.showQuarterDropdown = false;
+  if (isOutside(this.attendanceTypeDropdownRef)) nextState.showAttendanceTypeDropdown = false;
+  if (isOutside(this.attendanceLocationDropdownRef)) nextState.showAttendanceLocationDropdown = false;
+  if (isOutside(this.activityCodeDropdownRef)) nextState.showActivityCodeDropdown = false;
+  if (isOutside(this.membershipTypeDropdownRef)) nextState.showMembershipTypeDropdown = false;
+  if (isOutside(this.paymentMethodDropdownRef)) nextState.showPaymentMethodDropdown = false;
+  if (isOutside(this.collectionLocationDropdownRef)) nextState.showCollectionLocationDropdown = false;
+  if (isOutside(this.statusDropdownRef)) nextState.showStatusDropdown = false;
+  if (isOutside(this.categoryDropdownRef)) nextState.showCategoryDropdown = false;
+
+  if (Object.keys(nextState).length > 0) {
+    this.setState(nextState);
   }
 };
 
   componentDidMount() {
-    document.addEventListener('mousedown', this.handleClickOutside);
+    document.addEventListener('pointerdown', this.handleClickOutside, true);
     this.updateUniqueLocationsLanguagesRolesTypes(this.props);
     
     // Initialize filtered activity codes
@@ -701,6 +684,39 @@ handleClickOutside = (event) => {
 
   componentDidUpdate(prevProps) {
     console.log("Update:", this.props);  
+    if (
+      this.props.section === 'registration' &&
+      (
+        this.props.selectedCourseType !== prevProps.selectedCourseType ||
+        this.props.selectedLocation !== prevProps.selectedLocation ||
+        this.props.selectedQuarter !== prevProps.selectedQuarter ||
+        this.props.selectedCourseName !== prevProps.selectedCourseName ||
+        this.props.selectedSearchQuery !== prevProps.selectedSearchQuery
+      )
+    ) {
+      const nextSearchQuery = this.props.selectedSearchQuery || '';
+      const nextCourseType = this.props.selectedCourseType || '';
+      const nextLocation = this.props.selectedLocation || '';
+      const nextQuarter = this.props.selectedQuarter || '';
+      const nextCourseName = this.props.selectedCourseName || '';
+
+      if (
+        nextSearchQuery !== this.state.searchQuery ||
+        nextCourseType !== this.state.courseType ||
+        nextLocation !== this.state.centreLocation ||
+        nextQuarter !== this.state.quarter ||
+        nextCourseName !== this.state.courseName
+      ) {
+        this.setState({
+          searchQuery: nextSearchQuery,
+          courseType: nextCourseType,
+          centreLocation: nextLocation,
+          quarter: nextQuarter,
+          courseName: nextCourseName,
+        });
+      }
+    }
+
     if ((this.props.resetSearch && prevProps.resetSearch !== this.props.resetSearch)) {
       this.setState({
         searchQuery: '',
@@ -732,9 +748,20 @@ handleClickOutside = (event) => {
   
     if (this.props.locations !== prevProps.locations) {
       const uniqueLocations = ["All Locations", ...new Set(this.props.locations)];
+      const specificLocations = this.getSpecificOptions(uniqueLocations);
+      const shouldAutoSelectLocation =
+        this.shouldAutoFillSingleRegistrationFilters() &&
+        this.hasSpecificSelection(this.state.courseType) &&
+        specificLocations.length === 1;
+      const resolvedLocation = shouldAutoSelectLocation ? specificLocations[0] : this.state.centreLocation;
       this.setState({
         locations: uniqueLocations,
-        filteredLocations: uniqueLocations
+        filteredLocations: uniqueLocations,
+        centreLocation: resolvedLocation
+      }, () => {
+        if (shouldAutoSelectLocation && this.props.passSelectedValueToParent) {
+          this.props.passSelectedValueToParent({ centreLocation: resolvedLocation }, 'showLocationDropdown');
+        }
       });
     }
   
@@ -748,18 +775,40 @@ handleClickOutside = (event) => {
 
               
     if (this.props.types !== prevProps.types) {
-      const uniqueTypes = ["All Courses Types", ...new Set(this.props.types)];
+      const uniqueTypes = this.getRegistrationTypes(this.props.types);
+      const specificTypes = this.getSpecificOptions(uniqueTypes);
+      const shouldAutoSelectSingleType =
+        this.shouldAutoFillSingleRegistrationFilters() && specificTypes.length === 1;
+
       this.setState({
         types: uniqueTypes,
-        filteredTypes: uniqueTypes
+        filteredTypes: uniqueTypes,
+        courseType: shouldAutoSelectSingleType ? specificTypes[0] : this.state.courseType
+      }, () => {
+        if (shouldAutoSelectSingleType && this.props.passSelectedValueToParent) {
+          this.props.passSelectedValueToParent({ courseType: specificTypes[0] }, 'showTypeDropdown');
+        }
       }); 
     }  
 
     if (this.props.courses !== prevProps.courses) {
       const uniqueCoursesName = ["All Courses Name", ...new Set(this.props.courses)];
+      const isRegistrationSection = this.props.section === 'registration';
+      const allowCourseOptions = !isRegistrationSection || this.hasSpecificSelection(this.state.quarter);
+      const specificCourses = this.getSpecificOptions(uniqueCoursesName);
+      const shouldAutoSelectCourse =
+        this.shouldAutoFillSingleRegistrationFilters() &&
+        this.hasSpecificSelection(this.state.quarter) &&
+        specificCourses.length === 1;
+      const resolvedCourse = shouldAutoSelectCourse ? specificCourses[0] : this.state.courseName;
       this.setState({
         coursesName: uniqueCoursesName,
-        filteredCoursesName: uniqueCoursesName
+        filteredCoursesName: allowCourseOptions ? uniqueCoursesName : [],
+        courseName: resolvedCourse
+      }, () => {
+        if (shouldAutoSelectCourse && this.props.passSelectedValueToParent) {
+          this.props.passSelectedValueToParent({ courseName: resolvedCourse }, 'showCourseDropdown');
+        }
       }); 
     }  
 
@@ -774,9 +823,24 @@ handleClickOutside = (event) => {
 
     if (this.props.quarters !== prevProps.quarters) {
       const uniqueQuarters = ["All Quarters", ...new Set(this.props.quarters)];
+      const allowQuarterOptions =
+        this.props.section !== 'registration' ||
+        (this.hasSpecificSelection(this.state.courseType) &&
+          this.hasSpecificSelection(this.state.centreLocation));
+      const specificQuarters = this.getSpecificOptions(uniqueQuarters);
+      const shouldAutoSelectQuarter =
+        this.shouldAutoFillSingleRegistrationFilters() &&
+        allowQuarterOptions &&
+        specificQuarters.length === 1;
+      const resolvedQuarter = shouldAutoSelectQuarter ? specificQuarters[0] : this.state.quarter;
       this.setState({
         quarters: uniqueQuarters,
-        filteredQuarters: uniqueQuarters
+        filteredQuarters: allowQuarterOptions ? uniqueQuarters : [],
+        quarter: resolvedQuarter
+      }, () => {
+        if (shouldAutoSelectQuarter && this.props.passSelectedValueToParent) {
+          this.props.passSelectedValueToParent({ quarter: resolvedQuarter }, 'showQuarterDropdown');
+        }
       }); 
     }  
 
@@ -957,16 +1021,44 @@ handleClickOutside = (event) => {
   
   // Method to handle updating locations and languages
 updateUniqueLocationsLanguagesRolesTypes(props) {
+  const autoEnabled = this.shouldAutoFillSingleRegistrationFilters();
   const uniqueRoles = ["All Roles", ...new Set(props.roles)];
   const uniqueLocations = ["All Locations", ...new Set(props.locations)];
   const uniqueLanguages = ["All Languages", ...new Set(props.languages)];
-  const uniqueTypes = ["All Courses Type", ...new Set(props.types)];
+  const uniqueTypes = this.getRegistrationTypes(props.types);
   const uniqueCoursesName = ["All Courses Name", ...new Set(props.courses)];
   const uniqueCoursesQuarters = ["All Courses Quarters", ...new Set(props.quarters)];
+  const specificTypes = this.getSpecificOptions(uniqueTypes);
+  const resolvedType =
+    autoEnabled && specificTypes.length === 1
+      ? specificTypes[0]
+      : this.state.courseType;
+  const specificLocations = this.getSpecificOptions(uniqueLocations);
+  const canResolveLocation = autoEnabled && this.hasSpecificSelection(resolvedType);
+  const resolvedLocation =
+    canResolveLocation && specificLocations.length === 1
+      ? specificLocations[0]
+      : this.state.centreLocation;
+  const specificQuarters = this.getSpecificOptions(uniqueCoursesQuarters);
+  const canResolveQuarter = autoEnabled && this.hasSpecificSelection(resolvedLocation);
+  const resolvedQuarter =
+    canResolveQuarter && specificQuarters.length === 1
+      ? specificQuarters[0]
+      : this.state.quarter;
+  const specificCourses = this.getSpecificOptions(uniqueCoursesName);
+  const canResolveCourse = autoEnabled && this.hasSpecificSelection(resolvedQuarter);
+  const resolvedCourse =
+    canResolveCourse && specificCourses.length === 1
+      ? specificCourses[0]
+      : this.state.courseName;
   console.log("Props:", props);
   console.log("Unique: ", uniqueCoursesQuarters); 
 
   this.setState({
+    courseType: resolvedType,
+    centreLocation: resolvedLocation,
+    quarter: resolvedQuarter,
+    courseName: resolvedCourse,
     locations: uniqueLocations,
     filteredLocations: uniqueLocations,
     languages: this.translateLanguages(uniqueLanguages), // Translate if necessary
@@ -976,9 +1068,25 @@ updateUniqueLocationsLanguagesRolesTypes(props) {
     roles: uniqueRoles, 
     filteredRoles: uniqueRoles,
     quarters: uniqueCoursesQuarters, 
-    filteredQuarters: uniqueCoursesQuarters,
-    filteredCoursesName: this.translateLanguages(uniqueCoursesName), // Translate if necessary
+    filteredQuarters: canResolveLocation ? uniqueCoursesQuarters : [],
+    filteredCoursesName: (props.section === 'registration' && !this.hasSpecificSelection(resolvedQuarter))
+      ? []
+      : this.translateLanguages(uniqueCoursesName), // Translate if necessary
     filteredActivityCodes: props.activityCodes || [] // Initialize filtered activity codes
+  }, () => {
+    if (!props.passSelectedValueToParent) return;
+    if (autoEnabled && specificTypes.length === 1) {
+      props.passSelectedValueToParent({ courseType: resolvedType }, 'showTypeDropdown');
+    }
+    if (autoEnabled && canResolveLocation && specificLocations.length === 1) {
+      props.passSelectedValueToParent({ centreLocation: resolvedLocation }, 'showLocationDropdown');
+    }
+    if (autoEnabled && canResolveQuarter && specificQuarters.length === 1) {
+      props.passSelectedValueToParent({ quarter: resolvedQuarter }, 'showQuarterDropdown');
+    }
+    if (autoEnabled && canResolveCourse && specificCourses.length === 1) {
+      props.passSelectedValueToParent({ courseName: resolvedCourse }, 'showCourseDropdown');
+    }
   });
 } 
 
@@ -1028,20 +1136,36 @@ filterActivityCodesByLocation = (selectedLocation) => {
 };
 
 componentWillUnmount() {
-  document.removeEventListener('mousedown', this.handleClickOutside);
+  document.removeEventListener('pointerdown', this.handleClickOutside, true);
 }
 
   
 render() 
 {
-  const { membershipType, showNameDropdown, typename, filteredName, staffName, searchQuery, centreLocation, language, quarter, courseQuarters, filteredQuarters, filteredLocations, filteredLanguages, filteredTypes, showLocationDropdown, showLanguageDropdown, showTypeDropdown, courseType, showAccountTypeDropdown, role, roles, filteredRoles, coursesName, showCourseDropdown, filteredCoursesName, courseName, showQuarterDropdown, paymentMethod, collectionLocation, fundraisingStatus, filteredPaymentMethods, filteredCollectionLocations, filteredFundraisingStatuses, showPaymentMethodDropdown, showCollectionLocationDropdown, showStatusDropdown } = this.state;
+  const { membershipType, showNameDropdown, typename, filteredName, staffName, searchQuery, centreLocation, language, quarter, quarters, courseQuarters, filteredQuarters, filteredLocations, filteredLanguages, filteredTypes, showLocationDropdown, showLanguageDropdown, showTypeDropdown, courseType, showAccountTypeDropdown, role, roles, filteredRoles, coursesName, showCourseDropdown, filteredCoursesName, courseName, showQuarterDropdown, paymentMethod, collectionLocation, fundraisingStatus, filteredPaymentMethods, filteredCollectionLocations, filteredFundraisingStatuses, showPaymentMethodDropdown, showCollectionLocationDropdown, showStatusDropdown } = this.state;
   const { section } = this.props; // Destructure section from props
+
+  const hasSpecificSelection = (value) => {
+    const text = String(value || '').trim();
+    return !!text && !/^all\b/i.test(text);
+  };
+
+  const canChooseLocation = hasSpecificSelection(courseType);
+  const canChooseQuarter = canChooseLocation && hasSpecificSelection(centreLocation);
+  const canChooseCourse = canChooseQuarter && hasSpecificSelection(quarter);
+  const locationOptions = canChooseLocation ? filteredLocations : [];
+  const quarterOptions = canChooseQuarter
+    ? (filteredQuarters.length > 0 ? filteredQuarters : quarters)
+    : [];
+  const courseOptions = canChooseCourse
+    ? (filteredCoursesName.length > 0 ? filteredCoursesName : coursesName)
+    : [];
 
   console.log("Course Name List:", this.state);
   console.log("Section:", section);
   return (
-  <div className="ss-filter-wrapper"> {/* Same class name for both sections */}
-    <div className="ss-controls-row" >
+  <div className={`ss-filter-wrapper ${section === 'registration' ? 'ss-filter-wrapper-registration' : ''}`.trim()}> {/* Same class name for both ¸sxderftyio */}
+    <div className={`ss-controls-row ${section === 'registration' ? 'ss-controls-row-registration' : ''}`.trim()} >
       {section === "accounts" && ( // Content for "registration"
         <>
         <div className="ss-field-group">
@@ -1075,7 +1199,7 @@ render()
               <i className="fas fa-angle-down ss-chevron-icon"></i>
             </div>
           </div>
-            <div className="ss-field-group">
+            <div className="ss-field-group ss-field-group-registration-search">
             <label htmlFor="searchQuery">{this.props.language === 'zh' ? '搜寻' : 'Search'}</label>
             <div className="ss-search-wrap">
               <input
@@ -1273,13 +1397,20 @@ render()
                   name="centreLocation"
                   value={centreLocation}
                   onChange={this.handleChange}
-                  onClick={() => this.handleDropdownToggle('showLocationDropdown')}
-                  placeholder={this.props.language === 'zh' ? '按地点筛选' : 'Filter by location'}
+                  onClick={() => canChooseLocation && this.handleDropdownToggle('showLocationDropdown')}
+                  placeholder={
+                    this.props.language === 'zh'
+                      ? '按地点筛选'
+                      : canChooseLocation
+                        ? 'Filter by location'
+                        : 'Select Type first'
+                  }
+                  disabled={!canChooseLocation}
                   autoComplete="off"
                 />
                 {showLocationDropdown && (
                   <ul className="ss-options-list">
-                    {filteredLocations.map((location, index) => (
+                    {locationOptions.map((location, index) => (
                       <li
                         key={index}
                         onClick={() => this.handleOptionSelect(location, 'showLocationDropdown')}
@@ -1304,13 +1435,20 @@ render()
                   name="quarter"
                   value={quarter}
                   onChange={this.handleChange}
-                  onClick={() => this.handleDropdownToggle('showQuarterDropdown')}
-                  placeholder={this.props.language === 'zh' ? '按地点筛选' : 'Filter by course quarter'}
+                  onClick={() => canChooseQuarter && this.handleDropdownToggle('showQuarterDropdown')}
+                  placeholder={
+                    this.props.language === 'zh'
+                      ? '按地点筛选'
+                      : canChooseQuarter
+                        ? 'Filter by course quarter'
+                        : 'Select Location first'
+                  }
+                  disabled={!canChooseQuarter}
                   autoComplete="off"
                 />
                 {showQuarterDropdown && (
                   <ul className="ss-options-list">
-                    {filteredQuarters.map((quarter, index) => (
+                    {quarterOptions.map((quarter, index) => (
                       <li
                         key={index}
                         onClick={() => this.handleOptionSelect(quarter, 'showQuarterDropdown')}
@@ -1323,7 +1461,7 @@ render()
                 <i className="fas fa-angle-down ss-chevron-icon"></i>
               </div>
             </div>
-            <div className="ss-field-group">
+            <div className="ss-field-group ss-field-group-registration-course">
             <label htmlFor="course">{this.props.language === 'zh' ? '': 'Course'}</label>
             <div
               className={`ss-dropdown-wrap ${showCourseDropdown ? 'open' : ''}`}
@@ -1335,13 +1473,20 @@ render()
               name="courseName"
               value={courseName} // Show only the first selected course or empty string
               onChange={this.handleChange}
-              onClick={() => this.handleDropdownToggle('showCourseDropdown')}
-              placeholder={this.props.language === 'zh' ? '' : 'Filter by course'}
+              onClick={() => canChooseCourse && this.handleDropdownToggle('showCourseDropdown')}
+              placeholder={
+                this.props.language === 'zh'
+                  ? ''
+                  : canChooseCourse
+                    ? 'Filter by course'
+                    : 'Select Quarter Year first'
+              }
+              disabled={!canChooseCourse}
               autoComplete="off"
             />
               {showCourseDropdown && (
                 <ul className="ss-options-list">
-                  {filteredCoursesName.map((name, index) => (
+                  {courseOptions.map((name, index) => (
                     <li
                       key={index}
                       onClick={() => this.handleOptionSelect(name, 'showCourseDropdown')}
@@ -1369,7 +1514,7 @@ render()
               <i className="fas fa-search ss-magnifier-icon"></i>
             </div>
           </div>
-          <div className="ss-field-group">
+          <div className={`ss-field-group ${section === 'registration' ? 'ss-field-group-clear' : ''}`.trim()}>
             <button type="button" className="ss-clear-filters-button" onClick={this.handleClearFilters}>
               {this.props.language === 'zh' ? '清除筛选' : 'Clear Filters'}
             </button>

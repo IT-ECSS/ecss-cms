@@ -8,8 +8,10 @@
  *     // From state
  *     selectedRows,            // array – currently selected grid rows
  *     registerationDetails,    // array – all rows currently displayed
+ *     bulkUpdateField,         // string
  *     bulkUpdateStatus,        // string
  *     bulkUpdateMethod,        // string
+ *     bulkUpdateValue,         // string
  *     // From props
  *     userName,                // string
  *     selectedCourseType,      // string
@@ -18,7 +20,7 @@
  *     showUpdatePopup,         // fn(msg)
  *     // State setters
  *     setShowBulkUpdateModal,  // fn(bool)
- *     setBulkUpdateFields,     // fn({ bulkUpdateStatus, bulkUpdateMethod })
+ *     setBulkUpdateFields,     // fn({ bulkUpdateField, bulkUpdateStatus, bulkUpdateMethod, bulkUpdateValue })
  *     // Other handlers
  *     updateWooCommerce,       // fn(chiName, engName, location, status)
  *   }
@@ -41,7 +43,13 @@ import {
   formatDateToDDMMYYYY2,
 } from '../utils/dateUtils';
 
-import { bulkUpdateRegistrations } from '../services/registrationApi';
+import {
+  bulkUpdateRegistrations,
+  updateConfirmationStatus,
+  editRegistrationField,
+  addRefundedDate,
+  removeRefundedDate,
+} from '../services/registrationApi';
 
 // ── Export to LOP ─────────────────────────────────────────────────────────────
 
@@ -54,6 +62,23 @@ export async function exportToLOP(context) {
 
     const firstType = selectedRows[0]?.courseInfo?.courseType;
     let filePath, outputFileName;
+
+    const resolveCourseName = (courseInfo = {}) => {
+      return (
+        courseInfo.courseEngName ||
+        courseInfo.courseName ||
+        courseInfo.courseChiName ||
+        ''
+      ).toString().trim();
+    };
+
+    const sanitizeForFileName = (value, fallback) => {
+      const cleaned = String(value || '')
+        .replace(/[\\/:*?"<>|]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      return cleaned || fallback;
+    };
 
     if (firstType === 'ILP') {
       const [startDate] = selectedRows[0].courseInfo.courseDuration.split(' - ');
@@ -87,6 +112,35 @@ export async function exportToLOP(context) {
           b.participantInfo.name.trim().toLowerCase()
         )
       );
+
+    const locationValues = [...new Set(
+      filteredRows
+        .map((row) => (row?.courseInfo?.courseLocation || '').toString().trim())
+        .filter(Boolean)
+    )];
+
+    const courseNameValues = [...new Set(
+      filteredRows
+        .map((row) => resolveCourseName(row?.courseInfo || {}))
+        .filter(Boolean)
+    )];
+
+    const locationLabel = sanitizeForFileName(
+      locationValues.length === 1 ? locationValues[0] : locationValues.length > 1 ? 'Multiple Locations' : 'Unknown Location',
+      'Unknown Location'
+    );
+
+    const courseNameLabel = sanitizeForFileName(
+      courseNameValues.length === 1 ? courseNameValues[0] : courseNameValues.length > 1 ? 'Multiple Courses' : 'Unknown Course',
+      'Unknown Course'
+    );
+
+    if (firstType === 'ILP') {
+      const [startDate] = selectedRows[0].courseInfo.courseDuration.split(' - ');
+      outputFileName = `OSG ILP List of participants (20250401) - ${locationLabel} - ${courseNameLabel} as of ${convertDateFormat3(startDate)}.xlsx`;
+    } else {
+      outputFileName = `OSG NSA List of participants (20250401) - ${locationLabel} - ${courseNameLabel} as of ${getCurrentDateTime()}.xlsx`;
+    }
 
     for (let index = 0; index < filteredRows.length; index++) {
       const detail     = filteredRows[index];
@@ -132,7 +186,7 @@ export async function exportToLOP(context) {
         sourceSheet.getCell(`N${rowIndex}`).value =
           workParts.length === 3 ? workParts[0] + ' ' + workParts[1] : workParts[0];
 
-        const courseEngName = detail.courseInfo.courseEngName;
+        const courseEngName = resolveCourseName(detail.courseInfo);
         const price         = parseFloat(detail.courseInfo.coursePrice.replace('$', ''));
 
         // Course code is returned only when BOTH name and price match the Excel sheet
@@ -140,7 +194,7 @@ export async function exportToLOP(context) {
         const canonicalName = await getEcssCanonicalName(courseEngName, price);
 
         sourceSheet.getCell(`O${rowIndex}`).value = courseCode.trim();
-        sourceSheet.getCell(`P${rowIndex}`).value = canonicalName || courseEngName;
+        sourceSheet.getCell(`P${rowIndex}`).value = (canonicalName || courseEngName || '').trim();
 
         sourceSheet.getCell(`Q${rowIndex}`).value = `$${(price * 5).toFixed(2)}`;
         sourceSheet.getCell(`R${rowIndex}`).value = `$${(price * 4).toFixed(2)}`;
@@ -190,7 +244,7 @@ export async function exportToLOP(context) {
           .replace(/Others?.*/, 'Others')
           .trim();
         sourceSheet.getCell(`J${rowIndex}`).value = educationValue;
-        sourceSheet.getCell(`K${rowIndex}`).value = detail.courseInfo.courseEngName;
+        sourceSheet.getCell(`K${rowIndex}`).value = resolveCourseName(detail.courseInfo);
         sourceSheet.getCell(`L${rowIndex}`).value = '';
 
         const [sd, ed] = detail.courseInfo.courseDuration.split(' - ');
@@ -408,6 +462,13 @@ async function _exportAttendanceNSA(filteredRows, userName, warningPopUpMessage)
   const courseLocation = firstRow.course?.courseLocation    || firstRow.courseInfo?.courseLocation    || 'Unknown Location';
   const courseDuration = firstRow.course?.courseDuration    || firstRow.courseInfo?.courseDuration    || '';
   const commenceDate   = courseDuration ? courseDuration.split('-')[0].trim() : '';
+  const sanitizeForFileName = (value, fallback) => {
+    const cleaned = String(value || '')
+      .replace(/[\\/:*?"<>|]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return cleaned || fallback;
+  };
 
   const setHeaderCell = (ref, text) => {
     const cell = sourceSheet.getCell(ref);
@@ -463,9 +524,11 @@ async function _exportAttendanceNSA(filteredRows, userName, warningPopUpMessage)
   }
 
   const buffer = await workbook.xlsx.writeBuffer();
+  const safeCourseName = sanitizeForFileName(courseName, 'Unknown Course');
+  const safeLocation = sanitizeForFileName(courseLocation, 'Unknown Location');
   saveAs(
     new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
-    `Attendance (Course) ECSS${formatDateToDDMMYYYY1(start)} ${courseName}.xlsx`
+    `Attendance (Course) ECSS${formatDateToDDMMYYYY1(start)} ${safeLocation} ${safeCourseName}.xlsx`
   );
 
   logExportAction({
@@ -497,6 +560,13 @@ async function _exportAttendanceILP(filteredRows, userName, warningPopUpMessage)
   const courseLocation = firstRow.course?.courseLocation    || firstRow.courseInfo?.courseLocation    || 'Unknown Location';
   const courseDuration = firstRow.course?.courseDuration    || firstRow.courseInfo?.courseDuration    || '';
   const commenceDate   = courseDuration ? courseDuration.split('-')[0].trim() : '';
+  const sanitizeForFileName = (value, fallback) => {
+    const cleaned = String(value || '')
+      .replace(/[\\/:*?"<>|]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return cleaned || fallback;
+  };
 
   sourceSheet.getCell('A1').value = `Course Title: ${courseName}`;
   sourceSheet.getCell('A2').value = `Course Commencement Date: ${commenceDate}`;
@@ -524,9 +594,12 @@ async function _exportAttendanceILP(filteredRows, userName, warningPopUpMessage)
   });
 
   const buffer = await workbook.xlsx.writeBuffer();
+  const safeCourseName = sanitizeForFileName(courseName, 'Unknown Course');
+  const safeLocation = sanitizeForFileName(courseLocation, 'Unknown Location');
+  const safeCommenceDate = sanitizeForFileName(commenceDate, formatDateToDDMMYYYY2(new Date()));
   saveAs(
     new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
-    `2025 ILP ${courseName} ${courseLocation} ${commenceDate}.xlsx`
+    `2025 ILP ${safeCourseName} ${safeLocation} ${safeCommenceDate}.xlsx`
   );
 
   logExportAction({
@@ -721,92 +794,349 @@ export function openBulkUpdateModal(context) {
 export function closeBulkUpdateModal(context) {
   const { setShowBulkUpdateModal, setBulkUpdateFields } = context;
   setShowBulkUpdateModal(false);
-  setBulkUpdateFields({ bulkUpdateStatus: '', bulkUpdateMethod: '' });
+  setBulkUpdateFields({
+    bulkUpdateField: '',
+    bulkUpdateStatus: '',
+    bulkUpdateMethod: '',
+    bulkUpdateValue: '',
+    bulkUpdateRowValues: {},
+  });
 }
 
 export async function handleBulkUpdate(context) {
   const {
     selectedRows,
+    bulkUpdateField,
     bulkUpdateStatus,
     bulkUpdateMethod,
+    bulkUpdateValue,
+    bulkUpdateRowValues,
     userName,
     showUpdatePopup,
     closePopup,
     setShowBulkUpdateModal,
     setBulkUpdateFields,
     updateWooCommerce,
+    onNSAApprovalRequest,
+    onApprovalQueueRequest,
+    onNotifierQueueRequest,
+    isNsaNotifierUser = false,
+    reason = '',
   } = context;
 
-  if (!bulkUpdateStatus && !bulkUpdateMethod) {
-    return alert('Please select a status or payment method to update.');
+  const field = bulkUpdateField || '';
+  const fieldLabelMap = {
+    paymentStatus: 'Payment Status',
+    paymentMethod: 'Payment Method',
+    confirmationStatus: 'Confirmation Status',
+    paymentDate: 'Payment Date',
+    refundedDate: 'Refunded Date',
+    remarks: 'Remarks',
+    contactNo: 'Contact Number',
+    name: 'Name',
+  };
+
+  const chosenValue =
+    field === 'paymentStatus'
+      ? bulkUpdateStatus
+      : field === 'paymentMethod'
+        ? bulkUpdateMethod
+        : bulkUpdateValue;
+
+  const rowValues = bulkUpdateRowValues || {};
+  const valueForRow = (row) => rowValues[String(row?.id || '')];
+  const reasonPayload = reason && typeof reason === 'object' ? reason : null;
+  const reasonByRow = reasonPayload?.reasonsByRow || {};
+  const getReasonForRow = (row, fallback = '') => {
+    const rowKey = String(row?.id || row?.sn || '');
+    const keyed = reasonByRow[String(row?.id || '')] || reasonByRow[rowKey];
+    if (keyed && typeof keyed === 'object') {
+      return String(keyed.reason || '').trim();
+    }
+    if (typeof reason === 'string') {
+      return String(reason || '').trim();
+    }
+    return String(fallback || '').trim();
+  };
+  const resolvedStatusForRow = (row) => {
+    const rowValue = String(valueForRow(row) ?? '').trim();
+    if (rowValue) return rowValue;
+    return String(bulkUpdateStatus || '').trim();
+  };
+  const resolvedMethodForRow = (row) => {
+    const rowValue = String(valueForRow(row) ?? '').trim();
+    if (rowValue) return rowValue;
+    return String(bulkUpdateMethod || '').trim();
+  };
+  let targetRows = selectedRows;
+
+  if (!field) {
+    return alert('Please select a field to update.');
   }
 
-  showUpdatePopup(`Updating ${selectedRows.length} records... Please wait...`);
+  if (field === 'paymentStatus') {
+    targetRows = selectedRows.filter((row) => String(resolvedStatusForRow(row)).trim() !== '');
+    if (!targetRows.length) {
+      return alert('Please select at least one payment status (default or per row).');
+    }
+  } else if (field === 'paymentMethod') {
+    targetRows = selectedRows.filter((row) => String(resolvedMethodForRow(row)).trim() !== '');
+    if (!targetRows.length) {
+      return alert('Please select at least one payment method (default or per row).');
+    }
+  }
+
+  if (field !== 'paymentStatus' && field !== 'paymentMethod') {
+    targetRows = selectedRows.filter((row) => {
+      const v = valueForRow(row);
+      return String(v ?? '').trim() !== '';
+    });
+
+    if (!targetRows.length) {
+      return alert('Please enter at least one row value to update.');
+    }
+  }
+
+  const getCurrentValue = (row) =>
+    field === 'paymentStatus' ? (row?.paymentStatus || '') :
+    field === 'paymentMethod' ? (row?.paymentMethod || '') :
+    field === 'confirmationStatus' ? (row?.confirmed ? 'Confirmed' : 'Not Confirmed') :
+    field === 'remarks' ? (row?.remarks || '') :
+    field === 'paymentDate' ? (row?.paymentDate || '') :
+    field === 'refundedDate' ? (row?.refundedDate || '') :
+    field === 'contactNo' ? (row?.contactNo || '') :
+    field === 'name' ? (row?.participantInfo?.name || row?.name || '') : '';
+
+  const getNextValue = (row) =>
+    field === 'paymentStatus' ? (valueForRow(row) || bulkUpdateStatus || '') :
+    field === 'paymentMethod' ? (valueForRow(row) || bulkUpdateMethod || '') :
+    field === 'confirmationStatus' ? (valueForRow(row) || bulkUpdateValue) :
+    valueForRow(row) || bulkUpdateValue || '';
+
+  const isNsaRow = (row) => {
+    const courseType = String(row?.courseInfo?.courseType || row?.courseType || '').trim().toUpperCase();
+    return courseType === 'NSA';
+  };
+
+  const nsaRows = targetRows.filter(isNsaRow);
+  const directRows = targetRows.filter((row) => !isNsaRow(row));
+
+  if (isNsaNotifierUser) {
+    const notifierRows = targetRows;
+
+    if (!notifierRows.length) {
+      return alert('No effective changes detected for bulk update.');
+    }
+
+    const missingReasonRow = notifierRows.find((row) => !getReasonForRow(row));
+    if (missingReasonRow) {
+      return alert(`Reason is required for S/N ${missingReasonRow.sn || missingReasonRow.id || ''} before queuing notifier bulk updates.`);
+    }
+
+    if (typeof onNotifierQueueRequest === 'function') {
+      notifierRows.forEach((row) => {
+        const currentValue = getCurrentValue(row);
+        const nextValue = getNextValue(row);
+        const rowReason = getReasonForRow(row);
+
+        onNotifierQueueRequest({
+          row,
+          columnName: fieldLabelMap[field],
+          oldValue: currentValue,
+          newValue: nextValue,
+          reason: rowReason,
+        });
+      });
+    }
+
+    setShowBulkUpdateModal(false);
+    setBulkUpdateFields({
+      bulkUpdateField: '',
+      bulkUpdateStatus: '',
+      bulkUpdateMethod: '',
+      bulkUpdateValue: '',
+      bulkUpdateRowValues: {},
+    });
+    closePopup();
+    alert(`Queued ${notifierRows.length} record${notifierRows.length !== 1 ? 's' : ''} in NSA Notifier flow.`);
+    return;
+  }
+
+  if (nsaRows.length) {
+    const missingReasonRow = nsaRows.find((row) => !getReasonForRow(row));
+    if (missingReasonRow) {
+      return alert(`Reason is required for S/N ${missingReasonRow.sn || missingReasonRow.id || ''} before sending NSA bulk updates for approval.`);
+    }
+  }
+
+  if (nsaRows.length) {
+    for (const row of nsaRows) {
+      const currentValue = getCurrentValue(row);
+      const nextValue = getNextValue(row);
+      const rowReason = getReasonForRow(row);
+
+      if (onNSAApprovalRequest && typeof onNSAApprovalRequest === 'function') {
+        onNSAApprovalRequest({
+          columnName: fieldLabelMap[field],
+          currentValue,
+          newValue: nextValue,
+          reason: rowReason,
+          registrationId: row?.id || '',
+          sn: row?.sn || '',
+          participantName: row?.participantInfo?.name || row?.name || '',
+          contactNo: row?.contactNo || row?.participantInfo?.contactNumber || '',
+          courseName: row?.courseInfo?.courseEngName || row?.course || '',
+          courseLocation: row?.courseInfo?.courseLocation || row?.location || '',
+          courseType: row?.courseInfo?.courseType || 'NSA',
+          paymentMethod: row?.paymentMethod || '',
+          paymentStatus: row?.paymentStatus || '',
+          paymentDate: row?.paymentDate || '',
+          refundedDate: row?.refundedDate || '',
+          remarks: row?.remarks || '',
+          confirmed: row?.confirmed ?? null,
+        });
+      }
+
+      if (onApprovalQueueRequest && typeof onApprovalQueueRequest === 'function') {
+        onApprovalQueueRequest({
+          row,
+          columnName: fieldLabelMap[field],
+          oldValue: currentValue,
+          newValue: nextValue,
+          reason: rowReason,
+        });
+      }
+    }
+  }
+
+  if (!directRows.length) {
+    setShowBulkUpdateModal(false);
+    setBulkUpdateFields({
+      bulkUpdateField: '',
+      bulkUpdateStatus: '',
+      bulkUpdateMethod: '',
+      bulkUpdateValue: '',
+      bulkUpdateRowValues: {},
+    });
+    closePopup();
+    alert(`Submitted ${nsaRows.length} NSA record${nsaRows.length !== 1 ? 's' : ''} to approval request list.`);
+    return;
+  }
+
+  targetRows = directRows;
+
+  showUpdatePopup(`Updating ${targetRows.length} records for ${fieldLabelMap[field]}... Please wait...`);
 
   try {
-    const res = await bulkUpdateRegistrations(
-      selectedRows.map((row) => ({
-        id: row.id,
-        paymentStatus: bulkUpdateStatus || null,
-        paymentMethod: bulkUpdateMethod || null,
-      })),
-      userName
-    );
+    if (field === 'paymentStatus' || field === 'paymentMethod') {
+      const res = await bulkUpdateRegistrations(
+        targetRows.map((row) => ({
+          id: row.id,
+          paymentStatus: field === 'paymentStatus' ? resolvedStatusForRow(row) : null,
+          paymentMethod: field === 'paymentMethod' ? resolvedMethodForRow(row) : null,
+        })),
+        userName
+      );
+      if (res.data.result !== true) throw new Error(res.data.message || 'Bulk update failed');
+    } else if (field === 'confirmationStatus') {
+      for (const row of targetRows) {
+        const rowValue = valueForRow(row);
+        const newConfirmation = String(rowValue).trim().toLowerCase() === 'confirmed';
+        await updateConfirmationStatus(row.id, newConfirmation, userName);
+      }
+    } else if (field === 'refundedDate') {
+      for (const row of targetRows) {
+        const rowValue = String(valueForRow(row) || '').trim();
+        if (!rowValue) continue;
 
-    if (res.data.result !== true) throw new Error(res.data.message || 'Bulk update failed');
+        // Backward compatibility for older UI action values.
+        if (rowValue === 'TODAY') {
+          await addRefundedDate(row.id);
+          continue;
+        }
+        if (rowValue === 'CLEAR') {
+          await removeRefundedDate(row.id);
+          continue;
+        }
+
+        await editRegistrationField(row.id, 'refundedDate', rowValue);
+      }
+    } else {
+      const fieldMap = {
+        paymentDate: 'paymentDate',
+        remarks: 'remarks',
+        contactNo: 'contactNo',
+        name: 'name',
+      };
+      const editableField = fieldMap[field];
+      if (!editableField) {
+        throw new Error(`Unsupported bulk field: ${field}`);
+      }
+      for (const row of targetRows) {
+        const rowValue = valueForRow(row);
+        await editRegistrationField(row.id, editableField, rowValue);
+      }
+    }
 
     // Close the modal
     setShowBulkUpdateModal(false);
-    setBulkUpdateFields({ bulkUpdateStatus: '', bulkUpdateMethod: '' });
+    setBulkUpdateFields({
+      bulkUpdateField: '',
+      bulkUpdateStatus: '',
+      bulkUpdateMethod: '',
+      bulkUpdateValue: '',
+      bulkUpdateRowValues: {},
+    });
 
-    const records = selectedRows.map((row) => ({
+    const records = targetRows.map((row) => ({
       sn: row.sn || 'N/A',
       name: row.participantInfo?.name || row.name || 'Unknown',
       contactNumber: row.participantInfo?.contactNumber || 'N/A',
     }));
 
-    if (bulkUpdateStatus) {
-      await logRegistrationBulkUpdate({
-        userName,
-        module: 'Registration And Payment',
-        columnName: 'Payment Status',
-        newValue: bulkUpdateStatus,
-        records,
-      });
-    }
-    if (bulkUpdateMethod) {
-      await logRegistrationBulkUpdate({
-        userName,
-        module: 'Registration And Payment',
-        columnName: 'Payment Method',
-        newValue: bulkUpdateMethod,
-        records,
-      });
-    }
+    await logRegistrationBulkUpdate({
+      userName,
+      module: 'Registration And Payment',
+      columnName: fieldLabelMap[field],
+      newValue:
+        field === 'paymentMethod'
+          ? (bulkUpdateMethod ? `${bulkUpdateMethod} (default) + per-row overrides` : 'Multiple Values')
+          : field === 'paymentStatus'
+            ? (bulkUpdateStatus ? `${bulkUpdateStatus} (default) + per-row overrides` : 'Multiple Values')
+          : 'Multiple Values',
+      records,
+    });
 
-    if (bulkUpdateStatus) {
-      for (let i = 0; i < selectedRows.length; i++) {
-        const row = selectedRows[i];
-        showUpdatePopup(`Updating WooCommerce... Processing record ${i + 1} of ${selectedRows.length}`);
+    if (field === 'paymentStatus') {
+      for (let i = 0; i < targetRows.length; i++) {
+        const row = targetRows[i];
+        const rowStatus = resolvedStatusForRow(row);
+        showUpdatePopup(`Updating WooCommerce... Processing record ${i + 1} of ${targetRows.length}`);
         try {
           await updateWooCommerce(
             row.courseChi || row.courseInfo?.courseChiName,
             row.course    || row.courseInfo?.courseEngName,
             row.location  || row.courseInfo?.courseLocation,
-            bulkUpdateStatus
+            rowStatus
           );
         } catch (e) {
           console.error(`WooCommerce update failed for row ${row.id}:`, e);
         }
       }
-      showUpdatePopup(`All updates completed! ${selectedRows.length} records updated.`);
+      const nsaQueueSuffix = nsaRows.length
+        ? ` ${nsaRows.length} NSA record${nsaRows.length !== 1 ? 's were' : ' was'} sent to approval queue.`
+        : '';
+      showUpdatePopup(`All updates completed! ${targetRows.length} records updated.${nsaQueueSuffix}`);
       setTimeout(() => {
         closePopup();
-        alert(`Successfully updated ${selectedRows.length} records.`);
+        alert(`Successfully updated ${targetRows.length} records.${nsaQueueSuffix}`);
       }, 1500);
     } else {
       closePopup();
-      alert(`Successfully updated ${selectedRows.length} records.`);
+      const nsaQueueSuffix = nsaRows.length
+        ? ` ${nsaRows.length} NSA record${nsaRows.length !== 1 ? 's were' : ' was'} sent to approval queue.`
+        : '';
+      alert(`Successfully updated ${targetRows.length} records.${nsaQueueSuffix}`);
     }
   } catch (error) {
     console.error('Error during bulk update:', error);

@@ -4,13 +4,14 @@ import React, { Component } from 'react';
   import AccountsSection from './sub/accountsSection';
   import CoursesSection from './sub/courseSection';
   import RegistrationPaymentSection from './RegistrationAndPayment';
-  import NSAApprovalModal from './NSAApprovalModal';
   import NSAConsolidatedModal from './NSAConsolidatedModal';
   import NSANotifierModal from './NSANotifierModal';
   import ApprovalPopup from './RegistrationAndPayment/approval/ApprovalPopup';
   import ApprovalQueueModal from './RegistrationAndPayment/approval/ApprovalQueueModal';
   import ApprovalStatusModal from './RegistrationAndPayment/approval/ApprovalStatusModal';
   import ApprovalQueueDecisionPopup from './popup/ApprovalQueueDecisionPopup';
+  import BulkUpdateModal from './RegistrationAndPayment/components/BulkUpdateModal';
+  import BulkUpdateReasonModal from './RegistrationAndPayment/components/BulkUpdateReasonModal';
   import Popup from './popup/popupMessage';
   import Search from './sub/searchSection';
   import ViewToggle from './sub/viewToggleSection';
@@ -165,6 +166,10 @@ import React, { Component } from 'react';
         pendingApprovalQueue: null,
         approvalStatusPayload: null,
         notifierPayload: null,
+        registrationBulkUpdatePayload: null,
+        showBulkUpdateReasonModal: false,
+        bulkUpdateReason: '',
+        bulkUpdateReasonContext: null,
         shouldAutoOpenQueue: false,
         showQueueDecisionPopup: false,
         queueDecisionContext: null, // 'logout' or 'inactivity'
@@ -376,75 +381,80 @@ import React, { Component } from 'react';
       const userName = this.props.location.state?.name || 'User';
       console.log("Selected Data (Registration Payment):", updateState, dropdown);
       if (dropdown === 'clearFilters') {
-        this.setState({
-          selectedLocation: '',
-          selectedCourseType: '',
-          selectedCourseName: '',
-          selectedQuarter: '',
-          searchQuery: ''
-        });
+        this.handleClearRegPaymentFilters();
         return;
       }
-      if(updateState.centreLocation)
-      {
-        const oldValue = this.state.selectedLocation;
+      const filterConfigByDropdown = {
+        showTypeDropdown: {
+          stateKey: 'selectedCourseType',
+          value: updateState?.courseType || '',
+          filterType: 'Type',
+          reset: {
+            selectedLocation: '',
+            selectedQuarter: '',
+            selectedCourseName: '',
+          },
+        },
+        showLocationDropdown: {
+          stateKey: 'selectedLocation',
+          value: updateState?.centreLocation || '',
+          filterType: 'Location',
+          reset: {
+            selectedQuarter: '',
+            selectedCourseName: '',
+          },
+        },
+        showQuarterDropdown: {
+          stateKey: 'selectedQuarter',
+          value: updateState?.quarter || '',
+          filterType: 'Quarter Year',
+          reset: {
+            selectedCourseName: '',
+          },
+        },
+        showCourseDropdown: {
+          stateKey: 'selectedCourseName',
+          value: updateState?.courseName || '',
+          filterType: 'Course',
+          reset: {},
+        },
+      };
+
+      const resolveConfigFromPayload = () => {
+        if (Object.prototype.hasOwnProperty.call(updateState || {}, 'courseType')) {
+          return filterConfigByDropdown.showTypeDropdown;
+        }
+        if (Object.prototype.hasOwnProperty.call(updateState || {}, 'centreLocation')) {
+          return filterConfigByDropdown.showLocationDropdown;
+        }
+        if (Object.prototype.hasOwnProperty.call(updateState || {}, 'quarter')) {
+          return filterConfigByDropdown.showQuarterDropdown;
+        }
+        if (Object.prototype.hasOwnProperty.call(updateState || {}, 'courseName')) {
+          return filterConfigByDropdown.showCourseDropdown;
+        }
+        return null;
+      };
+
+      const cfg = filterConfigByDropdown[dropdown] || resolveConfigFromPayload();
+      if (!cfg) return;
+
+      const oldValue = this.state[cfg.stateKey];
+      const hasValueChanged = oldValue !== cfg.value;
+      if (hasValueChanged) {
         this.setState({
-          selectedLocation: updateState.centreLocation
-        });
-        // Audit log for location filter change
-        logFilterChange({
-          userName,
-          module: "Registration And Payment",
-          filterType: "Location",
-          oldValue: oldValue,
-          newValue: updateState.centreLocation
+          ...cfg.reset,
+          [cfg.stateKey]: cfg.value,
         });
       }
-      else if(updateState.courseType)
-      {
-        const oldValue = this.state.selectedCourseType;
-        this.setState({
-          selectedCourseType: updateState.courseType
-        });
-        // Audit log for type filter change
+
+      if (hasValueChanged) {
         logFilterChange({
           userName,
-          module: "Registration And Payment",
-          filterType: "Type",
-          oldValue: oldValue,
-          newValue: updateState.courseType
-        });
-      }
-      else if(updateState.courseName)
-      {
-        console.log("Hello");
-        const oldValue = this.state.selectedCourseName;
-        this.setState({
-          selectedCourseName: updateState.courseName
-        });
-        // Audit log for course filter change
-        logFilterChange({
-          userName,
-          module: "Registration And Payment",
-          filterType: "Course",
-          oldValue: oldValue,
-          newValue: updateState.courseName
-        });
-      }
-      else if(updateState.quarter)
-      {
-        console.log("Hello");
-        const oldValue = this.state.selectedQuarter;
-        this.setState({
-          selectedQuarter: updateState.quarter
-        });
-        // Audit log for quarter filter change
-        logFilterChange({
-          userName,
-          module: "Registration And Payment",
-          filterType: "Quarter Year",
-          oldValue: oldValue,
-          newValue: updateState.quarter
+          module: 'Registration And Payment',
+          filterType: cfg.filterType,
+          oldValue,
+          newValue: cfg.value,
         });
       }
     }
@@ -1182,7 +1192,8 @@ import React, { Component } from 'react';
           selectedCourseType: '',
           selectedCourseName: '',
           selectedQuarter: '',
-          searchQuery: ''
+          searchQuery: '',
+          regPaymentSearchQuery: ''
         },
         () => {
           // Trigger reset for SearchSection inputs
@@ -1295,12 +1306,6 @@ import React, { Component } from 'react';
       // Save state to localStorage whenever it changes (excluding certain volatile properties)
       const statesToSave = {
         ...this.state,
-        // Clear registration/payment filters on refresh so the UI always starts fresh
-        selectedLocation: '',
-        selectedCourseType: '',
-        selectedCourseName: '',
-        selectedQuarter: '',
-        searchQuery: '',
         resetSearch: false,
 
         // Exclude volatile/temporary states that shouldn't be persisted
@@ -1329,11 +1334,6 @@ import React, { Component } from 'react';
       // Save a sanitized snapshot of state to local storage before the page unloads
       const sanitizedState = {
         ...this.state,
-        selectedLocation: '',
-        selectedCourseType: '',
-        selectedCourseName: '',
-        selectedQuarter: '',
-        searchQuery: '',
         resetSearch: false,
         isPopupOpen: false,
         popupMessage: '',
@@ -1357,7 +1357,6 @@ import React, { Component } from 'react';
       window.removeEventListener('click', this.resetInactivity);
       window.removeEventListener('scroll', this.resetInactivity);
      window.removeEventListener('beforeunload', this.handleBeforeUnload);
-     localStorage.removeItem('myComponentState');
     }
 
     toggleDashboardComponent = () => {  // Removed async since it's not needed
@@ -1689,8 +1688,79 @@ import React, { Component } from 'react';
       this.setState({ notifierPayload: null });
     };
 
+    openRegistrationBulkUpdateModal = (payload) => {
+      this.setState({ registrationBulkUpdatePayload: payload || null });
+    };
+
+    syncRegistrationBulkUpdateModal = (updates) => {
+      this.setState((prevState) => {
+        if (!prevState.registrationBulkUpdatePayload) return null;
+        return {
+          registrationBulkUpdatePayload: {
+            ...prevState.registrationBulkUpdatePayload,
+            ...(updates || {}),
+          },
+        };
+      });
+    };
+
+    closeRegistrationBulkUpdateModal = () => {
+      const payload = this.state.registrationBulkUpdatePayload;
+      if (payload?.onClose) {
+        payload.onClose();
+      }
+      this.setState({ registrationBulkUpdatePayload: null });
+    };
+
+    dismissRegistrationBulkUpdateModal = () => {
+      this.setState({ registrationBulkUpdatePayload: null });
+    };
+
+    openBulkUpdateReasonModal = () => {
+      this.setState({ showBulkUpdateReasonModal: true });
+    };
+
+    closeBulkUpdateReasonModal = () => {
+      this.setState({
+        showBulkUpdateReasonModal: false,
+        bulkUpdateReason: '',
+        bulkUpdateReasonContext: null,
+      });
+    };
+
+    submitBulkUpdateReason = (reason) => {
+      const context = this.state.bulkUpdateReasonContext || {};
+      if (context.onReasonSubmit) {
+        context.onReasonSubmit(reason);
+      }
+      this.closeBulkUpdateReasonModal();
+    };
+
     openNSAApprovalModal = (data) => {
-      this.setState({ nsaApprovalData: data });
+      if (!data) return;
+
+      const item = {
+        _tempId: Date.now() + Math.random(),
+        registrationId: data.registrationId || '',
+        sn: data.sn || '',
+        participantName: data.participantName || '',
+        contactNo: data.contactNo || '',
+        courseName: data.courseName || '',
+        courseLocation: data.courseLocation || '',
+        courseType: data.courseType || 'NSA',
+        paymentStatus: data.paymentStatus || '',
+        paymentMethod: data.paymentMethod || '',
+        columnName: data.columnName || '',
+        currentValue: data.currentValue ?? '',
+        newValue: data.newValue ?? '',
+        reason: data.reason || '',
+      };
+
+      this.setState(prev => ({
+        nsaPendingChanges: [...prev.nsaPendingChanges, item],
+        nsaApprovalData: null,
+        isNSAConsolidatedOpen: false,
+      }));
     };
 
     closeNSAApprovalModal = () => {
@@ -3190,12 +3260,20 @@ import React, { Component } from 'react';
                 }             
                 { isRegistrationPaymentVisible&& 
                   <>
-                  <div className="search-section">
+                  <div className="search-section registration-payment-search-section">
                       <Search
                         locations={locations}
                         types={types}
                         courses={names}
                         quarters={quarters}
+                        selectedCourseType={selectedCourseType}
+                        selectedLocation={selectedLocation}
+                        selectedQuarter={selectedQuarter}
+                        selectedCourseName={selectedCourseName}
+                        selectedSearchQuery={searchQuery}
+                        role={role}
+                        userEmail={userEmail}
+                        userName={userName}
                         resetSearch={resetSearch}
                         section={section}
                         passSelectedValueToParent={this.handleRegPaymentSelectFromChild}
@@ -3244,6 +3322,9 @@ import React, { Component } from 'react';
                         onApprovalStatusRequired={this.openApprovalStatusModal}
                         onNotifierQueueRequired={this.openNotifierQueueModal}
                         onNotifierQueueSync={this.syncNotifierQueueModal}
+                        onBulkUpdateModalRequired={this.openRegistrationBulkUpdateModal}
+                        onBulkUpdateModalSync={this.syncRegistrationBulkUpdateModal}
+                        onBulkUpdateModalDismiss={this.dismissRegistrationBulkUpdateModal}
                         shouldAutoOpenQueue={this.state.shouldAutoOpenQueue}
                     />
                     </div>
@@ -3403,13 +3484,6 @@ import React, { Component } from 'react';
             onDownloadInvoices={this.handleDownloadInvoices}
             wooCommerceProductDetails={this.fundraisingTableRef?.current?.state?.wooCommerceProductDetails || []}
           />
-          <NSAApprovalModal
-            data={this.state.nsaApprovalData}
-            userName={this.props.location.state?.name || 'User'}
-            userEmail={this.props.location.state?.email || ''}
-            onClose={this.closeNSAApprovalModal}
-            onAddToList={this.addToNSAPendingList}
-          />
           <NSAConsolidatedModal
             isOpen={this.state.isNSAConsolidatedOpen}
             changes={this.state.nsaPendingChanges}
@@ -3429,6 +3503,41 @@ import React, { Component } from 'react';
               onClose={this.closeNotifierQueueModal}
               onClearAll={this.state.notifierPayload.onClearAll}
               onApplyChanges={this.state.notifierPayload.onApplyChanges}
+            />
+          )}
+          {this.state.registrationBulkUpdatePayload && (
+            <BulkUpdateModal
+              selectedRows={this.state.registrationBulkUpdatePayload.selectedRows || []}
+              bulkUpdateField={this.state.registrationBulkUpdatePayload.bulkUpdateField || ''}
+              bulkUpdateStatus={this.state.registrationBulkUpdatePayload.bulkUpdateStatus || ''}
+              bulkUpdateMethod={this.state.registrationBulkUpdatePayload.bulkUpdateMethod || ''}
+              bulkUpdateValue={this.state.registrationBulkUpdatePayload.bulkUpdateValue || ''}
+              bulkUpdateRowValues={this.state.registrationBulkUpdatePayload.bulkUpdateRowValues || {}}
+              onFieldChange={this.state.registrationBulkUpdatePayload.onFieldChange}
+              onStatusChange={this.state.registrationBulkUpdatePayload.onStatusChange}
+              onMethodChange={this.state.registrationBulkUpdatePayload.onMethodChange}
+              onValueChange={this.state.registrationBulkUpdatePayload.onValueChange}
+              onRowValueChange={this.state.registrationBulkUpdatePayload.onRowValueChange}
+              onUpdate={this.state.registrationBulkUpdatePayload.onUpdate}
+              onUpdateClick={() => {
+                this.setState({
+                  showBulkUpdateReasonModal: true,
+                  bulkUpdateReasonContext: {
+                    onReasonSubmit: (reason) => {
+                      this.state.registrationBulkUpdatePayload.onUpdate(reason);
+                    },
+                  },
+                });
+              }}
+              onClose={this.closeRegistrationBulkUpdateModal}
+            />
+          )}
+          {this.state.showBulkUpdateReasonModal && (
+            <BulkUpdateReasonModal
+              selectedRows={this.state.registrationBulkUpdatePayload?.selectedRows || []}
+              bulkUpdateField={this.state.registrationBulkUpdatePayload?.bulkUpdateField || ''}
+              onReasonSubmit={this.submitBulkUpdateReason}
+              onCancel={this.closeBulkUpdateReasonModal}
             />
           )}
           {this.state.pendingApproval && (
