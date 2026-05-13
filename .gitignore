@@ -90,4 +90,3 @@ Thumbs.db
 backend/Controller/SkillsFuture/skillsfutureController.js
 backend/routes/skillsfuture.js
 backend/scripts/generate-sf-keys.js
-frontend/src/services/skillsfutureService.js
