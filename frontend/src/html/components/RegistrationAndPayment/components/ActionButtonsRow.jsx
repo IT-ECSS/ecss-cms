@@ -48,12 +48,13 @@ const ActionButtonsRow = ({
           style={{
             backgroundColor: 'transparent',
             color: hideMarriagePrepFields ? '#4CAF50' : '#ff6b6b',
-            border: `3.5px solid ${hideMarriagePrepFields ? '#4CAF50' : '#ff6b6b'}`,
-            padding: '12.5px 18.75px',
+            border: `3px solid ${hideMarriagePrepFields ? '#4CAF50' : '#ff6b6b'}`,
+            padding: '0.5rem 1.5625rem',
             borderRadius: '4px',
             cursor: 'pointer',
-            marginRight: '10px',
-            fontSize: '17.5px',
+            flexShrink: 1,
+            fontSize: '1.125rem',
+            fontWeight: 'bold',
             whiteSpace: 'nowrap',
           }}
         >

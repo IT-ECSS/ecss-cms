@@ -837,8 +837,7 @@ class RegistrationPaymentSection extends Component {
       {
         headerName: 'Course Name',
         field: 'course',
-        minWidth: 1200,
-        flex: 4,
+        width: 900,
       },
       {
         headerName: 'Course Mode',
@@ -862,7 +861,7 @@ class RegistrationPaymentSection extends Component {
         field: 'paymentMethod',
         cellRenderer: PaymentMethodRenderer,
         editable: false,
-        width: 500,
+        width: 700,
         hide: shouldHidePaymentColumns,
       },
       {
