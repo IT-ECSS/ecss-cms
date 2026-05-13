@@ -1821,7 +1821,6 @@ class FormPage extends Component {
       'Tampines Hub': '529684',
       'Tampines North Community Centre': '529204',
       'Tampines North CC': '529204',
-      'Tampines North Community Centre': '529204',
       'Tampines 253 Centre': '520253',
       '恩 Project@253': '520253',
       'Pasir Ris West Wellness Centre': '519639',

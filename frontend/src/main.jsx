@@ -11,8 +11,7 @@ const oidcConfig = {
   authority: "https://id.singpass.gov.sg",
   client_id: "ZrjDybXZeOFUA70KYMwb1dnfmdEXFfAS",
   //client_id: "mHlUcRS43LOQAjkYJ22MNvSpE8vzPmfo",
-  //redirect_uri: "http://localhost:3000/callback",
-  redirect_uri: "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback",
+  redirect_uri: window.location.origin + "/callback",
   response_type: "code",
   scope: "openid", // Start with minimal scope as per SingPass best practices
   automaticSilentRenew: false, // Required for SingPass
