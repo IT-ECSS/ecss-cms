@@ -27,8 +27,6 @@ const COURSE_CODE_MAPPING = {
     "Art of Positive Communication builds happy homes": "TGS-2025054487",
     "Joyful Grandparenting": "TGS-2025054491",
     "Hanyu Pinyin & The Three Hundred Tang Poems": "TGS-2025054486",
-    "The Art of Paper Quilling": "TGS-2025054488",
-    "Art of Paper Quiliing": "TGS-2025054488",
     "Art of Paper Quilling": "TGS-2025054488",
     "Nagomi Basic Level 2": "TGS-2025054494",
     "Enhanced Therapeutic Intermediate Watercolour": "TGS-2025054495",
