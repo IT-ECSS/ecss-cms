@@ -1,0 +1,329 @@
+/* SkillsFuture Claim Lookup — sfClaimLookup.css */
+
+/* ── Page wrapper ─────────────────────────────────────────────────────────── */
+.sf-lookup-page {
+  min-height: calc(100vh - 80px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  background: #f7f8fc;
+}
+
+/* ── Main card ────────────────────────────────────────────────────────────── */
+.sf-lookup-card {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e8eaef;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.07);
+  padding: 2.5rem 2.5rem 2rem;
+  width: 100%;
+  max-width: 580px;
+}
+
+/* ── Header ───────────────────────────────────────────────────────────────── */
+.sf-lookup-header {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.sf-lookup-header-icon {
+  width: 44px;
+  height: 44px;
+  background: #f0ebff;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  color: #6d3fbd;
+  flex-shrink: 0;
+}
+
+.sf-lookup-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0;
+}
+
+.sf-lookup-subtitle {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0 0 1.75rem 0;
+  line-height: 1.5;
+  padding-left: 53px; /* aligns under title */
+}
+
+/* ── Divider ──────────────────────────────────────────────────────────────── */
+.sf-lookup-divider {
+  border: none;
+  border-top: 1px solid #e8eaef;
+  margin: 1.5rem 0;
+}
+
+/* ── Two-field grid ───────────────────────────────────────────────────────── */
+.sf-lookup-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.sf-lookup-field {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Search row (button only) ─────────────────────────────────────────────── */
+.sf-lookup-search-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1.5rem;
+}
+
+.sf-lookup-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+}
+
+.sf-lookup-input {
+  flex: 1;
+  padding: 0.625rem 0.875rem;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  color: #1a1a2e;
+  background: #fff;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+}
+
+.sf-lookup-input::placeholder {
+  color: #adb5bd;
+}
+
+.sf-lookup-input:focus {
+  border-color: #6d3fbd;
+  box-shadow: 0 0 0 3px rgba(109, 63, 189, 0.12);
+}
+
+/* ── Button ───────────────────────────────────────────────────────────────── */
+.sf-lookup-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.625rem 1.25rem;
+  background: #6d3fbd;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.sf-lookup-btn:hover:not(:disabled) {
+  background: #5a33a0;
+}
+
+.sf-lookup-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.sf-lookup-btn:disabled {
+  background: #c4b5e8;
+  cursor: not-allowed;
+}
+
+/* ── Error banner ─────────────────────────────────────────────────────────── */
+.sf-lookup-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  background: #fff5f5;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  color: #b91c1c;
+  font-size: 0.9rem;
+  margin-bottom: 1.25rem;
+}
+
+.sf-lookup-error i {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+/* ── Results panel ────────────────────────────────────────────────────────── */
+.sf-lookup-results {
+  background: #f9fafb;
+  border: 1px solid #e8eaef;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.sf-lookup-results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.125rem;
+  background: #f0ebff;
+  border-bottom: 1px solid #ddd6fe;
+}
+
+.sf-lookup-results-title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #5b21b6;
+}
+
+/* ── Claim status badge ───────────────────────────────────────────────────── */
+.sf-lookup-badge {
+  display: inline-block;
+  padding: 0.2rem 0.65rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sf-lookup-badge--approved   { background: #dcfce7; color: #15803d; }
+.sf-lookup-badge--pending    { background: #fef9c3; color: #a16207; }
+.sf-lookup-badge--submitted  { background: #e0e7ff; color: #3730a3; }
+.sf-lookup-badge--rejected   { background: #fee2e2; color: #b91c1c; }
+.sf-lookup-badge--cancelled  { background: #f3f4f6; color: #6b7280; }
+.sf-lookup-badge--default    { background: #e0e7ff; color: #3730a3; }
+
+/* ── Data rows ────────────────────────────────────────────────────────────── */
+.sf-lookup-row {
+  display: flex;
+  align-items: baseline;
+  padding: 0.65rem 1.125rem;
+  border-bottom: 1px solid #e8eaef;
+  font-size: 0.9rem;
+  gap: 1rem;
+}
+
+.sf-lookup-row:last-child {
+  border-bottom: none;
+}
+
+.sf-lookup-row-label {
+  flex: 0 0 160px;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.85rem;
+}
+
+.sf-lookup-row-value {
+  color: #1a1a2e;
+  word-break: break-all;
+}
+
+/* ── Footer actions ───────────────────────────────────────────────────────── */
+.sf-lookup-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 0.25rem;
+}
+
+.sf-lookup-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  background: transparent;
+  color: #6b7280;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.sf-lookup-btn-ghost:hover {
+  border-color: #6d3fbd;
+  color: #6d3fbd;
+}
+
+.sf-lookup-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1.25rem;
+  background: transparent;
+  color: #6d3fbd;
+  border: 1.5px solid #6d3fbd;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sf-lookup-btn-outline:hover {
+  background: #f0ebff;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .sf-lookup-page {
+    padding: 1.5rem 1rem;
+    align-items: flex-start;
+  }
+
+  .sf-lookup-card {
+    padding: 1.75rem 1.25rem 1.5rem;
+  }
+
+  .sf-lookup-subtitle {
+    padding-left: 0;
+    margin-top: 0.5rem;
+  }
+
+  .sf-lookup-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .sf-lookup-search-row {
+    justify-content: stretch;
+  }
+
+  .sf-lookup-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .sf-lookup-row {
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .sf-lookup-row-label {
+    flex: none;
+  }
+
+  .sf-lookup-footer {
+    justify-content: stretch;
+  }
+
+  .sf-lookup-btn-ghost {
+    width: 100%;
+    justify-content: center;
+  }
+}

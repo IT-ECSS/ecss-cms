@@ -809,9 +809,11 @@ export async function archiveData(context) {
         detail.registrationDate,
         detail.agreement,
         detail.status,
-        detail.official?.confirmed || false,
+        detail.course.payment === 'SkillsFuture'
+          ? (detail.official?.confirmed ? 'Confirmed' : 'Not Confirmed')
+          : '',
         detail.official?.refundedDate || '',
-        detail.sendingWhatsappMessage || false,
+        detail.sendingWhatsappMessage ? 'Sent' : 'Not Sent',
         detail.official?.name || '',
         detail.official?.date || '',
         detail.official?.time || '',
