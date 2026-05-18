@@ -122,7 +122,6 @@ function BulkUpdateModal({
 
     const fieldLabelMap = {
       paymentStatus: 'Payment Status',
-      paymentMethod: 'Payment Method',
       confirmationStatus: 'Confirmation Status',
       paymentDate: 'Payment Date',
       refundedDate: 'Refunded Date',
@@ -194,7 +193,7 @@ function BulkUpdateModal({
 
     const getTableSn = (row) => row?.sn ?? row?.SN ?? row?.serialNo ?? '-';
     const getRowKey = (row, idx) => String(row?.id || `row-${idx}`);
-    const isStatusOrMethodField = selectedField === 'paymentStatus' || selectedField === 'paymentMethod';
+    const isStatusOrMethodField = selectedField === 'paymentStatus';
 
     const getCurrentPaymentStatus = (row) => row?.paymentStatus || row?.status || 'N/A';
     const getCurrentPaymentMethod = (row) => row?.paymentMethod || row?.courseInfo?.payment || 'N/A';
@@ -239,37 +238,6 @@ function BulkUpdateModal({
     const renderRowEditor = (row, idx) => {
       const rowKey = getRowKey(row, idx);
       const value = getRowNewValue(row, idx);
-
-      if (selectedField === 'paymentMethod') {
-        return (
-          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'nowrap', whiteSpace: 'nowrap', alignItems: 'center' }}>
-            {[
-              { label: 'Cash', value: 'Cash' },
-              { label: 'PayNow', value: 'PayNow' },
-              { label: 'SkillsFuture', value: 'SkillsFuture' },
-            ].map((method) => (
-              <button
-                key={`${rowKey}-${method.label}`}
-                type="button"
-                onClick={() => safeOnRowValueChange(rowKey, method.value)}
-                style={{
-                  padding: '0.4rem 0.6rem',
-                  borderRadius: '0.25rem',
-                  border: `2px solid ${value === method.value ? '#28a745' : '#ccc'}`,
-                  background: value === method.value ? '#28a745' : '#fff',
-                  color: value === method.value ? '#fff' : '#000',
-                  fontSize: '0.85rem',
-                  fontWeight: value === method.value ? '600' : '500',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                {method.label}
-              </button>
-            ))}
-          </div>
-        );
-      }
 
       if (selectedField === 'paymentStatus') {
         const options = getStatusOptionsForRow(row);
@@ -338,7 +306,6 @@ function BulkUpdateModal({
 
     const targetValueMap = {
       paymentStatus: affectedRows.length ? 'Multiple Values (Per Row)' : (bulkUpdateStatus || 'No Change'),
-      paymentMethod: bulkUpdateMethod || 'No Change',
       confirmationStatus: 'Multiple Values (Per Row)',
       paymentDate: 'Multiple Values (Per Row)',
       refundedDate: 'Multiple Values (Per Row)',
@@ -410,7 +377,6 @@ function BulkUpdateModal({
               >
                 <option value="" disabled>-- Select a field to update --</option>
                 <option value="paymentStatus">Payment Status</option>
-                <option value="paymentMethod">Payment Method</option>
                 <option value="confirmationStatus">Confirmation Status</option>
                 <option value="paymentDate">Payment Date</option>
                 <option value="refundedDate">Refunded Date</option>
@@ -442,37 +408,6 @@ function BulkUpdateModal({
                     <option value="Not Successful">Not Successful</option>
                   </select>
 
-                </>
-              )}
-
-              {selectedField === 'paymentMethod' && (
-                <>
-                  <div className="registration-payment-bulk-modal-form-row">
-                    <label className="registration-payment-bulk-modal-label">Payment Method</label>
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                    {['Cash', 'PayNow', 'SkillsFuture'].map((method) => (
-                      <button
-                        key={method}
-                        type="button"
-                        onClick={() => onMethodChange(method)}
-                        style={{
-                          flex: 1,
-                          padding: '0.75rem 1rem',
-                          borderRadius: '0.25rem',
-                          border: `2px solid ${bulkUpdateMethod === method ? '#28a745' : '#ccc'}`,
-                          background: bulkUpdateMethod === method ? '#28a745' : '#fff',
-                          color: bulkUpdateMethod === method ? '#fff' : '#000',
-                          fontSize: '1rem',
-                          fontWeight: bulkUpdateMethod === method ? '600' : '500',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                        }}
-                      >
-                        {method}
-                      </button>
-                    ))}
-                  </div>
                 </>
               )}
 

@@ -6,11 +6,16 @@ const STATUS_COLORS = {
   'Generating SkillsFuture Invoice': '#00CED1',
   'SkillsFuture Done': '#008000',
   Cancelled: '#FF0000',
-  Withdrawn: '#800000',
+  'To Refund': '#800000',
+  'To refund': '#800000',
+  Withdrawn: '#B8860B',
   Paid: '#008000',
   Confirmed: '#008000',
   Refunded: '#D2691E',
-  'Not Successful': '#A9A9A9',
+  'Not Successful': '#8B4513',
+  Submitted: '#4A90D9',
+  'Confirmed Slot': '#008000',
+  'Cancellation For Duplication': '#FF0000',
 };
 
 /**
@@ -21,7 +26,30 @@ const STATUS_COLORS = {
  *   params.value – the current status string
  */
 const PaymentStatusRenderer = (params) => {
-  const statusText      = params.value;
+  const statusText = String(params.value || '').trim();
+  if (!statusText) {
+    return null;
+  }
+
+  if (statusText === 'Not Available') {
+    return (
+      <span
+        style={{
+          display: 'block',
+          textAlign: 'center',
+          width: '100%',
+          color: '#555',
+          fontStyle: 'italic',
+          fontWeight: '600',
+          fontSize: '0.85em',
+          lineHeight: '1.8',
+        }}
+      >
+        {statusText}
+      </span>
+    );
+  }
+
   const backgroundColor = STATUS_COLORS[statusText] || '#D3D3D3';
 
   return (

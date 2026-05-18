@@ -94,6 +94,67 @@ io.on('connection', (socket) => {
   });
 });
 
+// --- MongoDB Change Stream: broadcast any external write to "Registration Forms" ---
+// This ensures live updates reach the frontend even when changes come from
+// WooCommerce / Django or any other source that bypasses the Node.js API routes.
+const { MongoClient } = require('mongodb');
+const CHANGE_STREAM_URI = "mongodb+srv://MosesLee:Mlxy%406695@company-management-syst.ulotbgi.mongodb.net/?retryWrites=true&w=majority&appName=Company-Management-System";
+
+let _changeStreamClient = null;
+
+async function watchRegistrationForms(io) {
+  // Clean up any previous client before reconnecting
+  if (_changeStreamClient) {
+    try { await _changeStreamClient.close(); } catch (_) {}
+    _changeStreamClient = null;
+  }
+
+  const client = new MongoClient(CHANGE_STREAM_URI);
+  _changeStreamClient = client;
+
+  try {
+    await client.connect();
+    const collection = client
+      .db('Company-Management-System')
+      .collection('Registration Forms');
+
+    const changeStream = collection.watch([], { fullDocument: 'updateLookup' });
+    console.log('[ChangeStream] Watching "Registration Forms" collection');
+
+    changeStream.on('change', (change) => {
+      if (['insert', 'update', 'replace'].includes(change.operationType)) {
+        // Emit the _id of the changed document so clients can do a targeted single-row refresh
+        // instead of reloading the entire table.
+        const docId = change.documentKey?._id?.toString?.() || String(change.documentKey?._id || '');
+        io.emit('registration', {
+          type: 'db-change',
+          operation: change.operationType,
+          id: docId || null,
+        });
+      }
+    });
+
+    changeStream.on('error', (err) => {
+      console.error('[ChangeStream] Error:', err.message);
+      setTimeout(() => watchRegistrationForms(io), 5000);
+    });
+
+    changeStream.on('close', () => {
+      console.log('[ChangeStream] Stream closed, reconnecting...');
+      setTimeout(() => watchRegistrationForms(io), 5000);
+    });
+
+  } catch (err) {
+    console.error('[ChangeStream] Failed to connect:', err.message);
+    setTimeout(() => watchRegistrationForms(io), 5000);
+  }
+}
+
+// Start the change stream once the server is listening
+server.on('listening', () => {
+  watchRegistrationForms(io);
+});
+
 
 /**
  * Event listener for HTTP server "listening" event.

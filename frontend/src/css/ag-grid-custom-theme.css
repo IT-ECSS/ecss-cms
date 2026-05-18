@@ -27,6 +27,61 @@
   font-size: 1.5rem !important;
 }
 
+/* Registration & Payment table: center cell contents */
+.registration-payment-details-wrapper .ag-theme-alpine .ag-cell {
+  justify-content: center !important;
+  align-items: center !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.registration-payment-details-wrapper .ag-theme-alpine .ag-cell-value,
+.registration-payment-details-wrapper .ag-theme-alpine .ag-cell .ag-cell-value {
+  width: 100% !important;
+  text-align: center !important;
+}
+
+.registration-payment-details-wrapper .ag-theme-alpine .ag-cell-wrapper {
+  width: 100% !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+
+.registration-payment-details-wrapper .ag-theme-alpine .ag-cell input[type="text"],
+.registration-payment-details-wrapper .ag-theme-alpine .ag-cell select,
+.registration-payment-details-wrapper .ag-theme-alpine .ag-cell textarea {
+  text-align: center !important;
+}
+
+/* Registration & Payment table: enlarge row-selection checkboxes by 1.5x */
+.registration-payment-details-wrapper .ag-theme-alpine .ag-selection-checkbox .ag-checkbox-input-wrapper,
+.registration-payment-details-wrapper .ag-theme-alpine .ag-header-cell .ag-checkbox-input-wrapper,
+.registration-payment-details-wrapper .ag-theme-alpine .ag-header-select-all .ag-checkbox-input-wrapper {
+  transform: scale(1.5);
+  transform-origin: center;
+}
+
+/* Explicit class-based selector for Registration & Payment checkbox scaling */
+.registration-payment-checkbox-size-150 {
+  --ag-checkbox-size: 24px;
+}
+
+.registration-payment-checkbox-size-150 .ag-selection-checkbox .ag-checkbox-input-wrapper,
+.registration-payment-checkbox-size-150 .ag-header-cell .ag-checkbox-input-wrapper,
+.registration-payment-checkbox-size-150 .ag-header-select-all .ag-checkbox-input-wrapper,
+.registration-payment-checkbox-size-150 .ag-selection-checkbox input[type="checkbox"],
+.registration-payment-checkbox-size-150 .ag-header-cell input[type="checkbox"] {
+  transform: scale(1.5) !important;
+  transform-origin: center;
+}
+
+/* Pinned left column separator */
+.registration-payment-details-wrapper .ag-theme-alpine .ag-pinned-left .ag-cell,
+.registration-payment-details-wrapper .ag-theme-alpine .ag-pinned-left-header .ag-header-cell,
+.registration-payment-details-wrapper .ag-theme-alpine .ag-pinned-left-cols-container {
+  border-right: 1px solid rgba(0, 0, 0, 0.12) !important;
+}
+
 /* Comparison table specific cell borders */
 /*.fft-entries-table-wrapper .ag-cell {
   border-right: 1px solid #ddd !important;

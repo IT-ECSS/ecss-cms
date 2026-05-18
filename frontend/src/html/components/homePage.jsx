@@ -1,11 +1,10 @@
 import React, { Component } from 'react';
+import { flushSync } from 'react-dom';
   import { withRouter } from 'react-router-dom';
   import '../../css/homePage.css'; // Ensure your CSS paths are correct
   import AccountsSection from './sub/accountsSection';
   import CoursesSection from './sub/courseSection';
   import RegistrationPaymentSection from './RegistrationAndPayment';
-  import NSAConsolidatedModal from './NSAConsolidatedModal';
-  import NSANotifierModal from './NSANotifierModal';
   import ApprovalPopup from './RegistrationAndPayment/approval/ApprovalPopup';
   import ApprovalQueueModal from './RegistrationAndPayment/approval/ApprovalQueueModal';
   import ApprovalStatusModal from './RegistrationAndPayment/approval/ApprovalStatusModal';
@@ -14,6 +13,8 @@ import React, { Component } from 'react';
   import ApprovalQueueDecisionPopup from './popup/ApprovalQueueDecisionPopup';
   import BulkUpdateModal from './RegistrationAndPayment/components/BulkUpdateModal';
   import BulkUpdateReasonModal from './RegistrationAndPayment/components/BulkUpdateReasonModal';
+  import UpdateProgressModal from './RegistrationAndPayment/components/UpdateProgressModal';
+  import AnomalyModal from './RegistrationAndPayment/components/AnomalyModal';
   import Popup from './popup/popupMessage';
   import Search from './sub/searchSection';
   import ViewToggle from './sub/viewToggleSection';
@@ -61,7 +62,8 @@ import React, { Component } from 'react';
         isPopupOpen: false,
         popupMessage: '',
         popupType: '',
-        sidebarVisible: false,
+        isUpdating: false,
+        updateProgress: { show: false, steps: [], receiptData: null },
         locations: [],
         languages: [],
         types: [],
@@ -161,9 +163,6 @@ import React, { Component } from 'react';
         invoiceModalData: { invoiceNumber: '', orderData: null },
         showGoogleDriveUploadModal: false,
         showGoogleDriveViewModal: false,
-        nsaApprovalData: null,
-        nsaPendingChanges: [],
-        isNSAConsolidatedOpen: false,
         pendingApproval: null,
         exportApprovalPayload: null,
         supervisorExportPayload: null,
@@ -216,6 +215,11 @@ import React, { Component } from 'react';
       this.createAccountPopupMessage = this.createAccountPopupMessage.bind(this);
       this.inactivityTimeout = null;
       this.editAccountPopupMessage = this.editAccountPopupMessage.bind(this);
+
+      this._progressSequence = 0;
+      this._progressStartedAt = 0;
+      this._progressCloseTimer = null;
+      this._progressStepTimer = null;
     }
 
     handleRefreshMembership = () => {
@@ -1756,86 +1760,6 @@ import React, { Component } from 'react';
       this.closeBulkUpdateReasonModal();
     };
 
-    openNSAApprovalModal = (data) => {
-      if (!data) return;
-
-      const item = {
-        _tempId: Date.now() + Math.random(),
-        registrationId: data.registrationId || '',
-        sn: data.sn || '',
-        participantName: data.participantName || '',
-        contactNo: data.contactNo || '',
-        courseName: data.courseName || '',
-        courseLocation: data.courseLocation || '',
-        courseType: data.courseType || 'NSA',
-        paymentStatus: data.paymentStatus || '',
-        paymentMethod: data.paymentMethod || '',
-        columnName: data.columnName || '',
-        currentValue: data.currentValue ?? '',
-        newValue: data.newValue ?? '',
-        reason: data.reason || '',
-      };
-
-      this.setState(prev => ({
-        nsaPendingChanges: [...prev.nsaPendingChanges, item],
-        nsaApprovalData: null,
-        isNSAConsolidatedOpen: false,
-      }));
-    };
-
-    closeNSAApprovalModal = () => {
-      this.setState({ nsaApprovalData: null });
-    };
-
-    addToNSAPendingList = (changes, additionalNotes, recordData) => {
-      const items = changes.map(c => ({
-        _tempId: Date.now() + Math.random(),
-        registrationId: recordData.registrationId,
-        sn: recordData.sn,
-        participantName: recordData.participantName,
-        contactNo: recordData.contactNo,
-        courseName: recordData.courseName,
-        courseLocation: recordData.courseLocation,
-        courseType: recordData.courseType,
-        paymentStatus: recordData.paymentStatus,
-        paymentMethod: recordData.paymentMethod,
-        columnName: c.columnName,
-        currentValue: c.currentValue ?? '',
-        newValue: c.newValue,
-        reason: c.reason,
-      }));
-      this.setState(prev => ({
-        nsaPendingChanges: [...prev.nsaPendingChanges, ...items],
-        nsaApprovalData: null,
-      }));
-    };
-
-    openNSAConsolidated = () => {
-      this.setState({ isNSAConsolidatedOpen: true });
-    };
-
-    closeNSAConsolidated = () => {
-      this.setState({ isNSAConsolidatedOpen: false });
-    };
-
-    removeNSAPendingChange = (tempId) => {
-      this.setState(prev => ({
-        nsaPendingChanges: prev.nsaPendingChanges.filter(i => i._tempId !== tempId),
-      }));
-    };
-
-    updateNSAPendingChange = (tempId, field, value) => {
-      this.setState(prev => ({
-        nsaPendingChanges: prev.nsaPendingChanges.map(i =>
-          i._tempId === tempId ? { ...i, [field]: value } : i
-        ),
-      }));
-    };
-
-    clearNSAPendingList = () => {
-      this.setState({ nsaPendingChanges: [] });
-    };
-
     // Open bulk order modal and start loading
     openBulkOrderModal = async () => {
       console.log("Opening bulk order modal and starting to load data...");
@@ -2067,7 +1991,6 @@ import React, { Component } from 'react';
 
     getTotalNumberofDetails = async (total) =>
     {
-        console.log("Registration:", total);
         this.setState({ noofDetails: total });
     };
 
@@ -2565,12 +2488,269 @@ import React, { Component } from 'react';
     showUpdatePopup = async(item)=>
     {
       console.log("Selected:", item);
+      const isCompletionMsg = /all updates completed|approval request sent|sent to|updated successfully/i.test(item);
       this.setState({
         isPopupOpen: true,
         popupMessage: item,
-        popupType: "loading",
+        popupType: isCompletionMsg ? "success-message" : "loading",
+        isUpdating: !isCompletionMsg,
       });
+      if (isCompletionMsg) {
+        setTimeout(() => {
+          this.setState({ isPopupOpen: false, popupMessage: '', popupType: '', isUpdating: false });
+        }, 2500);
+      }
     }
+
+    closeRegPaymentPopup = () => {
+      if (this.state.isUpdating) {
+        this.setState({
+          popupMessage: 'Update completed successfully',
+          popupType: 'success-message',
+          isUpdating: false,
+        });
+        setTimeout(() => {
+          this.setState({ isPopupOpen: false, popupMessage: '', popupType: '' });
+        }, 2000);
+      } else {
+        this.closePopup();
+      }
+    };
+
+    // ── Update progress tracker (multi-step modal for R&P table) ──────────────
+
+    _progressStart = (stepLabels) => {
+      this._progressSequence += 1;
+      this._progressStartedAt = Date.now();
+      if (this._progressCloseTimer) {
+        clearTimeout(this._progressCloseTimer);
+        this._progressCloseTimer = null;
+      }
+      if (this._progressStepTimer) {
+        clearTimeout(this._progressStepTimer);
+        this._progressStepTimer = null;
+      }
+
+      const labels = Array.isArray(stepLabels)
+        ? stepLabels.map((label) => String(label || '').trim()).filter(Boolean)
+        : [];
+
+      if (labels.length === 0) {
+        this.setState((prev) => ({
+          updateProgress: {
+            show: false,
+            steps: [],
+            receiptData: prev.updateProgress?.receiptData ?? null,
+          },
+        }));
+        return;
+      }
+
+      flushSync(() => {
+        this.setState((prev) => ({
+          updateProgress: {
+            receiptData: null,
+            show: true,
+            steps: labels.map((label, i) => ({
+              label,
+              status: i === 0 ? 'running' : 'pending',
+            })),
+          },
+        }));
+      });
+    };
+
+    _progressAdvance = () => {
+      flushSync(() => {
+        this.setState((prev) => {
+          const steps = (prev.updateProgress?.steps || []).map((s) => ({ ...s }));
+          const runningIdx = steps.findIndex((s) => s.status === 'running');
+          if (runningIdx >= 0) steps[runningIdx].status = 'done';
+          const nextIdx = steps.findIndex((s, i) => i > runningIdx && s.status === 'pending');
+          if (nextIdx >= 0) steps[nextIdx].status = 'running';
+          return {
+            updateProgress: {
+              ...prev.updateProgress,
+              show: true,
+              steps,
+            },
+          };
+        });
+      });
+    };
+
+    _progressFinish = (receiptData = null, options = {}) => {
+      const { immediateClose = false } = options;
+      const seq = this._progressSequence;
+      const MIN_VISIBLE_MS = 2200;
+      const STEP_ANIMATION_MS = 320;
+
+      const runStepCompletion = () => {
+        if (seq !== this._progressSequence) return;
+
+        let hasMoreWork = false;
+        flushSync(() => {
+          this.setState((prev) => {
+            const steps = (prev.updateProgress?.steps || []).map((s) => ({ ...s }));
+            if (!steps.length) return prev;
+
+            const runningIdx = steps.findIndex((s) => s.status === 'running');
+            if (runningIdx >= 0) {
+              steps[runningIdx].status = 'done';
+            }
+
+            const nextPendingIdx = steps.findIndex((s) => s.status === 'pending');
+            if (nextPendingIdx >= 0) {
+              steps[nextPendingIdx].status = 'running';
+              hasMoreWork = true;
+            }
+
+            return {
+              updateProgress: {
+                ...prev.updateProgress,
+                show: true,
+                steps,
+              },
+            };
+          });
+        });
+
+        if (hasMoreWork) {
+          this._progressStepTimer = setTimeout(runStepCompletion, STEP_ANIMATION_MS);
+          return;
+        }
+
+        const elapsed = Date.now() - this._progressStartedAt;
+        // Use passed receiptData parameter (which was set just before calling finish)
+        const hasReceipt = Boolean(receiptData || this.state.updateProgress?.receiptData);
+
+        if (hasReceipt && receiptData) {
+          // Store receipt data in state BEFORE triggering download/preview
+          this.setState((prev) => ({
+            updateProgress: {
+              ...prev.updateProgress,
+              receiptData,
+            },
+          }), () => {
+            // Imperatively trigger download + preview after a short delay so the
+            // final step animation is visible before the actions fire.
+            setTimeout(() => {
+              if (seq !== this._progressSequence) return;
+              this._progressDownloadReceipt();
+              this._progressPreviewReceipt();
+            }, 400);
+          });
+        } else if (hasReceipt) {
+          // Receipt data already in state, just trigger download/preview
+          setTimeout(() => {
+            if (seq !== this._progressSequence) return;
+            this._progressDownloadReceipt();
+            this._progressPreviewReceipt();
+          }, 400);
+        }
+
+        const closeDelay = immediateClose ? 0 : (hasReceipt ? 4000 : Math.max(600, MIN_VISIBLE_MS - elapsed));
+        this._progressCloseTimer = setTimeout(() => {
+          if (seq !== this._progressSequence) return;
+          this.setState((prev) => ({
+            updateProgress: {
+              ...prev.updateProgress,
+              show: false,
+              steps: [],
+            },
+          }));
+        }, closeDelay);
+      };
+
+      runStepCompletion();
+    };
+
+    _progressError = () => {
+      if (this._progressCloseTimer) {
+        clearTimeout(this._progressCloseTimer);
+        this._progressCloseTimer = null;
+      }
+      if (this._progressStepTimer) {
+        clearTimeout(this._progressStepTimer);
+        this._progressStepTimer = null;
+      }
+      this.setState((prev) => ({
+        updateProgress: {
+          ...prev.updateProgress,
+          show: false,
+          steps: [],
+          receiptData: null,
+        },
+      }));
+    };
+
+    getProgressTracker = () => ({
+      start:   this._progressStart,
+      advance: this._progressAdvance,
+      finish:  (receiptData, options) => this._progressFinish(receiptData, options),
+      error:   this._progressError,
+      setReceiptData: this._progressSetReceiptData,
+    });
+
+    _progressClose = () => {
+      this.setState({ updateProgress: { show: false, steps: [], receiptData: null } });
+    };
+
+    _progressSetReceiptData = (receiptData) => {
+      this.setState((prev) => ({
+        updateProgress: {
+          ...prev.updateProgress,
+          receiptData,
+        },
+      }));
+    };
+
+    _progressPreviewReceipt = () => {
+      const receiptData = this.state.updateProgress?.receiptData;
+      if (!receiptData || !receiptData.blob) {
+        console.warn('No receipt data available for preview');
+        return;
+      }
+
+      try {
+        const blobUrl = window.URL.createObjectURL(receiptData.blob);
+        const win = window.open(blobUrl, '_blank');
+        if (!win) {
+          console.warn('Popup blocked: Please allow popups to view the PDF receipt');
+          alert('Popup blocked. Please allow popups in your browser settings.');
+        }
+      } catch (error) {
+        console.error('Error previewing receipt:', error);
+        alert('Error opening preview. Please try again.');
+      }
+    };
+
+    _progressDownloadReceipt = () => {
+      const receiptData = this.state.updateProgress?.receiptData;
+      if (!receiptData || !receiptData.blob) {
+        console.warn('No receipt data available for download');
+        return;
+      }
+
+      try {
+        const blobUrl = window.URL.createObjectURL(receiptData.blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = receiptData.filename || 'receipt.pdf';
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        
+        // Cleanup: revoke URL and remove element after download
+        setTimeout(() => {
+          window.URL.revokeObjectURL(blobUrl);
+          document.body.removeChild(a);
+        }, 100);
+      } catch (error) {
+        console.error('Error downloading receipt:', error);
+        alert('Error downloading file. Please try again.');
+      }
+    };
 
     generateInvoiceNumber = async() =>
     {
@@ -3326,7 +3506,8 @@ import React, { Component } from 'react';
                     </div>
                     <div className="registration-payment-section">
                     <RegistrationPaymentSection 
-                        closePopup={this.closePopup}
+                        closePopup={this.closeRegPaymentPopup}
+                        openLoadingPopup={() => this.setState({ isPopupOpen: true, popupMessage: 'Loading In Progress', popupType: 'loading' })}
                         section={section}
                         passDataToParent={this.handleDataFromChild}
                         selectedLocation={selectedLocation}
@@ -3355,9 +3536,6 @@ import React, { Component } from 'react';
                         closePopupMessage = {this.closePopupMessage}
                         generateDeleteConfirmationPopup = {this.generateDeleteConfirmationPopup}
                         generatePortOverConfirmationPopup = {this.generatePortOverConfirmationPopup}
-                        onNSAApprovalRequest={this.openNSAApprovalModal}
-                        onOpenNSAPendingList={this.openNSAConsolidated}
-                        nsaPendingCount={this.state.nsaPendingChanges.length}
                         onPendingExportApproval={this.openExportApprovalModal}
                         onSupervisorExportConfirm={this.openSupervisorExportModal}
                         generateSendDetailsConfirmationPopup={this.generateSendDetailsConfirmationPopup}
@@ -3370,6 +3548,11 @@ import React, { Component } from 'react';
                         onBulkUpdateModalSync={this.syncRegistrationBulkUpdateModal}
                         onBulkUpdateModalDismiss={this.dismissRegistrationBulkUpdateModal}
                         shouldAutoOpenQueue={this.state.shouldAutoOpenQueue}
+                        progressModalOpen={Boolean(this.state.updateProgress?.show)}
+                        progressTracker={this.getProgressTracker()}
+                        onAnomalyDetected={(list) => this.setState({ showAnomalyModal: true, anomalyList: list })}
+                        onAnomalyListChanged={(list) => this.setState({ anomalyList: list })}
+                        onOpenAnomalyModal={() => this.setState({ showAnomalyModal: true })}
                     />
                     </div>
                   </>}                 
@@ -3468,6 +3651,10 @@ import React, { Component } from 'react';
             onClearLogout={this.handleQueueDecisionClear}
           />
           <Popup isOpen={isPopupOpen} message={popupMessage} userName={userName} type={popupType} participantInfo={participantInfo} status={status} courseInfo={courseInfo} closePopup={this.closePopup} closePopup2={this.closePopup2} goBackLoginPage={this.goBackHome} closePopupMessage={this.closePopupMessage} id = {this.state.deleteId} onLoginQueueDecision={this.handleLoginQueueDecision}/>
+          <UpdateProgressModal
+            isOpen={this.state.updateProgress?.show ?? false}
+            steps={this.state.updateProgress?.steps ?? []}
+          />
           <SalesReportModal 
             isOpen={isSalesReportModalOpen}
             onClose={this.closeSalesReportModal}
@@ -3528,27 +3715,6 @@ import React, { Component } from 'react';
             onDownloadInvoices={this.handleDownloadInvoices}
             wooCommerceProductDetails={this.fundraisingTableRef?.current?.state?.wooCommerceProductDetails || []}
           />
-          <NSAConsolidatedModal
-            isOpen={this.state.isNSAConsolidatedOpen}
-            changes={this.state.nsaPendingChanges}
-            userName={this.props.location.state?.name || 'User'}
-            userEmail={this.props.location.state?.email || ''}
-            onClose={this.closeNSAConsolidated}
-            onRemove={this.removeNSAPendingChange}
-            onUpdate={this.updateNSAPendingChange}
-            onClearAll={this.clearNSAPendingList}
-          />
-          {this.state.notifierPayload && (
-            <NSANotifierModal
-              isOpen={true}
-              changes={this.state.notifierPayload.changes || []}
-              userName={this.state.notifierPayload.userName || this.props.location.state?.name || 'User'}
-              userEmail={this.state.notifierPayload.userEmail || this.props.location.state?.email || ''}
-              onClose={this.closeNotifierQueueModal}
-              onClearAll={this.state.notifierPayload.onClearAll}
-              onApplyChanges={this.state.notifierPayload.onApplyChanges}
-            />
-          )}
           {this.state.registrationBulkUpdatePayload && (
             <BulkUpdateModal
               selectedRows={this.state.registrationBulkUpdatePayload.selectedRows || []}
@@ -3639,6 +3805,12 @@ import React, { Component } from 'react';
               isOpen={true}
               requests={this.state.approvalStatusPayload.requests || []}
               onClose={this.state.approvalStatusPayload.onClose}
+            />
+          )}
+          {this.state.showAnomalyModal && (
+            <AnomalyModal
+              anomalies={this.state.anomalyList}
+              onClose={() => this.setState({ showAnomalyModal: false })}
             />
           )}
         </>

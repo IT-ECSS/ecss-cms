@@ -100,18 +100,12 @@ class AccessRightsDashboard extends Component {
                     statistics.subAdminRights++;
                     break;
                 case 'nsa in-charge':
-                case 'nsa in charge':
-                case 'nsaincharge':
                     statistics.nsaInChargeRights++;
                     break;
                 case 'ops in-charge':
-                case 'ops in charge':
-                case 'opsincharge':
                     statistics.opsInChargeRights++;
                     break;
                 case 'site in-charge':
-                case 'site in charge':
-                case 'siteincharge':
                     statistics.siteInChargeRights++;
                     break;
                 case 'finance':

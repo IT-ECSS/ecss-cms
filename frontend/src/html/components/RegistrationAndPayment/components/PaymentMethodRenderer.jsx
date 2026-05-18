@@ -45,19 +45,34 @@ const PaymentMethodRenderer = (params) => {
   }
   // ILP / Others / unknown → no payment method buttons
 
-  const handleClick = (method) => {
+  const colDefEditable = params.colDef?.editable ?? params.column?.getColDef?.()?.editable;
+  const isEditable = colDefEditable !== false;
+  const buttonDisabled = !isEditable;
+
+  const handleClick = (event, method) => {
+    event.stopPropagation();
+    if (buttonDisabled) return;
     params.api.getRowNode(params.node.id).setDataValue('paymentMethod', method);
   };
+
+  if (paymentMethods.length === 0) {
+    return (
+      <div className="payment-method-group">
+        <span>{currentMethod || params.data?.paymentMethod || '-'}</span>
+      </div>
+    );
+  }
 
   return (
     <div className="payment-method-group">
       {paymentMethods.map((method) => (
         <button
           key={method}
+          type="button"
           className={`payment-method-btn payment-method-btn--${method
             .toLowerCase()
             .replace(/\s+/g, '-')} ${method === currentMethod ? 'active' : ''}`}
-          onClick={() => handleClick(method)}
+          onClick={(event) => handleClick(event, method)}
         >
           {method}
         </button>

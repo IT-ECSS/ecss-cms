@@ -42,7 +42,7 @@ class InventoryModules extends Component {
                         inventoryRefreshCounter={this.props.inventoryRefreshCounter}
                     />
                 </div>
-                <div style={{ display: activeTab === 'invoices' ? 'block' : 'none' }}>
+                {activeTab === 'invoices' && (
                     <InventoryInvoices 
                         userName={this.props.userName}
                         role={this.props.role}
@@ -51,7 +51,7 @@ class InventoryModules extends Component {
                         activeTab={activeTab}
                         inventoryRefreshCounter={this.props.inventoryRefreshCounter}
                     />
-                </div>
+                )}
             </>
         );
     }

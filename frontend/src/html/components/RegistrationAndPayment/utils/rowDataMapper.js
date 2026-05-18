@@ -7,6 +7,116 @@
  * @returns {Object} flat row data object for AG-Grid
  */
 export function mapRegistrationToRowData(item, index) {
+  const resolveRegistrationId = (rawItem) => {
+    const candidate =
+      rawItem?._id?._id ??
+      rawItem?._id?.$oid ??
+      rawItem?._id ??
+      rawItem?.id?._id ??
+      rawItem?.id?.$oid ??
+      rawItem?.id ??
+      '';
+
+    if (typeof candidate === 'object' && candidate !== null) {
+      return String(candidate.$oid ?? candidate._id ?? candidate.id ?? '').trim();
+    }
+
+    return String(candidate || '').trim();
+  };
+
+  const rawOfficialInfo =
+    item.official && typeof item.official === 'object'
+      ? item.official
+      : (item.officialInfo && typeof item.officialInfo === 'object' ? item.officialInfo : {});
+
+  const normalizeDisplayValue = (rawValue) => {
+    if (rawValue === null || rawValue === undefined) return '';
+    if (typeof rawValue === 'string') {
+      const value = rawValue.trim();
+      return value === '[object Object]' ? '' : value;
+    }
+    if (typeof rawValue === 'number' || typeof rawValue === 'boolean') {
+      return String(rawValue);
+    }
+
+    if (Array.isArray(rawValue)) {
+      return rawValue
+        .map((item) => normalizeDisplayValue(item))
+        .filter(Boolean)
+        .join(', ');
+    }
+
+    if (typeof rawValue === 'object') {
+      const code = rawValue.code ?? rawValue.value ?? '';
+      const desc = rawValue.desc ?? rawValue.description ?? rawValue.label ?? '';
+      if (code || desc) {
+        return `${code}${code && desc ? ' ' : ''}${desc}`.trim();
+      }
+
+      const directText =
+        rawValue.name ??
+        rawValue.fullName ??
+        rawValue.text ??
+        rawValue.display ??
+        rawValue.englishName;
+      if (directText !== undefined && directText !== null) {
+        return normalizeDisplayValue(directText);
+      }
+
+      const firstPrimitive = Object.values(rawValue).find(
+        (value) => typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'
+      );
+      if (firstPrimitive !== undefined && firstPrimitive !== null) {
+        return normalizeDisplayValue(firstPrimitive);
+      }
+    }
+
+    return '';
+  };
+
+  const normalizeParticipantInfo = (participant) => {
+    const source = participant && typeof participant === 'object' ? participant : {};
+    const normalized = { ...source };
+
+    const firstAvailable = (...values) => values.find((value) => value !== undefined && value !== null);
+
+    normalized.name = normalizeDisplayValue(
+      firstAvailable(source.name, source.pName, source.fullName, source.participantName)
+    );
+    normalized.nric = normalizeDisplayValue(
+      firstAvailable(source.nric, source.nRIC, source.uinfin)
+    );
+    normalized.contactNumber = normalizeDisplayValue(
+      firstAvailable(source.contactNumber, source.cNO, source.mobile, source.phoneNumber)
+    );
+    normalized.email = normalizeDisplayValue(
+      firstAvailable(source.email, source.eMAIL)
+    );
+    normalized.gender = normalizeDisplayValue(
+      firstAvailable(source.gender, source.gENDER, source.sex)
+    );
+    normalized.dateOfBirth = normalizeDisplayValue(
+      firstAvailable(source.dateOfBirth, source.dOB, source.dob)
+    );
+    normalized.residentialStatus = normalizeDisplayValue(
+      firstAvailable(source.residentialStatus, source.rESIDENTIALSTATUS)
+    );
+    normalized.race = normalizeDisplayValue(
+      firstAvailable(source.race, source.rACE, source.ethnicity)
+    );
+    normalized.postalCode = normalizeDisplayValue(
+      firstAvailable(source.postalCode, source.postal, source.zip)
+    );
+    normalized.educationLevel = normalizeDisplayValue(
+      firstAvailable(source.educationLevel, source.eDUCATION, source.education)
+    );
+    normalized.workStatus = normalizeDisplayValue(
+      firstAvailable(source.workStatus, source.wORKING, source.workingStatus)
+    );
+
+    return normalized;
+  };
+
   const normalizeConfirmed = (value) => {
     if (value === true || value === false) return value;
     const normalized = String(value ?? '').trim().toLowerCase();
@@ -15,17 +125,23 @@ export function mapRegistrationToRowData(item, index) {
     return false;
   };
 
-  const confirmedValue = normalizeConfirmed(item.official?.confirmed);
+  const confirmedValue = normalizeConfirmed(rawOfficialInfo?.confirmed);
+  const participantInfo = normalizeParticipantInfo(item.participant);
+  const receiptInvoiceNo = normalizeDisplayValue(
+    item.official?.receiptNo ??
+    item.officialInfo?.receiptNo ??
+    item.receiptNo ??
+    item.recinvNo
+  );
 
   return {
     // Identity
-    id:               item._id,
-    sn:               index + 1,
-
+    id:               resolveRegistrationId(item),
+    sn:               item.sn ?? item.sN ?? index + 1,
     // Participant display fields (also kept in participantInfo for renderers)
-    name:             item.participant?.name             || '',
-    contactNo:        item.participant?.contactNumber    || '',
-    participantInfo:  item.participant                   || {},
+    name:             participantInfo.name               || '',
+    contactNo:        participantInfo.contactNumber      || '',
+    participantInfo,
 
     // Course display fields (also kept in courseInfo for renderers)
     course:           item.course?.courseEngName         || '',
@@ -37,15 +153,18 @@ export function mapRegistrationToRowData(item, index) {
     courseInfo:       item.course                        || {},
 
     // Payment / status
-    paymentMethod:    item.course?.payment               || '',
+    paymentMethod:    item.paymentMethod || item.participant?.paymentMethod || item.course?.payment || '',
     paymentStatus:    item.status                        || '',
     status:           item.status                        || '',
+    registrationStatus: rawOfficialInfo?.registration_status || item.registrationStatus || '',
+    finalPaymentMethod: item.finalPaymentMethod || item.course?.finalPaymentMethod || '',
     confirmed:        confirmedValue,
-    recinvNo:         item.official?.receiptNo           || '',
-    paymentDate:      item.official?.date                || '',
-    refundedDate:     item.official?.refundedDate        || '',
-    remarks:          item.official?.remarks             || '',
-    officialInfo:     { ...(item.official || {}), confirmed: confirmedValue },
+    recinvNo:         receiptInvoiceNo,
+    paymentDate:      rawOfficialInfo?.date              || '',
+    paymentTime:      rawOfficialInfo?.time              || '',
+    refundedDate:     rawOfficialInfo?.refundedDate      || '',
+    remarks:          rawOfficialInfo?.remarks           || '',
+    officialInfo:     { ...rawOfficialInfo, confirmed: confirmedValue },
 
     // Registration metadata
     agreement:        item.agreement                     || '',

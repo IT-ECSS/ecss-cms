@@ -22,6 +22,10 @@ import {
 
 import { logReceiptGeneration } from '../../../../utils/auditLog';
 
+const resolvePaymentMethod = (course) => String(
+  course?.finalPaymentMethod || course?.paymentMethod || course?.payment || ''
+).trim();
+
 // ─── receipt number ───────────────────────────────────────────────────────────
 
 /**
@@ -40,9 +44,20 @@ export async function fetchReceiptNumber(course, paymentMethod) {
 
 /**
  * Generates a receipt PDF and logs the action.
+ * Returns: { receiptNo, blob, filename }
  */
-export async function generatePDFReceipt(id, participant, course, userName, receiptNo, status) {
-  const pdfResponse = await addReceiptNumber(id, participant, course, userName, receiptNo, status);
+export async function generatePDFReceipt(id, participant, course, userName, receiptNo, status, officialInfo = null) {
+  const resolvedPaymentMethod = resolvePaymentMethod(course);
+  
+  // Add receipt number to backend with frontend-computed SGT date/time
+  if (id) {
+    const _now = new Date();
+    const _sgNow = new Date(_now.getTime() + 8 * 60 * 60 * 1000); // SGT (UTC+8)
+    const paymentDate = `${String(_sgNow.getUTCDate()).padStart(2,'0')}/${String(_sgNow.getUTCMonth()+1).padStart(2,'0')}/${_sgNow.getUTCFullYear()}`;
+    const paymentTime = `${String(_sgNow.getUTCHours()).padStart(2,'0')}:${String(_sgNow.getUTCMinutes()).padStart(2,'0')}:${String(_sgNow.getUTCSeconds()).padStart(2,'0')}`;
+    await addReceiptNumber(id, participant, course, userName, receiptNo, status, paymentDate, paymentTime);
+  }
+  
   logReceiptGeneration({
     userName,
     module: 'Registration And Payment',
@@ -50,17 +65,29 @@ export async function generatePDFReceipt(id, participant, course, userName, rece
     participantName: participant.name,
     contactNumber: participant.contactNumber || 'N/A',
     courseName: course.courseEngName || course.courseName || 'N/A',
-    paymentType: course.payment,
+    paymentType: resolvedPaymentMethod || course.payment,
     triggerSource: 'Payment Status Change',
   });
-  return pdfResponse;
+
+  const pdfResponse = await generateReceiptPDF('receipt', participant, course, userName, receiptNo, officialInfo);
+  const blob = pdfResponse.data;
+  const filename = `${participant.name}-${resolvedPaymentMethod || 'payment'}-${receiptNo}.pdf`;
+  
+  return { receiptNo, blob, filename };
 }
 
 /**
  * Generates an invoice PDF and logs the action.
+ * Returns: { receiptNo, blob, filename }
  */
-export async function generatePDFInvoice(id, participant, course, userName, receiptNo, status) {
-  const pdfResponse = await addInvoiceNumber(id, participant, course, userName, receiptNo, status);
+export async function generatePDFInvoice(id, participant, course, userName, receiptNo, status, officialInfo = null) {
+  const resolvedPaymentMethod = resolvePaymentMethod(course);
+  
+  // Add invoice number to backend
+  if (id) {
+    await addInvoiceNumber(id, participant, course, userName, receiptNo, status);
+  }
+  
   logReceiptGeneration({
     userName,
     module: 'Registration And Payment',
@@ -68,10 +95,15 @@ export async function generatePDFInvoice(id, participant, course, userName, rece
     participantName: participant.name,
     contactNumber: participant.contactNumber || 'N/A',
     courseName: course.courseEngName || course.courseName || 'N/A',
-    paymentType: 'Other',
+    paymentType: resolvedPaymentMethod || 'Other',
     triggerSource: 'Payment Status Change (Other)',
   });
-  return pdfResponse;
+
+  const pdfResponse = await generateReceiptPDF('invoice', participant, course, userName, receiptNo, officialInfo);
+  const blob = pdfResponse.data;
+  const filename = `${participant.name}-Invoice-${receiptNo}.pdf`;
+  
+  return { receiptNo, blob, filename };
 }
 
 // ─── database record ─────────────────────────────────────────────────────────
@@ -80,7 +112,9 @@ export async function generatePDFInvoice(id, participant, course, userName, rece
  * Persists a receipt record to the database.
  */
 export async function saveReceiptToDatabase(receiptNo, location, registrationId, url, userName) {
-  await createReceiptRecord(receiptNo, location, registrationId, url, userName);
+  if (registrationId) {
+    await createReceiptRecord(receiptNo, location, registrationId, url, userName);
+  }
 }
 
 // ─── view receipt ─────────────────────────────────────────────────────────────
@@ -90,10 +124,15 @@ export async function saveReceiptToDatabase(receiptNo, location, registrationId,
  * then triggers a file download.
  */
 export async function showReceipt(participant, course, receiptNo, officialInfo, userName) {
-  const purpose = (course.payment === 'Cash' || course.payment === 'PayNow') ? 'receipt' : 'invoice';
+  const resolvedPaymentMethod = String(
+    course?.finalPaymentMethod || course?.paymentMethod || course?.payment || ''
+  ).trim();
+  const purpose = (resolvedPaymentMethod === 'Cash' || resolvedPaymentMethod === 'PayNow')
+    ? 'receipt'
+    : 'invoice';
   const pdfResponse = await generateReceiptPDF(purpose, participant, course, userName, receiptNo, officialInfo);
 
-  const filename = `${participant.name}-${course.payment}-${receiptNo}.pdf`;
+  const filename = `${participant.name}-${resolvedPaymentMethod || 'payment'}-${receiptNo}.pdf`;
   const blob     = new Blob([pdfResponse.data], { type: 'application/pdf' });
   const blobUrl  = window.URL.createObjectURL(blob);
 
@@ -104,7 +143,16 @@ export async function showReceipt(participant, course, receiptNo, officialInfo, 
   a.href     = blobUrl;
   a.download = filename;
   a.click();
-  window.URL.revokeObjectURL(blobUrl);
+
+  // Delay revoking the object URL so the newly opened tab has time to load the PDF.
+  // Revoking immediately can cause the new tab to fail to load the blob resource.
+  setTimeout(() => {
+    try {
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.warn('Failed to revoke blob URL:', err);
+    }
+  }, 5000);
 
   logReceiptGeneration({
     userName,
@@ -113,25 +161,25 @@ export async function showReceipt(participant, course, receiptNo, officialInfo, 
     participantName: participant.name,
     contactNumber: participant.contactNumber || 'N/A',
     courseName: course.courseEngName || course.courseName || 'N/A',
-    paymentType: course.payment,
+    paymentType: resolvedPaymentMethod || course.payment,
     triggerSource: 'Click Receipt Number',
   });
 }
 
 // ─── private sub-functions ────────────────────────────────────────────────────
 
-async function _generateCashPayNowReceipt(id, participant, course, userName, paymentMethod, status) {
+async function _generateCashPayNowReceipt(id, participant, course, userName, paymentMethod, status, officialInfo = null) {
   const receiptNo = await fetchReceiptNumber(course, paymentMethod);
-  await generatePDFReceipt(id, participant, course, userName, receiptNo, status);
+  const result = await generatePDFReceipt(id, participant, course, userName, receiptNo, status, officialInfo);
   await saveReceiptToDatabase(receiptNo, course.courseLocation, id, '', userName);
-  return receiptNo;
+  return result; // { receiptNo, blob, filename }
 }
 
-async function _generateSkillsFutureInvoice(id, participant, course, userName, paymentMethod, status) {
+async function _generateSkillsFutureInvoice(id, participant, course, userName, paymentMethod, status, officialInfo = null) {
   const invoiceNo = await fetchReceiptNumber(course, paymentMethod);
-  await generatePDFInvoice(id, participant, course, userName, invoiceNo, status);
+  const result = await generatePDFInvoice(id, participant, course, userName, invoiceNo, status, officialInfo);
   await saveReceiptToDatabase(invoiceNo, course.courseLocation, id, '', userName);
-  return invoiceNo;
+  return result; // { receiptNo, blob, filename }
 }
 
 // ─── receipt generator (on status change) ────────────────────────────────────
@@ -144,7 +192,7 @@ async function _generateSkillsFutureInvoice(id, participant, course, userName, p
 export async function receiptGenerator(id, participant, course, official, value, userName) {
   if (value === 'Generating SkillsFuture Invoice') {
     try {
-      return await _generateSkillsFutureInvoice(id, participant, course, userName, 'SkillsFuture', value);
+      return await _generateSkillsFutureInvoice(id, participant, course, userName, 'SkillsFuture', value, official);
     } catch (error) {
       console.error('Error during SkillsFuture invoice generation:', error);
     }
@@ -152,10 +200,11 @@ export async function receiptGenerator(id, participant, course, official, value,
   }
 
   if (value !== 'Paid') return null;
-  if (course.payment !== 'Cash' && course.payment !== 'PayNow') return null;
+  const resolvedPaymentMethod = resolvePaymentMethod(course);
+  if (resolvedPaymentMethod !== 'Cash' && resolvedPaymentMethod !== 'PayNow') return null;
 
   try {
-    return await _generateCashPayNowReceipt(id, participant, course, userName, course.payment, value);
+    return await _generateCashPayNowReceipt(id, participant, course, userName, resolvedPaymentMethod, value, official);
   } catch (error) {
     console.error('Error during receipt generation:', error);
   }
@@ -174,13 +223,13 @@ export async function autoReceiptGenerator(id, participant, course, official, ne
   if (newMethod === 'Cash' || newMethod === 'PayNow') {
     if (value !== 'Paid') return null;
     try {
-      return await _generateCashPayNowReceipt(id, participant, course, userName, newMethod, value);
+      return await _generateCashPayNowReceipt(id, participant, course, userName, newMethod, value, official);
     } catch (error) {
       console.error('Error during receipt generation:', error);
     }
   } else if (newMethod === 'SkillsFuture') {
     try {
-      return await _generateSkillsFutureInvoice(id, participant, course, userName, 'SkillsFuture', value);
+      return await _generateSkillsFutureInvoice(id, participant, course, userName, 'SkillsFuture', value, official);
     } catch (error) {
       console.error('Error during SkillsFuture invoice generation:', error);
     }

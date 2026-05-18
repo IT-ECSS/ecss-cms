@@ -79,11 +79,7 @@ function BulkUpdateReasonModal({
             />
           </div>
 
-          <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '1rem' }}>
-            <p>
-              This reason will be added to the NSA Approval Request List for tracking and approval purposes.
-            </p>
-          </div>
+
         </div>
 
         <div className="registration-payment-details-modal-footer">

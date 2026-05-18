@@ -13,8 +13,11 @@ import React from 'react';
  *   params.context.componentInstance – ref to the parent class component
  */
 const SlideButtonRenderer = (params) => {
-  // Only render the toggle for SkillsFuture payment method
-  if (params.data?.paymentMethod !== 'SkillsFuture') return null;
+  // For NSA rows, finalPaymentMethod (staff-selected) is the source of truth.
+  const resolvedMethod = String(
+    params.data?.finalPaymentMethod || params.data?.paymentMethod || ''
+  ).trim();
+  if (resolvedMethod !== 'SkillsFuture') return null;
 
   const parseConfirmed = (value) => {
     if (value === true || value === false) return value;

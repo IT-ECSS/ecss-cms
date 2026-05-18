@@ -6,6 +6,32 @@ var receiptGenerator = require('../Others/Pdf/receiptGenerator');
 var invoiceGenerator = require('../Others/Pdf/invoiceGenerator');
 const { sendOneSignalNotification } = require('../services/notificationService');
 
+// Reuse controller instances across requests so Mongo clients can stay warm.
+const participantsController = new ParticipantsController();
+const registrationController = new RegistrationController();
+
+// ── In-memory cache for registration data ─────────────────────────────────────
+// Survives browser refreshes (server-side). TTL = 15 seconds.
+// // 90 s TTL keeps the in-memory cache warm across typical page navigations while
+// // still reflecting any direct DB edits within a reasonable window.
+// const CACHE_TTL_MS = 90 * 1000;
+// const _regCache = new Map(); // key → { data: [], total: N, ts: Date.now() }
+
+// function _cacheKey(role, siteIC) {
+//     return `${role || 'all'}::${JSON.stringify(siteIC ?? null)}`;
+// }
+// function _getCached(role, siteIC) {
+//     const entry = _regCache.get(_cacheKey(role, siteIC));
+//     if (!entry) return null;
+//     if (Date.now() - entry.ts > CACHE_TTL_MS) { _regCache.delete(_cacheKey(role, siteIC)); return null; }
+//     return entry;
+// }
+// function _setCache(role, siteIC, data) {
+//     _regCache.set(_cacheKey(role, siteIC), { data, total: data.length, ts: Date.now() });
+// }
+// function _invalidateCache() { _regCache.clear(); }
+// ──────────────────────────────────────────────────────────────────────────────
+
 function getCurrentDateTime() {
     // Create a Date object and adjust for Singapore Standard Time (UTC+8)
     const now = new Date();
@@ -18,7 +44,7 @@ function getCurrentDateTime() {
     const month = String(adjustedTime.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
     const year = adjustedTime.getFullYear();
 
-    const hours = String(adjustedTime.getHours()+8).padStart(2, '0'); // Ensure two digits
+    const hours = String(adjustedTime.getHours()).padStart(2, '0'); // Ensure two digits
     const minutes = String(adjustedTime.getMinutes()).padStart(2, '0'); // Ensure two digits
     const seconds = String(adjustedTime.getSeconds()).padStart(2, '0'); // Ensure two digits
 
@@ -95,11 +121,14 @@ function generateSuccessMessage(duplicateCheck) {
 
 router.post('/', async function(req, res, next) 
 {
-    // Initialize controllers once at the top
-    const participantsController = new ParticipantsController();
-    const registrationController = new RegistrationController();
     const io = req.app.get('io');
-    
+
+    // Invalidate the registration cache for any write operation
+    const READ_PURPOSES = new Set(['retrieve', 'retrievePaged', 'retrieveById', 'receipt', 'invoice']);
+    if (!READ_PURPOSES.has(req.body.purpose)) {
+        // _invalidateCache();
+    }
+
     if(req.body.purpose === "insert")
     {
         var participantsParticulars = req.body.participantDetails;
@@ -112,7 +141,14 @@ router.post('/', async function(req, res, next)
             date: "",
             time: "",
             receiptNo: "",
-            remarks: ""
+            remarks: "",
+            registration_status: "Submitted"
+        };
+
+        // Ensure the new record includes course.finalPaymentMethod
+        participantsParticulars.course = {
+            ...(participantsParticulars.course || {}),
+            finalPaymentMethod: participantsParticulars.course?.finalPaymentMethod || participantsParticulars.course?.payment || '',
         };
 
         // Proceed with registration creation first
@@ -296,6 +332,24 @@ router.post('/', async function(req, res, next)
             });
         }  
     }
+    else if(req.body.purpose === "retrievePaged")
+    {
+        var { role, siteIC, skip = 0, limit } = req.body;
+        skip  = parseInt(skip)  || 0;
+        limit = (limit != null && limit !== '') ? parseInt(limit) : null;
+
+        // let cached = _getCached(role, siteIC);
+        // if (!cached) {
+        const all = await registrationController.allParticipants(role, siteIC);
+        const allArr = Array.isArray(all) ? all : [];
+        //     _setCache(role, siteIC, allArr);
+        //     cached = { data: allArr, total: allArr.length };
+        // }
+
+        const slice = limit != null ? allArr.slice(skip, skip + limit) : allArr.slice(skip);
+        const total = skip === 0 ? allArr.length : null; // only send total on first page
+        return res.json({ result: slice, total });
+    }
     else if(req.body.purpose === "retrieve")
     {
         var {role, siteIC, name} = req.body;
@@ -304,6 +358,13 @@ router.post('/', async function(req, res, next)
         var result = await registrationController.allParticipants(role, siteIC);
         //console.log("Retrieve Registration Records:", result);
         return res.json({"result": result}); 
+    }
+    else if(req.body.purpose === "retrieveById")
+    {
+        var { id } = req.body;
+        if (!id) return res.status(400).json({ result: null, message: 'Missing id' });
+        var result = await registrationController.getParticipantById(id);
+        return res.json({ result });
     }
     else if(req.body.purpose === "delete")
     {
@@ -332,7 +393,9 @@ router.post('/', async function(req, res, next)
         var field = req.body.field;
         var editedValue = req.body.editedValue;
         console.log("Body:", req.body)
+        console.log("Attempting to update field:", field, "with value:", editedValue, "for id:", id);
         var result = await registrationController.updateParticipantParticulars(id, field, editedValue);
+        console.log("updateParticipantParticulars result:", result);
         if (io) {
             io.emit('registration', {
                 type: 'registration-edit',
@@ -350,6 +413,7 @@ router.post('/', async function(req, res, next)
         var id = req.body.id;  
         var name = sanitizeStaffName(req.body.staff);
         var status = req.body.newUpdateStatus;
+        
         const currentDateTime = getCurrentDateTime();
         var date = currentDateTime.date;
         var time = currentDateTime.time;
@@ -391,25 +455,36 @@ router.post('/', async function(req, res, next)
         console.log("Receipt body:", req.body); 
         var staffName = sanitizeStaffName(req.body.staff);
                 
-        // Update the receipt number
-        var result = await registrationController.updateReceiptNumber(req.body.id, req.body.receiptNo);
-        console.log("updateReceiptNumber:", result); 
+        // Update the receipt number for the single registration identified by `id`.
+        const registrationId = req.body.id;
+        if (!registrationId) {
+            return res.status(400).json({ result: false, message: 'Missing registration id' });
+        }
 
-        // Logging the row data from the request
-        console.log("Array:", req.body.rowData);
+        const result = await registrationController.updateReceiptNumber(registrationId, req.body.receiptNo);
 
-        // Get current date and time
-        const currentDateTime = getCurrentDateTime();
-        var date = currentDateTime.date;
-        var time = currentDateTime.time;
+        // Use frontend-provided SGT date/time if sent, otherwise fall back to backend computation
+        let date, time;
+        if (req.body.date && req.body.time) {
+            date = req.body.date;
+            time = req.body.time;
+        } else {
+            const currentDateTime = getCurrentDateTime();
+            date = currentDateTime.date;
+            time = currentDateTime.time;
+        }
 
-        console.log("Check:", req.body._id, staffName, date, time, req.body.status);
+        // Update the official use details for the same registration id (do not use row numbers)
+        await registrationController.updateOfficialUse(registrationId, staffName, date, time, req.body.status);
 
-        // Update the official use details
-        await registrationController.updateOfficialUse(req.body._id, staffName, date, time, req.body.status);
+        if (io) {
+            io.emit('registration', {
+                type: 'registration-receipt-added',
+                id: registrationId,
+            });
+        }
 
-        // Return the result message
-        return res.json({ "result": "Success" }); // Replace "Success" with a proper message if needed
+        return res.json({ result: true, message: 'Receipt number and official use updated' });
     }
     else if(req.body.purpose === "receipt")
     {
@@ -432,15 +507,43 @@ router.post('/', async function(req, res, next)
     {
         console.log("Receipt body:", req.body); 
         var staffName = sanitizeStaffName(req.body.staff);
-        var result = await registrationController.updateReceiptNumber(req.body.id, req.body.receiptNo);
-        console.log("updateReceiptNumber:", result); 
-        console.log("Array:", req.body.rowData);
+        const registrationId = req.body.id;
+        if (!registrationId) {
+            return res.status(400).json({ result: false, message: 'Missing registration id' });
+        }
+
+        await registrationController.updateReceiptNumber(registrationId, req.body.receiptNo);
         const currentDateTime = getCurrentDateTime();
-        var date = currentDateTime.date;
-        var time = currentDateTime.time;
-        console.log("Check:", req.body._id,  staffName, date, time, req.body.status);
-        await registrationController.updateOfficialUse(req.body._id, staffName, date, time, req.body.status);
-        return res.json({ "result": "Success" }); 
+        const date = currentDateTime.date;
+        const time = currentDateTime.time;
+        await registrationController.updateOfficialUse(registrationId, staffName, date, time, req.body.status);
+
+        if (io) {
+            io.emit('registration', {
+                type: 'registration-invoice-added',
+                id: registrationId,
+            });
+        }
+
+        return res.json({ result: true, message: 'Invoice number and official use updated' }); 
+    }
+    else if(req.body.purpose === "clearPaymentDetails")
+    {
+        const registrationId = req.body.id;
+        if (!registrationId) {
+            return res.status(400).json({ result: false, message: 'Missing registration id' });
+        }
+
+        const cleared = await registrationController.clearPaymentDetails(registrationId);
+
+        if (io) {
+            io.emit('registration', {
+                type: 'registration-payment-cleared',
+                id: registrationId,
+            });
+        }
+
+        return res.json({ result: cleared, message: 'Payment details cleared' });
     }
     else if(req.body.purpose === "invoice")
     {

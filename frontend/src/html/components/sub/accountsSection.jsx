@@ -78,12 +78,12 @@ class AccountsSection extends Component {
       {
         headerName: "Email",
         field: "email",
-        width: 300,
+        width: 350,
       },
       {
         headerName: "Account Type",
         field: "accType",
-        width: 250,
+        width: 300,
         // Apply styles dynamically based on the account type (role)
         cellStyle: (params) => {
           return {
@@ -106,23 +106,35 @@ class AccountsSection extends Component {
         headerName: "Site I/C",
         field: "siteIC",
         width: 550,
-         // Apply styles dynamically based on the account type (role)
-         cellStyle: (params) => {
-          return {
-            backgroundColor: this.getSiteColor(params.value), // Background color based on role
-            fontWeight: "bold",
-            color: "white",
-            textAlign: "center", // Center text horizontally
-            display: "inline-flex", // Use flexbox for vertical alignment
-            alignItems: "center", // Vertically center the text
-            justifyContent: "center", // Center horizontally as well
-            borderRadius: "20px", // Oval shape
-            paddingLeft: "30px", // Padding inside the oval
-            paddingRight: "30px", // Padding inside the oval
-            minWidth: "100px", // Ensure a minimum width for the oval
-            whiteSpace: "nowrap", // Prevent text from wrapping
-          };
-        },        
+        autoHeight: true,
+        cellRenderer: (params) => {
+          if (!params.value) return null;
+          const sites = params.value
+            .split(",")
+            .map((s) => s.trim())
+            .filter((s) => s);
+          if (sites.length === 0) return null;
+          return (
+            <div
+              style={{
+                backgroundColor: "#808080",
+                fontWeight: "bold",
+                color: "white",
+                borderRadius: "20px",
+                padding: "6px 20px",
+                display: "inline-block",
+                textAlign: "left",
+                margin: "4px 0",
+              }}
+            >
+              <ul style={{ margin: 0, paddingLeft: "16px", listStyleType: "disc" }}>
+                {sites.map((site, i) => (
+                  <li key={i}>{site}</li>
+                ))}
+              </ul>
+            </div>
+          );
+        },
       },
       {
         headerName: "Date Created",
@@ -685,9 +697,6 @@ class AccountsSection extends Component {
             sortable={true}
             statusBar={false}
             pagination={true}
-            defaultColDef={{
-              resizable: true, //Make columns resizable
-            }}
             onCellClicked={ this.props.accountType === 'Accounts'
               ? this.handleAccountsValueClick // Set page size based on accounts row data
               :  this.handleAccessRightsValueClick } // Handle cell click event

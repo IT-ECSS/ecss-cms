@@ -107,24 +107,18 @@ class AccountsDashboard extends Component {
                     statistics.nsaInChargeAccounts++;
                     break;
                 case 'ops in-charge':
-                case 'ops in charge':
-                case 'opsincharge':
                     statistics.opsInChargeAccounts++;
                     break;
                 case 'site in-charge':
-                case 'site in charge':
-                case 'siteincharge':
                     statistics.siteInChargeAccounts++;
                     break;
                 case 'finance':
                     statistics.financeAccounts++;
                     break;
                 case 'social worker':
-                case 'socialworker':
                     statistics.socialWorkerAccounts++;
                     break;
                 case 'fitness trainer':
-                case 'fitnesstrainer':
                     statistics.fitnessTrainerAccounts++;
                     break;
                 default:

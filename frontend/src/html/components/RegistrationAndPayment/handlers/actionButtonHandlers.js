@@ -51,55 +51,29 @@ import {
   removeRefundedDate,
 } from '../services/registrationApi';
 
-const TESTING_EXPORT_APPROVAL_EMAILS = ['testinga@ecss.org.sg', 'testingb@ecss.org.sg', 'mossleegermany@gmail.com'];
-const TESTING_EXPORT_APPROVAL_NAMES = ['testing a', 'testingb', 'testing b', 'testinga', 'lee xuan yao moseds', 'lee xuan yao moses'];
-
-function normalizeIdentityEmail(email) {
-  const raw = String(email || '').trim().toLowerCase();
-  const extracted = raw.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/);
-  return extracted ? extracted[0] : raw;
+function resolveExportPaymentMethod(row = {}) {
+  return (
+    row?.finalPaymentMethod ||
+    row?.paymentMethod ||
+    row?.courseInfo?.finalPaymentMethod ||
+    row?.courseInfo?.paymentMethod ||
+    row?.courseInfo?.payment ||
+    row?.course?.finalPaymentMethod ||
+    row?.course?.paymentMethod ||
+    row?.course?.payment ||
+    ''
+  );
 }
 
-function normalizeIdentityName(name) {
-  return String(name || '')
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function isTestingExportApprovalUser(email, userName) {
-  const normalizedEmail = normalizeIdentityEmail(email);
-  const normalizedName = normalizeIdentityName(userName);
-
-  if (normalizedName.includes('lee xuan yao') && (normalizedName.includes('moses') || normalizedName.includes('moseds'))) {
-    return true;
-  }
-
-  return TESTING_EXPORT_APPROVAL_EMAILS.includes(normalizedEmail)
-    || TESTING_EXPORT_APPROVAL_NAMES.includes(normalizedName);
-}
-
-const SUPERVISOR_EXPORT_EMAILS = ['moses_lee@ecss.org.sg', 'peipei_low@ecss.org.sg', 'rosalind_ong@ecss.org.sg'];
-
-function isSupervisorExportUser(email) {
-  return SUPERVISOR_EXPORT_EMAILS.includes(normalizeIdentityEmail(email));
-}
-
-function arrayBufferToBase64(buffer) {
-  const bytes = new Uint8Array(buffer);
-  let binary = '';
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return window.btoa(binary);
+function hasExportableRegistrationStatus(row = {}) {
+  const registrationStatus = String(row?.registrationStatus || '').trim();
+  return registrationStatus === 'Submitted' || registrationStatus === 'Confirmed Slot';
 }
 
 // ── Export to LOP ─────────────────────────────────────────────────────────────
 
 export async function exportToLOP(context) {
-  const { selectedRows, userName, userEmail, warningPopUpMessage, onPendingExportApproval, onSupervisorExportConfirm } = context;
+  const { selectedRows, userName, warningPopUpMessage } = context;
   try {
     if (!selectedRows.length) {
       return warningPopUpMessage('No rows selected. Please select rows to export.');
@@ -147,16 +121,16 @@ export async function exportToLOP(context) {
     const startRow    = 9;
 
     const filteredRows = selectedRows
-      .filter((row) =>
-        firstType === 'NSA'
-          ? row.paymentStatus === 'Paid' || row.paymentStatus === 'SkillsFuture Done'
-          : row.paymentStatus === 'Confirmed'
-      )
+      .filter((row) => hasExportableRegistrationStatus(row))
       .sort((a, b) =>
         a.participantInfo.name.trim().toLowerCase().localeCompare(
           b.participantInfo.name.trim().toLowerCase()
         )
       );
+
+    if (!filteredRows.length) {
+      return warningPopUpMessage("No rows with registration status 'Submitted' or 'Confirmed Slot' found.");
+    }
 
     const locationValues = [...new Set(
       filteredRows
@@ -250,7 +224,7 @@ export async function exportToLOP(context) {
         sourceSheet.getCell(`U${rowIndex}`).value =
           detail.courseInfo.courseMode === 'Face-to-Face' ? 'F2F' : detail.courseInfo.courseMode;
         sourceSheet.getCell(`W${rowIndex}`).value = detail.courseInfo.coursePrice;
-        sourceSheet.getCell(`X${rowIndex}`).value = detail.courseInfo.payment;
+        sourceSheet.getCell(`X${rowIndex}`).value = resolveExportPaymentMethod(detail);
         sourceSheet.getCell(`AD${rowIndex}`).value = detail.officialInfo.receiptNo;
         sourceSheet.getCell(`V${rowIndex}`).value =
           detail.courseInfo.courseLocation === 'Pasir Ris West Wellness Centre' ? '510605,' : '';
@@ -313,30 +287,6 @@ export async function exportToLOP(context) {
     }
 
     const buffer = await workbook.xlsx.writeBuffer();
-
-    if (isSupervisorExportUser(userEmail) && onSupervisorExportConfirm) {
-      const excelBase64 = arrayBufferToBase64(buffer);
-      onSupervisorExportConfirm({
-        excelBase64,
-        exportType:  'LOP',
-        courseType:  firstType,
-        recordCount: selectedRows.length,
-        fileName:    outputFileName,
-      });
-      return;
-    }
-
-    if (isTestingExportApprovalUser(userEmail, userName) && onPendingExportApproval) {
-      const excelBase64 = arrayBufferToBase64(buffer);
-      onPendingExportApproval({
-        excelBase64,
-        exportType:  'LOP',
-        courseType:  firstType,
-        recordCount: filteredRows.length,
-        fileName:    outputFileName,
-      });
-      return;
-    }
 
     saveAs(
       new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
@@ -482,7 +432,7 @@ export async function exportToMarriagePreparationProgramme(context) {
 // ── Export Attendance ─────────────────────────────────────────────────────────
 
 export async function exportAttendance(context) {
-  const { selectedRows, warningPopUpMessage, userName, userEmail, onPendingExportApproval, onSupervisorExportConfirm } = context;
+  const { selectedRows, warningPopUpMessage, userName } = context;
 
   if (!selectedRows.length) {
     return warningPopUpMessage('No rows selected. Please select rows to export.');
@@ -491,25 +441,17 @@ export async function exportAttendance(context) {
   const rawType = selectedRows[0]?.courseInfo?.courseType || selectedRows[0]?.course?.courseType || '';
   const firstType = String(rawType).trim().toUpperCase();
 
-  const filteredRows = selectedRows.filter((row) => {
-    const s = row.paymentStatus;
-    if (firstType === 'NSA') return s === 'Paid' || s === 'SkillsFuture Done';
-    return s === 'Confirmed';
-  });
+  const filteredRows = selectedRows.filter((row) => hasExportableRegistrationStatus(row));
 
   if (!filteredRows.length) {
-    const msg =
-      firstType === 'NSA'
-        ? "No rows with payment status 'Paid' found."
-        : "No rows with payment status 'Confirmed' found.";
-    return warningPopUpMessage(msg);
+    return warningPopUpMessage("No rows with registration status 'Submitted' or 'Confirmed Slot' found.");
   }
 
   try {
     if (firstType === 'NSA') {
-      await _exportAttendanceNSA(filteredRows, userName, warningPopUpMessage, userEmail, onPendingExportApproval, onSupervisorExportConfirm);
+      await _exportAttendanceNSA(filteredRows, userName, warningPopUpMessage);
     } else if (firstType === 'ILP') {
-      await _exportAttendanceILP(filteredRows, userName, warningPopUpMessage, userEmail, onPendingExportApproval, onSupervisorExportConfirm);
+      await _exportAttendanceILP(filteredRows, userName, warningPopUpMessage);
     } else {
       return warningPopUpMessage(`Unsupported course type for Attendance export: ${rawType || 'Unknown'}`);
     }
@@ -519,7 +461,7 @@ export async function exportAttendance(context) {
   }
 }
 
-async function _exportAttendanceNSA(filteredRows, userName, warningPopUpMessage, userEmail, onPendingExportApproval, onSupervisorExportConfirm) {
+async function _exportAttendanceNSA(filteredRows, userName, warningPopUpMessage) {
   const response = await fetch('/external/Attendance.xlsx');
   if (!response.ok) {
     return warningPopUpMessage('Error fetching the Excel file.');
@@ -601,30 +543,6 @@ async function _exportAttendanceNSA(filteredRows, userName, warningPopUpMessage,
   const safeLocation = sanitizeForFileName(courseLocation, 'Unknown Location');
   const attendanceFileName = `Attendance (Course) ECSS${formatDateToDDMMYYYY1(start)} ${safeLocation} ${safeCourseName}.xlsx`;
 
-  if (isSupervisorExportUser(userEmail) && onSupervisorExportConfirm) {
-    const excelBase64 = arrayBufferToBase64(buffer);
-    onSupervisorExportConfirm({
-      excelBase64,
-      exportType:  'Attendance',
-      courseType:  'NSA',
-      recordCount: filteredRows.length,
-      fileName:    attendanceFileName,
-    });
-    return;
-  }
-
-  if (isTestingExportApprovalUser(userEmail, userName) && onPendingExportApproval) {
-    const excelBase64 = arrayBufferToBase64(buffer);
-    onPendingExportApproval({
-      excelBase64,
-      exportType:  'Attendance',
-      courseType:  'NSA',
-      recordCount: filteredRows.length,
-      fileName:    attendanceFileName,
-    });
-    return;
-  }
-
   saveAs(
     new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
     attendanceFileName
@@ -645,7 +563,7 @@ async function _exportAttendanceNSA(filteredRows, userName, warningPopUpMessage,
   });
 }
 
-async function _exportAttendanceILP(filteredRows, userName, warningPopUpMessage, userEmail, onPendingExportApproval, onSupervisorExportConfirm) {
+async function _exportAttendanceILP(filteredRows, userName, warningPopUpMessage) {
   const response = await fetch('/external/2025 ILP Course Name Site Name Date of event.xlsx');
   if (!response.ok) return warningPopUpMessage('Error fetching the Excel file.');
 
@@ -697,30 +615,6 @@ async function _exportAttendanceILP(filteredRows, userName, warningPopUpMessage,
   const safeLocation = sanitizeForFileName(courseLocation, 'Unknown Location');
   const safeCommenceDate = sanitizeForFileName(commenceDate, formatDateToDDMMYYYY2(new Date()));
   const ilpFileName = `2025 ILP ${safeCourseName} ${safeLocation} ${safeCommenceDate}.xlsx`;
-
-  if (isSupervisorExportUser(userEmail) && onSupervisorExportConfirm) {
-    const excelBase64 = arrayBufferToBase64(buffer);
-    onSupervisorExportConfirm({
-      excelBase64,
-      exportType:  'Attendance',
-      courseType:  'ILP',
-      recordCount: filteredRows.length,
-      fileName:    ilpFileName,
-    });
-    return;
-  }
-
-  if (isTestingExportApprovalUser(userEmail, userName) && onPendingExportApproval) {
-    const excelBase64 = arrayBufferToBase64(buffer);
-    onPendingExportApproval({
-      excelBase64,
-      exportType:  'Attendance',
-      courseType:  'ILP',
-      recordCount: filteredRows.length,
-      fileName:    ilpFileName,
-    });
-    return;
-  }
 
   saveAs(
     new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
@@ -944,10 +838,8 @@ export async function handleBulkUpdate(context) {
     setShowBulkUpdateModal,
     setBulkUpdateFields,
     updateWooCommerce,
-    onNSAApprovalRequest,
     onApprovalQueueRequest,
     onNotifierQueueRequest,
-    isNsaNotifierUser = false,
     reason = '',
   } = context;
 
@@ -1039,118 +931,6 @@ export async function handleBulkUpdate(context) {
     field === 'paymentMethod' ? (valueForRow(row) || bulkUpdateMethod || '') :
     field === 'confirmationStatus' ? (valueForRow(row) || bulkUpdateValue) :
     valueForRow(row) || bulkUpdateValue || '';
-
-  const isNsaRow = (row) => {
-    const courseType = String(row?.courseInfo?.courseType || row?.courseType || '').trim().toUpperCase();
-    return courseType === 'NSA';
-  };
-
-  const nsaRows = targetRows.filter(isNsaRow);
-  const directRows = targetRows.filter((row) => !isNsaRow(row));
-
-  if (isNsaNotifierUser) {
-    const notifierRows = targetRows;
-
-    if (!notifierRows.length) {
-      return alert('No effective changes detected for bulk update.');
-    }
-
-    const missingReasonRow = notifierRows.find((row) => !getReasonForRow(row));
-    if (missingReasonRow) {
-      return alert(`Reason is required for S/N ${missingReasonRow.sn || missingReasonRow.id || ''} before queuing notifier bulk updates.`);
-    }
-
-    if (typeof onNotifierQueueRequest === 'function') {
-      notifierRows.forEach((row) => {
-        const currentValue = getCurrentValue(row);
-        const nextValue = getNextValue(row);
-        const rowReason = getReasonForRow(row);
-
-        onNotifierQueueRequest({
-          row,
-          columnName: fieldLabelMap[field],
-          oldValue: currentValue,
-          newValue: nextValue,
-          reason: rowReason,
-        });
-      });
-    }
-
-    setShowBulkUpdateModal(false);
-    setBulkUpdateFields({
-      bulkUpdateField: '',
-      bulkUpdateStatus: '',
-      bulkUpdateMethod: '',
-      bulkUpdateValue: '',
-      bulkUpdateRowValues: {},
-    });
-    closePopup();
-    alert(`Queued ${notifierRows.length} record${notifierRows.length !== 1 ? 's' : ''} in NSA Notifier flow.`);
-    return;
-  }
-
-  if (nsaRows.length) {
-    const missingReasonRow = nsaRows.find((row) => !getReasonForRow(row));
-    if (missingReasonRow) {
-      return alert(`Reason is required for S/N ${missingReasonRow.sn || missingReasonRow.id || ''} before sending NSA bulk updates for approval.`);
-    }
-  }
-
-  if (nsaRows.length) {
-    for (const row of nsaRows) {
-      const currentValue = getCurrentValue(row);
-      const nextValue = getNextValue(row);
-      const rowReason = getReasonForRow(row);
-
-      if (onNSAApprovalRequest && typeof onNSAApprovalRequest === 'function') {
-        onNSAApprovalRequest({
-          columnName: fieldLabelMap[field],
-          currentValue,
-          newValue: nextValue,
-          reason: rowReason,
-          registrationId: row?.id || '',
-          sn: row?.sn || '',
-          participantName: row?.participantInfo?.name || row?.name || '',
-          contactNo: row?.contactNo || row?.participantInfo?.contactNumber || '',
-          courseName: row?.courseInfo?.courseEngName || row?.course || '',
-          courseLocation: row?.courseInfo?.courseLocation || row?.location || '',
-          courseType: row?.courseInfo?.courseType || 'NSA',
-          paymentMethod: row?.paymentMethod || '',
-          paymentStatus: row?.paymentStatus || '',
-          paymentDate: row?.paymentDate || '',
-          refundedDate: row?.refundedDate || '',
-          remarks: row?.remarks || '',
-          confirmed: row?.confirmed ?? null,
-        });
-      }
-
-      if (onApprovalQueueRequest && typeof onApprovalQueueRequest === 'function') {
-        onApprovalQueueRequest({
-          row,
-          columnName: fieldLabelMap[field],
-          oldValue: currentValue,
-          newValue: nextValue,
-          reason: rowReason,
-        });
-      }
-    }
-  }
-
-  if (!directRows.length) {
-    setShowBulkUpdateModal(false);
-    setBulkUpdateFields({
-      bulkUpdateField: '',
-      bulkUpdateStatus: '',
-      bulkUpdateMethod: '',
-      bulkUpdateValue: '',
-      bulkUpdateRowValues: {},
-    });
-    closePopup();
-    alert(`Submitted ${nsaRows.length} NSA record${nsaRows.length !== 1 ? 's' : ''} to approval request list.`);
-    return;
-  }
-
-  targetRows = directRows;
 
   showUpdatePopup(`Updating ${targetRows.length} records for ${fieldLabelMap[field]}... Please wait...`);
 

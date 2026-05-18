@@ -1,5 +1,4 @@
 import React from 'react';
-import { isNsaNotifier } from '../constants/accessControl';
 
 /**
  * The toolbar row of action buttons displayed above the AG-Grid.
@@ -16,6 +15,7 @@ import { isNsaNotifier } from '../constants/accessControl';
  *   onExportAttendance        {function} – exportAttendance handler
  *   onExportMarriagePrep      {function} – exportToMarriagePreparationProgramme handler
  *   onOpenBulkUpdate          {function} – openBulkUpdateModal handler
+ *   hideBulkUpdate            {boolean}  – hide bulk update button when true
  */
 const ActionButtonsRow = ({
   role,
@@ -29,6 +29,7 @@ const ActionButtonsRow = ({
   onExportAttendance,
   onExportMarriagePrep,
   onOpenBulkUpdate,
+  hideBulkUpdate = false,
   isReadOnly,
   onOpenApprovalQueue,
   onOpenApprovalStatus,
@@ -91,13 +92,15 @@ const ActionButtonsRow = ({
         </button>
       )}
 
-      <button
-        className="registration-payment-details-button"
-        style={{ color: '#9C27B0', borderColor: '#9C27B0' }}
-        onClick={onOpenBulkUpdate}
-      >
-        Bulk Update
-      </button>
+      {!hideBulkUpdate && (
+        <button
+          className="registration-payment-details-button"
+          style={{ color: '#9C27B0', borderColor: '#9C27B0' }}
+          onClick={onOpenBulkUpdate}
+        >
+          Bulk Update
+        </button>
+      )}
 
       {isReadOnly && (
         <button
@@ -119,15 +122,6 @@ const ActionButtonsRow = ({
         </button>
       )}
 
-      {isNsaNotifier(userEmail) && (
-        <button
-          className="registration-payment-details-button"
-          style={{ color: '#0d47a1', borderColor: '#0d47a1', fontWeight: 700 }}
-          onClick={onOpenNotifierQueue}
-        >
-          NSA Notifier
-        </button>
-      )}
     </div>
   );
 };

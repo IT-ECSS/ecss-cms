@@ -216,7 +216,14 @@ class receiptGenerator {
 
         var receiptText = "";
 
-        if(array[0].course.payment === "Cash" || array[0].course.payment === "PayNow")
+                const resolvedPaymentMethod = String(
+                    array[0]?.course?.finalPaymentMethod ||
+                    array[0]?.course?.paymentMethod ||
+                    array[0]?.course?.payment ||
+                    ''
+                ).trim();
+
+        if(resolvedPaymentMethod === "Cash" || resolvedPaymentMethod === "PayNow")
         {
             receiptText = `Receipt No   : ${receiptNo}`;
         }
@@ -269,7 +276,7 @@ class receiptGenerator {
         //console.log(array[0]);
 
         // Add a new line before adding the date text
-        const paymentMethod = `Payment Method   : ${array[0].course.payment}`;
+        const paymentMethod = `Payment Method   : ${resolvedPaymentMethod}`;
  
         // Add the date on a new line
         doc.font(fontPathTimesRegular).fontSize(12).text(paymentMethod, leftMargin, doc.y, {

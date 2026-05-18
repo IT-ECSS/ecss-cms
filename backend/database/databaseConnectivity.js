@@ -46,6 +46,14 @@ class DatabaseConnectivity {
         this.connectionPromise = null;
     }
 
+    _makeObjectId(id) {
+        if (!id) return null;
+        if (typeof id === 'object' && id !== null) {
+            return new ObjectId(String(id.$oid ?? id.id ?? id));
+        }
+        return new ObjectId(String(id));
+    }
+
     // Connect to the database with improved error handling and connection reuse
     async initialize()
     {
@@ -746,6 +754,18 @@ class DatabaseConnectivity {
     
                 // Ensure registration_id is an ObjectId only for "Receipts" collection
                 if (collectionName === "Receipts") {
+                    const existingReceipt = await table.findOne(
+                        { receiptNo: data.receiptNo },
+                        { projection: { _id: 1 } }
+                    );
+                    if (existingReceipt) {
+                        return {
+                            acknowledged: true,
+                            skipped: true,
+                            reason: "receiptNo already exists",
+                        };
+                    }
+
                     const registrationId = new ObjectId(data.registration_id);
                     data.registration_id = registrationId;
                 }
@@ -784,6 +804,22 @@ class DatabaseConnectivity {
         }
     }
 
+    // Fields needed by the frontend row mapper — excludes large/unused fields to
+    // reduce network transfer and MongoDB serialisation overhead.
+    // Add a field here if you see undefined values in the table.
+    static get REGISTRATION_PROJECTION() {
+        return {
+            participant: 1, course: 1, status: 1,
+            official: 1, officialInfo: 1,
+            paymentMethod: 1, finalPaymentMethod: 1,
+            recinvNo: 1, agreement: 1,
+            registrationDate: 1, sendingWhatsappMessage: 1,
+            marriageDetails: 1, spouse: 1,
+            consent: 1, marriagePrepConsent: 1,
+            sn: 1, sN: 1, registrationStatus: 1,
+        };
+    }
+
     async retrieveCourseRegistration(dbname, collectionName, role, siteIC) 
     {
         var db = this.client.db(dbname); // Return the db object
@@ -794,13 +830,17 @@ class DatabaseConnectivity {
                 // Define query object
                 let query = {};
 
-                console.log("=== RETRIEVE COURSE REGISTRATION DEBUG ===");
-                console.log("Database Name:", dbname);
-                console.log("Collection Name:", collectionName);
-                console.log("Role:", role);
-                console.log("SiteIC Type:", typeof siteIC);
-                console.log("SiteIC Value:", siteIC);
-                console.log("SiteIC JSON:", JSON.stringify(siteIC));
+                // Verbose debug logs are gated behind DB_DEBUG env var to avoid
+                // heavy logging and large result output during regular operations.
+                if (process.env.DB_DEBUG === 'true') {
+                    console.log("=== RETRIEVE COURSE REGISTRATION DEBUG ===");
+                    console.log("Database Name:", dbname);
+                    console.log("Collection Name:", collectionName);
+                    console.log("Role:", role);
+                    console.log("SiteIC Type:", typeof siteIC);
+                    console.log("SiteIC Value:", siteIC);
+                    console.log("SiteIC JSON:", JSON.stringify(siteIC));
+                }
 
                 // Handle different roles and their specific filters
                 if (role === "Site in-charge") {
@@ -856,37 +896,39 @@ class DatabaseConnectivity {
                 }
                 // If role has no specific filters, return all documents (empty query retrieves all)
                 
-                console.log("Final MongoDB query:", JSON.stringify(query));
-                
-                var result = await table.find(query).toArray();
-                console.log("Query result count:", result.length);
-                
-                // Log sample results for debugging
-                if (result.length > 0) {
-                    console.log("Sample results:");
-                    result.slice(0, 3).forEach((record, index) => {
-                        console.log(`Record ${index + 1}:`, {
-                            name: record.participant?.name,
-                            location: record.course?.courseLocation,
-                            course: record.course?.courseEngName,
-                            _id: record._id
-                        });
-                    });
-                } else {
-                    console.log("No records found matching the query");
-                    
-                    // Let's also check total records without filter
-                    const totalCount = await table.countDocuments({});
-                    console.log("Total documents in collection:", totalCount);
-                    
-                    // Check what locations exist in the database
-                    const locationSample = await table.aggregate([
-                        { $group: { _id: "$course.courseLocation", count: { $sum: 1 } } },
-                        { $sort: { count: -1 } }
-                    ]).toArray();
-                    console.log("Available locations in database:", locationSample);
+                if (process.env.DB_DEBUG === 'true') {
+                    console.log("Final MongoDB query:", JSON.stringify(query));
                 }
-                
+
+                var result = await table.find(query, { projection: DatabaseConnectivity.REGISTRATION_PROJECTION }).toArray();
+
+                if (process.env.DB_DEBUG === 'true') {
+                    console.log("Query result count:", result.length);
+                    // Log sample results for debugging
+                    if (result.length > 0) {
+                        console.log("Sample results:");
+                        result.slice(0, 3).forEach((record, index) => {
+                            console.log(`Record ${index + 1}:`, {
+                                name: record.participant?.name,
+                                location: record.course?.courseLocation,
+                                course: record.course?.courseEngName,
+                                _id: record._id
+                            });
+                        });
+                    } else {
+                        console.log("No records found matching the query");
+                        // Let's also check total records without filter
+                        const totalCount = await table.countDocuments({});
+                        console.log("Total documents in collection:", totalCount);
+                        // Check what locations exist in the database
+                        const locationSample = await table.aggregate([
+                            { $group: { _id: "$course.courseLocation", count: { $sum: 1 } } },
+                            { $sort: { count: -1 } }
+                        ]).toArray();
+                        console.log("Available locations in database:", locationSample);
+                    }
+                }
+
                 return result;
             }
         } catch (error) {
@@ -894,6 +936,69 @@ class DatabaseConnectivity {
         }
     }
 
+
+    // ── Single-document retrieval by _id ─────────────────────────────────────
+
+    async retrieveRegistrationById(dbname, collectionName, id) {
+        var db = this.client.db(dbname);
+        try {
+            if (db) {
+                var table = db.collection(collectionName);
+                var result = await table.findOne(
+                    { _id: this._makeObjectId(id) },
+                    { projection: DatabaseConnectivity.REGISTRATION_PROJECTION }
+                );
+                return result;
+            }
+        } catch (error) {
+            console.log('retrieveRegistrationById error:', error);
+            return null;
+        }
+    }
+
+    // ── Paged retrieval for parallel batch loading ────────────────────────────
+    async retrieveCourseRegistrationPaged(dbname, collectionName, role, siteIC, skip = 0, limit = 300) {
+        var db = this.client.db(dbname);
+        try {
+            if (db) {
+                var table = db.collection(collectionName);
+                let query = {};
+
+                if (role === "Site in-charge") {
+                    if (siteIC != null) {
+                        let allowedLocations = [];
+                        if (Array.isArray(siteIC)) {
+                            allowedLocations = siteIC;
+                        } else if (typeof siteIC === 'string') {
+                            allowedLocations = siteIC.includes(',')
+                                ? siteIC.split(',').map(s => s.trim())
+                                : [siteIC.trim()];
+                        }
+                        if (allowedLocations.length > 1) {
+                            query["course.courseLocation"] = { $in: allowedLocations };
+                        } else if (allowedLocations.length === 1) {
+                            query["course.courseLocation"] = allowedLocations[0];
+                        }
+                    }
+                } else if (role === "NSA in-charge") {
+                    query["course.courseType"] = "NSA";
+                } else if (role === "Social Worker") {
+                    query["course.courseType"] = { $in: ["Talks And Seminar", "Marriage Preparation Programme"] };
+                }
+
+                // Run count and page fetch in parallel
+                const [data, total] = await Promise.all([
+                    table.find(query).skip(skip).limit(limit).toArray(),
+                    skip === 0 ? table.countDocuments(query) : Promise.resolve(null),
+                ]);
+
+                return { data, total };
+            }
+        } catch (error) {
+            console.log("Paged query error:", error);
+            return { data: [], total: 0 };
+        }
+    }
 
     async retrieveOneFromDatabase(dbname, collectionName, id) {
         console.log("Selected One");
@@ -903,7 +1008,7 @@ class DatabaseConnectivity {
             if (db) {
                 var table = db.collection(collectionName);
                 // Use findOne to get the document by nested field
-                var result = await table.findOne({ "Account Details.Account ID": new ObjectId(id)}); // Convert id to ObjectId
+                var result = await table.findOne({ "Account Details.Account ID": this._makeObjectId(id)}); // Convert id to ObjectId
                 console.log("Retrieve:", result); // Log the result
                 return result; // Return the single document
             }
@@ -921,15 +1026,14 @@ class DatabaseConnectivity {
                 var table = db.collection(tableName);
     
                 // Use updateOne to update a single document
-                const filter = { _id: new ObjectId(id) };
+                const filter = { _id: this._makeObjectId(id) };
 
-                // Add the new key "confirmation" to the update data
                 const update = {
                     $set: {
-                        status: newStatus, // Add new key "confirmation"
+                        status: newStatus,
                     }
                 };
-    
+
                // Call updateOne
                 const result = await table.updateOne(filter, update);
     
@@ -950,32 +1054,100 @@ class DatabaseConnectivity {
                 const table = db.collection(tableName);
                 
                 // Use updateOne to update a single document
-                const filter = { _id: new ObjectId(id) };
+const filter = { _id: this._makeObjectId(id) };
     
-                // Declare update variable outside conditionals
-                let update;
+                const normalizedField = String(field || '').trim();
 
                 const fieldPathMap = {
+                    // Participant information fields
                     name: 'participant.name',
+                    nric: 'participant.nric',
                     contactNo: 'participant.contactNumber',
+                    contactNumber: 'participant.contactNumber',
+                    email: 'participant.email',
+                    gender: 'participant.gender',
+                    dateOfBirth: 'participant.dateOfBirth',
+                    residentialStatus: 'participant.residentialStatus',
+                    race: 'participant.race',
+                    postalCode: 'participant.postalCode',
+                    educationLevel: 'participant.educationLevel',
+                    workStatus: 'participant.workStatus',
+
+                    // Existing editable non-participant fields
                     remarks: 'official.remarks',
                     paymentDate: 'official.date',
                     refundedDate: 'official.refundedDate',
+                    registrationStatus: 'official.registration_status',
                     location: 'course.courseLocation',
                     course: 'course.courseEngName',
+                    courseMode: 'course.courseMode',
+                    courseDuration: 'course.courseDuration',
+                    courseTime: 'course.courseTime',
+                    finalPaymentMethod: 'course.finalPaymentMethod',
                 };
-    
-                // Dynamically construct the update object with dot notation
-                const mappedPath = fieldPathMap[field] || `participant.${field}`;
-                update = {
+
+                const allowedParticipantFields = new Set([
+                    'name',
+                    'nric',
+                    'contactNumber',
+                    'email',
+                    'gender',
+                    'dateOfBirth',
+                    'residentialStatus',
+                    'race',
+                    'postalCode',
+                    'educationLevel',
+                    'workStatus',
+                ]);
+
+                // Keep compatibility for legacy participant fields, while rejecting unsafe keys.
+                let mappedPath = fieldPathMap[normalizedField];
+                if (!mappedPath) {
+                    if (!allowedParticipantFields.has(normalizedField)) {
+                        throw new Error(`Unsupported participant field: ${normalizedField}`);
+                    }
+                    mappedPath = `participant.${normalizedField}`;
+                }
+
+                let normalizedValue = editedParticulars;
+
+                if (typeof normalizedValue === 'string') {
+                    normalizedValue = normalizedValue.trim();
+                }
+
+                // Accept ISO date input and store as DD/MM/YYYY for consistency.
+                if (normalizedField === 'dateOfBirth' && typeof normalizedValue === 'string') {
+                    const isoDate = normalizedValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                    if (isoDate) {
+                        const [, yyyy, mm, dd] = isoDate;
+                        normalizedValue = `${dd}/${mm}/${yyyy}`;
+                    }
+                }
+
+                // Normalize common short-form values to the bilingual labels used in UI.
+                if (normalizedField === 'residentialStatus') {
+                    const value = String(normalizedValue || '').toLowerCase();
+                    if (value === 'sc' || value === 'singapore citizen') normalizedValue = 'SC 新加坡公民';
+                    if (value === 'pr' || value === 'permanent resident') normalizedValue = 'PR 永久居民';
+                }
+
+                if (normalizedField === 'gender') {
+                    const value = String(normalizedValue || '').toLowerCase();
+                    if (value === 'm' || value === 'male') normalizedValue = 'M 男';
+                    if (value === 'f' || value === 'female') normalizedValue = 'F 女';
+                }
+
+                const update = {
                     $set: {
-                        [mappedPath]: editedParticulars,
+                        [mappedPath]: normalizedValue,
                     },
                 };
     
                 // Call updateOne
+                console.log("Executing MongoDB updateOne with filter:", filter, "and update:", update);
                 const result = await table.updateOne(filter, update);
                 console.log("Update Result:", result);
+                console.log("Matched count:", result.matchedCount, "Modified count:", result.modifiedCount);
                 return result;
             }
         } catch (error) {
@@ -993,7 +1165,7 @@ class DatabaseConnectivity {
                 var table = db.collection(tableName);
     
                 // Use updateOne to update a single document
-                const filter = { _id: new ObjectId(id) };
+                const filter = { _id: this._makeObjectId(id) };
     
                 // Update only the `receiptNo` field inside the `official` object
                 const update = {
@@ -1012,8 +1184,33 @@ class DatabaseConnectivity {
             console.log("Error updating database:", error);
         }
     }
-    
-    
+
+    /**
+     * Clears receipt/invoice number, payment date, and payment time for a registration.
+     * Used when switching final payment method from Cash/PayNow to SkillsFuture.
+     */
+    async clearPaymentDetails(dbname, id) {
+        var db = this.client.db(dbname);
+        try {
+            if (db) {
+                var table = db.collection("Registration Forms");
+                const filter = { _id: this._makeObjectId(id) };
+                const update = {
+                    $set: {
+                        "official.receiptNo": "",
+                        "official.date": "",
+                        "official.time": "",
+                    }
+                };
+                const result = await table.updateOne(filter, update);
+                return result;
+            }
+        } catch (error) {
+            console.log("Error clearing payment details:", error);
+        }
+    }
+
+
     async updatePaymentOfficialUse(dbname, id, name, date, time, status) {
         name = sanitizeStaffName(name);
         var db = this.client.db(dbname); // return the db object
@@ -1023,13 +1220,13 @@ class DatabaseConnectivity {
                 var table = db.collection(tableName);
     
                 // Use updateOne to update a single document
-                const filter = { _id: new ObjectId(id) };
+                const filter = { _id: this._makeObjectId(id) };
     
                 // Define the update object conditionally based on status
                 let update = null;
                 
                 console.log("Update Payment Official Use:", status);
-                // COMMENTED OUT: SkillsFuture - if (status === "Paid" || status === "SkillsFuture Done" || status === "Generating SkillsFuture Invoice") {
+                const shouldConfirmSlot = status === "Paid" || status === "SkillsFuture Done";
                 if (status === "Paid") {
                     console.log("OK");
                     update = {
@@ -1037,7 +1234,8 @@ class DatabaseConnectivity {
                             "status": status,
                             "official.name": name,
                             "official.date": date,
-                            "official.time": time
+                            "official.time": time,
+                            ...(shouldConfirmSlot ? { "official.registration_status": "Confirmed Slot" } : {}),
                         }
                     };
                 }
@@ -1048,7 +1246,8 @@ class DatabaseConnectivity {
                             "status": status,
                             "official.name": name,
                             "official.date": date,
-                            "official.time": time
+                            "official.time": time,
+                            ...(shouldConfirmSlot ? { "official.registration_status": "Confirmed Slot" } : {}),
                         }
                     };
                 }
@@ -1093,8 +1292,8 @@ class DatabaseConnectivity {
                 var table = db.collection(tableName);
         
                 // Use updateOne to update a single document
-                const filter = { _id: new ObjectId(id) };
-        
+                const filter = { _id: this._makeObjectId(id) };
+
                 // Define the update object conditionally based on confirmation value:
                 // - Confirming (true): only update official fields; leave status and receiptNo untouched
                 //   (frontend's subsequent updatePaymentStatus call handles the status change)
@@ -1154,22 +1353,46 @@ class DatabaseConnectivity {
                 var table = db.collection(tableName);
     
                 // Use updateOne to update a single document
-                const filter = { _id: new ObjectId(id) };
-    
+                const filter = { _id: this._makeObjectId(id) };
+                const existingDocument = await table.findOne(filter, { projection: { 'course.finalPaymentMethod': 1 } });
+                const shouldSetFinalPayment = !existingDocument?.course?.finalPaymentMethod;
+
+                // Determine status based on payment method
+                let paymentStatus = "Pending";  // Default to Pending
+                let registrationStatus = "Submitted";  // Default registration status
+                
+                // Confirmed Slot should ONLY be set when:
+                // 1. Final payment method is Cash/PayNow AND Payment Status is "Paid"
+                // 2. Final payment method is SkillsFuture AND Payment Status is "SkillsFuture Done"
+                
+                // For Cash and PayNow: set status to "Paid" → registration becomes "Confirmed Slot"
+                if (newPaymentMethod === "Cash" || newPaymentMethod === "PayNow") {
+                    paymentStatus = "Paid";
+                    registrationStatus = "Confirmed Slot";  // Set because status is "Paid"
+                }
+                // For SkillsFuture: status = "Pending" (not "SkillsFuture Done" yet)
+                // Do NOT set "Confirmed Slot" here; it will be set when status becomes "SkillsFuture Done" via updatePaymentOfficialUse()
+                else if (newPaymentMethod === "SkillsFuture") {
+                    paymentStatus = "Pending";
+                    registrationStatus = "Submitted";  // Keep as "Submitted" until SkillsFuture Done
+                }
+
                 var update = {
                             $set: {
                                 "course.payment": newPaymentMethod,
-                                "status": "Pending",
+                                "status": paymentStatus,
+                                "official.registration_status": registrationStatus,
                                 "official.receiptNo": "",
                                 "official.name": staff,
                                 "official.date": date,
                                 "official.time": time,
                                 "official.confirmed": false,
+                                ...(shouldSetFinalPayment ? { "course.finalPaymentMethod": newPaymentMethod } : {}),
                             }
                         };
                 // Call updateOne
                 const result = await table.updateOne(filter, update);
-                //console.log("New Payment Method:", result);
+                console.log("Payment Method Updated:", newPaymentMethod, "| Payment Status:", paymentStatus, "| Registration Status:", registrationStatus);
     
                 return result;
             }
@@ -1188,7 +1411,7 @@ class DatabaseConnectivity {
                 console.log("Participants Details:", participantDetails);
     
                 // Use updateOne to update a single document
-                const filter = { _id: new ObjectId(participantDetails.id) };
+                const filter = { _id: this._makeObjectId(participantDetails.id) };
     
                 // Define the update object conditionally based on status
                 var update = {
@@ -1221,7 +1444,7 @@ class DatabaseConnectivity {
         const table = db.collection(collectionName);
     
         try {
-            const filter = { _id: new ObjectId(id) }; // Find document by ID
+            const filter = { _id: this._makeObjectId(id) }; // Find document by ID
             const result = await table.deleteOne(filter);
     
             if (result.deletedCount === 1) {
@@ -1578,7 +1801,7 @@ class DatabaseConnectivity {
         const table = db.collection(collectionName);
     
         try {
-            const filter = { _id: new ObjectId(id) }; // Find document by ID
+            const filter = { _id: this._makeObjectId(id) }; // Find document by ID
             const result = await table.deleteOne(filter);
     
             if (result.deletedCount === 1) {
@@ -1601,7 +1824,7 @@ class DatabaseConnectivity {
     
         try {
             const filter = { 
-                registration_id: new ObjectId(id) }; // Find document by ID
+                registration_id: this._makeObjectId(id) }; // Find document by ID
             const result = await table.deleteOne(filter);
     
             if (result.deletedCount === 1) {
@@ -1624,7 +1847,7 @@ class DatabaseConnectivity {
     
         try {
             const filter = { 
-                _id: new ObjectId(id) }; // Find document by ID
+                _id: this._makeObjectId(id) }; // Find document by ID
             const result = await table.deleteOne(filter);
     
             if (result.deletedCount === 1) {
@@ -1645,7 +1868,7 @@ class DatabaseConnectivity {
         const table = db.collection(collectionName);
       
         try {
-          const filter = { _id: new ObjectId(id) }; // Find document by ID
+          const filter = { _id: this._makeObjectId(id) }; // Find document by ID
           const update = { $set: { "course.courseLocation": selectedLocation } }; // Update nested field
       
           // Perform the update operation
@@ -1672,7 +1895,7 @@ class DatabaseConnectivity {
         const table = db.collection(collectionName);
     
         try {
-            const filter = { _id: new ObjectId(id) }; 
+            const filter = { _id: this._makeObjectId(id) }; 
             const update = { $set: { "sendingWhatsappMessage": true } };
     
             const existingDoc = await table.findOne(filter);
@@ -1722,7 +1945,7 @@ class DatabaseConnectivity {
     
         try {
             // Using bracket notation to access 'Account ID' under 'Account Details'
-            const filter = { "Account Details.Account ID": new ObjectId(id) }; 
+            const filter = { "Account Details.Account ID": this._makeObjectId(id) }; 
     
             const result = await table.deleteOne(filter);
     
@@ -1747,7 +1970,7 @@ class DatabaseConnectivity {
             const table = db.collection(collectionName);
     
             const result = await table.updateOne(
-                { _id: new ObjectId(id) }, // Convert `id` to ObjectId
+                { _id: this._makeObjectId(id) }, // Convert `id` to ObjectId
                 { $set: { "official.refundedDate": date } } // Add `official.refundedDate`
             );
     
@@ -1767,7 +1990,7 @@ class DatabaseConnectivity {
             const db = this.client.db(databaseName);
             const table = db.collection(collectionName);
 
-            const filter = { _id: new ObjectId(id) };
+            const filter = { _id: this._makeObjectId(id) };
             const incoming = String(remarks ?? '').trim();
 
             // Explicit clear path.
@@ -2190,7 +2413,7 @@ class DatabaseConnectivity {
 
                 return {
                     updateOne: {
-                        filter: { _id: new ObjectId(id) },
+                        filter: { _id: this._makeObjectId(id) },
                         update: { $set: updateFields }
                     }
                 };

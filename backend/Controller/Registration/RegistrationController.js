@@ -91,7 +91,7 @@ class RegistrationController {
         }    
     }
 
-    async allParticipants(role, siteIC) 
+    async allParticipants(role, siteIC)
     {
         try {
             // Connect to the database
@@ -116,8 +116,41 @@ class RegistrationController {
             };
         }
         finally {
-            await this.databaseConnectivity.close(); // Ensure the connection is closed
+            await this.databaseConnectivity.cleanup(); // Keep pooled connection warm for frequent table retrievals
         }    
+    }
+
+    async allParticipantsPaged(role, siteIC, skip = 0, limit = 300) {
+        try {
+            var result = await this.databaseConnectivity.initialize();
+            if (result === "Connected to MongoDB Atlas!") {
+                return await this.databaseConnectivity.retrieveCourseRegistrationPaged(
+                    "Company-Management-System", "Registration Forms", role, siteIC, skip, limit
+                );
+            }
+            return { data: [], total: 0 };
+        } catch (error) {
+            return { data: [], total: 0 };
+        } finally {
+            await this.databaseConnectivity.cleanup();
+        }
+    }
+
+    async getParticipantById(id) {
+        try {
+            var result = await this.databaseConnectivity.initialize();
+            if (result === "Connected to MongoDB Atlas!") {
+                return await this.databaseConnectivity.retrieveRegistrationById(
+                    "Company-Management-System", "Registration Forms", id
+                );
+            }
+            return null;
+        } catch (error) {
+            console.error('getParticipantById error:', error);
+            return null;
+        } finally {
+            await this.databaseConnectivity.cleanup();
+        }
     }
 
     async updateParticipant(id, newStatus) 
@@ -158,13 +191,16 @@ class RegistrationController {
             if(result === "Connected to MongoDB Atlas!")
             {
                 var databaseName = "Company-Management-System";
+                console.log("Updating field in database:", field, "with value:", editedParticulars);
                 var connectedDatabase = await this.databaseConnectivity.updateParticipantParticulars(databaseName, id, field, editedParticulars);  
-                return connectedDatabase.acknowledged;
+                console.log("Database response:", connectedDatabase);
+                return connectedDatabase;
                 //console.log("Update Participant Particulars:",connectedDatabase);
             }
         } 
         catch (error) 
         {
+            console.error("Error in updateParticipantParticulars:", error);
             return {
                 success: false,
                 message: "Error updating user",
@@ -174,6 +210,26 @@ class RegistrationController {
         finally {
             await this.databaseConnectivity.close(); // Ensure the connection is closed
         }    
+    }
+
+    async clearPaymentDetails(id)
+    {
+        try {
+            var result = await this.databaseConnectivity.initialize();
+            if(result === "Connected to MongoDB Atlas!")
+            {
+                var databaseName = "Company-Management-System";
+                var connectedDatabase = await this.databaseConnectivity.clearPaymentDetails(databaseName, id);
+                return connectedDatabase?.acknowledged ?? false;
+            }
+        }
+        catch (error)
+        {
+            return { success: false, message: "Error clearing payment details", error };
+        }
+        finally {
+            await this.databaseConnectivity.close();
+        }
     }
 
     async updateReceiptNumber(id, receiptNo) 

@@ -119,6 +119,109 @@
   border-bottom: none;
 }
 
+/* Custom dropdown editor used in Registration Details */
+.registration-payment-details-field-dropdown {
+  position: relative;
+  min-width: 220px;
+  max-width: 100%;
+}
+
+.registration-payment-details-field-select-trigger {
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0.55rem 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid #b9b9b9;
+  border-radius: 0.45rem;
+  background: #fff;
+  color: #333;
+  font: inherit;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.registration-payment-details-field-select-trigger:focus {
+  outline: none;
+  border-color: #6a8f5a;
+  box-shadow: 0 0 0 3px rgba(106, 143, 90, 0.15);
+}
+
+.registration-payment-details-field-select-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+.registration-payment-details-field-select-trigger-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.registration-payment-details-field-select-trigger-icon {
+  flex-shrink: 0;
+  color: #6d6d6d;
+  font-size: 0.9rem;
+}
+
+.registration-payment-details-dropdown-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.35rem;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 18rem;
+  overflow-y: auto;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 0.65rem;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.16);
+}
+
+.registration-payment-details-dropdown-list-item {
+  list-style: none;
+}
+
+.registration-payment-details-dropdown-option {
+  width: 100%;
+  border: none;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: #333;
+  padding: 0.7rem 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.registration-payment-details-dropdown-option:hover,
+.registration-payment-details-dropdown-option:focus {
+  background: #f2f6ef;
+  outline: none;
+}
+
+.registration-payment-details-dropdown-option.is-active {
+  background: #e8f1e3;
+  color: #2f5d23;
+  font-weight: 600;
+}
+
+.registration-payment-details-dropdown-option-check {
+  flex-shrink: 0;
+  color: #2f5d23;
+  font-weight: 700;
+}
+
 /* Button row for actions */
 .registration-payment-details-button-row {
   display: flex;
@@ -416,6 +519,9 @@
   height: 50vh;
   margin-left: auto !important;
   margin-right: auto !important;
+  /* Prevent horizontal swipe inside the grid from triggering browser
+     back/forward navigation or scrolling the outer page. */
+  overscroll-behavior: contain;
 }
 
 /* Expanded row detail styling */
@@ -478,6 +584,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  white-space: nowrap;
 }
 
 .registration-payment-details-field-value {
@@ -486,6 +593,93 @@
   font-weight: 500;
   word-break: break-word;
   padding: 0.25rem 0;
+}
+
+.registration-payment-details-field-value-editable {
+  border: 1px dashed transparent;
+  border-radius: 0.35rem;
+  background: transparent;
+  cursor: text;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.registration-payment-details-field-value-editable:hover,
+.registration-payment-details-field-value-editable:focus-visible {
+  border-color: #4caf50;
+  background-color: rgba(76, 175, 80, 0.08);
+  outline: none;
+}
+
+.registration-payment-details-field-input {
+  font-size: 1.15rem;
+  color: #222;
+  font-weight: 500;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #4caf50;
+  border-radius: 0.35rem;
+  min-width: 13rem;
+  max-width: 24rem;
+  background-color: #fff;
+}
+
+.registration-payment-details-field-text-wrapper--text {
+  width: 16.25rem;
+}
+
+.registration-payment-details-field-input--text {
+  min-width: 16.25rem;
+  max-width: 30rem;
+}
+
+.registration-payment-details-field-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+.registration-payment-details-field-select-custom {
+  font-size: 1.15rem;
+  color: #1f2a37;
+  font-weight: 600;
+  padding: 0.42rem 2.25rem 0.42rem 0.65rem;
+  border: 1px solid #2f9f52;
+  border-radius: 0.5rem;
+  min-width: 13rem;
+  max-width: 24rem;
+  background-color: #f6fff8;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #2f9f52 50%),
+    linear-gradient(135deg, #2f9f52 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) calc(50% - 3px),
+    calc(100% - 12px) calc(50% - 3px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.registration-payment-details-field-select-custom:hover {
+  border-color: #278946;
+  background-color: #f0fff4;
+}
+
+.registration-payment-details-field-select-custom:focus {
+  outline: none;
+  border-color: #278946;
+  box-shadow: 0 0 0 3px rgba(47, 159, 82, 0.2);
+}
+
+.registration-payment-details-field-select-custom:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+
+.registration-payment-details-field-select-custom option {
+  color: #1f2a37;
+  background-color: #ffffff;
+  font-weight: 500;
 }
 
 /* Status badge styling */

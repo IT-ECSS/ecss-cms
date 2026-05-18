@@ -1,16 +1,43 @@
 import axios from "axios";
 
-export const NODE_BASE_URL =
-  window.location.hostname === "localhost"
-    ? "http://localhost:3001"
-    : "https://ecss-backend-node.azurewebsites.net";
+const isLocalHost = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
 
-const DJANGO_BASE_URL =
-  window.location.hostname === "localhost"
-    ? "http://localhost:3002"
-    : "https://ecss-backend-django.azurewebsites.net";
+export const NODE_BASE_URL = isLocalHost
+  ? "http://localhost:3001"
+  : "https://ecss-backend-node.azurewebsites.net";
+
+const DJANGO_BASE_URL = isLocalHost
+  ? "http://localhost:3002"
+  : "https://ecss-backend-django.azurewebsites.net";
 
 // ─── Course Registration ──────────────────────────────────────────────────────
+
+/**
+ * Fetch a single registration document by its MongoDB _id.
+ * Used for targeted single-row socket refreshes.
+ */
+export const fetchRegistrationById = async (id) => {
+  const response = await axios.post(`${NODE_BASE_URL}/courseregistration`, {
+    purpose: "retrieveById",
+    id,
+  });
+  return response;
+};
+
+/**
+ * Fetch a single page of course registrations (skip/limit).
+ * Returns { result: [...], total: N } — total is only populated on the first page (skip=0).
+ */
+export const fetchCourseRegistrationsBatch = async (siteIC, role, skip, limit) => {
+  const response = await axios.post(`${NODE_BASE_URL}/courseregistration`, {
+    purpose: "retrievePaged",
+    siteIC,
+    role,
+    skip,
+    limit,
+  });
+  return response;
+};
 
 /**
  * Fetch all course registrations for a given site IC / role.
@@ -40,12 +67,13 @@ export const updatePaymentMethod = async (id, newUpdatePayment, staff) => {
 /**
  * Update the payment status for a single registration.
  */
-export const updatePaymentStatus = async (id, newUpdateStatus, staff) => {
+export const updatePaymentStatus = async (id, newUpdateStatus, staff, role = '') => {
   const response = await axios.post(`${NODE_BASE_URL}/courseregistration`, {
     purpose: "updatePaymentStatus",
     id,
     newUpdateStatus,
     staff,
+    role,
   });
   return response;
 };
@@ -72,6 +100,18 @@ export const editRegistrationField = async (id, field, editedValue) => {
     id,
     field,
     editedValue,
+  });
+  return response;
+};
+
+/**
+ * Clear receipt/invoice number, payment date, and payment time for a registration.
+ * Used when switching final payment method from Cash/PayNow to SkillsFuture.
+ */
+export const clearPaymentDetails = async (id) => {
+  const response = await axios.post(`${NODE_BASE_URL}/courseregistration`, {
+    purpose: "clearPaymentDetails",
+    id,
   });
   return response;
 };
@@ -132,7 +172,9 @@ export const addReceiptNumber = async (
   course,
   staff,
   receiptNo,
-  status
+  status,
+  date,
+  time
 ) => {
   const response = await axios.post(`${NODE_BASE_URL}/courseregistration`, {
     purpose: "addReceiptNumber",
@@ -142,6 +184,8 @@ export const addReceiptNumber = async (
     staff,
     receiptNo,
     status,
+    date,
+    time,
   });
   return response;
 };
@@ -242,41 +286,6 @@ export const updateWooCommerceStock = async (chi, eng, location, status) => {
     },
     status,
     location,
-  });
-  return response;
-};
-
-/**
- * Submit NSA approval email request to backend.
- */
-export const sendNsaApprovalEmail = async ({
-  fromName,
-  fromEmail,
-  currentDate,
-  currentTime,
-  allChanges,
-  additionalNotes,
-}) => {
-  const response = await axios.post(`${NODE_BASE_URL}/nsaApproval`, {
-    purpose: "sendApprovalEmail",
-    fromName,
-    fromEmail,
-    currentDate,
-    currentTime,
-    allChanges,
-    additionalNotes,
-  });
-  return response;
-};
-
-/**
- * Load requester-side NSA approval status list from backend.
- */
-export const fetchNsaApprovalStatusList = async ({ requesterEmail, requesterName }) => {
-  const response = await axios.post(`${NODE_BASE_URL}/nsaApproval`, {
-    purpose: "getApprovalRequestStatusList",
-    requesterEmail,
-    requesterName,
   });
   return response;
 };

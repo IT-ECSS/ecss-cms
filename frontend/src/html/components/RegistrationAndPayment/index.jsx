@@ -16,17 +16,16 @@ import {
 // Sub-components
 import ExpandedRowDetail      from './components/ExpandedRowDetail';
 import SlideButtonRenderer    from './components/SlideButtonRenderer';
-import PaymentMethodRenderer  from './components/PaymentMethodRenderer';
-import PaymentStatusRenderer  from './components/PaymentStatusRenderer';
+import PaymentMethodRenderer       from './components/PaymentMethodRenderer';
+import FinalPaymentMethodRenderer  from './components/FinalPaymentMethodRenderer';
+import PaymentStatusRenderer       from './components/PaymentStatusRenderer';
 import SelectAllHeader        from './components/SelectAllHeader';
 import ActionButtonsRow       from './components/ActionButtonsRow';
-
 // Approval popup
 
 // Access control
 import { isReadOnlyUser } from './constants/accessControl';
 import { shouldRequireApprovalForCourse } from './constants/accessControl';
-import { isNsaNotifier } from './constants/accessControl';
 
 // Utilities
 import {
@@ -66,17 +65,20 @@ import {
 
 // Cell-value-changed column handlers
 import {
-  handlePaymentMethodChange,
   handleConfirmationStatusChange,
   handlePaymentStatusChange,
+  handleFinalPaymentMethodChange,
+  handleRegistrationStatusChange,
   handleRemarksChange,
   handleRefundedDateChange,
   handleGenericFieldChange,
-} from './handlers/cellValueChangedHandlers';
+} from './handlers';
 
 // API service layer
 import {
   fetchCourseRegistrations as apiFetchCourseRegistrations,
+  fetchCourseRegistrationsBatch,
+  fetchRegistrationById,
   updatePaymentMethod,
   updatePaymentStatus,
   updateConfirmationStatus,
@@ -90,8 +92,6 @@ import {
   getReceiptNumber,
   createReceiptRecord,
   updateWooCommerceStock,
-  sendNsaApprovalEmail,
-  fetchNsaApprovalStatusList,
   NODE_BASE_URL,
 } from './services/registrationApi';
 
@@ -101,6 +101,12 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 const APPROVAL_QUEUE_STORAGE_KEY_PREFIX = 'registrationApprovalQueue';
 const APPROVAL_STATUS_STORAGE_KEY_PREFIX = 'registrationApprovalStatus';
 const APPROVAL_STATUS_CLEAR_MARKER_PREFIX = 'registrationApprovalStatusCleared';
+
+// Stale-while-revalidate cache for the full registration dataset.
+// Allows the grid to appear instantly on revisit while a background fetch
+// silently refreshes the data.
+// const REG_DATA_CACHE_KEY_PREFIX = 'registrationDataCache';
+// const REG_DATA_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -133,6 +139,7 @@ class RegistrationPaymentSection extends Component {
       message: '',
       status: '',
       isAlertShown: false,
+      anomalyList: [],
       selectedRows: [],
       showBulkUpdateModal: false,
       bulkUpdateField: '',
@@ -148,6 +155,12 @@ class RegistrationPaymentSection extends Component {
     this.tableRef = React.createRef();
     this.gridRef  = React.createRef();
     this._isReverting = false;
+    this._suppressSocketRefreshUntil = 0;
+    this._pendingRefreshChild = false;
+  }
+
+  _suppressNextSocketRefresh(ms = 2500) {
+    this._suppressSocketRefreshUntil = Date.now() + ms;
   }
 
   _getApprovalQueueStorageKey() {
@@ -172,65 +185,132 @@ class RegistrationPaymentSection extends Component {
     const map = {
       'Name': 'name',
       'Contact Number': 'contactNo',
-      'Payment Method': 'paymentMethod',
       'Confirmation Status': 'confirmed',
       'Registration and Payment Status': 'paymentStatus',
-      'Registration Status': 'paymentStatus',
+      'Registration Status': 'registrationStatus',
       'Payment Status': 'paymentStatus',
       'Payment Date': 'paymentDate',
+      'Payment Time': 'paymentTime',
       'Refunded Date': 'refundedDate',
       'Remarks': 'remarks',
     };
     return map[headerName] || '';
   }
 
-  _applyLiveNotifierRowUpdate = ({ registrationId, field, value, resetRemarks = false }) => {
-    if (!registrationId || !field) return;
+  _getPaymentMethodHeader() {
+    return this.props.selectedCourseType === 'NSA'
+      ? 'Payment Method (indicated by participant)'
+      : 'Payment Method';
+  }
 
-    const appendNumberedRemark = (existingRemarks, incomingRemark) => {
-      const incoming = String(incomingRemark ?? '').trim();
-      if (!incoming) return '';
+  _getResolvedNsaPaymentMethod(rowData = {}) {
+    const finalPaymentMethod = String(rowData?.finalPaymentMethod || '').trim();
+    if (finalPaymentMethod) return finalPaymentMethod;
 
-      const existing = resetRemarks ? '' : String(existingRemarks || '').trim();
-      if (!existing) return `1) ${incoming}`;
+    return String(rowData?.paymentMethod || '').trim();
+  }
 
-      const lines = existing.split(/\r?\n/).map((l) => String(l || '').trim()).filter(Boolean);
-      let maxNo = 0;
-      lines.forEach((line) => {
-        const m = line.match(/^(\d+)\)\s+/);
-        if (m) maxNo = Math.max(maxNo, parseInt(m[1], 10) || 0);
-      });
-
-      // If incoming is already fully numbered text, keep it as-is.
-      if (/^\d+\)\s+/.test(incoming)) return incoming;
-      return `${existing}\n${maxNo + 1}) ${incoming}`;
-    };
-
-    if (this.gridApi && typeof this.gridApi.forEachNode === 'function') {
-      this.gridApi.forEachNode((node) => {
-        if (String(node?.data?.id || '') === String(registrationId)) {
-          const nextValue =
-            field === 'remarks'
-              ? appendNumberedRemark(node?.data?.remarks, value)
-              : value;
-          node.setDataValue(field, nextValue);
-        }
-      });
+  _isActiveNsaPaymentStatusColumn(columnName, rowData = {}) {
+    if (columnName !== 'Payment Status (Cash/PayNow)' && columnName !== 'Payment Status (SkillsFuture)') {
+      return false;
     }
 
-    this.setState((prev) => ({
-      rowData: (prev.rowData || []).map((row) =>
-        String(row?.id || '') === String(registrationId)
-          ? {
-            ...row,
-            [field]: field === 'remarks'
-              ? appendNumberedRemark(row?.remarks, value)
-              : value,
-          }
-          : row
-      ),
-    }));
+    const resolvedMethod = this._getResolvedNsaPaymentMethod(rowData);
+    const isSkillsFuture = resolvedMethod === 'SkillsFuture';
+
+    return columnName === 'Payment Status (SkillsFuture)'
+      ? isSkillsFuture
+      : !isSkillsFuture;
   }
+
+  _hasRoleKeyword(...keywords) {
+    const role = String(this.props.role || '').toLowerCase();
+    return keywords.some((keyword) => role.includes(keyword));
+  }
+
+  // Allowed roles for NSA sensitive columns: Ops in-charge, Finance, Sub Admin, Admin
+  _canEditNsaSensitiveColumns() {
+    return this._hasRoleKeyword('admin', 'sub admin', 'finance', 'ops in-charge');
+  }
+
+  _canEditNsaCashPayNowStatus() {
+    return this._canEditNsaSensitiveColumns();
+  }
+
+  _canEditNsaSkillsFutureStatus() {
+    return this._canEditNsaSensitiveColumns();
+  }
+
+  /**
+   * Checks if the current user has Finance role and can edit Payment Status.
+   * Allowed roles: Finance (any variant)
+   * @returns {boolean}
+   */
+  _canEditPaymentStatus() {
+    return this._hasRoleKeyword('finance');
+  }
+
+  _getNsaPaymentStatusDisplayValue(columnName, rowData = {}) {
+    if (!this._isActiveNsaPaymentStatusColumn(columnName, rowData)) {
+      return 'Not Available';
+    }
+
+    return rowData?.paymentStatus || '';
+  }
+
+  _getNsaPaymentStatusEditorValues = (params) => {
+    const { courseInfo } = params?.data || {};
+    const courseType  = courseInfo?.courseType;
+    const coursePrice = courseInfo?.coursePrice;
+    const price       = parseFloat((coursePrice || '0').replace('$', ''));
+    const paymentMethod = this._getResolvedNsaPaymentMethod(params?.data);
+
+    // NSA Cash/PayNow: always show these 5 options in a fixed order
+    if (courseType === 'NSA' && paymentMethod !== 'SkillsFuture') {
+      return { values: ['Paid', 'Pending', 'To refund', 'Cancelled - No payment received', 'Refunded'] };
+    }
+
+    // NSA SkillsFuture: always show these 6 options in a fixed order
+    if (courseType === 'NSA' && paymentMethod === 'SkillsFuture') {
+      return { values: ['Pending', 'Generating SkillsFuture Invoice', 'SkillsFuture Done', 'Cancelled', 'To refund', 'Refunded'] };
+    }
+
+    const { paymentStatus } = params?.data || {};
+    let base;
+    if (
+      courseType === 'ILP' ||
+      (courseType === 'Talks And Seminar' && price <= 0) ||
+      (courseType === 'Others' && price <= 0)
+    ) {
+      base = ['Pending', 'Confirmed', 'Withdrawn', 'Not Successful'];
+    } else if ((courseType === 'Talks And Seminar' || courseType === 'Others') && price > 0) {
+      base = ['Pending', 'Paid', 'Cancelled', 'Withdrawn', 'Refunded', 'Not Successful'];
+    } else {
+      base = ['Pending', 'Paid', 'Withdrawn', 'Refunded', 'Not Successful'];
+    }
+
+    let options = base;
+    if (paymentStatus === 'Pending') {
+      options = base.filter((s) => s !== 'To Refund' && s !== 'Withdrawn' && s !== 'Refunded');
+    } else if (paymentStatus === 'Paid') {
+      options = base.filter((s) => s !== 'Cancelled' && s !== 'Refunded');
+    } else if (paymentStatus === 'To Refund' || paymentStatus === 'Withdrawn') {
+      options = base.filter((s) => s !== 'Cancelled');
+    }
+
+    const filtered = options.filter((s) => s !== paymentStatus);
+    return { values: [paymentStatus, ...filtered] };
+  };
+
+  _refreshNsaPaymentStatusCells = (api, rowNode) => {
+    if (!api || !rowNode) return;
+
+    api.refreshCells({
+      rowNodes: [rowNode],
+      columns: ['paymentStatusCashPayNow', 'paymentStatusSkillsFuture', 'finalPaymentMethod'],
+      force: true,
+    });
+  };
 
   _getLiveRowSnapshot = (registrationId, fallbackData = {}) => {
     if (!registrationId) return { ...(fallbackData || {}) };
@@ -360,21 +440,6 @@ class RegistrationPaymentSection extends Component {
     }));
   };
 
-  _refreshApprovalStatusList = async () => {
-    try {
-      const response = await fetchNsaApprovalStatusList({
-        requesterEmail: this.props.userEmail || '',
-        requesterName: this.props.userName || '',
-      });
-      const mapped = this._mapApprovalStatusRows(response?.data?.requests || []);
-      this.setState({ approvalStatusList: mapped });
-      return mapped;
-    } catch (error) {
-      console.error('Failed to load approval status list:', error);
-      return this.state.approvalStatusList || [];
-    }
-  };
-
   _loadPersistedApprovalQueue() {
     try {
       const raw = localStorage.getItem(this._getApprovalQueueStorageKey());
@@ -395,48 +460,81 @@ class RegistrationPaymentSection extends Component {
     }
   }
 
+  // ── SWR cache helpers ─────────────────────────────────────────────────────
+
+  // _getRegCacheKey() {
+  //   const role   = this.props.role   || 'unknown';
+  //   const siteIC = this.props.siteIC ?? null;
+  //   return `${REG_DATA_CACHE_KEY_PREFIX}:${role}:${JSON.stringify(siteIC)}`;
+  // }
+
+  // _readRegCache() {
+  //   try {
+  //     const raw = localStorage.getItem(this._getRegCacheKey());
+  //     if (!raw) return null;
+  //     const { data, ts } = JSON.parse(raw);
+  //     if (!Array.isArray(data) || data.length === 0) return null;
+  //     if (Date.now() - ts > REG_DATA_CACHE_TTL_MS) return null;
+  //     return { data, ts };
+  //   } catch (_) { return null; }
+  // }
+
+  // _writeRegCache(data) {
+  //   if (!Array.isArray(data) || data.length === 0) return;
+  //   try {
+  //     localStorage.setItem(
+  //       this._getRegCacheKey(),
+  //       JSON.stringify({ data, ts: Date.now() })
+  //     );
+  //   } catch (_) { /* quota exceeded — skip silently */ }
+  // }
+
   // ── Lifecycle ────────────────────────────────────────────────────────────
 
   async componentDidMount() {
+    // Stale-while-revalidate: show cached data immediately, then refresh in background.
+    // const cached = this._readRegCache();
+    // if (cached) {
+    //   const { data } = cached;
+    //   const inputValues  = {};
+    //   const inputValues1 = {};
+    //   data.forEach((item, i) => {
+    //     inputValues[i]  = item.status || 'Pending';
+    //     inputValues1[i] = item.official?.remarks;
+    //   });
+    //   this.setState(
+    //     { originalData: data, registerationDetails: data, isLoading: false, inputValues, remarks: inputValues1 },
+    //     () => { this.filterRegistrationDetails(); }
+    //   );
+    //   // Background refresh — no loading popup, no scroll-position juggling.
+    //   await this.fetchAndSetRegistrationData({ background: true });
+    // } else {
+    //   await this.fetchAndSetRegistrationData();
+    // }
     await this.fetchAndSetRegistrationData();
 
-    // One-time reset requested: clear existing status history now.
-    this._clearApprovalStatusOnce();
-
-    const persistedQueue = this._loadPersistedApprovalQueue();
-    const persistedStatusList = this._loadPersistedApprovalStatusList();
-    if (persistedQueue.length) {
-      this.setState({ approvalQueue: persistedQueue });
-    }
-    if (persistedStatusList.length) {
-      this.setState({ approvalStatusList: persistedStatusList });
-    }
-
-    await this._refreshApprovalStatusList();
-
-    // Auto-open queue modal if shouldAutoOpenQueue flag is set
-    if (this.props.shouldAutoOpenQueue) {
-      setTimeout(() => {
-        if (persistedQueue.length > 0) {
-          this._openApprovalQueueModal();
-        }
-      }, 500); // Small delay to ensure state is ready
-    }
-
     this.socket = io(NODE_BASE_URL);
-    this.socket.on('registration', () => {
-      console.log('Socket: registration event received – refreshing data');
-      this.fetchAndSetRegistrationData();
-      this._refreshApprovalStatusList();
+    this.socket.on('registration', (eventData) => {
+      if (this.props.progressModalOpen) {
+        return;
+      }
+      if (Date.now() < this._suppressSocketRefreshUntil) {
+        return;
+      }
+      // Pass the _id from the socket payload so the patch only fetches that one row.
+      // Falls back to a full table reload when no id is present (e.g. bulk update, new insert).
+      const changedId = String(eventData?.id || '').trim() || null;
+      this._applySocketRowPatch(changedId);
+      // this._refreshApprovalStatusList();
     });
     // Targeted event: refresh approval status list, and if modal is open push fresh data to parent
-    this.socket.on('nsa-status-update', async () => {
-      console.log('Socket: nsa-status-update event received – refreshing approval status list');
-      const fresh = await this._refreshApprovalStatusList();
-      if (this._approvalStatusModalOpen) {
-        this._publishApprovalStatusToParent(fresh);
-      }
-    });
+    // this.socket.on('nsa-status-update', async () => {
+    //   console.log('Socket: nsa-status-update event received – refreshing approval status list');
+    //   const fresh = await this._refreshApprovalStatusList();
+    //   if (this._approvalStatusModalOpen) {
+    //     this._publishApprovalStatusToParent(fresh);
+    //   }
+    // });
   }
 
   componentWillUnmount() {
@@ -456,6 +554,13 @@ class RegistrationPaymentSection extends Component {
       this.props.onNotifierQueueSync(this.state.notifierQueue);
     }
 
+    if (prevProps.progressModalOpen && !this.props.progressModalOpen && this._pendingRefreshChild) {
+      this._pendingRefreshChild = false;
+      this.refreshChild({ force: true }).catch((error) => {
+        console.error('Background refresh after progress tracker closed failed:', error);
+      });
+    }
+
     const {
       selectedLocation, selectedCourseType, searchQuery,
       selectedCourseName, selectedQuarter,
@@ -470,32 +575,340 @@ class RegistrationPaymentSection extends Component {
 
     if (!changed) return;
 
-    if (selectedCourseType !== prevProps.selectedCourseType) {
-      this.setState(
-        { columnDefs: this.getColumnDefs(this.state.rowData) },
-        () => this.filterRegistrationDetails()
-      );
-    } else {
-      this.filterRegistrationDetails();
-    }
+    // All filter/search changes are applied client-side against the already-loaded
+    // originalData — no backend re-fetch needed. This makes filter switching instant.
+    this.filterRegistrationDetails();
   }
 
   // ── Data fetching ─────────────────────────────────────────────────────────
 
   fetchCourseRegistrations = async (language) => {
+    // Large enough to fetch all records in a single request.
+    const PAGE_SIZE = 9999;
     try {
       const { siteIC, role } = this.props;
-      const response = await apiFetchCourseRegistrations(siteIC, role);
-      return languageDatabase(response.data.result, language);
+
+      // Fetch first page + total count in one request
+      const firstResp = await fetchCourseRegistrationsBatch(siteIC, role, 0, PAGE_SIZE);
+      const total = firstResp.data?.total ?? 0;
+      const firstBatch = Array.isArray(firstResp.data?.result) ? firstResp.data.result : [];
+
+      let allRaw = firstBatch;
+
+      // Fire remaining pages in parallel if there are more records
+      if (total > PAGE_SIZE) {
+        const remainingSkips = [];
+        for (let s = PAGE_SIZE; s < total; s += PAGE_SIZE) {
+          remainingSkips.push(s);
+        }
+        const remainingBatches = await Promise.all(
+          remainingSkips.map((skip) =>
+            fetchCourseRegistrationsBatch(siteIC, role, skip, PAGE_SIZE)
+              .then((r) => (Array.isArray(r.data?.result) ? r.data.result : []))
+              .catch(() => [])
+          )
+        );
+        allRaw = [...firstBatch, ...remainingBatches.flat()];
+      }
+
+      const normalized = allRaw.map((item) => {
+        const id = item?._id?.$oid || item?._id?._id || (typeof item?._id === 'string' ? item._id : '') || item?.id || '';
+        return { ...item, id };
+      });
+      return languageDatabase(normalized, language);
     } catch (error) {
       console.error('Error fetching course registrations:', error.response?.data || error.message);
-      return [];
+      return null; // null signals a fetch failure (distinct from a genuine empty result [])
+    }
+  };
+
+  _syncFilterDropdownOptions = (sourceData = this.state.originalData || []) => {
+    const {
+      selectedLocation,
+      selectedCourseType,
+      selectedQuarter,
+    } = this.props;
+
+    const base = this._filterByRoleCourseAccess(sourceData || []);
+    const types = getAllTypes(base);
+    const byType = this._filterByCourseType(base, selectedCourseType);
+    const locations = getAllLocations(byType);
+    const byLoc = this._filterByLocation(byType, selectedLocation);
+    const quarters = getAllQuarters(byLoc);
+    const byQtr = this._filterByQuarter(byLoc, selectedQuarter);
+    const names = getAllNames(byQtr);
+
+    this.props.passDataToParent(locations, types, names, quarters);
+  };
+
+  _matchesSearchQuery = (registration, normalizedQuery) => {
+    if (!normalizedQuery) return true;
+
+    const fields = [
+      registration?.participant?.name,
+      registration?.participant?.nric,
+      registration?.participant?.contactNumber,
+      registration?.participant?.email,
+      registration?.course?.courseLocation,
+      registration?.course?.courseType,
+      registration?.course?.courseEngName,
+      registration?.course?.courseChiName,
+      registration?.course?.courseDuration,
+      registration?.course?.payment,
+      registration?.status,
+      registration?.official?.receiptNo,
+      registration?.spouse?.name,
+      registration?.marriageDetails?.maritalStatus,
+      registration?.marriageDetails?.marriageDuration,
+      registration?.marriageDetails?.housingType,
+      registration?.marriageDetails?.typeOfMarriage,
+      registration?.spouse?.nric,
+      registration?.spouse?.mobile,
+      registration?.spouse?.email,
+      registration?.marriageDetails?.grossMonthlyIncome,
+      registration?.marriageDetails?.hasChildren,
+      registration?.marriageDetails?.howFoundOut,
+      registration?.marriageDetails?.sourceOfReferral,
+    ];
+
+    return fields.some((value) =>
+      String(value || '').toLowerCase().includes(normalizedQuery)
+    );
+  };
+
+  _getFilteredRawData = (sourceData = this.state.originalData || []) => {
+    const {
+      section,
+      selectedLocation,
+      selectedCourseType,
+      selectedCourseName,
+      searchQuery,
+      selectedQuarter,
+    } = this.props;
+
+    if (section && section !== 'registration') return [];
+
+    const normalizedQuery = (searchQuery || '').toLowerCase().trim();
+    let filtered = this._filterByRoleCourseAccess([...(sourceData || [])]);
+
+    if (selectedLocation && selectedLocation !== 'All Locations') {
+      filtered = filtered.filter((item) => item.course?.courseLocation === selectedLocation);
+    }
+    if (selectedCourseType && selectedCourseType !== 'All Courses Types') {
+      const expected = String(selectedCourseType || '').toLowerCase().trim();
+      filtered = filtered.filter(
+        (item) => String(item.course?.courseType || '').toLowerCase().trim() === expected
+      );
+    }
+    if (selectedCourseName && selectedCourseName !== 'All Courses Name') {
+      filtered = filtered.filter((item) => item.course?.courseEngName === selectedCourseName);
+    }
+    if (selectedQuarter && selectedQuarter !== 'All Quarters') {
+      filtered = filtered.filter(
+        (item) => getQuarterFromDuration(item.course?.courseDuration) === selectedQuarter
+      );
+    }
+    if (normalizedQuery) {
+      filtered = filtered.filter((item) => this._matchesSearchQuery(item, normalizedQuery));
+    }
+
+    return filtered;
+  };
+
+  _applySocketRowPatch = async (registrationId = null) => {
+    // ── Targeted single-row refresh ───────────────────────────────────────────
+    // When the socket event carries a specific _id, fetch only that document and
+    // update only that row in the grid. This avoids reloading the entire table
+    // and preserves any other locally-held state.
+    if (registrationId) {
+      try {
+        const resp = await fetchRegistrationById(registrationId);
+        const rawDoc = resp?.data?.result;
+        if (!rawDoc) return;
+
+        // Normalise id the same way fetchCourseRegistrations does
+        const id =
+          rawDoc?._id?.$oid ||
+          rawDoc?._id?._id ||
+          (typeof rawDoc?._id === 'string' ? rawDoc._id : '') ||
+          rawDoc?.id ||
+          '';
+        if (!id) return;
+
+        const normalizedDoc = { ...rawDoc, id };
+
+        this.setState((prev) => {
+          const idx = (prev.rowData || []).findIndex((r) => String(r?.id || '') === id);
+          if (idx === -1) return null; // Row not in current filtered view — skip
+
+          const prevRow = prev.rowData[idx];
+          const incomingRow = mapRegistrationToRowData(normalizedDoc, idx);
+
+          if (JSON.stringify(prevRow) === JSON.stringify(incomingRow)) return null; // No-op
+
+          const updatedRowData = [...prev.rowData];
+          updatedRowData[idx] = { ...prevRow, ...incomingRow };
+          return { rowData: updatedRowData };
+        }, () => {
+          if (this.gridApi && typeof this.gridApi.forEachNode === 'function') {
+            this.gridApi.forEachNode((node) => {
+              if (String(node?.data?.id || '') === id) {
+                this.gridApi.refreshCells({ rowNodes: [node], force: true });
+              }
+            });
+          }
+        });
+      } catch (error) {
+        console.error('Error applying targeted socket row patch:', error);
+      }
+      return;
+    }
+
+    // ── Full table reload (no specific id: bulk update, new insert, etc.) ─────
+    const { language } = this.props;
+
+    const selectedIds = (this.state.selectedRows || [])
+      .map((row) => String(row?.id || ''))
+      .filter(Boolean);
+
+    const expandedRowId =
+      this.state.expandedRowIndex !== null
+        ? String(this.state.rowData?.[this.state.expandedRowIndex]?.id || '')
+        : '';
+
+    let anchorRowId = '';
+    if (this.gridApi && typeof this.gridApi.getFirstDisplayedRow === 'function') {
+      const firstDisplayedRow = this.gridApi.getFirstDisplayedRow();
+      if (typeof firstDisplayedRow === 'number' && firstDisplayedRow >= 0) {
+        anchorRowId = String(this.gridApi.getDisplayedRowAtIndex(firstDisplayedRow)?.data?.id || '');
+      }
+    }
+
+    try {
+      const raw = await this.fetchCourseRegistrations(language);
+
+      if (raw === null) {
+        // Fetch failed — preserve the existing table data rather than wiping it
+        return;
+      }
+
+      const unique = new Map();
+      (raw || []).forEach((item) => {
+        const id = String(item?.id || '').trim();
+        if (id) unique.set(id, item);
+      });
+
+      const data = this._filterByRoleCourseAccess(Array.from(unique.values()));
+      const filtered = this._getFilteredRawData(data);
+      const incomingRows = filtered.map((item, index) => mapRegistrationToRowData(item, index));
+
+      this._syncFilterDropdownOptions(data);
+      await this.props.getTotalNumberofDetails(data.length);
+
+      this.setState((prev) => {
+        const prevMap = new Map(
+          (prev.rowData || []).map((row) => [String(row?.id || ''), row])
+        );
+
+        const mergedRows = incomingRows.map((incomingRow) => {
+          const rowId = String(incomingRow?.id || '');
+          const prevRow = prevMap.get(rowId);
+          if (!prevRow) return incomingRow;
+
+          // Keep object identity for unchanged rows so AG-Grid minimizes viewport movement.
+          if (JSON.stringify(prevRow) === JSON.stringify(incomingRow)) {
+            return prevRow;
+          }
+
+          return { ...prevRow, ...incomingRow };
+        });
+
+        return {
+          originalData: data,
+          registerationDetails: filtered,
+          rowData: mergedRows,
+          columnDefs: this.getColumnDefs(mergedRows),
+        };
+      }, () => {
+        if (this.gridApi && typeof this.gridApi.forEachNode === 'function') {
+          this.gridApi.forEachNode((node) => {
+            const rowId = String(node?.data?.id || '');
+            if (rowId && selectedIds.includes(rowId)) {
+              node.setSelected(true);
+            }
+          });
+
+          if (expandedRowId) {
+            let nextExpandedIndex = null;
+            this.gridApi.forEachNode((node) => {
+              if (nextExpandedIndex === null && String(node?.data?.id || '') === expandedRowId) {
+                nextExpandedIndex = node.rowIndex;
+              }
+            });
+            this.setState({ expandedRowIndex: nextExpandedIndex });
+          }
+
+          if (anchorRowId) {
+            let anchorIndex = null;
+            this.gridApi.forEachNode((node) => {
+              if (anchorIndex === null && String(node?.data?.id || '') === anchorRowId) {
+                anchorIndex = node.rowIndex;
+              }
+            });
+
+            if (typeof anchorIndex === 'number') {
+              this.gridApi.ensureIndexVisible(anchorIndex, 'top');
+            }
+          }
+
+          this.gridApi.refreshCells();
+        }
+      });
+      // Re-run anomaly detection silently so the button badge and open modal stay current.
+      this.anomalitiesAlert(data, { autoOpen: false });
+    } catch (error) {
+      console.error('Error applying socket row patch:', error);
     }
   };
 
   async fetchAndSetRegistrationData() {
+    if (this._isFetchingRegistrationData) return;
+    this._isFetchingRegistrationData = true;
+    if (typeof this.props.openLoadingPopup === 'function') {
+      this.props.openLoadingPopup();
+    }
+    try {
     const gridContainer = document.querySelector('.ag-body-viewport');
     const savedScrollTop = gridContainer ? gridContainer.scrollTop : 0;
+    const selectedIds = (this.state.selectedRows || [])
+      .map((row) => String(row?.id || ''))
+      .filter(Boolean);
+    const expandedRowId =
+      this.state.expandedRowIndex !== null
+        ? String(this.state.rowData?.[this.state.expandedRowIndex]?.id || '')
+        : '';
+
+    let anchorRowId = '';
+    let focusedRowId = '';
+    let focusedRowIndex = null;
+
+    if (this.gridApi && typeof this.gridApi.getFirstDisplayedRow === 'function') {
+      const firstDisplayedRow = this.gridApi.getFirstDisplayedRow();
+      if (typeof firstDisplayedRow === 'number' && firstDisplayedRow >= 0) {
+        const firstNode = this.gridApi.getDisplayedRowAtIndex(firstDisplayedRow);
+        anchorRowId = String(firstNode?.data?.id || '');
+      }
+    }
+
+    if (this.gridApi && typeof this.gridApi.getFocusedCell === 'function') {
+      const focusedCell = this.gridApi.getFocusedCell();
+      if (focusedCell && typeof focusedCell.rowIndex === 'number') {
+        focusedRowIndex = focusedCell.rowIndex;
+        const focusedNode = this.gridApi.getDisplayedRowAtIndex(focusedCell.rowIndex);
+        focusedRowId = String(focusedNode?.data?.id || '');
+      }
+    }
+
     const savedPage =
       this.gridApi && typeof this.gridApi.paginationGetCurrentPage === 'function'
         ? this.gridApi.paginationGetCurrentPage()
@@ -511,6 +924,9 @@ class RegistrationPaymentSection extends Component {
       if (id) unique.set(id, item);
     });
     const data = this._filterByRoleCourseAccess(Array.from(unique.values()));
+
+    // Persist to localStorage so the next mount can show this data instantly.
+    // this._writeRegCache(data);
 
     // Build filter dropdown options
     const types     = getAllTypes(data);
@@ -543,21 +959,88 @@ class RegistrationPaymentSection extends Component {
         names,
       },
       async () => {
-        await this.getRowData(data);
         this.filterRegistrationDetails();
 
-        if (gridContainer) gridContainer.scrollTop = savedScrollTop;
-        if (this.gridApi && typeof this.gridApi.paginationGoToPage === 'function') {
-          try { this.gridApi.paginationGoToPage(savedPage); } catch (_) {}
-        }
+        requestAnimationFrame(() => {
+          if (this.gridApi && typeof this.gridApi.paginationGoToPage === 'function') {
+            try { this.gridApi.paginationGoToPage(savedPage); } catch (_) {}
+          }
+
+          if (this.gridApi && typeof this.gridApi.forEachNode === 'function') {
+            this.gridApi.forEachNode((node) => {
+              const rowId = String(node?.data?.id || '');
+              if (rowId && selectedIds.includes(rowId)) {
+                node.setSelected(true);
+              }
+            });
+
+            if (expandedRowId) {
+              let nextExpandedIndex = null;
+              this.gridApi.forEachNode((node) => {
+                if (nextExpandedIndex === null && String(node?.data?.id || '') === expandedRowId) {
+                  nextExpandedIndex = node.rowIndex;
+                }
+              });
+              this.setState({ expandedRowIndex: nextExpandedIndex });
+            }
+
+            let targetIndex = null;
+
+            if (focusedRowId) {
+              this.gridApi.forEachNode((node) => {
+                if (targetIndex === null && String(node?.data?.id || '') === focusedRowId) {
+                  targetIndex = node.rowIndex;
+                }
+              });
+            }
+
+            if (targetIndex === null && anchorRowId) {
+              this.gridApi.forEachNode((node) => {
+                if (targetIndex === null && String(node?.data?.id || '') === anchorRowId) {
+                  targetIndex = node.rowIndex;
+                }
+              });
+            }
+
+            if (typeof targetIndex === 'number') {
+              this.gridApi.ensureIndexVisible(targetIndex, 'top');
+            } else if (typeof focusedRowIndex === 'number') {
+              this.gridApi.ensureIndexVisible(focusedRowIndex, 'top');
+            } else if (gridContainer) {
+              gridContainer.scrollTop = savedScrollTop;
+            }
+          } else if (gridContainer) {
+            gridContainer.scrollTop = savedScrollTop;
+          }
+        });
 
         if (!this.state.isAlertShown) {
-          await this.anomalitiesAlert(data);
-          this.setState({ isAlertShown: true });
+          const runAnomalyCheck = async () => {
+            // Avoid blocking first table paint with an O(n^2) scan.
+            await this.anomalitiesAlert(data);
+            this.setState({ isAlertShown: true });
+          };
+
+          if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+            window.requestIdleCallback(() => {
+              runAnomalyCheck().catch((error) => {
+                console.error('Anomaly check failed:', error);
+              });
+            }, { timeout: 1200 });
+          } else {
+            setTimeout(() => {
+              runAnomalyCheck().catch((error) => {
+                console.error('Anomaly check failed:', error);
+              });
+            }, 0);
+          }
         }
         this.props.closePopup();
       }
     );
+    } finally {
+      this._isFetchingRegistrationData = false;
+    }
   }
 
   // ── Filter helpers (pure, no setState) ────────────────────────────────────
@@ -659,7 +1142,7 @@ class RegistrationPaymentSection extends Component {
     return styles;
   };
 
-  anomalitiesAlert = (data) => {
+  anomalitiesAlert = (data, { autoOpen = true } = {}) => {
     const anomalies = [];
     for (let i = 0; i < data.length; i++) {
       const { participant: { name }, course: { courseEngName, courseLocation } } = data[i];
@@ -678,7 +1161,13 @@ class RegistrationPaymentSection extends Component {
       }
     }
 
-    if (anomalies.length === 0) return;
+    if (anomalies.length === 0) {
+      this.setState({ anomalyList: [] });
+      if (typeof this.props.onAnomalyListChanged === 'function') {
+        this.props.onAnomalyListChanged([]);
+      }
+      return;
+    }
 
     const seen = new Set();
     const unique = anomalies.filter((a) => {
@@ -688,11 +1177,16 @@ class RegistrationPaymentSection extends Component {
       return true;
     });
 
-    let msg = 'Anomalies detected:\n\n';
-    unique.forEach((a, idx) => {
-      msg += `S/N: ${idx + 1}\nName: ${a.name}, Course: ${a.course}\nLocations: ${a.locations}\nAnomaly Type: ${a.type}\n\n`;
-    });
-    alert(msg);
+    // Always update local state and notify parent of the latest list
+    this.setState({ anomalyList: unique });
+    if (typeof this.props.onAnomalyListChanged === 'function') {
+      this.props.onAnomalyListChanged(unique);
+    }
+
+    // Auto-open the modal only on first detection (not on silent live refreshes)
+    if (autoOpen && typeof this.props.onAnomalyDetected === 'function') {
+      this.props.onAnomalyDetected(unique);
+    }
   };
 
   // ── Row data helpers ──────────────────────────────────────────────────────
@@ -812,6 +1306,13 @@ class RegistrationPaymentSection extends Component {
       return 'Registration and Payment Status';
     })();
 
+    const paymentMethodDisplayHeader = selectedCourseType === 'NSA'
+      ? 'Payment Method (indicated by participant)'
+      : 'Payment Method';
+
+    // Helper function to create centered cell style
+    const centeredCellStyle = { textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center' };
+
     const columnDefs = [
       {
         headerName: 'S/N',
@@ -819,50 +1320,113 @@ class RegistrationPaymentSection extends Component {
         width: 100,
         pinned: 'left',
         cellRenderer: SNRenderer,
+        cellStyle: centeredCellStyle,
       },
       {
         headerName: 'Name',
         field: 'name',
         width: 300,
-        editable: (params) => canEdit || canSocialWorkerEdit(params) || canSiteInChargeEdit(params),
+        editable: false,
         pinned: 'left',
+        cellStyle: centeredCellStyle,
       },
       {
         headerName: 'Contact Number',
         field: 'contactNo',
         width: 250,
-        editable: (params) => canEdit || canSocialWorkerEdit(params) || canSiteInChargeEdit(params),
+        editable: false,
         pinned: 'left',
+        cellStyle: centeredCellStyle,
       },
       {
         headerName: 'Course Name',
         field: 'course',
         width: 900,
+        editable: false,
+        cellStyle: centeredCellStyle,
       },
       {
         headerName: 'Course Mode',
         field: 'courseMode',
         width: 200,
+        editable: false,
+        cellStyle: centeredCellStyle,
       },
       {
         headerName: 'Course Duration',
         field: 'courseDuration',
         width: 500,
+        editable: false,
         cellRenderer: (params) =>
           params.value || params.data?.courseInfo?.courseDuration || '',
+        cellStyle: centeredCellStyle,
       },
       {
         headerName: 'Course Time',
         field: 'courseTime',
         width: 500,
+        editable: false,
+        cellStyle: centeredCellStyle,
       },
       {
-        headerName: 'Payment Method',
+        headerName: 'Payment Method (indicated by participant)',
         field: 'paymentMethod',
         cellRenderer: PaymentMethodRenderer,
         editable: false,
         width: 700,
+        hide: selectedCourseType !== 'NSA',
+        cellStyle: centeredCellStyle,
+      },
+      {
+        headerName: 'Registration Status',
+        field: 'registrationStatus',
+        width: 500,
+        cellEditor: 'agSelectCellEditor',
+        cellEditorParams: (params) => {
+          const currentStatus = params.data?.registrationStatus || 'Submitted';
+          const allOptions = ['Submitted', 'Confirmed Slot', 'Cancellation For Duplication', 'Withdrawn', 'Not Successful'];
+          const filtered = allOptions.filter((s) => s !== currentStatus);
+          return { values: [currentStatus, ...filtered] };
+        },
+        editable: (params) => canEdit || canSocialWorkerEdit(params) || canSiteInChargeEdit(params),
+        valueGetter: (params) => params.data?.registrationStatus || '',
+        valueSetter: (params) => {
+          if (params.newValue && params.newValue !== params.oldValue) {
+            params.data.registrationStatus = params.newValue;
+            return true;
+          }
+          return false;
+        },
+        cellRenderer: PaymentStatusRenderer,
+        cellStyle: centeredCellStyle,
         hide: shouldHidePaymentColumns,
+      },
+      {
+        headerName: 'Final Payment Method (by Staff)',
+        field: 'finalPaymentMethod',
+        width: 700,
+        cellRenderer: FinalPaymentMethodRenderer,
+        editable: (params) => {
+          const courseType = String(params.data?.courseInfo?.courseType || params.data?.courseType || '').trim();
+          if (courseType === 'NSA') return this._canEditNsaSensitiveColumns();
+          return true;
+        },
+        cellStyle: centeredCellStyle,
+        valueGetter: (params) => {
+          const finalPaymentMethod = params.data?.finalPaymentMethod;
+          if (typeof finalPaymentMethod === 'string' && finalPaymentMethod.trim() !== '') {
+            return finalPaymentMethod;
+          }
+          return params.data?.paymentMethod || '';
+        },
+        valueSetter: (params) => {
+          if (params.newValue !== params.oldValue) {
+            params.data.finalPaymentMethod = params.newValue;
+            return true;
+          }
+          return false;
+        },
+        hide: selectedCourseType !== 'NSA',
       },
       {
         headerName: 'Confirmation Status',
@@ -870,16 +1434,61 @@ class RegistrationPaymentSection extends Component {
         cellRenderer: SlideButtonRenderer,
         editable: false,
         width: 300,
-        cellStyle: (params) =>
-          params.data.paymentMethod !== 'SkillsFuture'
-            ? { pointerEvents: 'none', opacity: 0 }
-            : {},
-        hide: shouldHidePaymentColumns,
+        cellStyle: centeredCellStyle,
+        hide: selectedCourseType !== 'NSA',
       },
+      ...(selectedCourseType === 'NSA'
+        ? [
+          {
+            headerName: 'Payment Status (Cash/PayNow)',
+            colId: 'paymentStatusCashPayNow',
+            field: 'paymentStatus',
+            cellRenderer: PaymentStatusRenderer,
+            cellEditor: 'agSelectCellEditor',
+            cellEditorParams: (params) => this._getNsaPaymentStatusEditorValues(params),
+            editable: (params) => {
+              return this._canEditNsaCashPayNowStatus() && this._isActiveNsaPaymentStatusColumn('Payment Status (Cash/PayNow)', params.data);
+            },
+            valueGetter: (params) => this._getNsaPaymentStatusDisplayValue('Payment Status (Cash/PayNow)', params.data),
+            valueSetter: (params) => {
+              if (params.newValue && params.newValue !== params.oldValue) {
+                params.data.paymentStatus = params.newValue;
+                return true;
+              }
+              return false;
+            },
+            width: 500,
+            cellStyle: centeredCellStyle,
+          },
+          {
+            headerName: 'Payment Status (SkillsFuture)',
+            colId: 'paymentStatusSkillsFuture',
+            field: 'paymentStatus',
+            cellRenderer: PaymentStatusRenderer,
+            cellEditor: 'agSelectCellEditor',
+            cellEditorParams: (params) => this._getNsaPaymentStatusEditorValues(params),
+            editable: (params) => {
+              return this._canEditNsaSkillsFutureStatus() && this._isActiveNsaPaymentStatusColumn('Payment Status (SkillsFuture)', params.data);
+            },
+            valueGetter: (params) => this._getNsaPaymentStatusDisplayValue('Payment Status (SkillsFuture)', params.data),
+            valueSetter: (params) => {
+              if (params.newValue && params.newValue !== params.oldValue) {
+                params.data.paymentStatus = params.newValue;
+                return true;
+              }
+              return false;
+            },
+            width: 500,
+            cellStyle: centeredCellStyle,
+          },
+
+        ]
+        : []),
       {
         headerName: 'Receipt/Invoice Number',
         field: 'recinvNo',
         width: 600,
+        cellStyle: centeredCellStyle,
         hide: shouldHidePaymentColumns,
       },
       {
@@ -887,65 +1496,84 @@ class RegistrationPaymentSection extends Component {
         field: 'paymentDate',
         width: 350,
         editable: (params) => canEdit || canSocialWorkerEdit(params) || canSiteInChargeEdit(params),
+        cellStyle: centeredCellStyle,
+        hide: shouldHidePaymentColumns,
+      },
+      {
+        headerName: 'Payment Time',
+        field: 'paymentTime',
+        width: 300,
+        editable: false,
+        cellStyle: centeredCellStyle,
         hide: shouldHidePaymentColumns,
       },
       {
         headerName: 'Refunded Date',
         field: 'refundedDate',
         width: 350,
-        editable: (params) => canEdit || canSocialWorkerEdit(params) || canSiteInChargeEdit(params),
+        editable: (params) => {
+          const courseType = String(params.data?.courseInfo?.courseType || '').trim();
+          if (courseType === 'NSA') return this._canEditNsaSensitiveColumns();
+          return canEdit || canSocialWorkerEdit(params) || canSiteInChargeEdit(params);
+        },
+        cellStyle: centeredCellStyle,
         hide: shouldHidePaymentColumns,
       },
-      {
-        headerName: paymentStatusHeader,
-        field: 'paymentStatus',
-        cellEditor: 'agSelectCellEditor',
-        cellEditorParams: (params) => {
-          const { paymentMethod, courseInfo, paymentStatus } = params.data;
-          const courseType  = courseInfo.courseType;
-          const coursePrice = courseInfo.coursePrice;
-          const price       = parseFloat((coursePrice || '0').replace('$', ''));
+      ...(selectedCourseType === 'NSA'
+        ? []
+        : [
+          {
+            headerName: paymentStatusHeader,
+            field: 'paymentStatus',
+            cellEditor: 'agSelectCellEditor',
+            cellEditorParams: (params) => {
+              const { paymentMethod, courseInfo, paymentStatus } = params.data;
+              const courseType  = courseInfo.courseType;
+              const coursePrice = courseInfo.coursePrice;
+              const price       = parseFloat((coursePrice || '0').replace('$', ''));
 
-          let base;
-          if (courseType === 'NSA') {
-            base = paymentMethod === 'SkillsFuture'
-              ? ['Pending', 'Generating SkillsFuture Invoice', 'SkillsFuture Done', 'Cancelled', 'Withdrawn', 'Refunded']
-              : ['Pending', 'Paid', 'Cancelled', 'Withdrawn', 'Refunded', 'Not Successful'];
-          } else if (
-            courseType === 'ILP' ||
-            (courseType === 'Talks And Seminar' && price <= 0) ||
-            (courseType === 'Others' && price <= 0)
-          ) {
-            base = ['Pending', 'Confirmed', 'Withdrawn', 'Not Successful'];
-          } else if ((courseType === 'Talks And Seminar' || courseType === 'Others') && price > 0) {
-            base = ['Pending', 'Paid', 'Cancelled', 'Withdrawn', 'Refunded', 'Not Successful'];
-          } else {
-            base = ['Pending', 'Paid', 'Withdrawn', 'Refunded', 'Not Successful'];
-          }
+              let base;
+              if (courseType === 'NSA') {
+                base = paymentMethod === 'SkillsFuture'
+                  ? ['Pending', 'Generating SkillsFuture Invoice', 'SkillsFuture Done', 'Cancelled', 'Withdrawn', 'Refunded', 'To Refund']
+                  : ['Pending', 'Paid', 'Cancelled', 'Withdrawn', 'Refunded', 'Not Successful'];
+              } else if (
+                courseType === 'ILP' ||
+                (courseType === 'Talks And Seminar' && price <= 0) ||
+                (courseType === 'Others' && price <= 0)
+              ) {
+                base = ['Pending', 'Confirmed', 'Withdrawn', 'Not Successful'];
+              } else if ((courseType === 'Talks And Seminar' || courseType === 'Others') && price > 0) {
+                base = ['Pending', 'Paid', 'Cancelled', 'Withdrawn', 'Refunded', 'Not Successful'];
+              } else {
+                base = ['Pending', 'Paid', 'Withdrawn', 'Refunded', 'Not Successful'];
+              }
 
-          let options = base;
-          if (paymentStatus === 'Pending') {
-            options = base.filter((s) => s !== 'Withdrawn' && s !== 'Refunded');
-          } else if (paymentStatus === 'Paid') {
-            options = base.filter((s) => s !== 'Cancelled' && s !== 'Refunded');
-          } else if (paymentStatus === 'Withdrawn') {
-            options = base.filter((s) => s !== 'Cancelled');
-          }
+              let options = base;
+              if (paymentStatus === 'Pending') {
+                options = base.filter((s) => s !== 'To Refund' && s !== 'Withdrawn' && s !== 'Refunded');
+              } else if (paymentStatus === 'Paid') {
+                options = base.filter((s) => s !== 'Cancelled' && s !== 'Refunded');
+              } else if (paymentStatus === 'To Refund' || paymentStatus === 'Withdrawn') {
+                options = base.filter((s) => s !== 'Cancelled');
+              }
 
-          const filtered = options.filter((s) => s !== paymentStatus);
-          return { values: [paymentStatus, ...filtered] };
-        },
-        cellRenderer: PaymentStatusRenderer,
-        valueSetter: (params) => {
-          if (params.newValue && params.newValue !== params.oldValue) {
-            params.data.paymentStatus = params.newValue;
-            return true;
-          }
-          return false;
-        },
-        editable: true,
-        width: 400,
-      },
+              const filtered = options.filter((s) => s !== paymentStatus);
+              return { values: [paymentStatus, ...filtered] };
+            },
+            cellRenderer: PaymentStatusRenderer,
+            valueSetter: (params) => {
+              if (params.newValue && params.newValue !== params.oldValue) {
+                params.data.paymentStatus = params.newValue;
+                return true;
+              }
+              return false;
+            },
+            editable: true,
+            width: 400,
+            cellStyle: centeredCellStyle,
+          },
+        ]),
       {
         headerName: 'Sending Message Details',
         field: 'sendDetails',
@@ -965,12 +1593,14 @@ class RegistrationPaymentSection extends Component {
             />
           );
         },
+        cellStyle: centeredCellStyle,
       },
       {
         headerName: 'Remarks',
         field: 'remarks',
         width: 900,
         editable: true,
+        cellStyle: centeredCellStyle,
       },
     ];
 
@@ -1098,6 +1728,117 @@ class RegistrationPaymentSection extends Component {
     this.setState({ entriesPerPage: parseInt(e.target.value, 10), currentPage: 1 });
   };
 
+  handleParticipantFieldUpdate = async ({ rowId, participantKey, apiField, value }) => {
+    if (!rowId || !apiField) return;
+
+    const normalizeDisplayValue = (rawValue) => {
+      if (rawValue === null || rawValue === undefined) return '';
+      if (typeof rawValue === 'string') {
+        const next = rawValue.trim();
+        return next === '[object Object]' ? '' : next;
+      }
+      if (typeof rawValue === 'number' || typeof rawValue === 'boolean') return String(rawValue);
+
+      if (Array.isArray(rawValue)) {
+        return rawValue
+          .map((item) => normalizeDisplayValue(item))
+          .filter(Boolean)
+          .join(', ');
+      }
+
+      if (typeof rawValue === 'object') {
+        const code = rawValue.code ?? rawValue.value ?? '';
+        const desc = rawValue.desc ?? rawValue.description ?? rawValue.label ?? '';
+        if (code || desc) {
+          return `${code}${code && desc ? ' ' : ''}${desc}`.trim();
+        }
+
+        const directText =
+          rawValue.name ??
+          rawValue.fullName ??
+          rawValue.text ??
+          rawValue.display ??
+          rawValue.englishName;
+        if (directText !== undefined && directText !== null) {
+          return normalizeDisplayValue(directText);
+        }
+
+        const firstPrimitive = Object.values(rawValue).find(
+          (item) => typeof item === 'string' || typeof item === 'number' || typeof item === 'boolean'
+        );
+        if (firstPrimitive !== undefined && firstPrimitive !== null) {
+          return normalizeDisplayValue(firstPrimitive);
+        }
+      }
+
+      return '';
+    };
+
+    const normalizedValue = normalizeDisplayValue(value);
+
+    const response = await editRegistrationField(rowId, apiField, normalizedValue);
+    const result = response?.data?.result;
+
+    const isBackendSuccess = (() => {
+      if (result === true) return true;
+      if (result?.success === true) return true;
+
+      const hasMatchedCount = typeof result?.matchedCount === 'number';
+      const hasModifiedCount = typeof result?.modifiedCount === 'number';
+
+      if (hasMatchedCount || hasModifiedCount) {
+        const matched = Number(result?.matchedCount || 0);
+        const modified = Number(result?.modifiedCount || 0);
+        return matched > 0 || modified > 0;
+      }
+
+      return result?.acknowledged === true;
+    })();
+
+    if (!isBackendSuccess) {
+      throw new Error(
+        `Participant update failed for field "${apiField}": ${JSON.stringify(result)}`
+      );
+    }
+
+    this.setState((prev) => ({
+      rowData: (prev.rowData || []).map((row) => {
+        if (String(row?.id || '') !== String(rowId)) return row;
+
+        const nextParticipantInfo = {
+          ...(row.participantInfo || {}),
+          [participantKey]: normalizedValue,
+        };
+
+        const nextRow = {
+          ...row,
+          participantInfo: nextParticipantInfo,
+        };
+
+        if (participantKey === 'name') nextRow.name = normalizedValue;
+        if (participantKey === 'contactNumber') nextRow.contactNo = normalizedValue;
+
+        return nextRow;
+      }),
+    }));
+
+    if (this.gridApi && typeof this.gridApi.forEachNode === 'function') {
+      this.gridApi.forEachNode((node) => {
+        if (String(node?.data?.id || '') !== String(rowId)) return;
+        node.setDataValue('participantInfo', {
+          ...(node.data?.participantInfo || {}),
+          [participantKey]: normalizedValue,
+        });
+
+        if (participantKey === 'name') node.setDataValue('name', normalizedValue);
+        if (participantKey === 'contactNumber') node.setDataValue('contactNo', normalizedValue);
+      });
+    }
+
+    // Local state is already updated; skip immediate socket-triggered full reload to avoid viewport jump.
+    this._suppressNextSocketRefresh();
+  };
+
   handleValueClick = async (event) => {
     const columnName   = event.colDef.headerName;
     const id           = event.data.id;
@@ -1138,6 +1879,31 @@ class RegistrationPaymentSection extends Component {
 
           if (generatedNo) {
             const viewCourse = { ...courseInfo, payment: paymentMethod || courseInfo?.payment };
+            event.data.recinvNo = generatedNo;
+
+            // Immediately update recinvNo, paymentDate, and paymentTime in the grid so all
+            // three appear at the same time — before refreshChild() fetches from the server.
+            // The server uses DD/MM/YYYY and HH:MM:SS, so we mirror that format here.
+            const _now = new Date();
+            const _paymentDate = `${String(_now.getDate()).padStart(2,'0')}/${String(_now.getMonth()+1).padStart(2,'0')}/${_now.getFullYear()}`;
+            const _paymentTime = `${String(_now.getHours()).padStart(2,'0')}:${String(_now.getMinutes()).padStart(2,'0')}:${String(_now.getSeconds()).padStart(2,'0')}`;
+            if (this.gridApi && typeof this.gridApi.forEachNode === 'function') {
+              this.gridApi.forEachNode((node) => {
+                if (String(node?.data?.id || '') === String(id)) {
+                  node.setDataValue('recinvNo', generatedNo);
+                  node.setDataValue('paymentDate', _paymentDate);
+                  node.setDataValue('paymentTime', _paymentTime);
+                }
+              });
+            }
+            this.setState((prev) => ({
+              rowData: (prev.rowData || []).map((row) =>
+                String(row?.id || '') === String(id)
+                  ? { ...row, recinvNo: generatedNo, paymentDate: _paymentDate, paymentTime: _paymentTime }
+                  : row
+              ),
+            }));
+
             await this.receiptShown(participantInfo, viewCourse, generatedNo, officialInfo);
             await this.refreshChild();
           } else {
@@ -1200,11 +1966,14 @@ class RegistrationPaymentSection extends Component {
   _buildCellHandlerContext() {
     return {
       userName:             this.props.userName,
+      userRole:             this.props.role,
       showUpdatePopup:      this.props.showUpdatePopup,
       closePopup:           this.props.closePopup,
+      progressTracker:      this.props.progressTracker,
       updateWooCommerce:    this.updateWooCommerceForRegistrationPayment,
       autoReceiptGenerator: this.autoReceiptGenerator,
       receiptGenerator:     this.receiptGenerator,
+      refreshChild:         this.refreshChild,
     };
   }
 
@@ -1320,14 +2089,15 @@ class RegistrationPaymentSection extends Component {
       const columnName = appliedEvent.colDef.headerName;
       const columnField = appliedEvent.colDef.field;
       try {
-        if (columnField === 'paymentMethod' || columnName === 'Payment Method') {
-          await handlePaymentMethodChange(appliedEvent, context);
-        } else if (columnField === 'confirmed' || columnName === 'Confirmation Status') {
+        if (columnField === 'confirmed' || columnName === 'Confirmation Status') {
           await handleConfirmationStatusChange(appliedEvent, context);
+        } else if (columnField === 'registrationStatus' || columnName === 'Registration Status') {
+          await handleRegistrationStatusChange(appliedEvent, context);
         } else if (
           columnField === 'paymentStatus' ||
           columnName === 'Registration and Payment Status' ||
-          columnName === 'Registration Status' ||
+          columnName === 'Payment Status (Cash/PayNow)' ||
+          columnName === 'Payment Status (SkillsFuture)' ||
           columnName === 'Payment Status'
         ) {
           await handlePaymentStatusChange(appliedEvent, context);
@@ -1339,36 +2109,14 @@ class RegistrationPaymentSection extends Component {
           await handleGenericFieldChange(appliedEvent);
         }
 
-        this._applyLiveNotifierRowUpdate({
-          registrationId,
-          field: columnField,
-          value: appliedEvent?.value,
-          resetRemarks: shouldUseReasonForRemarks,
-        });
-
         if (registrationId) {
           const nextRow = {
             ...(liveRowsById.get(String(registrationId)) || latestRowData || {}),
             [columnField]: appliedEvent?.value,
           };
 
-          if (columnField === 'paymentMethod' && (appliedEvent?.value === 'Cash' || appliedEvent?.value === 'PayNow')) {
-            nextRow.paymentStatus = 'Paid';
-            this._applyLiveNotifierRowUpdate({
-              registrationId,
-              field: 'paymentStatus',
-              value: 'Paid',
-            });
-          }
-
-          if (columnField === 'confirmed' && nextRow.paymentMethod === 'SkillsFuture') {
-            nextRow.paymentStatus = 'Generating SkillsFuture Invoice';
-            this._applyLiveNotifierRowUpdate({
-              registrationId,
-              field: 'paymentStatus',
-              value: 'Generating SkillsFuture Invoice',
-            });
-          }
+          // Do not pre-set paymentStatus here; the handler already persists the
+          // correct value to the DB and updates event.data directly.
 
           liveRowsById.set(String(registrationId), nextRow);
         }
@@ -1384,6 +2132,12 @@ class RegistrationPaymentSection extends Component {
   onCellValueChanged = async (event) => {
     if (this._isReverting) return;
 
+    if (event?.oldValue !== event?.value) {
+      // Suppress socket-driven row patching before any backend writes begin.
+      // This avoids applying intermediate states (e.g. Pending) mid-transaction.
+      this._suppressNextSocketRefresh(12000);
+    }
+
     const rowCourseType = event?.data?.courseInfo?.courseType || event?.data?.course?.courseType || '';
     if (shouldRequireApprovalForCourse(this.props.userEmail, rowCourseType)) {
       // For read-only users: intercept — lift popup to homePage
@@ -1394,12 +2148,6 @@ class RegistrationPaymentSection extends Component {
       return;
     }
 
-    if (isNsaNotifier(this.props.userEmail)) {
-      await this._notifyNsaChange(event);
-      this._revertNotifierEditedCell(event);
-      return;
-    }
-
     console.log('Cell value changed:', {
       column:   event.colDef.headerName,
       oldValue: event.oldValue,
@@ -1407,17 +2155,28 @@ class RegistrationPaymentSection extends Component {
       data:     event.data,
     });
 
-    const columnName = event.colDef.headerName;
+    const columnName = event?.colDef?.headerName || event?.column?.getColDef?.()?.headerName || '';
+    const columnField = event?.colDef?.field || event?.field || event?.column?.getColDef?.()?.field || '';
     const context    = this._buildCellHandlerContext();
+    const isNsaParticipantPaymentMethod = columnField === 'paymentMethod' || columnName === 'Payment Method (indicated by participant)';
 
     try {
-      if (columnName === 'Payment Method') {
-        await handlePaymentMethodChange(event, context);
+      if (columnField === 'finalPaymentMethod' || columnName === 'Final Payment Method (by Staff)') {
+        await handleFinalPaymentMethodChange(event, context);
+        this._refreshNsaPaymentStatusCells(event.api, event.node);
+      } else if (isNsaParticipantPaymentMethod) {
+        await handlePaymentMethodChange(event, {
+          ...context,
+          progressTracker: null,
+        });
       } else if (columnName === 'Confirmation Status') {
         await handleConfirmationStatusChange(event, context);
+      } else if (columnName === 'Registration Status') {
+        await handleRegistrationStatusChange(event, context);
       } else if (
         columnName === 'Registration and Payment Status' ||
-        columnName === 'Registration Status' ||
+        columnName === 'Payment Status (Cash/PayNow)' ||
+        columnName === 'Payment Status (SkillsFuture)' ||
         columnName === 'Payment Status'
       ) {
         await handlePaymentStatusChange(event, context);
@@ -1430,10 +2189,15 @@ class RegistrationPaymentSection extends Component {
       }
 
       await this._notifyNsaChange(event);
-      this.refreshChild();
+      // Keep edits local-instant without visible full-table refresh.
+      this._suppressNextSocketRefresh();
     } catch (error) {
       console.error('Error in onCellValueChanged:', error);
       this.props.closePopup();
+      // Also close the progress modal if it was open when the error occurred
+      if (this.props.progressTracker) {
+        this.props.progressTracker.error();
+      }
     }
   };
 
@@ -1596,16 +2360,6 @@ class RegistrationPaymentSection extends Component {
 
     try {
       this.props.showUpdatePopup('Sending approval email...');
-      await sendNsaApprovalEmail({
-        fromName: this.props.userName || 'Unknown',
-        fromEmail: this.props.userEmail || '',
-        currentDate,
-        currentTime,
-        allChanges,
-        additionalNotes: '',
-      });
-
-      await this._refreshApprovalStatusList();
 
       this.props.showUpdatePopup('Approval request sent to moses_lee@ecss.org.sg.');
       this.setState({ approvalQueue: [] });
@@ -1698,6 +2452,8 @@ class RegistrationPaymentSection extends Component {
           await handleConfirmationStatusChange(event, context);
         } else if (
           columnName === 'Registration and Payment Status' ||
+          columnName === 'Payment Status (Cash/PayNow)' ||
+          columnName === 'Payment Status (SkillsFuture)' ||
           columnName === 'Registration Status' ||
           columnName === 'Payment Status'
         ) {
@@ -1734,20 +2490,98 @@ class RegistrationPaymentSection extends Component {
 
   // ── Refresh ───────────────────────────────────────────────────────────────
 
-  refreshChild = async () => {
-    const { language } = this.props;
+  refreshChild = async (options = {}) => {
+    const { force = false } = options;
+    const { language, progressModalOpen } = this.props;
+    if (progressModalOpen && !force) {
+      this._pendingRefreshChild = true;
+      return;
+    }
+
     const gridContainer = document.querySelector('.ag-body-viewport');
     const savedScrollTop = gridContainer ? gridContainer.scrollTop : 0;
+    const selectedIds = (this.state.selectedRows || [])
+      .map((row) => String(row?.id || ''))
+      .filter(Boolean);
+
+    let focusedRowId = '';
+    let focusedRowIndex = null;
+    if (this.gridApi && typeof this.gridApi.getFocusedCell === 'function') {
+      const focusedCell = this.gridApi.getFocusedCell();
+      if (focusedCell && typeof focusedCell.rowIndex === 'number') {
+        focusedRowIndex = focusedCell.rowIndex;
+        const focusedNode = this.gridApi.getDisplayedRowAtIndex(focusedCell.rowIndex);
+        focusedRowId = String(focusedNode?.data?.id || '');
+      }
+    }
+
+    const expandedRowId =
+      this.state.expandedRowIndex !== null
+        ? String(this.state.rowData?.[this.state.expandedRowIndex]?.id || '')
+        : '';
 
     try {
       const data = await this.fetchCourseRegistrations(language);
-      this.setState({ originalData: data || [], registerationDetails: data || [] }, () => {
-        this.getRowData(data || []);
+
+      if (data === null) {
+        // Fetch failed — keep existing table data intact
+        if (!progressModalOpen) this.props.closePopup();
+        return;
+      }
+
+      this.setState({ originalData: data, registerationDetails: data }, () => {
         this.filterRegistrationDetails();
+
+        requestAnimationFrame(() => {
+          if (gridContainer) {
+            gridContainer.scrollTop = savedScrollTop;
+          }
+
+          if (this.gridApi && typeof this.gridApi.forEachNode === 'function') {
+            // Restore previous selections by row id after data refresh.
+            this.gridApi.forEachNode((node) => {
+              const rowId = String(node?.data?.id || '');
+              if (rowId && selectedIds.includes(rowId)) {
+                node.setSelected(true);
+              }
+            });
+
+            // Restore expanded row to the same entry if it still exists.
+            if (expandedRowId) {
+              let nextExpandedIndex = null;
+              this.gridApi.forEachNode((node) => {
+                if (nextExpandedIndex === null && String(node?.data?.id || '') === expandedRowId) {
+                  nextExpandedIndex = node.rowIndex;
+                }
+              });
+
+              this.setState({ expandedRowIndex: nextExpandedIndex });
+            }
+
+            // Keep focus/viewport anchored to the same entry when possible.
+            if (focusedRowId) {
+              let targetIndex = null;
+              this.gridApi.forEachNode((node) => {
+                if (targetIndex === null && String(node?.data?.id || '') === focusedRowId) {
+                  targetIndex = node.rowIndex;
+                }
+              });
+
+              if (typeof targetIndex === 'number') {
+                this.gridApi.ensureIndexVisible(targetIndex, 'middle');
+              }
+            } else if (typeof focusedRowIndex === 'number') {
+              this.gridApi.ensureIndexVisible(focusedRowIndex, 'middle');
+            }
+          }
+        });
+
         setTimeout(() => {
           if (gridContainer) gridContainer.scrollTop = savedScrollTop;
         }, 100);
-        this.props.closePopup();
+        if (!progressModalOpen) {
+          this.props.closePopup();
+        }
       });
     } catch (error) {
       console.error('Error in refreshChild:', error);
@@ -1758,71 +2592,18 @@ class RegistrationPaymentSection extends Component {
   // ── Filtering ─────────────────────────────────────────────────────────────
 
   filterRegistrationDetails() {
-    const {
-      section, selectedLocation, selectedCourseType,
-      selectedCourseName, searchQuery, selectedQuarter,
-    } = this.props;
-
-    if (section && section !== 'registration') return;
-
     const { originalData } = this.state;
     if (!originalData?.length) {
       this.setState({ registerationDetails: [], rowData: [] });
       return;
     }
 
-    const q = (searchQuery || '').toLowerCase().trim();
-
-    let filtered = this._filterByRoleCourseAccess([...(originalData || [])]);
-
-    if (selectedLocation && selectedLocation !== 'All Locations') {
-      filtered = filtered.filter((d) => d.course?.courseLocation === selectedLocation);
-    }
-    if (selectedCourseType && selectedCourseType !== 'All Courses Types') {
-      const expected = selectedCourseType.toLowerCase().trim();
-      filtered = filtered.filter(
-        (d) => (d.course?.courseType || '').toLowerCase().trim() === expected
-      );
-    }
-    if (selectedCourseName && selectedCourseName !== 'All Courses Name') {
-      filtered = filtered.filter((d) => d.course?.courseEngName === selectedCourseName);
-    }
-    if (selectedQuarter && selectedQuarter !== 'All Quarters') {
-      filtered = filtered.filter(
-        (d) => getQuarterFromDuration(d.course?.courseDuration) === selectedQuarter
-      );
-    }
-    if (q) {
-      filtered = filtered.filter((d) => {
-        const fields = [
-          d.participant?.name, d.participant?.nric, d.participant?.contactNumber,
-          d.participant?.email, d.course?.courseLocation, d.course?.courseType,
-          d.course?.courseEngName, d.course?.courseChiName, d.course?.courseDuration,
-          d.course?.payment, d.status, d.official?.receiptNo,
-          d.spouse?.name, d.marriageDetails?.maritalStatus, d.marriageDetails?.marriageDuration,
-          d.marriageDetails?.housingType, d.marriageDetails?.typeOfMarriage,
-          d.spouse?.nric, d.spouse?.mobile, d.spouse?.email,
-          d.marriageDetails?.grossMonthlyIncome, d.marriageDetails?.hasChildren,
-          d.marriageDetails?.howFoundOut, d.marriageDetails?.sourceOfReferral,
-        ];
-        return fields.some((f) => (f || '').toString().toLowerCase().includes(q));
-      });
-    }
+    const filtered = this._getFilteredRawData(originalData);
 
     const rowData   = filtered.map((item, index) => mapRegistrationToRowData(item, index));
     const newColDefs = this.getColumnDefs(rowData);
 
-    // Keep dropdown options cascading by selection order:
-    // Type -> Location -> Quarter -> Course
-    const base = this._filterByRoleCourseAccess(this.state.originalData || []);
-    const types = getAllTypes(base);
-    const byType = this._filterByCourseType(base, selectedCourseType);
-    const locations = getAllLocations(byType);
-    const byLoc = this._filterByLocation(byType, selectedLocation);
-    const quarters = getAllQuarters(byLoc);
-    const byQtr = this._filterByQuarter(byLoc, selectedQuarter);
-    const names = getAllNames(byQtr);
-    this.props.passDataToParent(locations, types, names, quarters);
+    this._syncFilterDropdownOptions(this.state.originalData || []);
 
     this.setState(
       { registerationDetails: filtered, rowData, columnDefs: newColDefs },
@@ -2017,8 +2798,6 @@ class RegistrationPaymentSection extends Component {
     setShowBulkUpdateModal: this._setShowBulkUpdateModal,
     setBulkUpdateFields: (fields) => this.setState(fields),
     updateWooCommerce: this.updateWooCommerceForRegistrationPayment,
-    isNsaNotifierUser: isNsaNotifier(this.props.userEmail),
-    onNSAApprovalRequest: this.props.onNSAApprovalRequest,
     onApprovalQueueRequest: this._enqueueBulkApprovalRequest,
     onNotifierQueueRequest: this._enqueueBulkNotifierRequest,
     reason: reason || '',
@@ -2130,47 +2909,6 @@ class RegistrationPaymentSection extends Component {
     await this.props.generateSendDetailsConfirmationPopup(id);
   };
 
-  requestNSAApproval = (rowData, columnName) => {
-    const now  = new Date();
-    const pad  = (n) => String(n).padStart(2, '0');
-    const date = `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()}`;
-    const time = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
-
-    const valueMap = {
-      Name: rowData?.participantInfo?.name || rowData?.name || '',
-      'Contact Number': rowData?.contactNo || rowData?.participantInfo?.contactNumber || '',
-      'Payment Date': rowData?.paymentDate || '',
-      'Refunded Date': rowData?.refundedDate || '',
-      Remarks: rowData?.remarks || '',
-      'Payment Status': rowData?.paymentStatus || '',
-      'Registration Status': rowData?.paymentStatus || '',
-      'Registration and Payment Status': rowData?.paymentStatus || '',
-      Confirmation: rowData?.confirmed ? 'Confirmed' : 'Not Confirmed',
-      'Confirmation Status': rowData?.confirmed ? 'Confirmed' : 'Not Confirmed',
-      'Payment Method': rowData?.paymentMethod || '',
-    };
-
-    this.props.onNSAApprovalRequest({
-      columnName,
-      currentValue: valueMap[columnName] || '',
-      currentDate: date,
-      currentTime: time,
-      registrationId: rowData?.id || '',
-      sn: rowData?.sn || '',
-      participantName: rowData?.participantInfo?.name || rowData?.name || '',
-      contactNo: rowData?.contactNo || rowData?.participantInfo?.contactNumber || '',
-      courseName: rowData?.courseInfo?.courseEngName || rowData?.course || '',
-      courseLocation: rowData?.courseInfo?.courseLocation || rowData?.location || '',
-      courseType: rowData?.courseInfo?.courseType || 'NSA',
-      paymentMethod: rowData?.paymentMethod || '',
-      paymentStatus: rowData?.paymentStatus || '',
-      paymentDate: rowData?.paymentDate || '',
-      refundedDate: rowData?.refundedDate || '',
-      remarks: rowData?.remarks || '',
-      confirmed: rowData?.confirmed ?? null,
-    });
-  };
-
   // ── Debug helpers ─────────────────────────────────────────────────────────
 
   debugMarriagePrepData = () => {
@@ -2197,6 +2935,21 @@ class RegistrationPaymentSection extends Component {
 
     return (
       <div className="registration-payment-details-wrapper">
+        {/* ── Anomaly Detection button (above heading) ──────────── */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '6px', width: '90%', marginLeft: 'auto', marginRight: 'auto' }}>
+          <button
+            className="registration-payment-details-button"
+            style={{
+              color: this.state.anomalyList.length > 0 ? '#E65100' : '#9E9E9E',
+              borderColor: this.state.anomalyList.length > 0 ? '#E65100' : '#9E9E9E',
+              fontWeight: 700,
+            }}
+            onClick={this.props.onOpenAnomalyModal}
+          >
+            Anomaly Detection
+          </button>
+        </div>
+
         <div className="registration-payment-details-heading">
           <h2>Registration &amp; Payment Table</h2>
         </div>
@@ -2218,6 +2971,7 @@ class RegistrationPaymentSection extends Component {
             onExportAttendance={this.exportAttendance}
             onExportMarriagePrep={this.exportToMarriagePreparationProgramme}
             onOpenBulkUpdate={this.openBulkUpdateModal}
+            hideBulkUpdate={this.props.selectedCourseType === 'NSA'}
             isReadOnly={isReadOnlyUser(this.props.userEmail)}
             approvalQueueCount={approvalQueue.length}
             onOpenApprovalQueue={this._openApprovalQueueModal}
@@ -2230,25 +2984,46 @@ class RegistrationPaymentSection extends Component {
           {/* ── AG-Grid ────────────────────────────────────────────── */}
           <div className="grid-container">
             <AgGridReact
+              className="registration-payment-checkbox-size-150"
               ref={this.gridRef}
               rowData={this.state.rowData}
+              getRowId={(params) => String(params?.data?.id || params?.data?._id || '')}
               columnDefs={this.state.columnDefs}
+              defaultColDef={{
+                cellStyle: {
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  textAlign: 'center',
+                },
+              }}
               rowSelection="multiple"
+              suppressScrollOnNewData={true}
               onGridReady={this.onGridReady}
               onSelectionChanged={this.onSelectionChanged}
               onCellValueChanged={this.onCellValueChanged}
               stopEditingWhenCellsLoseFocus={true}
               onCellEditingStopped={(params) => {
+                const columnId = params.column?.getId?.();
+                if (
+                  columnId === 'paymentStatusCashPayNow' ||
+                  columnId === 'paymentStatusSkillsFuture' ||
+                  columnId === 'paymentMethod' ||
+                  columnId === 'finalPaymentMethod'
+                ) {
+                  this._refreshNsaPaymentStatusCells(params.api, params.node);
+                  return;
+                }
+
                 params.api.refreshCells({
                   rowNodes: [params.node],
-                  columns: [params.column.getId()],
+                  columns: [columnId],
                   force: true,
                 });
               }}
               onCellClicked={this.handleValueClick}
               suppressRowClickSelection={true}
               pagination={true}
-              paginationPageSize={this.state.rowData.length}
+              paginationPageSize={Math.max(1, Number(this.props.entriesPerPage) || 20)}
               domLayout="normal"
               rowHeight={90}
               getRowStyle={this.getRowStyle}
@@ -2260,14 +3035,17 @@ class RegistrationPaymentSection extends Component {
           </div>
         </div>
 
-        {/* ApprovalPopup is rendered in homePage.jsx */}
+        {/* ApprovalPopup and AnomalyModal are rendered in homePage.jsx */}
 
         {/* ── Expanded Row Detail ────────────────────────────────── */}
         {expandedRowIndex !== null &&
           this.state.rowData?.length > 0 &&
           expandedRowIndex < this.state.rowData.length && (
             <div className="registration-payment-details-expanded-row">
-              <ExpandedRowDetail rowData={this.state.rowData[expandedRowIndex]} />
+              <ExpandedRowDetail
+                rowData={this.state.rowData[expandedRowIndex]}
+                onParticipantFieldUpdate={this.handleParticipantFieldUpdate}
+              />
             </div>
           )}
       </div>
