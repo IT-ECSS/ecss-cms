@@ -1240,7 +1240,11 @@ class RegistrationPaymentSection extends Component {
     saveReceiptToDatabase(receiptNo, location, registration_id, url, this.props.userName);
 
   receiptShown = (participant, course, receiptNo, officialInfo) =>
-    showReceipt(participant, course, receiptNo, officialInfo, this.props.userName);
+    showReceipt(participant, course, receiptNo, officialInfo, this.props.userName, {
+      progressTracker: this.props.progressTracker,
+      showUpdatePopup: this.props.showUpdatePopup,
+      closePopup: this.props.closePopup,
+    });
 
   receiptGenerator = (id, participant, course, official, value) =>
     receiptGeneratorFn(id, participant, course, official, value, this.props.userName);
@@ -1868,11 +1872,8 @@ class RegistrationPaymentSection extends Component {
         }
 
       } else if (columnName === 'Receipt/Invoice Number') {
-        this.props.showUpdatePopup('In Progress... Please wait...');
-
         if (receiptInvoice) {
           await this.receiptShown(participantInfo, courseInfo, receiptInvoice, officialInfo);
-          this.props.closePopup();
         } else {
           const paymentMethod = event.data.paymentMethod || courseInfo?.payment;
           const paymentStatus = event.data.paymentStatus || '';
@@ -1917,10 +1918,8 @@ class RegistrationPaymentSection extends Component {
             await this.receiptShown(participantInfo, viewCourse, generatedNo, officialInfo);
             await this.refreshChild();
           } else {
-            this.props.showUpdatePopup('Unable to auto-generate receipt/invoice for this row. Please ensure payment status/method is valid.');
+            console.warn('Unable to auto-generate receipt/invoice for this row. Please ensure payment status/method is valid.');
           }
-
-          this.props.closePopup();
         }
 
       } else if (columnName === 'Sending Message Details') {

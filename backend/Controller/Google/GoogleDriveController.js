@@ -576,27 +576,8 @@ class GoogleDriveController {
     }
 
     async readSpreadsheet(fileId, sheetName = null) {
-        // 1. Serve from TTL cache when available
-        const cached = _getCached(fileId, sheetName);
-        if (cached) {
-            console.log(`[SHEETS] Cache hit for ${fileId}:${sheetName || 'first'}`);
-            return cached;
-        }
-
-        // 2. Single-flight: if another request is already fetching this spreadsheet,
-        //    reuse that in-flight Promise instead of firing a second API call.
-        const key = _cacheKey(fileId, sheetName);
-        if (_sheetFlight.has(key)) {
-            console.log(`[SHEETS] Coalescing onto in-flight request for ${key}`);
-            return _sheetFlight.get(key);
-        }
-
-        // 3. New fetch — store the Promise so concurrent callers can share it.
-        const fetchPromise = this._fetchSpreadsheet(fileId, sheetName).finally(() => {
-            _sheetFlight.delete(key);
-        });
-        _sheetFlight.set(key, fetchPromise);
-        return fetchPromise;
+        // Always fetch fresh data from Google Sheets.
+        return this._fetchSpreadsheet(fileId, sheetName);
     }
 
     // Background re-warm: kick off a silent read immediately after a write so the
@@ -638,7 +619,6 @@ class GoogleDriveController {
                     data: [],
                     columns: []
                 };
-                _setCache(fileId, sheetName, result);
                 return result;
             }
 
@@ -654,7 +634,6 @@ class GoogleDriveController {
                 data: data,
                 rowCount: data.length
             };
-            _setCache(fileId, sheetName, result);
             return result;
         } catch (error) {
             const errorMessage = String(error?.message || error || 'Unknown error');
@@ -706,7 +685,6 @@ class GoogleDriveController {
                     rowCount: 0,
                     source: 'office-file'
                 };
-                _setCache(fileId, sheetName, emptyResult);
                 return emptyResult;
             }
 
@@ -723,8 +701,6 @@ class GoogleDriveController {
                 rowCount: data.length,
                 source: 'office-file'
             };
-
-            _setCache(fileId, sheetName, result);
             return result;
         } catch (error) {
             console.error('[SHEETS] Error parsing Office spreadsheet:', error.message);

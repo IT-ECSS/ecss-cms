@@ -245,7 +245,7 @@ class invoiceGenerator {
         doc.moveDown(0.5);
     
         // Create the course table
-        this.createCourseTable(doc, array, "Course Ref. No. ", "Course Title", "Start Date", "End Date", "Full Course Fee (S$)", "Subsidised Fee Payable (S$)", age);
+        await this.createCourseTable(doc, array, "Course Ref. No. ", "Course Title", "Start Date", "End Date", "Full Course Fee (S$)", "Subsidised Fee Payable (S$)", age);
         currentY = doc.y; // Update currentY to the bottom of the table
     
         doc.moveDown(15);
@@ -262,140 +262,11 @@ class invoiceGenerator {
     }
     
 
-    courseReferenceCode(course) {
+    async courseReferenceCode(course, coursePrice) {
+        console.log(`[invoiceGenerator] courseReferenceCode called with course: "${course}", price: "${coursePrice}"`);
         // Uses centralized mapping from courseCodeMapping.js
-        return getCourseReferenceCode(course);
+        return await getCourseReferenceCode(course, coursePrice);
     }
-
-    /**
-     * Function to get course code from Chinese course name
-     * @param {string} courseName - Chinese course name
-     * @returns {string} TGS course code
-     */
-    /*getChineseCourseCode(courseName) {
-        switch(courseName) {
-        case '汉语拼音之一《唐诗三百首》':
-            return 'TGS-2025054486';
-        case '盆栽课程':
-            return 'TGS-2025054490';
-        case '乐龄儿孙乐':
-            return 'TGS-2025054491';
-        case '音乐祝福社区四弦琴班第2阶':
-            return 'TGS-2025054492';
-        case '和谐粉彩绘画基础班-第2阶':
-            return 'TGS-2025054494';
-        case '中级疗愈水彩班':
-            return 'TGS-2025054495';
-        case '健康心灵，健康生活':
-            return 'TGS-2023019018';
-        case '汉语拼音中级班':
-            return 'TGS-2023019016';
-        case '疗愈水彩画基础班':
-            return 'TGS-2022015737';
-        case '人生休止符':
-            return 'TGS-2022015736';
-        case '中文书法中级班':
-            return 'TGS-2022011921';
-        case '中文书法初级班':
-            return 'TGS-2022011920';
-        case '和谐粉彩绘画基础班':
-            return 'TGS-2022011919';
-        case '和谐粉彩绘画体验班':
-            return 'TGS-2022011918';
-        case '不和慢性病做朋友':
-            return 'TGS-2021008576';
-        case '自我成长':
-            return 'TGS-2021008573';
-        case '汉语拼音基础班':
-            return 'TGS-2021008571';
-        case '食疗与健康':
-            return 'TGS-2021008570';
-        case '我的故事':
-            return 'TGS-2021008567';
-        case '如何退而不休活得精彩':
-            return 'TGS-2021008566';
-        case '活跃乐龄大使':
-            return 'TGS-2021008565';
-        case '音乐祝福社区四弦琴班':
-            return 'TGS-2021008564';
-        case '音乐祝福社区歌唱班':
-            return 'TGS-2021008563';
-        case '预防跌倒与功能强化训练':
-            return '2021008562';
-        case '自我养生保健':
-            return 'TGS-2021008561';
-        case 'C3A心理健康课程: 以微笑应万变':
-            return 'NA';
-        case '疗愈基础素描':
-            return 'TGS-2024047927';
-        default:
-            return 'Course code not found';
-        }
-    }*/
-  
-    /**
-     * Function to get course code from English course name
-     * @param {string} courseName - English course name
-     * @returns {string} TGS course code
-     */
-    /*getEnglishCourseCode(courseName) {
-        switch(courseName) {
-        case 'Hanyu Pinyin & The Three Hundred Tang Poems':
-            return 'TGS-2025054486';
-        case 'Art of Positive Communication builds happy homes':
-            return 'TGS-2025054487';
-        case 'The Art of Paper Quilling':
-            return 'TGS-2025054488';
-        case 'Community Cajon Foundation 1':
-            return 'TGS-2025054489';
-        case 'Bonsai Learning – Elementary':
-            return 'TGS-2025054490';
-        case 'Joyful Grandparenting':
-            return 'TGS-2025054491';
-        case 'Smartphone Photography':
-            return 'TGS-2025054493';
-        case 'C3A AgeMAP – Healthy Minds for Healthy Lives':
-            return 'TGS-2023019019';
-        case 'Healthy Minds, Healthy Lives – Mandarin':
-            return 'TGS-2023019018';
-        case 'Therapeutic Watercolour Painting for Beginners':
-            return 'TGS-2022015737';
-        case 'The Rest Note of Life – Mandarin':
-            return 'TGS-2022015736';
-        case 'Chinese Calligraphy Intermediate':
-            return 'TGS-2022011921';
-        case 'Chinese Calligraphy Basic':
-            return 'TGS-2022011920';
-        case 'Nagomi Pastel Art Basic':
-            return 'TGS-2022011919';
-        case 'Nagomi Pastel Art Appreciation':
-            return 'TGS-2022011918';
-        case `TCM – Don't be a friend of Chronic Diseases`:
-            return 'TGS-2021008576';
-        case 'Hanyu Pinyin for Beginners':
-            return 'TGS-2021008571';
-        case 'TCM Diet & Therapy':
-            return 'TGS-2021008570';
-        case 'Community Ukulele – Mandarin':
-            return 'TGS-2021008564';
-        case 'Community Singing – Mandarin':
-            return 'TGS-2021008563';
-        case 'Self-Care TCM Wellness – Mandarin':
-            return 'TGS-2021008561';
-        case 'Fall Prevention & Functional Improvement Training':
-            return 'TGS-2022015735';
-        case 'C3A Mental Wellbeing Curriculum – Riding the Waves of Change Smiling':
-            return 'NA';
-        case 'C3A Mental Wellbeing Curriculum – Riding the Waves of Change Smiling (Malay)':
-            return 'NA';
-        case 'Therapeutic Basic Line Work':
-            return 'TGS-2024047927';
-        case 'Basics of Smart Money Management':
-            return 'TGS-2023038736';
-        default:
-            return 'Course code not found';
-        }
-    }*/
       
     async createCourseTable(doc, array, header1, header2, header3, header4, header5, header6, age) {
         const fontPathBold = path.join(__dirname, '../../fonts/ARIALBD.TTF'); 
@@ -445,7 +316,8 @@ class invoiceGenerator {
 
         // Helper function to wrap text
         const wrapText = (text, maxWidth) => {
-            const words = text.split(' ');
+            const normalizedText = String(text ?? '');
+            const words = normalizedText.split(' ');
             const lines = [];
             let currentLine = '';
 
@@ -474,8 +346,8 @@ class invoiceGenerator {
         };
 
         // Helper function to calculate row height based on wrapped text
-        const calculateRowHeight = (item) => {
-            const courseRefCode = this.courseReferenceCode(item.course.courseEngName);
+        const calculateRowHeight = async (item) => {
+            const courseRefCode = await this.courseReferenceCode(item.course.courseEngName, item.course.coursePrice);
             const courseName = item.course.courseEngName;
             
             const refLines = wrapText(courseRefCode, columnWidths.courseRef - cellPadding * 2);
@@ -525,10 +397,10 @@ class invoiceGenerator {
         doc.fontSize(9).fillColor('black').font(fontPathRegular);
         
         // Draw table rows with text wrapping
-        array.forEach((item, index) => {
-            const rowHeight = calculateRowHeight(item);
+        for (const item of array) {
+            const rowHeight = await calculateRowHeight(item);
             
-            const courseRefCode = this.courseReferenceCode(item.course.courseEngName);
+            const courseRefCode = await this.courseReferenceCode(item.course.courseEngName, item.course.coursePrice);
             const courseName = item.course.courseEngName;
             console.log("Course Reference Code:", courseRefCode);
             
@@ -607,7 +479,7 @@ class invoiceGenerator {
             });
         
             currentY += rowHeight; 
-        });
+        }
 
         // Draw bottom border for the main table data
         doc.lineWidth(borderInternalThickness)
@@ -945,16 +817,20 @@ class invoiceGenerator {
             res.setHeader('Content-Type', 'application/pdf');
             res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
     
-            // Set cache headers to allow permanent access
-            res.setHeader('Cache-Control', 'public, max-age=315360000'); // Cache for 10 years (in seconds)
-            res.setHeader('Expires', new Date(Date.now() + 315360000 * 1000).toUTCString()); // Expires in 10 years
+            // Disable browser/proxy caching so the invoice is always freshly generated.
+            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+            res.setHeader('Surrogate-Control', 'no-store');
     
             // Log headers just before sending the response
             console.log('Sending headers:', {
                 'Content-Type': 'application/pdf',
                 'Content-Disposition': `inline; filename="${filename}"`,
-                'Cache-Control': 'public, max-age=315360000',
-                'Expires': new Date(Date.now() + 315360000 * 1000).toUTCString()
+                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0',
+                'Surrogate-Control': 'no-store'
             });
     
             // Set paper orientation to landscape
@@ -963,7 +839,9 @@ class invoiceGenerator {
             // Add error listener
             doc.on('error', (err) => {
                 console.error('Error while generating PDF:', err);
-                res.status(500).json({ error: 'Error generating PDF' });
+                if (!res.headersSent && !res.writableEnded) {
+                    res.status(500).json({ error: 'Error generating PDF' });
+                }
             });
     
             doc.pipe(res);
@@ -981,7 +859,9 @@ class invoiceGenerator {
     
         } catch (error) {
             console.error('Error in PDF generation:', error);
-            res.status(500).json({ error: 'An unexpected error occurred' });
+            if (!res.headersSent && !res.writableEnded) {
+                res.status(500).json({ error: 'An unexpected error occurred' });
+            }
         }
     }
     

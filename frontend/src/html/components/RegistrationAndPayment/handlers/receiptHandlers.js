@@ -124,46 +124,78 @@ export async function saveReceiptToDatabase(receiptNo, location, registrationId,
  * then triggers a file download.
  */
 export async function showReceipt(participant, course, receiptNo, officialInfo, userName) {
+  const progressTracker = arguments[5]?.progressTracker;
+  const showUpdatePopup = arguments[5]?.showUpdatePopup;
+  const closePopup = arguments[5]?.closePopup;
+
   const resolvedPaymentMethod = String(
     course?.finalPaymentMethod || course?.paymentMethod || course?.payment || ''
   ).trim();
   const purpose = (resolvedPaymentMethod === 'Cash' || resolvedPaymentMethod === 'PayNow')
     ? 'receipt'
     : 'invoice';
-  const pdfResponse = await generateReceiptPDF(purpose, participant, course, userName, receiptNo, officialInfo);
+  const progressLabel = purpose === 'invoice'
+    ? 'Downloading and previewing invoice'
+    : 'Downloading and previewing receipt';
 
-  const filename = `${participant.name}-${resolvedPaymentMethod || 'payment'}-${receiptNo}.pdf`;
-  const blob     = new Blob([pdfResponse.data], { type: 'application/pdf' });
-  const blobUrl  = window.URL.createObjectURL(blob);
+  if (progressTracker) {
+    progressTracker.start([progressLabel]);
+  } else if (showUpdatePopup) {
+    showUpdatePopup(`${progressLabel}...`);
+  }
 
-  const win = window.open(blobUrl, '_blank');
-  if (!win) alert('Please allow popups to view the PDF receipt.');
+  let hasError = false;
 
-  const a    = document.createElement('a');
-  a.href     = blobUrl;
-  a.download = filename;
-  a.click();
+  try {
+    const pdfResponse = await generateReceiptPDF(purpose, participant, course, userName, receiptNo, officialInfo);
 
-  // Delay revoking the object URL so the newly opened tab has time to load the PDF.
-  // Revoking immediately can cause the new tab to fail to load the blob resource.
-  setTimeout(() => {
-    try {
-      window.URL.revokeObjectURL(blobUrl);
-    } catch (err) {
-      console.warn('Failed to revoke blob URL:', err);
+    const filename = `${participant.name}-${resolvedPaymentMethod || 'payment'}-${receiptNo}.pdf`;
+    const blob     = new Blob([pdfResponse.data], { type: 'application/pdf' });
+    const blobUrl  = window.URL.createObjectURL(blob);
+
+    const win = window.open(blobUrl, '_blank');
+    if (!win) {
+      console.warn('Popup blocked while opening PDF receipt preview.');
     }
-  }, 5000);
 
-  logReceiptGeneration({
-    userName,
-    module: 'Registration And Payment',
-    receiptNo,
-    participantName: participant.name,
-    contactNumber: participant.contactNumber || 'N/A',
-    courseName: course.courseEngName || course.courseName || 'N/A',
-    paymentType: resolvedPaymentMethod || course.payment,
-    triggerSource: 'Click Receipt Number',
-  });
+    const a    = document.createElement('a');
+    a.href     = blobUrl;
+    a.download = filename;
+    a.click();
+
+    // Delay revoking the object URL so the newly opened tab has time to load the PDF.
+    // Revoking immediately can cause the new tab to fail to load the blob resource.
+    setTimeout(() => {
+      try {
+        window.URL.revokeObjectURL(blobUrl);
+      } catch (err) {
+        console.warn('Failed to revoke blob URL:', err);
+      }
+    }, 5000);
+
+    logReceiptGeneration({
+      userName,
+      module: 'Registration And Payment',
+      receiptNo,
+      participantName: participant.name,
+      contactNumber: participant.contactNumber || 'N/A',
+      courseName: course.courseEngName || course.courseName || 'N/A',
+      paymentType: resolvedPaymentMethod || course.payment,
+      triggerSource: 'Click Receipt Number',
+    });
+  } catch (error) {
+    hasError = true;
+    if (progressTracker) {
+      progressTracker.error();
+    }
+    throw error;
+  } finally {
+    if (progressTracker) {
+      if (!hasError) progressTracker.finish();
+    } else if (closePopup) {
+      closePopup();
+    }
+  }
 }
 
 // ─── private sub-functions ────────────────────────────────────────────────────
