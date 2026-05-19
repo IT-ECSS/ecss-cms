@@ -22,11 +22,15 @@ export {
   handleILPOrTalksStatusChange,
 } from './paymentStatusHandlers';
 
+// Registration status handler
+export {
+  handleRegistrationStatusChange,
+} from './registrationStatusHandler';
+
 // Other handlers
 export {
   handleRemarksChange,
   handleRefundedDateChange,
-  handleRegistrationStatusChange,
   handleGenericFieldChange,
 } from './otherHandlers';
 

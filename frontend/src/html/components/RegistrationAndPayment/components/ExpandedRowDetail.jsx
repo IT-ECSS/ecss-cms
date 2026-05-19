@@ -417,6 +417,9 @@ function ExpandedRowDetail({ rowData, onParticipantFieldUpdate }) {
           {officialInfo?.refundedDate && (
             <Field label="Refunded Date" value={officialInfo.refundedDate} />
           )}
+          {officialInfo?.refundedTime && (
+            <Field label="Refunded Time" value={officialInfo.refundedTime} />
+          )}
         </Section>
 
         {/* ── Official Uses Information ─────────────────────────── */}

@@ -404,7 +404,7 @@ class RegistrationController {
         }    
     }
 
-    async addRefundedDate(id, date) {
+async addRefundedDate(id, date, time) {
         try {
             // Connect to the database
             var result = await this.databaseConnectivity.initialize();
@@ -413,9 +413,9 @@ class RegistrationController {
             if (result === "Connected to MongoDB Atlas!") {
                 var databaseName = "Company-Management-System"; 
                 var collectionName = "Registration Forms"; // ✅ Defined collection name
-    
+                
                 // Call addRefundedDate function in databaseConnectivity
-                var updateResult = await this.databaseConnectivity.addRefundedDate(databaseName, collectionName, id, date);
+                var updateResult = await this.databaseConnectivity.addRefundedDate(databaseName, collectionName, id, date, time);
     
                 console.log("Update Result:", updateResult);
                 return updateResult.acknowledged;

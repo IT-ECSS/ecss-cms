@@ -13,83 +13,49 @@ class invoiceGenerator {
     
     getCurrentDateTime() {
         const now = new Date();
+        const singaporeOffset = 8 * 60;
+        const localOffset = now.getTimezoneOffset();
+        const sgNow = new Date(now.getTime() + (singaporeOffset - localOffset) * 60000);
 
-        // Define an array of full month names
         const monthNames = [
             'January', 'February', 'March', 'April', 'May', 'June', 
             'July', 'August', 'September', 'October', 'November', 'December'
         ];
 
-        // Get day, month, year, hours, and minutes
-        const day = String(now.getDate()).padStart(2, '0'); // Ensure two digits
-        const month = monthNames[now.getMonth()]; // Get full month name using the month index
-        const year = now.getFullYear();
-
-        const hours = String(now.getHours()).padStart(2, '0'); // 24-hour format
-        const minutes = String(now.getMinutes()).padStart(2, '0'); // Ensure two digits
-        const seconds = String(now.getSeconds()).padStart(2, '0'); // Ensure two digits
-
-        // Format date and time
-        const formattedDate = `${day} ${month.substring(0,3)} ${year}`; // Full month name
-        const formattedTime = `${hours}:${minutes}:${seconds}`;
+        const day = String(sgNow.getDate()).padStart(2, '0');
+        const month = monthNames[sgNow.getMonth()];
+        const year = sgNow.getFullYear();
+        const hours = String(sgNow.getHours()).padStart(2, '0');
+        const minutes = String(sgNow.getMinutes()).padStart(2, '0');
+        const seconds = String(sgNow.getSeconds()).padStart(2, '0');
 
         return {
-            date: formattedDate,
-            time: formattedTime,
-        };
-    }    getCurrentDateTime() {
-        const now = new Date();
-
-        // Define an array of full month names
-        const monthNames = [
-            'January', 'February', 'March', 'April', 'May', 'June', 
-            'July', 'August', 'September', 'October', 'November', 'December'
-        ];
-
-        // Get day, month, year, hours, and minutes
-        const day = String(now.getDate()).padStart(2, '0'); // Ensure two digits
-        const month = monthNames[now.getMonth()]; // Get full month name using the month index
-        const year = now.getFullYear();
-
-        const hours = String(now.getHours()).padStart(2, '0'); // 24-hour format
-        const minutes = String(now.getMinutes()).padStart(2, '0'); // Ensure two digits
-        const seconds = String(now.getSeconds()).padStart(2, '0'); // Ensure two digits
-
-        // Format date and time
-        const formattedDate = `${day} ${month.substring(0,3)} ${year}`; // Full month name
-        const formattedTime = `${hours}:${minutes}:${seconds}`;
-
-        return {
-            date: formattedDate,
-            time: formattedTime,
+            date: `${day} ${month.substring(0,3)} ${year}`,
+            time: `${hours}:${minutes}:${seconds}`,
         };
     }
 
     getInvoiceCurrentDateTime() {
         const now = new Date();
+        const singaporeOffset = 8 * 60;
+        const localOffset = now.getTimezoneOffset();
+        const sgNow = new Date(now.getTime() + (singaporeOffset - localOffset) * 60000);
 
-        // Define an array of full month names
         const monthNames = [
             'January', 'February', 'March', 'April', 'May', 'June', 
             'July', 'August', 'September', 'October', 'November', 'December'
         ];
 
-        // Get day, month, year, hours, and minutes
-        const day = String(now.getDate()).padStart(2, '0'); // Ensure two digits
-        const month = monthNames[now.getMonth()]; // Get full month name using the month index
-        const year = now.getFullYear();
-
-        const hours = String(now.getHours()).padStart(2, '0'); // 24-hour format
-        const minutes = String(now.getMinutes()).padStart(2, '0'); // Ensure two digits
-        const seconds = String(now.getSeconds()).padStart(2, '0'); // Ensure two digits
-
-        // Format date and time
-        const formattedDate = `${day} ${month} ${year}`; // Full month name
-        const formattedTime = `${hours}:${minutes}:${seconds}`;
+        const day = String(sgNow.getDate()).padStart(2, '0');
+        const month = monthNames[sgNow.getMonth()];
+        const year = sgNow.getFullYear();
+        const hours = String(sgNow.getHours()).padStart(2, '0');
+        const minutes = String(sgNow.getMinutes()).padStart(2, '0');
+        const seconds = String(sgNow.getSeconds()).padStart(2, '0');
 
         return {
-            date: formattedDate,
-            time: formattedTime,
+            date: `${day} ${month} ${year}`,
+            time: `${hours}:${minutes}:${seconds}`,
         };
     }
 

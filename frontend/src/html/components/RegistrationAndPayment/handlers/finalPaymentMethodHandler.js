@@ -120,6 +120,111 @@ export async function handleFinalPaymentMethodChange(event, context) {
     return { updated: true, generatedNo: '' };
   }
 
+  // ── SkillsFuture Done → Cash/PayNow: payment already made, full reset ─────
+  // When a SkillsFuture payment has already been recorded and the staff switches the
+  // method to Cash/PayNow, reset everything:
+  //   1. SkillsFuture payment status column → "Not Available" (finalPaymentMethod change)
+  //   2. Confirmation status → Not Confirmed (cleared from table)
+  //   3. Cash/PayNow payment status → "Pending"
+  //   4. Registration status → "Submitted"
+  //   5. Receipt number cleared
+  //   6. Payment date and time cleared
+  const isSFDoneSwapToCashPayNow =
+    isSFToCashPayNow && currentPaymentStatus === 'SkillsFuture Done';
+
+  if (isSFDoneSwapToCashPayNow) {
+    const steps = [
+      'Changing final payment method',
+      'Updating registration status',
+      'Updating payment status',
+      'Clearing payment details',
+    ];
+
+    if (progressTracker) progressTracker.start(steps);
+    else showUpdatePopup('Updating in progress... Please wait ...');
+
+    // Step 1: Persist the method change (SkillsFuture → Cash/PayNow).
+    // AG-Grid's valueSetter already updated event.data.finalPaymentMethod so the
+    // SkillsFuture column will show "Not Available" once we call refreshCells.
+    const res = await editRegistrationField(id, 'finalPaymentMethod', newValue);
+    if (!isApiResultSuccessful(res)) {
+      if (progressTracker) progressTracker.error();
+      else closePopup();
+      throw new Error(`Failed to update final payment method for registration ${id}`);
+    }
+
+    await logRegistrationUpdate(buildLogPayload({
+      userName, sn, id, participantInfo,
+      columnName: 'Final Payment Method (by Staff)',
+      oldValue: oldValue || '',
+      newValue,
+    }));
+
+    // Step 2: Registration status → Submitted
+    if (progressTracker) progressTracker.advance();
+
+    const regRes = await editRegistrationField(id, 'registrationStatus', 'Submitted');
+    if (isApiResultSuccessful(regRes)) {
+      event.data.registrationStatus = 'Submitted';
+      await logRegistrationUpdate(buildLogPayload({
+        userName, sn, id, participantInfo,
+        columnName: 'Registration Status (Auto)',
+        oldValue: currentRegistrationStatus || '',
+        newValue: 'Submitted',
+      }));
+    }
+
+    // Step 3: Payment status → Pending (also sets confirmed = false on the backend)
+    if (progressTracker) progressTracker.advance();
+
+    const payRes = await updatePaymentStatus(id, 'Pending', userName, userRole);
+    if (isApiResultSuccessful(payRes)) {
+      event.data.status        = 'Pending';
+      event.data.paymentStatus = 'Pending';
+      // Mirror the backend's confirmed = false locally so the grid cell updates immediately
+      event.data.confirmed = false;
+      if (event.data.officialInfo) event.data.officialInfo.confirmed = false;
+      await logRegistrationUpdate(buildLogPayload({
+        userName, sn, id, participantInfo,
+        columnName: 'Payment Status (Auto)',
+        oldValue: currentPaymentStatus || '',
+        newValue: 'Pending',
+      }));
+    }
+
+    // Step 4: Clear receipt number, payment date, and time
+    if (progressTracker) progressTracker.advance();
+
+    await clearPaymentDetails(id);
+    event.data.recinvNo    = '';
+    event.data.paymentDate = '';
+    event.data.paymentTime = '';
+    if (event.data.officialInfo) {
+      event.data.officialInfo.receiptNo = '';
+      event.data.officialInfo.date      = '';
+      event.data.officialInfo.time      = '';
+    }
+
+    // Refresh all affected columns so the grid reflects the new state immediately
+    if (event.api && typeof event.api.refreshCells === 'function') {
+      event.api.refreshCells({
+        rowNodes: [event.node],
+        columns: [
+          'paymentStatusCashPayNow', 'paymentStatusSkillsFuture',
+          'finalPaymentMethod', 'confirmed', 'registrationStatus',
+          'recinvNo', 'paymentDate', 'paymentTime',
+        ],
+        force: true,
+      });
+    }
+
+    if (refreshChild) refreshChild();
+    if (progressTracker) progressTracker.finish(null, { immediateClose: true });
+    else closePopup();
+
+    return { updated: true, generatedNo: '' };
+  }
+
   // ── Full path: non-Pending state (or first-time method set) ───────────────
   // Generate a receipt only when setting Cash/PayNow for the first time (not when swapping methods)
   const willGenerateReceipt = (newValue === 'Cash' || newValue === 'PayNow') && !isPaymentMethodSwap;
@@ -180,6 +285,11 @@ export async function handleFinalPaymentMethodChange(event, context) {
     // Keep both fields in sync so subsequent swaps in the same session read correctly
     event.data.status = 'Pending';
     event.data.paymentStatus = 'Pending';
+    // Backend sets official.confirmed = false for Pending status — mirror it locally
+    event.data.confirmed = false;
+    if (event.data.officialInfo) {
+      event.data.officialInfo.confirmed = false;
+    }
     await logRegistrationUpdate(buildLogPayload({
       userName, sn, id, participantInfo,
       columnName: 'Payment Status (Auto)',
@@ -235,17 +345,16 @@ export async function handleFinalPaymentMethodChange(event, context) {
     if (progressTracker) progressTracker.advance();
 
     if (receiptResult?.receiptNo) {
-      const _now = new Date();
-      const _sgNow = new Date(_now.getTime() + 8 * 60 * 60 * 1000); // SGT (UTC+8)
-      const _paymentDate = `${String(_sgNow.getUTCDate()).padStart(2,'0')}/${String(_sgNow.getUTCMonth()+1).padStart(2,'0')}/${_sgNow.getUTCFullYear()}`;
-      const _paymentTime = `${String(_sgNow.getUTCHours()).padStart(2,'0')}:${String(_sgNow.getUTCMinutes()).padStart(2,'0')}:${String(_sgNow.getUTCSeconds()).padStart(2,'0')}`;
+      // Use the exact date/time returned from generatePDFReceipt (same values sent to addReceiptNumber)
+      const _dispDate = receiptResult.paymentDate;
+      const _dispTime = receiptResult.paymentTime;
       event.data.recinvNo    = receiptResult.receiptNo;
-      event.data.paymentDate = _paymentDate;
-      event.data.paymentTime = _paymentTime;
+      event.data.paymentDate = _dispDate;
+      event.data.paymentTime = _dispTime;
       if (event.data.officialInfo) {
         event.data.officialInfo.receiptNo = receiptResult.receiptNo;
-        event.data.officialInfo.date      = _paymentDate;
-        event.data.officialInfo.time      = _paymentTime;
+        event.data.officialInfo.date      = _dispDate;
+        event.data.officialInfo.time      = _dispTime;
       }
       if (event.api && typeof event.api.refreshCells === 'function') {
         event.api.refreshCells({

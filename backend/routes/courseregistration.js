@@ -414,9 +414,9 @@ router.post('/', async function(req, res, next)
         var name = sanitizeStaffName(req.body.staff);
         var status = req.body.newUpdateStatus;
         
-        const currentDateTime = getCurrentDateTime();
-        var date = currentDateTime.date;
-        var time = currentDateTime.time;
+        // Date/time must come from the frontend (SGT, UTC+8). No backend fallback.
+        var date = req.body.date;
+        var time = req.body.time;
         const message = await registrationController.updateOfficialUse(id, name, date, time, status);
         if (io) {
             io.emit('registration', {
@@ -581,14 +581,15 @@ router.post('/', async function(req, res, next)
     else if(req.body.purpose === "addRefundedDate")
     {
         //console.log("Add Refunded Date:", req.body);
-        const currentDateTime = getCurrentDateTime();
-        var date = currentDateTime.date;
-        var result = await registrationController.addRefundedDate(req.body.id, date);
+        var date = req.body.date;
+        var time = req.body.time;
+        var result = await registrationController.addRefundedDate(req.body.id, date, time);
         if (io) {
             io.emit('registration', {
                 type: 'registration-refunded-date',
                 id: req.body.id,
                 refundedDate: date,
+                refundedTime: time,
             });
         }
         return res.json({"result": result});
@@ -596,13 +597,13 @@ router.post('/', async function(req, res, next)
     else if(req.body.purpose === "removedRefundedDate")
     {
         //console.log("Add Refunded Date:", req.body);
-        const currentDateTime = getCurrentDateTime();
-        var result = await registrationController.addRefundedDate(req.body.id, "");
+        var result = await registrationController.addRefundedDate(req.body.id, "", "");
         if (io) {
             io.emit('registration', {
                 type: 'registration-refunded-date',
                 id: req.body.id,
                 refundedDate: '',
+                refundedTime: '',
             });
         }
         return res.json({"result": result});

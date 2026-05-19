@@ -67,13 +67,15 @@ export const updatePaymentMethod = async (id, newUpdatePayment, staff) => {
 /**
  * Update the payment status for a single registration.
  */
-export const updatePaymentStatus = async (id, newUpdateStatus, staff, role = '') => {
+export const updatePaymentStatus = async (id, newUpdateStatus, staff, role = '', date = undefined, time = undefined) => {
   const response = await axios.post(`${NODE_BASE_URL}/courseregistration`, {
     purpose: "updatePaymentStatus",
     id,
     newUpdateStatus,
     staff,
     role,
+    ...(date !== undefined ? { date } : {}),
+    ...(time !== undefined ? { time } : {}),
   });
   return response;
 };
@@ -131,10 +133,12 @@ export const addCancelRemarks = async (id, editedValue) => {
 /**
  * Record a refunded date on a registration.
  */
-export const addRefundedDate = async (id) => {
+export const addRefundedDate = async (id, date, time) => {
   const response = await axios.post(`${NODE_BASE_URL}/courseregistration`, {
     id,
     purpose: "addRefundedDate",
+    date,
+    time,
   });
   return response;
 };

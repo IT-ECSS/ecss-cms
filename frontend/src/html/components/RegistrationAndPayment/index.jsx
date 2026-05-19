@@ -192,6 +192,7 @@ class RegistrationPaymentSection extends Component {
       'Payment Date': 'paymentDate',
       'Payment Time': 'paymentTime',
       'Refunded Date': 'refundedDate',
+      'Refunded Time': 'refundedTime',
       'Remarks': 'remarks',
     };
     return map[headerName] || '';
@@ -238,7 +239,8 @@ class RegistrationPaymentSection extends Component {
   }
 
   _canEditNsaSkillsFutureStatus() {
-    return this._canEditNsaSensitiveColumns();
+    // NSA in-charge, Sub Admin, Admin, Ops in-charge
+    return this._hasRoleKeyword('admin', 'sub admin', 'nsa in-charge', 'ops in-charge');
   }
 
   /**
@@ -1516,6 +1518,14 @@ class RegistrationPaymentSection extends Component {
           if (courseType === 'NSA') return this._canEditNsaSensitiveColumns();
           return canEdit || canSocialWorkerEdit(params) || canSiteInChargeEdit(params);
         },
+        cellStyle: centeredCellStyle,
+        hide: shouldHidePaymentColumns,
+      },
+      {
+        headerName: 'Refunded Time',
+        field: 'refundedTime',
+        width: 300,
+        editable: false,
         cellStyle: centeredCellStyle,
         hide: shouldHidePaymentColumns,
       },

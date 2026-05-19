@@ -87,6 +87,7 @@ export async function handlePaymentStatusChange(event, context) {
     steps.push('Generating SkillsFuture invoice', 'Downloading and previewing invoice');
   }
   if (newValue === 'SkillsFuture Done') steps.push('Recording payment date and time');
+  if (newValue === 'Refunded') steps.push('Recording refunded date and time');
 
   if (useTracker) {
     progressTracker.start(steps);
@@ -95,7 +96,16 @@ export async function handlePaymentStatusChange(event, context) {
   }
 
   // ── Step 1: Update payment status ───────────────────────────────────────
-  const res = await updatePaymentStatus(id, newValue, userName, userRole);
+  // Pre-compute SGT date/time once for statuses that record payment date/time
+  let _sgtPayDate, _sgtPayTime;
+  if (newValue === 'Paid' || newValue === 'SkillsFuture Done') {
+    const _now = new Date();
+    const _sgNow = new Date(_now.getTime() + 8 * 60 * 60 * 1000); // SGT (UTC+8)
+    _sgtPayDate = `${String(_sgNow.getUTCDate()).padStart(2,'0')}/${String(_sgNow.getUTCMonth()+1).padStart(2,'0')}/${_sgNow.getUTCFullYear()}`;
+    _sgtPayTime = `${String(_sgNow.getUTCHours()).padStart(2,'0')}:${String(_sgNow.getUTCMinutes()).padStart(2,'0')}:${String(_sgNow.getUTCSeconds()).padStart(2,'0')}`;
+  }
+
+  const res = await updatePaymentStatus(id, newValue, userName, userRole, _sgtPayDate, _sgtPayTime);
 
   if (!isApiResultSuccessful(res)) {
     if (useTracker) progressTracker.error();
@@ -172,6 +182,7 @@ export async function handlePaymentStatusChange(event, context) {
     }
 
     if (shouldGenerateReceipt && useTracker) progressTracker.advance(); // → Generating receipt
+    if (newValue === 'Refunded' && useTracker) progressTracker.advance(); // → Recording refunded date and time
 
     const result = await handleCashPayNowStatusChange({
       id, courseName, courseChiName, courseLocation,
@@ -192,19 +203,27 @@ export async function handlePaymentStatusChange(event, context) {
       event.data.recinvNo = generatedNo;
     }
 
+    if (result && typeof result === 'object' && 'refundedDate' in result) {
+      event.data.refundedDate = result.refundedDate;
+      event.data.refundedTime = result.refundedTime || '';
+      if (event.data.officialInfo) {
+        event.data.officialInfo.refundedDate = result.refundedDate;
+        event.data.officialInfo.refundedTime = result.refundedTime || '';
+      }
+    }
+
     if (shouldGenerateReceipt && useTracker) {
       progressTracker.advance(); // → Recording payment date and time
 
       if (generatedNo) {
-        const _now = new Date();
-        const _sgNow = new Date(_now.getTime() + 8 * 60 * 60 * 1000); // SGT (UTC+8)
-        const _paymentDate = `${String(_sgNow.getUTCDate()).padStart(2,'0')}/${String(_sgNow.getUTCMonth()+1).padStart(2,'0')}/${_sgNow.getUTCFullYear()}`;
-        const _paymentTime = `${String(_sgNow.getUTCHours()).padStart(2,'0')}:${String(_sgNow.getUTCMinutes()).padStart(2,'0')}:${String(_sgNow.getUTCSeconds()).padStart(2,'0')}`;
-        event.data.paymentDate = _paymentDate;
-        event.data.paymentTime = _paymentTime;
+        // Use the exact date/time that was sent to addReceiptNumber (from generatePDFReceipt)
+        const _dispDate = receiptData?.paymentDate || _sgtPayDate;
+        const _dispTime = receiptData?.paymentTime || _sgtPayTime;
+        event.data.paymentDate = _dispDate;
+        event.data.paymentTime = _dispTime;
         if (event.data.officialInfo) {
-          event.data.officialInfo.date = _paymentDate;
-          event.data.officialInfo.time = _paymentTime;
+          event.data.officialInfo.date = _dispDate;
+          event.data.officialInfo.time = _dispTime;
         }
         if (event.api && typeof event.api.refreshCells === 'function') {
           event.api.refreshCells({
@@ -219,6 +238,7 @@ export async function handlePaymentStatusChange(event, context) {
   } else if (paymentMethod === 'SkillsFuture') {
     // Advance: last confirmation step → Generating SkillsFuture invoice
     if (shouldGenerateInvoice && useTracker) progressTracker.advance();
+    if (newValue === 'Refunded' && useTracker) progressTracker.advance(); // → Recording refunded date and time
 
     const result = await handleSkillsFutureStatusChange({
       id, courseName, courseChiName, courseLocation,
@@ -236,6 +256,15 @@ export async function handlePaymentStatusChange(event, context) {
       event.data.recinvNo = generatedNo;
     }
 
+    if (result && typeof result === 'object' && 'refundedDate' in result) {
+      event.data.refundedDate = result.refundedDate;
+      event.data.refundedTime = result.refundedTime || '';
+      if (event.data.officialInfo) {
+        event.data.officialInfo.refundedDate = result.refundedDate;
+        event.data.officialInfo.refundedTime = result.refundedTime || '';
+      }
+    }
+
     // Advance: Generating SkillsFuture invoice → Downloading and previewing invoice
     if (receiptData && useTracker && steps.length > 3) {
       progressTracker.advance();
@@ -245,15 +274,12 @@ export async function handlePaymentStatusChange(event, context) {
     if (newValue === 'SkillsFuture Done' && useTracker) {
       progressTracker.advance(); // → Recording payment date and time
 
-      const _now = new Date();
-      const _sgNow = new Date(_now.getTime() + 8 * 60 * 60 * 1000); // SGT (UTC+8)
-      const _paymentDate = `${String(_sgNow.getUTCDate()).padStart(2,'0')}/${String(_sgNow.getUTCMonth()+1).padStart(2,'0')}/${_sgNow.getUTCFullYear()}`;
-      const _paymentTime = `${String(_sgNow.getUTCHours()).padStart(2,'0')}:${String(_sgNow.getUTCMinutes()).padStart(2,'0')}:${String(_sgNow.getUTCSeconds()).padStart(2,'0')}`;
-      event.data.paymentDate = _paymentDate;
-      event.data.paymentTime = _paymentTime;
+      // Reuse the same SGT time already sent to the backend in step 1
+      event.data.paymentDate = _sgtPayDate;
+      event.data.paymentTime = _sgtPayTime;
       if (event.data.officialInfo) {
-        event.data.officialInfo.date = _paymentDate;
-        event.data.officialInfo.time = _paymentTime;
+        event.data.officialInfo.date = _sgtPayDate;
+        event.data.officialInfo.time = _sgtPayTime;
       }
       if (event.api && typeof event.api.refreshCells === 'function') {
         event.api.refreshCells({
@@ -275,7 +301,7 @@ export async function handlePaymentStatusChange(event, context) {
   if (event.api && typeof event.api.refreshCells === 'function') {
     event.api.refreshCells({
       rowNodes: [event.node],
-      columns: ['paymentStatusCashPayNow', 'paymentStatusSkillsFuture', 'registrationStatus', 'recinvNo', 'paymentDate', 'paymentTime', 'remarks'],
+      columns: ['paymentStatusCashPayNow', 'paymentStatusSkillsFuture', 'registrationStatus', 'recinvNo', 'paymentDate', 'paymentTime', 'refundedDate', 'refundedTime', 'remarks'],
       force: true,
     });
   }
@@ -306,10 +332,14 @@ export async function handleCashPayNowStatusChange({
   if ((newValue === 'To refund' || newValue === 'To refund' || newValue === 'Withdrawn') && oldPaymentStatus === 'Paid') {
     await updateWooCommerce(courseChiName, courseName, courseLocation, newValue);
     await removeRefundedDate(id);
-    return '';
+    return { refundedDate: '', refundedTime: '' };
   } else if (newValue === 'Refunded') {
-    await addRefundedDate(id);
-    return '';
+    const _now = new Date();
+    const _sgNow = new Date(_now.getTime() + 8 * 60 * 60 * 1000); // SGT (UTC+8)
+    const refundedDate = `${String(_sgNow.getUTCDate()).padStart(2,'0')}/${String(_sgNow.getUTCMonth()+1).padStart(2,'0')}/${_sgNow.getUTCFullYear()}`;
+    const refundedTime = `${String(_sgNow.getUTCHours()).padStart(2,'0')}:${String(_sgNow.getUTCMinutes()).padStart(2,'0')}:${String(_sgNow.getUTCSeconds()).padStart(2,'0')}`;
+    await addRefundedDate(id, refundedDate, refundedTime);
+    return { refundedDate, refundedTime };
   } else {
     if (!shouldGenerateReceipt) {
       await updateWooCommerce(courseChiName, courseName, courseLocation, newValue);
@@ -352,8 +382,14 @@ export async function handleSkillsFutureStatusChange({
     if (oldPaymentStatus === 'SkillsFuture Done') {
       await updateWooCommerce(courseChiName, courseName, courseLocation, newValue);
       await removeRefundedDate(id);
+      return { refundedDate: '', refundedTime: '' };
     } else if (newValue === 'Refunded') {
-      await addRefundedDate(id);
+      const _now = new Date();
+      const _sgNow = new Date(_now.getTime() + 8 * 60 * 60 * 1000); // SGT (UTC+8)
+      const refundedDate = `${String(_sgNow.getUTCDate()).padStart(2,'0')}/${String(_sgNow.getUTCMonth()+1).padStart(2,'0')}/${_sgNow.getUTCFullYear()}`;
+      const refundedTime = `${String(_sgNow.getUTCHours()).padStart(2,'0')}:${String(_sgNow.getUTCMinutes()).padStart(2,'0')}:${String(_sgNow.getUTCSeconds()).padStart(2,'0')}`;
+      await addRefundedDate(id, refundedDate, refundedTime);
+      return { refundedDate, refundedTime };
     }
     return '';
   }

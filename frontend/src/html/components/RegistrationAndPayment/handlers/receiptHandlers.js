@@ -50,11 +50,11 @@ export async function generatePDFReceipt(id, participant, course, userName, rece
   const resolvedPaymentMethod = resolvePaymentMethod(course);
   
   // Add receipt number to backend with frontend-computed SGT date/time
+  const _now = new Date();
+  const _sgNow = new Date(_now.getTime() + 8 * 60 * 60 * 1000); // SGT (UTC+8)
+  const paymentDate = `${String(_sgNow.getUTCDate()).padStart(2,'0')}/${String(_sgNow.getUTCMonth()+1).padStart(2,'0')}/${_sgNow.getUTCFullYear()}`;
+  const paymentTime = `${String(_sgNow.getUTCHours()).padStart(2,'0')}:${String(_sgNow.getUTCMinutes()).padStart(2,'0')}:${String(_sgNow.getUTCSeconds()).padStart(2,'0')}`;
   if (id) {
-    const _now = new Date();
-    const _sgNow = new Date(_now.getTime() + 8 * 60 * 60 * 1000); // SGT (UTC+8)
-    const paymentDate = `${String(_sgNow.getUTCDate()).padStart(2,'0')}/${String(_sgNow.getUTCMonth()+1).padStart(2,'0')}/${_sgNow.getUTCFullYear()}`;
-    const paymentTime = `${String(_sgNow.getUTCHours()).padStart(2,'0')}:${String(_sgNow.getUTCMinutes()).padStart(2,'0')}:${String(_sgNow.getUTCSeconds()).padStart(2,'0')}`;
     await addReceiptNumber(id, participant, course, userName, receiptNo, status, paymentDate, paymentTime);
   }
   
@@ -73,7 +73,7 @@ export async function generatePDFReceipt(id, participant, course, userName, rece
   const blob = pdfResponse.data;
   const filename = `${participant.name}-${resolvedPaymentMethod || 'payment'}-${receiptNo}.pdf`;
   
-  return { receiptNo, blob, filename };
+  return { receiptNo, blob, filename, paymentDate, paymentTime };
 }
 
 /**

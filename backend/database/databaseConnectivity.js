@@ -1260,13 +1260,21 @@ const filter = { _id: this._makeObjectId(id) };
                         }
                     };
                 }
+                else if (status === "Refunded") {
+                    // Preserve official.date, official.time and receiptNo — they were set
+                    // when the payment was originally processed and must not be cleared.
+                    update = {
+                        $set: {
+                            "status": status,
+                            "official.confirmed": false,
+                        }
+                    };
+                }
                 else {
                     update = {
                         $set: {
                             "status": status,
                             "official.name": name,
-                            "official.date": date,
-                            "official.time": time,
                             "official.confirmed": false
                         }
                     };
@@ -1962,7 +1970,7 @@ const filter = { _id: this._makeObjectId(id) };
         }
     }
       
-    async addRefundedDate(databaseName, collectionName, id, date) 
+    async addRefundedDate(databaseName, collectionName, id, date, time) 
     {
         //console.log("Database:::", databaseName, collectionName, id, date);
         try {
@@ -1971,7 +1979,7 @@ const filter = { _id: this._makeObjectId(id) };
     
             const result = await table.updateOne(
                 { _id: this._makeObjectId(id) }, // Convert `id` to ObjectId
-                { $set: { "official.refundedDate": date } } // Add `official.refundedDate`
+                { $set: { "official.refundedDate": date, "official.refundedTime": time } } // Add `official.refundedDate` and `official.refundedTime`
             );
     
             console.log("Update Result:", result);

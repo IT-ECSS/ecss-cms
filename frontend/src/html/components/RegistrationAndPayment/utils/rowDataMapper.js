@@ -163,6 +163,7 @@ export function mapRegistrationToRowData(item, index) {
     paymentDate:      rawOfficialInfo?.date              || '',
     paymentTime:      rawOfficialInfo?.time              || '',
     refundedDate:     rawOfficialInfo?.refundedDate      || '',
+    refundedTime:     rawOfficialInfo?.refundedTime      || '',
     remarks:          rawOfficialInfo?.remarks           || '',
     officialInfo:     { ...rawOfficialInfo, confirmed: confirmedValue },
 
