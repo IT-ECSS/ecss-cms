@@ -1,131 +1,131 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
+# # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# # More GitHub Actions for Azure: https://github.com/Azure/actions
 
-name: ECSS CMS - Django
+# name: ECSS CMS - Django
 
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
+# on:
+#   push:
+#     branches:
+#       - main
+#   workflow_dispatch:
 
-jobs:
-  build_and_deploy:
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
+# jobs:
+#   build_and_deploy:
+#     runs-on: ubuntu-latest
+#     permissions:
+#       id-token: write
+#       contents: read
 
-    steps:
-      - uses: actions/checkout@v4
+#     steps:
+#       - uses: actions/checkout@v4
 
-      - name: Set up Python version
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          cache: 'pip'
+#       - name: Set up Python version
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: '3.12'
+#           cache: 'pip'
 
-      - name: Check if Django directory exists
-        run: |
-          if [ -d "djangoPython" ]; then
-            echo "✓ djangoPython directory found"
-            ls -la djangoPython/
-          else
-            echo "⚠️  djangoPython directory not found, skipping Django deployment"
-            exit 1
-          fi
+#       - name: Check if Django directory exists
+#         run: |
+#           if [ -d "djangoPython" ]; then
+#             echo "✓ djangoPython directory found"
+#             ls -la djangoPython/
+#           else
+#             echo "⚠️  djangoPython directory not found, skipping Django deployment"
+#             exit 1
+#           fi
 
-      - name: Install dependencies into deployment package
-        working-directory: djangoPython
-        run: |
-          python -m pip install --upgrade pip setuptools
-          pip install -r requirements.txt --target="site-packages" --no-cache-dir
-          echo "✓ Dependencies installed"
+#       - name: Install dependencies into deployment package
+#         working-directory: djangoPython
+#         run: |
+#           python -m pip install --upgrade pip setuptools
+#           pip install -r requirements.txt --target="site-packages" --no-cache-dir
+#           echo "✓ Dependencies installed"
 
-      - name: Create deployment package
-        run: |
-          cd djangoPython
-          zip -r ../django-deploy.zip . \
-            --exclude "*.pyc" \
-            --exclude "__pycache__/*" \
-            --exclude ".DS_Store" \
-            --exclude "db.sqlite3" \
-            --exclude "media/*"
+#       - name: Create deployment package
+#         run: |
+#           cd djangoPython
+#           zip -r ../django-deploy.zip . \
+#             --exclude "*.pyc" \
+#             --exclude "__pycache__/*" \
+#             --exclude ".DS_Store" \
+#             --exclude "db.sqlite3" \
+#             --exclude "media/*"
           
-          echo "✓ Deployment package created"
-          ls -lh ../django-deploy.zip
+#           echo "✓ Deployment package created"
+#           ls -lh ../django-deploy.zip
 
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_4FECCB8738974CFFB45BF0BAA3F41DE5 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_171130E8D32C4CA8BE4721794C632D84 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_019C65756BC44E35992611AD25F859E1 }}
+#       - name: Login to Azure
+#         uses: azure/login@v2
+#         with:
+#           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_4FECCB8738974CFFB45BF0BAA3F41DE5 }}
+#           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_171130E8D32C4CA8BE4721794C632D84 }}
+#           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_019C65756BC44E35992611AD25F859E1 }}
 
-      - name: Configure Azure App Service Python Runtime
-        run: |
-          az webapp config set \
-            --resource-group ECSS-Course-Management-System \
-            --name ecss-backend-django \
-            --linux-fx-version "PYTHON|3.12"
-          echo "✓ Python runtime set to 3.12"
+#       - name: Configure Azure App Service Python Runtime
+#         run: |
+#           az webapp config set \
+#             --resource-group ECSS-Course-Management-System \
+#             --name ecss-backend-django \
+#             --linux-fx-version "PYTHON|3.12"
+#           echo "✓ Python runtime set to 3.12"
 
-      - name: Stop App Service before deployment
-        run: |
-          echo "Stopping App Service to release deployment lock..."
-          az webapp stop \
-            --resource-group ECSS-Course-Management-System \
-            --name ecss-backend-django
-          sleep 5
-          echo "✓ App Service stopped"
+#       - name: Stop App Service before deployment
+#         run: |
+#           echo "Stopping App Service to release deployment lock..."
+#           az webapp stop \
+#             --resource-group ECSS-Course-Management-System \
+#             --name ecss-backend-django
+#           sleep 5
+#           echo "✓ App Service stopped"
 
-      - name: 'Deploy to Azure Web App (Django)'
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: 'ecss-backend-django'
-          slot-name: 'Production'
-          package: './django-deploy.zip'
-          startup-command: 'PYTHONPATH=/home/site/wwwroot/site-packages gunicorn --bind 0.0.0.0:8000 --workers 2 --timeout 120 djangoPython.wsgi:application'
-          clean: true
-          restart: true
+#       - name: 'Deploy to Azure Web App (Django)'
+#         uses: azure/webapps-deploy@v3
+#         with:
+#           app-name: 'ecss-backend-django'
+#           slot-name: 'Production'
+#           package: './django-deploy.zip'
+#           startup-command: 'PYTHONPATH=/home/site/wwwroot/site-packages gunicorn --bind 0.0.0.0:8000 --workers 2 --timeout 120 djangoPython.wsgi:application'
+#           clean: true
+#           restart: true
 
-      - name: Start App Service after deployment
-        run: |
-          echo "Starting App Service..."
-          az webapp start \
-            --resource-group ECSS-Course-Management-System \
-            --name ecss-backend-django
-          echo "✓ App Service started"
+#       - name: Start App Service after deployment
+#         run: |
+#           echo "Starting App Service..."
+#           az webapp start \
+#             --resource-group ECSS-Course-Management-System \
+#             --name ecss-backend-django
+#           echo "✓ App Service started"
 
-      - name: Verify deployment health
-        run: |
-          echo "Waiting for Django app to be ready..."
-          MAX_RETRIES=30
-          RETRY=0
+#       - name: Verify deployment health
+#         run: |
+#           echo "Waiting for Django app to be ready..."
+#           MAX_RETRIES=30
+#           RETRY=0
           
-          while [ $RETRY -lt $MAX_RETRIES ]; do
-            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://ecss-backend-django.azurewebsites.net/ 2>/dev/null || echo "000")
+#           while [ $RETRY -lt $MAX_RETRIES ]; do
+#             RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://ecss-backend-django.azurewebsites.net/ 2>/dev/null || echo "000")
             
-            if [ "$RESPONSE" = "200" ] || [ "$RESPONSE" = "301" ] || [ "$RESPONSE" = "302" ] || [ "$RESPONSE" = "404" ]; then
-              echo "✓ Deployment verified - App is running (HTTP $RESPONSE)"
-              exit 0
-            fi
+#             if [ "$RESPONSE" = "200" ] || [ "$RESPONSE" = "301" ] || [ "$RESPONSE" = "302" ] || [ "$RESPONSE" = "404" ]; then
+#               echo "✓ Deployment verified - App is running (HTTP $RESPONSE)"
+#               exit 0
+#             fi
             
-            RETRY=$((RETRY + 1))
-            if [ $RETRY -lt $MAX_RETRIES ]; then
-              sleep 1
-            fi
-          done
+#             RETRY=$((RETRY + 1))
+#             if [ $RETRY -lt $MAX_RETRIES ]; then
+#               sleep 1
+#             fi
+#           done
           
-          echo "⚠ Warning: Deployment health check timed out after ${MAX_RETRIES}s"
-        continue-on-error: true
+#           echo "⚠ Warning: Deployment health check timed out after ${MAX_RETRIES}s"
+#         continue-on-error: true
 
-      - name: Output deployment summary
-        run: |
-          echo "========== Django Deployment Summary =========="
-          echo "App Name: ecss-backend-django"
-          echo "URL: https://ecss-backend-django.azurewebsites.net"
-          echo "Resource Group: ECSS-Course-Management-System"
-          echo "Python Version: 3.12"
-          echo "==============================================="
+#       - name: Output deployment summary
+#         run: |
+#           echo "========== Django Deployment Summary =========="
+#           echo "App Name: ecss-backend-django"
+#           echo "URL: https://ecss-backend-django.azurewebsites.net"
+#           echo "Resource Group: ECSS-Course-Management-System"
+#           echo "Python Version: 3.12"
+#           echo "==============================================="
           

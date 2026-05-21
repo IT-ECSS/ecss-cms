@@ -115,7 +115,7 @@ export function validateStatusCombination(paymentStatus, registrationStatus) {
  * @param {string} paymentStatus - The current payment status
  * @returns {object} { isValid: boolean, reason: string }
  */
-export function validateRegistrationStatusChange(newRegistrationStatus, paymentStatus) {
+export function  novalidateRegistrationStatusChange(newRegistrationStatus, paymentStatus) {
   const newRegStatus = String(newRegistrationStatus || '').trim();
   const paymentStr = String(paymentStatus || '').trim();
   
