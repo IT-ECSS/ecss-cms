@@ -418,12 +418,28 @@ router.post('/', async function(req, res, next)
         var date = req.body.date;
         var time = req.body.time;
         const message = await registrationController.updateOfficialUse(id, name, date, time, status);
+        
+        // Emit progress tracking steps for Cash/PayNow → Paid flow
         if (io) {
+            console.log(`🔄 [Step 1] Payment Status Updated to ${status}`);
             io.emit('registration', {
                 type: 'registration-payment-status',
                 id,
                 status,
+                step: 1,
+                stepName: `Payment Status Updated to ${status}`,
             });
+            
+            if (status === 'Paid') {
+                console.log(`🔄 [Step 2] Registration Status Updated to Confirmed Slot`);
+                io.emit('registration', {
+                    type: 'registration-status-updated',
+                    id,
+                    registrationStatus: 'Confirmed Slot',
+                    step: 2,
+                    stepName: 'Registration Status Updated to Confirmed Slot',
+                });
+            }
         }
         return res.json({"result": message});
         //console.log("Message:", message);
@@ -478,9 +494,23 @@ router.post('/', async function(req, res, next)
         await registrationController.updateOfficialUse(registrationId, staffName, date, time, req.body.status);
 
         if (io) {
+            console.log(`🔄 [Step 4] Receipt Number Generated and Displayed: ${req.body.receiptNo}`);
             io.emit('registration', {
                 type: 'registration-receipt-added',
                 id: registrationId,
+                receiptNo: req.body.receiptNo,
+                step: 4,
+                stepName: 'Receipt Number Generated and Displayed',
+            });
+            
+            console.log(`🔄 [Step 5] Payment Date and Time Recorded: ${date} ${time}`);
+            io.emit('registration', {
+                type: 'registration-payment-datetime-recorded',
+                id: registrationId,
+                paymentDate: date,
+                paymentTime: time,
+                step: 5,
+                stepName: 'Payment Date and Time Recorded',
             });
         }
 

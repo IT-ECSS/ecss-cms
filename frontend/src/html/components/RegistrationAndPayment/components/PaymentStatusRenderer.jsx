@@ -2,20 +2,19 @@ import React from 'react';
 
 /** Colour map matching the original status badge colours. */
 const STATUS_COLORS = {
-  Pending: '#FFA500',
-  'Generating SkillsFuture Invoice': '#00CED1',
-  'SkillsFuture Done': '#008000',
-  Cancelled: '#FF0000',
-  'To Refund': '#800000',
-  'To refund': '#800000',
-  Withdrawn: '#B8860B',
-  Paid: '#008000',
-  Confirmed: '#008000',
-  Refunded: '#D2691E',
-  'Not Successful': '#8B4513',
-  Submitted: '#4A90D9',
-  'Confirmed Slot': '#008000',
-  'Cancellation For Duplication': '#FF0000',
+  Pending: '#B26A00',
+  'Generating SkillsFuture Invoice': '#006D77',
+  'SkillsFuture Done': '#2E7D32',
+  Cancelled: '#C62828',
+  'To refund': '#8D4F12',
+  Withdrawn: '#7A6F00',
+  Paid: '#00796B',
+  Confirmed: '#1565C0',
+  Refunded: '#AD3F00',
+  'Not Successful': '#5D4037',
+  Submitted: '#0277BD',
+  'Confirmed Slot': '#4E7D1A',
+  'Cancelled for duplication': '#455A64',
 };
 
 /**
@@ -50,7 +49,7 @@ const PaymentStatusRenderer = (params) => {
     );
   }
 
-  const backgroundColor = STATUS_COLORS[statusText] || '#D3D3D3';
+  const backgroundColor = STATUS_COLORS[statusText];
 
   return (
     <span

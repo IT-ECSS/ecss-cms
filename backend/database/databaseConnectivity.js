@@ -1263,11 +1263,29 @@ const filter = { _id: this._makeObjectId(id) };
                 else if (status === "Refunded") {
                     // Preserve official.date, official.time and receiptNo — they were set
                     // when the payment was originally processed and must not be cleared.
+                    // Record the staff member who marked it as refunded for audit trail.
                     update = {
                         $set: {
                             "status": status,
                             "official.confirmed": false,
+                            "official.name": name,
                         }
+                    };
+                }
+                else if (status === "To refund") {
+                    // When payment needs to be refunded (e.g., due to duplicate registration)
+                    // Preserve official.date, official.time and receiptNo if they exist
+                    // Set confirmed to false as the payment is pending refund
+                    // Only update date/time if provided (don't overwrite with undefined)
+                    const toRefundUpdate = {
+                        "status": status,
+                        "official.confirmed": false,
+                        "official.name": name,
+                    };
+                    if (date !== undefined) toRefundUpdate["official.date"] = date;
+                    if (time !== undefined) toRefundUpdate["official.time"] = time;
+                    update = {
+                        $set: toRefundUpdate
                     };
                 }
                 else {

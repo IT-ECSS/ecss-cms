@@ -200,16 +200,25 @@ export async function showReceipt(participant, course, receiptNo, officialInfo, 
 
 // ─── private sub-functions ────────────────────────────────────────────────────
 
-async function _generateCashPayNowReceipt(id, participant, course, userName, paymentMethod, status, officialInfo = null) {
+async function _generateCashPayNowReceipt(id, participant, course, userName, paymentMethod, status, officialInfo = null, progressTracker = null) {
   const receiptNo = await fetchReceiptNumber(course, paymentMethod);
+  console.log('✅ [Receipt Handler] Receipt number fetched:', receiptNo);
+  
   const result = await generatePDFReceipt(id, participant, course, userName, receiptNo, status, officialInfo);
+  console.log('✅ [Receipt Handler] Receipt PDF generated and added to database');
+  
   await saveReceiptToDatabase(receiptNo, course.courseLocation, id, '', userName);
-  return result; // { receiptNo, blob, filename }
+  
+  // Do NOT advance tracker here - let the main handler control the progression
+  // The main handler will advance after updating the table with the receipt number
+  return result; // { receiptNo, blob, filename, paymentDate, paymentTime }
 }
 
-async function _generateSkillsFutureInvoice(id, participant, course, userName, paymentMethod, status, officialInfo = null) {
+async function _generateSkillsFutureInvoice(id, participant, course, userName, paymentMethod, status, officialInfo = null, progressTracker = null) {
   const invoiceNo = await fetchReceiptNumber(course, paymentMethod);
+  if (progressTracker) progressTracker.advance(); // → SkillsFuture Invoice Generated
   const result = await generatePDFInvoice(id, participant, course, userName, invoiceNo, status, officialInfo);
+  if (progressTracker) progressTracker.advance(); // → Invoice Downloaded and Opened
   await saveReceiptToDatabase(invoiceNo, course.courseLocation, id, '', userName);
   return result; // { receiptNo, blob, filename }
 }
@@ -221,10 +230,10 @@ async function _generateSkillsFutureInvoice(id, participant, course, userName, p
  * - 'Paid' + Cash/PayNow  → receipt PDF
  * - 'Generating SkillsFuture Invoice' → invoice PDF
  */
-export async function receiptGenerator(id, participant, course, official, value, userName) {
+export async function receiptGenerator(id, participant, course, official, value, userName, progressTracker = null) {
   if (value === 'Generating SkillsFuture Invoice') {
     try {
-      return await _generateSkillsFutureInvoice(id, participant, course, userName, 'SkillsFuture', value, official);
+      return await _generateSkillsFutureInvoice(id, participant, course, userName, 'SkillsFuture', value, official, progressTracker);
     } catch (error) {
       console.error('Error during SkillsFuture invoice generation:', error);
     }
@@ -236,7 +245,7 @@ export async function receiptGenerator(id, participant, course, official, value,
   if (resolvedPaymentMethod !== 'Cash' && resolvedPaymentMethod !== 'PayNow') return null;
 
   try {
-    return await _generateCashPayNowReceipt(id, participant, course, userName, resolvedPaymentMethod, value, official);
+    return await _generateCashPayNowReceipt(id, participant, course, userName, resolvedPaymentMethod, value, official, progressTracker);
   } catch (error) {
     console.error('Error during receipt generation:', error);
   }
@@ -251,17 +260,17 @@ export async function receiptGenerator(id, participant, course, official, value,
  * - Cash / PayNow (status auto-set to Paid) → receipt PDF
  * - SkillsFuture                            → invoice PDF
  */
-export async function autoReceiptGenerator(id, participant, course, official, newMethod, value, userName) {
+export async function autoReceiptGenerator(id, participant, course, official, newMethod, value, userName, progressTracker = null) {
   if (newMethod === 'Cash' || newMethod === 'PayNow') {
     if (value !== 'Paid') return null;
     try {
-      return await _generateCashPayNowReceipt(id, participant, course, userName, newMethod, value, official);
+      return await _generateCashPayNowReceipt(id, participant, course, userName, newMethod, value, official, progressTracker);
     } catch (error) {
       console.error('Error during receipt generation:', error);
     }
   } else if (newMethod === 'SkillsFuture') {
     try {
-      return await _generateSkillsFutureInvoice(id, participant, course, userName, 'SkillsFuture', value, official);
+      return await _generateSkillsFutureInvoice(id, participant, course, userName, 'SkillsFuture', value, official, progressTracker);
     } catch (error) {
       console.error('Error during SkillsFuture invoice generation:', error);
     }

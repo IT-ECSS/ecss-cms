@@ -1436,11 +1436,16 @@ def update_stock(request):
                 result2 = woo_api.updateCourseQuantity(productId, status)
 
                 print(status)
+                if isinstance(result2, dict):
+                    return JsonResponse(result2)
 
-                return JsonResponse({'success': result2})
+                return JsonResponse({'success': bool(result2)})
 
         else:
             print("No course data found in the 'page' field.")
+            return JsonResponse({'success': False, 'error': 'No course data provided'})
+
+        return JsonResponse({'success': False, 'error': 'Product not found'})
 
     except Exception as e:
         print("Error:", e)  # Log the error to the console
@@ -1576,11 +1581,16 @@ def port_over(request):
                 productId = result['id']
                 print('Product Id:', result)
                 result2 = woo_api.updatePortOver(productId)
+                if isinstance(result2, dict):
+                    return JsonResponse(result2)
 
-                return JsonResponse({'success': result2})
+                return JsonResponse({'success': bool(result2)})
 
         else:
             print("No course data found in the 'page' field.")
+            return JsonResponse({'success': False, 'error': 'No course data provided'})
+
+        return JsonResponse({'success': False, 'error': 'Product not found'})
 
     except Exception as e:
         print("Error:", e)  # Log the error to the console

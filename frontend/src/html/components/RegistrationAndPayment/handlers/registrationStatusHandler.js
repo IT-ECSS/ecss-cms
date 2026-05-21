@@ -24,23 +24,57 @@ import { logRegistrationUpdate } from '../../../../utils/auditLog';
  * Payment date and time are preserved for all status transitions.
  */
 export async function handleRegistrationStatusChange(event, context) {
-  const { userName, userRole, progressTracker, showUpdatePopup, closePopup } = context;
+  const { userName, userRole, progressTracker, showUpdatePopup, closePopup, updateWooCommerce } = context;
   const id = resolveEventId(event.data);
   if (!id) {
     throw new Error('Missing MongoDB _id for registration status update');
   }
   const sn = event.data.sn;
   const participantInfo = event.data.participantInfo;
+  const courseInfo = event.data.courseInfo;
   const newValue = event.value;
   const oldValue = event.oldValue;
   const currentPaymentStatus = String(event.data.paymentStatus || '').trim();
+  const officialInfo = event.data.officialInfo || {};
+  const courseName = event.data.course;
+  const courseChiName = event.data.courseChi;
+  const courseLocation = event.data.location;
+  const isCancelledForDuplication =  newValue === 'Cancelled for duplication';
+  const isWithdrawn = newValue === 'Withdrawn';
+  const isRefundRegistrationStatus = isCancelledForDuplication || isWithdrawn;
+  
+  const registrationStatusTrackerLabel =
+    isCancelledForDuplication
+      ? 'The registration status will be updated to Cancelled for duplication'
+      : isWithdrawn
+        ? 'The registration status will be updated to Withdrawn'
+        : 'Updating The Registration Status';
   const nextPaymentStatus =
     newValue === 'Submitted'
       ? 'Pending'
-      : (newValue === 'Cancellation For Duplication' || newValue === 'Withdrawn')
-        ? 'To Refund'
-        : '';
+      : isCancelledForDuplication
+        ? 'To refund'  // ALWAYS "To refund" for Cancelled for duplication
+        : isWithdrawn
+          ? 'To refund'  // ALWAYS "To refund" for Withdrawn
+          : '';
   const shouldUpdatePaymentStatus = !!nextPaymentStatus && currentPaymentStatus !== nextPaymentStatus;
+  const paymentStatusTrackerLabel =
+    nextPaymentStatus === 'To refund'
+      ? 'The payment status will be updated to To Refund'
+      : nextPaymentStatus === 'Refunded'
+        ? 'The payment status will be updated to Refunded'
+        : nextPaymentStatus === 'Pending'
+          ? 'The payment status will be updated to Pending'
+          : 'Updating The Payment Status';
+  const vacanciesTrackerLabel =
+    nextPaymentStatus === 'Refunded'
+      ? 'Updating Vacancies Counted'
+      : 'Updating Vacancies Counted';
+  const shouldIncreaseWooCommerceStock =
+    courseInfo?.courseType === 'NSA' &&
+    nextPaymentStatus === 'Refunded' &&
+    (currentPaymentStatus === 'Paid' || currentPaymentStatus === 'SkillsFuture Done');
+  const useRefundedTracker = shouldUpdatePaymentStatus && shouldIncreaseWooCommerceStock;
 
   if (newValue === oldValue) {
     return { updated: false };
@@ -48,9 +82,11 @@ export async function handleRegistrationStatusChange(event, context) {
 
   if (progressTracker) {
     progressTracker.start(
-      shouldUpdatePaymentStatus
-        ? ['Updating registration status', 'Updating payment status']
-        : ['Updating registration status']
+      useRefundedTracker
+        ? [paymentStatusTrackerLabel, vacanciesTrackerLabel]
+        : shouldUpdatePaymentStatus
+          ? [registrationStatusTrackerLabel, paymentStatusTrackerLabel]
+        : [registrationStatusTrackerLabel]
     );
   } else {
     showUpdatePopup('Updating in progress... Please wait ...');
@@ -68,7 +104,7 @@ export async function handleRegistrationStatusChange(event, context) {
   event.data.registrationStatus = newValue;
 
   if (shouldUpdatePaymentStatus) {
-    if (progressTracker) progressTracker.advance();
+    if (progressTracker && !useRefundedTracker) progressTracker.advance();
 
     const statusRes = await updatePaymentStatus(id, nextPaymentStatus, userName, userRole);
     if (!isApiResultSuccessful(statusRes)) {
@@ -85,6 +121,11 @@ export async function handleRegistrationStatusChange(event, context) {
     }));
 
     event.data.paymentStatus = nextPaymentStatus;
+
+    if (shouldIncreaseWooCommerceStock) {
+      if (progressTracker) progressTracker.advance();
+      await updateWooCommerce(courseChiName, courseName, courseLocation, nextPaymentStatus);
+    }
   }
 
   if (event.api && typeof event.api.refreshCells === 'function') {

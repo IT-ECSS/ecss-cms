@@ -1,6 +1,22 @@
 import requests
 from django.conf import settings
 import re
+import unicodedata
+
+def normalize_string(s):
+    """
+    Normalize strings for comparison by:
+    1. Converting en-dashes, em-dashes to regular hyphens
+    2. Removing extra whitespace
+    3. Normalizing unicode characters
+    """
+    # Normalize unicode characters
+    s = unicodedata.normalize('NFKD', s)
+    # Replace en-dash (–) and em-dash (—) with regular hyphen
+    s = s.replace('–', '-').replace('—', '-')
+    # Strip whitespace
+    s = s.strip()
+    return s
 
 class WooCommerceAPI:
     def __init__(self):
@@ -138,6 +154,11 @@ class WooCommerceAPI:
             all_products = []  # List to store product id and name pairs
             per_page = 100  # Number of products to fetch per page
             matched_product_id = None  # Variable to store matched product ID
+            
+            # Normalize input parameters
+            normalized_chinese = normalize_string(chinese)
+            normalized_english = normalize_string(english)
+            normalized_location = normalize_string(location)
 
             while True:
                 # Fetch products for the current page
@@ -162,12 +183,12 @@ class WooCommerceAPI:
                     split_name = re.split(r'<br\s*/?>', product_name)
 
                     if len(split_name) == 3:
-                        chinese_name = split_name[0]
-                        english_name = split_name[1]
-                        location_name = split_name[2]
+                        chinese_name = normalize_string(split_name[0])
+                        english_name = normalize_string(split_name[1])
+                        location_name = normalize_string(split_name[2])
 
                         # If the product matches the input chinese, english, and location, return the product ID
-                        if chinese_name == chinese and english_name == english and location_name == location:
+                        if chinese_name == normalized_chinese and english_name == normalized_english and location_name == normalized_location:
                             matched_product_id = product['id']
                             break  # Exit the loop if the product is found
 
@@ -185,18 +206,18 @@ class WooCommerceAPI:
             print(f"Error fetching products: {e}")
             return None
 
-    def updateCourseQuantity(request, product_id, status):
+    def updateCourseQuantity(self, product_id, status):
         """
         Updates the product stock based on the product ID and the status.
+        Handles all payment methods including SkillsFuture and refund scenarios.
         Arguments:
             - product_id: The ID of the product to update.
-            - status: The status to update stock based on ("Cancelled", "Paid", "SkillsFuture Done").
+            - status: The status to update stock based on ("Cancelled", "Paid", "SkillsFuture Done", "Refunded", "Withdrawn", "To refund").
         """
         try:
             # Fetch current product details
             url = f"{settings.WOOCOMMERCE_API_URL}products/{product_id}"
-            auth = (settings.WOOCOMMERCE_CONSUMER_KEY, settings.WOOCOMMERCE_CONSUMER_SECRET)
-            response = requests.get(url, auth=auth)
+            response = requests.get(url, auth=self.auth)
             response.raise_for_status()
 
             product = response.json()
@@ -234,34 +255,64 @@ class WooCommerceAPI:
 
             print(f"Processing status: {status}")
 
-            # **Stock Update Logic**
-            if status == "Cancelled":
+            # **Stock Update Logic - Applies to all payment methods (Cash, PayNow, SkillsFuture)**
+            # Refund statuses: restore vacancies (increase stock)
+            # NOTE: "To refund" does NOT trigger updates - only actual refund/cancellation/withdrawal/method-change do
+            if status in ["Cancelled", "Withdrawn", "Refunded", "Change of Final Payment Method"]:
                 if new_stock_quantity < vacancies:  # Only increase stock if it is below vacancies
                     print("Increase stock by 1")
                     new_stock_quantity += 1
                 else:
                     print("Stock is full, no increase.")  # Prevent increase beyond vacancies
 
-            elif status in ["Paid", "SkillsFuture Done"]:
+            # Payment statuses: decrease vacancies (reduce stock) - applies to all payment methods
+            elif status in ["Paid", "SkillsFuture Done", "Confirmed"]:
                 if new_stock_quantity > 0:  # Only decrease if stock is greater than 0
                     print("Decrease stock by 1")
                     new_stock_quantity -= 1  
                 else:
                     print("Stock is already 0, cannot decrease further.")  # Prevents negative stock
+            else:
+                print(f"Unhandled status: '{status}' - no stock update performed")
 
             print("Updated Stock Quantity:", new_stock_quantity)
 
             # Only update stock if it has changed
+            if new_stock_quantity == original_stock_quantity:
+                return {
+                    'success': True,
+                    'message': 'Stock unchanged',
+                    'product_id': product_id,
+                    'stock_quantity': new_stock_quantity,
+                }
+
             update_data = {"stock_quantity": new_stock_quantity}
             update_response = requests.put(f"{settings.WOOCOMMERCE_API_URL}products/{product_id}",
-                                            json=update_data, auth=auth)
+                                            json=update_data, auth=self.auth)
             update_response.raise_for_status()
 
-            return True  # Successfully updated stock
+            return {
+                'success': True,
+                'message': 'Stock updated successfully',
+                'product_id': product_id,
+                'previous_stock': original_stock_quantity,
+                'stock_quantity': new_stock_quantity,
+            }
 
         except requests.exceptions.RequestException as e:
             print(f"Error updating product stock: {e}")
-            return False
+            return {
+                'success': False,
+                'error': f'WooCommerce request failed: {str(e)}',
+                'product_id': product_id,
+            }
+        except Exception as e:
+            print(f"Unexpected error updating product stock: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'product_id': product_id,
+            }
 
     def get_all_published_products(self):
         """Fetch all published products from WooCommerce without category filtering."""
@@ -423,6 +474,9 @@ class WooCommerceAPI:
             page = 1
             per_page = 100  # Number of products to fetch per page
             matched_product_id = None  # Variable to store matched product ID
+            
+            # Normalize the search product name
+            normalized_product_name = normalize_string(product_name)
 
             while True:
                 # Fetch products for the current page
@@ -443,14 +497,16 @@ class WooCommerceAPI:
 
                 # Check each product for exact name match
                 for product in products:
-                    # Check for exact match first
-                    if product['name'] == product_name:
+                    normalized_product = normalize_string(product['name'])
+                    
+                    # Check for exact match first (normalized)
+                    if normalized_product == normalized_product_name:
                         matched_product_id = product['id']
                         print(f"Exact match found: {product['name']} -> ID: {matched_product_id}")
                         break
                     
                     # Also check if the product name contains the search term (for partial matches)
-                    if product_name.lower() in product['name'].lower():
+                    if normalized_product_name.lower() in normalized_product.lower():
                         matched_product_id = product['id']
                         print(f"Partial match found: {product['name']} -> ID: {matched_product_id}")
                         break

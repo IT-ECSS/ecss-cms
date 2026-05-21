@@ -750,10 +750,10 @@ def update_stock(request):
                             'error': result2.get('error', 'Failed to reduce stock')
                         })
                 else:
-                    # Handle regular status update (existing functionality)
-                    print("Updating product status")
-                    result2 = woo_api.u(productId, status)
-                    return JsonResponse({'success': result2})
+                    # Handle regular status update for all other statuses (Refunded, SkillsFuture Done, etc.)
+                    print(f"Updating product status to {status}")
+                    result2 = woo_api.updateCourseQuantity(productId, status)
+                    return JsonResponse(result2)
 
             else:
                 print(f"Product not found: {formatted_name}")

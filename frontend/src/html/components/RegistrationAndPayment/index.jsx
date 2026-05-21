@@ -293,10 +293,10 @@ class RegistrationPaymentSection extends Component {
 
     let options = base;
     if (paymentStatus === 'Pending') {
-      options = base.filter((s) => s !== 'To Refund' && s !== 'Withdrawn' && s !== 'Refunded');
+      options = base.filter((s) => s !== 'To refund' && s !== 'Withdrawn' && s !== 'Refunded');
     } else if (paymentStatus === 'Paid') {
       options = base.filter((s) => s !== 'Cancelled' && s !== 'Refunded');
-    } else if (paymentStatus === 'To Refund' || paymentStatus === 'Withdrawn') {
+    } else if (paymentStatus === 'To refund' || paymentStatus === 'Withdrawn') {
       options = base.filter((s) => s !== 'Cancelled');
     }
 
@@ -1246,11 +1246,11 @@ class RegistrationPaymentSection extends Component {
       closePopup: this.props.closePopup,
     });
 
-  receiptGenerator = (id, participant, course, official, value) =>
-    receiptGeneratorFn(id, participant, course, official, value, this.props.userName);
+  receiptGenerator = (id, participant, course, official, value, progressTracker = null) =>
+    receiptGeneratorFn(id, participant, course, official, value, this.props.userName, progressTracker);
 
-  autoReceiptGenerator = (id, participant, course, official, newMethod, value) =>
-    autoReceiptGeneratorFn(id, participant, course, official, newMethod, value, this.props.userName);
+  autoReceiptGenerator = (id, participant, course, official, newMethod, value, progressTracker = null) =>
+    autoReceiptGeneratorFn(id, participant, course, official, newMethod, value, this.props.userName, progressTracker);
 
   // ── Export helpers ────────────────────────────────────────────────────────
 
@@ -1390,7 +1390,7 @@ class RegistrationPaymentSection extends Component {
         cellEditor: 'agSelectCellEditor',
         cellEditorParams: (params) => {
           const currentStatus = params.data?.registrationStatus || 'Submitted';
-          const allOptions = ['Submitted', 'Confirmed Slot', 'Cancellation For Duplication', 'Withdrawn', 'Not Successful'];
+          const allOptions = ['Submitted', 'Confirmed Slot', 'Cancelled for duplication', 'Withdrawn', 'Not Successful'];
           const filtered = allOptions.filter((s) => s !== currentStatus);
           return { values: [currentStatus, ...filtered] };
         },
@@ -1549,7 +1549,7 @@ class RegistrationPaymentSection extends Component {
               let base;
               if (courseType === 'NSA') {
                 base = paymentMethod === 'SkillsFuture'
-                  ? ['Pending', 'Generating SkillsFuture Invoice', 'SkillsFuture Done', 'Cancelled', 'Withdrawn', 'Refunded', 'To Refund']
+                  ? ['Pending', 'Generating SkillsFuture Invoice', 'SkillsFuture Done', 'Cancelled', 'Withdrawn', 'Refunded', 'To refund']
                   : ['Pending', 'Paid', 'Cancelled', 'Withdrawn', 'Refunded', 'Not Successful'];
               } else if (
                 courseType === 'ILP' ||
@@ -1565,10 +1565,10 @@ class RegistrationPaymentSection extends Component {
 
               let options = base;
               if (paymentStatus === 'Pending') {
-                options = base.filter((s) => s !== 'To Refund' && s !== 'Withdrawn' && s !== 'Refunded');
+                options = base.filter((s) => s !== 'To refund' && s !== 'Withdrawn' && s !== 'Refunded');
               } else if (paymentStatus === 'Paid') {
                 options = base.filter((s) => s !== 'Cancelled' && s !== 'Refunded');
-              } else if (paymentStatus === 'To Refund' || paymentStatus === 'Withdrawn') {
+              } else if (paymentStatus === 'To refund' || paymentStatus === 'Withdrawn') {
                 options = base.filter((s) => s !== 'Cancelled');
               }
 
