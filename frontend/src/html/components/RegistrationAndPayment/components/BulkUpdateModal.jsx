@@ -1,5 +1,6 @@
 import React from 'react';
 import '../../../../css/sub/bulkUpdateCustomDropdown.css';
+import { validateStatusCombination } from '../utils/statusValidation';
 
 function CustomDropdown({
   options,
@@ -106,6 +107,7 @@ function BulkUpdateModal({
     onUpdate,
     onUpdateClick,
     onClose,
+    onValidationError,
   }) {
     const rows = Array.isArray(selectedRows) ? selectedRows : [];
     const previewRows = rows;
@@ -329,6 +331,41 @@ function BulkUpdateModal({
       setReasonErrors(nextReasonErrors);
       if (Object.keys(nextReasonErrors).length > 0) {
         return;
+      }
+
+      // Validation for NSA course payment/registration status combinations
+      if (selectedField === 'paymentStatus') {
+        const validationErrors = [];
+        
+        requiredReasonRows.forEach(({ row, idx }) => {
+          const courseType = row?.courseInfo?.courseType || '';
+          const newPaymentStatus = getRowNewValue(row, idx);
+          const currentRegistrationStatus = row?.confirmationStatus || row?.confirmed || 'N/A';
+          
+          // Only validate for NSA courses
+          if (courseType === 'NSA' && newPaymentStatus) {
+            const validation = validateStatusCombination(newPaymentStatus, currentRegistrationStatus);
+            if (!validation.isValid) {
+              validationErrors.push({
+                rowId: row?.id || '',
+                sn: getTableSn(row),
+                participantName: row?.participantInfo?.name || row?.name || 'N/A',
+                courseName: row?.courseInfo?.courseEngName || row?.course || 'N/A',
+                newPaymentStatus,
+                currentRegistrationStatus,
+                errorMessage: validation.reason,
+              });
+            }
+          }
+        });
+
+        // If validation errors exist, show them in the error modal
+        if (validationErrors.length > 0) {
+          if (typeof onValidationError === 'function') {
+            onValidationError(validationErrors);
+          }
+          return;
+        }
       }
 
       const reasonsByRow = requiredReasonRows.reduce((acc, { row, key }) => {

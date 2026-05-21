@@ -43,6 +43,7 @@ export async function handlePaymentStatusChange(event, context) {
   const courseInfo       = event.data.courseInfo;
   const officialInfo     = event.data.officialInfo;
   const registrationStatus = String(event.data.registrationStatus || '').trim();
+  const courseType = String(courseInfo?.courseType || '').trim();
   const paymentMethod    = String(
     event.data.finalPaymentMethod ||
     event.data.paymentMethod ||
@@ -51,6 +52,7 @@ export async function handlePaymentStatusChange(event, context) {
     officialInfo?.paymentMethod ||
     ''
   ).trim();
+  
   const existingReceiptNo = String(event.data.recinvNo || officialInfo?.receiptNo || '').trim();
   const hasExistingReceiptNo = existingReceiptNo !== '';
   const existingDocType = inferDocumentType(existingReceiptNo);
@@ -59,7 +61,7 @@ export async function handlePaymentStatusChange(event, context) {
   const shouldGenerateInvoice = paymentMethod === 'SkillsFuture' && newValue === 'Generating SkillsFuture Invoice';
   const shouldRemoveExistingInvoice = shouldGenerateInvoice && hasExistingReceiptNo;
   const shouldDecreaseWooCommerceStock =
-    courseInfo?.courseType === 'NSA' &&
+    courseType === 'NSA' &&
     (((paymentMethod === 'Cash' || paymentMethod === 'PayNow') && newValue === 'Paid') ||
       (paymentMethod === 'SkillsFuture' && newValue === 'SkillsFuture Done'));
   const shouldIncreaseWooCommerceStock =

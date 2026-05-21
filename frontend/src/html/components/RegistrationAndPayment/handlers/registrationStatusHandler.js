@@ -39,6 +39,8 @@ export async function handleRegistrationStatusChange(event, context) {
   const courseName = event.data.course;
   const courseChiName = event.data.courseChi;
   const courseLocation = event.data.location;
+  const courseType = String(courseInfo?.courseType || '').trim();
+  
   const isCancelledForDuplication =  newValue === 'Cancelled for duplication';
   const isWithdrawn = newValue === 'Withdrawn';
   const isRefundRegistrationStatus = isCancelledForDuplication || isWithdrawn;

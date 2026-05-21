@@ -1983,6 +1983,7 @@ class RegistrationPaymentSection extends Component {
       autoReceiptGenerator: this.autoReceiptGenerator,
       receiptGenerator:     this.receiptGenerator,
       refreshChild:         this.refreshChild,
+      showPaymentRegistrationStatusModal: this.props.showPaymentRegistrationStatusModal,
     };
   }
 

@@ -15,6 +15,8 @@ import { flushSync } from 'react-dom';
   import BulkUpdateReasonModal from './RegistrationAndPayment/components/BulkUpdateReasonModal';
   import UpdateProgressModal from './RegistrationAndPayment/components/UpdateProgressModal';
   import AnomalyModal from './RegistrationAndPayment/components/AnomalyModal';
+  // import ValidationErrorModal from './RegistrationAndPayment/components/ValidationErrorModal';
+  import PaymentRegistrationStatusModal from './RegistrationAndPayment/components/PaymentRegistrationStatusModal';
   import Popup from './popup/popupMessage';
   import Search from './sub/searchSection';
   import ViewToggle from './sub/viewToggleSection';
@@ -178,6 +180,16 @@ import { flushSync } from 'react-dom';
         queueDecisionContext: null, // 'logout' or 'inactivity'
         queueItemCount: 0,
         showingQueueDuringLogout: false,
+        // isValidationErrorModalOpen: false,
+        // validationErrors: [],
+        // validationErrorDetails: {},
+        isPaymentRegistrationStatusModalOpen: false,
+        paymentRegistrationStatusModalData: {
+          errorType: 'payment_status_change',
+          attemptedValue: '',
+          currentPaymentStatus: '',
+          currentRegistrationStatus: '',
+        },
       };
   
       // Always reset attendance filter/search state to defaults on page load
@@ -542,12 +554,7 @@ import { flushSync } from 'react-dom';
       catch (error) 
       {
         console.log(error);
-        // Show error message
-        this.setState({
-          isPopupOpen: true,
-          popupMessage: "Error loading attendance view",
-          popupType: "error-message"
-        });
+        // Error loading attendance view - popup removed
       }
     }
 
@@ -598,12 +605,7 @@ import { flushSync } from 'react-dom';
       catch (error) 
       {
         console.log(error);
-        // Show error message
-        this.setState({
-          isPopupOpen: true,
-          popupMessage: "Error loading membership view",
-          popupType: "error-message"
-        });
+        // Error loading membership view - popup removed
       }
     }
 
@@ -669,12 +671,7 @@ import { flushSync } from 'react-dom';
       } 
       catch (error) {
         console.log("Error in toggleFitnessComponent:", error);
-        // Show error message
-        this.setState({
-          isPopupOpen: true,
-          popupMessage: "Error loading FFT Fitness Results",
-          popupType: "error-message"
-        });
+        // Error loading FFT Fitness Results - popup removed
       }
     }
 
@@ -726,12 +723,7 @@ import { flushSync } from 'react-dom';
       } 
       catch (error) {
         console.log("Error in toggleFundraisingOrdersComponent:", error);
-        // Show error message
-        this.setState({
-          isPopupOpen: true,
-          popupMessage: "Error loading fundraising Orders",
-          popupType: "error-message"
-        });
+        // Error loading fundraising Orders - popup removed
       }
     }
 
@@ -780,12 +772,7 @@ import { flushSync } from 'react-dom';
       } 
       catch (error) {
         console.log("Error in toggleFundraisingInventoryComponent:", error);
-        // Show error message
-        this.setState({
-          isPopupOpen: true,
-          popupMessage: "Error loading fundraising inventory",
-          popupType: "error-message"
-        });
+        // Error loading fundraising inventory - popup removed
       }
     }
 
@@ -835,12 +822,7 @@ import { flushSync } from 'react-dom';
       } 
       catch (error) {
         console.log("Error in toggleCourseLinkComponent:", error);
-        // Show error message
-        this.setState({
-          isPopupOpen: true,
-          popupMessage: "Error loading course links",
-          popupType: "error-message"
-        });
+        // Error loading course links - popup removed
       }
     }
 
@@ -890,12 +872,7 @@ import { flushSync } from 'react-dom';
       } 
       catch (error) {
         console.log("Error in toggleInventoryModulesComponent:", error);
-        // Show error message
-        this.setState({
-          isPopupOpen: true,
-          popupMessage: "Error loading inventory store",
-          popupType: "error-message"
-        });
+        // Error loading inventory store - popup removed
       }
     }
 
@@ -945,12 +922,7 @@ import { flushSync } from 'react-dom';
       } 
       catch (error) {
         console.log("Error in toggleInventoryFormComponent:", error);
-        // Show error message
-        this.setState({
-          isPopupOpen: true,
-          popupMessage: "Error loading inventory form",
-          popupType: "error-message"
-        });
+        // Error loading inventory form - popup removed
       }
     }
 
@@ -1000,12 +972,7 @@ import { flushSync } from 'react-dom';
       } 
       catch (error) {
         console.log("Error in toggleInventoryRecordsComponent:", error);
-        // Show error message
-        this.setState({
-          isPopupOpen: true,
-          popupMessage: "Error loading inventory records",
-          popupType: "error-message"
-        });
+        // Error loading inventory records - popup removed
       }
     }
 
@@ -1055,12 +1022,7 @@ import { flushSync } from 'react-dom';
       } 
       catch (error) {
         console.log("Error in toggleInventoryInvoicesComponent:", error);
-        // Show error message
-        this.setState({
-          isPopupOpen: true,
-          popupMessage: "Error loading inventory invoices",
-          popupType: "error-message"
-        });
+        // Error loading inventory invoices - popup removed
       }
     }
 
@@ -1110,12 +1072,7 @@ import { flushSync } from 'react-dom';
       } 
       catch (error) {
         console.log("Error in toggleAuditLogsComponent:", error);
-        // Show error message
-        this.setState({
-          isPopupOpen: true,
-          popupMessage: "Error loading audit logs",
-          popupType: "error-message"
-        });
+        // Error loading audit logs - popup removed
       }
     }
 
@@ -1164,12 +1121,7 @@ import { flushSync } from 'react-dom';
       } 
       catch (error) {
         console.log("Error in toggleCourseFlyersComponent:", error);
-        // Show error message
-        this.setState({
-          isPopupOpen: true,
-          popupMessage: "Error loading course flyers",
-          popupType: "error-message"
-        });
+        // Error loading course flyers - popup removed
       }
     }
 
@@ -1406,12 +1358,7 @@ import { flushSync } from 'react-dom';
         });
       } catch (error) {
         console.log(error);
-        // Consider showing an error message to the user
-        this.setState({
-          isPopupOpen: true,
-          popupMessage: "Error loading dashboard",
-          popupType: "error-message"
-        });
+        // Error loading dashboard - popup removed
       }
     };
 
@@ -1739,6 +1686,25 @@ import { flushSync } from 'react-dom';
     dismissRegistrationBulkUpdateModal = () => {
       this.setState({ registrationBulkUpdatePayload: null });
     };
+
+    // handleValidationError = (validationErrors) => {
+    //   if (!Array.isArray(validationErrors) || validationErrors.length === 0) {
+    //     return;
+    //   }
+
+    //   // Get the first error for display in the modal
+    //   const firstError = validationErrors[0];
+    //   
+    //   this.setState({
+    //     isValidationErrorModalOpen: true,
+    //     validationErrors,
+    //     validationErrorDetails: {
+    //       attemptedValue: firstError?.newPaymentStatus || '',
+    //       currentPaymentStatus: firstError?.newPaymentStatus || '',
+    //       currentRegistrationStatus: firstError?.currentRegistrationStatus || '',
+    //     },
+    //   });
+    // };
 
     openBulkUpdateReasonModal = () => {
       this.setState({ showBulkUpdateReasonModal: true });
@@ -2515,6 +2481,19 @@ import { flushSync } from 'react-dom';
       } else {
         this.closePopup();
       }
+    };
+
+    showPaymentRegistrationStatusModal = (data) => {
+      console.log('🔴 [Payment/Registration Status Validation Error]', data);
+      this.setState({
+        isPaymentRegistrationStatusModalOpen: true,
+        paymentRegistrationStatusModalData: {
+          errorType: data.errorType || 'payment_status_change',
+          attemptedValue: data.attemptedValue || '',
+          currentPaymentStatus: data.currentPaymentStatus || '',
+          currentRegistrationStatus: data.currentRegistrationStatus || '',
+        },
+      });
     };
 
     // ── Update progress tracker (multi-step modal for R&P table) ──────────────
@@ -3553,6 +3532,7 @@ import { flushSync } from 'react-dom';
                         onAnomalyDetected={(list) => this.setState({ showAnomalyModal: true, anomalyList: list })}
                         onAnomalyListChanged={(list) => this.setState({ anomalyList: list })}
                         onOpenAnomalyModal={() => this.setState({ showAnomalyModal: true })}
+                        showPaymentRegistrationStatusModal={this.showPaymentRegistrationStatusModal}
                     />
                     </div>
                   </>}                 
@@ -3729,6 +3709,7 @@ import { flushSync } from 'react-dom';
               onValueChange={this.state.registrationBulkUpdatePayload.onValueChange}
               onRowValueChange={this.state.registrationBulkUpdatePayload.onRowValueChange}
               onUpdate={this.state.registrationBulkUpdatePayload.onUpdate}
+              onValidationError={this.handleValidationError}
               onUpdateClick={() => {
                 this.setState({
                   showBulkUpdateReasonModal: true,
@@ -3811,6 +3792,16 @@ import { flushSync } from 'react-dom';
             <AnomalyModal
               anomalies={this.state.anomalyList}
               onClose={() => this.setState({ showAnomalyModal: false })}
+            />
+          )}
+          {this.state.isPaymentRegistrationStatusModalOpen && (
+            <PaymentRegistrationStatusModal
+              isOpen={this.state.isPaymentRegistrationStatusModalOpen}
+              errorType={this.state.paymentRegistrationStatusModalData?.errorType}
+              attemptedValue={this.state.paymentRegistrationStatusModalData?.attemptedValue}
+              currentPaymentStatus={this.state.paymentRegistrationStatusModalData?.currentPaymentStatus}
+              currentRegistrationStatus={this.state.paymentRegistrationStatusModalData?.currentRegistrationStatus}
+              onClose={() => this.setState({ isPaymentRegistrationStatusModalOpen: false })}
             />
           )}
         </>

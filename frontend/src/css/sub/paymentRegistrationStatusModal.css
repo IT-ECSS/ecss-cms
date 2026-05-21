@@ -1,0 +1,463 @@
+/* ╔═══════════════════════════════════════════════════════════════════════════╗
+   ║  Payment & Registration Status Validation Modal - CSS Styling             ║
+   ╚═══════════════════════════════════════════════════════════════════════════╝ */
+
+/* ── Overlay ───────────────────────────────────────────────────────────────── */
+
+.payment-registration-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(2px);
+  animation: payment-registration-modal-fade-in 0.2s ease-out;
+}
+
+@keyframes payment-registration-modal-fade-in {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(2px);
+  }
+}
+
+/* ── Container ─────────────────────────────────────────────────────────────── */
+
+.payment-registration-modal-container {
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.25), 0 8px 16px rgba(0, 0, 0, 0.08);
+  border: 1px solid #f5f5f5;
+  width: 100%;
+  max-width: min(700px, 95vw);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: payment-registration-modal-slide-up 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes payment-registration-modal-slide-up {
+  from {
+    transform: translateY(30px) scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* ── Header ────────────────────────────────────────────────────────────────── */
+
+.payment-registration-modal-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  padding: 28px 28px 20px;
+  background: linear-gradient(135deg, #fff5f5 0%, #fff9f9 50%, #fffaf9 100%);
+  border-bottom: 2px solid #fdd7d7;
+  flex-shrink: 0;
+}
+
+.payment-registration-modal-icon-wrapper {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, #ffe5e5 0%, #ffcccf 100%);
+  border-radius: 50%;
+  border: 2px solid #ffb3b9;
+  box-shadow: 0 4px 12px rgba(255, 100, 100, 0.15);
+}
+
+.payment-registration-modal-icon {
+  font-size: 28px;
+  line-height: 1;
+  display: block;
+}
+
+.payment-registration-modal-header-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.payment-registration-modal-title {
+  margin: 0 0 6px 0;
+  padding: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #c53030;
+  letter-spacing: -0.4px;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.payment-registration-modal-subtitle {
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+  color: #a0616a;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+/* ── Body ──────────────────────────────────────────────────────────────────── */
+
+.payment-registration-modal-body {
+  padding: 24px 28px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Requirement Box ────────────────────────────────────────────────────────── */
+
+.payment-registration-modal-requirement-box {
+  background: linear-gradient(135deg, #f0f9ff 0%, #f5f8ff 100%);
+  border: 2px solid #bfdbfe;
+  border-radius: 10px;
+  padding: 16px 18px;
+  border-left: 5px solid #3b82f6;
+}
+
+.payment-registration-modal-requirement-title {
+  margin: 0 0 8px 0;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e40af;
+  letter-spacing: -0.2px;
+}
+
+.payment-registration-modal-requirement-text {
+  margin: 0;
+  padding: 0;
+  font-size: 15px;
+  color: #0c4a6e;
+  line-height: 1.6;
+  font-weight: 500;
+}
+
+.payment-registration-modal-prerequisite-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  padding: 12px;
+  background: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #bfdbfe;
+  flex-wrap: wrap;
+}
+
+/* ── Current Status ────────────────────────────────────────────────────────── */
+
+.payment-registration-modal-current-status {
+  background: #fafafa;
+  border: 1px solid #e8e8e8;
+  border-radius: 9px;
+  padding: 16px 18px;
+}
+
+.payment-registration-modal-status-title {
+  margin: 0 0 12px 0;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #2d3748;
+  letter-spacing: -0.2px;
+}
+
+.payment-registration-modal-status-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.payment-registration-modal-status-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.payment-registration-modal-status-label {
+  flex: 0 0 auto;
+  font-weight: 600;
+  color: #4a5568;
+  min-width: 160px;
+}
+
+.payment-registration-modal-status-value {
+  flex: 1;
+  padding: 6px 10px;
+  background: #ffffff;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  color: #2d3748;
+  font-weight: 500;
+  word-break: break-word;
+}
+
+.payment-registration-modal-status-value.payment-registration-modal-current {
+  border-color: #cbd5e0;
+  background: #f7fafc;
+  color: #2d3748;
+}
+
+.payment-registration-modal-status-value.payment-registration-modal-attempted {
+  border-color: #f6a3a3;
+  background: #fff5f5;
+  color: #c53030;
+  font-weight: 600;
+}
+
+/* ── Action Guidance ────────────────────────────────────────────────────────– */
+
+.payment-registration-modal-action-guidance {
+  background: linear-gradient(135deg, #fffbeb 0%, #fefce8 100%);
+  border: 2px solid #fde047;
+  border-radius: 10px;
+  padding: 16px 18px;
+  border-left: 5px solid #eab308;
+}
+
+.payment-registration-modal-action-title {
+  margin: 0 0 8px 0;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #854d0e;
+  letter-spacing: -0.2px;
+}
+
+.payment-registration-modal-action-text {
+  margin: 0;
+  padding: 0;
+  font-size: 14px;
+  color: #713f12;
+  line-height: 1.6;
+  font-weight: 500;
+}
+
+/* ── Reference Section ─────────────────────────────────────────────────────── */
+
+.payment-registration-modal-reference-section {
+  background: #f8f8f8;
+  border: 1px solid #e0e0e0;
+  border-radius: 9px;
+  padding: 16px 18px;
+}
+
+.payment-registration-modal-reference-title {
+  margin: 0 0 12px 0;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #2d3748;
+  letter-spacing: -0.2px;
+}
+
+.payment-registration-modal-reference-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.payment-registration-modal-reference-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  padding: 10px;
+  background: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #e5e5e5;
+  flex-wrap: wrap;
+}
+
+.payment-registration-modal-payment-status {
+  background: #e8f5e9;
+  border: 1px solid #81c784;
+  border-radius: 5px;
+  padding: 4px 8px;
+  font-weight: 600;
+  color: #2e7d32;
+  flex-shrink: 0;
+}
+
+.payment-registration-modal-registration-status {
+  background: #e3f2fd;
+  border: 1px solid #64b5f6;
+  border-radius: 5px;
+  padding: 4px 8px;
+  font-weight: 600;
+  color: #1565c0;
+  flex-shrink: 0;
+}
+
+.payment-registration-modal-arrow {
+  color: #999;
+  font-weight: bold;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+/* ── Footer ────────────────────────────────────────────────────────────────── */
+
+.payment-registration-modal-footer {
+  padding: 16px 28px;
+  background: #fafafa;
+  border-top: 1px solid #e8e8e8;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────────────── */
+
+.payment-registration-modal-btn {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 7px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: -0.1px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  white-space: nowrap;
+}
+
+.payment-registration-modal-btn-primary {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+}
+
+.payment-registration-modal-btn-primary:hover {
+  background: linear-gradient(135deg, #e5373f 0%, #c9232a 100%);
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.35);
+  transform: translateY(-2px);
+}
+
+.payment-registration-modal-btn-primary:active {
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
+  transform: translateY(0);
+}
+
+/* ── Responsive ────────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .payment-registration-modal-container {
+    max-width: 95vw;
+    max-height: 95vh;
+    border-radius: 12px;
+  }
+
+  .payment-registration-modal-header {
+    gap: 12px;
+    padding: 20px 16px 16px;
+  }
+
+  .payment-registration-modal-icon-wrapper {
+    width: 48px;
+    height: 48px;
+  }
+
+  .payment-registration-modal-icon {
+    font-size: 24px;
+  }
+
+  .payment-registration-modal-title {
+    font-size: 18px;
+  }
+
+  .payment-registration-modal-body {
+    padding: 16px 16px;
+    gap: 16px;
+  }
+
+  .payment-registration-modal-footer {
+    padding: 12px 16px;
+  }
+
+  .payment-registration-modal-status-label {
+    min-width: 140px;
+  }
+
+  .payment-registration-modal-reference-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .payment-registration-modal-payment-status,
+  .payment-registration-modal-registration-status {
+    width: 100%;
+    text-align: left;
+  }
+
+  .payment-registration-modal-arrow {
+    transform: rotate(90deg);
+    margin: 4px 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .payment-registration-modal-container {
+    border-radius: 10px;
+  }
+
+  .payment-registration-modal-title {
+    font-size: 16px;
+  }
+
+  .payment-registration-modal-status-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .payment-registration-modal-status-label {
+    min-width: auto;
+    width: 100%;
+  }
+
+  .payment-registration-modal-status-value {
+    width: 100%;
+  }
+
+  .payment-registration-modal-btn {
+    font-size: 13px;
+    padding: 9px 16px;
+    min-height: 36px;
+  }
+}
+
+/* ── Print Media ────────────────────────────────────────────────────────────– */
+
+@media print {
+  .payment-registration-modal-overlay {
+    display: none;
+  }
+}
