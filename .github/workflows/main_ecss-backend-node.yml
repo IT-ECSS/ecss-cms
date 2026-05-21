@@ -1,151 +1,151 @@
-name: ECSS CMS - Node
+# name: ECSS CMS - Node
 
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
+# on:
+#   push:
+#     branches:
+#       - main
+#   workflow_dispatch:
 
-jobs:
-  build_and_deploy:
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
+# jobs:
+#   build_and_deploy:
+#     runs-on: ubuntu-latest
+#     permissions:
+#       id-token: write
+#       contents: read
 
-    steps:
-      - uses: actions/checkout@v4
+#     steps:
+#       - uses: actions/checkout@v4
 
-      - name: Set up Node.js version
-        uses: actions/setup-node@v3
-        with:
-          node-version: '22.x'
-          cache: 'npm'
-          cache-dependency-path: 'backend/package-lock.json'
+#       - name: Set up Node.js version
+#         uses: actions/setup-node@v3
+#         with:
+#           node-version: '22.x'
+#           cache: 'npm'
+#           cache-dependency-path: 'backend/package-lock.json'
 
-      - name: Validate Required Secrets
-        run: |
-          MISSING_SECRETS=()
+#       - name: Validate Required Secrets
+#         run: |
+#           MISSING_SECRETS=()
           
-          if [ -z "${{ secrets.ONESIGNAL_APP_ID }}" ]; then
-            MISSING_SECRETS+=("ONESIGNAL_APP_ID")
-            echo "ERROR: ONESIGNAL_APP_ID secret is not set!"
-          fi
-          if [ -z "${{ secrets.ONESIGNAL_API_KEY }}" ]; then
-            MISSING_SECRETS+=("ONESIGNAL_API_KEY")
-            echo "ERROR: ONESIGNAL_API_KEY secret is not set!"
-          fi
-          if [ -z "${{ secrets.GOOGLE_SERVICE_ACCOUNT_NORSE }}" ]; then
-            MISSING_SECRETS+=("GOOGLE_SERVICE_ACCOUNT_NORSE")
-            echo "ERROR: GOOGLE_SERVICE_ACCOUNT_NORSE secret is not set!"
-          fi
+#           if [ -z "${{ secrets.ONESIGNAL_APP_ID }}" ]; then
+#             MISSING_SECRETS+=("ONESIGNAL_APP_ID")
+#             echo "ERROR: ONESIGNAL_APP_ID secret is not set!"
+#           fi
+#           if [ -z "${{ secrets.ONESIGNAL_API_KEY }}" ]; then
+#             MISSING_SECRETS+=("ONESIGNAL_API_KEY")
+#             echo "ERROR: ONESIGNAL_API_KEY secret is not set!"
+#           fi
+#           if [ -z "${{ secrets.GOOGLE_SERVICE_ACCOUNT_NORSE }}" ]; then
+#             MISSING_SECRETS+=("GOOGLE_SERVICE_ACCOUNT_NORSE")
+#             echo "ERROR: GOOGLE_SERVICE_ACCOUNT_NORSE secret is not set!"
+#           fi
           
-          if [ ${#MISSING_SECRETS[@]} -gt 0 ]; then
-            echo ""
-            echo "Please add missing secrets to:"
-            echo "https://github.com/IT-ECSS/ecss-cms/settings/secrets/actions"
-            exit 1
-          fi
+#           if [ ${#MISSING_SECRETS[@]} -gt 0 ]; then
+#             echo ""
+#             echo "Please add missing secrets to:"
+#             echo "https://github.com/IT-ECSS/ecss-cms/settings/secrets/actions"
+#             exit 1
+#           fi
           
-          echo "✓ All required secrets are configured"
+#           echo "✓ All required secrets are configured"
 
-      - name: Install and build (backend)
-        working-directory: backend
-        run: |
-          npm ci --omit=dev
-          npm run build --if-present
+#       - name: Install and build (backend)
+#         working-directory: backend
+#         run: |
+#           npm ci --omit=dev
+#           npm run build --if-present
 
-      - name: Create deployment package
-        run: |
-          cd backend
-          # Include node_modules built in Linux environment (matches Azure Linux)
-          zip -r ../node-deploy.zip . \
-            -x "*.log" ".DS_Store" ".git*" ".env*" "*.local"
+#       - name: Create deployment package
+#         run: |
+#           cd backend
+#           # Include node_modules built in Linux environment (matches Azure Linux)
+#           zip -r ../node-deploy.zip . \
+#             -x "*.log" ".DS_Store" ".git*" ".env*" "*.local"
           
-          echo "✓ Deployment package created"
-          ls -lh ../node-deploy.zip
+#           echo "✓ Deployment package created"
+#           ls -lh ../node-deploy.zip
 
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+#       - name: Login to Azure
+#         uses: azure/login@v2
+#         with:
+#           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Configure Azure App Settings for OneSignal and Google Drive
-        run: |
-          az webapp config appsettings set \
-            --resource-group ECSS-Course-Management-System \
-            --name ecss-backend-node \
-            --settings \
-              ONESIGNAL_APP_ID="${{ secrets.ONESIGNAL_APP_ID }}" \
-              ONESIGNAL_API_KEY="${{ secrets.ONESIGNAL_API_KEY }}" \
-              GOOGLE_DRIVE_FOLDER_ID="1DF81mvA5pv8_X-_uP8528Vb1xNfs1D8M" \
-              GOOGLE_SERVICE_ACCOUNT_NORSE='${{ secrets.GOOGLE_SERVICE_ACCOUNT_NORSE }}' \
-              NODE_ENV="production" \
-              SCM_DO_BUILD_DURING_DEPLOYMENT="false" \
-              NPM_BUILD_PRODUCTION="true"
-          echo "✓ All settings configured in Azure"
+#       - name: Configure Azure App Settings for OneSignal and Google Drive
+#         run: |
+#           az webapp config appsettings set \
+#             --resource-group ECSS-Course-Management-System \
+#             --name ecss-backend-node \
+#             --settings \
+#               ONESIGNAL_APP_ID="${{ secrets.ONESIGNAL_APP_ID }}" \
+#               ONESIGNAL_API_KEY="${{ secrets.ONESIGNAL_API_KEY }}" \
+#               GOOGLE_DRIVE_FOLDER_ID="1DF81mvA5pv8_X-_uP8528Vb1xNfs1D8M" \
+#               GOOGLE_SERVICE_ACCOUNT_NORSE='${{ secrets.GOOGLE_SERVICE_ACCOUNT_NORSE }}' \
+#               NODE_ENV="production" \
+#               SCM_DO_BUILD_DURING_DEPLOYMENT="false" \
+#               NPM_BUILD_PRODUCTION="true"
+#           echo "✓ All settings configured in Azure"
 
-      - name: Configure Google Drive Credentials
-        run: |
-          mkdir -p ./backend/config
-          echo "${{ secrets.GOOGLE_SERVICE_ACCOUNT_NORSE }}" > ./backend/config/norse-study-479913-b7-00b6903f8f4f.json
-          echo "✓ Google Drive credentials file created"
-          ls -la ./backend/config/
+#       - name: Configure Google Drive Credentials
+#         run: |
+#           mkdir -p ./backend/config
+#           echo "${{ secrets.GOOGLE_SERVICE_ACCOUNT_NORSE }}" > ./backend/config/norse-study-479913-b7-00b6903f8f4f.json
+#           echo "✓ Google Drive credentials file created"
+#           ls -la ./backend/config/
 
-      - name: Stop App Service before deployment
-        run: |
-          echo "Stopping App Service to release deployment lock..."
-          az webapp stop \
-            --resource-group ECSS-Course-Management-System \
-            --name ecss-backend-node
-          sleep 5
-          echo "✓ App Service stopped"
+#       - name: Stop App Service before deployment
+#         run: |
+#           echo "Stopping App Service to release deployment lock..."
+#           az webapp stop \
+#             --resource-group ECSS-Course-Management-System \
+#             --name ecss-backend-node
+#           sleep 5
+#           echo "✓ App Service stopped"
 
-      - name: 'Deploy to Azure Web App'
-        id: deploy-to-webapp
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: 'ecss-backend-node'
-          slot-name: 'Production'
-          package: ./node-deploy.zip
-          clean: true
-          restart: true
+#       - name: 'Deploy to Azure Web App'
+#         id: deploy-to-webapp
+#         uses: azure/webapps-deploy@v3
+#         with:
+#           app-name: 'ecss-backend-node'
+#           slot-name: 'Production'
+#           package: ./node-deploy.zip
+#           clean: true
+#           restart: true
 
-      - name: Start App Service after deployment
-        run: |
-          echo "Starting App Service..."
-          az webapp start \
-            --resource-group ECSS-Course-Management-System \
-            --name ecss-backend-node
-          echo "✓ App Service started"
+#       - name: Start App Service after deployment
+#         run: |
+#           echo "Starting App Service..."
+#           az webapp start \
+#             --resource-group ECSS-Course-Management-System \
+#             --name ecss-backend-node
+#           echo "✓ App Service started"
 
-      - name: Verify deployment health
-        run: |
-          echo "Waiting for app to be ready..."
-          MAX_RETRIES=30
-          RETRY=0
+#       - name: Verify deployment health
+#         run: |
+#           echo "Waiting for app to be ready..."
+#           MAX_RETRIES=30
+#           RETRY=0
           
-          while [ $RETRY -lt $MAX_RETRIES ]; do
-            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://ecss-backend-node.azurewebsites.net/health 2>/dev/null || echo "000")
+#           while [ $RETRY -lt $MAX_RETRIES ]; do
+#             RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://ecss-backend-node.azurewebsites.net/health 2>/dev/null || echo "000")
             
-            if [ "$RESPONSE" = "200" ] || [ "$RESPONSE" = "404" ]; then
-              echo "✓ Deployment verified - App is running (HTTP $RESPONSE)"
-              exit 0
-            fi
+#             if [ "$RESPONSE" = "200" ] || [ "$RESPONSE" = "404" ]; then
+#               echo "✓ Deployment verified - App is running (HTTP $RESPONSE)"
+#               exit 0
+#             fi
             
-            RETRY=$((RETRY + 1))
-            if [ $RETRY -lt $MAX_RETRIES ]; then
-              sleep 1
-            fi
-          done
+#             RETRY=$((RETRY + 1))
+#             if [ $RETRY -lt $MAX_RETRIES ]; then
+#               sleep 1
+#             fi
+#           done
           
-          echo "⚠ Warning: Deployment health check timed out after ${MAX_RETRIES}s"
-        continue-on-error: true
+#           echo "⚠ Warning: Deployment health check timed out after ${MAX_RETRIES}s"
+#         continue-on-error: true
 
-      - name: Output deployment summary
-        run: |
-          echo "========== Deployment Summary =========="
-          echo "App Name: ecss-backend-node"
-          echo "URL: https://ecss-backend-node.azurewebsites.net"
-          echo "Resource Group: ECSS-Course-Management-System"
-          echo "========================================"
+#       - name: Output deployment summary
+#         run: |
+#           echo "========== Deployment Summary =========="
+#           echo "App Name: ecss-backend-node"
+#           echo "URL: https://ecss-backend-node.azurewebsites.net"
+#           echo "Resource Group: ECSS-Course-Management-System"
+#           echo "========================================"
