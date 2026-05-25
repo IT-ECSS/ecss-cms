@@ -754,24 +754,65 @@ class DatabaseConnectivity {
     
                 // Ensure registration_id is an ObjectId only for "Receipts" collection
                 if (collectionName === "Receipts") {
+                    console.log("📝 [DB] Checking for duplicate receipt:", { 
+                        receiptNo: data.receiptNo, 
+                        registration_id: data.registration_id,
+                        staff: data.staff,
+                        location: data.location
+                    });
+                    
                     const existingReceipt = await table.findOne(
-                        { receiptNo: data.receiptNo },
+                        { 
+                            receiptNo: data.receiptNo,
+                            registration_id: data.registration_id,
+                            staff: data.staff,
+                            location: data.location
+                        },
                         { projection: { _id: 1 } }
                     );
                     if (existingReceipt) {
+                        console.log("⚠️ [DB] Receipt already exists with same receiptNo, registration_id, staff, and location, skipping insert:", { 
+                            receiptNo: data.receiptNo,
+                            registration_id: data.registration_id,
+                            staff: data.staff,
+                            location: data.location
+                        });
                         return {
                             acknowledged: true,
                             skipped: true,
-                            reason: "receiptNo already exists",
+                            reason: "receiptNo already exists for this registration, staff, and location combination",
                         };
+                    }
+
+                    // Validate registration_id format before conversion
+                    const regIdStr = String(data.registration_id).trim();
+                    console.log("📝 [DB] Converting registration_id to ObjectId:", { regIdStr, length: regIdStr.length });
+                    
+                    if (!/^[0-9a-f]{24}$/i.test(regIdStr)) {
+                        throw new Error(`Invalid registration_id format: "${regIdStr}" (expected 24 hex characters, received ${regIdStr.length})`);
                     }
 
                     const registrationId = new ObjectId(data.registration_id);
                     data.registration_id = registrationId;
+                    console.log("✅ [DB] registration_id converted to ObjectId:", registrationId);
                 }
     
                 // Directly insert the data without any checks
+                console.log("📝 [DB] Inserting document into collection:", { collectionName, dataKeys: Object.keys(data) });
                 result = await table.insertOne(data);
+                console.log("✅ [DB] Insert successful:", { acknowledged: result.acknowledged, insertedId: result.insertedId });
+                
+                // Verify the insert worked by retrieving the document
+                if (collectionName === "Receipts" && result.insertedId) {
+                    console.log("📝 [DB] Verifying insert by querying inserted document...");
+                    const verifyResult = await table.findOne({ _id: result.insertedId });
+                    if (verifyResult) {
+                        console.log("✅ [DB] VERIFICATION SUCCESSFUL - Document found in collection with receiptNo:", verifyResult.receiptNo);
+                    } else {
+                        console.error("❌ [DB] VERIFICATION FAILED - Document NOT found after insert!");
+                        return { acknowledged: false, error: "Document inserted but verification query returned null" };
+                    }
+                }
     
                 // Return the result based on the collection name
                 if (collectionName === "Accounts") {
@@ -779,9 +820,13 @@ class DatabaseConnectivity {
                 } else {
                     return { acknowledged: result.acknowledged }; // For other collections
                 }
+            } else {
+                console.error("❌ [DB] Database object is null/undefined");
+                return { acknowledged: false, error: "Database connection failed" };
             }
         } catch (error) {
-            console.error('Error during database operation:', error);
+            console.error('❌ [DB] Error during database operation:', error.message);
+            console.error('❌ [DB] Error stack:', error.stack);
             return { acknowledged: false, error: error.message }; // Return error status
         }
     }
@@ -1166,6 +1211,8 @@ const filter = { _id: this._makeObjectId(id) };
     
                 // Use updateOne to update a single document
                 const filter = { _id: this._makeObjectId(id) };
+                
+                console.log("📝 [DB] Updating receiptNo for registration:", { id, receiptNumber });
     
                 // Update only the `receiptNo` field inside the `official` object
                 const update = {
@@ -1176,7 +1223,7 @@ const filter = { _id: this._makeObjectId(id) };
 
                 // Call updateOne
                 const result = await table.updateOne(filter, update);
-                console.log("updateReceiptNumberData:", result)
+                console.log("✅ [DB] updateReceiptNumberData result:", result)
     
                 return result;
             }

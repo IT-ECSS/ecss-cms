@@ -65,6 +65,7 @@ export async function handlePaymentStatusChange(event, context) {
     (((paymentMethod === 'Cash' || paymentMethod === 'PayNow') && newValue === 'Paid') ||
       (paymentMethod === 'SkillsFuture' && newValue === 'SkillsFuture Done'));
   const shouldIncreaseWooCommerceStock =
+    courseType === 'NSA' &&
     newValue === 'Refunded' &&
     (oldPaymentStatus === 'Paid' || oldPaymentStatus === 'SkillsFuture Done') &&
     (registrationStatus === 'Cancellation For Duplication' || registrationStatus === 'Withdrawn');
@@ -113,11 +114,11 @@ export async function handlePaymentStatusChange(event, context) {
       ? 'The vacancies counter will increase back by 1'
       : 'Vacancies Counter Updated';
     steps.push(vacanciesLabel);
-    console.log('🔄 [Backend] WooCommerce sync step added:', { shouldIncreaseWooCommerceStock, newValue, registrationStatus });
-  } else if (newValue === 'Refunded') {
-    // Always show vacancies step for refund, applies to all Final Payment Methods
+    console.log('🔄 [Backend] WooCommerce sync step added:', { shouldIncreaseWooCommerceStock, shouldDecreaseWooCommerceStock, newValue, registrationStatus, courseType });
+  } else if (newValue === 'Refunded' && courseType === 'NSA') {
+    // Only show vacancies step for NSA courses when refunding
     steps.push('The vacancies counter will increase back by 1');
-    console.log('🔄 [Backend] Refund vacancies step added for payment method:', { paymentMethod });
+    console.log('🔄 [Backend] Refund vacancies step added for NSA course:', { paymentMethod, courseType });
   }
   if (shouldGenerateReceipt) {
     steps.push('Receipt Number Generated and Displayed', 'Payment Date and Time Recorded', 'Receipt Downloaded and Opened in New Tab');
@@ -374,16 +375,18 @@ export async function handlePaymentStatusChange(event, context) {
       progressTracker.advance(); // → Generating invoice number
     }
     
-    // For SkillsFuture Done: call WooCommerce sync if needed before handler
+    // For SkillsFuture Done or Refunded: call WooCommerce sync if needed before handler
     // This ensures the step tracker has the correct progression
-    if (shouldRunWooCommerceSync && newValue === 'SkillsFuture Done' && updateWooCommerce && typeof updateWooCommerce === 'function') {
+    if (shouldRunWooCommerceSync && (newValue === 'SkillsFuture Done' || newValue === 'Refunded') && updateWooCommerce && typeof updateWooCommerce === 'function') {
       if (useTracker) {
         progressTracker.advance(); // → Updating vacancies counter
       }
       try {
-        console.log('📊 [WooCommerce Debug] SkillsFuture Done - Calling updateWooCommerce:', {
+        console.log('📊 [WooCommerce Debug] SkillsFuture', newValue, '- Calling updateWooCommerce:', {
           courseType: courseInfo?.courseType,
           newValue,
+          shouldIncreaseWooCommerceStock,
+          oldPaymentStatus,
         });
         const wooRes = await updateWooCommerce(courseChiName, courseName, courseLocation, newValue);
         if (wooRes === undefined || wooRes === null) {
@@ -396,32 +399,8 @@ export async function handlePaymentStatusChange(event, context) {
         }
       } catch (wooError) {
         console.error('Error updating WooCommerce stock:', wooError);
-        console.warn('⚠️ WooCommerce sync failed but continuing (SkillsFuture Done) - payment will still be recorded');
+        console.warn('⚠️ WooCommerce sync failed but continuing (SkillsFuture', newValue, ') - payment will still be recorded');
         // Continue without throwing for SkillsFuture
-      }
-    } else if (shouldRunWooCommerceSync && useTracker && newValue === 'SkillsFuture Done') {
-      // For other cases (refund, etc.), advance if applicable
-      progressTracker.advance(); // → Updating vacancies counter
-      if (updateWooCommerce && typeof updateWooCommerce === 'function') {
-        try {
-          console.log('📊 [WooCommerce Debug] SkillsFuture other case - Calling updateWooCommerce:', {
-            courseType: courseInfo?.courseType,
-            newValue,
-          });
-          const wooRes = await updateWooCommerce(courseChiName, courseName, courseLocation, newValue);
-          if (wooRes === undefined || wooRes === null) {
-            console.warn('⚠️ WooCommerce returned empty response - assuming sync completed silently');
-          } else if (!isApiResultSuccessful(wooRes)) {
-            console.error('WooCommerce update failed:', wooRes);
-            progressTracker.error();
-            throw new Error(`Failed to update WooCommerce stock for course ${courseName}`);
-          }
-        } catch (wooError) {
-          console.error('Error updating WooCommerce stock:', wooError);
-          console.warn('⚠️ WooCommerce sync failed but continuing - payment will still be recorded');
-        }
-      } else {
-        console.warn('⚠️ WooCommerce function not available');
       }
     }
 

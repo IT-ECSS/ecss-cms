@@ -535,27 +535,46 @@ router.post('/', async function(req, res, next)
     }
     else if(req.body.purpose === "addInvoiceNumber")
     {
-        console.log("Invoice body:", req.body); 
-        var staffName = sanitizeStaffName(req.body.staff);
-        const registrationId = req.body.id;
-        if (!registrationId) {
-            return res.status(400).json({ result: false, message: 'Missing registration id' });
-        }
+        try {
+            console.log("Invoice body:", req.body); 
+            var staffName = sanitizeStaffName(req.body.staff);
+            const registrationId = req.body.id;
+            const invoiceNo = req.body.receiptNo;
+            
+            if (!registrationId) {
+                return res.status(400).json({ result: false, message: 'Missing registration id' });
+            }
+            
+            if (!invoiceNo) {
+                console.warn("⚠️  [Invoice] Warning: invoiceNo is missing or null", { invoiceNo, body: req.body });
+            }
 
-        await registrationController.updateReceiptNumber(registrationId, req.body.receiptNo);
-        const currentDateTime = getCurrentDateTime();
-        const date = currentDateTime.date;
-        const time = currentDateTime.time;
-        await registrationController.updateOfficialUse(registrationId, staffName, date, time, req.body.status);
+            console.log("📝 [Invoice] Updating invoice number:", { registrationId, invoiceNo, status: req.body.status });
+            const receiptUpdateResult = await registrationController.updateReceiptNumber(registrationId, invoiceNo);
+            console.log("✅ [Invoice] Invoice number updated in database:", receiptUpdateResult);
+            
+            const currentDateTime = getCurrentDateTime();
+            const date = currentDateTime.date;
+            const time = currentDateTime.time;
+            const officialUpdateResult = await registrationController.updateOfficialUse(registrationId, staffName, date, time, req.body.status);
+            console.log("✅ [Invoice] Official use updated:", officialUpdateResult);
 
-        if (io) {
-            io.emit('registration', {
-                type: 'registration-invoice-added',
-                id: registrationId,
+            if (io) {
+                io.emit('registration', {
+                    type: 'registration-invoice-added',
+                    id: registrationId,
+                });
+            }
+
+            return res.json({ result: true, message: 'Invoice number and official use updated', invoiceNo }); 
+        } catch (error) {
+            console.error("❌ [Invoice] Error updating invoice:", error);
+            return res.status(500).json({ 
+                result: false, 
+                message: 'Error updating invoice number',
+                error: error.message
             });
         }
-
-        return res.json({ result: true, message: 'Invoice number and official use updated' }); 
     }
     else if(req.body.purpose === "clearPaymentDetails")
     {

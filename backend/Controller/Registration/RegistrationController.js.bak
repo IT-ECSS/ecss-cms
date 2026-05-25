@@ -49,6 +49,7 @@ class RegistrationController {
                 message: "Error retrieving participants"
             };
         } finally {
+            await this.databaseConnectivity.close();
         }
     }
 
@@ -86,6 +87,7 @@ class RegistrationController {
             };
         }
         finally {
+            await this.databaseConnectivity.close(); // Ensure the connection is closed
         }    
     }
 
@@ -175,6 +177,7 @@ class RegistrationController {
             };
         }
         finally {
+            await this.databaseConnectivity.close(); // Ensure the connection is closed
         }    
     }
 
@@ -205,6 +208,7 @@ class RegistrationController {
             };
         }
         finally {
+            await this.databaseConnectivity.close(); // Ensure the connection is closed
         }    
     }
 
@@ -224,6 +228,7 @@ class RegistrationController {
             return { success: false, message: "Error clearing payment details", error };
         }
         finally {
+            await this.databaseConnectivity.close();
         }
     }
 
@@ -361,6 +366,7 @@ class RegistrationController {
             };
         }
         finally {
+            await this.databaseConnectivity.close(); // Ensure the connection is closed
         }    
     }
     
@@ -390,6 +396,7 @@ class RegistrationController {
             };
         }
         finally {
+            await this.databaseConnectivity.close(); // Ensure the connection is closed
         }    
     }
 
@@ -417,6 +424,7 @@ async addRefundedDate(id, date, time) {
                 error: error
             };
         } finally {
+            await this.databaseConnectivity.close(); // ✅ Ensure the connection is closed
         }
     }
 
@@ -444,6 +452,7 @@ async addRefundedDate(id, date, time) {
                 error: error
             };
         } finally {
+            await this.databaseConnectivity.close(); // ✅ Ensure the connection is closed
         }
     }
     
@@ -472,6 +481,7 @@ async addRefundedDate(id, date, time) {
             };
         }
         finally {
+            await this.databaseConnectivity.close(); // Ensure the connection is closed
         }    
     }
 
@@ -500,6 +510,7 @@ async addRefundedDate(id, date, time) {
             };
         }
         finally {
+            await this.databaseConnectivity.close(); // Ensure the connection is closed
         }    
     }
 
@@ -537,6 +548,7 @@ async addRefundedDate(id, date, time) {
             };
         }
         finally {
+            await this.databaseConnectivity.close(); // Ensure the connection is closed
         }    
     }
 }

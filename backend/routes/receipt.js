@@ -39,16 +39,32 @@ router.post('/', async function(req, res, next)
     }
     else if(req.body.purpose === "createReceipt")
     {
-       console.log("Create Reciept:", req.body);
+       console.log("🔍 [Receipt Route] CREATE RECEIPT REQUEST RECEIVED:", JSON.stringify(req.body, null, 2));
         var {receiptNo, registration_id, url, staff, location} = req.body;
+        
+        console.log("📝 [Receipt Route] Extracted parameters:", { receiptNo, registration_id, url, staff, location });
+        
         staff = sanitizeStaffName(staff);
         var currentDateTime = getCurrentDateTime();
         var date = currentDateTime.date;
         var time = currentDateTime.time;
+        
+        console.log("📝 [Receipt Route] After sanitization:", { receiptNo, registration_id, staff, location, date, time });
+        
         var controller = new ReceiptController();
         var result = await controller.createReceipt(receiptNo, registration_id, url, staff, date, time, location);
-       // console.log("Create Receipt:", result);
-        return res.json({"result": result.success});
+       console.log("📝 [Receipt Route] Controller result:", result);
+        
+        // Return error status if receipt creation failed
+        const statusCode = result.success ? 200 : 400;
+        console.log("📝 [Receipt Route] Returning response:", { statusCode, result });
+        
+        return res.status(statusCode).json({
+            result: result.success,
+            message: result.message,
+            receiptNumber: result.receiptNumber,
+            error: result.error || null
+        });
     }
     else if(req.body.purpose === "retrieve")
     {

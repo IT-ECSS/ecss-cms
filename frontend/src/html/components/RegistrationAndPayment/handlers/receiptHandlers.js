@@ -85,7 +85,14 @@ export async function generatePDFInvoice(id, participant, course, userName, rece
   
   // Add invoice number to backend
   if (id) {
-    await addInvoiceNumber(id, participant, course, userName, receiptNo, status);
+    try {
+      console.log('📝 [Invoice Handler] Adding invoice number to backend:', { id, receiptNo, status });
+      const response = await addInvoiceNumber(id, participant, course, userName, receiptNo, status);
+      console.log('✅ [Invoice Handler] Invoice number added successfully:', response);
+    } catch (error) {
+      console.error('❌ [Invoice Handler] Failed to add invoice number to backend:', error);
+      throw error; // Propagate error so caller knows it failed
+    }
   }
   
   logReceiptGeneration({
@@ -112,8 +119,26 @@ export async function generatePDFInvoice(id, participant, course, userName, rece
  * Persists a receipt record to the database.
  */
 export async function saveReceiptToDatabase(receiptNo, location, registrationId, url, userName) {
-  if (registrationId) {
-    await createReceiptRecord(receiptNo, location, registrationId, url, userName);
+  if (!registrationId) {
+    console.warn('⚠️ [Save Receipt] Skipping: missing registrationId');
+    return;
+  }
+  
+  // Validate ObjectId format (24 hex characters)
+  const registrationIdStr = String(registrationId).trim();
+  if (!/^[0-9a-f]{24}$/i.test(registrationIdStr)) {
+    const error = new Error(`Invalid registration ID format: "${registrationIdStr}" (expected 24 hex characters)`);
+    console.error('❌ [Save Receipt] Invalid ObjectId format:', error);
+    throw error;
+  }
+  
+  try {
+    console.log('📝 [Save Receipt] Saving receipt to database:', { receiptNo, location, registrationId: registrationIdStr, userName });
+    await createReceiptRecord(receiptNo, location, registrationIdStr, url, userName);
+    console.log('✅ [Save Receipt] Receipt saved successfully');
+  } catch (error) {
+    console.error('❌ [Save Receipt] Failed to save receipt:', { receiptNo, location, registrationId: registrationIdStr, error });
+    throw error; // Re-throw so caller knows it failed
   }
 }
 
@@ -207,7 +232,18 @@ async function _generateCashPayNowReceipt(id, participant, course, userName, pay
   const result = await generatePDFReceipt(id, participant, course, userName, receiptNo, status, officialInfo);
   console.log('✅ [Receipt Handler] Receipt PDF generated and added to database');
   
-  await saveReceiptToDatabase(receiptNo, course.courseLocation, id, '', userName);
+  try {
+    await saveReceiptToDatabase(receiptNo, course.courseLocation, id, '', userName);
+    console.log('✅ [Receipt Handler] Receipt record saved to Receipts collection');
+  } catch (dbError) {
+    console.error('❌ [Receipt Handler] Failed to save receipt record to Receipts collection:', {
+      receiptNo,
+      registrationId: id,
+      courseName: course.courseEngName,
+      error: dbError.message
+    });
+    // Don't throw - receipt is already in registration table, just not in Receipts collection
+  }
   
   // Do NOT advance tracker here - let the main handler control the progression
   // The main handler will advance after updating the table with the receipt number
@@ -215,12 +251,38 @@ async function _generateCashPayNowReceipt(id, participant, course, userName, pay
 }
 
 async function _generateSkillsFutureInvoice(id, participant, course, userName, paymentMethod, status, officialInfo = null, progressTracker = null) {
-  const invoiceNo = await fetchReceiptNumber(course, paymentMethod);
-  if (progressTracker) progressTracker.advance(); // → SkillsFuture Invoice Generated
-  const result = await generatePDFInvoice(id, participant, course, userName, invoiceNo, status, officialInfo);
-  if (progressTracker) progressTracker.advance(); // → Invoice Downloaded and Opened
-  await saveReceiptToDatabase(invoiceNo, course.courseLocation, id, '', userName);
-  return result; // { receiptNo, blob, filename }
+  try {
+    console.log('📋 [SkillsFuture Invoice] Starting invoice generation for:', { id, participantName: participant.name, course: course.courseEngName });
+    
+    const invoiceNo = await fetchReceiptNumber(course, paymentMethod);
+    console.log('✅ [SkillsFuture Invoice] Invoice number fetched:', invoiceNo);
+    
+    if (progressTracker) progressTracker.advance(); // → SkillsFuture Invoice Generated
+    
+    const result = await generatePDFInvoice(id, participant, course, userName, invoiceNo, status, officialInfo);
+    console.log('✅ [SkillsFuture Invoice] PDF generated and database updated:', result);
+    
+    if (progressTracker) progressTracker.advance(); // → Invoice Downloaded and Opened
+    
+    try {
+      await saveReceiptToDatabase(invoiceNo, course.courseLocation, id, '', userName);
+      console.log('✅ [SkillsFuture Invoice] Receipt record saved to database');
+    } catch (dbError) {
+      console.error('❌ [SkillsFuture Invoice] Failed to save receipt record to Receipts collection:', {
+        invoiceNo,
+        registrationId: id,
+        courseName: course.courseEngName,
+        error: dbError.message
+      });
+      // Don't throw - receipt is already in registration table, just not in Receipts collection
+      // User can still access via registration table, but should be notified
+    }
+    
+    return result; // { receiptNo, blob, filename }
+  } catch (error) {
+    console.error('❌ [SkillsFuture Invoice] Error:', error);
+    throw error;
+  }
 }
 
 // ─── receipt generator (on status change) ────────────────────────────────────

@@ -60,10 +60,36 @@ class ReceiptController {
             var databaseName = "Company-Management-System";
             var collectionName = "Receipts";
             
-            console.log("Data:", receiptDetails);
+            console.log("📝 [Receipt Controller] Data:", receiptDetails);
             // Insert receipt details into the database
-            var connectedDatabase = await dbConnection.insertToDatabase(databaseName, collectionName, receiptDetails);  
-
+            var insertResult = await dbConnection.insertToDatabase(databaseName, collectionName, receiptDetails);
+            
+            console.log("📝 [Receipt Controller] Insert result:", insertResult);
+            
+            // Check if insert was acknowledged
+            if (!insertResult?.acknowledged) {
+                const errorMsg = insertResult?.error || 'Database insert failed - not acknowledged';
+                console.error("❌ [Receipt Controller] Failed to insert receipt:", errorMsg);
+                
+                // Check if it's a duplicate
+                if (insertResult?.skipped) {
+                    return {
+                        success: false,
+                        message: "Receipt already exists for this combination of receiptNo, registration, staff, and location",
+                        receiptNumber: receiptNo,
+                        error: insertResult.reason
+                    };
+                }
+                
+                return {
+                    success: false,
+                    message: "Failed to insert receipt into database",
+                    receiptNumber: receiptNo,
+                    error: errorMsg
+                };
+            }
+            
+            console.log("✅ [Receipt Controller] Receipt created successfully");
             // Return success response
             return {
                 success: true,
@@ -71,16 +97,17 @@ class ReceiptController {
                 receiptNumber: receiptNo
             };
         } catch (error) {
-            console.error("Error creating receipt:", error);
+            console.error("❌ [Receipt Controller] Error creating receipt:", error);
     
             // Return failure response
             return {
                 success: false,
                 message: "An error occurred while creating the receipt",
+                receiptNumber: receiptNo,
                 error: error.message
             };
         } finally {
-            console.log("Create receipt request completed");
+            console.log("📝 [Receipt Controller] Create receipt request completed");
         }
     }
 

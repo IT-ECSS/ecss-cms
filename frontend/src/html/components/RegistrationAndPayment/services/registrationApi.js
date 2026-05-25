@@ -271,6 +271,16 @@ export const createReceiptRecord = async (
     url,
     staff,
   });
+  
+  // Validate response
+  if (!response?.data?.result) {
+    const error = response?.data?.error || 'Unknown error';
+    const message = response?.data?.message || 'Receipt creation failed';
+    console.error('❌ [API] Receipt creation failed:', { message, error, receiptNo });
+    throw new Error(`${message}: ${error}`);
+  }
+  
+  console.log('✅ [API] Receipt record created successfully:', { receiptNo, location, registration_id });
   return response;
 };
 
