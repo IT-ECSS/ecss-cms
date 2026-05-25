@@ -535,7 +535,7 @@ router.post('/', async function(req, res, next)
     }
     else if(req.body.purpose === "addInvoiceNumber")
     {
-        console.log("Receipt body:", req.body); 
+        console.log("Invoice body:", req.body); 
         var staffName = sanitizeStaffName(req.body.staff);
         const registrationId = req.body.id;
         if (!registrationId) {

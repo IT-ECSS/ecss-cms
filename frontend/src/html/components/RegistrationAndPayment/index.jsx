@@ -493,6 +493,23 @@ class RegistrationPaymentSection extends Component {
 
   // ── Lifecycle ────────────────────────────────────────────────────────────
 
+  // Prevent back/forward navigation on trackpad horizontal scroll
+  _handleGridWheel = (event) => {
+    // Check if scrolling horizontally (deltaX is non-zero for horizontal scroll)
+    if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
+      // Horizontal scroll detected - prevent browser back/forward navigation
+      event.preventDefault();
+    }
+  };
+
+  // Prevent back/forward button clicks
+  _handleMouseButton = (event) => {
+    // event.button 3 = back button, 4 = forward button on mouse
+    if (event.button === 3 || event.button === 4) {
+      event.preventDefault();
+    }
+  };
+
   async componentDidMount() {
     // Stale-while-revalidate: show cached data immediately, then refresh in background.
     // const cached = this._readRegCache();
@@ -514,6 +531,13 @@ class RegistrationPaymentSection extends Component {
     //   await this.fetchAndSetRegistrationData();
     // }
     await this.fetchAndSetRegistrationData();
+
+    // Prevent back/forward navigation when scrolling on the grid
+    const gridElement = this.gridRef?.current?.eGui;
+    if (gridElement) {
+      gridElement.addEventListener('wheel', this._handleGridWheel, { passive: false });
+      gridElement.addEventListener('mousedown', this._handleMouseButton);
+    }
 
     this.socket = io(NODE_BASE_URL);
     this.socket.on('registration', (eventData) => {
@@ -541,6 +565,13 @@ class RegistrationPaymentSection extends Component {
 
   componentWillUnmount() {
     if (this.socket) this.socket.disconnect();
+    
+    // Clean up event listeners
+    const gridElement = this.gridRef?.current?.eGui;
+    if (gridElement) {
+      gridElement.removeEventListener('wheel', this._handleGridWheel);
+      gridElement.removeEventListener('mousedown', this._handleMouseButton);
+    }
   }
 
   componentDidUpdate(prevProps, prevState) {
