@@ -151,6 +151,12 @@ class RegistrationPaymentSection extends Component {
       approvalQueue: [],
       approvalStatusList: [],
       notifierQueue: [],
+      lastMouseX: null,
+      mouseGestureThreshold: 100,
+      lastPageNavigationTime: 0,
+      lastMouseMoveTime: null,
+      gestureStartX: null,
+      gestureStartTime: null,
     };
     this.tableRef = React.createRef();
     this.gridRef  = React.createRef();
@@ -510,6 +516,109 @@ class RegistrationPaymentSection extends Component {
     }
   };
 
+  // Handle mouse movement for left/right gestures to navigate pages (velocity-based)
+  _handleMouseMove = (event) => {
+    const currentX = event.clientX;
+    const now = Date.now();
+    
+    // On first mouse movement over the grid, initialize the gesture start point
+    if (this.state.gestureStartX === null || this.state.gestureStartTime === null) {
+      this.setState({ 
+        gestureStartX: currentX,
+        gestureStartTime: now,
+        lastMouseMoveTime: now
+      });
+      return;
+    }
+
+    // Calculate distance and time since gesture start
+    const distanceFromStart = this.state.gestureStartX - currentX; // Positive = moving left
+    const timeElapsed = now - this.state.gestureStartTime;
+    const threshold = this.state.mouseGestureThreshold; // 100px
+    const minVelocity = 0.35; // pixels per millisecond (0.35 px/ms = 350 px/s) - very fast swipes only
+    const maxGestureDuration = 800; // Maximum 0.8 seconds for a gesture
+    const cooldownMs = 0; // No cooldown - allow rapid navigation
+    
+    // Calculate velocity: distance / time
+    const velocity = timeElapsed > 0 ? Math.abs(distanceFromStart) / timeElapsed : 0;
+    
+    // Detect if the gesture has stalled (no movement for 100ms) or reversed
+    const timeSinceLastMove = now - (this.state.lastMouseMoveTime || now);
+    const lastDelta = (this.state.lastMouseX || currentX) - currentX;
+    const isReversing = (distanceFromStart > 0 && lastDelta < 0) || (distanceFromStart < 0 && lastDelta > 0);
+    
+    if (timeSinceLastMove > 100 || isReversing) {
+      // Reset gesture if stalled or reversed
+      this.setState({ 
+        gestureStartX: currentX,
+        gestureStartTime: now,
+        lastMouseX: currentX,
+        lastMouseMoveTime: now
+      });
+      return;
+    }
+
+    // Check for valid fast left swipe (previous page)
+    if (
+      distanceFromStart > threshold && 
+      velocity > minVelocity && 
+      timeElapsed < maxGestureDuration &&
+      (now - this.state.lastPageNavigationTime) > cooldownMs
+    ) {
+      this._handlePreviousPage();
+      this.setState({ 
+        lastPageNavigationTime: now,
+        gestureStartX: currentX, // Reset after navigation
+        gestureStartTime: now
+      });
+    } 
+    // Check for valid fast right swipe (next page)
+    else if (
+      distanceFromStart < -threshold && 
+      velocity > minVelocity && 
+      timeElapsed < maxGestureDuration &&
+      (now - this.state.lastPageNavigationTime) > cooldownMs
+    ) {
+      this._handleNextPage();
+      this.setState({ 
+        lastPageNavigationTime: now,
+        gestureStartX: currentX, // Reset after navigation
+        gestureStartTime: now
+      });
+    }
+    
+    // Always update tracking variables
+    this.setState({ 
+      lastMouseX: currentX,
+      lastMouseMoveTime: now
+    });
+  };
+
+  // Navigate to previous page using AG-Grid pagination API
+  _handlePreviousPage = () => {
+    if (!this.gridApi || typeof this.gridApi.paginationGetCurrentPage !== 'function') return;
+    
+    const currentPage = this.gridApi.paginationGetCurrentPage();
+    if (currentPage > 0) {
+      this.gridApi.paginationGoToPage(currentPage - 1);
+      console.log('[Navigation] Mouse gesture: Previous page ' + currentPage);
+    }
+  };
+
+  // Navigate to next page using AG-Grid pagination API
+  _handleNextPage = () => {
+    if (!this.gridApi || typeof this.gridApi.paginationGetCurrentPage !== 'function') return;
+    if (!this.gridApi.paginationGetTotalPages) return;
+    
+    const currentPage = this.gridApi.paginationGetCurrentPage();
+    const totalPages = this.gridApi.paginationGetTotalPages();
+    
+    if (currentPage < totalPages - 1) {
+      this.gridApi.paginationGoToPage(currentPage + 1);
+      console.log('[Navigation] Mouse gesture: Next page ' + (currentPage + 2));
+    }
+  };
+
   async componentDidMount() {
     // Stale-while-revalidate: show cached data immediately, then refresh in background.
     // const cached = this._readRegCache();
@@ -532,12 +641,19 @@ class RegistrationPaymentSection extends Component {
     // }
     await this.fetchAndSetRegistrationData();
 
-    // Prevent back/forward navigation when scrolling on the grid
-    const gridElement = this.gridRef?.current?.eGui;
-    if (gridElement) {
-      gridElement.addEventListener('wheel', this._handleGridWheel, { passive: false });
-      gridElement.addEventListener('mousedown', this._handleMouseButton);
-    }
+    // DISABLED: Page redirections via mouse gestures on Registration & Payment table
+    // Attach mouse gesture navigation to the entire registration payment wrapper for full-page swiping
+    // const wrapperElement = this.tableRef?.current;
+    // if (wrapperElement) {
+    //   wrapperElement.addEventListener('mousemove', this._handleMouseMove);
+    // }
+
+    // DISABLED: Also attach to the grid element to prevent back/forward navigation on trackpad scrolling
+    // const gridElement = this.gridRef?.current?.eGui;
+    // if (gridElement) {
+    //   gridElement.addEventListener('wheel', this._handleGridWheel, { passive: false });
+    //   gridElement.addEventListener('mousedown', this._handleMouseButton);
+    // }
 
     this.socket = io(NODE_BASE_URL);
     this.socket.on('registration', (eventData) => {
@@ -566,7 +682,13 @@ class RegistrationPaymentSection extends Component {
   componentWillUnmount() {
     if (this.socket) this.socket.disconnect();
     
-    // Clean up event listeners
+    // Clean up event listeners from wrapper (full-page swiping)
+    const wrapperElement = this.tableRef?.current;
+    if (wrapperElement) {
+      wrapperElement.removeEventListener('mousemove', this._handleMouseMove);
+    }
+    
+    // Clean up event listeners from grid element
     const gridElement = this.gridRef?.current?.eGui;
     if (gridElement) {
       gridElement.removeEventListener('wheel', this._handleGridWheel);

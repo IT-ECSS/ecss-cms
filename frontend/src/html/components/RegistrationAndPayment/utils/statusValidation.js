@@ -20,8 +20,8 @@ export function getAllowedRegistrationStatuses(paymentStatus) {
     return ['Confirmed Slot'];
   }
   
-  // Payment Status "To Refund" → must have "Cancelled for duplication" or "Withdrawn"
-  if (status === 'To refund') {
+  // Payment Status "To Refund" or "Refunded" → must have "Cancelled for duplication" or "Withdrawn"
+  if (status === 'To refund' || status === 'Refunded') {
     return ['Cancelled for duplication', 'Withdrawn'];
   }
   
@@ -134,12 +134,12 @@ export function  novalidateRegistrationStatusChange(newRegistrationStatus, payme
     }
   }
   
-  // Payment Status "To Refund" → must have "Cancelled for duplication" or "Withdrawn"
-  if (paymentStr === 'To refund') {
+  // Payment Status "To Refund" or "Refunded" → must have "Cancelled for duplication" or "Withdrawn"
+  if (paymentStr === 'To refund' || paymentStr === 'Refunded') {
     if (newRegStatus !== 'Cancelled for duplication' && newRegStatus !== 'Withdrawn') {
       return {
         isValid: false,
-        reason: `Cannot change Registration Status to "${newRegStatus}". When Payment Status is "To Refund", Registration Status must be either "Cancelled for duplication" or "Withdrawn".`,
+        reason: `Cannot change Registration Status to "${newRegStatus}". When Payment Status is "${paymentStr}", Registration Status must be either "Cancelled for duplication" or "Withdrawn".`,
       };
     }
   }
@@ -182,12 +182,12 @@ export function validatePaymentStatusChange(newPaymentStatus, registrationStatus
     }
   }
   
-  // When trying to set payment to "To Refund", registration must be "Cancelled for duplication" or "Withdrawn"
-  if (newPaymentStr === 'To refund') {
+  // When trying to set payment to "To Refund" or "Refunded", registration must be "Cancelled for duplication" or "Withdrawn"
+  if (newPaymentStr === 'To refund' || newPaymentStr === 'Refunded') {
     if (registrationStr !== 'Cancelled for duplication' && registrationStr !== 'Withdrawn') {
       return {
         isValid: false,
-        reason: `Cannot change Payment Status to "To Refund". Registration Status must be either "Cancelled for duplication" or "Withdrawn". Current: "${registrationStr}"`,
+        reason: `Cannot change Payment Status to "${newPaymentStr}". Registration Status must be either "Cancelled for duplication" or "Withdrawn". Current: "${registrationStr}"`,
       };
     }
   }

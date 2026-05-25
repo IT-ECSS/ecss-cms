@@ -1263,17 +1263,27 @@ const filter = { _id: this._makeObjectId(id) };
         var db = this.client.db(dbname); // return the db object
         try {
             if (db) {
+                console.log("Update Payment Official Use123:", id, name, date, time, status);
                 var tableName = "Registration Forms";
                 var table = db.collection(tableName);
     
                 // Use updateOne to update a single document
                 const filter = { _id: this._makeObjectId(id) };
     
+                // Fetch the current record to check old status and payment method
+                const currentRecord = await table.findOne(filter);
+                const oldStatus = currentRecord?.status || '';
+                const paymentMethod = currentRecord?.finalPaymentMethod || currentRecord?.paymentMethod || '';
+                const registrationStatus = String(currentRecord?.registrationStatus || '').trim();
+    
                 // Define the update object conditionally based on status
                 let update = null;
                 
-                console.log("Update Payment Official Use:", status);
+                console.log("Update Payment Official Use:", { status, oldStatus, paymentMethod, registrationStatus });
                 const shouldConfirmSlot = status === "Paid" || status === "SkillsFuture Done";
+                const isToRefundToRefundedForSkillsFuture = oldStatus === "To refund" && status === "Refunded" && paymentMethod === "SkillsFuture";
+                const shouldPreserveConfirmationStatusForRefund = status === "Refunded" && (registrationStatus === "Cancellation for duplication" || registrationStatus === "Withdrawn");
+                
                 if (status === "Paid") {
                     console.log("OK");
                     update = {
@@ -1308,25 +1318,36 @@ const filter = { _id: this._makeObjectId(id) };
                     };
                 }
                 else if (status === "Refunded") {
-                    // Preserve official.date, official.time and receiptNo — they were set
-                    // when the payment was originally processed and must not be cleared.
-                    // Record the staff member who marked it as refunded for audit trail.
+                    // When refunding (for Cancelled for duplication or Withdrawn registrations):
+                    // 1. Update payment status to "Refunded"
+                    // 2. Record staff member name and refund date/time for audit trail
+                    // 3. ❌ DO NOT modify official.confirmed - leave it unchanged
+                    // 4. ❌ DO NOT modify official.date or official.time (original payment info)
+                    // 5. ❌ DO NOT modify official.receiptNo (original receipt/invoice info)
+                    // 
+                    // The confirmation status toggle should remain in its current state when refunding
+                    // only the payment status updates to "Refunded" and refund date/time is recorded
+                    const refundUpdate = {
+                        "status": status,
+                        "official.name": name,
+                    };
+                    
+                    // Add refund date/time if provided
+                    if (date !== undefined) refundUpdate["official.refundedDate"] = date;
+                    if (time !== undefined) refundUpdate["official.refundedTime"] = time;
+                
+                    
                     update = {
-                        $set: {
-                            "status": status,
-                            "official.confirmed": false,
-                            "official.name": name,
-                        }
+                        $set: refundUpdate
                     };
                 }
                 else if (status === "To refund") {
-                    // When payment needs to be refunded (e.g., due to duplicate registration)
-                    // Preserve official.date, official.time and receiptNo if they exist
-                    // Set confirmed to false as the payment is pending refund
-                    // Only update date/time if provided (don't overwrite with undefined)
+                    // When marking payment as "To refund" (pending refund processing):
+                    // Set confirmed = false to indicate payment is not confirmed while refund is pending
+                    // ⚠️ NOTE: This is different from "Refunded" status where confirmed is left unchanged
                     const toRefundUpdate = {
                         "status": status,
-                        "official.confirmed": false,
+                        "official.confirmed": false,  // Mark as unconfirmed while refund is processing
                         "official.name": name,
                     };
                     if (date !== undefined) toRefundUpdate["official.date"] = date;

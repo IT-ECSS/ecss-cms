@@ -5,7 +5,7 @@ const STATUS_COLORS = {
   Pending: '#B26A00',
   'Generating SkillsFuture Invoice': '#006D77',
   'SkillsFuture Done': '#2E7D32',
-  Cancelled: '#C62828',
+  'Cancelled for duplication': '#455123',
   'To refund': '#8D4F12',
   Withdrawn: '#7A6F00',
   Paid: '#00796B',
@@ -14,7 +14,7 @@ const STATUS_COLORS = {
   'Not Successful': '#5D4037',
   Submitted: '#0277BD',
   'Confirmed Slot': '#4E7D1A',
-  'Cancelled for duplication': '#455A64',
+  'Cancelled - No payment received': '#455A64',
 };
 
 /**

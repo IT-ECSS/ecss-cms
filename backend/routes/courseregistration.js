@@ -419,7 +419,7 @@ router.post('/', async function(req, res, next)
         var time = req.body.time;
         const message = await registrationController.updateOfficialUse(id, name, date, time, status);
         
-        // Emit progress tracking steps for Cash/PayNow → Paid flow
+        // Emit progress tracking steps based on payment status
         if (io) {
             console.log(`🔄 [Step 1] Payment Status Updated to ${status}`);
             io.emit('registration', {
@@ -430,7 +430,19 @@ router.post('/', async function(req, res, next)
                 stepName: `Payment Status Updated to ${status}`,
             });
             
+            // For Paid (Cash/PayNow), also emit Step 2 for registration status update
             if (status === 'Paid') {
+                console.log(`🔄 [Step 2] Registration Status Updated to Confirmed Slot`);
+                io.emit('registration', {
+                    type: 'registration-status-updated',
+                    id,
+                    registrationStatus: 'Confirmed Slot',
+                    step: 2,
+                    stepName: 'Registration Status Updated to Confirmed Slot',
+                });
+            }
+            // For SkillsFuture Done, also emit Step 2 for registration status update
+            else if (status === 'SkillsFuture Done') {
                 console.log(`🔄 [Step 2] Registration Status Updated to Confirmed Slot`);
                 io.emit('registration', {
                     type: 'registration-status-updated',

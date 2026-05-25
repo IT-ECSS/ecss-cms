@@ -75,12 +75,36 @@ export async function handleRefundedDateChange(event, context) {
 
   // Check if refund date is being added (newValue is not empty and oldValue was empty)
   const isAddingRefundDate = newValue && !event.oldValue;
-  const shouldAutoChangeToRefunded = isAddingRefundDate && currentPaymentStatus !== 'Refunded';
+  const paymentStatusSkillsFuture = String(event.data.paymentStatusSkillsFuture || '').trim();
+  const shouldAutoChangeToRefunded = isAddingRefundDate && 
+    currentPaymentStatus !== 'Refunded' && 
+    currentPaymentStatus !== 'SkillsFuture Done' &&
+    paymentStatusSkillsFuture !== 'To refund';
+  const courseType = String(courseInfo?.courseType || '').trim();
   
+  // For SkillsFuture refunds: increase WooCommerce stock when transitioning from "To refund" to "Refunded"
   const shouldIncreaseWooCommerceStock =
+    courseType === 'NSA' &&
     isAddingRefundDate &&
-    (currentPaymentStatus === 'Paid' || currentPaymentStatus === 'SkillsFuture Done') &&
-    (registrationStatus === 'Cancellation For Duplication' || registrationStatus === 'Withdrawn');
+    currentPaymentStatus === 'To refund' &&
+    (registrationStatus === 'Cancellation for duplication' || registrationStatus === 'Withdrawn');
+
+  // DEBUG LOGGING: Show all conditions at the start
+  console.log('🔍 [Refund Date Handler] Entry Point Debug:', {
+    courseName,
+    courseType,
+    isAddingRefundDate,
+    currentPaymentStatus,
+    registrationStatus,
+    shouldAutoChangeToRefunded,
+    shouldIncreaseWooCommerceStock,
+    checks: {
+      isCourseNSA: courseType === 'NSA',
+      isAddingDate: isAddingRefundDate,
+      isPaidOrSkillsFuture: currentPaymentStatus === 'Paid' || currentPaymentStatus === 'SkillsFuture Done',
+      isCancelledOrWithdrawn: registrationStatus === 'Cancellation for duplication' || registrationStatus === 'Withdrawn',
+    }
+  });
 
   // Update refunded date field
   await editRegistrationField(id, event.colDef.field, newValue);
@@ -94,11 +118,16 @@ export async function handleRefundedDateChange(event, context) {
 
   // If refund date was added and payment status is not already Refunded, update it
   if (shouldAutoChangeToRefunded) {
+    console.log('✅ [Refund Date Handler] shouldAutoChangeToRefunded = TRUE, starting refund flow');
+    
     const steps = ['The payment status will be updated to Refunded'];
     
     // Always prepare to update WooCommerce when refunding (applies to all course types and payment methods)
     if (shouldIncreaseWooCommerceStock) {
+      console.log('✅ [Refund Date Handler] shouldIncreaseWooCommerceStock = TRUE, will update WooCommerce');
       steps.push('The vacancies counter will increase back by 1');
+    } else {
+      console.log('⚠️ [Refund Date Handler] shouldIncreaseWooCommerceStock = FALSE, skipping WooCommerce update');
     }
 
     if (progressTracker) {
@@ -124,24 +153,60 @@ export async function handleRefundedDateChange(event, context) {
       newValue: 'Refunded',
     }));
 
+    // Advance progress after Step 1: Payment Status Updated
+    if (progressTracker) {
+      progressTracker.advance(); // → Step 2: Increase vacancies or finish
+      console.log('✅ [Step 1] Payment Status Updated to Refunded');
+    }
+
     // Update WooCommerce stock if applicable (Step 2)
     if (shouldIncreaseWooCommerceStock) {
-      if (progressTracker) progressTracker.advance(); // → Step 2: Increase vacancies
-      console.log(`Calling updateWooCommerce for ${courseChiName}/${courseName} at ${courseLocation} with status Refunded`);
+      console.log('📊 [Refund Date Handler] Starting Step 2: Update WooCommerce', {
+        courseType,
+        courseName,
+        courseChiName,
+        courseLocation,
+        currentPaymentStatus,
+        registrationStatus,
+      });
+      
+      if (progressTracker) {
+        console.log('🔄 [Step 2] Advancing to: Vacancies Counter Update');
+        progressTracker.advance();
+      }
+      
+      console.log(`↓ Calling updateWooCommerce for ${courseChiName}/${courseName} at ${courseLocation} with status "Refunded"`);
       try {
         const wooRes = await updateWooCommerce(courseChiName, courseName, courseLocation, 'Refunded');
+        
+        console.log('📨 WooCommerce Response:', wooRes);
+        
         if (!isApiResultSuccessful(wooRes)) {
-          console.error('WooCommerce update failed:', wooRes);
+          console.error('❌ WooCommerce update failed:', wooRes);
           if (progressTracker) progressTracker.error();
           else closePopup();
           throw new Error(`Failed to update WooCommerce stock for course ${courseName}`);
         }
+        
+        console.log('✅ [Step 2] Vacancies Counter Successfully Updated - Stock increased by 1');
+        
+        if (progressTracker) {
+          progressTracker.advance(); // → Mark Step 2 complete and prepare to finish
+          console.log('🔄 [Step 2] Progress advancing to completion');
+        }
       } catch (wooError) {
-        console.error('Error updating WooCommerce stock:', wooError);
+        console.error('❌ Error calling updateWooCommerce:', wooError);
         if (progressTracker) progressTracker.error();
         else closePopup();
         throw wooError;
       }
+    } else {
+      console.log('⚠️ [Refund Date Handler] Skipping WooCommerce update:', {
+        courseType,
+        isAddingRefundDate,
+        currentPaymentStatus,
+        registrationStatus,
+      });
     }
 
     // Refresh table cells
@@ -156,6 +221,16 @@ export async function handleRefundedDateChange(event, context) {
     await waitForNextPaint();
     if (progressTracker) progressTracker.finish();
     else closePopup();
+  } else {
+    console.log('⚠️ [Refund Date Handler] Refund flow NOT triggered:', {
+      isAddingRefundDate,
+      currentPaymentStatus,
+      reason: !isAddingRefundDate 
+        ? 'No refund date being added' 
+        : currentPaymentStatus === 'Refunded'
+          ? 'Payment status is already Refunded'
+          : 'Unknown reason'
+    });
   }
 }
 

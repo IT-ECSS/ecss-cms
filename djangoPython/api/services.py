@@ -3,22 +3,6 @@ from django.conf import settings
 import re
 import math
 import time
-import unicodedata
-
-def normalize_string(s):
-    """
-    Normalize strings for comparison by:
-    1. Converting en-dashes, em-dashes to regular hyphens
-    2. Removing extra whitespace
-    3. Normalizing unicode characters
-    """
-    # Normalize unicode characters
-    s = unicodedata.normalize('NFKD', s)
-    # Replace en-dash (–) and em-dash (—) with regular hyphen
-    s = s.replace('–', '-').replace('—', '-')
-    # Strip whitespace
-    s = s.strip()
-    return s
 
 class WooCommerceAPI:
     def __init__(self):
@@ -516,11 +500,6 @@ class WooCommerceAPI:
             all_products = []  # List to store product id and name pairs
             per_page = 100  # Number of products to fetch per page
             matched_product_id = None  # Variable to store matched product ID
-            
-            # Normalize input parameters
-            normalized_chinese = normalize_string(chinese)
-            normalized_english = normalize_string(english)
-            normalized_location = normalize_string(location)
 
             while True:
                 # Fetch products for the current page
@@ -548,23 +527,23 @@ class WooCommerceAPI:
                     
 
                     if len(split_name) == 3:
-                        chinese_name = normalize_string(split_name[0])
-                        english_name = normalize_string(split_name[1])
-                        location_name = normalize_string(split_name[2])
+                        chinese_name = split_name[0].strip()  # Removes leading/trailing spaces
+                        english_name = split_name[1].strip()
+                        location_name = split_name[2].strip()
                         print(chinese_name, english_name, location_name)
                                             
                         # If the product matches the input chinese, english, and location, return the product ID
-                        if chinese_name == normalized_chinese and english_name == normalized_english and location_name == normalized_location:
+                        if chinese_name == chinese and english_name == english and location_name == location:
                             matched_product_id = product['id']
                             break  # Exit the loop if the product is found
                     
                     if len(split_name) == 2:
-                        english_name = normalize_string(split_name[0])
-                        location_name = normalize_string(split_name[1])
+                        english_name = split_name[0].strip()
+                        location_name = split_name[1].strip()
                         print(english_name, location_name)
                                             
                         # If the product matches the input chinese, english, and location, return the product ID
-                        if english_name == normalized_english and location_name == normalized_location:
+                        if english_name == english and location_name == location:
                             matched_product_id = product['id']
                             break  # Exit the loop if the product is found
 
@@ -590,9 +569,6 @@ class WooCommerceAPI:
             all_products = []  # List to store product id and name pairs
             per_page = 100  # Number of products to fetch per page
             matched_product_id = None  # Variable to store matched product ID
-            
-            # Normalize the search product name
-            normalized_product_name = normalize_string(product_name)
 
             while True:
                 # Fetch products for the current page
@@ -614,10 +590,10 @@ class WooCommerceAPI:
 
                 # Check each product for name match
                 for product in products:
-                    normalized_product = normalize_string(product['name'])
+                    current_product_name = product['name']
                     
-                    # Direct name match for fundraising products (normalized)
-                    if normalized_product == normalized_product_name:
+                    # Direct name match for fundraising products
+                    if current_product_name == product_name:
                         matched_product_id = product['id']
                         break  # Exit the loop if the product is found
 
@@ -745,16 +721,18 @@ class WooCommerceAPI:
 
             print(f"Processing status: '{status}' (type: {type(status)})")
 
-            # **Stock Update Logic**
+            # **Stock Update Logic - Applies to all payment methods (Cash, PayNow, SkillsFuture)**
+            # Refund statuses: restore vacancies (increase stock)
             # NOTE: "To refund" does NOT trigger updates - only actual refund/cancellation/withdrawal/method-change do
             if status in ["Cancelled", "Withdrawn", "Refunded", "Change of Final Payment Method"]:
-                print(f"Restock status detected: {status}. Current stock: {new_stock_quantity}, Vacancies: {vacancies}")
+                print(f"Refund/Cancellation status detected: {status}")
                 if new_stock_quantity < vacancies:  # Only increase stock if it is below vacancies
                     print("Increase stock by 1")
                     new_stock_quantity += 1
                 else:
                     print("Stock is full, no increase.")  # Prevent increase beyond vacancies
 
+            # Payment statuses: decrease vacancies (reduce stock) - applies to all payment methods
             elif status in ["Paid", "SkillsFuture Done", "Confirmed"]:
                 print(f"Payment/Confirmation status detected: {status}")
                 if new_stock_quantity > 0:  # Only decrease if stock is greater than 0
@@ -1146,17 +1124,18 @@ class WooCommerceAPI:
             else:
                 url = f"{self.base_url}products/{product_id}"
             
+            print(f"[DEBUG] Fetching product from: {url}")
             response = requests.get(url, auth=self.auth)
             response.raise_for_status()
             product_data = response.json()
             
             # Check if stock is managed at parent level
             manage_stock = product_data.get('manage_stock')
-            print(f"Product {product_id} manage_stock setting: {manage_stock}")
+            print(f"[DEBUG] Product {product_id} manage_stock setting: {manage_stock}")
             
             # If variation has manage_stock: "parent", update the parent instead
             if is_variation and manage_stock == "parent" and parent_id:
-                print(f"Stock managed at parent level, updating parent product {parent_id} instead")
+                print(f"[DEBUG] Stock managed at parent level, updating parent product {parent_id} instead")
                 url = f"{self.base_url}products/{parent_id}"
                 response = requests.get(url, auth=self.auth)
                 response.raise_for_status()
@@ -1165,13 +1144,18 @@ class WooCommerceAPI:
             current_stock = int(product_data.get('stock_quantity') or 0)
             new_stock = max(0, current_stock - int(quantity))
             
+            print(f"[DEBUG] Current stock: {current_stock}, Quantity to decrease: {quantity}, New stock: {new_stock}")
+            
             update_data = {
                 "stock_quantity": new_stock,
                 "manage_stock": True
             }
             
+            print(f"[DEBUG] Sending PUT request to {url} with data: {update_data}")
             response = requests.put(url, json=update_data, auth=self.auth)
             response.raise_for_status()
+            
+            print(f"[DEBUG] ✅ Stock update response: {response.status_code}")
             
             return {
                 "success": True,
@@ -1183,7 +1167,10 @@ class WooCommerceAPI:
             }
             
         except requests.exceptions.RequestException as e:
-            print(f"Error decreasing inventory stock for product {product_id}: {e}")
+            print(f"[ERROR] Error decreasing inventory stock for product {product_id}: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                print(f"[ERROR] Response status: {e.response.status_code}")
+                print(f"[ERROR] Response body: {e.response.text}")
             return {
                 "success": False,
                 "error": str(e),
@@ -1209,17 +1196,18 @@ class WooCommerceAPI:
             else:
                 url = f"{self.base_url}products/{product_id}"
             
+            print(f"[DEBUG] Fetching product from: {url}")
             response = requests.get(url, auth=self.auth)
             response.raise_for_status()
             product_data = response.json()
             
             # Check if stock is managed at parent level
             manage_stock = product_data.get('manage_stock')
-            print(f"Product {product_id} manage_stock setting: {manage_stock}")
+            print(f"[DEBUG] Product {product_id} manage_stock setting: {manage_stock}")
             
             # If variation has manage_stock: "parent", update the parent instead
             if is_variation and manage_stock == "parent" and parent_id:
-                print(f"Stock managed at parent level, updating parent product {parent_id} instead")
+                print(f"[DEBUG] Stock managed at parent level, updating parent product {parent_id} instead")
                 url = f"{self.base_url}products/{parent_id}"
                 response = requests.get(url, auth=self.auth)
                 response.raise_for_status()
@@ -1228,13 +1216,18 @@ class WooCommerceAPI:
             current_stock = int(product_data.get('stock_quantity') or 0)
             new_stock = current_stock + int(quantity)
             
+            print(f"[DEBUG] Current stock: {current_stock}, Quantity to increase: {quantity}, New stock: {new_stock}")
+            
             update_data = {
                 "stock_quantity": new_stock,
                 "manage_stock": True
             }
             
+            print(f"[DEBUG] Sending PUT request to {url} with data: {update_data}")
             response = requests.put(url, json=update_data, auth=self.auth)
             response.raise_for_status()
+            
+            print(f"[DEBUG] ✅ Stock update response: {response.status_code}")
             
             return {
                 "success": True,
@@ -1246,7 +1239,10 @@ class WooCommerceAPI:
             }
             
         except requests.exceptions.RequestException as e:
-            print(f"Error increasing inventory stock for product {product_id}: {e}")
+            print(f"[ERROR] Error increasing inventory stock for product {product_id}: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                print(f"[ERROR] Response status: {e.response.status_code}")
+                print(f"[ERROR] Response body: {e.response.text}")
             return {
                 "success": False,
                 "error": str(e),

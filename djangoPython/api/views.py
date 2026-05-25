@@ -351,14 +351,22 @@ def inventory_order(request):
         woo_api = WooCommerceAPI()
         inventory_products = woo_api.get_inventory_products()
         
+        print(f"[DEBUG] Looking for product: '{product_name}' at location: '{location}'")
+        print(f"[DEBUG] Total inventory products available: {len(inventory_products)}")
+        
         product_info = None
         for product in inventory_products:
-            if product.get('name') == product_name and product.get('variation_name') == location:
+            current_name = product.get('name', '')
+            current_variation = product.get('variation_name', '')
+            print(f"[DEBUG] Checking - Product: '{current_name}' | Location: '{current_variation}'")
+            if current_name == product_name and current_variation == location:
                 product_info = product
+                print(f"[DEBUG] ✓ Found matching product!")
                 break
 
         if not product_info:
-            return JsonResponse({'success': False, 'error': f'Product "{product_name}" with location "{location}" not found'}, status=404)
+            print(f"[ERROR] Product not found: '{product_name}' at '{location}'")
+            return JsonResponse({'success': False, 'error': f'Product "{product_name}" with location "{location}" not found. Available products: {[{"name": p.get("name"), "location": p.get("variation_name")} for p in inventory_products[:5]]}'}, status=404)
 
         # Decrease stock
         result = woo_api.decrease_inventory_stock(
@@ -368,8 +376,13 @@ def inventory_order(request):
             parent_id=product_info.get('parent_id')
         )
 
+        print(f"[DEBUG] Stock decrease result: {result}")
+
         if not result['success']:
+            print(f"[ERROR] Failed to update stock: {result.get('error', 'Unknown error')}")
             return JsonResponse({'success': False, 'error': result.get('error', 'Failed to update stock')}, status=500)
+
+        print(f"✅ Stock updated successfully: {result.get('previous_stock')} → {result.get('new_stock')}")
 
         # INSTANT SSE push to all connected clients
         notify_inventory_update(

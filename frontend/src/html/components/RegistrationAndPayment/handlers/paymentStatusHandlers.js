@@ -31,6 +31,8 @@ import { logRegistrationUpdate } from '../../../../utils/auditLog';
 export async function handlePaymentStatusChange(event, context) {
   const { userName, userRole, progressTracker, showUpdatePopup, closePopup, updateWooCommerce, receiptGenerator, refreshChild } = context;
 
+  console.log("Payment status change event:", event.data);
+
   const id = resolveEventId(event.data);
   const sn               = event.data.sn;
   const columnName       = event.colDef.headerName;
@@ -53,6 +55,7 @@ export async function handlePaymentStatusChange(event, context) {
     ''
   ).trim();
   
+  
   const existingReceiptNo = String(event.data.recinvNo || officialInfo?.receiptNo || '').trim();
   const hasExistingReceiptNo = existingReceiptNo !== '';
   const existingDocType = inferDocumentType(existingReceiptNo);
@@ -64,11 +67,11 @@ export async function handlePaymentStatusChange(event, context) {
     courseType === 'NSA' &&
     (((paymentMethod === 'Cash' || paymentMethod === 'PayNow') && newValue === 'Paid') ||
       (paymentMethod === 'SkillsFuture' && newValue === 'SkillsFuture Done'));
-  const shouldIncreaseWooCommerceStock =
+  const shouldIncreaseWooCommerceStock = 
     courseType === 'NSA' &&
     newValue === 'Refunded' &&
-    (oldPaymentStatus === 'Paid' || oldPaymentStatus === 'SkillsFuture Done') &&
-    (registrationStatus === 'Cancellation For Duplication' || registrationStatus === 'Withdrawn');
+    (oldPaymentStatus === 'To refund' || oldPaymentStatus === 'Paid' || oldPaymentStatus === 'SkillsFuture Done') &&
+    (registrationStatus === 'Cancelled for duplication' || registrationStatus === 'Withdrawn');
   const shouldSetConfirmedSlot =
     newValue === 'SkillsFuture Done' ||
     ((paymentMethod === 'Cash' || paymentMethod === 'PayNow') && newValue === 'Paid');
@@ -87,7 +90,11 @@ export async function handlePaymentStatusChange(event, context) {
   // Build step tracker based on the new payment status
   // For Paid (Cash/PayNow): 6 steps for receipt
   // For SkillsFuture Done: 4 steps (status, registration, vacancies, date/time)
-  // For Refunded: 2 steps (status, vacancies) or 3 steps (status, vacancies, refund date/time) depending on context
+  // For Refunded: 2 steps (status, vacancies) - ❌ NO confirmation status changes
+  //   - Payment status updates to "Refunded"
+  //   - Vacancies counter increases by 1 (for NSA courses only)
+  //   - Refund date/time recorded silently
+  //   - ⚠️ Confirmation Status toggle MUST remain unchanged
   let statusLabel = 'Payment Status Updated';
   if (newValue === 'Paid') {
     statusLabel = 'Payment Status Updated to Paid';
@@ -99,20 +106,29 @@ export async function handlePaymentStatusChange(event, context) {
 
   const steps = [statusLabel];
 
-  if (shouldSetConfirmedSlot) {
-    // For Cash/PayNow: always update registration status when Paid (not affected by confirmation status)
-    // For SkillsFuture Done: only update if currently confirmed
-    if ((paymentMethod === 'Cash' || paymentMethod === 'PayNow') || isCurrentlyConfirmed) {
-      steps.push('Registration Status Updated to Confirmed Slot');
-      if (shouldGenerateInvoice) {
-        steps.push('Payment Status Reset to Pending');
-      }
+  // Build registration status update step
+  // For Cash/PayNow Paid: always update registration status
+  // For SkillsFuture Done: always update registration status  
+  // For other statuses: only update if currently confirmed
+  const shouldUpdateRegistrationStatusInSteps = 
+    (paymentMethod === 'Cash' || paymentMethod === 'PayNow' || paymentMethod === 'SkillsFuture') ||
+    isCurrentlyConfirmed;
+
+  if (shouldSetConfirmedSlot && shouldUpdateRegistrationStatusInSteps) {
+    steps.push('Registration Status Updated to Confirmed Slot');
+    if (shouldGenerateInvoice) {
+      steps.push('Payment Status Reset to Pending');
     }
   }
   if (shouldSyncWooCommerceStock) {
-    const vacanciesLabel = newValue === 'Refunded' 
-      ? 'The vacancies counter will increase back by 1'
-      : 'Vacancies Counter Updated';
+    let vacanciesLabel;
+    if (shouldIncreaseWooCommerceStock) {
+      vacanciesLabel = 'The vacancies counter will increase back by 1';
+    } else if (shouldDecreaseWooCommerceStock) {
+      vacanciesLabel = 'The vacancies counter will decrease by 1';
+    } else {
+      vacanciesLabel = 'Updating vacancies counter';
+    }
     steps.push(vacanciesLabel);
     console.log('🔄 [Backend] WooCommerce sync step added:', { shouldIncreaseWooCommerceStock, shouldDecreaseWooCommerceStock, newValue, registrationStatus, courseType });
   } else if (newValue === 'Refunded' && courseType === 'NSA') {
@@ -147,9 +163,9 @@ export async function handlePaymentStatusChange(event, context) {
   }
 
   // ── Step 1: Update payment status ───────────────────────────────────────
-  // Pre-compute SGT date/time once for statuses that record payment date/time
+  // Pre-compute SGT date/time once for statuses that record payment date/time or refund date/time
   let _sgtPayDate, _sgtPayTime;
-  if (newValue === 'Paid' || newValue === 'SkillsFuture Done') {
+  if (newValue === 'Paid' || newValue === 'SkillsFuture Done' || newValue === 'Refunded') {
     const _now = new Date();
     const _sgNow = new Date(_now.getTime() + 8 * 60 * 60 * 1000); // SGT (UTC+8)
     _sgtPayDate = `${String(_sgNow.getUTCDate()).padStart(2,'0')}/${String(_sgNow.getUTCMonth()+1).padStart(2,'0')}/${_sgNow.getUTCFullYear()}`;
@@ -163,6 +179,13 @@ export async function handlePaymentStatusChange(event, context) {
     if (useTracker) progressTracker.error();
     else closePopup();
     return { generatedNo: '' };
+  }
+
+  // ── Step 1: Complete and advance to Step 2 ───────────────────────────────
+  if (useTracker) {
+    console.log(`✅ [Step 1] Payment Status Updated to ${newValue}`);
+    console.log(`🔄 [Step 1→2] Advancing to: Registration Status Updated or Next Step`);
+    progressTracker.advance(); // Step 1 done, move to Step 2 (or Step 3 if Step 2 not applicable)
   }
 
   await logRegistrationUpdate(buildLogPayload({
@@ -188,10 +211,16 @@ export async function handlePaymentStatusChange(event, context) {
   let stepIdx = 1; // steps[0] is 'Updating payment status', already done
 
   // ── Step 2: Update confirmation status (if applicable) ──────────────────
-  if (shouldSetConfirmedSlot && ((paymentMethod === 'Cash' || paymentMethod === 'PayNow') || isCurrentlyConfirmed)) {
+  // For Cash/PayNow Paid: always update registration status
+  // For SkillsFuture Done: always update registration status
+  // For other statuses: only update if currently confirmed
+  const shouldUpdateRegistrationStatus = 
+    (paymentMethod === 'Cash' || paymentMethod === 'PayNow' || paymentMethod === 'SkillsFuture') ||
+    isCurrentlyConfirmed;
+
+  if (shouldSetConfirmedSlot && shouldUpdateRegistrationStatus) {
     if (useTracker) {
-      console.log('🔄 [Step 2] Advancing to: Registration Status Updated to Confirmed Slot');
-      progressTracker.advance(); // → Updating registration status
+      console.log('🔄 [Step 2] Now Running: Registration Status Updated to Confirmed Slot');
     }
 
     const updated = await autoSetConfirmedSlotRegistrationStatus({
@@ -206,7 +235,7 @@ export async function handlePaymentStatusChange(event, context) {
     // For SF invoice: advance to 'Updating payment status to Pending' and do it now
     if (shouldGenerateInvoice) {
       if (useTracker) {
-        console.log('🔄 Advancing to: Payment Status Reset to Pending');
+        console.log('🔄 [Step 2→3] Advancing to: Payment Status Reset to Pending');
         progressTracker.advance(); // → Updating payment status to Pending
       }
       await updatePaymentStatus(id, 'Pending', userName, userRole);
@@ -222,6 +251,10 @@ export async function handlePaymentStatusChange(event, context) {
         });
         event.data.recinvNo = '';
       }
+    } else if (useTracker && shouldSetConfirmedSlot) {
+      // For SkillsFuture Done (or other non-invoice cases): advance to next step
+      console.log('🔄 [Step 2→3] Advancing to: Vacancies or Payment Date/Time Step');
+      progressTracker.advance(); // → Next step (Vacancies for NSA, or Payment Date/Time if not NSA)
     }
 
     stepIdx++;
@@ -433,8 +466,6 @@ export async function handlePaymentStatusChange(event, context) {
 
     // SkillsFuture Done: record payment date and time in local grid
     if (newValue === 'SkillsFuture Done' && useTracker) {
-      progressTracker.advance(); // → Recording payment date and time
-
       // Reuse the same SGT time already sent to the backend in step 1
       event.data.paymentDate = _sgtPayDate;
       event.data.paymentTime = _sgtPayTime;
@@ -449,6 +480,7 @@ export async function handlePaymentStatusChange(event, context) {
           force: true,
         });
       }
+      console.log('✅ [Step 4] Payment Date and Time Recorded:', { date: _sgtPayDate, time: _sgtPayTime });
     }
 
   } else if (courseInfo.courseType === 'ILP' || courseInfo.courseType === 'Talks And Seminar') {
@@ -471,7 +503,13 @@ export async function handlePaymentStatusChange(event, context) {
   await waitForNextPaint();
   if (useTracker) {
     // Queue a table reload so the latest server values are shown once the modal closes.
-    console.log('🔄 [Step 6] Finalizing: Receipt Downloaded and Opened in New Tab');
+    if (newValue === 'Paid' && (paymentMethod === 'Cash' || paymentMethod === 'PayNow')) {
+      console.log('🔄 [Step 6] Finalizing: Receipt Downloaded and Opened in New Tab');
+    } else if (newValue === 'SkillsFuture Done') {
+      console.log('🔄 [Step 4] Finalizing: All steps complete for SkillsFuture Done');
+    } else {
+      console.log('🔄 Finalizing payment flow');
+    }
     if (refreshChild) refreshChild();
     progressTracker.finish(receiptData);
     console.log('✅ [All Steps Complete] Payment flow finished');
@@ -510,6 +548,7 @@ export async function handleCashPayNowStatusChange({
     // When refund is completed, update WooCommerce to increase vacancies counter
     if (!skipWooCommerceUpdate && (oldPaymentStatus === 'Paid' || oldPaymentStatus === 'To refund') && updateWooCommerce && typeof updateWooCommerce === 'function') {
       try {
+        //console.log(`↓ Calling updateWooCommerce for ${courseChiName}/${courseName} at ${courseLocation} with status "Refunded"`);
         await updateWooCommerce(courseChiName, courseName, courseLocation, newValue);
       } catch (err) {
         console.warn('⚠️ WooCommerce sync failed during Refunded:', err);
@@ -569,11 +608,9 @@ export async function handleSkillsFutureStatusChange({
       await updateWooCommerce(courseChiName, courseName, courseLocation, newValue);
     }
     return '';
-  } else if (newValue === 'Cancelled' || newValue === 'Refunded' || newValue === 'Withdrawn' || newValue === 'To refund') {
-    if (newValue === 'Refunded' && oldPaymentStatus === 'SkillsFuture Done') {
-      if (!skipWooCommerceUpdate) {
-        await updateWooCommerce(courseChiName, courseName, courseLocation, newValue);
-      }
+  } else if (newValue === 'Cancelled' || newValue === 'Refunded' || newValue === 'Withdrawn' || oldPaymentStatus === 'To refund') {
+    if (oldPaymentStatus === 'To refund') {
+      await updateWooCommerce(courseChiName, courseName, courseLocation, newValue);
       const _now = new Date();
       const _sgNow = new Date(_now.getTime() + 8 * 60 * 60 * 1000); // SGT (UTC+8)
       const refundedDate = `${String(_sgNow.getUTCDate()).padStart(2,'0')}/${String(_sgNow.getUTCMonth()+1).padStart(2,'0')}/${_sgNow.getUTCFullYear()}`;
