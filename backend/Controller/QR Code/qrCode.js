@@ -18,7 +18,7 @@ class QRCodeGenerator {
             const buffer = await QRCode.toBuffer(this.text, this.options);
 
             // Save the buffer to a JPG file
-            const filename = `晚年健康饮食 Healthy Eating For Golden Years (Pasir Ris West Wellness Centre).jpg`
+            const filename = `音乐祝福社区四弦琴班 Community Ukulele – Mandarin L1 (Pasir Ris West Wellness Centre).jpg`
             fs.writeFileSync(filename, buffer);
             console.log(`QR code generated and saved as ${filename}`);
         } catch (error) {
@@ -28,5 +28,5 @@ class QRCodeGenerator {
 }
 
 // Usage const filename = `https://ecss.org.sg/product/crafting-connectionspasir-ris-west-wellness-centre/`;
-const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/%e6%99%9a%e5%b9%b4%e5%81%a5%e5%ba%b7%e9%a5%ae%e9%a3%9fhealthy-eating-for-golden-years-ct-hub-copy/`);
+const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/%e9%9f%b3%e4%b9%90%e7%a5%9d%e7%a6%8f%e7%a4%be%e5%8c%ba%e5%9b%9b%e5%bc%a6%e7%90%b4%e7%8f%ad-%e4%b8%ad%e6%96%87community-ukulele-mandarinpasir-ris-west-wellness-centre/`);
 qrCodeGenerator.generate();
