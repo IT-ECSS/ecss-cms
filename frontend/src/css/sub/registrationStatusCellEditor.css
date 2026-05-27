@@ -1,0 +1,94 @@
+/**
+ * Registration Status Cell Editor Styles
+ * Displays all options immediately as clickable buttons (no dropdown delay needed)
+ * Provides true single-click editing experience
+ */
+
+.registration-status-cell-editor {
+  position: relative;
+  width: 100%;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: 0;
+  margin: 0;
+  outline: none;
+  background-color: #fff;
+  border: 2px solid #0277BD;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px rgba(2, 119, 189, 0.25);
+  z-index: 1000;
+}
+
+.registration-status-options {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: 280px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  gap: 0;
+  padding: 6px 0;
+}
+
+.registration-status-option {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  background-color: #f5f5f5;
+  color: #333;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  outline: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Current status button - highlighted */
+.registration-status-option.current {
+  background-color: #0277BD;
+  color: white;
+  font-weight: 600;
+  border-left: 4px solid #01579B;
+}
+
+/* Hover state */
+.registration-status-option:hover:not(.current) {
+  background-color: #E3F2FD;
+  color: #0277BD;
+  font-weight: 600;
+  padding-left: 20px;
+}
+
+/* Focus state for keyboard navigation */
+.registration-status-option:focus {
+  outline: 2px solid #0277BD;
+  outline-offset: -2px;
+  background-color: #BBDEFB;
+  color: #01579B;
+}
+
+.registration-status-option:active:not(.current) {
+  background-color: #90CAF9;
+  color: #01579B;
+}
+
+/* Responsive for smaller screens */
+@media (max-width: 768px) {
+  .registration-status-option {
+    font-size: 15px; /* Prevents zoom on iOS */
+    padding: 12px 14px;
+  }
+}
+
+/* Ensure editor stays on top */
+.ag-cell-editor {
+  z-index: 1000;
+}

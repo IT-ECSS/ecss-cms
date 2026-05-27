@@ -562,6 +562,147 @@ class WooCommerceAPI:
             print(f"Error fetching products: {e}")
             return None
         
+    def getCourseIDAndVacancies(self, chinese, english, location):
+        """
+        Fetches the product ID and stock quantity by matching course details from WooCommerce.
+        
+        Can be called in two ways:
+        1. getCourseIDAndVacancies(chinese, english, location) - Original method
+        2. getCourseIDAndVacancies(course_name="Name (Location)") - Parse full course name
+        """
+        try:
+            # If course_name is provided, parse it
+            
+            if not all([chinese, english, location]):
+                return {
+                    "id": None,
+                    "quantity": None,
+                    "exist": False,
+                    "error": "Missing course details (chinese, english, location)"
+                }
+            
+            print("Get Course Id and Quantity", chinese, english, location)
+            page = 1
+            per_page = 100  # Number of products to fetch per page
+            matched_product_id = None  # Variable to store matched product ID
+            matched_product_stock = None  # Variable to store matched product stock quantity
+            matched_product_name = None  # Variable to store matched product name
+
+            while True:
+                # Fetch products for the current page
+                url = f"{self.base_url}products"
+                params = {
+                    'per_page': per_page,
+                    'page': page,
+                }
+
+                response = requests.get(url, params=params, auth=self.auth, headers=self.headers)
+                response.raise_for_status()  # Ensure we raise an error for bad requests
+
+                products = response.json()  # Get products from the response
+
+                # If no products are returned, break the loop
+                if not products:
+                    break
+
+                # Check each product and split by <br/> or <br />
+                for product in products:
+                    product_name = product['name']
+                    vacancies = product['stock_quantity']
+                    split_name = re.split(r'<br\s*/?>', product_name)
+
+                    # Only match on 3-part format: Chinese + English + Location
+                    if len(split_name) == 3:
+                        chinese_name = split_name[0].strip()
+                        english_name = split_name[1].strip()
+                        location_name = split_name[2].strip()
+                        #print(f"Product: {product_name} | Vacancies: {vacancies} | Result: {chinese_name == chinese and english_name == english and location_name == location}")
+                                            
+                        # If the product matches the input chinese, english, and location, store product ID and stock quantity
+                        if chinese_name == chinese and english_name == english and location_name == location:
+                            matched_product_id = product['id']
+                            matched_product_stock = product.get('stock_quantity', 0)
+                            matched_product_name = product_name
+                            print(f"✓ Match found! Product ID: {matched_product_id}, Stock: {matched_product_stock}")
+                            break  # Exit the loop if the product is found
+
+                # If we found the matched product, stop fetching more pages
+                if matched_product_id:
+                    break
+
+                page += 1  # Move to the next page
+
+            # Return the matched product name and stock quantity if found
+            return {
+                "success": True if matched_product_id else False,
+                "id": matched_product_id,
+                "course_name": matched_product_name,
+                "current_quantity": matched_product_stock,
+                "exist": True if matched_product_id else False
+            }
+
+        except requests.exceptions.RequestException as e:
+            # Handle any errors during the request
+            print(f"Error fetching products: {e}")
+            return {
+                "id": None,
+                "quantity": None,
+                "exist": False,
+                "error": str(e)
+            }
+
+    def _parse_course_name(self, full_course_name):
+        """
+        Parses a full course name like:
+        "晚年健康饮食 Healthy Eating For Golden Years (Pasir Ris West Wellness Centre)"
+        
+        Returns: (chinese_name, english_name, location)
+        """
+        import re
+        
+        # Extract location from parentheses
+        location_match = re.search(r'\(([^)]+)\)', full_course_name)
+        if not location_match:
+            return None, None, None
+        
+        location = location_match.group(1).strip()
+        
+        # Remove location from the string
+        course_part = full_course_name[:location_match.start()].strip()
+        
+        # Split chinese and english
+        # Find the transition from Chinese to English characters
+        chinese_part = ""
+        english_part = ""
+        
+        for i, char in enumerate(course_part):
+            if ord(char) > 127:  # Non-ASCII (Chinese characters)
+                if not english_part:  # Still in chinese section
+                    chinese_part += char
+                # else: we've transitioned to english, ignore chinese chars after
+            else:  # ASCII (English)
+                if chinese_part and not english_part.strip():  # We've found the transition
+                    english_part = course_part[i:].strip()
+                    break
+                elif not chinese_part:  # Still looking for chinese
+                    english_part += char
+        
+        # If no transition found, treat entire as english
+        if not english_part:
+            english_part = course_part
+            chinese_part = ""
+        
+        chinese_part = chinese_part.strip()
+        english_part = english_part.strip()
+        
+        print(f"[PARSE] Input: '{full_course_name}'")
+        print(f"[PARSE] Chinese: '{chinese_part}', English: '{english_part}', Location: '{location}'")
+        
+        # Format location with parentheses as expected by WooCommerce
+        location = f"({location})"
+        
+        return chinese_part, english_part, location
+        
     def getFundraisingId(self, product_name):
         """Fetches the product ID by matching product name from WooCommerce."""
         try:
@@ -673,107 +814,74 @@ class WooCommerceAPI:
             return []
         
 
-    def updateCourseQuantity(self, product_id, status):
+    def updateCourseVacancies(self, product_id, status, chi_name=None, eng_name=None, location=None):
         """
-        Updates the product stock based on the product ID and the status.
+        Updates the product stock (vacancies) based on payment status.
+        
+        Stock Update Rules:
+        - Refunded, Change of Final Payment Method: +1 (refund restores vacancy)
+        - Paid, SkillsFuture Done: -1 (payment reduces vacancy)
+        
         Arguments:
             - product_id: The ID of the product to update.
-            - status: The status to update stock based on ("Cancelled", "Paid", "SkillsFuture Done").
+            - status: Payment/refund status
+            - chi_name, eng_name, location: Optional parameters for compatibility
         """
         try:
-            # Fetch current product details
+            # Fetch current product stock from WooCommerce
             url = f"{settings.WOOCOMMERCE_API_URL}products/{product_id}"
-            response = self._woocommerce_request("GET", url)
-
+            response = requests.get(url, auth=self.auth)
+            response.raise_for_status()
+            
             product = response.json()
-            print("Updating Product Stock12:", status)
-
-            # Get the current stock quantity
             original_stock_quantity = product.get("stock_quantity", 0)
-            new_stock_quantity = original_stock_quantity  # Start with current stock
-            print("Current Stock Quantity:", new_stock_quantity)
-
-            # Parse short description to find "vacancy"
-            short_description = product.get("short_description", "")
-            array = short_description.split("<p>")
-            print("Short Description Array:", array)
-            if array and array[0] == '':
-                array.pop(0)  # Remove empty first entry
-
-            # Extract the number of vacancies directly within this function
-            vacancies_text = next(
-                (item.replace("\n", "").replace("<b>", "").replace("</b>", "")
-                for item in array if "vacancy" in item.lower()),
-                ""
-            ).split("<br />")[-1].strip()
-            vacancies_text = vacancies_text.replace("</p>", "").strip()        
-
-            print("Vacancies Text:", vacancies_text)
-
-            # Extract actual vacancies number using a regex directly in this function
-            vacancies_match = re.search(r'(\d+)\s*Vacancies', vacancies_text)
-            if vacancies_match:
-                vacancies =  math.ceil(int(vacancies_match.group(1))*1.5)
-            else:
-                vacancies = 0  # Return 0 if no vacancies are found
-
-            print("Actual Vacancies:", vacancies)
-
-            print(f"Processing status: '{status}' (type: {type(status)})")
-
-            # **Stock Update Logic - Applies to all payment methods (Cash, PayNow, SkillsFuture)**
-            # Refund statuses: restore vacancies (increase stock)
-            # NOTE: "To refund" does NOT trigger updates - only actual refund/cancellation/withdrawal/method-change do
-            if status in ["Cancelled", "Withdrawn", "Refunded", "Change of Final Payment Method"]:
-                print(f"Refund/Cancellation status detected: {status}")
-                if new_stock_quantity < vacancies:  # Only increase stock if it is below vacancies
-                    print("Increase stock by 1")
-                    new_stock_quantity += 1
-                else:
-                    print("Stock is full, no increase.")  # Prevent increase beyond vacancies
-
-            # Payment statuses: decrease vacancies (reduce stock) - applies to all payment methods
-            elif status in ["Paid", "SkillsFuture Done", "Confirmed"]:
-                print(f"Payment/Confirmation status detected: {status}")
-                if new_stock_quantity > 0:  # Only decrease if stock is greater than 0
-                    print("Decrease stock by 1")
-                    new_stock_quantity -= 1  
-                else:
-                    print("Stock is already 0, cannot decrease further.")  # Prevents negative stock
-            else:
-                print(f"Unhandled status: '{status}' - no stock update performed")
-
-            print("Updated Stock Quantity:", new_stock_quantity)
-
-            # Only update stock if it has changed
+            new_stock_quantity = original_stock_quantity
+            
+            # Stock Update Logic - simple increment/decrement
+            if status in ["Refunded", "Change of Final Payment Method"]:
+                new_stock_quantity += 1
+            elif status in ["Paid", "SkillsFuture Done"]:
+                new_stock_quantity -= 1
+            
+            print(f"[Vacancies Update] Product ID: {product_id} | Status: {status} | Current: {original_stock_quantity} → New: {new_stock_quantity}")
+            
+            # Only update if changed
             if new_stock_quantity == original_stock_quantity:
                 return {
                     'success': True,
-                    'message': 'Stock unchanged',
+                    'message': 'Vacancies unchanged',
                     'product_id': product_id,
                     'stock_quantity': new_stock_quantity,
                 }
-
-            update_data = {"stock_quantity": new_stock_quantity}
-            self._woocommerce_request(
-                "PUT",
+            
+            # Update WooCommerce
+            update_data = {"stock_quantity": new_stock_quantity, "manage_stock": True}
+            requests.put(
                 f"{settings.WOOCOMMERCE_API_URL}products/{product_id}",
-                json=update_data
-            )
-
+                json=update_data,
+                auth=self.auth
+            ).raise_for_status()
+            
             return {
                 'success': True,
-                'message': 'Stock updated successfully',
+                'message': 'Vacancies updated successfully',
                 'product_id': product_id,
                 'previous_stock': original_stock_quantity,
                 'stock_quantity': new_stock_quantity,
             }
-
+            
         except requests.exceptions.RequestException as e:
-            print(f"Error updating product stock: {e}")
+            print(f"[ERROR] WooCommerce request failed: {str(e)}")
             return {
                 'success': False,
                 'error': f'WooCommerce request failed: {str(e)}',
+                'product_id': product_id,
+            }
+        except Exception as e:
+            print(f"[ERROR] {str(e)}")
+            return {
+                'success': False,
+                'error': str(e),
                 'product_id': product_id,
             }
 

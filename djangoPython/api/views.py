@@ -1416,52 +1416,89 @@ def sendToWooCommerce(request):
     
 @csrf_exempt
 def update_stock(request):
-    """Fetches and returns a list of products from WooCommerce based on the courseType."""
+    """Updates course stock quantity based on payment status."""
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Invalid method, please use POST'})
 
     try:
         # Parse the request body as JSON
         data = json.loads(request.body)
-        print("Data received:", data)
+        print("\n" + "="*60)
+        print("[UPDATE_STOCK] Request data received:", data)
+        print("="*60)
 
-        # Get courseName from the request body and clean it up
-        courseName = data.get('page')  # Assuming 'page' is where the course name is stored
+        # Get course details from the request body
+        course_data = data.get('page')  # Course information object
         
-        if courseName:
-            # Format the course name details as a string for logging
-            # Get the course name components
-            chi_name = courseName.get('courseChiName', '')
-            eng_name = courseName.get('courseEngName', '')
-            location = courseName.get('courseLocation', '')
-            print(chi_name+"<br />"+eng_name+"<br />"+location)
-
-            # Initialize WooCommerce API and fetch the product ID
-            woo_api = WooCommerceAPI()
-            result = woo_api.getProductId(chi_name, eng_name, f"({location})")  # Use the formatted string
-            print("Result:", result)
-
-            if result['exist'] == True:
-                print("Update Product Stocks")
-                status = data.get('status') 
-                productId = result['id']
-                print('Product Id:', result)
-                result2 = woo_api.updateCourseQuantity(productId, status)
-
-                print(status)
-                if isinstance(result2, dict):
-                    return JsonResponse(result2)
-
-                return JsonResponse({'success': bool(result2)})
-
-        else:
-            print("No course data found in the 'page' field.")
+        if not course_data:
+            print("[ERROR] No course data found in 'page' field")
             return JsonResponse({'success': False, 'error': 'No course data provided'})
 
-        return JsonResponse({'success': False, 'error': 'Product not found'})
+        # Extract course name components
+        chi_name = course_data.get('courseChiName', '').strip()
+        eng_name = course_data.get('courseEngName', '').strip()
+        location = course_data.get('courseLocation', '').strip()
+        status = data.get('status', '').strip()
+        
+        # Validate required fields
+        if not chi_name or not eng_name or not location:
+            print(f"[ERROR] Missing course details - Chi: '{chi_name}', Eng: '{eng_name}', Loc: '{location}'")
+            return JsonResponse({'success': False, 'error': 'Missing course details (Chinese name, English name, or location)'})
+        
+        if not status:
+            print("[ERROR] Missing payment status")
+            return JsonResponse({'success': False, 'error': 'Missing payment status'})
 
+        # Format course name for display
+        course_name_display = f"{chi_name}<br />{eng_name}<br />({location})"
+        print(f"[INFO] Looking for course: {course_name_display}")
+        print(f"[INFO] Payment status: {status}")
+
+        # Initialize WooCommerce API and fetch the product ID
+        woo_api = WooCommerceAPI()
+        result = woo_api.getCourseIDAndVacancies(chi_name, eng_name, f"({location})")
+        print(f"[INFO] Course lookup result: {result}")
+
+        # Check if product was found
+        if not result.get('success', False):
+            print(f"[ERROR] Course not found - {result.get('error', 'Unknown error')}")
+            return JsonResponse({
+                'success': False,
+                'error': f"Course not found: {result.get('error', 'Unknown error')}"
+            })
+
+        # Extract product ID from result
+        product_id = result.get('id')
+        if not product_id:
+            print("[ERROR] No product ID found in lookup result")
+            return JsonResponse({'success': False, 'error': 'Product ID not found'})
+
+        print(f"[INFO] Found product ID: {product_id}")
+        print(f"[INFO] Current stock: {result.get('current_quantity')}")
+
+        # Update the course vacancies based on status
+        print(f"[INFO] Updating vacancies with status: {status}")
+        update_result = woo_api.updateCourseVacancies(product_id, status)
+        print(f"[INFO] Vacancies update result: {update_result}")
+
+        # Return the update result
+        if isinstance(update_result, dict):
+            if update_result.get('success'):
+                print(f"[SUCCESS] Vacancies updated - Previous: {update_result.get('previous_stock')} → New: {update_result.get('stock_quantity')}")
+            return JsonResponse(update_result)
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': 'Failed to update vacancies'
+            })
+
+    except json.JSONDecodeError:
+        print("[ERROR] Invalid JSON format")
+        return JsonResponse({'success': False, 'error': 'Invalid JSON format'})
     except Exception as e:
-        print("Error:", e)  # Log the error to the console
+        print(f"[ERROR] Exception occurred: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
         return JsonResponse({'success': False, 'error': str(e)})
     
 @csrf_exempt

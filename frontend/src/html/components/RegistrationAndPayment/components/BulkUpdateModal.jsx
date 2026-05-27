@@ -63,7 +63,9 @@ function CustomDropdown({
 }
 
 function getStatusOptionsForRow(row) {
-  const paymentMethod = row?.paymentMethod || row?.courseInfo?.payment || '';
+  // Resolve final payment method (checks finalPaymentMethod first, then paymentMethod)
+  const finalPaymentMethod = String(row?.finalPaymentMethod || '').trim();
+  const paymentMethod = finalPaymentMethod || String(row?.paymentMethod || row?.courseInfo?.payment || '').trim();
   const courseType = row?.courseInfo?.courseType || '';
   const rawPrice = row?.courseInfo?.coursePrice || '0';
   const price = parseFloat(String(rawPrice).replace('$', '')) || 0;
@@ -73,7 +75,7 @@ function getStatusOptionsForRow(row) {
   if (courseType === 'NSA') {
     base = paymentMethod === 'SkillsFuture'
       ? ['Pending', 'Generating SkillsFuture Invoice', 'SkillsFuture Done', 'Cancelled', 'Withdrawn', 'Refunded']
-      : ['Pending', 'Paid', 'Cancelled', 'Withdrawn', 'Refunded', 'Not Successful'];
+      : ['Pending', 'Paid', 'To refund', 'Cancelled - No payment received', 'Refunded'];
   } else if (
     courseType === 'ILP' ||
     (courseType === 'Talks And Seminar' && price <= 0) ||
@@ -149,7 +151,7 @@ function BulkUpdateModal({
       if (courseType === 'NSA') {
         base = paymentMethod === 'SkillsFuture'
           ? ['Pending', 'Generating SkillsFuture Invoice', 'SkillsFuture Done', 'Cancelled', 'Withdrawn', 'Refunded']
-          : ['Pending', 'Paid', 'Cancelled', 'Withdrawn', 'Refunded', 'Not Successful'];
+          : ['Pending', 'Paid', 'To refund', 'Cancelled - No payment received', 'Refunded'];
       } else if (
         courseType === 'ILP' ||
         (courseType === 'Talks And Seminar' && price <= 0) ||

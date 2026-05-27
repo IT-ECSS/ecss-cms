@@ -230,25 +230,25 @@ class RegistrationPaymentSection extends Component {
       : !isSkillsFuture;
   }
 
+  _normalizeRoleString(str) {
+    // Normalize: convert to lowercase, replace hyphens/underscores with spaces, collapse multiple spaces
+    return String(str || '')
+      .toLowerCase()
+      .replace(/[-_]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
   _hasRoleKeyword(...keywords) {
-    const role = String(this.props.role || '').toLowerCase();
-    return keywords.some((keyword) => role.includes(keyword));
+    const role = this._normalizeRoleString(this.props.role || '');
+    const normalizedKeywords = keywords.map((kw) => this._normalizeRoleString(kw));
+    return normalizedKeywords.some((keyword) => {
+      // Match as whole word or substring (more flexible)
+      return role.includes(keyword) || role.split(' ').some((word) => keyword.split(' ').every((part) => role.includes(part)));
+    });
   }
 
   // Allowed roles for NSA sensitive columns: Ops in-charge, Finance, Sub Admin, Admin
-  _canEditNsaSensitiveColumns() {
-    return this._hasRoleKeyword('admin', 'sub admin', 'finance', 'ops in-charge');
-  }
-
-  _canEditNsaCashPayNowStatus() {
-    return this._canEditNsaSensitiveColumns();
-  }
-
-  _canEditNsaSkillsFutureStatus() {
-    // NSA in-charge, Sub Admin, Admin, Ops in-charge
-    return this._hasRoleKeyword('admin', 'sub admin', 'nsa in-charge', 'ops in-charge');
-  }
-
   /**
    * Checks if the current user has Finance role and can edit Payment Status.
    * Allowed roles: Finance (any variant)
@@ -256,6 +256,136 @@ class RegistrationPaymentSection extends Component {
    */
   _canEditPaymentStatus() {
     return this._hasRoleKeyword('finance');
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // NSA COURSE: ROLE-BASED COLUMN EDIT ACCESS CONTROL METHODS
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Check if user has full admin access (Admin, Ops in-charge, Sub Admin)
+   */
+  _canEditAllNsaColumns() {
+    return this._hasRoleKeyword('admin', 'ops in-charge', 'sub admin');
+  }
+
+  /**
+   * Check if user is Finance role (can edit Payment Method, Payment Status Cash/PayNow, Payment Date, Refunded Date, Remarks)
+   */
+  _isFinanceRole() {
+    return this._hasRoleKeyword('finance');
+  }
+
+  /**
+   * Check if user is NSA in-charge (can edit Registration Status, Confirmation Status, Payment Status SkillsFuture, Remarks)
+   */
+  _isNsaInChargeRole() {
+    return this._hasRoleKeyword('nsa in-charge');
+  }
+
+  /**
+   * Check if user is Site in-charge (can edit Registration Status, Remarks)
+   */
+  _isSiteInChargeRole() {
+    return this._hasRoleKeyword('site in-charge');
+  }
+
+  /**
+   * Check if user is Fitness Trainer or Social Worker (can edit Registration Status, Remarks)
+   */
+  _isFitnessOrSocialWorkerRole() {
+    return this._hasRoleKeyword('fitness trainer', 'social worker');
+  }
+
+  /**
+   * NSA: Can edit Registration Status column
+   * Allowed: Admin, Ops in-charge, Sub Admin, NSA in-charge, Site in-charge, Fitness Trainer, Social Worker
+   */
+  _canEditNsaRegistrationStatus() {
+    const role = String(this.props.role || '').toLowerCase();
+    const canEdit = this._canEditAllNsaColumns() || 
+           this._isNsaInChargeRole() || 
+           this._isSiteInChargeRole() || 
+           this._isFitnessOrSocialWorkerRole()|| this._isFinanceRole();
+    console.log('🔍 [NSA Registration Status] Role:', role, '| Can Edit:', canEdit, '| Role Checks:', {
+      admin: this._canEditAllNsaColumns(),
+      nsaInCharge: this._isNsaInChargeRole(),
+      siteInCharge: this._isSiteInChargeRole(),
+      fitnessOrSocial: this._isFitnessOrSocialWorkerRole(),
+    });
+    return canEdit;
+  }
+
+  /**
+   * NSA: Can edit Final Payment Method (by Staff) column
+   * Allowed: Admin, Ops in-charge, Sub Admin, Finance
+   */
+  _canEditNsaFinalPaymentMethod() {
+    return this._canEditAllNsaColumns() || this._isFinanceRole();
+  }
+
+  /**
+   * NSA: Can edit Confirmation Status column
+   * Allowed: Admin, Ops in-charge, Sub Admin, NSA in-charge
+   */
+  _canEditNsaConfirmationStatus() {
+    return this._canEditAllNsaColumns() || this._isNsaInChargeRole();
+  }
+
+  /**
+   * NSA: Can edit Payment Status (Cash/PayNow) column
+   * Allowed: Admin, Ops in-charge, Sub Admin, Finance
+   */
+  _canEditNsaCashPayNowPaymentStatus() {
+    return this._canEditAllNsaColumns() || this._isFinanceRole();
+  }
+
+  /**
+   * NSA: Can edit Payment Status (SkillsFuture) column
+   * Allowed: Admin, Ops in-charge, Sub Admin, NSA in-charge
+   */
+  _canEditNsaSkillsFuturePaymentStatus() {
+    return this._canEditAllNsaColumns() || this._isNsaInChargeRole();
+  }
+
+  /**
+   * NSA: Can edit Payment Date column
+   * Allowed: Admin, Ops in-charge, Sub Admin, Finance
+   */
+  _canEditNsaPaymentDate() {
+    return this._canEditAllNsaColumns() || this._isFinanceRole();
+  }
+
+  /**
+   * NSA: Can edit Refunded Date column
+   * Allowed: Admin, Ops in-charge, Sub Admin, Finance
+   */
+  _canEditNsaRefundedDate() {
+    return this._canEditAllNsaColumns() || this._isFinanceRole();
+  }
+
+  /**
+   * NSA: Can edit Payment Time column
+   * Allowed: Admin, Ops in-charge, Sub Admin, Finance
+   */
+  _canEditNsaPaymentTime() {
+    return this._canEditAllNsaColumns() || this._isFinanceRole();
+  }
+
+  /**
+   * NSA: Can edit Refunded Time column
+   * Allowed: Admin, Ops in-charge, Sub Admin, Finance
+   */
+  _canEditNsaRefundedTime() {
+    return this._canEditAllNsaColumns() || this._isFinanceRole();
+  }
+
+  /**
+   * NSA: Can edit Remarks column
+   * Allowed: All roles (Admin, Ops in-charge, Sub Admin, Finance, NSA in-charge, Site in-charge, Fitness Trainer, Social Worker)
+   */
+  _canEditNsaRemarks() {
+    return true; // All roles can edit remarks
   }
 
   _getNsaPaymentStatusDisplayValue(columnName, rowData = {}) {
@@ -269,20 +399,31 @@ class RegistrationPaymentSection extends Component {
   _getNsaPaymentStatusEditorValues = (params) => {
     const { courseInfo } = params?.data || {};
     const courseType  = courseInfo?.courseType;
+
+    // NSA courses: show different payment status options for SkillsFuture vs Cash/PayNow
+    if (courseType === 'NSA') {
+      const resolvedMethod = this._getResolvedNsaPaymentMethod(params?.data || {});
+      if (resolvedMethod === 'SkillsFuture') {
+        return {
+          values: [
+            'Pending',
+            'Generating SkillsFuture Invoice',
+            'SkillsFuture Done',
+            'Cancelled',
+            'Withdrawn',
+            'Refunded',
+            'To refund',
+          ],
+        };
+      }
+
+      return {
+        values: ['Paid', 'Pending', 'To refund', 'Cancelled - No payment received', 'Refunded'],
+      };
+    }
+
     const coursePrice = courseInfo?.coursePrice;
     const price       = parseFloat((coursePrice || '0').replace('$', ''));
-    const paymentMethod = this._getResolvedNsaPaymentMethod(params?.data);
-
-    // NSA Cash/PayNow: always show these 5 options in a fixed order
-    if (courseType === 'NSA' && paymentMethod !== 'SkillsFuture') {
-      return { values: ['Paid', 'Pending', 'To refund', 'Cancelled - No payment received', 'Refunded'] };
-    }
-
-    // NSA SkillsFuture: always show these 6 options in a fixed order
-    if (courseType === 'NSA' && paymentMethod === 'SkillsFuture') {
-      return { values: ['Pending', 'Generating SkillsFuture Invoice', 'SkillsFuture Done', 'Cancelled', 'To refund', 'Refunded'] };
-    }
-
     const { paymentStatus } = params?.data || {};
     let base;
     if (
@@ -1539,15 +1680,23 @@ class RegistrationPaymentSection extends Component {
       {
         headerName: 'Registration Status',
         field: 'registrationStatus',
-        width: 500,
+        width: 750,
         cellEditor: 'agSelectCellEditor',
         cellEditorParams: (params) => {
-          const currentStatus = params.data?.registrationStatus || 'Submitted';
-          const allOptions = ['Submitted', 'Confirmed Slot', 'Cancelled for duplication', 'Withdrawn', 'Not Successful'];
-          const filtered = allOptions.filter((s) => s !== currentStatus);
-          return { values: [currentStatus, ...filtered] };
+          const courseType = String(params.data?.courseInfo?.courseType || params.data?.courseType || '').trim();
+          if (courseType === 'NSA') {
+            return { values: ['Submitted', 'Confirmed Slot', 'Cancelled for duplication', 'Withdrawn', 'Not Successful'] };
+          }
+          return { values: ['Pending', 'Confirmed', 'Withdrawn', 'Not Successful'] };
         },
-        editable: (params) => canEdit || canSocialWorkerEdit(params) || canSiteInChargeEdit(params),
+        editable: (params) => {
+          const courseType = String(params.data?.courseInfo?.courseType || params.data?.courseType || '').trim();
+          const canEditNsaStatus = courseType === 'NSA' ? this._canEditNsaRegistrationStatus() : (canEdit || canSocialWorkerEdit(params) || canSiteInChargeEdit(params));
+          console.log('📋 [Registration Status Column] CourseType:', courseType, '| Can Edit:', canEditNsaStatus, '| Row:', params.data?.name);
+          if (courseType === 'NSA') return canEditNsaStatus;
+          return canEdit || canSocialWorkerEdit(params) || canSiteInChargeEdit(params);
+        },
+        singleClickEdit: true,
         valueGetter: (params) => params.data?.registrationStatus || '',
         valueSetter: (params) => {
           if (params.newValue && params.newValue !== params.oldValue) {
@@ -1557,7 +1706,7 @@ class RegistrationPaymentSection extends Component {
           return false;
         },
         cellRenderer: PaymentStatusRenderer,
-        cellStyle: centeredCellStyle,
+        cellStyle: { ...centeredCellStyle, fontSize: '15px' },
         hide: shouldHidePaymentColumns,
       },
       {
@@ -1567,7 +1716,7 @@ class RegistrationPaymentSection extends Component {
         cellRenderer: FinalPaymentMethodRenderer,
         editable: (params) => {
           const courseType = String(params.data?.courseInfo?.courseType || params.data?.courseType || '').trim();
-          if (courseType === 'NSA') return this._canEditNsaSensitiveColumns();
+          if (courseType === 'NSA') return this._canEditNsaFinalPaymentMethod();
           return true;
         },
         cellStyle: centeredCellStyle,
@@ -1591,7 +1740,11 @@ class RegistrationPaymentSection extends Component {
         headerName: 'Confirmation Status',
         field: 'confirmed',
         cellRenderer: SlideButtonRenderer,
-        editable: false,
+        editable: (params) => {
+          const courseType = String(params.data?.courseInfo?.courseType || params.data?.courseType || '').trim();
+          if (courseType === 'NSA') return this._canEditNsaConfirmationStatus();
+          return false;
+        },
         width: 300,
         cellStyle: centeredCellStyle,
         hide: selectedCourseType !== 'NSA',
@@ -1604,9 +1757,11 @@ class RegistrationPaymentSection extends Component {
             field: 'paymentStatus',
             cellRenderer: PaymentStatusRenderer,
             cellEditor: 'agSelectCellEditor',
-            cellEditorParams: (params) => this._getNsaPaymentStatusEditorValues(params),
+            cellEditorParams: (params) => ({
+              values: this._getNsaPaymentStatusEditorValues(params).values,
+            }),
             editable: (params) => {
-              return this._canEditNsaCashPayNowStatus() && this._isActiveNsaPaymentStatusColumn('Payment Status (Cash/PayNow)', params.data);
+              return this._canEditNsaCashPayNowPaymentStatus() && this._isActiveNsaPaymentStatusColumn('Payment Status (Cash/PayNow)', params.data);
             },
             valueGetter: (params) => this._getNsaPaymentStatusDisplayValue('Payment Status (Cash/PayNow)', params.data),
             valueSetter: (params) => {
@@ -1616,8 +1771,8 @@ class RegistrationPaymentSection extends Component {
               }
               return false;
             },
-            width: 500,
-            cellStyle: centeredCellStyle,
+            width: 750,
+            cellStyle: { ...centeredCellStyle, fontSize: '15px' },
           },
           {
             headerName: 'Payment Status (SkillsFuture)',
@@ -1625,9 +1780,11 @@ class RegistrationPaymentSection extends Component {
             field: 'paymentStatus',
             cellRenderer: PaymentStatusRenderer,
             cellEditor: 'agSelectCellEditor',
-            cellEditorParams: (params) => this._getNsaPaymentStatusEditorValues(params),
+            cellEditorParams: (params) => ({
+              values: this._getNsaPaymentStatusEditorValues(params).values,
+            }),
             editable: (params) => {
-              return this._canEditNsaSkillsFutureStatus() && this._isActiveNsaPaymentStatusColumn('Payment Status (SkillsFuture)', params.data);
+              return this._canEditNsaSkillsFuturePaymentStatus() && this._isActiveNsaPaymentStatusColumn('Payment Status (SkillsFuture)', params.data);
             },
             valueGetter: (params) => this._getNsaPaymentStatusDisplayValue('Payment Status (SkillsFuture)', params.data),
             valueSetter: (params) => {
@@ -1637,8 +1794,8 @@ class RegistrationPaymentSection extends Component {
               }
               return false;
             },
-            width: 500,
-            cellStyle: centeredCellStyle,
+            width: 750,
+            cellStyle: { ...centeredCellStyle, fontSize: '15px' },
           },
 
         ]
@@ -1654,7 +1811,11 @@ class RegistrationPaymentSection extends Component {
         headerName: 'Payment Date',
         field: 'paymentDate',
         width: 350,
-        editable: (params) => canEdit || canSocialWorkerEdit(params) || canSiteInChargeEdit(params),
+        editable: (params) => {
+          const courseType = String(params.data?.courseInfo?.courseType || params.data?.courseType || '').trim();
+          if (courseType === 'NSA') return this._canEditNsaPaymentDate();
+          return canEdit || canSocialWorkerEdit(params) || canSiteInChargeEdit(params);
+        },
         cellStyle: centeredCellStyle,
         hide: shouldHidePaymentColumns,
       },
@@ -1662,7 +1823,11 @@ class RegistrationPaymentSection extends Component {
         headerName: 'Payment Time',
         field: 'paymentTime',
         width: 300,
-        editable: false,
+        editable: (params) => {
+          const courseType = String(params.data?.courseInfo?.courseType || params.data?.courseType || '').trim();
+          if (courseType === 'NSA') return this._canEditNsaPaymentTime();
+          return false; // Non-NSA courses: not editable
+        },
         cellStyle: centeredCellStyle,
         hide: shouldHidePaymentColumns,
       },
@@ -1671,8 +1836,8 @@ class RegistrationPaymentSection extends Component {
         field: 'refundedDate',
         width: 350,
         editable: (params) => {
-          const courseType = String(params.data?.courseInfo?.courseType || '').trim();
-          if (courseType === 'NSA') return this._canEditNsaSensitiveColumns();
+          const courseType = String(params.data?.courseInfo?.courseType || params.data?.courseType || '').trim();
+          if (courseType === 'NSA') return this._canEditNsaRefundedDate();
           return canEdit || canSocialWorkerEdit(params) || canSiteInChargeEdit(params);
         },
         cellStyle: centeredCellStyle,
@@ -1682,7 +1847,11 @@ class RegistrationPaymentSection extends Component {
         headerName: 'Refunded Time',
         field: 'refundedTime',
         width: 300,
-        editable: false,
+        editable: (params) => {
+          const courseType = String(params.data?.courseInfo?.courseType || params.data?.courseType || '').trim();
+          if (courseType === 'NSA') return this._canEditNsaRefundedTime();
+          return false; // Non-NSA courses: not editable
+        },
         cellStyle: centeredCellStyle,
         hide: shouldHidePaymentColumns,
       },
@@ -1766,7 +1935,11 @@ class RegistrationPaymentSection extends Component {
         headerName: 'Remarks',
         field: 'remarks',
         width: 900,
-        editable: true,
+        editable: (params) => {
+          const courseType = String(params.data?.courseInfo?.courseType || params.data?.courseType || '').trim();
+          if (courseType === 'NSA') return this._canEditNsaRemarks();
+          return true; // Non-NSA courses: all users can edit remarks
+        },
         cellStyle: centeredCellStyle,
       },
     ];
@@ -3134,7 +3307,7 @@ class RegistrationPaymentSection extends Component {
             onExportAttendance={this.exportAttendance}
             onExportMarriagePrep={this.exportToMarriagePreparationProgramme}
             onOpenBulkUpdate={this.openBulkUpdateModal}
-            hideBulkUpdate={this.props.selectedCourseType === 'NSA'}
+            hideBulkUpdate={true}
             isReadOnly={isReadOnlyUser(this.props.userEmail)}
             approvalQueueCount={approvalQueue.length}
             onOpenApprovalQueue={this._openApprovalQueueModal}

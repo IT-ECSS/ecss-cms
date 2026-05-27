@@ -2,6 +2,8 @@ import requests
 from django.conf import settings
 import re
 import unicodedata
+from pymongo import MongoClient
+import os
 
 def normalize_string(s):
     """
@@ -206,78 +208,177 @@ class WooCommerceAPI:
             print(f"Error fetching products: {e}")
             return None
 
-    def updateCourseQuantity(self, product_id, status):
+    def getProductIdAndQuantity(self, chinese, english, location):
+        """Fetches the product ID and stock quantity by matching Chinese, English, and Location names from WooCommerce."""
+        try:
+            page = 1
+            per_page = 100  # Number of products to fetch per page
+            matched_product_id = None  # Variable to store matched product ID
+            matched_product_stock = None  # Variable to store matched product stock quantity
+            
+            # Normalize input parameters
+            normalized_chinese = normalize_string(chinese)
+            normalized_english = normalize_string(english)
+            normalized_location = normalize_string(location)
+
+            while True:
+                # Fetch products for the current page
+                url = f"{self.base_url}products"
+                params = {
+                    'per_page': per_page,
+                    'page': page,
+                }
+
+                response = requests.get(url, params=params, auth=self.auth)
+                response.raise_for_status()  # Ensure we raise an error for bad requests
+
+                products = response.json()  # Get products from the response
+
+                # If no products are returned, break the loop
+                if not products:
+                    break
+
+                # Check each product and split by <br/> or <br />
+                for product in products:
+                    product_name = product['name']
+                    split_name = re.split(r'<br\s*/?>', product_name)
+
+                    if len(split_name) == 3:
+                        chinese_name = normalize_string(split_name[0])
+                        english_name = normalize_string(split_name[1])
+                        location_name = normalize_string(split_name[2])
+
+                        # If the product matches the input chinese, english, and location, store product ID and stock quantity
+                        if chinese_name == normalized_chinese and english_name == normalized_english and location_name == normalized_location:
+                            matched_product_id = product['id']
+                            matched_product_stock = product.get('stock_quantity', 0)
+                            break  # Exit the loop if the product is found
+
+                # If we found the matched product, stop fetching more pages
+                if matched_product_id:
+                    break
+
+                page += 1  # Move to the next page
+
+            # Return the matched product ID and stock quantity if found, otherwise None
+            if matched_product_id:
+                return {
+                    "id": matched_product_id,
+                    "quantity": matched_product_stock,
+                    "exist": True
+                }
+            else:
+                return {
+                    "id": None,
+                    "quantity": None,
+                    "exist": False
+                }
+
+        except requests.exceptions.RequestException as e:
+            # Handle any errors during the request
+            print(f"Error fetching products: {e}")
+            return {
+                "id": None,
+                "quantity": None,
+                "exist": False,
+                "error": str(e)
+            }
+
+    def get_nsa_vacancies_from_mongodb(self, chinese_name, english_name, location):
         """
-        Updates the product stock based on the product ID and the status.
-        Handles all payment methods including SkillsFuture and refund scenarios.
+        Get the authoritative vacancies count for NSA courses from MongoDB.
+        Queries the Registration Forms collection to count booked slots and calculates remaining vacancies.
+        
         Arguments:
-            - product_id: The ID of the product to update.
-            - status: The status to update stock based on ("Cancelled", "Paid", "SkillsFuture Done", "Refunded", "Withdrawn", "To refund").
+            - chinese_name: Chinese name of the course
+            - english_name: English name of the course
+            - location: Location of the course
+            
+        Returns:
+            - remaining_vacancies: Number of available slots (capacity - booked_count)
         """
         try:
-            # Fetch current product details
+            # Get MongoDB connection string from settings
+            mongo_uri = settings.MONGODB_URI if hasattr(settings, 'MONGODB_URI') else os.environ.get('MONGODB_URI')
+            if not mongo_uri:
+                print("WARNING: MONGODB_URI not configured, falling back to WooCommerce vacancies")
+                return None
+            
+            client = MongoClient(mongo_uri)
+            db = client['ecss']  # Database name
+            collection = db['Registration Forms']  # Collection name
+            
+            print(f"[NSA MongoDB Query] Searching for course - Chinese: {chinese_name}, English: {english_name}, Location: {location}")
+            
+            # Query for registrations matching this course
+            query = {
+                'course_name_ch': normalize_string(chinese_name),
+                'course_name': normalize_string(english_name),
+                'location': normalize_string(location),
+                'course_type': 'NSA'  # Only for NSA courses
+            }
+            
+            # Count booked registrations (only these statuses count as occupying a slot)
+            booked_statuses = ["Paid", "Confirmed Slot", "SkillsFuture Done"]
+            booked_query = {**query, 'booked_status': {'$in': booked_statuses}}
+            booked_count = collection.count_documents(booked_query)
+            
+            print(f"[NSA MongoDB Query] Booked count: {booked_count}")
+            
+            # Get total course capacity
+            # Query for any document matching this course to get the capacity
+            course_doc = collection.find_one(query)
+            if course_doc and 'vacancies' in course_doc:
+                total_capacity = course_doc.get('vacancies', 30)
+            else:
+                total_capacity = 30  # Default capacity
+            
+            print(f"[NSA MongoDB Query] Total capacity: {total_capacity}")
+            
+            # Calculate remaining vacancies
+            remaining_vacancies = max(0, total_capacity - booked_count)
+            
+            print(f"[NSA MongoDB Query] Remaining vacancies: {remaining_vacancies}")
+            
+            client.close()
+            return remaining_vacancies
+            
+        except Exception as e:
+            print(f"ERROR: Failed to get NSA vacancies from MongoDB: {e}")
+            return None
+
+    def updateCourseQuantity(self, product_id, status):
+        """
+        Updates the product stock based on payment status.
+        
+        Stock Update Rules:
+        - Refunded, Change of Final Payment Method: +1 (refund restores stock)
+        - Paid, SkillsFuture Done: -1 (payment reduces stock)
+        
+        Arguments:
+            - product_id: The ID of the product to update.
+            - status: Payment/refund status
+            - chi_name, eng_name, location: Optional parameters for compatibility
+        """
+        try:
+            # Fetch current product stock from WooCommerce
             url = f"{settings.WOOCOMMERCE_API_URL}products/{product_id}"
             response = requests.get(url, auth=self.auth)
             response.raise_for_status()
-
+            
             product = response.json()
-            print("Updating Product Stock:", status)
-
-            # Get the current stock quantity
             original_stock_quantity = product.get("stock_quantity", 0)
-            new_stock_quantity = original_stock_quantity  # Start with current stock
-            print("Current Stock Quantity:", new_stock_quantity)
-
-            # Parse short description to find "vacancy"
-            short_description = product.get("short_description", "")
-            array = short_description.split("<p>")
-            if array and array[0] == '':
-                array.pop(0)  # Remove empty first entry
-
-            # Extract the number of vacancies directly within this function
-            vacancies_text = next(
-                (item.replace("\n", "").replace("<b>", "").replace("</b>", "")
-                for item in array if "vacancy" in item.lower()),
-                ""
-            ).split("<br />")[-1].strip()
-            vacancies_text = vacancies_text.replace("</p>", "").strip()        
-
-            print("Vacancies Text:", vacancies_text)
-
-            # Extract actual vacancies number using a regex directly in this function
-            vacancies_match = re.search(r'(\d+)\s*Vacancies', vacancies_text)
-            if vacancies_match:
-                vacancies = int(vacancies_match.group(1))
-            else:
-                vacancies = 0  # Return 0 if no vacancies are found
-
-            print("Actual Vacancies:", vacancies)
-
-            print(f"Processing status: {status}")
-
-            # **Stock Update Logic - Applies to all payment methods (Cash, PayNow, SkillsFuture)**
-            # Refund statuses: restore vacancies (increase stock)
-            # NOTE: "To refund" does NOT trigger updates - only actual refund/cancellation/withdrawal/method-change do
-            if status in ["Cancelled", "Withdrawn", "Refunded", "Change of Final Payment Method"]:
-                if new_stock_quantity < vacancies:  # Only increase stock if it is below vacancies
-                    print("Increase stock by 1")
-                    new_stock_quantity += 1
-                else:
-                    print("Stock is full, no increase.")  # Prevent increase beyond vacancies
-
-            # Payment statuses: decrease vacancies (reduce stock) - applies to all payment methods
-            elif status in ["Paid", "SkillsFuture Done", "Confirmed"]:
-                if new_stock_quantity > 0:  # Only decrease if stock is greater than 0
-                    print("Decrease stock by 1")
-                    new_stock_quantity -= 1  
-                else:
-                    print("Stock is already 0, cannot decrease further.")  # Prevents negative stock
-            else:
-                print(f"Unhandled status: '{status}' - no stock update performed")
-
-            print("Updated Stock Quantity:", new_stock_quantity)
-
-            # Only update stock if it has changed
+            new_stock_quantity = original_stock_quantity
+            
+            # Stock Update Logic - simple increment/decrement
+            if status in ["Refunded", "Change of Final Payment Method"]:
+                new_stock_quantity += 1
+            elif status in ["Paid", "SkillsFuture Done"]:
+                new_stock_quantity -= 1
+            
+            print(f"[Stock Update] Product ID: {product_id} | Status: {status} | Current: {original_stock_quantity} → New: {new_stock_quantity}")
+            
+            # Only update if changed
             if new_stock_quantity == original_stock_quantity:
                 return {
                     'success': True,
@@ -285,12 +386,15 @@ class WooCommerceAPI:
                     'product_id': product_id,
                     'stock_quantity': new_stock_quantity,
                 }
-
-            update_data = {"stock_quantity": new_stock_quantity}
-            update_response = requests.put(f"{settings.WOOCOMMERCE_API_URL}products/{product_id}",
-                                            json=update_data, auth=self.auth)
-            update_response.raise_for_status()
-
+            
+            # Update WooCommerce
+            update_data = {"stock_quantity": new_stock_quantity, "manage_stock": True}
+            requests.put(
+                f"{settings.WOOCOMMERCE_API_URL}products/{product_id}",
+                json=update_data,
+                auth=self.auth
+            ).raise_for_status()
+            
             return {
                 'success': True,
                 'message': 'Stock updated successfully',
@@ -298,16 +402,16 @@ class WooCommerceAPI:
                 'previous_stock': original_stock_quantity,
                 'stock_quantity': new_stock_quantity,
             }
-
+            
         except requests.exceptions.RequestException as e:
-            print(f"Error updating product stock: {e}")
+            print(f"[ERROR] WooCommerce request failed: {str(e)}")
             return {
                 'success': False,
                 'error': f'WooCommerce request failed: {str(e)}',
                 'product_id': product_id,
             }
         except Exception as e:
-            print(f"Unexpected error updating product stock: {e}")
+            print(f"[ERROR] {str(e)}")
             return {
                 'success': False,
                 'error': str(e),
