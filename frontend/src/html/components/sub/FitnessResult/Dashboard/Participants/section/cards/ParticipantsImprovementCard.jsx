@@ -67,6 +67,7 @@ class ParticipantsImprovementCard extends Component {
 
     let count = 0;
     qualifiedParticipants.forEach(participant => {
+      let hasImprovement = false;
       for (let i = 0; i < years.length - 1; i++) {
         const curr = participant.years[years[i]];
         const next = participant.years[years[i + 1]];
@@ -78,17 +79,26 @@ class ParticipantsImprovementCard extends Component {
           if (a === undefined || b === undefined || isNaN(a) || isNaN(b)) return;
           if (metric.higherIsBetter ? b > a : b < a) improvedCount++;
         });
-        if (improvedCount >= stationCount) { count++; break; }
+        // Check if participant improved in at least stationCount stations (≥) in ANY year transition
+        if (improvedCount >= stationCount) {
+          hasImprovement = true;
+          break;
+        }
       }
+      if (hasImprovement) count++;
     });
     return count;
   };
 
   calculateImprovementRate = (data, stationCount = 1) => {
     const total = this.getMultiYearParticipants(data);
-    if (!total) return '—';
+    if (!total) return { improved: 0, total: 0, percentage: '—' };
     const improved = this.calculateImprovementCount(data, stationCount);
-    return `${parseFloat(((improved / total) * 100).toFixed(2))}%`;
+    return {
+      improved,
+      total,
+      percentage: `${parseFloat(((improved / total) * 100).toFixed(2))}%`
+    };
   };
 
   calculateParticipantsImprovementUnique = (data, stationCount = 1) => {
@@ -112,7 +122,7 @@ class ParticipantsImprovementCard extends Component {
         if (!currentYearData || !nextYearData) return;
         participantsWithData++;
         let improvedCount = 0;
-        FITNESS_METRICS.slice(0, stationCount).forEach(metric => {
+        FITNESS_METRICS.forEach(metric => {
           const currentValue = currentYearData[metric.key];
           const nextValue = nextYearData[metric.key];
           if (currentValue !== undefined && nextValue !== undefined && !isNaN(currentValue) && !isNaN(nextValue)) {
@@ -139,86 +149,85 @@ class ParticipantsImprovementCard extends Component {
     const { data } = this.props;
     const { selectedStationCountParticipants } = this.state;
 
-    const displayValue = this.calculateImprovementRate(data, selectedStationCountParticipants);
+    const stats = this.calculateImprovementRate(data, selectedStationCountParticipants);
 
     return (
-      <div className="fft-dash-kpi-card fft-dash-kpi-improvement" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div className="fft-dash-kpi-card fft-dash-kpi-improvement" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '16px', gridAutoRows: 'auto' }}>
         {/* Top Main Section: Number of Stations */}
-        <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
-          <div style={{ flex: 1 }}>
-            <label className="fft-dash-kpi-label" style={{ marginBottom: '0', whiteSpace: 'nowrap' }}>Number of Stations</label>
-          </div>
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', position: 'relative' }} className="participants-improvement-dropdown" onClick={(e) => e.stopPropagation()}>
-            <button
-              ref={this.buttonRef}
-              onClick={(e) => {
-                e.stopPropagation();
-                this.toggleDropdown();
-              }}
-              style={{
-                padding: '6px 12px',
-                borderRadius: '4px',
-                border: '1px solid #cbd5e1',
-                background: '#f8fafc',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                color: '#000000',
-              }}
-            >
-              {selectedStationCountParticipants}
-              <span style={{ fontSize: '12px' }}>▼</span>
-            </button>
+        <div>
+          <label className="fft-dash-kpi-label" style={{ marginBottom: '0', whiteSpace: 'nowrap' }}>Number of Stations</label>
+        </div>
+        <div style={{ width: 'fit-content', position: 'relative', justifySelf: 'end' }} className="participants-improvement-dropdown" onClick={(e) => e.stopPropagation()}>
+          <button
+            ref={this.buttonRef}
+            onClick={(e) => {
+              e.stopPropagation();
+              this.toggleDropdown();
+            }}
+            style={{
+              padding: '6px 12px',
+              borderRadius: '4px',
+              border: '1px solid #cbd5e1',
+              background: '#f8fafc',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              color: '#000000',
+            }}
+          >
+            {selectedStationCountParticipants}
+            <span style={{ fontSize: '12px' }}>▼</span>
+          </button>
 
-            {this.state.isDropdownOpen && (
-              <div style={{
-                position: 'absolute',
-                top: '100%',
-                right: 0,
-                marginTop: '4px',
-                backgroundColor: '#ffffff',
-                border: '1px solid #cbd5e1',
-                borderRadius: '4px',
-                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                zIndex: 10,
-                width: `${this.state.buttonWidth}px`
-              }}>
-                {FITNESS_METRICS.map((m, idx) => {
-                  const optionNumber = idx + 1;
-                  return (
-                    <div
-                      key={optionNumber}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        this.handleOptionSelect(optionNumber);
-                      }}
-                      style={{
-                        padding: '8px 12px',
-                        cursor: 'pointer',
-                        backgroundColor: selectedStationCountParticipants === optionNumber ? '#e2e8f0' : '#ffffff',
-                        fontSize: '14px',
-                        color: '#000000',
-                        fontWeight: '500'
-                      }}
-                    >
-                      {optionNumber}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          {this.state.isDropdownOpen && (
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              right: 0,
+              marginTop: '4px',
+              backgroundColor: '#ffffff',
+              border: '1px solid #cbd5e1',
+              borderRadius: '4px',
+              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+              zIndex: 10,
+              width: 'fit-content'
+            }}>
+              {FITNESS_METRICS.map((m, idx) => {
+                const optionNumber = idx + 1;
+                return (
+                  <div
+                    key={optionNumber}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      this.handleOptionSelect(optionNumber);
+                    }}
+                    style={{
+                      padding: '8px 12px',
+                      cursor: 'pointer',
+                      backgroundColor: selectedStationCountParticipants === optionNumber ? '#e2e8f0' : '#ffffff',
+                      fontSize: '14px',
+                      color: '#000000',
+                      fontWeight: '500'
+                    }}
+                  >
+                    {optionNumber}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
+        {/* Border separator */}
+        <div style={{ gridColumn: '1 / 3', height: '1px', backgroundColor: '#e2e8f0', margin: '8px -20px 0 -20px' }}></div>
+
         {/* Improvement by Year */}
-        <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: '16px', paddingTop: '16px', borderTop: '1px solid #e2e8f0' }}>
-          <div style={{ flex: 1 }}>
-            <span className="fft-dash-kpi-label" style={{ marginBottom: '0' }}>Improvement by Year</span>
-          </div>
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
-            <span className="fft-dash-kpi-value">{displayValue}</span>
-          </div>
+        <div>
+          <span className="fft-dash-kpi-label" style={{ marginBottom: '0' }}>Improvement by Year</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', justifySelf: 'end' }}>
+          <span className="fft-dash-kpi-value">{stats.percentage}</span>
         </div>
       </div>
     );

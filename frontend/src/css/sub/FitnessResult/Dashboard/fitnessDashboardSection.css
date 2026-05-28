@@ -82,9 +82,19 @@
 /* ==================== SECTIONS WRAPPER ==================== */
 .fft-dash-sections-wrapper {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
   gap: 24px;
   padding: 24px;
+  padding-bottom: 32px;
+  margin-bottom: 24px;
+  min-width: 0;
+  overflow-x: visible;
+  align-items: start;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.fft-dash-sections-wrapper > * {
+  min-width: 0;
 }
 
 /* When only one section is visible (via tabs), use single column */
@@ -100,6 +110,9 @@
   border: 1px solid #e2e8f0;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   margin: 24px;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 /* Top KPI row */
@@ -127,10 +140,29 @@
 }
 
 .fft-dash-chart-section-title {
-  font-size: 20px;
-  font-weight: 600;
+  font-size: 24px;
+  font-weight: 700;
   color: #1e293b;
   margin: 0 0 18px 0;
+}
+
+/* Gender Distribution Section with Divider */
+.fft-dash-gender-section-with-divider {
+  border-bottom: 2px solid #e2e8f0;
+  padding: 24px;
+  padding-bottom: 32px;
+  margin-bottom: 32px;
+  width: 100%;
+  box-sizing: border-box;
+  background: white;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.fft-dash-gender-section-with-divider.fft-dash-chart-section {
+  padding: 24px;
+  padding-bottom: 32px;
 }
 
 /* ==================== LEFT AND RIGHT SECTIONS ==================== */
@@ -140,6 +172,8 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .fft-dash-left-section {
@@ -202,7 +236,7 @@
 /* ==================== SECTION TITLE ROW ==================== */
 .fft-dash-blocks-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 24px;
   margin-bottom: 48px;
 }
@@ -210,7 +244,7 @@
 /* ==================== HORIZONTAL CHARTS ROW ==================== */
 .fft-dash-charts-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 24px;
   margin-bottom: 48px;
 }
@@ -234,7 +268,7 @@
 /* ==================== HORIZONTAL GENDER DISTRIBUTION ROW ==================== */
 .fft-dash-gender-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 24px;
   margin-bottom: 48px;
 }
@@ -343,9 +377,10 @@
 
 .fft-dash-section-wrapper {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 24px;
   margin-bottom: 48px;
+  min-width: 0;
 }
 
 /* Blocks */
@@ -396,12 +431,24 @@
 /* ==================== KPI ROW - HORIZONTAL LAYOUT ==================== */
 .fft-dash-kpi-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 12px;
   width: 100%;
   margin-bottom: 16px;
   padding-bottom: 16px;
+  box-sizing: border-box;
   /*border-bottom: 1px solid #e2e8f0;*/
+}
+
+.fft-dash-kpi-improvement {
+  grid-column: 1 / 2;
+  grid-row: 3;
+}
+
+.fft-dash-kpi-improvement.fft-dash-kpi-card {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
 }
 
 /* KPI Cards */
@@ -412,9 +459,12 @@
   border: 1px solid #e2e8f0;
   transition: all 0.2s ease;
   display: flex;
+  flex-direction: row;
   align-items: center;
+  justify-content: space-between;
   gap: 16px;
-}
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .fft-dash-kpi-card:hover {
@@ -470,11 +520,16 @@
 
 .fft-dash-kpi-value {
   display: block;
+  width: 100%;
+  text-align: right;
   font-size: 48px;
   font-weight: 700;
   color: #1e293b;
   line-height: 1;
   margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .fft-dash-kpi-label {
@@ -482,6 +537,8 @@
   font-size: 21px;
   color: #64748b;
   font-weight: 700;
+  white-space: normal;
+  word-break: break-word;
 }
 
 
@@ -727,7 +784,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 21px;
+  font-size: 31.5px;
   font-weight: 600;
   color: #475569;
 }
@@ -782,14 +839,19 @@
   padding: 12px;
   border: 1px solid #e2e8f0;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .fft-dash-year-kpi-card .fft-dash-kpi-label {
-  font-size: 18px;
+  font-size: 12px;
   color: #64748b;
   font-weight: 500;
+  white-space: normal;
+  word-break: break-word;
+  flex-shrink: 0;
 }
 
 .fft-dash-year-kpi-card .fft-dash-kpi-value {
@@ -926,18 +988,19 @@
   background: white;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
-  overflow-x: auto;
   display: flex;
   justify-content: center;
+  box-sizing: border-box;
 }
 
 .fft-dash-chart-canvas {
   width: 100%;
-  max-width: 1000px;
+  max-width: 100%;
   height: 500px;
   display: block;
   border: 1px solid #e2e8f0;
   border-radius: 4px;
+  box-sizing: border-box;
 }
 
 .fft-dash-chart-empty {
@@ -968,7 +1031,7 @@
 }
 
 .fft-dash-legend-year {
-  font-size: 18px;
+  font-size: 27px;
   font-weight: 500;
   color: #64748b;
 }
@@ -1062,7 +1125,7 @@
 
 .fft-dash-gender-kpi-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
 }
 
@@ -1083,10 +1146,11 @@
 }
 
 .fft-dash-gender-kpi-card .fft-dash-kpi-label {
-  font-size: 18px;
+  font-size: 18.9px;
   color: #64748b;
   margin-bottom: 9px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .fft-dash-gender-kpi-card .fft-dash-kpi-value {
@@ -1110,14 +1174,15 @@
   border: 1px solid #e2e8f0;
   display: flex;
   justify-content: center;
-  overflow-x: auto;
+  box-sizing: border-box;
 }
 
 .fft-dash-gender-chart-container canvas {
   width: 100%;
-  max-width: 1000px;
+  max-width: 100%;
   height: 500px;
   display: block;
+  box-sizing: border-box;
 }
 
 @media (max-width: 1200px) {
@@ -1256,7 +1321,7 @@
 
 .fft-dash-comparison-items {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 18px;
 }
 

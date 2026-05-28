@@ -63,8 +63,8 @@ class ParticipantsChartBlock extends Component {
     ctx.lineTo(width - padding.right, height - padding.bottom);
     ctx.stroke();
 
-    ctx.fillStyle = '#64748b';
-    ctx.font = '12px sans-serif';
+    ctx.fillStyle = '#000000';
+    ctx.font = '18px sans-serif';
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
     for (let i = 0; i <= 5; i++) {
@@ -79,9 +79,9 @@ class ParticipantsChartBlock extends Component {
       ...p
     }));
 
-    const lineColor = '#16a34a';
-    const pointColor = '#16a34a';
-    const valueColor = '#16a34a';
+    const lineColor = '#8B6F47';
+    const pointColor = '#8B6F47';
+    const valueColor = '#8B6F47';
 
     ctx.strokeStyle = lineColor;
     ctx.lineWidth = 3;
@@ -101,8 +101,8 @@ class ParticipantsChartBlock extends Component {
       ctx.fill();
     }
 
-    ctx.fillStyle = '#64748b';
-    ctx.font = '12px sans-serif';
+    ctx.fillStyle = '#000000';
+    ctx.font = '18px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     for (const p of points) {
@@ -110,7 +110,7 @@ class ParticipantsChartBlock extends Component {
     }
 
     ctx.fillStyle = valueColor;
-    ctx.font = 'bold 13px sans-serif';
+    ctx.font = 'bold 19.5px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
     for (const p of points) {
@@ -121,8 +121,8 @@ class ParticipantsChartBlock extends Component {
     const legendY = height - 20;
     ctx.fillStyle = lineColor;
     ctx.fillRect(legendX, legendY, 12, 12);
-    ctx.fillStyle = '#64748b';
-    ctx.font = '13px sans-serif';
+    ctx.fillStyle = '#000000';
+    ctx.font = '19.5px sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     ctx.fillText(legendLabel, legendX + 18, legendY + 6);

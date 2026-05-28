@@ -6,7 +6,10 @@ class ParticipationsTotalCard extends Component {
 
     return (
       <div className="fft-dash-kpi-card">
-        <div className="fft-dash-kpi-label">Total Participations (Attendance)</div>
+        <div className="fft-dash-kpi-label">
+          <div style={{ whiteSpace: 'nowrap' }}>Participations</div>
+          <div style={{ whiteSpace: 'nowrap' }}>(Attendance)</div>
+        </div>
         <div className="fft-dash-kpi-value">{totalParticipations}</div>
       </div>
     );

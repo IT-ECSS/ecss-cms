@@ -5,7 +5,10 @@ class ParticipantsFemaleCard extends Component {
     const { totalParticipants, femaleCount } = this.props;
     return (
       <div className="fft-dash-kpi-card fft-dash-kpi-female">
-        <div className="fft-dash-kpi-label">Female Participants</div>
+        <div className="fft-dash-kpi-label">
+          <div style={{ whiteSpace: 'nowrap' }}>Female</div>
+          <div style={{ whiteSpace: 'nowrap' }}>Participants</div>
+        </div>
         <div className="fft-dash-kpi-value">
           {femaleCount}
         </div>

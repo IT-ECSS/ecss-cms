@@ -6,7 +6,10 @@ class ParticipationsMaleCard extends Component {
 
     return (
       <div className="fft-dash-kpi-card fft-dash-kpi-male">
-        <div className="fft-dash-kpi-label">Participations (Male)</div>
+        <div className="fft-dash-kpi-label">
+          <div style={{ whiteSpace: 'nowrap' }}>Participations</div>
+          <div style={{ whiteSpace: 'nowrap' }}>(Male)</div>
+        </div>
         <div className="fft-dash-kpi-value">{maleParticipations}</div>
       </div>
     );
