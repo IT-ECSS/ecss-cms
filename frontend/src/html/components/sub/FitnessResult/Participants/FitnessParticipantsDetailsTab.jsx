@@ -1,8 +1,36 @@
 import React, { Component } from 'react';
 import { AgGridReact } from 'ag-grid-react';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
+import ActionButtonRow from './components/ActionButtonRow';
+import ColumnTogglePanel from './components/ColumnTogglePanel';
 import '../../../../../css/ag-grid-custom-theme.css'; // Import custom AgGrid theme
+import '../../../../../css/column-toggle-panel.css'; // Import column toggle panel styles (from src/css)
 
 // ─── Shared filter helpers ─────────────────────────────────────────────────────
+
+/**
+ * Get skipped years between two years
+ */
+const getSkippedYears = (fromYear, toYear) => {
+  const from = parseInt(fromYear);
+  const to = parseInt(toYear);
+  if (to <= from + 1) return [];
+  const skipped = [];
+  for (let y = from + 1; y < to; y++) {
+    skipped.push(y);
+  }
+  return skipped;
+};
+
+/**
+ * Format comparison header with skipped years notation
+ */
+const formatComparisonHeader = (fromYear, toYear) => {
+  const skippedYears = getSkippedYears(fromYear, toYear);
+  const skippedText = skippedYears.length > 0 ? ` (skipped: ${skippedYears.join(', ')})` : '';
+  return `${fromYear} - ${toYear}${skippedText}`;
+};
 
 const filterRowsBySearchTerm = (rowData, searchTerm) => {
   const query = searchTerm.trim().toLowerCase();
@@ -35,14 +63,16 @@ const filterPivotedRowsBySearchTerm = (rowData, searchTerm) => {
   });
 };
 
+
 // ─── Single-year layout (original) ────────────────────────────────────────────
 
 const COLUMN_WIDTHS = {
   'S/N': 100,
   'Name': 250,
   'Date of Birth': 200,
-  'Phone Number': 250,
+  'Contact Number': 250,
   'Gender': 200,
+  'Years Attended': 250,
   '30 secs Sit & Stand': 250,
   '30 secs Dumbbell Curl': 250,
   '2 min On-the-spot Marching': 350,
@@ -51,7 +81,7 @@ const COLUMN_WIDTHS = {
   '2.44m Speed Walk': 250,
   'Grip test': 150,
   'Year': 150,
-  'Comparison': 150,
+  'Comparison': 400,
 };
 
 const buildColumnDefinitions = (data) => {
@@ -67,6 +97,7 @@ const buildColumnDefinitions = (data) => {
     sortable: false,
     width: COLUMN_WIDTHS['S/N'],
     pinned: 'left',
+    cellStyle: { textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' },
     valueGetter: (params) => params.node.rowIndex + 1
   };
   
@@ -76,6 +107,7 @@ const buildColumnDefinitions = (data) => {
     sortable: true,
     width: COLUMN_WIDTHS['Date of Birth'],
     pinned: 'left',
+    cellStyle: { textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' },
     valueGetter: (params) => {
       const dd = params.data['DD'];
       const mm = params.data['MM'];
@@ -92,7 +124,8 @@ const buildColumnDefinitions = (data) => {
       field: col,
       sortable: true,
       width: COLUMN_WIDTHS[col],
-      pinned: ['Name', 'Phone Number', 'Gender'].includes(col) ? 'left' : undefined,
+      pinned: ['Name', 'Contact Number', 'Gender'].includes(col) ? 'left' : undefined,
+      cellStyle: { textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' },
       valueGetter: col === 'Name'
         ? (params) => {
             const name = params.data['Name'] || '';
@@ -113,6 +146,24 @@ const buildColumnDefinitions = (data) => {
     if (col === 'Name') {
       columnDefs.push(colDef);
       columnDefs.push(dateOfBirthColumn);
+    } else if (col === 'Gender') {
+      columnDefs.push(colDef);
+      // Add Years Attended column after Gender
+      columnDefs.push({
+        headerName: 'Years Attended',
+        sortable: true,
+        width: COLUMN_WIDTHS['Years Attended'],
+        pinned: 'left',
+        cellStyle: { textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+        valueGetter: (params) => {
+          // For single-year view, count unique years in data
+          const uniqueYears = new Set();
+          data.forEach(row => {
+            if (row.year) uniqueYears.add(String(row.year).trim());
+          });
+          return uniqueYears.size;
+        }
+      });
     } else {
       columnDefs.push(colDef);
     }
@@ -127,7 +178,7 @@ const buildColumnDefinitions = (data) => {
 const LOWER_IS_BETTER = new Set(['2.44m Speed Walk']);
 
 // Columns that are shown once (personal info, not year-specific)
-const FIXED_COLUMNS = ['Name', 'Phone Number', 'Gender'];
+const FIXED_COLUMNS = ['Name', 'Contact Number', 'Gender'];
 
 // Measurement columns — hidden in multi-year view
 const MEASUREMENT_COLUMNS = [];
@@ -145,6 +196,7 @@ const STATION_COLUMNS = [
 
 // Case-insensitive field lookup — handles sheets where headers differ in capitalisation year to year
 const getField = (row, ...names) => {
+  if (!row || typeof row !== 'object') return '';
   const keys = Object.keys(row);
   for (const name of names) {
     const lower = name.toLowerCase();
@@ -242,7 +294,8 @@ const calcComparison = (prevRaw, currRaw) => {
 
 /**
  * Build AgGrid column defs for multi-year view.
- * Outer groups = Stations. Sub-columns per station = Year1 | Year2 | Y1→Y2 | Year3 | Y2→Y3 | …
+ * Outer groups = Stations. Sub-columns per station = Year1 | Year2 | Y1→Y2 | Year3 | Y2→Y3 | … | Y1→Y3 | …
+ * Shows all year combinations including non-consecutive years
  */
 const buildMultiYearColumnDefs = (years) => {
   const colDefs = [];
@@ -253,6 +306,7 @@ const buildMultiYearColumnDefs = (years) => {
     sortable: false,
     width: COLUMN_WIDTHS['S/N'],
     pinned: 'left',
+    cellStyle: { textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' },
     valueGetter: (params) => params.node.rowIndex + 1
   });
 
@@ -263,7 +317,7 @@ const buildMultiYearColumnDefs = (years) => {
     sortable: true,
     width: COLUMN_WIDTHS['Name'],
     pinned: 'left',
-    cellStyle: () => ({ cursor: 'pointer' }),
+    cellStyle: () => ({ cursor: 'pointer', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }),
     valueGetter: (params) => {
       const name = params.data['Name'] || '';
       let chinese = '';
@@ -284,19 +338,21 @@ const buildMultiYearColumnDefs = (years) => {
     sortable: true,
     width: COLUMN_WIDTHS['Date of Birth'],
     pinned: 'left',
+    cellStyle: { textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' },
     valueGetter: (params) => {
       const { DD, MM, YYYY } = params.data;
       return DD && MM && YYYY ? `${DD}/${MM}/${YYYY}` : '';
     }
   });
 
-  // Phone Number
+  // Contact Number
   colDefs.push({
     headerName: 'Contact Number',
     field: 'Phone Number',
     sortable: true,
-    width: COLUMN_WIDTHS['Phone Number'],
-    pinned: 'left'
+    width: COLUMN_WIDTHS['Contact Number'],
+    pinned: 'left',
+    cellStyle: { textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }
   });
 
   // Gender
@@ -306,6 +362,7 @@ const buildMultiYearColumnDefs = (years) => {
     sortable: true,
     width: COLUMN_WIDTHS['Gender'],
     pinned: 'left',
+    cellStyle: { textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' },
     valueGetter: (params) => {
       const g = (params.data.Gender || '').trim().toUpperCase();
       if (g === 'M') return 'Male';
@@ -314,17 +371,32 @@ const buildMultiYearColumnDefs = (years) => {
     }
   });
 
-  // Per station: Year1 | Year2 | Y1→Y2 | Year3 | Y2→Y3 | …
+  // Years Attended
+  colDefs.push({
+    headerName: 'Years Attended',
+    sortable: true,
+    width: COLUMN_WIDTHS['Years Attended'],
+    pinned: 'left',
+    cellStyle: { textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+    valueGetter: (params) => {
+      const yearData = params.data._yearData || {};
+      const attendedYears = Object.keys(yearData).length;
+      return attendedYears;
+    }
+  });
+
+  // Per station: Year columns first, then all comparison combinations
   STATION_COLUMNS.forEach(col => {
     const lowerBetter = LOWER_IS_BETTER.has(col);
     const children = [];
 
-    years.forEach((year, idx) => {
-      // Year result column
+    // Add year columns
+    years.forEach(year => {
       children.push({
         headerName: String(year),
         sortable: true,
         width: COLUMN_WIDTHS['Year'],
+        cellStyle: { textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' },
         valueGetter: (params) => {
           const yd = params.data._yearData[year];
           if (!yd) return '';
@@ -334,13 +406,24 @@ const buildMultiYearColumnDefs = (years) => {
           return isNaN(num) ? '' : val;
         }
       });
+    });
 
-      // Comparison column after each year (except the first)
-      if (idx > 0) {
-        const prevYear = years[idx - 1];
+    // Add all comparison columns (both consecutive and non-consecutive)
+    for (let i = 0; i < years.length - 1; i++) {
+      for (let j = i + 1; j < years.length; j++) {
+        const fromYear = years[i];
+        const toYear = years[j];
+        const headerText = formatComparisonHeader(fromYear, toYear);
         children.push({
-          headerName: `${prevYear} - ${year}`,
+          headerName: headerText,
           sortable: true,
+          valueGetter: (params) => {
+            const yearData = params.data._yearData;
+            if (!yearData) return '';
+            const prevRaw = getField(yearData[fromYear], col);
+            const currRaw = getField(yearData[toYear], col);
+            return calcComparison(prevRaw, currRaw);
+          },
           comparator: (a, b) => {
             const parse = v => {
               if (!v || v === '-') return NaN;
@@ -354,19 +437,16 @@ const buildMultiYearColumnDefs = (years) => {
             return na - nb;
           },
           width: COLUMN_WIDTHS['Comparison'],
-          valueGetter: (params) => {
-            const prev = params.data._yearData[prevYear];
-            const curr = params.data._yearData[year];
-            return calcComparison(
-              prev ? getField(prev, col) : undefined,
-              curr ? getField(curr, col) : undefined
-            ) || '-';
-          },
           cellStyle: (params) => {
+            let baseStyle = { textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' };
             const val = parseFloat(String(params.value).replace(/[▲▼\s+]/g, ''));
-            if (!params.value || params.value === '' || params.value === '-' || isNaN(val) || val === 0) return {};
+            if (!params.value || params.value === '' || params.value === '-' || isNaN(val) || val === 0) return baseStyle;
             const improved = lowerBetter ? val < 0 : val > 0;
             return {
+              textAlign: 'center',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               color: improved ? '#2e7d32' : '#c62828',
               fontWeight: 'bold',
               backgroundColor: improved ? '#e8f5e9' : '#ffebee'
@@ -374,7 +454,7 @@ const buildMultiYearColumnDefs = (years) => {
           }
         });
       }
-    });
+    }
 
     colDefs.push({
       headerName: col,
@@ -399,8 +479,67 @@ const getRowStyleForEntries = (params) => {
 class EntriesTable extends Component {
   constructor(props) {
     super(props);
-    this.state = { quickFilterText: '' };
+    this.state = {
+      quickFilterText: '',
+      visibleColumns: ['S/N', 'Name', 'Date of Birth', 'Contact Number', 'Gender', 'Years Attended'], // Initialize with all columns
+      allAvailableColumns: ['S/N', 'Name', 'Date of Birth', 'Contact Number', 'Gender', 'Years Attended'],
+      phoneNumberHeaderToggle: false // Toggle between "Phone Number" and "Contact Number"
+    };
     this.gridRef = React.createRef();
+  }
+
+  componentDidMount() {
+    // Initialize visible columns with all columns by default
+    const { data } = this.props;
+    if (data && data.length > 0) {
+      const allColumns = this.getAllColumnNames(data);
+      this.setState({
+        visibleColumns: allColumns,
+        allAvailableColumns: allColumns
+      });
+    }
+  }
+
+  getAllColumnNames = (data) => {
+    // Return only pinned columns for toggling
+    return ['S/N', 'Name', 'Date of Birth', 'Contact Number', 'Gender', 'Years Attended'];
+  }
+
+  handleColumnToggle = (columnName) => {
+    this.setState((prevState) => {
+      const newVisibleColumns = prevState.visibleColumns.includes(columnName)
+        ? prevState.visibleColumns.filter(col => col !== columnName)
+        : [...prevState.visibleColumns, columnName];
+      return { visibleColumns: newVisibleColumns };
+    });
+  }
+
+  handleSelectAll = () => {
+    this.setState((prevState) => ({
+      visibleColumns: prevState.allAvailableColumns
+    }));
+  }
+
+  handleDeselectAll = () => {
+    this.setState({
+      visibleColumns: []
+    });
+  }
+
+  filterColumnDefsByVisibility = (columnDefs) => {
+    const { visibleColumns } = this.state;
+    const pinnedColumns = ['S/N', 'Name', 'Date of Birth', 'Contact Number', 'Gender', 'Years Attended'];
+    
+    // Filter out hidden pinned columns
+    return columnDefs.filter(colDef => {
+      const headerName = colDef.headerName || '';
+      // If it's a pinned column, check visibility state
+      if (pinnedColumns.includes(headerName)) {
+        return visibleColumns.includes(headerName);
+      }
+      // Always show non-pinned columns (station columns)
+      return true;
+    });
   }
 
   handleOnFilterTextChange = (e) => {
@@ -412,10 +551,214 @@ class EntriesTable extends Component {
     if (onRowClick) onRowClick(event.data);
   }
 
+  exportToExcel = async () => {
+    const { data, yearFrom, yearTo } = this.props;
+    const { quickFilterText } = this.state;
+
+    if (!data || data.length === 0) {
+      alert('No data to export');
+      return;
+    }
+
+    try {
+      // Build year range
+      const yearsInData = [...new Set(data.map(r => String(r.year || '').trim()).filter(Boolean))].sort();
+      let years = yearsInData;
+      if (yearFrom && yearTo && yearFrom !== yearTo) {
+        const from = parseInt(yearFrom);
+        const to = parseInt(yearTo);
+        if (!isNaN(from) && !isNaN(to) && to > from) {
+          const fullRange = [];
+          for (let y = from; y <= to; y++) fullRange.push(String(y));
+          years = fullRange;
+        }
+      }
+      const isMultiYear = years.length > 1;
+
+      // Get filtered data
+      let rowData;
+      if (isMultiYear) {
+        rowData = filterPivotedRowsBySearchTerm(buildPivotedRowData(data), quickFilterText);
+      } else {
+        rowData = filterRowsBySearchTerm(data, quickFilterText);
+      }
+
+      // Create Excel workbook
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Fitness Results');
+
+      // Define headers based on layout
+      const headerRow = [];
+      const headerStyle = {
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { rgb: 'FFFF8C00' } }, // Orange
+        font: { bold: true, color: { rgb: 'FFFFFFFF' }, size: 11 },
+        alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+        border: { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } }
+      };
+      const cellStyle = {
+        border: { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } },
+        alignment: { horizontal: 'center', vertical: 'center', wrapText: true }
+      };
+
+      // Build headers
+      const headerStructure = [];
+      headerStructure.push('S/N', 'Name', 'Date of Birth', 'Contact Number', 'Gender', 'Years Attended');
+
+      if (isMultiYear) {
+        // Multi-year layout with all comparisons (consecutive and non-consecutive)
+        STATION_COLUMNS.forEach(station => {
+          // Add year columns first
+          years.forEach(year => {
+            headerStructure.push(`${station} (${year})`);
+          });
+          // Add all comparison columns
+          for (let i = 0; i < years.length - 1; i++) {
+            for (let j = i + 1; j < years.length; j++) {
+              const fromYear = years[i];
+              const toYear = years[j];
+              const headerText = formatComparisonHeader(fromYear, toYear);
+              headerStructure.push(`${station}\nImprovement: ${headerText}`);
+            }
+          }
+        });
+      } else {
+        // Single year layout
+        STATION_COLUMNS.forEach(station => {
+          headerStructure.push(station);
+        });
+      }
+
+      // Add header row
+      const headerExcelRow = worksheet.addRow(headerStructure);
+      headerExcelRow.height = 40; // Increase height for multi-line headers
+      headerExcelRow.eachCell((cell) => {
+        Object.assign(cell, headerStyle);
+      });
+
+      // Set column widths
+      worksheet.columns.forEach((col, idx) => {
+        const headerText = headerStructure[idx] || '';
+        if (headerText.includes('Date')) col.width = 18;
+        else if (headerText.includes('Phone')) col.width = 18;
+        else if (headerText.includes('Name')) col.width = 22;
+        else if (headerText.includes('Years')) col.width = 20;
+        else if (headerText.includes('Improvement')) col.width = 32;
+        else col.width = 16;
+      });
+
+      // Add data rows
+      rowData.forEach((row, idx) => {
+        const excelRow = [];
+        excelRow.push(idx + 1); // S/N
+
+        // Fixed columns
+        excelRow.push(row.Name || '');
+        const dd = row.DD || '';
+        const mm = row.MM || '';
+        const yyyy = row.YYYY || '';
+        const dob = dd && mm && yyyy ? `${dd}/${mm}/${yyyy}` : '';
+        excelRow.push(dob);
+        excelRow.push(row['Phone Number'] || '');
+
+        // Gender formatting
+        const gender = (row.Gender || '').trim().toUpperCase();
+        const genderDisplay = gender === 'M' ? 'Male' : gender === 'F' ? 'Female' : row.Gender || '';
+        excelRow.push(genderDisplay);
+
+        // Years Attended
+        if (isMultiYear) {
+          const yearCount = Object.keys(row._yearData || {}).length;
+          excelRow.push(yearCount);
+        } else {
+          // For single year, count total unique years in data
+          const uniqueYears = new Set();
+          data.forEach(r => {
+            if (r.year) uniqueYears.add(String(r.year).trim());
+          });
+          excelRow.push(uniqueYears.size);
+        }
+
+        // Station data
+        if (isMultiYear) {
+          STATION_COLUMNS.forEach(col => {
+            // Add year data first
+            years.forEach(year => {
+              const yd = row._yearData?.[year];
+              if (yd) {
+                const val = getField(yd, col);
+                excelRow.push(val || '');
+              } else {
+                excelRow.push('');
+              }
+            });
+            // Add all comparison columns
+            for (let i = 0; i < years.length - 1; i++) {
+              for (let j = i + 1; j < years.length; j++) {
+                const fromYear = years[i];
+                const toYear = years[j];
+                const prev = row._yearData?.[fromYear];
+                const curr = row._yearData?.[toYear];
+                const comparison = calcComparison(
+                  prev ? getField(prev, col) : undefined,
+                  curr ? getField(curr, col) : undefined
+                ) || '';
+                excelRow.push(comparison);
+              }
+            }
+          });
+        } else {
+          STATION_COLUMNS.forEach(col => {
+            const val = row[col] || '';
+            excelRow.push(val);
+          });
+        }
+
+        const newRow = worksheet.addRow(excelRow);
+        newRow.eachCell((cell) => {
+          Object.assign(cell, cellStyle);
+          // Color code improvements
+          const cellValue = String(cell.value || '').trim();
+          if (cellValue.includes('▲') || cellValue.includes('▼')) {
+            if (cellValue.includes('▲')) {
+              cell.font = { color: { rgb: 'FF2e7d32' }, bold: true }; // Green
+            } else {
+              cell.font = { color: { rgb: 'FFc62828' }, bold: true }; // Red
+            }
+          }
+        });
+
+        // Color row by gender
+        if (gender === 'M') {
+          newRow.eachCell(cell => {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { rgb: 'FFe3f2fd' } }; // Light blue
+          });
+        } else if (gender === 'F') {
+          newRow.eachCell(cell => {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { rgb: 'FFfce4ec' } }; // Light pink
+          });
+        }
+      });
+
+      // Freeze panes (first 6 columns: S/N, Name, Date of Birth, Contact Number, Gender, Years Attended)
+      worksheet.views = [{ state: 'frozen', xSplit: 6, ySplit: 1 }];
+
+      // Generate file
+      const dateStr = new Date().toISOString().split('T')[0];
+      const filename = `Fitness_Results_${yearFrom || 'all'}_${yearTo || 'all'}_${dateStr}.xlsx`;
+      
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      saveAs(blob, filename);
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('Error exporting data: ' + error.message);
+    }
+  }
+
   render() {
     const { data, yearFrom, yearTo } = this.props;
     console.log('EntriesTable render', { data: data, yearFrom, yearTo });
-    const { quickFilterText } = this.state;
+    const { quickFilterText, visibleColumns, allAvailableColumns } = this.state;
 
     if (!data || data.length === 0) {
       return (
@@ -458,8 +801,20 @@ class EntriesTable extends Component {
       }
     }
 
+    // Filter columns based on visibility state
+    const filteredColumnDefs = this.filterColumnDefsByVisibility(columnDefs);
+
     return (
       <div className={`fft-entries-table-wrapper${isMultiYear ? ' fft-multi-year-table' : ''}`}>
+        {/* Column Toggle Panel */}
+        <ColumnTogglePanel
+          columns={allAvailableColumns}
+          visibleColumns={visibleColumns}
+          onColumnToggle={this.handleColumnToggle}
+          onSelectAll={this.handleSelectAll}
+          onDeselectAll={this.handleDeselectAll}
+        />
+
         <div className="fft-entries-search-bar">
           <div className="fft-entries-search-row">
             <div className="fft-entries-search-icon"><i className="fas fa-search"></i></div>
@@ -473,14 +828,18 @@ class EntriesTable extends Component {
           </div>
         </div>
 
+        <div className="fft-entries-action-bar">
+          <ActionButtonRow onExport={this.exportToExcel} />
+        </div>
+
         <div className="grid-container" style={{ width: '100%', marginLeft: '0' }}>
           <AgGridReact
             ref={this.gridRef}
             rowData={rowData}
-            columnDefs={columnDefs}
+            columnDefs={filteredColumnDefs}
             domLayout="normal"
             pagination={true}
-            paginationPageSize={Math.max(rowData.length, 1)}
+            paginationPageSize={rowData.length}
             getRowStyle={getRowStyleForEntries}
             onRowClicked={this.handleOnRowClicked}
             onCellClicked={(params) => {

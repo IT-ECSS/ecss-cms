@@ -1,0 +1,83 @@
+/* ========================================
+   ACTION BUTTON ROW STYLES
+   ======================================== */
+
+.action-button-row-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.action-button-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #ffffff;
+  flex-wrap: wrap;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.action-button-row-export {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: 2px solid #2e7d32;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  width: fit-content;
+  background-color: transparent;
+  color: #2e7d32;
+  box-shadow: none;
+}
+
+.action-button-row-export:hover {
+  background-color: rgba(46, 125, 50, 0.08);
+  border-color: #1b5e20;
+  color: #1b5e20;
+  transform: translateY(-1px);
+}
+
+.action-button-row-export:active {
+  transform: translateY(0);
+  background-color: rgba(46, 125, 50, 0.12);
+}
+
+.action-button-row-export:disabled {
+  border-color: #bdbdbd;
+  background-color: transparent;
+  color: #bdbdbd;
+  cursor: not-allowed;
+}
+
+.action-button-row-export i {
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .action-button-row {
+    padding: 10px 12px;
+  }
+
+  .action-button-row-export {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+}

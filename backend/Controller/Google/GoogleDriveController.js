@@ -1332,15 +1332,45 @@ class GoogleDriveController {
             const strippedEvent = normalizedEvent.replace(/^\d{4}\s+\d{1,2}\s+\d{1,2}\s+/, '');
             const eventWords = normalizedEvent.split(' ').filter(Boolean);
 
-            const matchFiles = (files) => files.find(f => {
-                const fn = normalize(f.name);
-                if (fn.includes(normalizedEvent) || normalizedEvent.includes(fn)) return true;
-                if (fn.includes(strippedEvent) || strippedEvent.includes(fn)) return true;
-                // Word overlap: if ≥50% of file-name words appear in event name
-                const fnWords = fn.split(' ').filter(Boolean);
-                const overlap = fnWords.filter(w => eventWords.includes(w)).length;
-                return fnWords.length > 0 && overlap / fnWords.length >= 0.5;
-            });
+            // ─── Extract location/identifier from event name (handle both conventions) ───
+            // Convention 1: "YYYY/MM/DD Location FFT Session N" → extract "Location"
+            const conv1Match = /^(\d{4})\/(\d{2})\/(\d{2})\s+([^\s]+(?:\s+[^\s]+)*?)\s+FFT/i.exec(eventName);
+            const locationFromConv1 = conv1Match ? conv1Match[4].toLowerCase() : null;
+            
+            // Convention 2: "Location YYYY FFT" → extract "Location"
+            const conv2Match = /^([^\d]+?)\s+(20\d{2})\s+FFT/i.exec(eventName);
+            const locationFromConv2 = conv2Match ? conv2Match[1].trim().toLowerCase() : null;
+            
+            const extractedLocation = locationFromConv1 || locationFromConv2;
+
+            const matchFiles = (files) => {
+                // First priority: exact substring match
+                const exactMatch = files.find(f => {
+                    const fn = normalize(f.name);
+                    if (fn.includes(normalizedEvent) || normalizedEvent.includes(fn)) return true;
+                    if (fn.includes(strippedEvent) || strippedEvent.includes(fn)) return true;
+                    return false;
+                });
+                if (exactMatch) return exactMatch;
+
+                // Second priority: location-based match (for cases where filenames use different format)
+                if (extractedLocation) {
+                    const locationMatch = files.find(f => {
+                        const fn = normalize(f.name);
+                        // Match if filename contains the location and "fft" keyword
+                        return fn.includes(extractedLocation) && fn.includes('fft');
+                    });
+                    if (locationMatch) return locationMatch;
+                }
+
+                // Third priority: word overlap (if ≥50% of file-name words appear in event name)
+                return files.find(f => {
+                    const fn = normalize(f.name);
+                    const fnWords = fn.split(' ').filter(Boolean);
+                    const overlap = fnWords.filter(w => eventWords.includes(w)).length;
+                    return fnWords.length > 0 && overlap / fnWords.length >= 0.5;
+                });
+            };
 
             const listFilesInFolder = async (searchFolderId) => {
                 const response = await drive.files.list({
@@ -1367,7 +1397,7 @@ class GoogleDriveController {
                         const yearFiles = await listFilesInFolder(yearFolder.id);
                         const match = matchFiles(yearFiles);
                         if (match) {
-                            console.log(`[SHEETS] Found "${match.name}" in year subfolder "${year}"`);
+                            console.log(`[SHEETS] Found "${match.name}" in year subfolder "${year}" (eventName: "${eventName}")`);
                             return { success: true, file: match };
                         }
                     }
@@ -1378,9 +1408,9 @@ class GoogleDriveController {
             const rootFiles = await listFilesInFolder(folderId);
             const match = matchFiles(rootFiles);
             if (!match) {
-                return { success: false, error: `No spreadsheet found matching event: "${eventName}"` };
+                return { success: false, error: `No spreadsheet found matching event: "${eventName}"${extractedLocation ? ` (location: "${extractedLocation}")` : ''}` };
             }
-            console.log(`[SHEETS] Found "${match.name}" in root folder`);
+            console.log(`[SHEETS] Found "${match.name}" in root folder (eventName: "${eventName}")`);
             return { success: true, file: match };
         } catch (error) {
             console.error('[SHEETS] findSheetByEventName error:', error.message);

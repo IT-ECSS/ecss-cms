@@ -98,7 +98,7 @@ io.on('connection', (socket) => {
 // This ensures live updates reach the frontend even when changes come from
 // WooCommerce / Django or any other source that bypasses the Node.js API routes.
 const { MongoClient } = require('mongodb');
-const CHANGE_STREAM_URI = "mongodb+srv://MosesLee:Mlxy%406695@company-management-syst.ulotbgi.mongodb.net/?retryWrites=true&w=majority&appName=Company-Management-System";
+const CHANGE_STREAM_URI = process.env.MONGODB_URI || "mongodb+srv://MosesLee:Mlxy%406695@company-management-syst.ulotbgi.mongodb.net/?retryWrites=true&w=majority&appName=Company-Management-System";
 
 let _changeStreamClient = null;
 
@@ -109,7 +109,15 @@ async function watchRegistrationForms(io) {
     _changeStreamClient = null;
   }
 
-  const client = new MongoClient(CHANGE_STREAM_URI);
+  const mongoOptions = {
+    ssl: true,
+    retryWrites: true,
+    w: 'majority',
+    // For development/testing with certificate issues, uncomment this:
+    // tlsInsecure: true,
+  };
+
+  const client = new MongoClient(CHANGE_STREAM_URI, mongoOptions);
   _changeStreamClient = client;
 
   try {

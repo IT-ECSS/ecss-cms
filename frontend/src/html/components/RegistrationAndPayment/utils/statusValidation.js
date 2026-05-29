@@ -3,7 +3,7 @@
  * 
  * Validation Rules for NSA Courses:
  * - Payment Status "Paid" or "SkillsFuture Done" → Registration Status MUST be "Confirmed Slot"
- * - Payment Status "To Refund" → Registration Status MUST be "Cancelled for duplication" or "Withdrawn"
+ * - Payment Status "To Refund" → Registration Status MUST be "Cancellation before Payment", "Cancellation after Payment", or "Withdrawn"
  * - Payment Status "Cancelled - No payment received" → Registration Status MUST be "Not Successful"
  */
 
@@ -20,9 +20,9 @@ export function getAllowedRegistrationStatuses(paymentStatus) {
     return ['Confirmed Slot'];
   }
   
-  // Payment Status "To Refund" or "Refunded" → must have "Cancelled for duplication" or "Withdrawn"
+  // Payment Status "To Refund" or "Refunded" → must have "Cancelled (before payment)", "Cancelled (after payment)", or "Withdrawn"
   if (status === 'To refund' || status === 'Refunded') {
-    return ['Cancelled for duplication', 'Withdrawn'];
+    return ['Cancelled (before payment)', 'Cancelled (after payment)', 'Withdrawn'];
   }
   
   // Payment Status "Cancelled - No payment received" → must have "Not Successful"
@@ -31,7 +31,7 @@ export function getAllowedRegistrationStatuses(paymentStatus) {
   }
   
   // Other payment statuses have no restriction
-  return ['Submitted', 'Confirmed Slot', 'Cancelled for duplication', 'Withdrawn', 'Not Successful'];
+  return ['Submitted', 'Confirmed Slot', 'Cancelled (before payment)', 'Cancelled (after payment)', 'Withdrawn', 'Class Full'];
 }
 
 /**
@@ -47,8 +47,8 @@ export function getAllowedPaymentStatuses(registrationStatus) {
     return ['Paid', 'SkillsFuture Done', 'Pending', 'Generating SkillsFuture Invoice', 'Cancelled - No payment received'];
   }
   
-  // Registration Status "Cancelled for duplication" or "Withdrawn" → must have "To Refund" or "Refunded"
-  if (status === 'Cancelled for duplication' || status === 'Withdrawn') {
+  // Registration Status "Cancelled (before payment)", "Cancelled (after payment)", or "Withdrawn" → must have "To Refund" or "Refunded"
+  if (status === 'Cancelled (before payment)' || status === 'Cancelled (after payment)' || status === 'Withdrawn') {
     return ['To refund', 'Refunded', 'Pending'];
   }
   
@@ -88,10 +88,10 @@ export function validateStatusCombination(paymentStatus, registrationStatus) {
   
   // Check if payment status "To Refund" requires specific registration statuses
   if (paymentStr === 'To refund') {
-    if (registrationStr !== 'Cancelled for duplication' && registrationStr !== 'Withdrawn') {
+    if (registrationStr !== 'Cancellation before Payment' && registrationStr !== 'Cancellation after Payment' && registrationStr !== 'Withdrawn') {
       return {
         isValid: false,
-        reason: `When Payment Status is "To Refund", Registration Status must be either "Cancelled for duplication" or "Withdrawn". Current: "${registrationStr}"`,
+        reason: `When Payment Status is "To Refund", Registration Status must be either "Cancellation before Payment", "Cancellation after Payment", or "Withdrawn". Current: "${registrationStr}"`,
       };
     }
   }
@@ -134,12 +134,12 @@ export function  novalidateRegistrationStatusChange(newRegistrationStatus, payme
     }
   }
   
-  // Payment Status "To Refund" or "Refunded" → must have "Cancelled for duplication" or "Withdrawn"
+  // Payment Status "To Refund" or "Refunded" → must have "Cancelled (before payment)", "Cancelled (after payment)", or "Withdrawn"
   if (paymentStr === 'To refund' || paymentStr === 'Refunded') {
-    if (newRegStatus !== 'Cancelled for duplication' && newRegStatus !== 'Withdrawn') {
+    if (newRegStatus !== 'Cancelled (before payment)' && newRegStatus !== 'Cancelled (after payment)' && newRegStatus !== 'Withdrawn') {
       return {
         isValid: false,
-        reason: `Cannot change Registration Status to "${newRegStatus}". When Payment Status is "${paymentStr}", Registration Status must be either "Cancelled for duplication" or "Withdrawn".`,
+        reason: `Cannot change Registration Status to "${newRegStatus}". When Payment Status is "${paymentStr}", Registration Status must be either "Cancelled (before payment)", "Cancelled (after payment)", or "Withdrawn".`,
       };
     }
   }
@@ -182,12 +182,12 @@ export function validatePaymentStatusChange(newPaymentStatus, registrationStatus
     }
   }
   
-  // When trying to set payment to "To Refund" or "Refunded", registration must be "Cancelled for duplication" or "Withdrawn"
+  // When trying to set payment to "To Refund" or "Refunded", registration must be "Cancelled (before payment)", "Cancelled (after payment)", or "Withdrawn"
   if (newPaymentStr === 'To refund' || newPaymentStr === 'Refunded') {
-    if (registrationStr !== 'Cancelled for duplication' && registrationStr !== 'Withdrawn') {
+    if (registrationStr !== 'Cancelled (before payment)' && registrationStr !== 'Cancelled (after payment)' && registrationStr !== 'Withdrawn') {
       return {
         isValid: false,
-        reason: `Cannot change Payment Status to "${newPaymentStr}". Registration Status must be either "Cancelled for duplication" or "Withdrawn". Current: "${registrationStr}"`,
+        reason: `Cannot change Payment Status to "${newPaymentStr}". Registration Status must be either "Cancelled (before payment)", "Cancelled (after payment)", or "Withdrawn". Current: "${registrationStr}"`,
       };
     }
   }

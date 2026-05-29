@@ -324,6 +324,7 @@ class FitnessGoogleSheetsSection extends Component {
           file.name.endsWith('.csv')
         );
         
+
         // Extract years from file names (e.g., "2024 FFT Results", "FFT 2025")
         const years = new Set();
         spreadsheetFiles.forEach(file => {
@@ -332,10 +333,12 @@ class FitnessGoogleSheetsSection extends Component {
             years.add(yearMatch[1]);
           }
         });
-        
+        // Always include 2024-2028 in availableYears
+        const requiredYears = ['2024', '2025', '2026', '2027', '2028'];
+        const availableYears = Array.from(new Set([...years, ...requiredYears])).sort();
         this.setState({ 
           files: spreadsheetFiles,
-          availableYears: Array.from(years).sort(),
+          availableYears,
           filesLoading: false 
         });
 

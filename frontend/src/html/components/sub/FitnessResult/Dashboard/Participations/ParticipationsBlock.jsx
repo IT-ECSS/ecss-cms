@@ -1,8 +1,59 @@
 import React, { Component } from "react";
 import ParticipationsCardsBlock from './section/ParticipationsCardsBlock';
 import ParticipationsChartBlock from './section/ParticipationsChartBlock';
+import { 
+  analyzeParticipantImprovementAllCases
+} from "../fitnessImprovementAnalysis";
 
 class ParticipationsBlock extends Component {
+  getQualifiedParticipants = (data) => {
+    if (!data || !data.participantMap) {
+      return [];
+    }
+
+    return Object.entries(data.participantMap)
+      .filter(([name, participant]) => {
+        const yearsWithData = Object.keys(participant.years || {}).length;
+        return yearsWithData > 1;
+      })
+      .map(([name, participant]) => ({
+        name,
+        participant,
+        yearsWithData: Object.keys(participant.years).length
+      }));
+  };
+
+  calculateTotalAttendance = (data) => {
+    if (!data || !data.participantMap) {
+      return 0;
+    }
+    return this.getQualifiedParticipants(data).length;
+  };
+
+  calculateImprovementCount = (data, stationCount = 1) => {
+    if (!data || !data.participantMap) return 0;
+
+    // Use the centralized analysis function
+    const analysis = analyzeParticipantImprovementAllCases(
+      data.participantMap,
+      data.years || [],
+      stationCount
+    );
+
+    return analysis.uniqueCount;
+  };
+
+  calculateImprovementRate = (data, stationCount = 1) => {
+    const total = this.calculateTotalAttendance(data);
+    if (!total) return { improved: 0, total: 0, percentage: '—' };
+    const improved = this.calculateImprovementCount(data, stationCount);
+    return {
+      improved,
+      total,
+      percentage: `${parseFloat(((improved / total) * 100).toFixed(2))}%`
+    };
+  };
+
   render() {
     const {
       data,
@@ -22,9 +73,12 @@ class ParticipationsBlock extends Component {
       );
     }
 
+    const improvementRate = this.calculateImprovementRate(data, selectedStationCountParticipations);
+
     return (
       <div className="fft-dash-left-section">
         <h3 className="fft-dash-section-header">Participations (By attendance)</h3>
+
         
         <ParticipationsCardsBlock
           data={data}

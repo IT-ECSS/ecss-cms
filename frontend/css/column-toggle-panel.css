@@ -1,0 +1,202 @@
+/* ─── Column Toggle Panel Styles ─────────────────────────────────────────────── */
+
+.fft-column-toggle-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 0;
+}
+
+/* Panel header and container */
+.fft-column-toggle-panel {
+  background: #f5f5f5;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  padding: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.fft-column-toggle-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #d0d0d0;
+}
+
+.fft-column-toggle-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.fft-column-toggle-title i {
+  color: #1976d2;
+  font-size: 1.1rem;
+}
+
+/* Toggle buttons */
+.fft-column-toggle-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.fft-toggle-btn {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid #ccc;
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #555;
+  transition: all 0.2s ease;
+}
+
+.fft-toggle-btn:hover {
+  background: #e8e8e8;
+  border-color: #999;
+}
+
+.fft-toggle-btn.active {
+  background: #1976d2;
+  color: white;
+  border-color: #1565c0;
+}
+
+/* Columns grid/list */
+.fft-column-toggle-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+/* Individual column checkbox item */
+.fft-column-toggle-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.8rem;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.fft-column-toggle-item:hover {
+  background: #f9f9f9;
+  border-color: #1976d2;
+  box-shadow: 0 2px 6px rgba(25, 118, 210, 0.15);
+}
+
+.fft-column-toggle-item input[type="checkbox"] {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  accent-color: #1976d2;
+}
+
+.fft-column-toggle-label {
+  flex: 1;
+  font-size: 0.9rem;
+  color: #333;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Expand/collapse toggle */
+.fft-column-toggle-expand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #555;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  margin-top: 0.5rem;
+}
+
+.fft-column-toggle-expand:hover {
+  background: #f0f0f0;
+  border-color: #999;
+}
+
+.fft-column-toggle-expand i {
+  font-size: 0.8rem;
+  transition: transform 0.3s ease;
+}
+
+.fft-column-toggle-expand.collapsed i {
+  transform: rotate(-90deg);
+}
+
+/* Collapsed state */
+.fft-column-toggle-content.collapsed {
+  display: none;
+}
+
+/* Action bar adjustments */
+.fft-entries-action-bar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .fft-column-toggle-content {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .fft-column-toggle-content {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+
+  .fft-column-toggle-item {
+    padding: 0.5rem 0.6rem;
+  }
+
+  .fft-column-toggle-label {
+    font-size: 0.85rem;
+  }
+}
+
+/* Cell centering - ensure all cells are center aligned */
+.fft-entries-table-wrapper .ag-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.fft-entries-table-wrapper .ag-header-cell-text {
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+/* Ensure pinned columns also center */
+.fft-entries-table-wrapper .ag-pinned-left-cols-container .ag-cell,
+.fft-entries-table-wrapper .ag-pinned-right-cols-container .ag-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}

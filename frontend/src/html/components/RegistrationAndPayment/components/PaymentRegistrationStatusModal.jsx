@@ -7,7 +7,7 @@ import '../../../../css/sub/paymentRegistrationStatusModal.css';
  *
  * Prerequisite Validation Rules:
  * 1. "Paid" or "SkillsFuture Done" → requires "Confirmed Slot" (Registration Status)
- * 2. "To Refund" → requires "Cancelled for duplication" OR "Withdrawn" (Registration Status)
+ * 2. "To Refund" → requires "Cancellation before Payment", "Cancellation after Payment", or "Withdrawn" (Registration Status)
  * 3. "Not Successful" (Registration Status) → requires "Cancelled - No payment received" (Payment Status)
  *
  * Props:
@@ -45,8 +45,8 @@ function PaymentRegistrationStatusModal({
       suggestedAction = `Change the Registration Status to "Confirmed Slot" first, then retry the Payment Status change.`;
     } else if (attemptedValue === 'To refund') {
       errorMessage = `Cannot change Payment Status to "To Refund"`;
-      prerequisiteMessage = 'Registration Status must be "Cancelled for duplication" OR "Withdrawn"';
-      suggestedAction = `Change the Registration Status to "Cancelled for duplication" or "Withdrawn" first, then retry the Payment Status change.`;
+      prerequisiteMessage = 'Registration Status must be "Cancelled (before payment)", "Cancelled (after payment)", OR "Withdrawn"';
+      suggestedAction = `Change the Registration Status to "Cancelled (before payment)", "Cancelled (after payment)", or "Withdrawn" first, then retry the Payment Status change.`;
     } else if (attemptedValue === 'Cancelled - No payment received') {
       errorMessage = `Cannot change Payment Status to "Cancelled - No payment received"`;
       prerequisiteMessage = 'Registration Status must be "Not Successful"';
@@ -58,7 +58,7 @@ function PaymentRegistrationStatusModal({
       errorMessage = `Cannot change Registration Status to "Confirmed Slot"`;
       prerequisiteMessage = 'Payment Status must be "Paid" or "SkillsFuture Done"';
       suggestedAction = `Change the Payment Status to "Paid" or "SkillsFuture Done" first, then retry the Registration Status change.`;
-    } else if (attemptedValue === 'Cancelled for duplication' || attemptedValue === 'Withdrawn') {
+    } else if (attemptedValue === 'Cancelled (before payment)' || attemptedValue === 'Cancelled (after payment)' || attemptedValue === 'Withdrawn') {
       errorMessage = `Cannot change Registration Status to "${attemptedValue}"`;
       prerequisiteMessage = 'Payment Status must be "To Refund"';
       suggestedAction = `Change the Payment Status to "To Refund" first, then retry the Registration Status change.`;
@@ -177,7 +177,7 @@ function PaymentRegistrationStatusModal({
                 <span className="payment-registration-modal-payment-status">Payment Status: "SkillsFuture Done"</span>
               </li>
               <li className="payment-registration-modal-reference-item">
-                <span className="payment-registration-modal-registration-status">Registration Status: "Cancelled for duplication" OR "Withdrawn"</span>
+                <span className="payment-registration-modal-registration-status">Registration Status: "Cancelled (before payment)" OR "Cancelled (after payment)" OR "Withdrawn"</span>
                 <span className="payment-registration-modal-arrow">←</span>
                 <span className="payment-registration-modal-payment-status">Payment Status: "To Refund"</span>
               </li>

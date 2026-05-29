@@ -2,6 +2,7 @@ import React, { Component } from "react";
 import '../../../../../css/sub/FitnessResult/Dashboard/fitnessDashboardSection.css';
 import { ParticipationsBlock, ParticipantsBlock, GenderBlock } from '../../index';
 import { calculateDashboardData as calculateAllDashboardData } from './fitnessDashboardCalculations';
+import FitnessImprovementAnalysisPanel from './FitnessImprovementAnalysisPanel';
 
 class FitnessDashboardSection extends Component {
   componentDidMount() {
@@ -202,7 +203,8 @@ class FitnessDashboardSection extends Component {
     const {
       years,
       yearlyParticipants,
-      yearlyGender
+      yearlyGender,
+      participantMap
     } = data;
 
     return (
@@ -235,6 +237,16 @@ class FitnessDashboardSection extends Component {
           years={years}
           yearlyGender={yearlyGender}
         />
+
+        {/* Fitness Improvement Analysis Panel - Shows improvement across consecutive and skipped years */}
+        {this.isMultipleYearsView() && participantMap && years && years.length >= 2 && (
+          <FitnessImprovementAnalysisPanel
+            data={{
+              participantMap,
+              years
+            }}
+          />
+        )}
       </>
     );
   }

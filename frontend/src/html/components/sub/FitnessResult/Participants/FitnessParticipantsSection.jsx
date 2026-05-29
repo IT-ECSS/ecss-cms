@@ -8,8 +8,63 @@ class FitnessParticipantsSection extends Component {
     super(props);
     // Default to 'rawData' (Details And Results) always
     this.state = {
-      activeSubTab: 'rawData' // 'rawData' or 'visualization'
+      activeSubTab: 'rawData', // 'rawData' or 'visualization'
+      participantNamesAlertShown: false
     };
+  }
+
+  componentDidMount() {
+    this.showParticipantNamesAlert(this.props.data);
+  }
+
+  componentDidUpdate(prevProps) {
+    const { data } = this.props;
+    if (prevProps.data !== data) {
+      this.showParticipantNamesAlert(data);
+    }
+  }
+
+  getParticipantName = (row) => {
+    if (!row || typeof row !== 'object') return '';
+    const candidateKeys = ['Name', 'Full Name', 'Participant Name', 'Chinese Name', 'name', 'participantName'];
+    const rawName = candidateKeys
+      .map(key => row[key])
+      .find(value => value !== undefined && value !== null && String(value).trim() !== '');
+    if (!rawName) return '';
+    return String(rawName)
+      .trim()
+      .replace(/\s+/g, ' ')
+      .replace(/(?:^|\s)\S/g, c => c.toUpperCase());
+  }
+
+  showParticipantNamesAlert = (data) => {
+    if (!Array.isArray(data) || data.length === 0) return;
+    if (this.state.participantNamesAlertShown) return;
+
+    const participantNames = data
+      .map(this.getParticipantName)
+      .filter(name => name !== '');
+
+    if (participantNames.length === 0) return;
+
+    const uniqueNames = Array.from(new Set(participantNames));
+    const namesText = uniqueNames
+      .map((name, index) => `${index + 1}. ${name}`)
+      .join('\n');
+
+    alert(`FFT Results - Total Participants: ${data.length}\n\n${namesText}`);
+
+    console.log('═══════════════════════════════════════════════════════════');
+    console.log('FFT RESULTS - TOTAL PARTICIPANTS:', data.length);
+    console.log('FFT RESULTS - PARTICIPANT NAMES:');
+    uniqueNames.forEach((name, index) => {
+      console.log(`  ${index + 1}. ${name}`);
+    });
+    console.log('═══════════════════════════════════════════════════════════');
+    console.log('Total Unique Names:', uniqueNames.length);
+    console.log('═══════════════════════════════════════════════════════════');
+
+    this.setState({ participantNamesAlertShown: true });
   }
 
   handleSubTabChange = (tab) => {

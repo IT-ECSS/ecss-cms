@@ -151,7 +151,9 @@ class FitnessSection extends Component {
 
       // Sort
       Object.keys(locationYearMap).forEach(loc => locationYearMap[loc].sort());
-      const availableYears = [...yearsSet].sort();
+      // Always include 2024-2028 in availableYears
+      const requiredYears = ['2024', '2025', '2026', '2027', '2028'];
+      const availableYears = Array.from(new Set([...yearsSet, ...requiredYears])).sort();
       const availableLocations = hardcodedLocations.map(loc => loc.name);
 
       console.log('File registry:', fileRegistry);

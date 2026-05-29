@@ -18,15 +18,56 @@ const SHEET_NAME        = 'Sheet1';
 const googleDriveController = new GoogleDriveController();
 
 /**
- * Parses the event date from an FFT event name.
- * Expects names starting with "YYYY/MM/DD " e.g. "2026/04/14 CTH FFT Session 1".
+ * Parses the event date from an FFT event name or createdOn date.
+ * Supports two naming conventions:
+ *   1. Convention 1 (date-based): "YYYY/MM/DD Location FFT Session N" e.g. "2026/04/14 CTH FFT Session 1"
+ *   2. Convention 2 (location-based): "Location YYYY FFT" e.g. "Tampines 2026 FFT"
+ * For Convention 1, extracts date from event name.
+ * For Convention 2, returns the createdOn date if provided.
  * Returns a Date at midnight SGT for that date, or null if not parseable.
+ * 
+ * @param {string} eventName - The event name
+ * @param {string} createdOn - The creation date (used for Convention 2; format: "DD/MM/YYYY" or similar)
+ * @returns {Date|null} Date at midnight SGT, or null if unparseable
  */
-function parseEventDate(eventName) {
+function parseEventDate(eventName, createdOn) {
+    // Convention 1: Try to extract YYYY/MM/DD from start of event name
     const match = /^(\d{4})\/(\d{2})\/(\d{2})/.exec(eventName || '');
-    if (!match) return null;
-    // Construct as SGT midnight (UTC+8)
-    return new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00+08:00`);
+    if (match) {
+        // Construct as SGT midnight (UTC+8)
+        return new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00+08:00`);
+    }
+
+    // Convention 2: Try to parse createdOn date (handles multiple formats: DD/MM/YYYY, YYYY-MM-DD, etc.)
+    if (createdOn) {
+        const createdOnStr = String(createdOn).trim();
+        
+        // Try DD/MM/YYYY format
+        const ddmmyyyyMatch = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(createdOnStr);
+        if (ddmmyyyyMatch) {
+            const day = ddmmyyyyMatch[1].padStart(2, '0');
+            const month = ddmmyyyyMatch[2].padStart(2, '0');
+            const year = ddmmyyyyMatch[3];
+            return new Date(`${year}-${month}-${day}T00:00:00+08:00`);
+        }
+
+        // Try YYYY-MM-DD format
+        const yyyymmddMatch = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(createdOnStr);
+        if (yyyymmddMatch) {
+            const year = yyyymmddMatch[1];
+            const month = yyyymmddMatch[2].padStart(2, '0');
+            const day = yyyymmddMatch[3].padStart(2, '0');
+            return new Date(`${year}-${month}-${day}T00:00:00+08:00`);
+        }
+
+        // Try to parse as ISO date or any other format that JavaScript understands
+        const parsedDate = new Date(createdOnStr);
+        if (!isNaN(parsedDate.getTime())) {
+            return parsedDate;
+        }
+    }
+
+    return null;
 }
 
 /**
@@ -72,13 +113,15 @@ async function expireOldFFTEvents() {
             if (!row || !row[1]) continue;
 
             const eventName         = String(row[1]).trim();
+            const createdOn         = String(row[5] || '').trim(); // Column F: createdOn date
             const registrationLink  = String(row[7] || '').trim();
             const currentStatus     = String(row[2] || '').trim();
 
             // Skip rows already marked Past with no registration link.
             if (currentStatus === 'Past' && !registrationLink) continue;
 
-            const eventDate = parseEventDate(eventName);
+            // Parse date from event name (Convention 1) or createdOn field (Convention 2)
+            const eventDate = parseEventDate(eventName, createdOn);
             if (!eventDate) continue; // date not parseable, leave untouched
 
             if (eventDate < today) {

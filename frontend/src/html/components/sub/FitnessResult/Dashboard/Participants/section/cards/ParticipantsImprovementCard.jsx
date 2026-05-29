@@ -1,14 +1,8 @@
 import React, { Component } from "react";
-
-const FITNESS_METRICS = [
-  { key: '30 secs Sit & Stand', label: '30 Secs Sit & Stand', unit: 'reps', higherIsBetter: true },
-  { key: '30 secs Arm Curl', label: '30 Secs Arm Curl', unit: 'reps', higherIsBetter: true },
-  { key: '2 min March on the spot', label: '2 Min March On The Spot', unit: 'steps', higherIsBetter: true },
-  { key: 'Sit & Reach', label: 'Sit & Reach', unit: 'cm', higherIsBetter: true },
-  { key: 'Back Stretch', label: 'Back Stretch', unit: 'cm', higherIsBetter: true },
-  { key: '2.44m speed walk', label: '2.44m Speed Walk', unit: 'sec', higherIsBetter: false },
-  { key: 'Grip Test', label: 'Grip Test', unit: 'kg', higherIsBetter: true }
-];
+import { 
+  analyzeParticipantImprovementAllCases, 
+  FITNESS_METRICS 
+} from "../../../fitnessImprovementAnalysis";
 
 class ParticipantsImprovementCard extends Component {
   constructor(props) {
@@ -48,8 +42,22 @@ class ParticipantsImprovementCard extends Component {
     this.setState({ isDropdownOpen: false, selectedStationCountParticipants: optionNumber });
   };
 
+  handleImprovementClick = () => {
+    const { selectedStationCountParticipants } = this.state;
+    // First, try to call the parent callback if it exists
+    if (this.props.onImprovementParticipantsClick) {
+      this.props.onImprovementParticipantsClick(selectedStationCountParticipants);
+    } else {
+      // If no parent callback, try to call parent's method directly
+      if (this.props.onOpenImprovementModal) {
+        this.props.onOpenImprovementModal(selectedStationCountParticipants);
+      }
+    }
+  };
+
   getMultiYearParticipants = (data) => {
     if (!data || !data.participantMap) return 0;
+    // Count only participants with more than 1 year of attendance
     return Object.values(data.participantMap).filter(participant =>
       Object.keys(participant.years || {}).length > 1
     ).length;
@@ -58,36 +66,14 @@ class ParticipantsImprovementCard extends Component {
   calculateImprovementCount = (data, stationCount = 1) => {
     if (!data || !data.participantMap) return 0;
 
-    const years = (data.years || []).slice().sort();
-    if (years.length < 2) return 0;
-
-    const qualifiedParticipants = Object.values(data.participantMap).filter(
-      participant => Object.keys(participant.years || {}).length > 1
+    // Use the centralized analysis function
+    const analysis = analyzeParticipantImprovementAllCases(
+      data.participantMap,
+      data.years || [],
+      stationCount
     );
 
-    let count = 0;
-    qualifiedParticipants.forEach(participant => {
-      let hasImprovement = false;
-      for (let i = 0; i < years.length - 1; i++) {
-        const curr = participant.years[years[i]];
-        const next = participant.years[years[i + 1]];
-        if (!curr || !next) continue;
-        let improvedCount = 0;
-        FITNESS_METRICS.forEach(metric => {
-          const a = curr[metric.key];
-          const b = next[metric.key];
-          if (a === undefined || b === undefined || isNaN(a) || isNaN(b)) return;
-          if (metric.higherIsBetter ? b > a : b < a) improvedCount++;
-        });
-        // Check if participant improved in at least stationCount stations (≥) in ANY year transition
-        if (improvedCount >= stationCount) {
-          hasImprovement = true;
-          break;
-        }
-      }
-      if (hasImprovement) count++;
-    });
-    return count;
+    return analysis.uniqueCount;
   };
 
   calculateImprovementRate = (data, stationCount = 1) => {
@@ -149,7 +135,20 @@ class ParticipantsImprovementCard extends Component {
     const { data } = this.props;
     const { selectedStationCountParticipants } = this.state;
 
+    // Log if callback is missing
+    if (!this.props.onImprovementParticipantsClick) {
+      console.warn('ParticipantsImprovementCard: onImprovementParticipantsClick callback is missing!');
+    }
+
     const stats = this.calculateImprovementRate(data, selectedStationCountParticipants);
+    const totalParticipants = (data && data.totalParticipants) ? data.totalParticipants : 0;
+    const improvedParticipants = this.calculateImprovementCount(data, selectedStationCountParticipants);
+    
+    // DEBUG: Log the multi-year participant count
+    console.log('[ParticipantsImprovementCard] data.totalParticipants:', data?.totalParticipants);
+    console.log('[ParticipantsImprovementCard] Displayed totalParticipants:', totalParticipants);
+    console.log('[ParticipantsImprovementCard] Improved participants:', improvedParticipants);
+    console.log('[ParticipantsImprovementCard] Improvement rate:', stats.percentage);
 
     return (
       <div className="fft-dash-kpi-card fft-dash-kpi-improvement" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '16px', gridAutoRows: 'auto' }}>
@@ -220,11 +219,119 @@ class ParticipantsImprovementCard extends Component {
         </div>
 
         {/* Border separator */}
-        <div style={{ gridColumn: '1 / 3', height: '1px', backgroundColor: '#e2e8f0', margin: '8px -20px 0 -20px' }}></div>
+        <div style={{ gridColumn: '1 / 3', height: '2px', backgroundColor: '#94a3b8', margin: '8px -20px' }}></div>
 
-        {/* Improvement by Year */}
+        {/* Participants with Improvement - Entire row clickable */}
+        <div
+          onClick={() => {
+            console.log('Participants with Improvement clicked');
+            this.handleImprovementClick();
+          }}
+          onKeyDown={(e) => {
+            if ((e.key === 'Enter' || e.key === ' ')) {
+              e.preventDefault();
+              console.log('Participants with Improvement key pressed');
+              this.handleImprovementClick();
+            }
+          }}
+          role={this.props.onImprovementParticipantsClick || this.props.onOpenImprovementModal ? 'button' : undefined}
+          tabIndex={this.props.onImprovementParticipantsClick || this.props.onOpenImprovementModal ? 0 : undefined}
+          style={{ 
+            gridColumn: '1 / 3',
+            display: 'flex', 
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '12px 8px',
+            borderRadius: '4px',
+            cursor: (this.props.onImprovementParticipantsClick || this.props.onOpenImprovementModal) ? 'pointer' : 'default',
+            transition: 'background-color 0.2s ease, transform 0.2s ease',
+            backgroundColor: (this.props.onImprovementParticipantsClick || this.props.onOpenImprovementModal) ? 'transparent' : undefined,
+            transform: (this.props.onImprovementParticipantsClick || this.props.onOpenImprovementModal) ? 'scale(1)' : 'scale(1)'
+          }}
+          onMouseEnter={(e) => {
+            if (this.props.onImprovementParticipantsClick || this.props.onOpenImprovementModal) {
+              e.currentTarget.style.backgroundColor = '#f0f9ff';
+              e.currentTarget.style.transform = 'scale(1.01)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
+        >
+          <span className="fft-dash-kpi-label" style={{ marginBottom: '0', cursor: 'inherit' }}>Participants with Improvement</span>
+          <span className="fft-dash-kpi-value" style={{ cursor: 'inherit' }}>{improvedParticipants}</span>
+        </div>
+
+        {/* Border separator */}
+        <div style={{ gridColumn: '1 / 3', height: '2px', backgroundColor: '#94a3b8', margin: '8px -20px' }}></div>
+
+        {/* Total Participants */}
+        <div
+          onClick={() => {
+            if (this.props.onImprovementTotalParticipantsClick) {
+              this.props.onImprovementTotalParticipantsClick(selectedStationCountParticipants);
+            }
+          }}
+          onKeyDown={(e) => {
+            if ((e.key === 'Enter' || e.key === ' ') && this.props.onImprovementTotalParticipantsClick) {
+              e.preventDefault();
+              this.props.onImprovementTotalParticipantsClick(selectedStationCountParticipants);
+            }
+          }}
+          role={this.props.onImprovementTotalParticipantsClick ? 'button' : undefined}
+          tabIndex={this.props.onImprovementTotalParticipantsClick ? 0 : undefined}
+          style={{ 
+            cursor: this.props.onImprovementTotalParticipantsClick ? 'pointer' : 'default',
+            transition: 'opacity 0.2s ease'
+          }}
+        >
+          <span className="fft-dash-kpi-label" style={{ marginBottom: '0' }}>Total Participants</span>
+        </div>
+        <div
+          onClick={() => {
+            if (this.props.onImprovementTotalParticipantsClick) {
+              this.props.onImprovementTotalParticipantsClick(selectedStationCountParticipants);
+            }
+          }}
+          onKeyDown={(e) => {
+            if ((e.key === 'Enter' || e.key === ' ') && this.props.onImprovementTotalParticipantsClick) {
+              e.preventDefault();
+              this.props.onImprovementTotalParticipantsClick(selectedStationCountParticipants);
+            }
+          }}
+          role={this.props.onImprovementTotalParticipantsClick ? 'button' : undefined}
+          tabIndex={this.props.onImprovementTotalParticipantsClick ? 0 : undefined}
+          style={{ 
+            display: 'flex', 
+            justifyContent: 'flex-end', 
+            alignItems: 'center',
+            justifySelf: 'end',
+            width: '100%',
+            padding: '8px',
+            cursor: this.props.onImprovementTotalParticipantsClick ? 'pointer' : 'default',
+            borderRadius: '4px',
+            transition: 'background-color 0.2s ease',
+            backgroundColor: this.props.onImprovementTotalParticipantsClick ? 'transparent' : undefined
+          }}
+          onMouseEnter={(e) => {
+            if (this.props.onImprovementTotalParticipantsClick) {
+              e.currentTarget.style.backgroundColor = '#f0f9ff';
+            }
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+          }}
+        >
+          <span className="fft-dash-kpi-value">{totalParticipants}</span>
+        </div>
+
+        {/* Border separator */}
+        <div style={{ gridColumn: '1 / 3', height: '2px', backgroundColor: '#94a3b8', margin: '8px -20px' }}></div>
+
+        {/* Improvement */}
         <div>
-          <span className="fft-dash-kpi-label" style={{ marginBottom: '0' }}>Improvement by Year</span>
+          <span className="fft-dash-kpi-label" style={{ marginBottom: '0' }}>Improvement</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', justifySelf: 'end' }}>
           <span className="fft-dash-kpi-value">{stats.percentage}</span>

@@ -71,7 +71,7 @@ export async function handlePaymentStatusChange(event, context) {
     courseType === 'NSA' &&
     newValue === 'Refunded' &&
     (oldPaymentStatus === 'To refund' || oldPaymentStatus === 'Paid' || oldPaymentStatus === 'SkillsFuture Done') &&
-    (registrationStatus === 'Cancelled for duplication' || registrationStatus === 'Withdrawn');
+    (registrationStatus === 'Cancellation before Payment' || registrationStatus === 'Cancellation after Payment' || registrationStatus === 'Withdrawn');
   const shouldSetConfirmedSlot =
     newValue === 'SkillsFuture Done' ||
     ((paymentMethod === 'Cash' || paymentMethod === 'PayNow') && newValue === 'Paid');

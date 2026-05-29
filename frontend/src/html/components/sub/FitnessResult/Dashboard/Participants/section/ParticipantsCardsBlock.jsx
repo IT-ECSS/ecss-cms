@@ -17,7 +17,7 @@ class ParticipantsCardsBlock extends Component {
 
     return (
       <div className="fft-dash-kpi-row">
-        <ParticipantsTotalCard totalParticipants={totalParticipants} />
+        <ParticipantsTotalCard totalParticipants={totalParticipants} onClick={this.props.onTotalParticipantsClick} />
 
         <ParticipantsFemaleCard totalParticipants={totalParticipants} femaleCount={femaleCount} />
 
@@ -29,6 +29,9 @@ class ParticipantsCardsBlock extends Component {
             selectedStationCountParticipants={selectedStationCountParticipants}
             handleStationCountChangeParticipants={handleStationCountChangeParticipants}
             isMultipleYearsView={isMultipleYearsView}
+            onTotalParticipantsClick={this.props.onTotalParticipantsClick}
+            onImprovementTotalParticipantsClick={this.props.onImprovementTotalParticipantsClick}
+            onImprovementParticipantsClick={this.props.onImprovementParticipantsClick}
           />
         )}
       </div>

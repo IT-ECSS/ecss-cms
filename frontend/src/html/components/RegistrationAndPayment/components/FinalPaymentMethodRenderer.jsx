@@ -70,10 +70,17 @@ const FinalPaymentMethodRenderer = (params) => {
     }
   };
 
+  // Lock buttons if any payment/refund fields have values (completely read-only)
+  const hasPaymentDate = !!(params.data?.paymentDate && String(params.data.paymentDate).trim() !== '');
+  const hasPaymentTime = !!(params.data?.paymentTime && String(params.data.paymentTime).trim() !== '');
+  const hasRefundedDate = !!(params.data?.refundedDate && String(params.data.refundedDate).trim() !== '');
+  const hasRefundedTime = !!(params.data?.refundedTime && String(params.data.refundedTime).trim() !== '');
+  const isLockedByPaymentData = hasPaymentDate || hasPaymentTime || hasRefundedDate || hasRefundedTime;
+
   return (
     <div className="payment-method-group">
       {finalPaymentOptions.map((method) => {
-        const isDisabled = isNsaCourse && isRestrictedRole;
+        const isDisabled = (isNsaCourse && isRestrictedRole) || isLockedByPaymentData;
 
         return (
           <button

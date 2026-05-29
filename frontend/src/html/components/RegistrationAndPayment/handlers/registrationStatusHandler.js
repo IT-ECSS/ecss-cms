@@ -41,24 +41,29 @@ export async function handleRegistrationStatusChange(event, context) {
   const courseLocation = event.data.location;
   const courseType = String(courseInfo?.courseType || '').trim();
   
-  const isCancelledForDuplication =  newValue === 'Cancelled for duplication';
+  const isCancelledBeforePayment = newValue === 'Cancelled (before payment)';
+  const isCancelledAfterPayment = newValue === 'Cancelled (after payment)';
   const isWithdrawn = newValue === 'Withdrawn';
-  const isRefundRegistrationStatus = isCancelledForDuplication || isWithdrawn;
+  const isRefundRegistrationStatus = isCancelledBeforePayment || isCancelledAfterPayment || isWithdrawn;
   
   const registrationStatusTrackerLabel =
-    isCancelledForDuplication
-      ? 'The registration status will be updated to Cancelled for duplication'
-      : isWithdrawn
-        ? 'The registration status will be updated to Withdrawn'
-        : 'Updating The Registration Status';
+    isCancelledBeforePayment
+      ? 'The registration status will be updated to Cancelled (before payment)'
+      : isCancelledAfterPayment
+        ? 'The registration status will be updated to Cancelled (after payment)'
+        : isWithdrawn
+          ? 'The registration status will be updated to Withdrawn'
+          : 'Updating The Registration Status';
   const nextPaymentStatus =
     newValue === 'Submitted'
       ? 'Pending'
-      : isCancelledForDuplication
-        ? 'To refund'  // ALWAYS "To refund" for Cancelled for duplication
-        : isWithdrawn
-          ? 'To refund'  // ALWAYS "To refund" for Withdrawn
-          : '';
+      : isCancelledBeforePayment
+        ? ''  // NO payment status change for Cancelled (before payment) - only 1 step
+        : isCancelledAfterPayment
+          ? 'To refund'  // ALWAYS "To refund" for Cancelled (after payment)
+          : isWithdrawn
+            ? 'To refund'  // ALWAYS "To refund" for Withdrawn
+            : '';
   const shouldUpdatePaymentStatus = !!nextPaymentStatus && currentPaymentStatus !== nextPaymentStatus;
   const paymentStatusTrackerLabel =
     nextPaymentStatus === 'To refund'

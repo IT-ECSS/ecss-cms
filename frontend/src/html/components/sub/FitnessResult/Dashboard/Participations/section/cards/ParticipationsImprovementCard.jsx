@@ -1,4 +1,8 @@
 import React, { Component } from "react";
+import { 
+  analyzeParticipantImprovementAllCases, 
+  FITNESS_METRICS 
+} from "../../../fitnessImprovementAnalysis";
 
 class ParticipationsImprovementCard extends Component {
   constructor(props) {
@@ -11,15 +15,6 @@ class ParticipationsImprovementCard extends Component {
       buttonWidth: 0
     };
     this.buttonRef = React.createRef();
-    this.fitnessMetrics = [
-      { key: '30 secs Sit & Stand', label: '30 Secs Sit & Stand', unit: 'reps', higherIsBetter: true },
-      { key: '30 secs Arm Curl', label: '30 Secs Arm Curl', unit: 'reps', higherIsBetter: true },
-      { key: '2 min March on the spot', label: '2 Min March On The Spot', unit: 'steps', higherIsBetter: true },
-      { key: 'Sit & Reach', label: 'Sit & Reach', unit: 'cm', higherIsBetter: true },
-      { key: 'Back Stretch', label: 'Back Stretch', unit: 'cm', higherIsBetter: true },
-      { key: '2.44m speed walk', label: '2.44m Speed Walk', unit: 'sec', higherIsBetter: false },
-      { key: 'Grip Test', label: 'Grip Test', unit: 'kg', higherIsBetter: true }
-    ];
   }
 
   toggleDropdown = () => {
@@ -52,27 +47,32 @@ class ParticipationsImprovementCard extends Component {
 
   getQualifiedParticipants = (data) => {
     if (!data || !data.participantMap) {
+      console.log('getQualifiedParticipants: NO DATA OR NO PARTICIPANTMAP');
       return [];
     }
 
-    // Get all participants who attended more than once
-    return Object.entries(data.participantMap)
-      .filter(([name, participant]) => {
+    const qualified = Object.entries(data.participantMap)
+      .filter(([key, participant]) => {
         const yearsWithData = Object.keys(participant.years || {}).length;
         return yearsWithData > 1;
       })
-      .map(([name, participant]) => ({
-        name,
+      .map(([key, participant]) => ({
+        key,
         participant,
         yearsWithData: Object.keys(participant.years).length
       }));
+
+    console.log('getQualifiedParticipants: Found', qualified.length, 'qualified participants out of', Object.keys(data.participantMap).length);
+    return qualified;
   };
 
   calculateTotalAttendance = (data) => {
     if (!data || !data.participantMap) {
       return 0;
     }
-    return this.getQualifiedParticipants(data).length;
+    const total = this.getQualifiedParticipants(data).length;
+    console.log('calculateTotalAttendance:', total);
+    return total;
   };
 
   calculateImprovementRate = (data, stationCount = 1) => {
@@ -85,33 +85,14 @@ class ParticipationsImprovementCard extends Component {
   calculateImprovementCount = (data, stationCount = 1) => {
     if (!data || !data.participantMap) return 0;
 
-    const qualifiedParticipants = this.getQualifiedParticipants(data);
-    const years = (data.years || []).slice().sort();
-    if (years.length < 2) return 0;
+    // Use the centralized analysis function
+    const analysis = analyzeParticipantImprovementAllCases(
+      data.participantMap,
+      data.years || [],
+      stationCount
+    );
 
-    let count = 0;
-    qualifiedParticipants.forEach(({ participant }) => {
-      let hasImprovement = false;
-      for (let i = 0; i < years.length - 1; i++) {
-        const curr = participant.years[years[i]];
-        const next = participant.years[years[i + 1]];
-        if (!curr || !next) continue;
-        let improvedCount = 0;
-        this.fitnessMetrics.forEach(metric => {
-          const a = curr[metric.key];
-          const b = next[metric.key];
-          if (a === undefined || b === undefined || isNaN(a) || isNaN(b)) return;
-          if (metric.higherIsBetter ? b > a : b < a) improvedCount++;
-        });
-        // Check if participant improved in at least stationCount stations (≥) in ANY year transition
-        if (improvedCount >= stationCount) {
-          hasImprovement = true;
-          break;
-        }
-      }
-      if (hasImprovement) count++;
-    });
-    return count;
+    return analysis.uniqueCount;
   };
 
   render() {
@@ -120,6 +101,13 @@ class ParticipationsImprovementCard extends Component {
     } = this.props;
     
     const { selectedStationCountParticipations } = this.state;
+
+    console.log('ParticipationsImprovementCard RENDER - data:', data ? 'exists' : 'null');
+
+    const totalParticipations = this.calculateTotalAttendance(data);
+    const improvedParticipations = this.calculateImprovementCount(data, selectedStationCountParticipations);
+
+    console.log('After calculate - total:', totalParticipations, 'improved:', improvedParticipations);
 
     return (
       <div className="fft-dash-kpi-card fft-dash-kpi-improvement" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '16px', gridAutoRows: 'auto' }}>
@@ -190,11 +178,33 @@ class ParticipationsImprovementCard extends Component {
         </div>
 
         {/* Border separator */}
-        <div style={{ gridColumn: '1 / 3', height: '1px', backgroundColor: '#e2e8f0', margin: '8px -20px 0 -20px' }}></div>
+        <div style={{ gridColumn: '1 / 3', height: '2px', backgroundColor: '#94a3b8', margin: '8px -20px' }}></div>
 
-        {/* Improvement by Year */}
+        {/* Participations with Improvement */}
         <div>
-          <span className="fft-dash-kpi-label" style={{ marginBottom: '0' }}>Improvement by Year</span>
+          <span className="fft-dash-kpi-label" style={{ marginBottom: '0' }}>Participations with Improvement</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', justifySelf: 'end' }}>
+          <span className="fft-dash-kpi-value">{improvedParticipations}</span>
+        </div>
+
+        {/* Border separator */}
+        <div style={{ gridColumn: '1 / 3', height: '2px', backgroundColor: '#94a3b8', margin: '8px -20px' }}></div>
+
+        {/* Total Participations */}
+        <div>
+          <span className="fft-dash-kpi-label" style={{ marginBottom: '0' }}>Total Participations</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', justifySelf: 'end' }}>
+          <span className="fft-dash-kpi-value">{totalParticipations}</span>
+        </div>
+
+        {/* Border separator */}
+        <div style={{ gridColumn: '1 / 3', height: '2px', backgroundColor: '#94a3b8', margin: '8px -20px' }}></div>
+
+        {/* Improvement */}
+        <div>
+          <span className="fft-dash-kpi-label" style={{ marginBottom: '0' }}>Improvement</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', justifySelf: 'end' }}>
           <span className="fft-dash-kpi-value">

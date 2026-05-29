@@ -22,6 +22,12 @@ class MasterDataTable extends Component {
       columnDefs: [],
       loading: false,
       error: null,
+      skippedYearsMap: {}, // Cache skipped years per time slot
+      availableYears: [], // Years found in the data
+      selectedYears: [], // Selected years for filtering
+      yearRangeFrom: '', // Year range start
+      yearRangeTo: '', // Year range end
+      filterMode: 'all', // 'all', 'individual', 'range'
     };
     this.gridRef = React.createRef();
   }
@@ -36,13 +42,154 @@ class MasterDataTable extends Component {
     }
   }
 
+  // Extract year from date string (format: "DD/MM/YYYY" or similar)
+  extractYear = (dateStr) => {
+    const match = String(dateStr || '').match(/(\d{4})/);
+    return match ? parseInt(match[1], 10) : null;
+  };
+
+  // Get all unique years from data
+  getAllYearsFromData = (data) => {
+    const years = new Set();
+    data.forEach(row => {
+      const dateStr = String(row['Date of test'] || '').trim();
+      const year = this.extractYear(dateStr);
+      if (year !== null) {
+        years.add(year);
+      }
+    });
+    return Array.from(years).sort((a, b) => a - b);
+  };
+
+  // Filter rows based on selected year filter
+  getFilteredRowData = (data) => {
+    const { filterMode, selectedYears, yearRangeFrom, yearRangeTo } = this.state;
+    
+    if (filterMode === 'all' || (filterMode === 'individual' && selectedYears.length === 0 && 
+        filterMode === 'range' && !yearRangeFrom && !yearRangeTo)) {
+      return data;
+    }
+
+    return data.filter(row => {
+      const dateStr = String(row['Date of test'] || '').trim();
+      const year = this.extractYear(dateStr);
+      
+      if (year === null) return false;
+
+      if (filterMode === 'individual') {
+        return selectedYears.includes(year);
+      } else if (filterMode === 'range') {
+        const from = yearRangeFrom ? parseInt(yearRangeFrom) : null;
+        const to = yearRangeTo ? parseInt(yearRangeTo) : null;
+        
+        if (from !== null && to !== null) {
+          return year >= from && year <= to;
+        } else if (from !== null) {
+          return year >= from;
+        } else if (to !== null) {
+          return year <= to;
+        }
+      }
+      return true;
+    });
+  };
+
+  // Handle year selection toggle
+  handleYearToggle = (year) => {
+    this.setState(prevState => {
+      const newSelectedYears = prevState.selectedYears.includes(year)
+        ? prevState.selectedYears.filter(y => y !== year)
+        : [...prevState.selectedYears, year];
+      
+      const newRowData = this.getFilteredRowData(prevState.rowData);
+      return {
+        selectedYears: newSelectedYears,
+        rowData: newRowData,
+        filterMode: 'individual'
+      };
+    });
+  };
+
+  // Handle year range change
+  handleYearRangeChange = (field, value) => {
+    this.setState(prevState => {
+      const newState = {
+        ...prevState,
+        [field]: value,
+        filterMode: 'range'
+      };
+      const newRowData = this.getFilteredRowData(prevState.rowData);
+      return { ...newState, rowData: newRowData };
+    });
+  };
+
+  // Reset filters
+  handleResetFilters = () => {
+    this.setState({
+      selectedYears: [],
+      yearRangeFrom: '',
+      yearRangeTo: '',
+      filterMode: 'all'
+    }, () => this.fetchData());
+  };
+
   exportXlsx = async () => {
     const { rowData } = this.state;
     const { event } = this.props;
-    if (!rowData.length) return;
+    
+    // Use filtered data for export
+    const dataToExport = this.getFilteredRowData(rowData);
+    
+    if (!dataToExport.length) return;
 
     const eventName = event?.name || 'event';
     const wb = new ExcelJS.Workbook();
+
+    // Station columns
+    const STATION_COLUMNS = [
+      '30 secs Sit & Stand',
+      '30 secs Dumbbell Curl',
+      '2 min On-the-spot Marching',
+      'Sit & Reach',
+      'Back Stretching',
+      '2.44m Speed Walk',
+      'Grip test'
+    ];
+
+    // Get all unique years from exported data
+    const yearsInData = new Set();
+    dataToExport.forEach(row => {
+      const dateStr = String(row['Date of test'] || '').trim();
+      const year = this.extractYear(dateStr);
+      if (year !== null) {
+        yearsInData.add(year);
+      }
+    });
+    const sortedYears = Array.from(yearsInData).sort((a, b) => a - b);
+
+    // Calculate skipped years
+    const getSkippedYears = (fromYear, toYear) => {
+      const from = parseInt(fromYear);
+      const to = parseInt(toYear);
+      if (to <= from + 1) return [];
+      const skipped = [];
+      for (let y = from + 1; y < to; y++) {
+        skipped.push(y);
+      }
+      return skipped;
+    };
+
+    // Format header with year range and skipped years
+    const formatColumnHeader = (stationName) => {
+      if (sortedYears.length === 0) return stationName;
+      if (sortedYears.length === 1) return `${stationName}: ${sortedYears[0]}`;
+      
+      const minYear = sortedYears[0];
+      const maxYear = sortedYears[sortedYears.length - 1];
+      const skipped = getSkippedYears(minYear, maxYear);
+      const skippedText = skipped.length > 0 ? ` (skipped ${skipped.join(', ')})` : '';
+      return `${stationName}: ${minYear} - ${maxYear}${skippedText}`;
+    };
 
     // Load ECSS logo from local asset
     let logoId = null;
@@ -62,15 +209,23 @@ class MasterDataTable extends Component {
     const EXPORT_COLS = [
       { field: 'Participant Number', header: 'Participant Number' },
       { field: 'Name',               header: 'Name' },
-      { field: 'Phone Number',       header: 'Phone Number' },
+      { field: 'Phone Number',       header: 'Contact Number' },
       { field: '__timeSlot__',       header: 'Time Slot' },
       { field: 'Date of test',       header: 'Date of test' },
       { field: '__signature__',      header: 'Signature' },
     ];
 
+    // Add station columns with formatted headers
+    STATION_COLUMNS.forEach(station => {
+      EXPORT_COLS.push({
+        field: station,
+        header: formatColumnHeader(station)
+      });
+    });
+
     // Group rows by Start Time
     const groups = {};
-    rowData.forEach(row => {
+    dataToExport.forEach(row => {
       const start = String(row['Start Time'] || 'Unknown').trim();
       const end = String(row['End Time'] || '').trim();
       const key = end ? `${start}|||${end}` : start;
@@ -79,7 +234,32 @@ class MasterDataTable extends Component {
     });
 
     Object.entries(groups).forEach(([, { start, end, rows }], idx) => {
-      const slotLabel = `${start} - ${end}`;
+      // Extract years from Date of test field and detect skipped years
+      const allYears = rows
+        .map(row => {
+          const dateStr = String(row['Date of test'] || '').trim();
+          const match = dateStr.match(/(\d{4})/);
+          return match ? parseInt(match[1], 10) : null;
+        })
+        .filter(year => year !== null);
+
+      const uniqueYears = [...new Set(allYears)].sort((a, b) => a - b);
+      let skippedYearsText = '';
+      if (uniqueYears.length > 1) {
+        const minYear = uniqueYears[0];
+        const maxYear = uniqueYears[uniqueYears.length - 1];
+        const skipped = [];
+        for (let y = minYear; y <= maxYear; y++) {
+          if (!uniqueYears.includes(y)) {
+            skipped.push(y);
+          }
+        }
+        if (skipped.length > 0) {
+          skippedYearsText = ` (${skipped.join(', ')} skipped)`;
+        }
+      }
+
+      const slotLabel = `${start} - ${end}${skippedYearsText}`;
       // Use modifier letter colon ꞉ (U+A789) — looks like : but allowed in sheet names
       const safeStart = start.replace(/:/g, '\ua789');
       const safeEnd = end.replace(/:/g, '\ua789');
@@ -205,9 +385,13 @@ class MasterDataTable extends Component {
       const res = await axios.post(`${BACKEND_URL}/googleDrive/getParticipants`, { fileId });
       const raw = Array.isArray(res.data) ? res.data : [];
       if (raw.length === 0) {
-        this.setState({ loading: false, rowData: [], columnDefs: [] });
+        this.setState({ loading: false, rowData: [], columnDefs: [], availableYears: [] });
         return;
       }
+
+      // Get available years from data
+      const availableYears = this.getAllYearsFromData(raw);
+
       const HIDDEN_FROM = ['Age', 'Height', 'Weight', 'BMI', 'Date of test',
         '30 secs Sit & Stand', '30 secs Dumbbell Curl', '2 min On-the-spot Marching',
         'Sit & Reach', 'Back Stretching', '2.44m Speed Walk', 'Grip test',
@@ -268,7 +452,34 @@ class MasterDataTable extends Component {
         columnDefs.push(timeSlotCol);
       }
 
-      this.setState({ loading: false, rowData: raw, columnDefs });
+      this.setState({ 
+        loading: false, 
+        rowData: raw, 
+        columnDefs,
+        availableYears,
+        selectedYears: [],
+        yearRangeFrom: '',
+        yearRangeTo: '',
+        filterMode: 'all'
+      });
+
+      // ─── Log all FFT participant names and total count to console ───
+      const participantNames = raw
+        .map(row => row['Name'] || '')
+        .filter(name => name.trim() !== '')
+        .sort();
+      
+      console.log('═══════════════════════════════════════════════════════════');
+      console.log('FFT RESULTS - TOTAL PARTICIPANTS:', raw.length);
+      console.log('═══════════════════════════════════════════════════════════');
+      console.log('PARTICIPANT NAMES:');
+      participantNames.forEach((name, index) => {
+        console.log(`  ${index + 1}. ${name}`);
+      });
+      console.log('═══════════════════════════════════════════════════════════');
+      console.log('Total Unique Names:', participantNames.length);
+      console.log('═══════════════════════════════════════════════════════════');
+      
     } catch (err) {
       this.setState({ loading: false, error: 'Failed to load data. Please try again.' });
     }
@@ -276,7 +487,20 @@ class MasterDataTable extends Component {
 
   render() {
     const { event } = this.props;
-    const { rowData, columnDefs, loading, error } = this.state;
+    const { 
+      rowData, 
+      columnDefs, 
+      loading, 
+      error,
+      availableYears,
+      selectedYears,
+      yearRangeFrom,
+      yearRangeTo,
+      filterMode
+    } = this.state;
+
+    // Get the actual data being displayed (filtered)
+    const displayData = this.getFilteredRowData(rowData);
 
     return (
       <div className="fft-participants-section">
@@ -288,32 +512,196 @@ class MasterDataTable extends Component {
           </div>
         </div>
 
+        {/* Year Filter Section */}
+        {availableYears.length > 0 && !loading && (
+          <div style={{ 
+            backgroundColor: '#f5f5f5', 
+            padding: '16px', 
+            borderRadius: '8px', 
+            marginBottom: '16px',
+            border: '1px solid #e0e0e0'
+          }}>
+            <div style={{ marginBottom: '12px', fontWeight: 'bold', color: '#333', fontSize: '1.1rem' }}>
+              <i className="fas fa-calendar-alt" style={{ marginRight: '8px' }}></i>
+              Filter by Year
+            </div>
+
+            {/* Filter Mode Toggle */}
+            <div style={{ marginBottom: '12px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                <input 
+                  type="radio" 
+                  name="filterMode" 
+                  value="all" 
+                  checked={filterMode === 'all'}
+                  onChange={() => this.setState({ filterMode: 'all' }, () => this.setState({}))}
+                />
+                All Years
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                <input 
+                  type="radio" 
+                  name="filterMode" 
+                  value="individual" 
+                  checked={filterMode === 'individual'}
+                  onChange={() => this.setState({ filterMode: 'individual' })}
+                />
+                Select Individual Years
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                <input 
+                  type="radio" 
+                  name="filterMode" 
+                  value="range" 
+                  checked={filterMode === 'range'}
+                  onChange={() => this.setState({ filterMode: 'range' })}
+                />
+                Year Range
+              </label>
+            </div>
+
+            {/* Individual Years Selection */}
+            {filterMode === 'individual' && (
+              <div style={{ marginBottom: '12px' }}>
+                <div style={{ marginBottom: '8px', fontSize: '0.9rem', color: '#666' }}>
+                  Select years: {selectedYears.length > 0 ? selectedYears.join(', ') : 'None'}
+                </div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {availableYears.map(year => (
+                    <button
+                      key={year}
+                      onClick={() => this.handleYearToggle(year)}
+                      style={{
+                        padding: '8px 16px',
+                        backgroundColor: selectedYears.includes(year) ? '#2e7d32' : '#f0f0f0',
+                        color: selectedYears.includes(year) ? 'white' : '#333',
+                        border: '1px solid #ddd',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontWeight: selectedYears.includes(year) ? 'bold' : 'normal',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      {year}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Year Range Selection */}
+            {filterMode === 'range' && (
+              <div style={{ marginBottom: '12px', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.9rem', fontWeight: 'bold' }}>
+                    From Year:
+                  </label>
+                  <select
+                    value={yearRangeFrom}
+                    onChange={(e) => this.handleYearRangeChange('yearRangeFrom', e.target.value)}
+                    style={{
+                      padding: '8px 12px',
+                      border: '1px solid #ddd',
+                      borderRadius: '4px',
+                      fontSize: '1rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="">Select Start Year</option>
+                    {availableYears.map(year => (
+                      <option key={`from-${year}`} value={year}>{year}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.9rem', fontWeight: 'bold' }}>
+                    To Year:
+                  </label>
+                  <select
+                    value={yearRangeTo}
+                    onChange={(e) => this.handleYearRangeChange('yearRangeTo', e.target.value)}
+                    style={{
+                      padding: '8px 12px',
+                      border: '1px solid #ddd',
+                      borderRadius: '4px',
+                      fontSize: '1rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="">Select End Year</option>
+                    {availableYears.map(year => (
+                      <option key={`to-${year}`} value={year}>{year}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* Reset Button */}
+            {(selectedYears.length > 0 || yearRangeFrom || yearRangeTo) && (
+              <button
+                onClick={this.handleResetFilters}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#ff9800',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  fontSize: '0.9rem'
+                }}
+              >
+                <i className="fas fa-times" style={{ marginRight: '6px' }}></i>
+                Reset Filters
+              </button>
+            )}
+
+            {/* Display active filter info */}
+            {(selectedYears.length > 0 || yearRangeFrom || yearRangeTo) && (
+              <div style={{ marginTop: '12px', padding: '8px 12px', backgroundColor: '#e3f2fd', borderRadius: '4px', fontSize: '0.9rem' }}>
+                <strong>Active Filter:</strong> {' '}
+                {filterMode === 'individual' && `Years: ${selectedYears.join(', ')}`}
+                {filterMode === 'range' && `${yearRangeFrom || 'Any'} - ${yearRangeTo || 'Any'}`}
+                {' | '} <strong>Showing {displayData.length} of {rowData.length} records</strong>
+              </div>
+            )}
+          </div>
+        )}
+
         {loading && <p style={{ color: '#555', padding: '16px 0' }}>Loading data…</p>}
         {error   && <p style={{ color: '#d32f2f', padding: '16px 0' }}>{error}</p>}
 
-        {!loading && !error && rowData.length === 0 && (
+        {!loading && !error && displayData.length === 0 && rowData.length === 0 && (
           <p style={{ color: '#888', padding: '16px 0' }}>No data found for this event.</p>
+        )}
+
+        {!loading && !error && displayData.length === 0 && rowData.length > 0 && (
+          <p style={{ color: '#d32f2f', padding: '16px 0' }}>No data matches the selected year filter.</p>
         )}
 
         <div style={{ width: 'fit-content', marginLeft: 'auto', marginBottom: '8px' }}>
           <button
             onClick={this.exportXlsx}
+            disabled={displayData.length === 0}
             style={{
               padding: '8px 18px',
-              backgroundColor: 'transparent',
-              color: '#2e7d32',
-              border: '3px solid #2e7d32',
+              backgroundColor: displayData.length === 0 ? '#ccc' : 'transparent',
+              color: displayData.length === 0 ? '#999' : '#2e7d32',
+              border: displayData.length === 0 ? '3px solid #ccc' : '3px solid #2e7d32',
               borderRadius: '4px',
               fontSize: '1.5rem',
               fontWeight: 'bold',
-              cursor: 'pointer',
+              cursor: displayData.length === 0 ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s ease'
             }}
           >
-            Export
+            <i className="fas fa-download" style={{ marginRight: '8px' }}></i>
+            Export ({displayData.length})
           </button>
         </div>
 
-        {!loading && rowData.length > 0 && (
+        {!loading && displayData.length > 0 && (
           <div
             className="grid-container fft-upload-grid"
             style={{ width: '100%', maxWidth: '100%', height: '500px', marginLeft: 0 }}
@@ -321,10 +709,10 @@ class MasterDataTable extends Component {
             <AgGridReact
               ref={this.gridRef}
               columnDefs={columnDefs}
-              rowData={rowData}
+              rowData={displayData}
               domLayout="normal"
-              pagination={rowData.length}
-              paginationPageSize={25, 50, 75, 100, rowData.length}
+              pagination={displayData.length}
+              paginationPageSize={25, 50, 75, 100, displayData.length}
               suppressCellFocus={true}
             />
           </div>

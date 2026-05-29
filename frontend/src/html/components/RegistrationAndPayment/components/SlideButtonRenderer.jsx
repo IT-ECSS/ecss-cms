@@ -40,6 +40,14 @@ const SlideButtonRenderer = (params) => {
     });
   };
 
+  // Determine if the cell is editable
+  let isEditable = true;
+  if (typeof params.colDef.editable === 'function') {
+    isEditable = params.colDef.editable(params);
+  } else if (typeof params.colDef.editable === 'boolean') {
+    isEditable = params.colDef.editable;
+  }
+
   return (
     <div className="registration-payment-details-toggle-container">
       <input
@@ -47,6 +55,7 @@ const SlideButtonRenderer = (params) => {
         className="registration-payment-details-toggle"
         checked={parseConfirmed(params.value)}
         onChange={handleChange}
+        disabled={!isEditable}
       />
     </div>
   );

@@ -74,6 +74,24 @@ class EditParticipants extends Component {
           }))
         : [];
       this.setState({ loading: false, participants });
+      
+      // ─── Log all FFT participant names and total count to console ───
+      const participantNames = participants
+        .map(p => p['Name'] || '')
+        .filter(name => name.trim() !== '')
+        .sort();
+      
+      console.log('═══════════════════════════════════════════════════════════');
+      console.log('FFT RESULTS - TOTAL PARTICIPANTS:', participants.length);
+      console.log('═══════════════════════════════════════════════════════════');
+      console.log('PARTICIPANT NAMES:');
+      participantNames.forEach((name, index) => {
+        console.log(`  ${index + 1}. ${name}`);
+      });
+      console.log('═══════════════════════════════════════════════════════════');
+      console.log('Total Unique Names:', participantNames.length);
+      console.log('═══════════════════════════════════════════════════════════');
+      
     } catch (err) {
       console.error('Failed to fetch participants:', err);
       this.setState({ loading: false, error: 'Failed to load participants. Please try again.' });

@@ -291,6 +291,49 @@ class RegistrationPaymentSection extends Component {
   }
 
   /**
+   * Check if user is Site in-charge with Pasir Ris West location access
+   * Site In-Charge at Pasir Ris West (PRW or full name) can edit: Registration Status, Confirmation Status, Payment Status (SkillsFuture), Remarks
+   */
+  _isSiteInChargeWithPasirRisWestLocation() {
+    if (!this._isSiteInChargeRole()) {
+      console.log('🔐 [Pasir Ris West Check] Not a Site in-charge role');
+      return false;
+    }
+    
+    const siteIC = this.props.siteIC;
+    const pasirRisWestVariants = ['PRW', 'Pasir Ris West Wellness Centre', 'Pasir Ris West'];
+    
+    console.log('🔐 [Pasir Ris West Location Check]', {
+      role: this.props.role,
+      siteIC: siteIC,
+      siteICType: typeof siteIC,
+      siteICIsArray: Array.isArray(siteIC),
+      variants: pasirRisWestVariants,
+    });
+    
+    // If siteIC is undefined or empty, allow edit anyway (backward compatibility)
+    if (!siteIC) {
+      console.log('🔐 [Pasir Ris West Check] siteIC is undefined/empty - allowing edit');
+      return true; // Allow Site in-charge to edit if location not specified
+    }
+    
+    // Check if siteIC includes any variation of Pasir Ris West location
+    if (Array.isArray(siteIC)) {
+      const result = siteIC.some(location => {
+        const match = pasirRisWestVariants.includes(location);
+        console.log('  Checking:', location, '| Match:', match);
+        return match;
+      });
+      console.log('🔐 [Array Check Result]:', result);
+      return result;
+    }
+    
+    const result = pasirRisWestVariants.includes(siteIC);
+    console.log('🔐 [String Check]:', siteIC, '| Match:', result);
+    return result;
+  }
+
+  /**
    * Check if user is Fitness Trainer or Social Worker (can edit Registration Status, Remarks)
    */
   _isFitnessOrSocialWorkerRole() {
@@ -299,18 +342,18 @@ class RegistrationPaymentSection extends Component {
 
   /**
    * NSA: Can edit Registration Status column
-   * Allowed: Admin, Ops in-charge, Sub Admin, NSA in-charge, Site in-charge, Fitness Trainer, Social Worker
+   * Allowed: Admin, Ops in-charge, Sub Admin, NSA in-charge, Site in-charge (at Pasir Ris West location), Fitness Trainer, Social Worker
    */
   _canEditNsaRegistrationStatus() {
     const role = String(this.props.role || '').toLowerCase();
     const canEdit = this._canEditAllNsaColumns() || 
            this._isNsaInChargeRole() || 
-           this._isSiteInChargeRole() || 
+           this._isSiteInChargeWithPasirRisWestLocation() || 
            this._isFitnessOrSocialWorkerRole()|| this._isFinanceRole();
     console.log('🔍 [NSA Registration Status] Role:', role, '| Can Edit:', canEdit, '| Role Checks:', {
       admin: this._canEditAllNsaColumns(),
       nsaInCharge: this._isNsaInChargeRole(),
-      siteInCharge: this._isSiteInChargeRole(),
+      siteInChargePasirRisWest: this._isSiteInChargeWithPasirRisWestLocation(),
       fitnessOrSocial: this._isFitnessOrSocialWorkerRole(),
     });
     return canEdit;
@@ -319,73 +362,143 @@ class RegistrationPaymentSection extends Component {
   /**
    * NSA: Can edit Final Payment Method (by Staff) column
    * Allowed: Admin, Ops in-charge, Sub Admin, Finance
+   * Restricted: Site in-charge (ALL locations), Fitness Trainer, Social Worker
    */
   _canEditNsaFinalPaymentMethod() {
-    return this._canEditAllNsaColumns() || this._isFinanceRole();
+    // Restrict Site In-Charge and Fitness Trainer / Social Worker from editing this column
+    if (this._isSiteInChargeRole() || this._isFitnessOrSocialWorkerRole()) {
+      console.log('🔐 [Final Payment Method Check] Restricted role - Role:', this.props.role);
+      return false;
+    }
+    const canEdit = this._canEditAllNsaColumns() || this._isFinanceRole();
+    console.log('🔐 [Final Payment Method Check] Role:', this.props.role, '| Can Edit:', canEdit);
+    return canEdit;
   }
 
   /**
    * NSA: Can edit Confirmation Status column
-   * Allowed: Admin, Ops in-charge, Sub Admin, NSA in-charge
+   * Allowed: Admin, Ops in-charge, Sub Admin, NSA in-charge, Site in-charge (at Pasir Ris West location only)
+   * Restricted: Fitness Trainer, Social Worker, Finance
    */
   _canEditNsaConfirmationStatus() {
-    return this._canEditAllNsaColumns() || this._isNsaInChargeRole();
+    // Restrict Fitness Trainer / Social Worker / Finance from editing this column
+    if (this._isFitnessOrSocialWorkerRole() || this._isFinanceRole()) {
+      console.log('🔐 [NSA Confirmation Status Check] Fitness Trainer/Social Worker/Finance restricted from editing');
+      return false;
+    }
+    const canEdit = this._canEditAllNsaColumns() || this._isNsaInChargeRole() || this._isSiteInChargeWithPasirRisWestLocation();
+    console.log('🔐 [NSA Confirmation Status Check] Role:', this.props.role, '| Can Edit:', canEdit, '| Checks:', {
+      admin: this._canEditAllNsaColumns(),
+      nsaInCharge: this._isNsaInChargeRole(),
+      siteInChargePRW: this._isSiteInChargeWithPasirRisWestLocation(),
+    });
+    return canEdit;
   }
 
   /**
    * NSA: Can edit Payment Status (Cash/PayNow) column
    * Allowed: Admin, Ops in-charge, Sub Admin, Finance
+   * Restricted: Site in-charge (ALL locations), Fitness Trainer, Social Worker
    */
   _canEditNsaCashPayNowPaymentStatus() {
+    // Restrict Site In-Charge and Fitness Trainer / Social Worker from editing this column
+    if (this._isSiteInChargeRole() || this._isFitnessOrSocialWorkerRole()) {
+      return false;
+    }
     return this._canEditAllNsaColumns() || this._isFinanceRole();
   }
 
   /**
    * NSA: Can edit Payment Status (SkillsFuture) column
-   * Allowed: Admin, Ops in-charge, Sub Admin, NSA in-charge
+   * Allowed: Admin, Ops in-charge, Sub Admin, NSA in-charge, Site in-charge (at Pasir Ris West location only)
+   * Restricted: Finance, Fitness Trainer, Social Worker
    */
   _canEditNsaSkillsFuturePaymentStatus() {
-    return this._canEditAllNsaColumns() || this._isNsaInChargeRole();
+    // Restrict Finance from editing SkillsFuture column
+    if (this._isFinanceRole()) {
+      console.log('🔐 [NSA Payment Status SkillsFuture Check] Finance role restricted from editing SkillsFuture');
+      return false;
+    }
+    // Restrict Fitness Trainer / Social Worker from editing this column
+    if (this._isFitnessOrSocialWorkerRole()) {
+      console.log('🔐 [NSA Payment Status SkillsFuture Check] Fitness Trainer/Social Worker restricted from editing');
+      return false;
+    }
+    const canEdit = this._canEditAllNsaColumns() || this._isNsaInChargeRole() || this._isSiteInChargeWithPasirRisWestLocation();
+    console.log('🔐 [NSA Payment Status SkillsFuture Check] Role:', this.props.role, '| Can Edit:', canEdit, '| Checks:', {
+      admin: this._canEditAllNsaColumns(),
+      nsaInCharge: this._isNsaInChargeRole(),
+      siteInChargePRW: this._isSiteInChargeWithPasirRisWestLocation(),
+    });
+    return canEdit;
   }
 
   /**
    * NSA: Can edit Payment Date column
    * Allowed: Admin, Ops in-charge, Sub Admin, Finance
+   * Restricted: Site in-charge (ALL locations), Fitness Trainer, Social Worker
    */
   _canEditNsaPaymentDate() {
+    // Restrict Site In-Charge and Fitness Trainer / Social Worker from editing this column
+    if (this._isSiteInChargeRole() || this._isFitnessOrSocialWorkerRole()) {
+      return false;
+    }
     return this._canEditAllNsaColumns() || this._isFinanceRole();
   }
 
   /**
    * NSA: Can edit Refunded Date column
    * Allowed: Admin, Ops in-charge, Sub Admin, Finance
+   * Restricted: Site in-charge (ALL locations), Fitness Trainer, Social Worker
    */
   _canEditNsaRefundedDate() {
+    // Restrict Site In-Charge and Fitness Trainer / Social Worker from editing this column
+    if (this._isSiteInChargeRole() || this._isFitnessOrSocialWorkerRole()) {
+      return false;
+    }
     return this._canEditAllNsaColumns() || this._isFinanceRole();
   }
 
   /**
    * NSA: Can edit Payment Time column
    * Allowed: Admin, Ops in-charge, Sub Admin, Finance
+   * Note: Site in-charge is restricted from editing this column
    */
   _canEditNsaPaymentTime() {
+    // Restrict Site In-Charge and Fitness Trainer / Social Worker from editing this column
+    if (this._isSiteInChargeRole() || this._isFitnessOrSocialWorkerRole()) {
+      return false;
+    }
     return this._canEditAllNsaColumns() || this._isFinanceRole();
   }
 
   /**
    * NSA: Can edit Refunded Time column
    * Allowed: Admin, Ops in-charge, Sub Admin, Finance
+   * Restricted: Site in-charge (ALL locations), Fitness Trainer, Social Worker
    */
   _canEditNsaRefundedTime() {
+    // Restrict Site In-Charge and Fitness Trainer / Social Worker from editing this column
+    if (this._isSiteInChargeRole() || this._isFitnessOrSocialWorkerRole()) {
+      return false;
+    }
     return this._canEditAllNsaColumns() || this._isFinanceRole();
   }
 
   /**
    * NSA: Can edit Remarks column
-   * Allowed: All roles (Admin, Ops in-charge, Sub Admin, Finance, NSA in-charge, Site in-charge, Fitness Trainer, Social Worker)
+   * Allowed: Admin, Ops in-charge, Sub Admin, Finance, NSA in-charge, Fitness Trainer, Social Worker
+   * Site in-charge can edit ONLY if at Pasir Ris West location
    */
   _canEditNsaRemarks() {
-    return true; // All roles can edit remarks
+    // Check if Site In-Charge - if so, only allow at Pasir Ris West
+    if (this._isSiteInChargeRole()) {
+      const canEdit = this._isSiteInChargeWithPasirRisWestLocation();
+      console.log('🔐 [NSA Remarks Check] Site In-Charge at Pasir Ris West:', canEdit);
+      return canEdit;
+    }
+    // All other roles (including Fitness Trainer / Social Worker) can edit remarks
+    return true;
   }
 
   _getNsaPaymentStatusDisplayValue(columnName, rowData = {}) {
@@ -399,27 +512,20 @@ class RegistrationPaymentSection extends Component {
   _getNsaPaymentStatusEditorValues = (params) => {
     const { courseInfo } = params?.data || {};
     const courseType  = courseInfo?.courseType;
+    const colId = params?.colDef?.colId || '';
 
-    // NSA courses: show different payment status options for SkillsFuture vs Cash/PayNow
+    // NSA courses: show different values based on which payment status column
     if (courseType === 'NSA') {
-      const resolvedMethod = this._getResolvedNsaPaymentMethod(params?.data || {});
-      if (resolvedMethod === 'SkillsFuture') {
-        return {
-          values: [
-            'Pending',
-            'Generating SkillsFuture Invoice',
-            'SkillsFuture Done',
-            'Cancelled',
-            'Withdrawn',
-            'Refunded',
-            'To refund',
-          ],
-        };
+      // Payment Status (SkillsFuture) column
+      if (colId === 'paymentStatusSkillsFuture') {
+        return { values: ['Pending', 'Generating SkillsFuture Invoice', 'SkillsFuture Done', 'Cancelled', 'To refund', 'Refunded'] };
       }
-
-      return {
-        values: ['Paid', 'Pending', 'To refund', 'Cancelled - No payment received', 'Refunded'],
-      };
+      // Payment Status (Cash/PayNow) column
+      if (colId === 'paymentStatusCashPayNow') {
+        return { values: ['Paid', 'Pending', 'To refund', 'Cancelled - No payment received', 'Refunded'] };
+      }
+      // Default NSA values (fallback)
+      return { values: ['Paid', 'Pending', 'To refund', 'Cancelled - No payment received', 'Refunded'] };
     }
 
     const coursePrice = courseInfo?.coursePrice;
@@ -1585,8 +1691,25 @@ class RegistrationPaymentSection extends Component {
     const { role, siteIC, selectedCourseType, userEmail } = this.props;
     const isReadOnly          = isReadOnlyUser(userEmail);
     const canEdit             = true;
-    const canSocialWorkerEdit = () => true;
-    const canSiteInChargeEdit = () => true;
+    
+    // Social Worker can edit Registration Status and Remarks for non-NSA courses
+    const canSocialWorkerEdit = (params) => {
+      const isSocialWorker = this._isFitnessOrSocialWorkerRole();
+      if (!isSocialWorker) return false;
+      // Social workers can edit Registration Status and Remarks (other columns return false)
+      return true;
+    };
+    
+    // Site In-Charge at PRW can edit only: Registration Status, Remarks for non-NSA courses
+    // For NSA courses, they can only edit the 4 allowed columns (via NSA-specific methods)
+    const canSiteInChargeEdit = (params) => {
+      // For non-NSA courses: Site In-Charge at any location can edit Registration Status and Remarks
+      // but at PRW they have restrictions applied via NSA-specific methods
+      const isSiteInCharge = this._isSiteInChargeRole();
+      if (!isSiteInCharge) return false;
+      // Site in-charge can edit Registration Status and Remarks (other columns return false)
+      return true;
+    };
 
     const isFilteringILP           = selectedCourseType === 'ILP';
     const isFilteringTalksAndSeminar = selectedCourseType === 'Talks And Seminar';
@@ -1685,9 +1808,9 @@ class RegistrationPaymentSection extends Component {
         cellEditorParams: (params) => {
           const courseType = String(params.data?.courseInfo?.courseType || params.data?.courseType || '').trim();
           if (courseType === 'NSA') {
-            return { values: ['Submitted', 'Confirmed Slot', 'Cancelled for duplication', 'Withdrawn', 'Not Successful'] };
+            return { values: ['Submitted', 'Confirmed Slot', 'Cancelled (before payment)', 'Cancelled (after payment)', 'Withdrawn', 'Class Full'] };
           }
-          return { values: ['Pending', 'Confirmed', 'Withdrawn', 'Not Successful'] };
+          return { values: ['Pending', 'Confirmed', 'Withdrawn', 'Class Full'] };
         },
         editable: (params) => {
           const courseType = String(params.data?.courseInfo?.courseType || params.data?.courseType || '').trim();
@@ -1700,6 +1823,18 @@ class RegistrationPaymentSection extends Component {
         valueGetter: (params) => params.data?.registrationStatus || '',
         valueSetter: (params) => {
           if (params.newValue && params.newValue !== params.oldValue) {
+            // Progress tracker logic: treat 'Class Full' as 'Not Successful' for NSA
+            if (
+              params.newValue === 'Class Full' &&
+              (String(params.data?.courseInfo?.courseType || params.data?.courseType || '').trim() === 'NSA')
+            ) {
+              params.data.registrationStatus = 'Class Full';
+              // If there is a progress tracker callback, call it as for 'Not Successful'
+              if (typeof params.context?.progressTracker === 'function') {
+                params.context.progressTracker('Not Successful', params.data);
+              }
+              return true;
+            }
             params.data.registrationStatus = params.newValue;
             return true;
           }
@@ -1714,11 +1849,7 @@ class RegistrationPaymentSection extends Component {
         field: 'finalPaymentMethod',
         width: 700,
         cellRenderer: FinalPaymentMethodRenderer,
-        editable: (params) => {
-          const courseType = String(params.data?.courseInfo?.courseType || params.data?.courseType || '').trim();
-          if (courseType === 'NSA') return this._canEditNsaFinalPaymentMethod();
-          return true;
-        },
+        editable: false,
         cellStyle: centeredCellStyle,
         valueGetter: (params) => {
           const finalPaymentMethod = params.data?.finalPaymentMethod;
@@ -1726,13 +1857,6 @@ class RegistrationPaymentSection extends Component {
             return finalPaymentMethod;
           }
           return params.data?.paymentMethod || '';
-        },
-        valueSetter: (params) => {
-          if (params.newValue !== params.oldValue) {
-            params.data.finalPaymentMethod = params.newValue;
-            return true;
-          }
-          return false;
         },
         hide: selectedCourseType !== 'NSA',
       },
@@ -1742,7 +1866,11 @@ class RegistrationPaymentSection extends Component {
         cellRenderer: SlideButtonRenderer,
         editable: (params) => {
           const courseType = String(params.data?.courseInfo?.courseType || params.data?.courseType || '').trim();
-          if (courseType === 'NSA') return this._canEditNsaConfirmationStatus();
+          if (courseType === 'NSA') {
+            const canEdit = this._canEditNsaConfirmationStatus();
+            console.log('📋 [Confirmation Status Editable] CourseType:', courseType, '| Can Edit:', canEdit, '| Row:', params.data?.name);
+            return canEdit;
+          }
           return false;
         },
         width: 300,
@@ -1784,7 +1912,11 @@ class RegistrationPaymentSection extends Component {
               values: this._getNsaPaymentStatusEditorValues(params).values,
             }),
             editable: (params) => {
-              return this._canEditNsaSkillsFuturePaymentStatus() && this._isActiveNsaPaymentStatusColumn('Payment Status (SkillsFuture)', params.data);
+              const roleCanEdit = this._canEditNsaSkillsFuturePaymentStatus();
+              const isActive = this._isActiveNsaPaymentStatusColumn('Payment Status (SkillsFuture)', params.data);
+              const canEdit = roleCanEdit && isActive;
+              console.log('💳 [Payment Status SkillsFuture Editable] Role Can Edit:', roleCanEdit, '| Is Active Column:', isActive, '| Can Edit:', canEdit, '| Row:', params.data?.name);
+              return canEdit;
             },
             valueGetter: (params) => this._getNsaPaymentStatusDisplayValue('Payment Status (SkillsFuture)', params.data),
             valueSetter: (params) => {
@@ -1797,7 +1929,6 @@ class RegistrationPaymentSection extends Component {
             width: 750,
             cellStyle: { ...centeredCellStyle, fontSize: '15px' },
           },
-
         ]
         : []),
       {
@@ -1872,17 +2003,17 @@ class RegistrationPaymentSection extends Component {
               if (courseType === 'NSA') {
                 base = paymentMethod === 'SkillsFuture'
                   ? ['Pending', 'Generating SkillsFuture Invoice', 'SkillsFuture Done', 'Cancelled', 'Withdrawn', 'Refunded', 'To refund']
-                  : ['Pending', 'Paid', 'Cancelled', 'Withdrawn', 'Refunded', 'Not Successful'];
+                  : ['Pending', 'Paid', 'Cancelled', 'Withdrawn', 'Refunded', 'Class Full'];
               } else if (
                 courseType === 'ILP' ||
                 (courseType === 'Talks And Seminar' && price <= 0) ||
                 (courseType === 'Others' && price <= 0)
               ) {
-                base = ['Pending', 'Confirmed', 'Withdrawn', 'Not Successful'];
+                base = ['Pending', 'Confirmed', 'Withdrawn', 'Class Full'];
               } else if ((courseType === 'Talks And Seminar' || courseType === 'Others') && price > 0) {
-                base = ['Pending', 'Paid', 'Cancelled', 'Withdrawn', 'Refunded', 'Not Successful'];
+                base = ['Pending', 'Paid', 'Cancelled', 'Withdrawn', 'Refunded', 'Class Full'];
               } else {
-                base = ['Pending', 'Paid', 'Withdrawn', 'Refunded', 'Not Successful'];
+                base = ['Pending', 'Paid', 'Withdrawn', 'Refunded', 'Class Full'];
               }
 
               let options = base;
@@ -1938,7 +2069,8 @@ class RegistrationPaymentSection extends Component {
         editable: (params) => {
           const courseType = String(params.data?.courseInfo?.courseType || params.data?.courseType || '').trim();
           if (courseType === 'NSA') return this._canEditNsaRemarks();
-          return true; // Non-NSA courses: all users can edit remarks
+          // Non-NSA courses: allow editing for all roles including Site In-Charge
+          return true;
         },
         cellStyle: centeredCellStyle,
       },

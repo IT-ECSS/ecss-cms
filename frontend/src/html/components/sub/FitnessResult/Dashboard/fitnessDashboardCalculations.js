@@ -3,6 +3,22 @@
  * Contains all data processing and calculation logic for the fitness dashboard
  */
 
+// Location mapping: Normalize different location names to a standard name
+export const LOCATION_MAPPING = {
+  'tncc': 'Tampines',           // TNCC maps to Tampines
+  'tampines': 'Tampines',
+  'cthub': 'CT Hub',
+  'prw': 'Pinnacle Resource World',
+  'pinnacle resource world': 'Pinnacle Resource World'
+};
+
+// Normalize location name using the mapping
+export const normalizeLocation = (locationName) => {
+  if (!locationName) return null;
+  const normalized = locationName.toString().trim().toLowerCase();
+  return LOCATION_MAPPING[normalized] || locationName.toString().trim();
+};
+
 // Extract years from raw data
 export const extractYearsFromData = (mapData) => {
   const yearsSet = new Set();
@@ -18,7 +34,8 @@ export const createNormalizationHelpers = () => {
   const normalize = (val) => (val || '').toString().trim().toLowerCase();
   const normalizePhone = (val) => {
     const digits = (val || '').toString().replace(/\D/g, '');
-    return digits.startsWith('65') ? digits.slice(2) : digits;
+    // Always remove leading 65 (Singapore country code) for consistent matching
+    return digits.replace(/^65/, '');
   };
   const normalizeId = (val) => (val || '').toString().trim().toLowerCase().replace(/[^a-z0-9]/g, '');
 
@@ -61,10 +78,11 @@ export const createParticipantKeyResolver = (helpers, findKey) => {
     const cleanPhone     = normalizePhone(phoneKey ? row[phoneKey] : '');
     const hasValidPhone  = cleanPhone.length >= 7;
 
+    // Normalize DOB with leading zeros: 1/10/1940 → 01/10/1940
     const dd   = String(ddKey   ? (row[ddKey]   || '') : '').trim();
     const mm   = String(mmKey   ? (row[mmKey]   || '') : '').trim();
     const yyyy = String(yyyyKey ? (row[yyyyKey] || '') : '').trim();
-    const dob  = dd && mm && yyyy ? `${dd}/${mm}/${yyyy}` : '';
+    const dob  = dd && mm && yyyy ? `${String(dd).padStart(2, '0')}/${String(mm).padStart(2, '0')}/${yyyy}` : '';
 
     const gender = (genderKey ? String(row[genderKey] || '') : '').trim().toUpperCase();
 
@@ -86,12 +104,28 @@ export const buildParticipantMap = (mapData, getParticipantKey, fitnessMetrics, 
   let femaleCount = 0;
   let maleParticipations = 0;
   let femaleParticipations = 0;
+  const excludedRows = [];
 
   mapData.forEach(row => {
     const participantKey = getParticipantKey(row);
     const yearKey = Object.keys(row).find(k => k.toLowerCase() === 'year');
     const year = yearKey ? row[yearKey]?.toString() : null;
-    if (!participantKey || !year) return;
+    
+    // Extract and normalize location
+    const locationKey = Object.keys(row).find(k => k.toLowerCase() === 'location');
+    const location = locationKey ? row[locationKey] : null;
+    const normalizedLocation = normalizeLocation(location);
+    
+    if (!participantKey || !year) {
+      excludedRows.push({
+        name: getParticipantName(row),
+        reason: !participantKey ? 'Incomplete identification data' : 'Missing year information',
+        year: year,
+        location: normalizedLocation,
+        participantKey: participantKey
+      });
+      return;
+    }
 
     const gender = getParticipantGender(row);
     if (gender === 'Male') maleParticipations++;
@@ -101,6 +135,7 @@ export const buildParticipantMap = (mapData, getParticipantKey, fitnessMetrics, 
       participantMap[participantKey] = {
         displayName: getParticipantName(row),
         gender,
+        location: normalizedLocation, // Add normalized location
         years: {}
       };
       if (gender === 'Male') maleCount++;
@@ -119,6 +154,31 @@ export const buildParticipantMap = (mapData, getParticipantKey, fitnessMetrics, 
       }
     });
   });
+
+  // Debug: Count multi-year participants
+  const multiYearCount = Object.values(participantMap).filter(p => Object.keys(p.years).length > 1).length;
+  console.log('[buildParticipantMap] Total unique participants:', Object.keys(participantMap).length, '| Multi-year participants:', multiYearCount);
+  
+  // Debug: Always show processing summary
+  console.log(`\n📊 DATA PROCESSING SUMMARY:`);
+  console.log(`  Total rows in mapData: ${mapData.length}`);
+  console.log(`  Rows excluded (missing year or participantKey): ${excludedRows.length}`);
+  console.log(`  Rows processed: ${mapData.length - excludedRows.length}`);
+  console.log(`  Unique participants created: ${Object.keys(participantMap).length}`);
+  
+  if (excludedRows.length > 0) {
+    console.log(`\n🔴 EXCLUDED PARTICIPANTS (${excludedRows.length}):`);
+    excludedRows.forEach(row => {
+      console.log(`  → ${row.name} | Location: ${row.location || 'N/A'} | Reason: ${row.reason}`);
+    });
+    console.log(`\n📊 Breakdown:`);
+    const missingYear = excludedRows.filter(r => r.reason === 'Missing year information').length;
+    const incompleteId = excludedRows.filter(r => r.reason === 'Incomplete identification data').length;
+    console.log(`  - Missing year information: ${missingYear}`);
+    console.log(`  - Incomplete identification data: ${incompleteId}`);
+  } else {
+    console.log(`✅ No excluded participants - all rows have valid year and participantKey`);
+  }
 
   return {
     participantMap,

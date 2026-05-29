@@ -1,0 +1,100 @@
+/* ========================================
+   FFT ACTION BUTTONS STYLES
+   ======================================== */
+
+.fft-action-buttons-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+.fft-action-buttons-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #ffffff;
+  flex-wrap: wrap;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.fft-action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.fft-action-button i {
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Export Button */
+.fft-action-button-export {
+  background-color: #2e7d32;
+  color: #ffffff;
+  border: 1px solid #1b5e20;
+}
+
+.fft-action-button-export:hover {
+  background-color: #1b5e20;
+  box-shadow: 0 2px 6px rgba(46, 125, 50, 0.3);
+  transform: translateY(-1px);
+}
+
+.fft-action-button-export:active {
+  transform: translateY(0px);
+  box-shadow: 0 1px 3px rgba(46, 125, 50, 0.2);
+}
+
+.fft-action-button-export:disabled {
+  background-color: #cbd5e1;
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .fft-action-buttons-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .fft-action-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .fft-action-buttons-row {
+    padding: 12px;
+  }
+
+  .fft-action-button {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .fft-action-button i {
+    font-size: 12px;
+  }
+}

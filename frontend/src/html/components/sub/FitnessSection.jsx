@@ -38,7 +38,10 @@ class FitnessSection extends Component {
       activeTab: 'dashboard',
       
       // Dashboard stats
-      dashboardStats: null
+      dashboardStats: null,
+      
+      // Selected files display
+      selectedFileDetails: [] // [{fileName, year, location}]
     };
   }
 
