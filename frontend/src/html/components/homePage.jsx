@@ -79,6 +79,8 @@ import { flushSync } from 'react-dom';
         selectedRegPaymentLanguage: '',
         selectedRegPaymentLocation: '',
         selectedQuarter: '',
+        selectedRegistrationStatus: '',
+        registrationStatuses: [],
         regPaymentSearchQuery: '',
         resetSearch: false,
         currentPage: 1,
@@ -309,10 +311,10 @@ import { flushSync } from 'react-dom';
   };
 
     // Function to handle data passed from the child
-    handleDataFromChild = async (filter1, filter2, filter3, filter4) => {
+    handleDataFromChild = async (filter1, filter2, filter3, filter4, filter5) => {
       var {section} = this.state;
       console.log("Current Sections123:", section);
-      console.log("Received filters:", { filter1, filter2, filter3, filter4 });
+      console.log("Received filters:", { filter1, filter2, filter3, filter4, filter5 });
       
       if(section === "courses") {
         const filterLanguages = new Set(filter1);
@@ -346,12 +348,15 @@ import { flushSync } from 'react-dom';
         const filterType = new Set(filter2);
         const filterCourse = new Set(filter3);
         const filterQuarters = new Set(filter4);
+        const filterStatuses = new Set(filter5 || []);
         console.log("Filter Course:", filterCourse);
+        console.log("Filter Statuses:", filterStatuses);
         this.setState({
           locations: Array.from(filterLocations),
           types: Array.from(filterType),
           names: Array.from(filterCourse),
-          quarters: Array.from(filterQuarters)
+          quarters: Array.from(filterQuarters),
+          registrationStatuses: ['All Statuses', ...Array.from(filterStatuses)]
         });
       }
       else if(section === "accounts") {
@@ -438,6 +443,12 @@ import { flushSync } from 'react-dom';
           filterType: 'Course',
           reset: {},
         },
+        showRegistrationStatusDropdown: {
+          stateKey: 'selectedRegistrationStatus',
+          value: updateState?.registrationStatus || '',
+          filterType: 'Registration Status',
+          reset: {},
+        },
       };
 
       const resolveConfigFromPayload = () => {
@@ -452,6 +463,9 @@ import { flushSync } from 'react-dom';
         }
         if (Object.prototype.hasOwnProperty.call(updateState || {}, 'courseName')) {
           return filterConfigByDropdown.showCourseDropdown;
+        }
+        if (Object.prototype.hasOwnProperty.call(updateState || {}, 'registrationStatus')) {
+          return filterConfigByDropdown.showRegistrationStatusDropdown;
         }
         return null;
       };
@@ -1152,6 +1166,7 @@ import { flushSync } from 'react-dom';
           selectedCourseType: '',
           selectedCourseName: '',
           selectedQuarter: '',
+          selectedRegistrationStatus: '',
           searchQuery: '',
           regPaymentSearchQuery: ''
         },
@@ -3467,10 +3482,13 @@ import { flushSync } from 'react-dom';
                         types={types}
                         courses={names}
                         quarters={quarters}
+                        registrationStatuses={this.state.registrationStatuses}
+                        statuses={this.state.statuses}
                         selectedCourseType={selectedCourseType}
                         selectedLocation={selectedLocation}
                         selectedQuarter={selectedQuarter}
                         selectedCourseName={selectedCourseName}
+                        selectedRegistrationStatus={this.state.selectedRegistrationStatus}
                         selectedSearchQuery={searchQuery}
                         role={role}
                         userEmail={userEmail}
@@ -3492,7 +3510,9 @@ import { flushSync } from 'react-dom';
                         selectedLocation={selectedLocation}
                         selectedCourseType={selectedCourseType}
                         selectedCourseName={selectedCourseName}
+                        selectedRegistrationStatus={this.state.selectedRegistrationStatus}
                         selectedQuarter = {selectedQuarter}
+                        selectedRegistrationStatus={this.state.selectedRegistrationStatus}
                         searchQuery={searchQuery}
                         resetSearch={resetSearch}
                         getTotalNumberofDetails={this.getTotalNumberofDetails}

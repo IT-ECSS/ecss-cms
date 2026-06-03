@@ -124,3 +124,10 @@ export function getQuarterFromDuration(courseDuration) {
     return null;
   }
 }
+
+/**
+ * Returns all unique registration statuses from a dataset.
+ */
+export function getAllRegistrationStatuses(datas) {
+  return [...new Set(datas.map(d => d.registrationStatus || d.official?.registration_status).filter(Boolean))].sort();
+}

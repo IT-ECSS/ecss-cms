@@ -34,6 +34,7 @@ import {
   getAllTypes,
   getAllNames,
   getAllQuarters,
+  getAllRegistrationStatuses,
   getQuarterFromDuration,
 } from './utils/dataQueryUtils';
 import { mapRegistrationToRowData } from './utils/rowDataMapper';
@@ -965,7 +966,7 @@ class RegistrationPaymentSection extends Component {
 
     const {
       selectedLocation, selectedCourseType, searchQuery,
-      selectedCourseName, selectedQuarter,
+      selectedCourseName, selectedQuarter, selectedRegistrationStatus,
     } = this.props;
 
     const changed =
@@ -973,6 +974,7 @@ class RegistrationPaymentSection extends Component {
       selectedCourseType !== prevProps.selectedCourseType ||
       selectedCourseName !== prevProps.selectedCourseName ||
       selectedQuarter    !== prevProps.selectedQuarter    ||
+      selectedRegistrationStatus !== prevProps.selectedRegistrationStatus ||
       searchQuery        !== prevProps.searchQuery;
 
     if (!changed) return;
@@ -1039,8 +1041,9 @@ class RegistrationPaymentSection extends Component {
     const quarters = getAllQuarters(byLoc);
     const byQtr = this._filterByQuarter(byLoc, selectedQuarter);
     const names = getAllNames(byQtr);
+    const statuses = getAllRegistrationStatuses(byQtr);
 
-    this.props.passDataToParent(locations, types, names, quarters);
+    this.props.passDataToParent(locations, types, names, quarters, statuses);
   };
 
   _matchesSearchQuery = (registration, normalizedQuery) => {
@@ -1086,6 +1089,7 @@ class RegistrationPaymentSection extends Component {
       selectedCourseName,
       searchQuery,
       selectedQuarter,
+      selectedRegistrationStatus,
     } = this.props;
 
     if (section && section !== 'registration') return [];
@@ -1109,6 +1113,12 @@ class RegistrationPaymentSection extends Component {
       filtered = filtered.filter(
         (item) => getQuarterFromDuration(item.course?.courseDuration) === selectedQuarter
       );
+    }
+    if (selectedRegistrationStatus && selectedRegistrationStatus !== 'All Statuses') {
+      filtered = filtered.filter((item) => {
+        const status = item.registrationStatus || item.official?.registration_status;
+        return status === selectedRegistrationStatus;
+      });
     }
     if (normalizedQuery) {
       filtered = filtered.filter((item) => this._matchesSearchQuery(item, normalizedQuery));

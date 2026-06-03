@@ -19,6 +19,7 @@ class SearchSection extends Component {
     status: '',
     courseType: props.selectedCourseType || '',
     course: '',
+    registrationStatus: props.selectedRegistrationStatus || '',
     locations: [], // Default to props if available
     languages: [], // Default to props if available
     statuses: [], // Default to props if available
@@ -34,12 +35,14 @@ class SearchSection extends Component {
     filteredCoursesName: [],
     filteredQuarters: [],
     filteredCoursesQuarters: [],
+    filteredRegistrationStatuses: [],
     showLocationDropdown: false,
     showLanguageDropdown: false,
     showTypeDropdown: false,
     showCourseDropdown: false,
     showAccountTypeDropdown: false,
     showQuarterDropdown: false,
+    showRegistrationStatusDropdown: false,
     role: '',
     staffName: '',
     courseName: props.selectedCourseName || '',
@@ -59,6 +62,11 @@ class SearchSection extends Component {
     membershipTypes: [], // Default membership types
     filteredMembershipTypes: [], // Default filtered membership types
     showMembershipTypeDropdown: false, // Add for membership type dropdown
+    // Registration Status filter states
+    registrationStatus: props.selectedRegistrationStatus || '',
+    registrationStatuses: [],
+    filteredRegistrationStatuses: [],
+    showRegistrationStatusDropdown: false,
     // Fundraising filter states
     paymentMethod: '',
     // collectionMode: '',
@@ -89,6 +97,7 @@ class SearchSection extends Component {
   this.typeDropdownRef = React.createRef();
   this.courseDropdownRef = React.createRef();
   this.quarterDropdownRef = React.createRef();
+  this.registrationStatusDropdownRef = React.createRef(); // Add this ref for the registration status dropdown
   this.attendanceTypeDropdownRef = React.createRef(); // Add this ref for the attendance type dropdown
   this.attendanceLocationDropdownRef = React.createRef(); // Add this ref for the attendance location dropdown
   this.activityCodeDropdownRef = React.createRef(); // Add this ref for the activity code dropdown
@@ -258,6 +267,14 @@ handleChange = (event) => {
         membershipType: value
       });
     }
+    else if (name === 'registrationStatus') {
+      this.setState({
+        filteredRegistrationStatuses: this.state.registrationStatuses.filter(status =>
+          status.toLowerCase().includes(value.toLowerCase())
+        ),
+        registrationStatus: value
+      });
+    }
     else if (name === 'paymentMethod') {
       this.setState({
         filteredPaymentMethods: this.state.fundraisingPaymentMethods.filter(method =>
@@ -308,6 +325,7 @@ handleClearFilters = () => {
       courseType: '',
       courseName: '',
       quarter: '',
+      registrationStatus: '',
       paymentMethod: '',
       collectionLocation: '',
       fundraisingStatus: '',
@@ -320,6 +338,7 @@ handleClearFilters = () => {
       showCourseDropdown: false,
       showAccountTypeDropdown: false,
       showQuarterDropdown: false,
+      showRegistrationStatusDropdown: false,
       showPaymentMethodDropdown: false,
       showCollectionLocationDropdown: false,
       showStatusDropdown: false
@@ -376,6 +395,7 @@ handleDropdownToggle = (dropdown) => {
     'showAttendanceLocationDropdown',
     'showActivityCodeDropdown',
     'showMembershipTypeDropdown',
+    'showRegistrationStatusDropdown',
     'showPaymentMethodDropdown',
     'showCollectionLocationDropdown',
     'showStatusDropdown'
@@ -539,6 +559,18 @@ handleOptionSelect = (value, dropdown) => {
         showActivityCodeDropdown: false
       };
     }
+    else if (dropdown === 'showRegistrationStatusDropdown') {
+      updatedState = {
+        registrationStatus: value,
+        showRegistrationStatusDropdown: false,
+        showLocationDropdown: false,
+        showLanguageDropdown: false,
+        showTypeDropdown: false,
+        showCourseDropdown: false,
+        showAccountTypeDropdown: false,
+        showQuarterDropdown: false
+      };
+    }
     else if (dropdown === 'showPaymentMethodDropdown') {
       updatedState = {
         paymentMethod: value,
@@ -601,6 +633,7 @@ handleClickOutside = (event) => {
   if (isOutside(this.courseDropdownRef)) nextState.showCourseDropdown = false;
   if (isOutside(this.accountTypeDropdownRef)) nextState.showAccountTypeDropdown = false;
   if (isOutside(this.quarterDropdownRef)) nextState.showQuarterDropdown = false;
+  if (isOutside(this.registrationStatusDropdownRef)) nextState.showRegistrationStatusDropdown = false;
   if (isOutside(this.attendanceTypeDropdownRef)) nextState.showAttendanceTypeDropdown = false;
   if (isOutside(this.attendanceLocationDropdownRef)) nextState.showAttendanceLocationDropdown = false;
   if (isOutside(this.activityCodeDropdownRef)) nextState.showActivityCodeDropdown = false;
@@ -678,6 +711,15 @@ handleClickOutside = (event) => {
       this.setState({
         fundraisingStatuses: statuses,
         filteredFundraisingStatuses: statuses
+      });
+    }
+    
+    // Initialize registration statuses if available
+    if (this.props.registrationStatuses) {
+      const registrationStatuses = this.props.registrationStatuses || ['All Statuses'];
+      this.setState({
+        registrationStatuses: registrationStatuses,
+        filteredRegistrationStatuses: registrationStatuses
       });
     }
   }
@@ -904,6 +946,26 @@ handleClickOutside = (event) => {
       this.setState({
         membershipTypes: membershipTypes,
         filteredMembershipTypes: membershipTypes
+      });
+    }
+
+    // Check if registration statuses from props have changed
+    if (this.props.registrationStatuses !== prevProps.registrationStatuses) {
+      console.log('SearchSection: Registration statuses props changed:', {
+        prevStatuses: prevProps.registrationStatuses,
+        newStatuses: this.props.registrationStatuses
+      });
+      
+      const registrationStatuses = this.props.registrationStatuses || ['All Statuses'];
+      if (!registrationStatuses.includes('All Statuses')) {
+        registrationStatuses.unshift('All Statuses');
+      }
+      
+      console.log('SearchSection: Setting registration statuses to state:', registrationStatuses);
+      
+      this.setState({
+        registrationStatuses: registrationStatuses,
+        filteredRegistrationStatuses: registrationStatuses
       });
     }
 
@@ -1492,6 +1554,41 @@ render()
                       onClick={() => this.handleOptionSelect(name, 'showCourseDropdown')}
                     >
                       {name}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <i className="fas fa-angle-down ss-chevron-icon"></i>
+            </div>
+            </div>
+            <div className="ss-field-group">
+            <label htmlFor="registrationStatus">{this.props.language === 'zh' ? '': 'Registration Status'}</label>
+            <div
+              className={`ss-dropdown-wrap ${this.state.showRegistrationStatusDropdown ? 'open' : ''}`}
+              ref={this.registrationStatusDropdownRef}
+            >
+            <input
+              type="text"
+              id="registrationStatus"
+              name="registrationStatus"
+              value={this.state.registrationStatus}
+              onChange={this.handleChange}
+              onClick={() => this.handleDropdownToggle('showRegistrationStatusDropdown')}
+              placeholder={
+                this.props.language === 'zh'
+                  ? ''
+                  : 'Filter by registration status'
+              }
+              autoComplete="off"
+            />
+              {this.state.showRegistrationStatusDropdown && (
+                <ul className="ss-options-list">
+                  {this.state.filteredRegistrationStatuses.map((status, index) => (
+                    <li
+                      key={index}
+                      onClick={() => this.handleOptionSelect(status, 'showRegistrationStatusDropdown')}
+                    >
+                      {status}
                     </li>
                   ))}
                 </ul>
