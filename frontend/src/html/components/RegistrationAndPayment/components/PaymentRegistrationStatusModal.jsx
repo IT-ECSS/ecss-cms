@@ -45,8 +45,10 @@ function PaymentRegistrationStatusModal({
       suggestedAction = `Change the Registration Status to "Confirmed Slot" first, then retry the Payment Status change.`;
     } else if (attemptedValue === 'To refund') {
       errorMessage = `Cannot change Payment Status to "To Refund"`;
-      prerequisiteMessage = 'Registration Status must be "Cancelled (before payment)", "Cancelled (after payment)", OR "Withdrawn"';
-      suggestedAction = `Change the Registration Status to "Cancelled (before payment)", "Cancelled (after payment)", or "Withdrawn" first, then retry the Payment Status change.`;
+      // prerequisiteMessage = 'Registration Status must be "Cancelled (before payment)", "Cancelled (after payment)", OR "Withdrawn"';
+      prerequisiteMessage = 'Registration Status must be "Cancelled (before payment)", OR "Withdrawn"';
+      suggestedAction = `Change the Registration Status to "Cancelled (before payment)", or "Withdrawn" first, then retry the Payment Status change.`;
+      //suggestedAction = `Change the Registration Status to "Cancelled (before payment)", "Cancelled (after payment)", or "Withdrawn" first, then retry the Payment Status change.`;
     } else if (attemptedValue === 'Cancelled - No payment received') {
       errorMessage = `Cannot change Payment Status to "Cancelled - No payment received"`;
       prerequisiteMessage = 'Registration Status must be "Not Successful"';
@@ -58,7 +60,8 @@ function PaymentRegistrationStatusModal({
       errorMessage = `Cannot change Registration Status to "Confirmed Slot"`;
       prerequisiteMessage = 'Payment Status must be "Paid" or "SkillsFuture Done"';
       suggestedAction = `Change the Payment Status to "Paid" or "SkillsFuture Done" first, then retry the Registration Status change.`;
-    } else if (attemptedValue === 'Cancelled (before payment)' || attemptedValue === 'Cancelled (after payment)' || attemptedValue === 'Withdrawn') {
+    }else if (attemptedValue === 'Cancelled (before payment)' || attemptedValue === 'Withdrawn') { 
+    //else if (attemptedValue === 'Cancelled (before payment)' || attemptedValue === 'Cancelled (after payment)' || attemptedValue === 'Withdrawn') {
       errorMessage = `Cannot change Registration Status to "${attemptedValue}"`;
       prerequisiteMessage = 'Payment Status must be "To Refund"';
       suggestedAction = `Change the Payment Status to "To Refund" first, then retry the Registration Status change.`;
@@ -177,7 +180,8 @@ function PaymentRegistrationStatusModal({
                 <span className="payment-registration-modal-payment-status">Payment Status: "SkillsFuture Done"</span>
               </li>
               <li className="payment-registration-modal-reference-item">
-                <span className="payment-registration-modal-registration-status">Registration Status: "Cancelled (before payment)" OR "Cancelled (after payment)" OR "Withdrawn"</span>
+                {/*<span className="payment-registration-modal-registration-status">Registration Status: "Cancelled (before payment)" OR "Cancelled (after payment)" OR "Withdrawn"</span>*/}
+                <span className="payment-registration-modal-registration-status">Registration Status: "Cancelled (before payment)" OR "Withdrawn"</span>
                 <span className="payment-registration-modal-arrow">←</span>
                 <span className="payment-registration-modal-payment-status">Payment Status: "To Refund"</span>
               </li>

@@ -22,7 +22,8 @@ export function getAllowedRegistrationStatuses(paymentStatus) {
   
   // Payment Status "To Refund" or "Refunded" → must have "Cancelled (before payment)", "Cancelled (after payment)", or "Withdrawn"
   if (status === 'To refund' || status === 'Refunded') {
-    return ['Cancelled (before payment)', 'Cancelled (after payment)', 'Withdrawn'];
+   // return ['Cancelled (before payment)', 'Cancelled (after payment)', 'Withdrawn'];
+   return ['Cancelled (before payment)', 'Withdrawn'];
   }
   
   // Payment Status "Cancelled - No payment received" → must have "Not Successful"
@@ -31,7 +32,8 @@ export function getAllowedRegistrationStatuses(paymentStatus) {
   }
   
   // Other payment statuses have no restriction
-  return ['Submitted', 'Confirmed Slot', 'Cancelled (before payment)', 'Cancelled (after payment)', 'Withdrawn', 'Class Full'];
+  return ['Submitted', 'Confirmed Slot', 'Cancelled (before payment)', 'Withdrawn', 'Waiting List'];
+  //return ['Submitted', 'Confirmed Slot', 'Cancelled (before payment)', 'Cancelled (after payment)', 'Withdrawn', 'Waiting List'];
 }
 
 /**
@@ -48,8 +50,9 @@ export function getAllowedPaymentStatuses(registrationStatus) {
   }
   
   // Registration Status "Cancelled (before payment)", "Cancelled (after payment)", or "Withdrawn" → must have "To Refund" or "Refunded"
-  if (status === 'Cancelled (before payment)' || status === 'Cancelled (after payment)' || status === 'Withdrawn') {
-    return ['To refund', 'Refunded', 'Pending'];
+  //if (status === 'Cancelled (before payment)' || status === 'Cancelled (after payment)' || status === 'Withdrawn') {
+  if (status === 'Cancelled (before payment)' || status === 'Withdrawn') {
+  return ['To refund', 'Refunded', 'Pending'];
   }
   
   // Registration Status "Not Successful" → must have "Cancelled - No payment received"
@@ -136,10 +139,12 @@ export function  novalidateRegistrationStatusChange(newRegistrationStatus, payme
   
   // Payment Status "To Refund" or "Refunded" → must have "Cancelled (before payment)", "Cancelled (after payment)", or "Withdrawn"
   if (paymentStr === 'To refund' || paymentStr === 'Refunded') {
-    if (newRegStatus !== 'Cancelled (before payment)' && newRegStatus !== 'Cancelled (after payment)' && newRegStatus !== 'Withdrawn') {
-      return {
+    //if (newRegStatus !== 'Cancelled (before payment)' && newRegStatus !== 'Cancelled (after payment)' && newRegStatus !== 'Withdrawn') {
+    if (newRegStatus !== 'Cancelled (before payment)' && newRegStatus !== 'Withdrawn') {  
+    return {
         isValid: false,
-        reason: `Cannot change Registration Status to "${newRegStatus}". When Payment Status is "${paymentStr}", Registration Status must be either "Cancelled (before payment)", "Cancelled (after payment)", or "Withdrawn".`,
+        reason: `Cannot change Registration Status to "${newRegStatus}". When Payment Status is "${paymentStr}", Registration Status must be either "Cancelled (before payment)", or "Withdrawn".`,
+        //reason: `Cannot change Registration Status to "${newRegStatus}". When Payment Status is "${paymentStr}", Registration Status must be either "Cancelled (before payment)", "Cancelled (after payment)", or "Withdrawn".`
       };
     }
   }
@@ -184,10 +189,12 @@ export function validatePaymentStatusChange(newPaymentStatus, registrationStatus
   
   // When trying to set payment to "To Refund" or "Refunded", registration must be "Cancelled (before payment)", "Cancelled (after payment)", or "Withdrawn"
   if (newPaymentStr === 'To refund' || newPaymentStr === 'Refunded') {
-    if (registrationStr !== 'Cancelled (before payment)' && registrationStr !== 'Cancelled (after payment)' && registrationStr !== 'Withdrawn') {
+    //if (registrationStr !== 'Cancelled (before payment)' && registrationStr !== 'Cancelled (after payment)' && registrationStr !== 'Withdrawn') {
+    if (registrationStr !== 'Cancelled (before payment)' && registrationStr !== 'Withdrawn') {  
       return {
         isValid: false,
-        reason: `Cannot change Payment Status to "${newPaymentStr}". Registration Status must be either "Cancelled (before payment)", "Cancelled (after payment)", or "Withdrawn". Current: "${registrationStr}"`,
+        //reason: `Cannot change Payment Status to "${newPaymentStr}". Registration Status must be either "Cancelled (before payment)", "Cancelled (after payment)", or "Withdrawn". Current: "${registrationStr}"`,
+        reason: `Cannot change Payment Status to "${newPaymentStr}". Registration Status must be either "Cancelled (before payment)", or "Withdrawn". Current: "${registrationStr}"`,
       };
     }
   }

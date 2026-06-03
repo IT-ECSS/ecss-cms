@@ -54,5 +54,5 @@ Cannot change Payment Status to "To Refund". Registration Status must be either 
 // ✓ Payment: To refund, Registration: Cancelled (before payment) - VALID
 // ✓ Payment: To refund, Registration: Cancelled (after payment) - VALID
 // ✓ Payment: To refund, Registration: Withdrawn - VALID
-// ✓ Payment: Cancelled - No payment received, Registration: Class Full - VALID
+// ✓ Payment: Cancelled - No payment received, Registration: Waiting List - VALID
 // ✓ Any other combination for non-NSA courses - VALID (no validation)

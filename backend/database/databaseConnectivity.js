@@ -1182,10 +1182,18 @@ const filter = { _id: this._makeObjectId(id) };
                     if (value === 'f' || value === 'female') normalizedValue = 'F 女';
                 }
 
+                // Build update object - always update the mapped path
+                const updateSet = {
+                    [mappedPath]: normalizedValue,
+                };
+
+                // If updating registrationStatus (nested field), also update the top-level field
+                if (normalizedField === 'registrationStatus') {
+                    updateSet['registrationStatus'] = normalizedValue;
+                }
+
                 const update = {
-                    $set: {
-                        [mappedPath]: normalizedValue,
-                    },
+                    $set: updateSet,
                 };
     
                 // Call updateOne

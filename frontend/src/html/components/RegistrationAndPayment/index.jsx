@@ -1808,9 +1808,9 @@ class RegistrationPaymentSection extends Component {
         cellEditorParams: (params) => {
           const courseType = String(params.data?.courseInfo?.courseType || params.data?.courseType || '').trim();
           if (courseType === 'NSA') {
-            return { values: ['Submitted', 'Confirmed Slot', 'Cancelled (before payment)', 'Cancelled (after payment)', 'Withdrawn', 'Class Full'] };
+            return { values: ['Submitted', 'Confirmed Slot', 'Cancelled (before payment)', /*'Cancelled (after payment)'*/, 'Withdrawn', 'Waiting List'] };
           }
-          return { values: ['Pending', 'Confirmed', 'Withdrawn', 'Class Full'] };
+          return { values: ['Pending', 'Confirmed', 'Withdrawn', 'Waiting List'] };
         },
         editable: (params) => {
           const courseType = String(params.data?.courseInfo?.courseType || params.data?.courseType || '').trim();
@@ -1823,12 +1823,12 @@ class RegistrationPaymentSection extends Component {
         valueGetter: (params) => params.data?.registrationStatus || '',
         valueSetter: (params) => {
           if (params.newValue && params.newValue !== params.oldValue) {
-            // Progress tracker logic: treat 'Class Full' as 'Not Successful' for NSA
+            // Progress tracker logic: treat 'Waiting List' as 'Not Successful' for NSA
             if (
-              params.newValue === 'Class Full' &&
+              params.newValue === 'Waiting List' &&
               (String(params.data?.courseInfo?.courseType || params.data?.courseType || '').trim() === 'NSA')
             ) {
-              params.data.registrationStatus = 'Class Full';
+              params.data.registrationStatus = 'Waiting List';
               // If there is a progress tracker callback, call it as for 'Not Successful'
               if (typeof params.context?.progressTracker === 'function') {
                 params.context.progressTracker('Not Successful', params.data);
@@ -2003,17 +2003,17 @@ class RegistrationPaymentSection extends Component {
               if (courseType === 'NSA') {
                 base = paymentMethod === 'SkillsFuture'
                   ? ['Pending', 'Generating SkillsFuture Invoice', 'SkillsFuture Done', 'Cancelled', 'Withdrawn', 'Refunded', 'To refund']
-                  : ['Pending', 'Paid', 'Cancelled', 'Withdrawn', 'Refunded', 'Class Full'];
+                  : ['Pending', 'Paid', 'Cancelled', 'Withdrawn', 'Refunded', 'Waiting List'];
               } else if (
                 courseType === 'ILP' ||
                 (courseType === 'Talks And Seminar' && price <= 0) ||
                 (courseType === 'Others' && price <= 0)
               ) {
-                base = ['Pending', 'Confirmed', 'Withdrawn', 'Class Full'];
+                base = ['Pending', 'Confirmed', 'Withdrawn', 'Waiting List'];
               } else if ((courseType === 'Talks And Seminar' || courseType === 'Others') && price > 0) {
-                base = ['Pending', 'Paid', 'Cancelled', 'Withdrawn', 'Refunded', 'Class Full'];
+                base = ['Pending', 'Paid', 'Cancelled', 'Withdrawn', 'Refunded', 'Waiting List'];
               } else {
-                base = ['Pending', 'Paid', 'Withdrawn', 'Refunded', 'Class Full'];
+                base = ['Pending', 'Paid', 'Withdrawn', 'Refunded', 'Waiting List'];
               }
 
               let options = base;

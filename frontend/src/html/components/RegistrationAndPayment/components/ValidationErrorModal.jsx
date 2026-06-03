@@ -95,10 +95,11 @@ function ValidationErrorModal({
               </li>
               <li>
                 <strong>To Refund</strong> (Payment) 
-                → <strong>Cancelled (before payment)</strong> or <strong>Cancelled (after payment)</strong> or <strong>Withdrawn</strong> (Registration)
+                {/*→ <strong>Cancelled (before payment)</strong> or <strong>Cancelled (after payment)</strong> or <strong>Withdrawn</strong> (Registration)*/}
+              → <strong>Cancelled (before payment)</strong> or <strong>Withdrawn</strong> (Registration)
               </li>
               <li>
-                <strong>Class Full</strong> (Registration) 
+                <strong>Waiting List</strong> (Registration) 
                 → <strong>Cancelled - No payment received</strong> (Payment)
               </li>
             </ul>
