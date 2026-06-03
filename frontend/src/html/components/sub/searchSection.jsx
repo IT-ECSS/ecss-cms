@@ -62,11 +62,7 @@ class SearchSection extends Component {
     membershipTypes: [], // Default membership types
     filteredMembershipTypes: [], // Default filtered membership types
     showMembershipTypeDropdown: false, // Add for membership type dropdown
-    // Registration Status filter states
-    registrationStatus: props.selectedRegistrationStatus || '',
     registrationStatuses: [],
-    filteredRegistrationStatuses: [],
-    showRegistrationStatusDropdown: false,
     // Fundraising filter states
     paymentMethod: '',
     // collectionMode: '',
@@ -1204,7 +1200,7 @@ componentWillUnmount() {
   
 render() 
 {
-  const { membershipType, showNameDropdown, typename, filteredName, staffName, searchQuery, centreLocation, language, quarter, quarters, courseQuarters, filteredQuarters, filteredLocations, filteredLanguages, filteredTypes, showLocationDropdown, showLanguageDropdown, showTypeDropdown, courseType, showAccountTypeDropdown, role, roles, filteredRoles, coursesName, showCourseDropdown, filteredCoursesName, courseName, showQuarterDropdown, paymentMethod, collectionLocation, fundraisingStatus, filteredPaymentMethods, filteredCollectionLocations, filteredFundraisingStatuses, showPaymentMethodDropdown, showCollectionLocationDropdown, showStatusDropdown } = this.state;
+  const { membershipType, showNameDropdown, typename, filteredName, staffName, searchQuery, centreLocation, language, quarter, quarters, courseQuarters, filteredQuarters, filteredLocations, filteredLanguages, filteredTypes, showLocationDropdown, showLanguageDropdown, showTypeDropdown, courseType, showAccountTypeDropdown, role, roles, filteredRoles, coursesName, showCourseDropdown, filteredCoursesName, courseName, showQuarterDropdown, paymentMethod, collectionLocation, fundraisingStatus, filteredPaymentMethods, filteredCollectionLocations, filteredFundraisingStatuses, showPaymentMethodDropdown, showCollectionLocationDropdown, showStatusDropdown, registrationStatus, filteredRegistrationStatuses, showRegistrationStatusDropdown, registrationStatuses } = this.state;
   const { section } = this.props; // Destructure section from props
 
   const hasSpecificSelection = (value) => {
@@ -1215,12 +1211,16 @@ render()
   const canChooseLocation = hasSpecificSelection(courseType);
   const canChooseQuarter = canChooseLocation && hasSpecificSelection(centreLocation);
   const canChooseCourse = canChooseQuarter && hasSpecificSelection(quarter);
+  const canChooseRegistrationStatus = canChooseCourse && hasSpecificSelection(courseName);
   const locationOptions = canChooseLocation ? filteredLocations : [];
   const quarterOptions = canChooseQuarter
     ? (filteredQuarters.length > 0 ? filteredQuarters : quarters)
     : [];
   const courseOptions = canChooseCourse
     ? (filteredCoursesName.length > 0 ? filteredCoursesName : coursesName)
+    : [];
+  const registrationStatusOptions = canChooseRegistrationStatus
+    ? (filteredRegistrationStatuses.length > 0 ? filteredRegistrationStatuses : registrationStatuses)
     : [];
 
   console.log("Course Name List:", this.state);
@@ -1571,19 +1571,22 @@ render()
               type="text"
               id="registrationStatus"
               name="registrationStatus"
-              value={this.state.registrationStatus}
+              value={registrationStatus}
               onChange={this.handleChange}
-              onClick={() => this.handleDropdownToggle('showRegistrationStatusDropdown')}
+              onClick={() => canChooseRegistrationStatus && this.handleDropdownToggle('showRegistrationStatusDropdown')}
               placeholder={
                 this.props.language === 'zh'
                   ? ''
-                  : 'Filter by registration status'
+                  : canChooseRegistrationStatus
+                    ? 'Filter by registration status'
+                    : 'Select Course first'
               }
+              disabled={!canChooseRegistrationStatus}
               autoComplete="off"
             />
-              {this.state.showRegistrationStatusDropdown && (
+              {showRegistrationStatusDropdown && (
                 <ul className="ss-options-list">
-                  {this.state.filteredRegistrationStatuses.map((status, index) => (
+                  {registrationStatusOptions.map((status, index) => (
                     <li
                       key={index}
                       onClick={() => this.handleOptionSelect(status, 'showRegistrationStatusDropdown')}

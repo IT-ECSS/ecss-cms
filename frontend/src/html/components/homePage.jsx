@@ -3512,7 +3512,6 @@ import { flushSync } from 'react-dom';
                         selectedCourseName={selectedCourseName}
                         selectedRegistrationStatus={this.state.selectedRegistrationStatus}
                         selectedQuarter = {selectedQuarter}
-                        selectedRegistrationStatus={this.state.selectedRegistrationStatus}
                         searchQuery={searchQuery}
                         resetSearch={resetSearch}
                         getTotalNumberofDetails={this.getTotalNumberofDetails}
