@@ -861,7 +861,7 @@ class DatabaseConnectivity {
             registrationDate: 1, sendingWhatsappMessage: 1,
             marriageDetails: 1, spouse: 1,
             consent: 1, marriagePrepConsent: 1,
-            sn: 1, sN: 1, registrationStatus: 1,
+            sn: 1, sN: 1,
         };
     }
 
@@ -1122,7 +1122,6 @@ const filter = { _id: this._makeObjectId(id) };
                     remarks: 'official.remarks',
                     paymentDate: 'official.date',
                     refundedDate: 'official.refundedDate',
-                    registrationStatus: 'official.registration_status',
                     location: 'course.courseLocation',
                     course: 'course.courseEngName',
                     courseMode: 'course.courseMode',
@@ -1186,11 +1185,6 @@ const filter = { _id: this._makeObjectId(id) };
                 const updateSet = {
                     [mappedPath]: normalizedValue,
                 };
-
-                // If updating registrationStatus (nested field), also update the top-level field
-                if (normalizedField === 'registrationStatus') {
-                    updateSet['registrationStatus'] = normalizedValue;
-                }
 
                 const update = {
                     $set: updateSet,
@@ -1511,7 +1505,7 @@ const filter = { _id: this._makeObjectId(id) };
             console.log("💳 [Payment Method Update] STEP 1 - Participant Changed Method:", {
                 newPaymentMethod,
                 statusSet: "Pending",
-                registrationStatusSet: "Submitted",
+                official_registrationStatusSet: "Submitted",
                 confirmedReset: false,
                 modifiedCount: result.modifiedCount
             });

@@ -181,6 +181,15 @@ export async function handlePaymentStatusChange(event, context) {
     return { generatedNo: '' };
   }
 
+  // Extract refundedDate/Time from backend response if available (for Refunded status)
+  let backendRefundedDate = '';
+  let backendRefundedTime = '';
+  if (newValue === 'Refunded' && res?.data?.result) {
+    if (res.data.result.refundedDate) backendRefundedDate = res.data.result.refundedDate;
+    if (res.data.result.refundedTime) backendRefundedTime = res.data.result.refundedTime;
+    console.log('✅ [Backend] Refund date/time received:', { backendRefundedDate, backendRefundedTime });
+  }
+
   // ── Step 1: Complete and advance to Step 2 ───────────────────────────────
   if (useTracker) {
     console.log(`✅ [Step 1] Payment Status Updated to ${newValue}`);
@@ -341,6 +350,8 @@ export async function handlePaymentStatusChange(event, context) {
       shouldGenerateReceipt,
       skipWooCommerceUpdate: shouldRunWooCommerceSync,
       progressTracker,
+      backendRefundedDate,
+      backendRefundedTime,
     });
     
     if (result && typeof result === 'object' && result.receiptNo) {
@@ -386,6 +397,18 @@ export async function handlePaymentStatusChange(event, context) {
         event.data.officialInfo.date = _dispDate;
         event.data.officialInfo.time = _dispTime;
       }
+      
+      // Sync to event.node.data BEFORE refreshCells so grid displays updated values
+      if (event.node && event.node.data) {
+        event.node.data.paymentDate = _dispDate;
+        event.node.data.paymentTime = _dispTime;
+        if (event.data.officialInfo) {
+          if (!event.node.data.officialInfo) event.node.data.officialInfo = {};
+          event.node.data.officialInfo.date = _dispDate;
+          event.node.data.officialInfo.time = _dispTime;
+        }
+      }
+      
       if (event.api && typeof event.api.refreshCells === 'function') {
         event.api.refreshCells({
           rowNodes: [event.node],
@@ -444,6 +467,8 @@ export async function handlePaymentStatusChange(event, context) {
       updateWooCommerce, receiptGenerator,
       skipWooCommerceUpdate: shouldRunWooCommerceSync,
       progressTracker,
+      backendRefundedDate,
+      backendRefundedTime,
     });
     
     if (result && typeof result === 'object' && result.receiptNo) {
@@ -473,6 +498,18 @@ export async function handlePaymentStatusChange(event, context) {
         event.data.officialInfo.date = _sgtPayDate;
         event.data.officialInfo.time = _sgtPayTime;
       }
+      
+      // Sync to event.node.data BEFORE refreshCells so grid displays updated values
+      if (event.node && event.node.data) {
+        event.node.data.paymentDate = _sgtPayDate;
+        event.node.data.paymentTime = _sgtPayTime;
+        if (event.data.officialInfo) {
+          if (!event.node.data.officialInfo) event.node.data.officialInfo = {};
+          event.node.data.officialInfo.date = _sgtPayDate;
+          event.node.data.officialInfo.time = _sgtPayTime;
+        }
+      }
+      
       if (event.api && typeof event.api.refreshCells === 'function') {
         event.api.refreshCells({
           rowNodes: [event.node],
@@ -492,6 +529,29 @@ export async function handlePaymentStatusChange(event, context) {
   }
 
   // Refresh cells to reflect payment status and related changes
+  // IMPORTANT: Sync event.data to event.node.data BEFORE refreshCells so grid renders updated values
+  if (event.node && event.node.data) {
+    event.node.data.paymentDate = event.data.paymentDate;
+    event.node.data.paymentTime = event.data.paymentTime;
+    event.node.data.recinvNo = event.data.recinvNo;
+    event.node.data.registrationStatus = event.data.registrationStatus;
+    event.node.data.refundedDate = event.data.refundedDate;
+    event.node.data.refundedTime = event.data.refundedTime;
+    event.node.data.remarks = event.data.remarks;
+    if (event.data.official) {
+      if (!event.node.data.official) event.node.data.official = {};
+      event.node.data.official.date = event.data.official.date;
+      event.node.data.official.time = event.data.official.time;
+      event.node.data.official.remarks = event.data.official.remarks;
+    }
+    if (event.data.officialInfo) {
+      if (!event.node.data.officialInfo) event.node.data.officialInfo = {};
+      event.node.data.officialInfo.date = event.data.officialInfo.date;
+      event.node.data.officialInfo.time = event.data.officialInfo.time;
+      event.node.data.officialInfo.remarks = event.data.officialInfo.remarks;
+    }
+  }
+  
   if (event.api && typeof event.api.refreshCells === 'function') {
     event.api.refreshCells({
       rowNodes: [event.node],
@@ -532,6 +592,8 @@ export async function handleCashPayNowStatusChange({
   shouldGenerateReceipt = true,
   skipWooCommerceUpdate = false,
   progressTracker = null,
+  backendRefundedDate = '',
+  backendRefundedTime = '',
 }) {
   if ((newValue === 'To refund' || newValue === 'Withdrawn') && oldPaymentStatus === 'Paid') {
     if (!skipWooCommerceUpdate && updateWooCommerce && typeof updateWooCommerce === 'function') {
@@ -556,11 +618,22 @@ export async function handleCashPayNowStatusChange({
       }
     }
     
-    const _now = new Date();
-    const _sgNow = new Date(_now.getTime() + 8 * 60 * 60 * 1000); // SGT (UTC+8)
-    const refundedDate = `${String(_sgNow.getUTCDate()).padStart(2,'0')}/${String(_sgNow.getUTCMonth()+1).padStart(2,'0')}/${_sgNow.getUTCFullYear()}`;
-    const refundedTime = `${String(_sgNow.getUTCHours()).padStart(2,'0')}:${String(_sgNow.getUTCMinutes()).padStart(2,'0')}:${String(_sgNow.getUTCSeconds()).padStart(2,'0')}`;
-    await addRefundedDate(id, refundedDate, refundedTime);
+    // Use backend-provided refund date/time if available, otherwise calculate locally
+    let refundedDate = backendRefundedDate;
+    let refundedTime = backendRefundedTime;
+    
+    if (!refundedDate || !refundedTime) {
+      const _now = new Date();
+      const _sgNow = new Date(_now.getTime() + 8 * 60 * 60 * 1000); // SGT (UTC+8)
+      refundedDate = `${String(_sgNow.getUTCDate()).padStart(2,'0')}/${String(_sgNow.getUTCMonth()+1).padStart(2,'0')}/${_sgNow.getUTCFullYear()}`;
+      refundedTime = `${String(_sgNow.getUTCHours()).padStart(2,'0')}:${String(_sgNow.getUTCMinutes()).padStart(2,'0')}:${String(_sgNow.getUTCSeconds()).padStart(2,'0')}`;
+    }
+    
+    // Only call addRefundedDate if backend didn't already store it
+    if (!backendRefundedDate && !backendRefundedTime) {
+      await addRefundedDate(id, refundedDate, refundedTime);
+    }
+    
     return { refundedDate, refundedTime };
   } else {
     if (!shouldGenerateReceipt) {
@@ -593,6 +666,8 @@ export async function handleSkillsFutureStatusChange({
   updateWooCommerce, receiptGenerator,
   skipWooCommerceUpdate = false,
   progressTracker = null,
+  backendRefundedDate = '',
+  backendRefundedTime = '',
 }) {
   // Generate SkillsFuture invoice when status changes to "Generating SkillsFuture Invoice"
   if (newValue === 'Generating SkillsFuture Invoice') {
@@ -606,6 +681,13 @@ export async function handleSkillsFutureStatusChange({
   } else if (newValue === 'SkillsFuture Done') {
     if (!skipWooCommerceUpdate) {
       await updateWooCommerce(courseChiName, courseName, courseLocation, newValue);
+    }
+    return '';
+  } else if (newValue === 'SkillsFuture Unsuccessful') {
+    // When SkillsFuture fails and payment was made, automatically set registration status to "Withdrawn"
+    if (oldPaymentStatus === 'SkillsFuture Done') {
+      console.log('🔄 [SkillsFuture Unsuccessful] Auto-updating registration status to "Withdrawn"');
+      await editRegistrationField(id, 'official.registration_status', 'Withdrawn');
     }
     return '';
   } else if (newValue === 'Cancelled' || newValue === 'Refunded' || newValue === 'Withdrawn' || oldPaymentStatus === 'To refund') {
@@ -626,11 +708,22 @@ export async function handleSkillsFutureStatusChange({
       await removeRefundedDate(id);
       return { refundedDate: '', refundedTime: '' };
     } else if (newValue === 'Refunded') {
-      const _now = new Date();
-      const _sgNow = new Date(_now.getTime() + 8 * 60 * 60 * 1000); // SGT (UTC+8)
-      const refundedDate = `${String(_sgNow.getUTCDate()).padStart(2,'0')}/${String(_sgNow.getUTCMonth()+1).padStart(2,'0')}/${_sgNow.getUTCFullYear()}`;
-      const refundedTime = `${String(_sgNow.getUTCHours()).padStart(2,'0')}:${String(_sgNow.getUTCMinutes()).padStart(2,'0')}:${String(_sgNow.getUTCSeconds()).padStart(2,'0')}`;
-      await addRefundedDate(id, refundedDate, refundedTime);
+      // Use backend-provided refund date/time if available, otherwise calculate locally
+      let refundedDate = backendRefundedDate;
+      let refundedTime = backendRefundedTime;
+      
+      if (!refundedDate || !refundedTime) {
+        const _now = new Date();
+        const _sgNow = new Date(_now.getTime() + 8 * 60 * 60 * 1000); // SGT (UTC+8)
+        refundedDate = `${String(_sgNow.getUTCDate()).padStart(2,'0')}/${String(_sgNow.getUTCMonth()+1).padStart(2,'0')}/${_sgNow.getUTCFullYear()}`;
+        refundedTime = `${String(_sgNow.getUTCHours()).padStart(2,'0')}:${String(_sgNow.getUTCMinutes()).padStart(2,'0')}:${String(_sgNow.getUTCSeconds()).padStart(2,'0')}`;
+      }
+      
+      // Only call addRefundedDate if backend didn't already store it
+      if (!backendRefundedDate && !backendRefundedTime) {
+        await addRefundedDate(id, refundedDate, refundedTime);
+      }
+      
       return { refundedDate, refundedTime };
     }
     return '';

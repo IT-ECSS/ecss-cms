@@ -430,28 +430,8 @@ router.post('/', async function(req, res, next)
                 stepName: `Payment Status Updated to ${status}`,
             });
             
-            // For Paid (Cash/PayNow), also emit Step 2 for registration status update
-            if (status === 'Paid') {
-                console.log(`🔄 [Step 2] Registration Status Updated to Confirmed Slot`);
-                io.emit('registration', {
-                    type: 'registration-status-updated',
-                    id,
-                    registrationStatus: 'Confirmed Slot',
-                    step: 2,
-                    stepName: 'Registration Status Updated to Confirmed Slot',
-                });
-            }
-            // For SkillsFuture Done, also emit Step 2 for registration status update
-            else if (status === 'SkillsFuture Done') {
-                console.log(`🔄 [Step 2] Registration Status Updated to Confirmed Slot`);
-                io.emit('registration', {
-                    type: 'registration-status-updated',
-                    id,
-                    registrationStatus: 'Confirmed Slot',
-                    step: 2,
-                    stepName: 'Registration Status Updated to Confirmed Slot',
-                });
-            }
+            // For Paid (Cash/PayNow), registration status is set via official.registration_status
+            // For SkillsFuture Done, registration status is set via official.registration_status
         }
         return res.json({"result": message});
         //console.log("Message:", message);

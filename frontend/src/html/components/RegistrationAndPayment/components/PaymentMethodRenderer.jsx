@@ -45,9 +45,14 @@ const PaymentMethodRenderer = (params) => {
   }
   // ILP / Others / unknown → no payment method buttons
 
-  const colDefEditable = params.colDef?.editable ?? params.column?.getColDef?.()?.editable;
-  const isEditable = colDefEditable !== false;
-  const buttonDisabled = !isEditable;
+  // Determine if buttons should be disabled
+  // Only prevent editing if payment/refund date/time fields exist
+  const hasPaymentDate = !!(params.data?.paymentDate && String(params.data.paymentDate).trim() !== '');
+  const hasPaymentTime = !!(params.data?.paymentTime && String(params.data.paymentTime).trim() !== '');
+  const hasRefundedDate = !!(params.data?.refundedDate && String(params.data.refundedDate).trim() !== '');
+  const hasRefundedTime = !!(params.data?.refundedTime && String(params.data.refundedTime).trim() !== '');
+  
+  const buttonDisabled = hasPaymentDate || hasPaymentTime || hasRefundedDate || hasRefundedTime;
 
   const handleClick = (event, method) => {
     event.stopPropagation();

@@ -1825,6 +1825,24 @@ class RegistrationPaymentSection extends Component {
             return false;
           }
           
+          // CRITICAL: Check BOTH finalPaymentMethod and paymentMethod as sources of truth
+          // finalPaymentMethod represents the latest/approved payment method
+          // paymentMethod represents the participant's current choice
+          // Use whichever is set (priority: finalPaymentMethod first, then paymentMethod)
+          const finalPaymentMethod = String(params.data?.finalPaymentMethod || '').trim();
+          const paymentMethod = String(params.data?.paymentMethod || params.data?.course?.payment || '').trim();
+          const activePaymentMethod = finalPaymentMethod || paymentMethod;
+          
+          const paymentStatus = String(params.data?.status || params.data?.paymentStatus || '').trim();
+          
+          // Lock if payment status is 'Paid' for Cash/PayNow (check both fields)
+          const isCashPayNowPaid = (activePaymentMethod === 'Cash' || activePaymentMethod === 'PayNow') && paymentStatus === 'Paid';
+          
+          if (isCashPayNowPaid) {
+            console.log('💳 [Payment Method Indicated Editable] Locked: Payment Method is Cash/PayNow and status is Paid - cannot change payment method');
+            return false;
+          }
+          
           // Check role permission
           const canEditByRole = this._canEditPaymentMethodIndicatedByParticipant(params.data);
           
@@ -1836,7 +1854,7 @@ class RegistrationPaymentSection extends Component {
           const isLockedByPaymentData = hasPaymentDate || hasPaymentTime || hasRefundedDate || hasRefundedTime;
           
           const canEdit = canEditByRole && !isLockedByPaymentData;
-          console.log('💳 [Payment Method Indicated Editable] Role Can Edit:', canEditByRole, '| Locked by Payment Data:', isLockedByPaymentData, '| Can Edit:', canEdit, '| Row:', params.data?.name);
+          console.log('💳 [Payment Method Indicated Editable] Role Can Edit:', canEditByRole, '| Locked by Payment Data:', isLockedByPaymentData, '| Final Payment Method:', finalPaymentMethod, '| Payment Method:', paymentMethod, '| Active Method:', activePaymentMethod, '| Status:', paymentStatus, '| Can Edit:', canEdit, '| Row:', params.data?.name);
           
           return canEdit;
         },
@@ -2002,12 +2020,12 @@ class RegistrationPaymentSection extends Component {
         cellStyle: centeredCellStyle,
         valueGetter: (params) => {
           // Only show payment date/time when:
-          // 1. SkillsFuture payment method AND status is 'Done'
+          // 1. SkillsFuture payment method AND status is 'SkillsFuture Done'
           // 2. Cash/PayNow payment method AND status is 'Paid'
           const paymentMethod = String(params.data?.finalPaymentMethod || '').trim();
           const paymentStatus = String(params.data?.status || params.data?.paymentStatus || '').trim();
           
-          const isSkillsFutureDone = paymentMethod === 'SkillsFuture' && paymentStatus === 'Done';
+          const isSkillsFutureDone = paymentMethod === 'SkillsFuture' && paymentStatus === 'SkillsFuture Done';
           const isCashPayNowPaid = (paymentMethod === 'Cash' || paymentMethod === 'PayNow') && paymentStatus === 'Paid';
           
           if (!isSkillsFutureDone && !isCashPayNowPaid) {
@@ -2033,12 +2051,12 @@ class RegistrationPaymentSection extends Component {
         cellStyle: centeredCellStyle,
         valueGetter: (params) => {
           // Only show payment date/time when:
-          // 1. SkillsFuture payment method AND status is 'Done'
+          // 1. SkillsFuture payment method AND status is 'SkillsFuture Done'
           // 2. Cash/PayNow payment method AND status is 'Paid'
           const paymentMethod = String(params.data?.finalPaymentMethod || '').trim();
           const paymentStatus = String(params.data?.status || params.data?.paymentStatus || '').trim();
           
-          const isSkillsFutureDone = paymentMethod === 'SkillsFuture' && paymentStatus === 'Done';
+          const isSkillsFutureDone = paymentMethod === 'SkillsFuture' && paymentStatus === 'SkillsFuture Done';
           const isCashPayNowPaid = (paymentMethod === 'Cash' || paymentMethod === 'PayNow') && paymentStatus === 'Paid';
           
           if (!isSkillsFutureDone && !isCashPayNowPaid) {

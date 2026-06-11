@@ -156,7 +156,7 @@ export function mapRegistrationToRowData(item, index) {
     paymentMethod:    item.paymentMethod || item.participant?.paymentMethod || item.course?.payment || '',
     paymentStatus:    item.status                        || '',
     status:           item.status                        || '',
-    registrationStatus: rawOfficialInfo?.registration_status || item.registrationStatus || '',
+    registrationStatus: rawOfficialInfo?.registration_status || '',
     finalPaymentMethod: item.finalPaymentMethod || item.course?.finalPaymentMethod || '',
     confirmed:        confirmedValue,
     recinvNo:         receiptInvoiceNo,

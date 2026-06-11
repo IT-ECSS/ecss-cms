@@ -321,6 +321,16 @@ class RegistrationController {
                 var databaseName = "Company-Management-System"; 
                 var connectedDatabase = await this.databaseConnectivity.updatePaymentOfficialUse(databaseName, id, name, date, time, status);  
                 console.log("✅ [Controller] Official use updated:", { id, status, acknowledged: connectedDatabase.acknowledged });
+                
+                // For Refunded status, return the refund date/time so frontend can display them
+                if (status === "Refunded") {
+                    return {
+                        acknowledged: connectedDatabase.acknowledged,
+                        refundedDate: date,
+                        refundedTime: time,
+                    };
+                }
+                
                 return connectedDatabase.acknowledged;
                 //console.log("Updated Official Use:", connectedDatabase);
             }

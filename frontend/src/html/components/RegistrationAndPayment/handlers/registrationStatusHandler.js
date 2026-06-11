@@ -40,6 +40,13 @@ export async function handleRegistrationStatusChange(event, context) {
   const courseChiName = event.data.courseChi;
   const courseLocation = event.data.location;
   const courseType = String(courseInfo?.courseType || '').trim();
+  const finalPaymentMethod = String(
+    event.data.finalPaymentMethod ||
+    courseInfo?.finalPaymentMethod ||
+    event.data.paymentMethod ||
+    courseInfo?.payment ||
+    ''
+  ).trim();
   
   const isCancelledBeforePayment = newValue === 'Cancelled';
   const isWithdrawn = newValue === 'Withdrawn';
@@ -57,7 +64,7 @@ export async function handleRegistrationStatusChange(event, context) {
       : isCancelledBeforePayment
         ? ''  // NO payment status change for Cancelled - only 1 step
         : isWithdrawn
-          ? 'To refund'  // ALWAYS "To refund" for Withdrawn
+          ? finalPaymentMethod === 'SkillsFuture' ? 'SkillsFuture Unsuccessful' : 'To refund'
           : '';
   const shouldUpdatePaymentStatus = !!nextPaymentStatus && currentPaymentStatus !== nextPaymentStatus;
   const paymentStatusTrackerLabel =
