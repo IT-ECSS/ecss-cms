@@ -41,13 +41,13 @@ export async function handleRegistrationStatusChange(event, context) {
   const courseLocation = event.data.location;
   const courseType = String(courseInfo?.courseType || '').trim();
   
-  const isCancelledBeforePayment = newValue === 'Cancelled (before payment)';
+  const isCancelledBeforePayment = newValue === 'Cancelled';
   const isWithdrawn = newValue === 'Withdrawn';
   const isRefundRegistrationStatus = isCancelledBeforePayment || isWithdrawn;
   
   const registrationStatusTrackerLabel =
     isCancelledBeforePayment
-      ? 'The registration status will be updated to Cancelled (before payment)'
+      ? 'The registration status will be updated to Cancelled'
       : isWithdrawn
         ? 'The registration status will be updated to Withdrawn'
         : 'Updating The Registration Status';
@@ -55,7 +55,7 @@ export async function handleRegistrationStatusChange(event, context) {
     newValue === 'Submitted'
       ? 'Pending'
       : isCancelledBeforePayment
-        ? ''  // NO payment status change for Cancelled (before payment) - only 1 step
+        ? ''  // NO payment status change for Cancelled - only 1 step
         : isWithdrawn
           ? 'To refund'  // ALWAYS "To refund" for Withdrawn
           : '';

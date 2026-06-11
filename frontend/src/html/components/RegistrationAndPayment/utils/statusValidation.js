@@ -3,8 +3,8 @@
  * 
  * Validation Rules for NSA Courses:
  * - Payment Status "Paid" or "SkillsFuture Done" → Registration Status MUST be "Confirmed Slot"
- * - Payment Status "To Refund" → Registration Status MUST be "Cancellation before Payment", "Cancellation after Payment", or "Withdrawn"
- * - Payment Status "Cancelled - No payment received" → Registration Status MUST be "Not Successful"
+ * - Payment Status "To Refund" → Registration Status MUST be "Cancelled" (before payment) or "Withdrawn"
+ * - Payment Status "SkillsFuture Unsuccessful" → Registration Status MUST be "Not Successful"
  */
 
 /**
@@ -20,20 +20,13 @@ export function getAllowedRegistrationStatuses(paymentStatus) {
     return ['Confirmed Slot'];
   }
   
-  // Payment Status "To Refund" or "Refunded" → must have "Cancelled (before payment)", "Cancelled (after payment)", or "Withdrawn"
+  // Payment Status "To Refund" or "Refunded" → must have "Cancelled" (before payment) or "Withdrawn"
   if (status === 'To refund' || status === 'Refunded') {
-   // return ['Cancelled (before payment)', 'Cancelled (after payment)', 'Withdrawn'];
-   return ['Cancelled (before payment)', 'Withdrawn'];
-  }
-  
-  // Payment Status "Cancelled - No payment received" → must have "Not Successful"
-  if (status === 'Cancelled - No payment received') {
-    return ['Not Successful'];
+   return ['Cancelled', 'Withdrawn'];
   }
   
   // Other payment statuses have no restriction
-  return ['Submitted', 'Confirmed Slot', 'Cancelled (before payment)', 'Withdrawn', 'Waiting List'];
-  //return ['Submitted', 'Confirmed Slot', 'Cancelled (before payment)', 'Cancelled (after payment)', 'Withdrawn', 'Waiting List'];
+  return ['Submitted', 'Confirmed Slot', 'Cancelled', 'Withdrawn', 'Waiting List'];
 }
 
 /**
@@ -46,22 +39,21 @@ export function getAllowedPaymentStatuses(registrationStatus) {
   
   // Registration Status "Confirmed Slot" → can have "Paid" or "SkillsFuture Done"
   if (status === 'Confirmed Slot') {
-    return ['Paid', 'SkillsFuture Done', 'Pending', 'Generating SkillsFuture Invoice', 'Cancelled - No payment received'];
+    return ['Paid', 'SkillsFuture Done', 'Pending', 'Generating SkillsFuture Invoice', 'SkillsFuture Unsuccessful'];
   }
   
-  // Registration Status "Cancelled (before payment)", "Cancelled (after payment)", or "Withdrawn" → must have "To Refund" or "Refunded"
-  //if (status === 'Cancelled (before payment)' || status === 'Cancelled (after payment)' || status === 'Withdrawn') {
-  if (status === 'Cancelled (before payment)' || status === 'Withdrawn') {
+  // Registration Status "Cancelled" (before payment) or "Withdrawn" → must have "To Refund" or "Refunded"
+  if (status === 'Cancelled' || status === 'Withdrawn') {
   return ['To refund', 'Refunded', 'Pending'];
   }
   
-  // Registration Status "Not Successful" → must have "Cancelled - No payment received"
+  // Registration Status "Not Successful" → must have "SkillsFuture Unsuccessful"
   if (status === 'Not Successful') {
-    return ['Cancelled - No payment received'];
+    return ['SkillsFuture Unsuccessful'];
   }
   
   // Other registration statuses have no specific restriction on payment status
-  return ['Paid', 'SkillsFuture Done', 'Pending', 'Generating SkillsFuture Invoice', 'Cancelled - No payment received', 'To refund', 'Refunded'];
+  return ['Paid', 'SkillsFuture Done', 'Pending', 'Generating SkillsFuture Invoice', 'SkillsFuture Unsuccessful', 'To refund', 'Refunded'];
 }
 
 /**
@@ -91,20 +83,20 @@ export function validateStatusCombination(paymentStatus, registrationStatus) {
   
   // Check if payment status "To Refund" requires specific registration statuses
   if (paymentStr === 'To refund') {
-    if (registrationStr !== 'Cancellation before Payment' && registrationStr !== 'Cancellation after Payment' && registrationStr !== 'Withdrawn') {
+    if (registrationStr !== 'Cancelled' && registrationStr !== 'Withdrawn') {
       return {
         isValid: false,
-        reason: `When Payment Status is "To Refund", Registration Status must be either "Cancellation before Payment", "Cancellation after Payment", or "Withdrawn". Current: "${registrationStr}"`,
+        reason: `When Payment Status is "To Refund", Registration Status must be either "Cancelled" (before payment) or "Withdrawn". Current: "${registrationStr}"`,        
       };
     }
   }
   
-  // Check if payment status "Cancelled - No payment received" requires "Not Successful"
-  if (paymentStr === 'Cancelled - No payment received') {
+  // Check if payment status "SkillsFuture Unsuccessful" requires "Not Successful"
+  if (paymentStr === 'SkillsFuture Unsuccessful') {
     if (registrationStr !== 'Not Successful') {
       return {
         isValid: false,
-        reason: `When Payment Status is "Cancelled - No payment received", Registration Status must be "Not Successful". Current: "${registrationStr}"`,
+        reason: `When Payment Status is "SkillsFuture Unsuccessful", Registration Status must be "Not Successful". Current: "${registrationStr}"`,
       };
     }
   }
@@ -139,22 +131,20 @@ export function  novalidateRegistrationStatusChange(newRegistrationStatus, payme
   
   // Payment Status "To Refund" or "Refunded" → must have "Cancelled (before payment)", "Cancelled (after payment)", or "Withdrawn"
   if (paymentStr === 'To refund' || paymentStr === 'Refunded') {
-    //if (newRegStatus !== 'Cancelled (before payment)' && newRegStatus !== 'Cancelled (after payment)' && newRegStatus !== 'Withdrawn') {
-    if (newRegStatus !== 'Cancelled (before payment)' && newRegStatus !== 'Withdrawn') {  
+    if (newRegStatus !== 'Cancelled' && newRegStatus !== 'Withdrawn') {  
     return {
         isValid: false,
-        reason: `Cannot change Registration Status to "${newRegStatus}". When Payment Status is "${paymentStr}", Registration Status must be either "Cancelled (before payment)", or "Withdrawn".`,
-        //reason: `Cannot change Registration Status to "${newRegStatus}". When Payment Status is "${paymentStr}", Registration Status must be either "Cancelled (before payment)", "Cancelled (after payment)", or "Withdrawn".`
+        reason: `Cannot change Registration Status to "${newRegStatus}". When Payment Status is "${paymentStr}", Registration Status must be either "Cancelled" (before payment) or "Withdrawn".`,
       };
     }
   }
   
-  // Payment Status "Cancelled - No payment received" → must have "Not Successful"
-  if (paymentStr === 'Cancelled - No payment received') {
+  // Payment Status "SkillsFuture Unsuccessful" → must have "Not Successful"
+  if (paymentStr === 'SkillsFuture Unsuccessful') {
     if (newRegStatus !== 'Not Successful') {
       return {
         isValid: false,
-        reason: `Cannot change Registration Status to "${newRegStatus}". When Payment Status is "Cancelled - No payment received", Registration Status must be "Not Successful".`,
+        reason: `Cannot change Registration Status to "${newRegStatus}". When Payment Status is "SkillsFuture Unsuccessful", Registration Status must be "Not Successful".`,
       };
     }
   }
@@ -187,24 +177,22 @@ export function validatePaymentStatusChange(newPaymentStatus, registrationStatus
     }
   }
   
-  // When trying to set payment to "To Refund" or "Refunded", registration must be "Cancelled (before payment)", "Cancelled (after payment)", or "Withdrawn"
+  // When trying to set payment to "To Refund" or "Refunded", registration must be "Cancelled" (before payment) or "Withdrawn"
   if (newPaymentStr === 'To refund' || newPaymentStr === 'Refunded') {
-    //if (registrationStr !== 'Cancelled (before payment)' && registrationStr !== 'Cancelled (after payment)' && registrationStr !== 'Withdrawn') {
-    if (registrationStr !== 'Cancelled (before payment)' && registrationStr !== 'Withdrawn') {  
+    if (registrationStr !== 'Cancelled' && registrationStr !== 'Withdrawn') {  
       return {
         isValid: false,
-        //reason: `Cannot change Payment Status to "${newPaymentStr}". Registration Status must be either "Cancelled (before payment)", "Cancelled (after payment)", or "Withdrawn". Current: "${registrationStr}"`,
-        reason: `Cannot change Payment Status to "${newPaymentStr}". Registration Status must be either "Cancelled (before payment)", or "Withdrawn". Current: "${registrationStr}"`,
+        reason: `Cannot change Payment Status to "${newPaymentStr}". Registration Status must be either "Cancelled" (before payment) or "Withdrawn". Current: "${registrationStr}"`,
       };
     }
   }
   
-  // When trying to set payment to "Cancelled - No payment received", registration must be "Not Successful"
-  if (newPaymentStr === 'Cancelled - No payment received') {
+  // When trying to set payment to "SkillsFuture Unsuccessful", registration must be "Not Successful"
+  if (newPaymentStr === 'SkillsFuture Unsuccessful') {
     if (registrationStr !== 'Not Successful') {
       return {
         isValid: false,
-        reason: `Cannot change Payment Status to "Cancelled - No payment received". Registration Status must be "Not Successful". Current: "${registrationStr}"`,
+        reason: `Cannot change Payment Status to "SkillsFuture Unsuccessful". Registration Status must be "Not Successful". Current: "${registrationStr}"`,
       };
     }
   }

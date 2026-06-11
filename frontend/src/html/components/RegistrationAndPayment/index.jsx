@@ -19,6 +19,7 @@ import SlideButtonRenderer    from './components/SlideButtonRenderer';
 import PaymentMethodRenderer       from './components/PaymentMethodRenderer';
 import FinalPaymentMethodRenderer  from './components/FinalPaymentMethodRenderer';
 import PaymentStatusRenderer       from './components/PaymentStatusRenderer';
+import RegistrationStatusRenderer  from './components/RegistrationStatusRenderer';
 import SelectAllHeader        from './components/SelectAllHeader';
 import ActionButtonsRow       from './components/ActionButtonsRow';
 // Approval popup
@@ -519,14 +520,14 @@ class RegistrationPaymentSection extends Component {
     if (courseType === 'NSA') {
       // Payment Status (SkillsFuture) column
       if (colId === 'paymentStatusSkillsFuture') {
-        return { values: ['Pending', 'Generating SkillsFuture Invoice', 'SkillsFuture Done', 'Cancelled', 'To refund', 'Refunded'] };
+        return { values: ['Pending', 'Generating SkillsFuture Invoice', 'SkillsFuture Done', 'SkillsFuture Unsuccessful'] };
       }
       // Payment Status (Cash/PayNow) column
       if (colId === 'paymentStatusCashPayNow') {
-        return { values: ['Paid', 'Pending', 'To refund', 'Cancelled - No payment received', 'Refunded'] };
+        return { values: ['Paid', 'Pending', 'Refunded', 'To refund'] };
       }
       // Default NSA values (fallback)
-      return { values: ['Paid', 'Pending', 'To refund', 'Cancelled - No payment received', 'Refunded'] };
+      return { values: ['Paid', 'Pending', 'Refunded', 'To refund'] };
     }
 
     const coursePrice = courseInfo?.coursePrice;
@@ -1818,7 +1819,7 @@ class RegistrationPaymentSection extends Component {
         cellEditorParams: (params) => {
           const courseType = String(params.data?.courseInfo?.courseType || params.data?.courseType || '').trim();
           if (courseType === 'NSA') {
-            return { values: ['Submitted', 'Confirmed Slot', 'Cancelled (before payment)', /*'Cancelled (after payment)'*/, 'Withdrawn', 'Waiting List'] };
+            return { values: ['Submitted', 'Confirmed Slot', 'Cancelled', 'Withdrawn', 'Waiting List'] };
           }
           return { values: ['Pending', 'Confirmed', 'Withdrawn', 'Waiting List'] };
         },
@@ -1850,7 +1851,7 @@ class RegistrationPaymentSection extends Component {
           }
           return false;
         },
-        cellRenderer: PaymentStatusRenderer,
+        cellRenderer: RegistrationStatusRenderer,
         cellStyle: { ...centeredCellStyle, fontSize: '15px' },
         hide: shouldHidePaymentColumns,
       },

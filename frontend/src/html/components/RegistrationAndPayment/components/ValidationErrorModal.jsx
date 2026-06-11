@@ -96,7 +96,7 @@ function ValidationErrorModal({
               <li>
                 <strong>To Refund</strong> (Payment) 
                 {/*→ <strong>Cancelled (before payment)</strong> or <strong>Cancelled (after payment)</strong> or <strong>Withdrawn</strong> (Registration)*/}
-              → <strong>Cancelled (before payment)</strong> or <strong>Withdrawn</strong> (Registration)
+              → <strong>Cancelled</strong> or <strong>Withdrawn</strong> (Registration)
               </li>
               <li>
                 <strong>Waiting List</strong> (Registration) 

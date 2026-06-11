@@ -1,14 +1,14 @@
 import React from 'react';
-import { PAYMENT_STATUS_COLORS } from '../constants/paymentStatusColors';
+import { REGISTRATION_STATUS_COLORS } from '../constants/registrationStatusColors';
 
 /**
- * AG-Grid cell renderer for the payment status columns.
+ * AG-Grid cell renderer for the registration status column.
  * Renders the status value as a coloured pill badge.
  *
  * Props (AG-Grid params object):
  *   params.value – the current status string
  */
-const PaymentStatusRenderer = (params) => {
+const RegistrationStatusRenderer = (params) => {
   const statusText = String(params.value || '').trim();
   if (!statusText) {
     return null;
@@ -33,7 +33,7 @@ const PaymentStatusRenderer = (params) => {
     );
   }
 
-  const backgroundColor = PAYMENT_STATUS_COLORS[statusText];
+  const backgroundColor = REGISTRATION_STATUS_COLORS[statusText];
 
   return (
     <span
@@ -57,4 +57,4 @@ const PaymentStatusRenderer = (params) => {
   );
 };
 
-export default PaymentStatusRenderer;
+export default RegistrationStatusRenderer;
