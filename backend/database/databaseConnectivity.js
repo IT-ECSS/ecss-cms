@@ -1304,8 +1304,17 @@ const filter = { _id: this._makeObjectId(id) };
                         }
                     };
                 }
-                else if (status === "Generating SkillsFuture Invoice" || status === "SkillsFuture Done") {
-                    // Keep official.confirmed unchanged for SkillsFuture lifecycle states.
+                else if (status === "Generating SkillsFuture Invoice") {
+                    // Generating SkillsFuture Invoice: Store invoice number only, NO staff name, NO date/time yet
+                    // Date/time will be recorded when status becomes "SkillsFuture Done"
+                    update = {
+                        $set: {
+                            "status": status,
+                        }
+                    };
+                }
+                else if (status === "SkillsFuture Done") {
+                    // SkillsFuture Done: Now record the final date/time and staff name for the completed transaction
                     update = {
                         $set: {
                             "status": status,
@@ -1450,56 +1459,85 @@ const filter = { _id: this._makeObjectId(id) };
         try {
             console.log("Id:", id);
             console.log("New Payment Method:", newPaymentMethod);
-            if (db) {
-                var tableName = "Registration Forms";
-                var table = db.collection(tableName);
-    
-                // Use updateOne to update a single document
-                const filter = { _id: this._makeObjectId(id) };
-                const existingDocument = await table.findOne(filter, { projection: { 'course.finalPaymentMethod': 1 } });
-                const shouldSetFinalPayment = !existingDocument?.course?.finalPaymentMethod;
-
-                // Determine status based on payment method
-                let paymentStatus = "Pending";  // Default to Pending
-                let registrationStatus = "Submitted";  // Default registration status
-                
-                // Confirmed Slot should ONLY be set when:
-                // 1. Final payment method is Cash/PayNow AND Payment Status is "Paid"
-                // 2. Final payment method is SkillsFuture AND Payment Status is "SkillsFuture Done"
-                
-                // For Cash and PayNow: set status to "Paid" → registration becomes "Confirmed Slot"
-                if (newPaymentMethod === "Cash" || newPaymentMethod === "PayNow") {
-                    paymentStatus = "Paid";
-                    registrationStatus = "Confirmed Slot";  // Set because status is "Paid"
-                }
-                // For SkillsFuture: status = "Pending" (not "SkillsFuture Done" yet)
-                // Do NOT set "Confirmed Slot" here; it will be set when status becomes "SkillsFuture Done" via updatePaymentOfficialUse()
-                else if (newPaymentMethod === "SkillsFuture") {
-                    paymentStatus = "Pending";
-                    registrationStatus = "Submitted";  // Keep as "Submitted" until SkillsFuture Done
-                }
-
-                var update = {
-                            $set: {
-                                "course.payment": newPaymentMethod,
-                                "status": paymentStatus,
-                                "official.registration_status": registrationStatus,
-                                "official.receiptNo": "",
-                                "official.name": staff,
-                                "official.date": date,
-                                "official.time": time,
-                                "official.confirmed": false,
-                                ...(shouldSetFinalPayment ? { "course.finalPaymentMethod": newPaymentMethod } : {}),
-                            }
-                        };
-                // Call updateOne
-                const result = await table.updateOne(filter, update);
-                console.log("Payment Method Updated:", newPaymentMethod, "| Payment Status:", paymentStatus, "| Registration Status:", registrationStatus);
-    
-                return result;
+            
+            if (!db) {
+                console.error("Database connection failed");
+                return {
+                    acknowledged: false,
+                    modifiedCount: 0,
+                    updatedDocument: null,
+                    error: "Database connection failed"
+                };
             }
+            
+            var tableName = "Registration Forms";
+            var table = db.collection(tableName);
+    
+            // Use updateOne to update a single document
+            const filter = { _id: this._makeObjectId(id) };
+
+            // ─────────────────────────────────────────────────────────────────────────
+            // SEQUENTIAL WORKFLOW - STEP 1 (Participant Update)
+            // ─────────────────────────────────────────────────────────────────────────
+            // This is the FIRST step: Participant indicates their payment method.
+            // UPDATE:
+            // - course.payment (participant's choice)
+            // - course.finalPaymentMethod (auto-sync to participant's choice)
+            // - status → "Pending" (default payment status based on new payment method)
+            // - official.registration_status → "Submitted" (default registration status)
+            // - official.confirmed → false (reset confirmation)
+            // 
+            // This ensures that when payment method changes:
+            // - Cash/PayNow → Default status is "Pending" (ready for approval)
+            // - SkillsFuture → Default status is "Pending" (ready for approval)
+            // 
+            // DO NOT UPDATE:
+            // - Receipt numbers, dates, times (cleared when method changes)
+            // - Confirmed flag once SkillsFuture invoice is generated
+            // ─────────────────────────────────────────────────────────────────────────
+            
+            var update = {
+                $set: {
+                    "course.payment": newPaymentMethod,
+                    "course.finalPaymentMethod": newPaymentMethod,  // Auto-sync
+                    "status": "Pending",  // Default payment status based on method change
+                    "official.registration_status": "Submitted",  // Default registration status
+                    "official.confirmed": false,  // Reset confirmation flag
+                }
+            };
+            
+            // Call updateOne
+            const result = await table.updateOne(filter, update);
+            console.log("💳 [Payment Method Update] STEP 1 - Participant Changed Method:", {
+                newPaymentMethod,
+                statusSet: "Pending",
+                registrationStatusSet: "Submitted",
+                confirmedReset: false,
+                modifiedCount: result.modifiedCount
+            });
+    
+            // Fetch and return the full updated document so frontend has all fields including remarks
+            const updatedDocument = await table.findOne(filter);
+            console.log("✅ [Payment Method Update] Document updated:", {
+                paymentMethod: updatedDocument?.course?.payment,
+                finalPaymentMethod: updatedDocument?.course?.finalPaymentMethod,
+                status: updatedDocument?.status,
+                registration_status: updatedDocument?.official?.registration_status
+            });
+            
+            return {
+                acknowledged: result.acknowledged,
+                modifiedCount: result.modifiedCount,
+                updatedDocument: updatedDocument
+            };
         } catch (error) {
-            console.log("Error updating database:", error);
+            console.error("Error updating payment method:", error);
+            return {
+                acknowledged: false,
+                modifiedCount: 0,
+                updatedDocument: null,
+                error: error.message
+            };
         }
     }
 

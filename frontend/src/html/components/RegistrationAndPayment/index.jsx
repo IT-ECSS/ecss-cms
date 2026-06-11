@@ -70,6 +70,7 @@ import {
   handleConfirmationStatusChange,
   handlePaymentStatusChange,
   handleFinalPaymentMethodChange,
+  handlePaymentMethodChange,
   handleRegistrationStatusChange,
   handleRemarksChange,
   handleRefundedDateChange,
@@ -503,6 +504,26 @@ class RegistrationPaymentSection extends Component {
     return true;
   }
 
+  /**
+   * NSA: Can edit Payment Method (indicated by participant) column
+   * Allowed: Admin, Ops in-charge, Sub Admin, Site in-charge (at Pasir Ris West location only)
+   * Restricted: Finance, Fitness Trainer, Social Worker
+   * 
+   * Additional Lock: Once payment date/time or refunded date/time are set, becomes read-only
+   */
+  _canEditPaymentMethodIndicatedByParticipant(rowData = {}) {
+    // Check if Site In-Charge - if so, only allow at Pasir Ris West
+    if (this._isSiteInChargeRole()) {
+      const canEdit = this._isSiteInChargeWithPasirRisWestLocation();
+      console.log('🔐 [Payment Method Check] Site In-Charge at Pasir Ris West:', canEdit);
+      return canEdit;
+    }
+    // Admin roles can edit
+    const canEdit = this._canEditAllNsaColumns();
+    console.log('🔐 [Payment Method Check] Admin/Ops in-charge can edit:', canEdit);
+    return canEdit;
+  }
+
   _getNsaPaymentStatusDisplayValue(columnName, rowData = {}) {
     if (!this._isActiveNsaPaymentStatusColumn(columnName, rowData)) {
       return 'Not Available';
@@ -890,19 +911,14 @@ class RegistrationPaymentSection extends Component {
     // }
     await this.fetchAndSetRegistrationData();
 
-    // DISABLED: Page redirections via mouse gestures on Registration & Payment table
-    // Attach mouse gesture navigation to the entire registration payment wrapper for full-page swiping
-    // const wrapperElement = this.tableRef?.current;
-    // if (wrapperElement) {
-    //   wrapperElement.addEventListener('mousemove', this._handleMouseMove);
-    // }
-
-    // DISABLED: Also attach to the grid element to prevent back/forward navigation on trackpad scrolling
-    // const gridElement = this.gridRef?.current?.eGui;
-    // if (gridElement) {
-    //   gridElement.addEventListener('wheel', this._handleGridWheel, { passive: false });
-    //   gridElement.addEventListener('mousedown', this._handleMouseButton);
-    // }
+    // Prevent back/forward navigation when scrolling on Registration & Payment table
+    // Attach wheel event to grid element to prevent trackpad horizontal scrolling from triggering back/forward
+    const gridElement = this.gridRef?.current?.eGui;
+    if (gridElement) {
+      gridElement.addEventListener('wheel', this._handleGridWheel, { passive: false });
+      gridElement.addEventListener('mousedown', this._handleMouseButton);
+      console.log('✅ [RegistrationPayment] Back/forward navigation prevention enabled');
+    }
 
     this.socket = io(NODE_BASE_URL);
     this.socket.on('registration', (eventData) => {
@@ -931,17 +947,12 @@ class RegistrationPaymentSection extends Component {
   componentWillUnmount() {
     if (this.socket) this.socket.disconnect();
     
-    // Clean up event listeners from wrapper (full-page swiping)
-    const wrapperElement = this.tableRef?.current;
-    if (wrapperElement) {
-      wrapperElement.removeEventListener('mousemove', this._handleMouseMove);
-    }
-    
     // Clean up event listeners from grid element
     const gridElement = this.gridRef?.current?.eGui;
     if (gridElement) {
       gridElement.removeEventListener('wheel', this._handleGridWheel);
       gridElement.removeEventListener('mousedown', this._handleMouseButton);
+      console.log('✅ [RegistrationPayment] Back/forward navigation prevention handlers removed');
     }
   }
 
@@ -1806,9 +1817,31 @@ class RegistrationPaymentSection extends Component {
         headerName: 'Payment Method (indicated by participant)',
         field: 'paymentMethod',
         cellRenderer: PaymentMethodRenderer,
-        editable: false,
+        editable: (params) => {
+          const courseType = String(params.data?.courseInfo?.courseType || params.data?.courseType || '').trim();
+          
+          // Only editable for NSA courses
+          if (courseType !== 'NSA') {
+            return false;
+          }
+          
+          // Check role permission
+          const canEditByRole = this._canEditPaymentMethodIndicatedByParticipant(params.data);
+          
+          // Lock if any payment/refund date/time fields have values
+          const hasPaymentDate = !!(params.data?.paymentDate && String(params.data.paymentDate).trim() !== '');
+          const hasPaymentTime = !!(params.data?.paymentTime && String(params.data.paymentTime).trim() !== '');
+          const hasRefundedDate = !!(params.data?.refundedDate && String(params.data.refundedDate).trim() !== '');
+          const hasRefundedTime = !!(params.data?.refundedTime && String(params.data.refundedTime).trim() !== '');
+          const isLockedByPaymentData = hasPaymentDate || hasPaymentTime || hasRefundedDate || hasRefundedTime;
+          
+          const canEdit = canEditByRole && !isLockedByPaymentData;
+          console.log('💳 [Payment Method Indicated Editable] Role Can Edit:', canEditByRole, '| Locked by Payment Data:', isLockedByPaymentData, '| Can Edit:', canEdit, '| Row:', params.data?.name);
+          
+          return canEdit;
+        },
         width: 700,
-        hide: selectedCourseType !== 'NSA',
+        hide: false,
         cellStyle: centeredCellStyle,
       },
       {
@@ -1853,7 +1886,7 @@ class RegistrationPaymentSection extends Component {
         },
         cellRenderer: RegistrationStatusRenderer,
         cellStyle: { ...centeredCellStyle, fontSize: '15px' },
-        hide: shouldHidePaymentColumns,
+        hide: false,
       },
       {
         headerName: 'Final Payment Method (by Staff)',
@@ -1869,7 +1902,7 @@ class RegistrationPaymentSection extends Component {
           }
           return params.data?.paymentMethod || '';
         },
-        hide: selectedCourseType !== 'NSA',
+        hide: false,
       },
       {
         headerName: 'Confirmation Status',
@@ -1886,7 +1919,7 @@ class RegistrationPaymentSection extends Component {
         },
         width: 300,
         cellStyle: centeredCellStyle,
-        hide: selectedCourseType !== 'NSA',
+        hide: false,
       },
       ...(selectedCourseType === 'NSA'
         ? [
@@ -1912,6 +1945,7 @@ class RegistrationPaymentSection extends Component {
             },
             width: 750,
             cellStyle: { ...centeredCellStyle, fontSize: '15px' },
+            hide: false,
           },
           {
             headerName: 'Payment Status (SkillsFuture)',
@@ -1939,6 +1973,7 @@ class RegistrationPaymentSection extends Component {
             },
             width: 750,
             cellStyle: { ...centeredCellStyle, fontSize: '15px' },
+            hide: false,
           },
         ]
         : []),
@@ -1947,7 +1982,13 @@ class RegistrationPaymentSection extends Component {
         field: 'recinvNo',
         width: 600,
         cellStyle: centeredCellStyle,
-        hide: shouldHidePaymentColumns,
+        valueGetter: (params) => {
+          // Check both top-level and nested locations
+          const topLevel = params.data?.recinvNo;
+          const nested = params.data?.official?.receiptNo;
+          return topLevel || nested || '';
+        },
+        hide: false,
       },
       {
         headerName: 'Payment Date',
@@ -1959,7 +2000,26 @@ class RegistrationPaymentSection extends Component {
           return canEdit || canSocialWorkerEdit(params) || canSiteInChargeEdit(params);
         },
         cellStyle: centeredCellStyle,
-        hide: shouldHidePaymentColumns,
+        valueGetter: (params) => {
+          // Only show payment date/time when:
+          // 1. SkillsFuture payment method AND status is 'Done'
+          // 2. Cash/PayNow payment method AND status is 'Paid'
+          const paymentMethod = String(params.data?.finalPaymentMethod || '').trim();
+          const paymentStatus = String(params.data?.status || params.data?.paymentStatus || '').trim();
+          
+          const isSkillsFutureDone = paymentMethod === 'SkillsFuture' && paymentStatus === 'Done';
+          const isCashPayNowPaid = (paymentMethod === 'Cash' || paymentMethod === 'PayNow') && paymentStatus === 'Paid';
+          
+          if (!isSkillsFutureDone && !isCashPayNowPaid) {
+            return '';
+          }
+          
+          // Check both top-level and nested locations
+          const topLevel = params.data?.paymentDate;
+          const nested = params.data?.official?.date;
+          return topLevel || nested || '';
+        },
+        hide: false,
       },
       {
         headerName: 'Payment Time',
@@ -1971,7 +2031,26 @@ class RegistrationPaymentSection extends Component {
           return false; // Non-NSA courses: not editable
         },
         cellStyle: centeredCellStyle,
-        hide: shouldHidePaymentColumns,
+        valueGetter: (params) => {
+          // Only show payment date/time when:
+          // 1. SkillsFuture payment method AND status is 'Done'
+          // 2. Cash/PayNow payment method AND status is 'Paid'
+          const paymentMethod = String(params.data?.finalPaymentMethod || '').trim();
+          const paymentStatus = String(params.data?.status || params.data?.paymentStatus || '').trim();
+          
+          const isSkillsFutureDone = paymentMethod === 'SkillsFuture' && paymentStatus === 'Done';
+          const isCashPayNowPaid = (paymentMethod === 'Cash' || paymentMethod === 'PayNow') && paymentStatus === 'Paid';
+          
+          if (!isSkillsFutureDone && !isCashPayNowPaid) {
+            return '';
+          }
+          
+          // Check both top-level and nested locations
+          const topLevel = params.data?.paymentTime;
+          const nested = params.data?.official?.time;
+          return topLevel || nested || '';
+        },
+        hide: false,
       },
       {
         headerName: 'Refunded Date',
@@ -1983,7 +2062,7 @@ class RegistrationPaymentSection extends Component {
           return canEdit || canSocialWorkerEdit(params) || canSiteInChargeEdit(params);
         },
         cellStyle: centeredCellStyle,
-        hide: shouldHidePaymentColumns,
+        hide: false,
       },
       {
         headerName: 'Refunded Time',
@@ -1995,7 +2074,7 @@ class RegistrationPaymentSection extends Component {
           return false; // Non-NSA courses: not editable
         },
         cellStyle: centeredCellStyle,
-        hide: shouldHidePaymentColumns,
+        hide: false,
       },
       ...(selectedCourseType === 'NSA'
         ? []
@@ -2077,6 +2156,12 @@ class RegistrationPaymentSection extends Component {
         headerName: 'Remarks',
         field: 'remarks',
         width: 900,
+        valueGetter: (params) => {
+          // Check both top-level and nested locations
+          const topLevel = params.data?.remarks;
+          const nested = params.data?.officialInfo?.remarks || params.data?.official?.remarks;
+          return topLevel || nested || '';
+        },
         editable: (params) => {
           const courseType = String(params.data?.courseInfo?.courseType || params.data?.courseType || '').trim();
           if (courseType === 'NSA') return this._canEditNsaRemarks();
@@ -2644,10 +2729,7 @@ class RegistrationPaymentSection extends Component {
         await handleFinalPaymentMethodChange(event, context);
         this._refreshNsaPaymentStatusCells(event.api, event.node);
       } else if (isNsaParticipantPaymentMethod) {
-        await handlePaymentMethodChange(event, {
-          ...context,
-          progressTracker: null,
-        });
+        await handlePaymentMethodChange(event, context);
       } else if (columnName === 'Confirmation Status') {
         await handleConfirmationStatusChange(event, context);
       } else if (columnName === 'Registration Status') {
@@ -3072,8 +3154,21 @@ class RegistrationPaymentSection extends Component {
 
   filterRegistrationDetails() {
     const { originalData } = this.state;
+    const { selectedCourseType } = this.props;
+    
     if (!originalData?.length) {
       this.setState({ registerationDetails: [], rowData: [] });
+      return;
+    }
+
+    // If no course type is selected, keep table empty with instruction
+    if (!selectedCourseType || selectedCourseType === 'All Courses Types') {
+      this.setState({
+        registerationDetails: [],
+        rowData: [],
+        columnDefs: this.getColumnDefs([]),
+      });
+      this._syncFilterDropdownOptions(this.state.originalData || []);
       return;
     }
 
@@ -3412,6 +3507,10 @@ class RegistrationPaymentSection extends Component {
       notifierQueue,
     } = this.state;
 
+    const { selectedCourseType } = this.props;
+    const isCourseTypeSelected = selectedCourseType && selectedCourseType !== 'All Courses Types';
+    const hasNoData = !this.state.rowData || this.state.rowData.length === 0;
+
     return (
       <div className="registration-payment-details-wrapper">
         {/* ── Anomaly Detection button (above heading) ──────────── */}
@@ -3433,6 +3532,24 @@ class RegistrationPaymentSection extends Component {
           <h2>Registration &amp; Payment Table</h2>
         </div>
 
+        {/* ── Instruction Message when No Course Type Selected ──── */}
+        {!isCourseTypeSelected && (
+          <div className="registration-payment-instruction-message">
+            <p style={{
+              textAlign: 'center',
+              padding: '40px 20px',
+              fontSize: '16px',
+              color: '#666',
+              backgroundColor: '#f5f5f5',
+              borderRadius: '4px',
+              margin: '20px',
+            }}>
+              📋 Please select a <strong>Course Type</strong> from the filter options above to view registration and payment data.
+            </p>
+          </div>
+        )}
+
+        {isCourseTypeSelected && (
         <div className="registration-payment-details-content-shell">
           {/* ── Action buttons ─────────────────────────────────────── */}
           <ActionButtonsRow
@@ -3513,6 +3630,7 @@ class RegistrationPaymentSection extends Component {
             />
           </div>
         </div>
+        )}
 
         {/* ApprovalPopup and AnomalyModal are rendered in homePage.jsx */}
 

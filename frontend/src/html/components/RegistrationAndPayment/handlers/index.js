@@ -8,6 +8,11 @@ export {
   handleFinalPaymentMethodChange,
 } from './finalPaymentMethodHandler';
 
+// Payment method handler (participant choice)
+export {
+  handlePaymentMethodChange,
+} from './paymentMethodHandler';
+
 // Confirmation handlers
 export {
   handleConfirmationStatusChange,

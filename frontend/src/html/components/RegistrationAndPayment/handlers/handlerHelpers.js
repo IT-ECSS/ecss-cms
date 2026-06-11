@@ -62,10 +62,12 @@ export function isResultSuccessful(result) {
   if (typeof result === 'object') {
     if (result.success === true) return true;
     if (result.acknowledged === true) {
-      if (typeof result.matchedCount === 'number') {
-        return result.matchedCount > 0;
-      }
+      // For updateOne operations, just check acknowledged
+      // modifiedCount could be 0 if value didn't change, but operation still succeeded
       return true;
+    }
+    if (typeof result.matchedCount === 'number') {
+      return result.matchedCount > 0;
     }
     if (typeof result.modifiedCount === 'number') {
       return result.modifiedCount > 0;
@@ -92,13 +94,66 @@ export function inferDocumentType(receiptNo) {
   return isSkillsFutureInvoiceNumber(value) ? 'invoice' : 'receipt';
 }
 
+/**
+ * Returns timestamp in format: DD/MM/YYYY HH:MM hrs (24-hour format)
+ * Example: "11/06/2026 17:30 hrs"
+ */
 export function getCurrentTimestampLabel() {
-  return new Date().toLocaleString('en-GB', { hour12: false });
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, '0');
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const year = now.getFullYear();
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  return `${day}/${month}/${year} ${hours}:${minutes} hrs`;
 }
 
 export function appendLocalRemark(event, remarkText) {
   const existing = String(event?.data?.remarks || '').trim();
   event.data.remarks = existing ? `${existing}\n${remarkText}` : remarkText;
+}
+
+/**
+ * Appends a numbered remark to the event data.
+ * Automatically numbers remarks as 1), 2), 3), etc.
+ * 
+ * Handles both:
+ * - Full event objects: appendNumberedRemark(event, text)
+ * - Data objects directly: appendNumberedRemark(event.data, text)
+ * 
+ * Updates both the top-level remarks AND nested officialInfo/official.remarks
+ * to keep the grid display in sync with the backend data.
+ */
+export function appendNumberedRemark(eventOrData, remarkText) {
+  // Detect if we received a full event object or just a data object
+  const dataObj = eventOrData?.data || eventOrData;
+  
+  const existing = String(dataObj?.remarks || '').trim();
+  
+  // Count existing numbered items (lines that start with number))
+  let nextNumber = 1;
+  if (existing) {
+    const matches = existing.match(/^\s*(\d+)\)/gm);
+    if (matches && matches.length > 0) {
+      // Extract the highest number and add 1
+      const numbers = matches.map(m => parseInt(m.match(/\d+/)[0]));
+      nextNumber = Math.max(...numbers) + 1;
+    }
+  }
+  
+  const numberedRemark = `${nextNumber}) ${remarkText}`;
+  const updatedRemarks = existing ? `${existing}\n${numberedRemark}` : numberedRemark;
+  
+  // Update the top-level remarks field (what the grid displays from rowDataMapper)
+  dataObj.remarks = updatedRemarks;
+  
+  // Also sync to nested officialInfo/official.remarks (backend source of truth)
+  if (dataObj.officialInfo) {
+    dataObj.officialInfo.remarks = updatedRemarks;
+  }
+  if (dataObj.official) {
+    dataObj.official.remarks = updatedRemarks;
+  }
 }
 
 /**
@@ -219,7 +274,7 @@ export async function appendVoidedNumberRemark({ id, event, existingReceiptNo, r
   const remarkText = `[${getCurrentTimestampLabel()}] ${voidMarker}`;
   try {
     await addCancelRemarks(id, remarkText);
-    appendLocalRemark(event, remarkText);
+    appendNumberedRemark(event, remarkText);
   } catch (error) {
     recentVoidRemarkByKey.delete(voidKey);
     throw error;

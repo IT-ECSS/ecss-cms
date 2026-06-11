@@ -1,14 +1,29 @@
 /**
  * Final Payment Method handler for AG-Grid cell changes.
  * Handles staff final payment method overrides (Cash, PayNow, SkillsFuture).
- * Single entry point that orchestrates all steps: method → status → confirmation → registration → receipt/invoice generation → download/preview.
+ * 
+ * CRITICAL REQUIREMENT:
+ * When staff updates Final Payment Method, the system ONLY updates the finalPaymentMethod field
+ * in the backend. The paymentMethod (by Participant) field is NEVER updated and remains unchanged.
+ * 
+ * WORKFLOW:
+ * 1. Participant sets Payment Method (by Participant) → updates course.payment and course.finalPaymentMethod
+ * 2. Staff can override Final Payment Method (by Staff) → updates ONLY course.finalPaymentMethod (NOT course.payment)
+ * 3. All payment-related logic (status, invoices, processing) uses finalPaymentMethod as source of truth
+ * 
+ * This ensures:
+ * - Participant's original choice is preserved for audit trail
+ * - Staff's override is clearly separated and takes precedence for actual payment processing
+ * - Frontend display uses finalPaymentMethod for payment date/time visibility
  */
 
 import {
-  updatePaymentMethod,
   updatePaymentStatus,
   editRegistrationField,
   clearPaymentDetails,
+  addCancelRemarks,
+  addReceiptNumber,
+  addInvoiceNumber,
   // addRefundedDate,
   // removeRefundedDate,
 } from '../services/registrationApi';
@@ -17,6 +32,9 @@ import {
   isApiResultSuccessful,
   buildLogPayload,
   resolveEventId,
+  appendVoidedNumberRemark,
+  appendNumberedRemark,
+  getCurrentTimestampLabel,
 } from './handlerHelpers';
 
 import { logRegistrationUpdate } from '../../../../utils/auditLog';
@@ -212,6 +230,20 @@ export async function handleFinalPaymentMethodChange(event, context) {
       console.warn('[CashPayNow Swap] ⚠️ Step 5 WARN: updateWooCommerce function not available');
     }
 
+    // Sync event.data updates to event.node.data before refresh
+    if (event.node && event.node.data) {
+      event.node.data.registrationStatus = event.data.registrationStatus;
+      event.node.data.paymentStatus = event.data.paymentStatus;
+      event.node.data.status = event.data.status;
+      event.node.data.confirmed = event.data.confirmed;
+      event.node.data.recinvNo = event.data.recinvNo;
+      event.node.data.paymentDate = event.data.paymentDate;
+      event.node.data.paymentTime = event.data.paymentTime;
+      if (event.data.remarks) {
+        event.node.data.remarks = event.data.remarks;
+      }
+    }
+
     // Refresh all affected columns so the grid reflects the new state immediately
     if (event.api && typeof event.api.refreshCells === 'function') {
       console.log('[CashPayNow Swap] Refreshing table cells');
@@ -220,7 +252,7 @@ export async function handleFinalPaymentMethodChange(event, context) {
         columns: [
           'paymentStatusCashPayNow', 'paymentStatusSkillsFuture',
           'finalPaymentMethod', 'confirmed', 'registrationStatus',
-          'recinvNo', 'paymentDate', 'paymentTime',
+          'recinvNo', 'paymentDate', 'paymentTime', 'remarks',
         ],
         force: true,
       });
@@ -246,7 +278,34 @@ export async function handleFinalPaymentMethodChange(event, context) {
     currentPaymentStatus === 'Pending' && currentRegistrationStatus === 'Submitted';
 
   if (isAlreadyPendingSubmitted && isPaymentMethodSwap) {
-    if (progressTracker) progressTracker.start(['Changing final payment method']);
+    // ── Void SkillsFuture Invoice if switching FROM SkillsFuture to Cash/PayNow ────
+    if (isSFToCashPayNow) {
+      const existingReceiptNo = String(event.data.recinvNo || event.data.officialInfo?.receiptNo || '').trim();
+      if (existingReceiptNo) {
+        console.log('[SimpleSwap Void] 🔄 Voiding SkillsFuture invoice:', { existingReceiptNo, currentPaymentStatus });
+        
+        try {
+          const docType = 'SkillsFuture Invoice Number';
+          const voidMarker = `${docType} ${existingReceiptNo} is void`;
+          const remarkText = `[${getCurrentTimestampLabel()}] ${voidMarker}`;
+          await addCancelRemarks(id, remarkText);
+          // Update remarks in the correct data structure with numbering
+          if (event.data.official) {
+            appendNumberedRemark(event.data.official, remarkText);
+          } else if (event.data.officialInfo) {
+            appendNumberedRemark(event.data.officialInfo, remarkText);
+          } else {
+            appendNumberedRemark(event.data, remarkText);
+          }
+          console.log('[SimpleSwap Void] ✅ SkillsFuture invoice voided in remarks');
+        } catch (voidError) {
+          console.warn('[SimpleSwap Void] ⚠️ Failed to void invoice:', voidError.message);
+          // Don't fail the entire flow - continue with the method change
+        }
+      }
+    }
+
+    if (progressTracker) progressTracker.start(['Changing final payment method', 'Clearing payment details', 'Updating payment status']);
 
     const res = await editRegistrationField(id, 'finalPaymentMethod', newValue);
     if (!isApiResultSuccessful(res)) {
@@ -262,13 +321,62 @@ export async function handleFinalPaymentMethodChange(event, context) {
       newValue,
     }));
 
-    // Only refresh the payment status columns so the active column (Cash/PayNow vs SkillsFuture)
-    // re-evaluates after the method swap. Do NOT reload the full table — nothing else changes
-    // in this path, and a full reload would overwrite locally-set paymentStatus values.
+    // Step 2: Clear payment details (receipt number, date, time) when swapping methods
+    if (progressTracker) progressTracker.advance();
+    console.log('[SimpleSwap] Step 2: Clearing payment details');
+
+    await clearPaymentDetails(id);
+    event.data.recinvNo    = '';
+    event.data.paymentDate = '';
+    event.data.paymentTime = '';
+    if (event.data.officialInfo) {
+      event.data.officialInfo.receiptNo = '';
+      event.data.officialInfo.date      = '';
+      event.data.officialInfo.time      = '';
+    }
+    console.log('[SimpleSwap] ✅ Step 2 Complete: Payment details cleared');
+
+    // Step 3: Update payment status to Pending (default state for the new payment method)
+    if (progressTracker) progressTracker.advance();
+    console.log('[SimpleSwap] Step 3: Updating payment status to Pending for new method');
+
+    const payRes = await updatePaymentStatus(id, 'Pending', userName, userRole);
+    if (isApiResultSuccessful(payRes)) {
+      event.data.status        = 'Pending';
+      event.data.paymentStatus = 'Pending';
+      event.data.confirmed = false;
+      if (event.data.officialInfo) event.data.officialInfo.confirmed = false;
+      console.log('[SimpleSwap] ✅ Step 3 Complete: Payment status updated to Pending');
+      await logRegistrationUpdate(buildLogPayload({
+        userName, sn, id, participantInfo,
+        columnName: 'Payment Status (Auto)',
+        oldValue: currentPaymentStatus || '',
+        newValue: 'Pending',
+      }));
+    } else {
+      console.warn('[SimpleSwap] ⚠️ Step 3 WARN: Payment status update may have failed');
+    }
+
+    // Sync event.data to event.node.data before refresh so grid sees updated values
+    if (event.node && event.node.data) {
+      event.node.data.paymentStatus = event.data.paymentStatus;
+      event.node.data.status = event.data.status;
+      event.node.data.confirmed = event.data.confirmed;
+      event.node.data.recinvNo = event.data.recinvNo;
+      event.node.data.paymentDate = event.data.paymentDate;
+      event.node.data.paymentTime = event.data.paymentTime;
+      if (event.data.remarks) {
+        event.node.data.remarks = event.data.remarks;
+      }
+    }
+
+    // Refresh the payment status columns so the active column (Cash/PayNow vs SkillsFuture)
+    // re-evaluates after the method swap. Also refresh the recinvNo/paymentDate/paymentTime columns
+    // so the cleared receipt details display immediately.
     if (event.api && typeof event.api.refreshCells === 'function') {
       event.api.refreshCells({
         rowNodes: [event.node],
-        columns: ['paymentStatusCashPayNow', 'paymentStatusSkillsFuture', 'finalPaymentMethod'],
+        columns: ['paymentStatusCashPayNow', 'paymentStatusSkillsFuture', 'finalPaymentMethod', 'recinvNo', 'paymentDate', 'paymentTime', 'remarks'],
         force: true,
       });
     }
@@ -399,6 +507,20 @@ export async function handleFinalPaymentMethodChange(event, context) {
       console.warn('[Case 8] ⚠️ Step 5 WARN: updateWooCommerce function not available');
     }
 
+    // Sync event.data to event.node.data before refresh
+    if (event.node && event.node.data) {
+      event.node.data.paymentStatus = event.data.paymentStatus;
+      event.node.data.status = event.data.status;
+      event.node.data.registrationStatus = event.data.registrationStatus;
+      event.node.data.confirmed = event.data.confirmed;
+      event.node.data.recinvNo = event.data.recinvNo;
+      event.node.data.paymentDate = event.data.paymentDate;
+      event.node.data.paymentTime = event.data.paymentTime;
+      if (event.data.remarks) {
+        event.node.data.remarks = event.data.remarks;
+      }
+    }
+
     // Refresh all affected columns so the grid reflects the new state immediately
     if (event.api && typeof event.api.refreshCells === 'function') {
       console.log('[Case 8] Refreshing table cells');
@@ -407,7 +529,7 @@ export async function handleFinalPaymentMethodChange(event, context) {
         columns: [
           'paymentStatusCashPayNow', 'paymentStatusSkillsFuture',
           'finalPaymentMethod', 'confirmed', 'registrationStatus',
-          'recinvNo', 'paymentDate', 'paymentTime',
+          'recinvNo', 'paymentDate', 'paymentTime', 'remarks',
         ],
         force: true,
       });
@@ -439,7 +561,158 @@ export async function handleFinalPaymentMethodChange(event, context) {
 
   console.log('[Case 9] Checking condition:', { isSFDoneSwapToCashPayNow, isSFToCashPayNow, currentPaymentStatus });
 
+  // ── Quick Case: Void SkillsFuture Invoice if transitioning from SF to Cash/PayNow ────
+  // When changing from SkillsFuture to Cash/PayNow and there's an active invoice
+  // (status = "Generating SkillsFuture Invoice"), void the invoice in remarks.
+  const isSFToPaymentMethodGeneratingInvoice =
+    isSFToCashPayNow && currentPaymentStatus === 'Generating SkillsFuture Invoice';
+  
+  if (isSFToPaymentMethodGeneratingInvoice) {
+    console.log('[Case 7] ✅ TRIGGERED: SkillsFuture Generating Invoice → Cash/PayNow transition');
+
+    if (progressTracker) progressTracker.start(['Voiding invoice', 'Changing final payment method', 'Clearing payment details', 'Updating payment status']);
+    else showUpdatePopup('Updating in progress... Please wait ...');
+
+    // Step 1: Void SkillsFuture Invoice
+    const existingReceiptNo = String(event.data.recinvNo || event.data.officialInfo?.receiptNo || '').trim();
+    if (existingReceiptNo) {
+      console.log('[Case 7] Step 1: Voiding SkillsFuture invoice:', { existingReceiptNo, currentPaymentStatus });
+      
+      try {
+        const docType = 'SkillsFuture Invoice Number';
+        const voidMarker = `${docType} ${existingReceiptNo} is void`;
+        const remarkText = `[${getCurrentTimestampLabel()}] ${voidMarker}`;
+        await addCancelRemarks(id, remarkText);
+        // Update remarks in the correct data structure with numbering
+        if (event.data.official) {
+          appendNumberedRemark(event.data.official, remarkText);
+        } else if (event.data.officialInfo) {
+          appendNumberedRemark(event.data.officialInfo, remarkText);
+        } else {
+          appendNumberedRemark(event.data, remarkText);
+        }
+        console.log('[Case 7] ✅ Step 1 Complete: SkillsFuture invoice voided in remarks');
+      } catch (voidError) {
+        console.warn('[Case 7] ⚠️ Step 1 WARN: Failed to void invoice:', voidError.message);
+        // Continue with the method change even if void fails
+      }
+    }
+
+    // Step 2: Change final payment method to Cash/PayNow
+    if (progressTracker) progressTracker.advance();
+    console.log('[Case 7] Step 2: Changing final payment method to:', newValue);
+    
+    const res = await editRegistrationField(id, 'finalPaymentMethod', newValue);
+    if (!isApiResultSuccessful(res)) {
+      console.error('[Case 7] ❌ Step 2 FAILED: Could not update finalPaymentMethod');
+      if (progressTracker) progressTracker.error();
+      else closePopup();
+      throw new Error(`Failed to update final payment method for registration ${id}`);
+    }
+    console.log('[Case 7] ✅ Step 2 Complete: finalPaymentMethod updated to', newValue);
+
+    await logRegistrationUpdate(buildLogPayload({
+      userName, sn, id, participantInfo,
+      columnName: 'Final Payment Method (by Staff)',
+      oldValue: oldValue || '',
+      newValue,
+    }));
+
+    // Step 3: Clear payment details (receipt number, date, time)
+    if (progressTracker) progressTracker.advance();
+    console.log('[Case 7] Step 3: Clearing payment details');
+
+    await clearPaymentDetails(id);
+    event.data.recinvNo    = '';
+    event.data.paymentDate = '';
+    event.data.paymentTime = '';
+    if (event.data.officialInfo) {
+      event.data.officialInfo.receiptNo = '';
+      event.data.officialInfo.date      = '';
+      event.data.officialInfo.time      = '';
+    }
+    console.log('[Case 7] ✅ Step 3 Complete: Payment details cleared');
+
+    // Step 4: Update payment status to Pending (default state for Cash/PayNow)
+    if (progressTracker) progressTracker.advance();
+    console.log('[Case 7] Step 4: Updating payment status to Pending for Cash/PayNow');
+
+    const payRes = await updatePaymentStatus(id, 'Pending', userName, userRole);
+    if (isApiResultSuccessful(payRes)) {
+      event.data.status        = 'Pending';
+      event.data.paymentStatus = 'Pending';
+      event.data.confirmed = false;
+      if (event.data.officialInfo) event.data.officialInfo.confirmed = false;
+      console.log('[Case 7] ✅ Step 4 Complete: Payment status updated to Pending');
+      await logRegistrationUpdate(buildLogPayload({
+        userName, sn, id, participantInfo,
+        columnName: 'Payment Status (Auto)',
+        oldValue: currentPaymentStatus || '',
+        newValue: 'Pending',
+      }));
+    } else {
+      console.warn('[Case 7] ⚠️ Step 4 WARN: Payment status update may have failed');
+    }
+
+    // Sync event.data to event.node.data before refresh so grid sees updated values
+    if (event.node && event.node.data) {
+      event.node.data.paymentStatus = event.data.paymentStatus;
+      event.node.data.status = event.data.status;
+      event.node.data.confirmed = event.data.confirmed;
+      event.node.data.recinvNo = event.data.recinvNo;
+      event.node.data.paymentDate = event.data.paymentDate;
+      event.node.data.paymentTime = event.data.paymentTime;
+      if (event.data.remarks) {
+        event.node.data.remarks = event.data.remarks;
+      }
+    }
+
+    // Refresh all affected columns
+    if (event.api && typeof event.api.refreshCells === 'function') {
+      console.log('[Case 7] Refreshing table cells');
+      event.api.refreshCells({
+        rowNodes: [event.node],
+        columns: ['paymentStatusCashPayNow', 'paymentStatusSkillsFuture', 'finalPaymentMethod', 'recinvNo', 'paymentDate', 'paymentTime', 'remarks'],
+        force: true,
+      });
+    }
+
+    if (progressTracker) {
+      progressTracker.finish(null, { immediateClose: true });
+      console.log('[Case 7] ✅ ALL STEPS COMPLETE');
+    } else {
+      closePopup();
+    }
+
+    return { updated: true, generatedNo: '' };
+  }
+
   if (isSFDoneSwapToCashPayNow) {
+    // ── Void SkillsFuture Invoice before proceeding with the transition ────
+    const existingReceiptNo = String(event.data.recinvNo || event.data.officialInfo?.receiptNo || '').trim();
+    if (existingReceiptNo) {
+      console.log('[Case 9 Void] 🔄 Voiding SkillsFuture invoice:', { existingReceiptNo, currentPaymentStatus });
+      
+      try {
+        const docType = 'SkillsFuture Invoice Number';
+        const voidMarker = `${docType} ${existingReceiptNo} is void`;
+        const remarkText = `[${getCurrentTimestampLabel()}] ${voidMarker}`;
+        await addCancelRemarks(id, remarkText);
+        // Update remarks in the correct data structure with numbering
+        if (event.data.official) {
+          appendNumberedRemark(event.data.official, remarkText);
+        } else if (event.data.officialInfo) {
+          appendNumberedRemark(event.data.officialInfo, remarkText);
+        } else {
+          appendNumberedRemark(event.data, remarkText);
+        }
+        console.log('[Case 9 Void] ✅ SkillsFuture invoice voided in remarks');
+      } catch (voidError) {
+        console.warn('[Case 9 Void] ⚠️ Failed to void invoice:', voidError.message);
+        // Don't fail the entire flow - continue with the method change
+      }
+    }
+
     console.log('[Case 9] ✅ TRIGGERED: SkillsFuture Done → Cash/PayNow transition');
     
     const steps = [
@@ -541,6 +814,20 @@ export async function handleFinalPaymentMethodChange(event, context) {
       console.warn('[Case 9] ⚠️ Step 5 WARN: updateWooCommerce function not available');
     }
 
+    // Sync event.data to event.node.data before refresh so grid sees updated values
+    if (event.node && event.node.data) {
+      event.node.data.paymentStatus = event.data.paymentStatus;
+      event.node.data.status = event.data.status;
+      event.node.data.registrationStatus = event.data.registrationStatus;
+      event.node.data.confirmed = event.data.confirmed;
+      event.node.data.recinvNo = event.data.recinvNo;
+      event.node.data.paymentDate = event.data.paymentDate;
+      event.node.data.paymentTime = event.data.paymentTime;
+      if (event.data.remarks) {
+        event.node.data.remarks = event.data.remarks;
+      }
+    }
+
     // Refresh all affected columns so the grid reflects the new state immediately
     if (event.api && typeof event.api.refreshCells === 'function') {
       console.log('[Case 9] Refreshing table cells');
@@ -549,7 +836,7 @@ export async function handleFinalPaymentMethodChange(event, context) {
         columns: [
           'paymentStatusCashPayNow', 'paymentStatusSkillsFuture',
           'finalPaymentMethod', 'confirmed', 'registrationStatus',
-          'recinvNo', 'paymentDate', 'paymentTime',
+          'recinvNo', 'paymentDate', 'paymentTime', 'remarks',
         ],
         force: true,
       });
@@ -601,16 +888,32 @@ export async function handleFinalPaymentMethodChange(event, context) {
     showUpdatePopup('Updating in progress... Please wait ...');
   }
 
-  // Step 1: Update final payment method via backend payment-method flow.
-  const res = isPaymentMethodSwap
-    ? await editRegistrationField(id, 'finalPaymentMethod', newValue)
-    : await updatePaymentMethod(id, newValue, userName);
+  // IMPORTANT: Remarks should come from the database after API calls
+  // Get the updated document to retrieve database remarks
+  
+  // Step 1: Update ONLY the final payment method in backend.
+  // CRITICAL: Do NOT update Payment Method (by Participant) - it should remain unchanged.
+  // Final Payment Method is the source of truth for all payment-related logic.
+  const res = await editRegistrationField(id, 'finalPaymentMethod', newValue);
   if (!isApiResultSuccessful(res)) {
     if (preOpenedTab) preOpenedTab.close();
     if (shouldShowProgress && progressTracker) progressTracker.error();
     else if (shouldShowProgress) closePopup();
     throw new Error(`Failed to update final payment method for registration ${id}`);
   }
+
+  // Get remarks from database response (API response should include updated document)
+  const apiRespData = res?.data?.result;
+  const databaseRemarks = apiRespData?.remarks || apiRespData?.official?.remarks || apiRespData?.officialInfo?.remarks || '';
+  
+  // Sync database remarks to event.data
+  if (databaseRemarks) {
+    if (event.data.officialInfo) event.data.officialInfo.remarks = databaseRemarks;
+    if (event.data.official) event.data.official.remarks = databaseRemarks;
+    event.data.remarks = databaseRemarks;
+  }
+  
+  console.log('[FinalPaymentMethod] ✅ Remarks synced from database:', databaseRemarks);
 
   await logRegistrationUpdate(buildLogPayload({
     userName, sn, id, participantInfo,
@@ -707,6 +1010,31 @@ export async function handleFinalPaymentMethodChange(event, context) {
     }
   }
 
+  // Sync event.data to event.node.data BEFORE refresh to ensure remarks are transferred
+  if (event.node && event.node.data) {
+    event.node.data.paymentStatusCashPayNow = event.data.paymentStatusCashPayNow;
+    event.node.data.paymentStatusSkillsFuture = event.data.paymentStatusSkillsFuture;
+    event.node.data.finalPaymentMethod = event.data.finalPaymentMethod;
+    event.node.data.confirmed = event.data.confirmed;
+    event.node.data.registrationStatus = event.data.registrationStatus;
+    event.node.data.recinvNo = event.data.recinvNo;
+    event.node.data.paymentDate = event.data.paymentDate;
+    event.node.data.paymentTime = event.data.paymentTime;
+    
+    // CRITICAL: Sync remarks (including void remarks added above)
+    if (event.data.remarks) {
+      event.node.data.remarks = event.data.remarks;
+    }
+    if (event.data.officialInfo?.remarks) {
+      event.node.data.officialInfo = event.node.data.officialInfo || {};
+      event.node.data.officialInfo.remarks = event.data.officialInfo.remarks;
+    }
+    if (event.data.official?.remarks) {
+      event.node.data.official = event.node.data.official || {};
+      event.node.data.official.remarks = event.data.official.remarks;
+    }
+  }
+
   if (event.api && typeof event.api.refreshCells === 'function') {
     event.api.refreshCells({
       rowNodes: [event.node],
@@ -748,6 +1076,25 @@ export async function handleFinalPaymentMethodChange(event, context) {
         event.data.officialInfo.date      = _dispDate;
         event.data.officialInfo.time      = _dispTime;
       }
+
+      // Persist receipt details to backend (official.receiptNo)
+      try {
+        await addReceiptNumber(
+          id,
+          participantInfo,
+          courseInfo,
+          userName,
+          receiptResult.receiptNo,
+          'Paid',
+          _dispDate,
+          _dispTime
+        );
+        console.log('[Receipt] ✅ Receipt number persisted to backend:', receiptResult.receiptNo);
+      } catch (updateError) {
+        console.warn('[Receipt] ⚠️ Failed to persist receipt to backend:', updateError.message);
+        // Don't fail the entire flow - the receipt is still available locally
+      }
+
       if (event.api && typeof event.api.refreshCells === 'function') {
         event.api.refreshCells({
           rowNodes: [event.node],

@@ -377,7 +377,7 @@ class RegistrationController {
                 var databaseName = "Company-Management-System"; 
                 var connectedDatabase = await this.databaseConnectivity.updatePaymentMethod(databaseName, id, newPaymentMethod, staff, date, time);  
                 console.log("connectedDatabase:", connectedDatabase);
-                return connectedDatabase.acknowledged;
+                return connectedDatabase;  // Return full object with updatedDocument
                 //console.log(connectedDatabase);
             }
         } 
