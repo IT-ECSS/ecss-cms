@@ -2,7 +2,7 @@ import React, { Component } from "react";
 import ParticipationsCardsBlock from './section/ParticipationsCardsBlock';
 import ParticipationsChartBlock from './section/ParticipationsChartBlock';
 import { 
-  analyzeParticipantImprovementAllCases
+  getParticipationsWithImprovementUniversal
 } from "../fitnessImprovementAnalysis";
 
 class ParticipationsBlock extends Component {
@@ -33,14 +33,14 @@ class ParticipationsBlock extends Component {
   calculateImprovementCount = (data, stationCount = 1) => {
     if (!data || !data.participantMap) return 0;
 
-    // Use the centralized analysis function
-    const analysis = analyzeParticipantImprovementAllCases(
+    // Use the universal calculation function for participations
+    const result = getParticipationsWithImprovementUniversal(
       data.participantMap,
       data.years || [],
       stationCount
     );
 
-    return analysis.uniqueCount;
+    return result.count;
   };
 
   calculateImprovementRate = (data, stationCount = 1) => {

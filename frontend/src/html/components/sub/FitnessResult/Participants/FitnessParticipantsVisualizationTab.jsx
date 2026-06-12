@@ -516,21 +516,21 @@ class DataVisualization extends Component {
                                     if (metric.higherIsBetter) {
                                       // Higher is better (reps, steps, cm, kg)
                                       const changeDesc = absDiff >= 5 ? 'significantly improved' : absDiff >= 2 ? 'showed improvement' : 'slightly improved';
-                                      summaryParts.push(`In ${curr.year}, ${changeDesc} to <strong>${curr.value} ${metric.unit}</strong> (<span style="color:#10b981; font-weight: bold">+${absDiff.toFixed(1)} ${metric.unit}</span> from ${prev.year}).<br/>`);
+                                      summaryParts.push(`In ${curr.year}, ${changeDesc} to <strong>${curr.value} ${metric.unit}</strong> (<span style="color:#10b981; font-weight: bold">▲  +${absDiff.toFixed(1)} ${metric.unit}</span> from ${prev.year}).<br/>`);
                                     } else {
                                       // Lower is better (seconds for speed walk)
                                       const changeDesc = absDiff >= 1 ? 'completed faster' : 'slightly faster';
-                                      summaryParts.push(`In ${curr.year}, ${changeDesc} at <strong>${curr.value} ${metric.unit}</strong> (<span style="color:#10b981; font-weight: bold">${absDiff.toFixed(2)} ${metric.unit} faster</span> than ${prev.year}).<br/>`);
+                                      summaryParts.push(`In ${curr.year}, ${changeDesc} at <strong>${curr.value} ${metric.unit}</strong> (<span style="color:#10b981; font-weight: bold">▲  ${absDiff.toFixed(2)} ${metric.unit} faster</span> than ${prev.year}).<br/>`);
                                     }
                                   } else {
                                     if (metric.higherIsBetter) {
                                       // Higher is better but decreased
                                       const changeDesc = absDiff >= 5 ? 'showed a notable decline' : absDiff >= 2 ? 'decreased' : 'slightly decreased';
-                                      summaryParts.push(`In ${curr.year}, ${changeDesc} to <strong>${curr.value} ${metric.unit}</strong> (<span style="color:#ef4444; font-weight: bold">-${absDiff.toFixed(1)} ${metric.unit}</span> from ${prev.year}).<br/>`);
+                                      summaryParts.push(`In ${curr.year}, ${changeDesc} to <strong>${curr.value} ${metric.unit}</strong> (<span style="color:#ef4444; font-weight: bold">▼  -${absDiff.toFixed(1)} ${metric.unit}</span> from ${prev.year}).<br/>`);
                                     } else {
                                       // Lower is better but got slower
                                       const changeDesc = absDiff >= 1 ? 'took longer' : 'slightly slower';
-                                      summaryParts.push(`In ${curr.year}, ${changeDesc} at <strong>${curr.value} ${metric.unit}</strong> (<span style="color:#ef4444; font-weight: bold">+${absDiff.toFixed(2)} ${metric.unit}</span> from ${prev.year}).<br/>`);
+                                      summaryParts.push(`In ${curr.year}, ${changeDesc} at <strong>${curr.value} ${metric.unit}</strong> (<span style="color:#ef4444; font-weight: bold">▼  +${absDiff.toFixed(2)} ${metric.unit}</span> from ${prev.year}).<br/>`);
                                     }
                                   }
                                 }
@@ -544,11 +544,11 @@ class DataVisualization extends Component {
                                 // Always show overall when there's a range (2+ years)
                                 if (values.length >= 2) {
                                   if (overallImproved) {
-                                    summaryParts.push(`<br/><strong>Overall:</strong> Showed positive progress from ${values[0].year} to ${values[values.length - 1].year}.<br/>`);
+                                    summaryParts.push(`<br/><strong>Overall:</strong> ▲  Showed positive progress from ${values[0].year} to ${values[values.length - 1].year}.<br/>`);
                                   } else if (overallDiff === 0) {
-                                    summaryParts.push(`<br/><strong>Overall:</strong> Maintained consistent performance from ${values[0].year} to ${values[values.length - 1].year}.<br/>`);
+                                    summaryParts.push(`<br/><strong>Overall:</strong> ▬  Maintained consistent performance from ${values[0].year} to ${values[values.length - 1].year}.<br/>`);
                                   } else {
-                                    summaryParts.push(`<br/><strong>Overall:</strong> Performance declined from ${values[0].year} to ${values[values.length - 1].year}. Consider additional training focus.<br/>`);
+                                    summaryParts.push(`<br/><strong>Overall:</strong> ▼  Performance declined from ${values[0].year} to ${values[values.length - 1].year}. Consider additional training focus.<br/>`);
                                   }
                                 }
                                 

@@ -1,6 +1,6 @@
 import React, { Component } from "react";
 import { 
-  analyzeParticipantImprovementAllCases, 
+  getParticipationsWithImprovementUniversal, 
   FITNESS_METRICS 
 } from "../../../fitnessImprovementAnalysis";
 
@@ -46,15 +46,16 @@ class ParticipationsImprovementCard extends Component {
   };
 
   getQualifiedParticipants = (data) => {
-    if (!data || !data.participantMap) {
+    if (!data || !data.participantMap || !data.years) {
       console.log('getQualifiedParticipants: NO DATA OR NO PARTICIPANTMAP');
       return [];
     }
 
+    const totalYears = data.years.length;
     const qualified = Object.entries(data.participantMap)
       .filter(([key, participant]) => {
         const yearsWithData = Object.keys(participant.years || {}).length;
-        return yearsWithData > 1;
+        return yearsWithData === totalYears;
       })
       .map(([key, participant]) => ({
         key,
@@ -85,14 +86,14 @@ class ParticipationsImprovementCard extends Component {
   calculateImprovementCount = (data, stationCount = 1) => {
     if (!data || !data.participantMap) return 0;
 
-    // Use the centralized analysis function
-    const analysis = analyzeParticipantImprovementAllCases(
+    // Use the universal calculation function for participations
+    const result = getParticipationsWithImprovementUniversal(
       data.participantMap,
       data.years || [],
       stationCount
     );
 
-    return analysis.uniqueCount;
+    return result.count;
   };
 
   render() {
@@ -151,7 +152,7 @@ class ParticipationsImprovementCard extends Component {
               zIndex: 10,
               width: 'fit-content'
             }}>
-              {this.fitnessMetrics.map((m, idx) => {
+              {FITNESS_METRICS.map((m, idx) => {
                 const optionNumber = idx + 1;
                 return (
                   <div

@@ -1,6 +1,6 @@
 import React, { Component } from "react";
 import { 
-  analyzeParticipantImprovementAllCases, 
+  getParticipantsWithImprovementUniversal,
   FITNESS_METRICS 
 } from "../../../fitnessImprovementAnalysis";
 
@@ -9,11 +9,20 @@ class ParticipantsImprovementCard extends Component {
     super(props);
     this.state = {
       isDropdownOpen: false,
-      selectedStationCountParticipants: 1,
       buttonWidth: 0
     };
     this.buttonRef = React.createRef();
   }
+
+  toggleDropdown = () => {
+    const newState = !this.state.isDropdownOpen;
+    if (newState && this.buttonRef.current) {
+      const width = this.buttonRef.current.offsetWidth;
+      this.setState({ isDropdownOpen: newState, buttonWidth: width });
+    } else {
+      this.setState({ isDropdownOpen: newState });
+    }
+  };
 
   componentDidMount() {
     document.addEventListener('click', this.handleClickOutside);
@@ -29,51 +38,34 @@ class ParticipantsImprovementCard extends Component {
     }
   };
 
-  toggleDropdown = () => {
-    const newState = !this.state.isDropdownOpen;
-    if (newState && this.buttonRef.current) {
-      this.setState({ isDropdownOpen: newState, buttonWidth: this.buttonRef.current.offsetWidth });
-    } else {
-      this.setState({ isDropdownOpen: newState });
-    }
-  };
-
   handleOptionSelect = (optionNumber) => {
-    this.setState({ isDropdownOpen: false, selectedStationCountParticipants: optionNumber });
-  };
-
-  handleImprovementClick = () => {
-    const { selectedStationCountParticipants } = this.state;
-    // First, try to call the parent callback if it exists
-    if (this.props.onImprovementParticipantsClick) {
-      this.props.onImprovementParticipantsClick(selectedStationCountParticipants);
-    } else {
-      // If no parent callback, try to call parent's method directly
-      if (this.props.onOpenImprovementModal) {
-        this.props.onOpenImprovementModal(selectedStationCountParticipants);
-      }
+    this.setState({ isDropdownOpen: false });
+    const { handleStationCountChangeParticipants } = this.props;
+    if (handleStationCountChangeParticipants) {
+      handleStationCountChangeParticipants(optionNumber);
     }
   };
 
   getMultiYearParticipants = (data) => {
-    if (!data || !data.participantMap) return 0;
-    // Count only participants with more than 1 year of attendance
+    if (!data || !data.participantMap || !data.years) return 0;
+    // Count only participants who attended ALL years
+    const totalYears = data.years.length;
     return Object.values(data.participantMap).filter(participant =>
-      Object.keys(participant.years || {}).length > 1
+      Object.keys(participant.years || {}).length === totalYears
     ).length;
   };
 
   calculateImprovementCount = (data, stationCount = 1) => {
     if (!data || !data.participantMap) return 0;
 
-    // Use the centralized analysis function
-    const analysis = analyzeParticipantImprovementAllCases(
+    // Use the universal calculation function
+    const result = getParticipantsWithImprovementUniversal(
       data.participantMap,
       data.years || [],
       stationCount
     );
 
-    return analysis.uniqueCount;
+    return result.count;
   };
 
   calculateImprovementRate = (data, stationCount = 1) => {
@@ -132,29 +124,17 @@ class ParticipantsImprovementCard extends Component {
   };
 
   render() {
-    const { data } = this.props;
-    const { selectedStationCountParticipants } = this.state;
-
-    // Log if callback is missing
-    if (!this.props.onImprovementParticipantsClick) {
-      console.warn('ParticipantsImprovementCard: onImprovementParticipantsClick callback is missing!');
-    }
+    const { data, totalParticipants = 0, selectedStationCountParticipants = 1 } = this.props;
 
     const stats = this.calculateImprovementRate(data, selectedStationCountParticipants);
-    const totalParticipants = (data && data.totalParticipants) ? data.totalParticipants : 0;
     const improvedParticipants = this.calculateImprovementCount(data, selectedStationCountParticipants);
-    
-    // DEBUG: Log the multi-year participant count
-    console.log('[ParticipantsImprovementCard] data.totalParticipants:', data?.totalParticipants);
-    console.log('[ParticipantsImprovementCard] Displayed totalParticipants:', totalParticipants);
-    console.log('[ParticipantsImprovementCard] Improved participants:', improvedParticipants);
-    console.log('[ParticipantsImprovementCard] Improvement rate:', stats.percentage);
+    const multiYearParticipants = this.getMultiYearParticipants(data);
 
     return (
       <div className="fft-dash-kpi-card fft-dash-kpi-improvement" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '16px', gridAutoRows: 'auto' }}>
         {/* Top Main Section: Number of Stations */}
         <div>
-          <label className="fft-dash-kpi-label" style={{ marginBottom: '0', whiteSpace: 'nowrap' }}>Number of Stations</label>
+          <label className="fft-dash-kpi-label" style={{ marginBottom: '0', whiteSpace: 'nowrap' }} htmlFor="station-count-select">Number of Stations</label>
         </div>
         <div style={{ width: 'fit-content', position: 'relative', justifySelf: 'end' }} className="participants-improvement-dropdown" onClick={(e) => e.stopPropagation()}>
           <button
@@ -178,7 +158,7 @@ class ParticipantsImprovementCard extends Component {
             {selectedStationCountParticipants}
             <span style={{ fontSize: '12px' }}>▼</span>
           </button>
-
+          
           {this.state.isDropdownOpen && (
             <div style={{
               position: 'absolute',
@@ -221,109 +201,23 @@ class ParticipantsImprovementCard extends Component {
         {/* Border separator */}
         <div style={{ gridColumn: '1 / 3', height: '2px', backgroundColor: '#94a3b8', margin: '8px -20px' }}></div>
 
-        {/* Participants with Improvement - Entire row clickable */}
-        <div
-          onClick={() => {
-            console.log('Participants with Improvement clicked');
-            this.handleImprovementClick();
-          }}
-          onKeyDown={(e) => {
-            if ((e.key === 'Enter' || e.key === ' ')) {
-              e.preventDefault();
-              console.log('Participants with Improvement key pressed');
-              this.handleImprovementClick();
-            }
-          }}
-          role={this.props.onImprovementParticipantsClick || this.props.onOpenImprovementModal ? 'button' : undefined}
-          tabIndex={this.props.onImprovementParticipantsClick || this.props.onOpenImprovementModal ? 0 : undefined}
-          style={{ 
-            gridColumn: '1 / 3',
-            display: 'flex', 
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '12px 8px',
-            borderRadius: '4px',
-            cursor: (this.props.onImprovementParticipantsClick || this.props.onOpenImprovementModal) ? 'pointer' : 'default',
-            transition: 'background-color 0.2s ease, transform 0.2s ease',
-            backgroundColor: (this.props.onImprovementParticipantsClick || this.props.onOpenImprovementModal) ? 'transparent' : undefined,
-            transform: (this.props.onImprovementParticipantsClick || this.props.onOpenImprovementModal) ? 'scale(1)' : 'scale(1)'
-          }}
-          onMouseEnter={(e) => {
-            if (this.props.onImprovementParticipantsClick || this.props.onOpenImprovementModal) {
-              e.currentTarget.style.backgroundColor = '#f0f9ff';
-              e.currentTarget.style.transform = 'scale(1.01)';
-            }
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
-            e.currentTarget.style.transform = 'scale(1)';
-          }}
-        >
-          <span className="fft-dash-kpi-label" style={{ marginBottom: '0', cursor: 'inherit' }}>Participants with Improvement</span>
-          <span className="fft-dash-kpi-value" style={{ cursor: 'inherit' }}>{improvedParticipants}</span>
+        {/* Participants with Improvement */}
+        <div>
+          <span className="fft-dash-kpi-label" style={{ marginBottom: '0' }}>Participants with Improvement</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', justifySelf: 'end' }}>
+          <span className="fft-dash-kpi-value">{improvedParticipants}</span>
         </div>
 
         {/* Border separator */}
         <div style={{ gridColumn: '1 / 3', height: '2px', backgroundColor: '#94a3b8', margin: '8px -20px' }}></div>
 
         {/* Total Participants */}
-        <div
-          onClick={() => {
-            if (this.props.onImprovementTotalParticipantsClick) {
-              this.props.onImprovementTotalParticipantsClick(selectedStationCountParticipants);
-            }
-          }}
-          onKeyDown={(e) => {
-            if ((e.key === 'Enter' || e.key === ' ') && this.props.onImprovementTotalParticipantsClick) {
-              e.preventDefault();
-              this.props.onImprovementTotalParticipantsClick(selectedStationCountParticipants);
-            }
-          }}
-          role={this.props.onImprovementTotalParticipantsClick ? 'button' : undefined}
-          tabIndex={this.props.onImprovementTotalParticipantsClick ? 0 : undefined}
-          style={{ 
-            cursor: this.props.onImprovementTotalParticipantsClick ? 'pointer' : 'default',
-            transition: 'opacity 0.2s ease'
-          }}
-        >
+        <div>
           <span className="fft-dash-kpi-label" style={{ marginBottom: '0' }}>Total Participants</span>
         </div>
-        <div
-          onClick={() => {
-            if (this.props.onImprovementTotalParticipantsClick) {
-              this.props.onImprovementTotalParticipantsClick(selectedStationCountParticipants);
-            }
-          }}
-          onKeyDown={(e) => {
-            if ((e.key === 'Enter' || e.key === ' ') && this.props.onImprovementTotalParticipantsClick) {
-              e.preventDefault();
-              this.props.onImprovementTotalParticipantsClick(selectedStationCountParticipants);
-            }
-          }}
-          role={this.props.onImprovementTotalParticipantsClick ? 'button' : undefined}
-          tabIndex={this.props.onImprovementTotalParticipantsClick ? 0 : undefined}
-          style={{ 
-            display: 'flex', 
-            justifyContent: 'flex-end', 
-            alignItems: 'center',
-            justifySelf: 'end',
-            width: '100%',
-            padding: '8px',
-            cursor: this.props.onImprovementTotalParticipantsClick ? 'pointer' : 'default',
-            borderRadius: '4px',
-            transition: 'background-color 0.2s ease',
-            backgroundColor: this.props.onImprovementTotalParticipantsClick ? 'transparent' : undefined
-          }}
-          onMouseEnter={(e) => {
-            if (this.props.onImprovementTotalParticipantsClick) {
-              e.currentTarget.style.backgroundColor = '#f0f9ff';
-            }
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
-          }}
-        >
-          <span className="fft-dash-kpi-value">{totalParticipants}</span>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', justifySelf: 'end' }}>
+          <span className="fft-dash-kpi-value">{multiYearParticipants}</span>
         </div>
 
         {/* Border separator */}

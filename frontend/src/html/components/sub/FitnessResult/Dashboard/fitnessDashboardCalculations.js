@@ -52,48 +52,73 @@ export const createNormalizationHelpers = () => {
   return { normalize, normalizePhone, normalizeId, matchNameKey, matchChineseKey, matchPhoneKey, matchIdKey };
 };
 
+/**
+ * UNIVERSAL PARTICIPANT KEY GENERATOR
+ * Used across all Fitness components (Dashboard, Details tab, etc.)
+ * Creates consistent composite key: name + phone + DOB + gender
+ * 
+ * Key fields used:
+ * - name (normalized to lowercase, single spaces)
+ * - date of birth (DD/MM/YYYY with zero-padding)
+ * - contact number (digits only, Singapore country code removed)
+ * - gender (uppercase)
+ */
+export const createUniversalParticipantKey = (row, getField) => {
+  // Helper to find field value by multiple possible column names
+  const getFieldValue = (fieldNames) => {
+    if (typeof fieldNames === 'string') fieldNames = [fieldNames];
+    return getField(...fieldNames) || '';
+  };
+
+  // Extract and normalize each field
+  const rawName = getFieldValue(['Name', 'Full Name', 'Participant Name']) || getFieldValue('Chinese Name');
+  const normalizedName = rawName
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' '); // Normalize multiple spaces to single space
+
+  const rawPhone = getFieldValue(['Phone Number', 'Phone No', 'Phone', 'Contact', 'Contact Number', 'Mobile', 'Mobile Number']);
+  const cleanPhone = rawPhone
+    .toString()
+    .replace(/\D/g, '') // Extract digits only
+    .replace(/^65/, ''); // Remove Singapore country code
+  const hasValidPhone = cleanPhone.length >= 7;
+
+  const dd = String(getFieldValue('DD') || '').trim();
+  const mm = String(getFieldValue('MM') || '').trim();
+  const yyyy = String(getFieldValue('YYYY') || '').trim();
+  const dob = dd && mm && yyyy
+    ? `${String(dd).padStart(2, '0')}/${String(mm).padStart(2, '0')}/${yyyy}`
+    : '';
+
+  const rawGender = getFieldValue(['Gender', 'Sex']);
+  const gender = rawGender.toString().trim().toUpperCase();
+
+  // Build composite key from: name || phone || dob || gender
+  const parts = [];
+  if (normalizedName) parts.push(`n:${normalizedName}`);
+  if (hasValidPhone) parts.push(`p:${cleanPhone}`);
+  if (dob) parts.push(`d:${dob}`);
+  if (gender) parts.push(`g:${gender}`);
+
+  return parts.length > 0 ? parts.join('||') : null;
+};
+
 // Create function to resolve participant key using a strict composite identity:
 // name + phone + DOB + gender.  Matches the same logic used in
 // buildPivotedRowData (FitnessParticipantsDetailsTab) so both tabs show
 // identical participant counts and deduplication behaviour.
 export const createParticipantKeyResolver = (helpers, findKey) => {
-  const { normalize, normalizePhone, matchNameKey, matchChineseKey, matchPhoneKey } = helpers;
-
-  const matchDdKey   = (k) => k === 'dd';
-  const matchMmKey   = (k) => k === 'mm';
-  const matchYyyyKey = (k) => k === 'yyyy';
-  const matchGenderKey = (k) => k === 'gender' || k === 'sex';
-
   return (row) => {
-    const nameKey   = findKey(row, matchNameKey);
-    const cnKey     = findKey(row, matchChineseKey);
-    const phoneKey  = findKey(row, matchPhoneKey);
-    const ddKey     = findKey(row, matchDdKey);
-    const mmKey     = findKey(row, matchMmKey);
-    const yyyyKey   = findKey(row, matchYyyyKey);
-    const genderKey = findKey(row, matchGenderKey);
-
-    const rawName        = (nameKey ? row[nameKey] : '') || (cnKey ? row[cnKey] : '') || '';
-    const normalizedName = normalize(rawName);
-    const cleanPhone     = normalizePhone(phoneKey ? row[phoneKey] : '');
-    const hasValidPhone  = cleanPhone.length >= 7;
-
-    // Normalize DOB with leading zeros: 1/10/1940 → 01/10/1940
-    const dd   = String(ddKey   ? (row[ddKey]   || '') : '').trim();
-    const mm   = String(mmKey   ? (row[mmKey]   || '') : '').trim();
-    const yyyy = String(yyyyKey ? (row[yyyyKey] || '') : '').trim();
-    const dob  = dd && mm && yyyy ? `${String(dd).padStart(2, '0')}/${String(mm).padStart(2, '0')}/${yyyy}` : '';
-
-    const gender = (genderKey ? String(row[genderKey] || '') : '').trim().toUpperCase();
-
-    // Build composite key from all present fields
-    const parts = [];
-    if (normalizedName) parts.push(`n:${normalizedName}`);
-    if (hasValidPhone)  parts.push(`p:${cleanPhone}`);
-    if (dob)            parts.push(`d:${dob}`);
-    if (gender)         parts.push(`g:${gender}`);
-
-    return parts.length > 0 ? parts.join('||') : null;
+    const getField = (...fieldNames) => {
+      for (const fieldName of fieldNames) {
+        const key = findKey(row, (k) => k.toLowerCase() === fieldName.toLowerCase());
+        if (key) return row[key];
+      }
+      return '';
+    };
+    return createUniversalParticipantKey(row, getField);
   };
 };
 
@@ -150,7 +175,19 @@ export const buildParticipantMap = (mapData, getParticipantKey, fitnessMetrics, 
       const metricKey = findMetricKey(row, metric.key);
       const val = metricKey ? row[metricKey] : null;
       if (val !== null && val !== undefined && val !== '') {
-        participantMap[participantKey].years[year][metric.key] = parseFloat(val);
+        let parsedVal = parseFloat(val);
+        
+        // Handle 2.44m Speed Walk unit conversion: milliseconds to seconds
+        if (metric.key === '2.44m speed walk' && parsedVal !== 0) {
+          // If value is very small (< 1 or < 0), it's likely in milliseconds
+          // Convert from milliseconds to seconds by dividing by 1000
+          if (parsedVal < 1 || parsedVal < 0) {
+            parsedVal = parsedVal / 1000;
+            console.log(`[Unit Conversion] ${getParticipantName(row)} (${year}): 2.44m Speed Walk converted from ${val} to ${parsedVal.toFixed(3)}s`);
+          }
+        }
+        
+        participantMap[participantKey].years[year][metric.key] = parsedVal;
       }
     });
   });

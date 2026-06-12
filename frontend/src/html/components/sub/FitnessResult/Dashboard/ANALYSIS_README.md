@@ -318,6 +318,11 @@ Unique Count = |consecutive ∪ skipped ∪ overall|
 ### Station Threshold
 **Definition:** Minimum number of fitness metrics (stations) where a participant must improve to count as "improved."
 
+**Example (threshold = 1):**
+- Participant improved in 1 station → ✅ Counts as improved
+- Participant improved in 3 stations → ✅ Counts as improved
+- Participant improved in 0 stations → ❌ Does NOT count as improved
+
 **Example (threshold = 2):**
 - Participant improved in 3 stations → ✅ Counts as improved
 - Participant improved in 1 station → ❌ Does NOT count as improved

@@ -36,10 +36,24 @@ const checkYearPairImprovement = (currYearData, nextYearData, stationThreshold =
   let improvedCount = 0;
   
   FITNESS_METRICS.forEach(metric => {
-    const a = parseFloat(currYearData[metric.key]);
-    const b = parseFloat(nextYearData[metric.key]);
+    let a = parseFloat(currYearData[metric.key]);
+    let b = parseFloat(nextYearData[metric.key]);
     
     if (isNaN(a) || isNaN(b)) return;
+    
+    // Handle potential unit mismatch: if one value is much smaller than the other for time metrics
+    if (metric.key === '2.44m speed walk') {
+      const ratio = Math.max(a, b) / Math.min(a, b);
+      if (ratio > 100) {
+        // Likely milliseconds vs seconds issue - convert smaller value
+        if (a < b / 10) {
+          a = a * 1000;
+        }
+        if (b < a / 10) {
+          b = b * 1000;
+        }
+      }
+    }
     
     // Use standard comparison logic: check if improvement occurred
     const improved = metric.higherIsBetter ? b > a : b < a;
@@ -53,12 +67,15 @@ const analyzeConsecutiveYearsImprovement = (participantMap, years, stationThresh
   const improvedParticipants = new Set();
   const sortedYears = years.slice().sort();
   
-  // Filter to only qualified participants with data in multiple years
+  // Filter to only qualified participants who attended ALL years
   const qualifiedParticipants = Object.entries(participantMap).filter(
-    ([_, participant]) => Object.keys(participant.years || {}).length > 1
+    ([_, participant]) => Object.keys(participant.years || {}).length === years.length
   );
   
   qualifiedParticipants.forEach(([participantKey, participant]) => {
+    // Collect all unique stations improved across all year pairs
+    const improvedStationsSet = new Set();
+    
     for (let i = 0; i < sortedYears.length - 1; i++) {
       const currYear = sortedYears[i];
       const nextYear = sortedYears[i + 1];
@@ -68,10 +85,38 @@ const analyzeConsecutiveYearsImprovement = (participantMap, years, stationThresh
       
       if (!currData || !nextData) continue;
       
-      if (checkYearPairImprovement(currData, nextData, stationThreshold)) {
-        improvedParticipants.add(participantKey);
-        break;
-      }
+      // Check each metric to see if it improved
+      FITNESS_METRICS.forEach(metric => {
+        let a = parseFloat(currData[metric.key]);
+        let b = parseFloat(nextData[metric.key]);
+        
+        if (isNaN(a) || isNaN(b)) return;
+        
+        // Handle potential unit mismatch: if one value is much smaller than the other for time metrics
+        if (metric.key === '2.44m speed walk') {
+          const ratio = Math.max(a, b) / Math.min(a, b);
+          if (ratio > 100) {
+            // Likely milliseconds vs seconds issue - convert smaller value
+            if (a < b / 10) {
+              a = a * 1000;
+            }
+            if (b < a / 10) {
+              b = b * 1000;
+            }
+          }
+        }
+        
+        // Use standard comparison logic
+        const improved = metric.higherIsBetter ? b > a : b < a;
+        if (improved) {
+          improvedStationsSet.add(metric.key);
+        }
+      });
+    }
+    
+    // Only count participant if they improved in >= stationThreshold unique stations
+    if (improvedStationsSet.size >= stationThreshold) {
+      improvedParticipants.add(participantKey);
     }
   });
   
@@ -87,12 +132,15 @@ const analyzeSkippedYearsImprovement = (participantMap, years, stationThreshold 
   const improvedParticipants = new Set();
   const sortedYears = years.slice().sort();
   
-  // Filter to only qualified participants with data in multiple years
+  // Filter to only qualified participants who attended ALL years
   const qualifiedParticipants = Object.entries(participantMap).filter(
-    ([_, participant]) => Object.keys(participant.years || {}).length > 1
+    ([_, participant]) => Object.keys(participant.years || {}).length === years.length
   );
   
   qualifiedParticipants.forEach(([participantKey, participant]) => {
+    // Collect all unique stations improved across all skipped year pairs
+    const improvedStationsSet = new Set();
+    
     for (let i = 0; i < sortedYears.length - 1; i++) {
       for (let j = i + 2; j < sortedYears.length; j++) {
         const currYear = sortedYears[i];
@@ -103,12 +151,39 @@ const analyzeSkippedYearsImprovement = (participantMap, years, stationThreshold 
         
         if (!currData || !nextData) continue;
         
-        if (checkYearPairImprovement(currData, nextData, stationThreshold)) {
-          improvedParticipants.add(participantKey);
-          break;
-        }
+        // Check each metric to see if it improved
+        FITNESS_METRICS.forEach(metric => {
+          let a = parseFloat(currData[metric.key]);
+          let b = parseFloat(nextData[metric.key]);
+          
+          if (isNaN(a) || isNaN(b)) return;
+          
+          // Handle potential unit mismatch: if one value is much smaller than the other for time metrics
+          if (metric.key === '2.44m speed walk') {
+            const ratio = Math.max(a, b) / Math.min(a, b);
+            if (ratio > 100) {
+              // Likely milliseconds vs seconds issue - convert smaller value
+              if (a < b / 10) {
+                a = a * 1000;
+              }
+              if (b < a / 10) {
+                b = b * 1000;
+              }
+            }
+          }
+          
+          // Use standard comparison logic
+          const improved = metric.higherIsBetter ? b > a : b < a;
+          if (improved) {
+            improvedStationsSet.add(metric.key);
+          }
+        });
       }
-      if (improvedParticipants.has(participantKey)) break;
+    }
+    
+    // Only count participant if they improved in >= stationThreshold unique stations
+    if (improvedStationsSet.size >= stationThreshold) {
+      improvedParticipants.add(participantKey);
     }
   });
   

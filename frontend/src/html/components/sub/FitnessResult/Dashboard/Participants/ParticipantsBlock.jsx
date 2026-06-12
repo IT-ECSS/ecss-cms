@@ -1,10 +1,9 @@
 import React, { Component } from "react";
 import ParticipantsCardsBlock from './section/ParticipantsCardsBlock';
 import ParticipantsChartBlock from './section/ParticipantsChartBlock';
-import ParticipantsNamesModal from './section/ParticipantsNamesModal';
-import ParticipantsImprovementNamesModal from './section/ParticipantsImprovementNamesModal';
+import ParticipantsTotalListCard from './section/cards/ParticipantsTotalListCard';
 import { 
-  analyzeParticipantImprovementAllCases,
+  getParticipantsWithImprovementUniversal,
   FITNESS_METRICS
 } from "../fitnessImprovementAnalysis";
 
@@ -12,39 +11,9 @@ class ParticipantsBlock extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      showNamesModal: false,
-      modalSource: 'total', // 'total' or 'improvement'
-      improvementStationCount: 1,
-      showImprovementNamesModal: false,
-      improvementStationCountForModal: 1
+      selectedStationCount: 1
     };
   }
-
-  openNamesModal = (source = 'total', stationCount = 1) => {
-    this.setState({ 
-      showNamesModal: true,
-      modalSource: source,
-      improvementStationCount: stationCount
-    });
-  };
-
-  closeNamesModal = () => {
-    this.setState({ showNamesModal: false });
-  };
-
-  openImprovementNamesModal = (stationCount = 1) => {
-    console.log('openImprovementNamesModal called with stationCount:', stationCount);
-    this.setState({ 
-      showImprovementNamesModal: true,
-      improvementStationCountForModal: stationCount
-    }, () => {
-      console.log('State updated, showImprovementNamesModal is now:', this.state.showImprovementNamesModal);
-    });
-  };
-
-  closeImprovementNamesModal = () => {
-    this.setState({ showImprovementNamesModal: false });
-  };
 
   getParticipantNames = (data, isImprovement = false, stationCount = 1) => {
     if (!data || !data.participantMap) return [];
@@ -78,14 +47,14 @@ class ParticipantsBlock extends Component {
   calculateImprovementCount = (data, stationCount = 1) => {
     if (!data || !data.participantMap) return 0;
 
-    // Use the centralized analysis function
-    const analysis = analyzeParticipantImprovementAllCases(
+    // Use the universal calculation function
+    const result = getParticipantsWithImprovementUniversal(
       data.participantMap,
       data.years || [],
       stationCount
     );
 
-    return analysis.uniqueCount;
+    return result.count;
   };
 
   calculateImprovementRate = (data, stationCount = 1) => {
@@ -102,90 +71,26 @@ class ParticipantsBlock extends Component {
   getImprovementDataWithStationCounts = (data, stationCount = 1) => {
     if (!data || !data.participantMap || !data.years) return [];
 
-    const participantMap = data.participantMap;
-    const years = data.years.slice().sort();
-    
-    console.log('=== getImprovementDataWithStationCounts Debug ===');
-    console.log('Years:', years);
-    console.log('Station threshold:', stationCount);
-    console.log('Total participants:', Object.keys(participantMap).length);
-    console.log('FITNESS_METRICS count:', FITNESS_METRICS.length);
+    // Use the universal calculation function
+    const result = getParticipantsWithImprovementUniversal(
+      data.participantMap,
+      data.years,
+      stationCount
+    );
 
-    // Calculate max improvement count for each participant
-    const participantImprovements = {};
-
-    Object.entries(participantMap).forEach(([key, participant]) => {
-      // Only consider participants with 2+ years of data
-      const participantYears = Object.keys(participant.years || {});
-      if (participantYears.length < 2) return;
-
-      participantImprovements[key] = {
-        displayName: participant.displayName,
-        maxStationsImproved: 0,
-        improvements: [],
-        participantKey: key
-      };
-
-      // Check all year pairs (consecutive and skipped)
-      for (let i = 0; i < years.length; i++) {
-        for (let j = i + 1; j < years.length; j++) {
-          const currYear = years[i];
-          const nextYear = years[j];
-
-          const currData = participant.years[currYear];
-          const nextData = participant.years[nextYear];
-          
-          if (!currData || !nextData) continue;
-
-          // Count how many metrics improved
-          let improvedCount = 0;
-          const improvedMetrics = [];
-
-          FITNESS_METRICS.forEach(metric => {
-            const a = parseFloat(currData[metric.key]);
-            const b = parseFloat(nextData[metric.key]);
-            
-            if (isNaN(a) || isNaN(b)) return;
-
-            const improved = metric.higherIsBetter ? b > a : b < a;
-            if (improved) {
-              improvedCount++;
-              improvedMetrics.push(metric.key);
-            }
-          });
-
-          // Track the maximum improvement count
-          if (improvedCount > participantImprovements[key].maxStationsImproved) {
-            participantImprovements[key].maxStationsImproved = improvedCount;
-            participantImprovements[key].improvements = [{
-              comparison: `${currYear}→${nextYear}`,
-              count: improvedCount,
-              metrics: improvedMetrics
-            }];
-          }
-        }
-      }
+    // Debug log - Show all participants who attended all years and their station improvements
+    console.log('=== ✅ PARTICIPANTS WHO ATTENDED ALL YEARS ===');
+    console.log(`Total participants who attended all years: ${result.totalAttendedAllYears}`);
+    console.log(`Filtered by station threshold (${stationCount}+): ${result.participants.length}`);
+    console.log('');
+    console.log('📊 PARTICIPANT DETAILS:');
+    result.participants.forEach((item, idx) => {
+      console.log(`${idx + 1}. ${item.displayName}: ${item.stationsImproved} station${item.stationsImproved !== 1 ? 's' : ''} improved`);
+      console.log(`   📍 Improved Stations: ${item.uniqueImprovedMetrics.join(', ')}`);
     });
+    console.log('');
 
-    // Filter and sort
-    const result = Object.values(participantImprovements)
-      .filter(item => item.maxStationsImproved >= stationCount)
-      .map(item => ({
-        displayName: item.displayName,
-        stationsImproved: item.maxStationsImproved,
-        participantKey: item.participantKey,
-        improvements: item.improvements
-      }))
-      .sort((a, b) => a.displayName.localeCompare(b.displayName, undefined, { sensitivity: 'base' }));
-
-    // Debug log
-    console.log('=== Sample Results ===');
-    result.slice(0, 5).forEach(item => {
-      console.log(`${item.displayName}: ${item.stationsImproved} stations`, item.improvements);
-    });
-    console.log(`Total filtered: ${result.length}/${Object.keys(participantImprovements).length}`);
-
-    return result;
+    return result.participants;
   };
 
   render() {
@@ -198,19 +103,7 @@ class ParticipantsBlock extends Component {
       isMultipleYearsView
     } = this.props;
 
-    const { showNamesModal, modalSource, improvementStationCount, showImprovementNamesModal, improvementStationCountForModal } = this.state;
-    
-    // Debug logging
-    console.log('ParticipantsBlock render:', {
-      showImprovementNamesModal,
-      improvementStationCountForModal,
-      hasData: !!data,
-      isMultipleYearsView
-    });
-
-    const isImprovementModal = modalSource === 'improvement';
-    const participantNames = this.getParticipantNames(data, isImprovementModal, improvementStationCount);
-    const improvementDataWithCounts = this.getImprovementDataWithStationCounts(data, improvementStationCountForModal);
+    const participantNames = this.getParticipantNames(data, false);
 
     if (!data) {
       return (
@@ -227,16 +120,11 @@ class ParticipantsBlock extends Component {
       <div className="fft-dash-right-section">
         <h3 className="fft-dash-section-header">Participants</h3>
 
-
-
         <ParticipantsCardsBlock
           data={data}
           selectedStationCountParticipants={selectedStationCountParticipants}
           handleStationCountChangeParticipants={handleStationCountChangeParticipants}
           isMultipleYearsView={isMultipleYearsView}
-          onTotalParticipantsClick={() => this.openNamesModal('total')}
-          onImprovementTotalParticipantsClick={(stationCount) => this.openNamesModal('improvement', stationCount)}
-          onImprovementParticipantsClick={(stationCount) => this.openImprovementNamesModal(stationCount)}
         />
 
         <ParticipantsChartBlock
@@ -244,17 +132,8 @@ class ParticipantsBlock extends Component {
           yearlyParticipants={yearlyParticipants}
         />
 
-        <ParticipantsNamesModal
-          isOpen={showNamesModal}
-          names={participantNames}
-          onClose={this.closeNamesModal}
-        />
-
-        <ParticipantsImprovementNamesModal
-          isOpen={showImprovementNamesModal}
-          improvementData={improvementDataWithCounts}
-          stationCount={improvementStationCountForModal}
-          onClose={this.closeImprovementNamesModal}
+        <ParticipantsTotalListCard
+          participantNames={participantNames}
         />
       </div>
     );

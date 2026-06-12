@@ -48,11 +48,6 @@ class FitnessParticipantsSection extends Component {
     if (participantNames.length === 0) return;
 
     const uniqueNames = Array.from(new Set(participantNames));
-    const namesText = uniqueNames
-      .map((name, index) => `${index + 1}. ${name}`)
-      .join('\n');
-
-    alert(`FFT Results - Total Participants: ${data.length}\n\n${namesText}`);
 
     console.log('═══════════════════════════════════════════════════════════');
     console.log('FFT RESULTS - TOTAL PARTICIPANTS:', data.length);

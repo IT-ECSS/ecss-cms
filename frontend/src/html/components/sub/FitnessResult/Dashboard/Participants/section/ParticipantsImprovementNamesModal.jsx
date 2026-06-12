@@ -74,27 +74,37 @@ class ParticipantsImprovementNamesModal extends Component {
                   key={index}
                   style={{
                     display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
+                    flexDirection: 'column',
                     padding: '12px 0',
-                    borderBottom: index < improvementData.length - 1 ? '1px solid #e2e8f0' : 'none'
+                    borderBottom: index < improvementData.length - 1 ? '1px solid #e2e8f0' : 'none',
+                    gap: '6px'
                   }}
                 >
-                  <span style={{ color: '#1e293b', fontSize: '14px' }}>
-                    {index + 1}. {item.displayName}
-                  </span>
-                  <span
-                    style={{
-                      backgroundColor: '#dbeafe',
-                      color: '#1e40af',
-                      padding: '4px 12px',
-                      borderRadius: '4px',
-                      fontSize: '12px',
-                      fontWeight: '600'
-                    }}
-                  >
-                    {item.stationsImproved} station{item.stationsImproved > 1 ? 's' : ''}
-                  </span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <span style={{ color: '#1e293b', fontSize: '14px', fontWeight: '500' }}>
+                      {index + 1}. {item.displayName}
+                    </span>
+                    <span
+                      style={{
+                        backgroundColor: '#dbeafe',
+                        color: '#1e40af',
+                        padding: '4px 12px',
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        flexShrink: 0,
+                        marginLeft: '8px'
+                      }}
+                    >
+                      {item.stationsImproved} station{item.stationsImproved > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  {item.uniqueImprovedMetrics && item.uniqueImprovedMetrics.length > 0 && (
+                    <div style={{ fontSize: '13px', color: '#64748b', marginLeft: '0px', lineHeight: '1.4' }}>
+                      <span style={{ fontWeight: '500', color: '#475569' }}>Improved: </span>
+                      {item.uniqueImprovedMetrics.join(', ')}
+                    </div>
+                  )}
                 </div>
               ))
             )}

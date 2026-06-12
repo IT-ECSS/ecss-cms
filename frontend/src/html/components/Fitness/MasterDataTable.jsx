@@ -389,8 +389,27 @@ class MasterDataTable extends Component {
         return;
       }
 
+      // Convert 2.44m Speed Walk values from milliseconds to seconds if needed
+      const processedRaw = raw.map(row => {
+        const newRow = { ...row };
+        const speedWalkKey = Object.keys(row).find(k => 
+          k.toLowerCase().includes('2.44') || k.toLowerCase().includes('speed walk')
+        );
+        
+        if (speedWalkKey && row[speedWalkKey] !== null && row[speedWalkKey] !== undefined && row[speedWalkKey] !== '') {
+          const val = parseFloat(row[speedWalkKey]);
+          // If value is < 1 or < 0, it's likely in milliseconds - convert to seconds
+          if (!isNaN(val) && (val < 1 || val < 0)) {
+            const convertedVal = val / 1000;
+            console.log(`[Unit Conversion] ${row['Name']}: 2.44m Speed Walk converted from ${val} to ${convertedVal.toFixed(3)}s`);
+            newRow[speedWalkKey] = convertedVal;
+          }
+        }
+        return newRow;
+      });
+
       // Get available years from data
-      const availableYears = this.getAllYearsFromData(raw);
+      const availableYears = this.getAllYearsFromData(processedRaw);
 
       const HIDDEN_FROM = ['Age', 'Height', 'Weight', 'BMI', 'Date of test',
         '30 secs Sit & Stand', '30 secs Dumbbell Curl', '2 min On-the-spot Marching',
@@ -404,7 +423,7 @@ class MasterDataTable extends Component {
         'Date of Birth': 250,
         'Time Slot': 300,
       };
-      const columnDefs = Object.keys(raw[0])
+      const columnDefs = Object.keys(processedRaw[0])
         .filter(key => !HIDDEN_FROM.includes(key))
         .map(key => ({
           field: key,
@@ -454,7 +473,7 @@ class MasterDataTable extends Component {
 
       this.setState({ 
         loading: false, 
-        rowData: raw, 
+        rowData: processedRaw, 
         columnDefs,
         availableYears,
         selectedYears: [],
@@ -464,13 +483,13 @@ class MasterDataTable extends Component {
       });
 
       // ─── Log all FFT participant names and total count to console ───
-      const participantNames = raw
+      const participantNames = processedRaw
         .map(row => row['Name'] || '')
         .filter(name => name.trim() !== '')
         .sort();
       
       console.log('═══════════════════════════════════════════════════════════');
-      console.log('FFT RESULTS - TOTAL PARTICIPANTS:', raw.length);
+      console.log('FFT RESULTS - TOTAL PARTICIPANTS:', processedRaw.length);
       console.log('═══════════════════════════════════════════════════════════');
       console.log('PARTICIPANT NAMES:');
       participantNames.forEach((name, index) => {

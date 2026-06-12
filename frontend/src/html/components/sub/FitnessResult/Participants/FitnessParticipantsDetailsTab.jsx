@@ -4,6 +4,8 @@ import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import ActionButtonRow from './components/ActionButtonRow';
 import ColumnTogglePanel from './components/ColumnTogglePanel';
+import { createUniversalParticipantKey } from '../Dashboard/fitnessDashboardCalculations';
+import { calculateParticipantStationsImproved, FITNESS_METRICS } from '../Dashboard/fitnessImprovementAnalysis';
 import '../../../../../css/ag-grid-custom-theme.css'; // Import custom AgGrid theme
 import '../../../../../css/column-toggle-panel.css'; // Import column toggle panel styles (from src/css)
 
@@ -141,6 +143,20 @@ const buildColumnDefinitions = (data) => {
             if (g === 'F') return 'Female';
             return params.data['Gender'] || '';
           }
+        : col === '2.44m Speed Walk'
+        ? (params) => {
+            const val = params.data[col];
+            if (val === '' || val === null || val === undefined) return '';
+            const num = parseFloat(String(val).replace(/[^\d.-]/g, ''));
+            if (isNaN(num)) return '';
+            // For 2.44m Speed Walk: multiply by 100 if < 0.1, by 10 if 0.1-0.999
+            if (num < 0.1) {
+              return (num * 100).toFixed(2);
+            } else if (num < 1.0) {
+              return (num * 10).toFixed(2);
+            }
+            return val;
+          }
         : (params) => params.data[col]
     };
     if (col === 'Name') {
@@ -215,28 +231,15 @@ const getField = (row, ...names) => {
  * "LEONG CHOY GHEE" sharing the same phone but being different people).
  */
 const buildParticipantKey = (row) => {
-  const rawName = getField(row, 'Name', 'Full Name', 'Participant Name') || getField(row, 'Chinese Name');
-  const normalizedName = rawName.toLowerCase().replace(/\s+/g, ' ').trim();
-
-  const rawPhone = getField(row, 'Phone Number', 'Phone No', 'Phone', 'Contact', 'Contact Number', 'Mobile', 'Mobile Number');
-  const cleanPhone = rawPhone.toString().replace(/\D/g, '').trim();
-  const hasValidPhone = cleanPhone.length >= 7;
-
-  const dd   = String(getField(row, 'DD')   || '').trim();
-  const mm   = String(getField(row, 'MM')   || '').trim();
-  const yyyy = String(getField(row, 'YYYY') || '').trim();
-  const dob  = dd && mm && yyyy ? `${dd}/${mm}/${yyyy}` : '';
-
-  const gender = (getField(row, 'Gender', 'Sex') || '').toString().trim().toUpperCase();
-
-  // Concatenate only the fields that are present
-  const parts = [];
-  if (normalizedName)  parts.push(`n:${normalizedName}`);
-  if (hasValidPhone)   parts.push(`p:${cleanPhone}`);
-  if (dob)             parts.push(`d:${dob}`);
-  if (gender)          parts.push(`g:${gender}`);
-
-  return parts.length > 0 ? parts.join('||') : null;
+  // Use universal key generator that uses: name + DOB + phone + gender
+  const getField = (...fieldNames) => {
+    for (const fieldName of fieldNames) {
+      const key = Object.keys(row).find(k => k.toLowerCase() === fieldName.toLowerCase());
+      if (key) return row[key];
+    }
+    return '';
+  };
+  return createUniversalParticipantKey(row, getField);
 };
 
 /**
@@ -282,14 +285,88 @@ const buildPivotedRowData = (data) => {
 
 /**
  * Returns "+N.N" / "-N.N" / "" for the difference between two year values.
+ * For 2.44m Speed Walk (lowerIsBetter), applies special formatting:
+ * - Arrow up (▲) if improved (time decreased)
+ * - Arrow down (▼) if declined (time increased)
+ * - Converts values: multiply by 100 if < 0.1, by 10 if 0.1-0.999
+ * - No unit label for display
  */
-const calcComparison = (prevRaw, currRaw) => {
-  const p = parseFloat(prevRaw);
-  const c = parseFloat(currRaw);
+const calcComparison = (prevRaw, currRaw, lowerIsBetter = false) => {
+  let p = parseFloat(prevRaw);
+  let c = parseFloat(currRaw);
   if (isNaN(p) || isNaN(c)) return '';
+  
+  // Handle unit conversion for 2.44m Speed Walk (time metric)
+  // Apply same logic as checkYearPairImprovement function
+  if (lowerIsBetter) {
+    // Step 1: Apply standard conversion for small values
+    // Multiply by 100 if < 0.1, by 10 if < 1.0
+    if (p < 0.1) {
+      p = p * 100;
+    } else if (p < 1.0) {
+      p = p * 10;
+    }
+    
+    if (c < 0.1) {
+      c = c * 100;
+    } else if (c < 1.0) {
+      c = c * 10;
+    }
+    
+    // Step 2: Check for massive discrepancy (>100x) after standard conversion
+    // This handles cases like milliseconds vs seconds that didn't fit standard conversion
+    const ratio = Math.max(p, c) / Math.min(p, c);
+    if (ratio > 100) {
+      // Likely still has unit mismatch - convert the smaller value up
+      if (p < c / 10) {
+        p = p * 1000; // Convert to consistent units
+      }
+      if (c < p / 10) {
+        c = c * 1000; // Convert to consistent units
+      }
+    }
+  }
+  
   const diff = c - p;
+  
   if (diff === 0) return '0';
-  return diff > 0 ? `▲  +${diff.toFixed(1)}` : `▼  ${diff.toFixed(1)}`;
+  
+  // Determine arrow and improvement status
+  let arrow, isImprovement;
+  if (lowerIsBetter) {
+    // For time metrics: improvement = time decreased (diff < 0)
+    isImprovement = diff < 0;
+    arrow = isImprovement ? '▲' : '▼';
+  } else {
+    // For other metrics: improvement = value increased (diff > 0)
+    isImprovement = diff > 0;
+    arrow = isImprovement ? '▲' : '▼';
+  }
+  
+  const sign = diff > 0 ? '+' : '';
+  
+  return `${arrow}  ${sign}${diff.toFixed(1)}`;
+};
+
+/**
+ * Convert unit for display (for 2.44m Speed Walk time metric)
+ * Multiplies by 100 if < 0.1, by 10 if < 1.0
+ */
+const convertDisplayUnit = (value, columnName) => {
+  if (columnName !== '2.44m Speed Walk') return value;
+  if (value === '' || value === null || value === undefined) return value;
+  
+  let num = parseFloat(String(value).replace(/[^\d.-]/g, ''));
+  if (isNaN(num)) return value;
+  
+  // Apply standard conversion for display
+  if (num < 0.1) {
+    num = num * 100;
+  } else if (num < 1.0) {
+    num = num * 10;
+  }
+  
+  return num.toFixed(2);
 };
 
 /**
@@ -403,7 +480,18 @@ const buildMultiYearColumnDefs = (years) => {
           const val = getField(yd, col);
           if (val === '' || val === null || val === undefined) return '';
           const num = parseFloat(String(val).replace(/[^\d.-]/g, ''));
-          return isNaN(num) ? '' : val;
+          if (isNaN(num)) return '';
+          
+          // For 2.44m Speed Walk: multiply by 100 if < 0.1, by 10 if 0.1-0.999
+          if (lowerBetter) {
+            if (num < 0.1) {
+              return (num * 100).toFixed(2);
+            } else if (num < 1.0) {
+              return (num * 10).toFixed(2);
+            }
+          }
+          
+          return val;
         }
       });
     });
@@ -422,7 +510,7 @@ const buildMultiYearColumnDefs = (years) => {
             if (!yearData) return '';
             const prevRaw = getField(yearData[fromYear], col);
             const currRaw = getField(yearData[toYear], col);
-            return calcComparison(prevRaw, currRaw);
+            return calcComparison(prevRaw, currRaw, lowerBetter);
           },
           comparator: (a, b) => {
             const parse = v => {
@@ -556,7 +644,7 @@ class EntriesTable extends Component {
     const { quickFilterText } = this.state;
 
     if (!data || data.length === 0) {
-      alert('No data to export');
+      console.log('No data to export');
       return;
     }
 
@@ -602,7 +690,7 @@ class EntriesTable extends Component {
 
       // Build headers
       const headerStructure = [];
-      headerStructure.push('S/N', 'Name', 'Date of Birth', 'Contact Number', 'Gender', 'Years Attended');
+      headerStructure.push('S/N', 'Name', 'Date of Birth', 'Contact Number', 'Gender', 'Years Attended', 'Stations Improved');
 
       if (isMultiYear) {
         // Multi-year layout with all comparisons (consecutive and non-consecutive)
@@ -642,6 +730,7 @@ class EntriesTable extends Component {
         else if (headerText.includes('Phone')) col.width = 18;
         else if (headerText.includes('Name')) col.width = 22;
         else if (headerText.includes('Years')) col.width = 20;
+        else if (headerText.includes('Stations Improved')) col.width = 18;
         else if (headerText.includes('Improvement')) col.width = 32;
         else col.width = 16;
       });
@@ -678,6 +767,28 @@ class EntriesTable extends Component {
           excelRow.push(uniqueYears.size);
         }
 
+        // Stations Improved (for multi-year) - Using universal calculation
+        if (isMultiYear) {
+          // Build normalized year data compatible with universal function
+          const normalizedYearData = {};
+          Object.entries(row._yearData || {}).forEach(([year, rawYearData]) => {
+            normalizedYearData[year] = {};
+            // Map STATION_COLUMNS to FITNESS_METRICS keys
+            FITNESS_METRICS.forEach(metric => {
+              const value = getField(rawYearData, metric.key);
+              if (value !== '') {
+                normalizedYearData[year][metric.key] = value;
+              }
+            });
+          });
+          
+          // Use universal function that compares only consecutive years
+          const stationsImproved = calculateParticipantStationsImproved(normalizedYearData, years);
+          excelRow.push(stationsImproved);
+        } else {
+          excelRow.push(''); // No improvement data for single year
+        }
+
         // Station data
         if (isMultiYear) {
           STATION_COLUMNS.forEach(col => {
@@ -686,7 +797,9 @@ class EntriesTable extends Component {
               const yd = row._yearData?.[year];
               if (yd) {
                 const val = getField(yd, col);
-                excelRow.push(val || '');
+                // Apply unit conversion for 2.44m Speed Walk
+                const displayVal = convertDisplayUnit(val, col);
+                excelRow.push(displayVal || '');
               } else {
                 excelRow.push('');
               }
@@ -698,9 +811,11 @@ class EntriesTable extends Component {
                 const toYear = years[j];
                 const prev = row._yearData?.[fromYear];
                 const curr = row._yearData?.[toYear];
+                const isLowerBetter = LOWER_IS_BETTER.has(col);
                 const comparison = calcComparison(
                   prev ? getField(prev, col) : undefined,
-                  curr ? getField(curr, col) : undefined
+                  curr ? getField(curr, col) : undefined,
+                  isLowerBetter
                 ) || '';
                 excelRow.push(comparison);
               }
@@ -739,8 +854,8 @@ class EntriesTable extends Component {
         }
       });
 
-      // Freeze panes (first 6 columns: S/N, Name, Date of Birth, Contact Number, Gender, Years Attended)
-      worksheet.views = [{ state: 'frozen', xSplit: 6, ySplit: 1 }];
+      // Freeze panes (first 7 columns: S/N, Name, Date of Birth, Contact Number, Gender, Years Attended, Stations Improved)
+      worksheet.views = [{ state: 'frozen', xSplit: 7, ySplit: 1 }];
 
       // Generate file
       const dateStr = new Date().toISOString().split('T')[0];
@@ -751,7 +866,7 @@ class EntriesTable extends Component {
       saveAs(blob, filename);
     } catch (error) {
       console.error('Export error:', error);
-      alert('Error exporting data: ' + error.message);
+      console.error('Error exporting data: ' + error.message);
     }
   }
 

@@ -13,11 +13,15 @@ class ParticipantsCardsBlock extends Component {
       isMultipleYearsView
     } = this.props;
 
+    if (!data) {
+      return <div className="fft-dash-empty">No data available</div>;
+    }
+
     const { totalParticipants, maleCount, femaleCount } = data;
 
     return (
       <div className="fft-dash-kpi-row">
-        <ParticipantsTotalCard totalParticipants={totalParticipants} onClick={this.props.onTotalParticipantsClick} />
+        <ParticipantsTotalCard totalParticipants={totalParticipants} />
 
         <ParticipantsFemaleCard totalParticipants={totalParticipants} femaleCount={femaleCount} />
 
@@ -26,12 +30,10 @@ class ParticipantsCardsBlock extends Component {
         {isMultipleYearsView && (
           <ParticipantsImprovementCard
             data={data}
+            totalParticipants={totalParticipants}
             selectedStationCountParticipants={selectedStationCountParticipants}
             handleStationCountChangeParticipants={handleStationCountChangeParticipants}
             isMultipleYearsView={isMultipleYearsView}
-            onTotalParticipantsClick={this.props.onTotalParticipantsClick}
-            onImprovementTotalParticipantsClick={this.props.onImprovementTotalParticipantsClick}
-            onImprovementParticipantsClick={this.props.onImprovementParticipantsClick}
           />
         )}
       </div>

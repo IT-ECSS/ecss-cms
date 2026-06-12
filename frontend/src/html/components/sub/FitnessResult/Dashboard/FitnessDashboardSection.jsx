@@ -157,11 +157,15 @@ class FitnessDashboardSection extends Component {
   };
 
   handleStationCountChangeParticipations = (e) => {
-    this.setState({ selectedStationCountParticipations: parseInt(e.target.value, 10) });
+    // Handle both event objects and direct number values
+    const value = typeof e === 'number' ? e : parseInt(e.target.value, 10);
+    this.setState({ selectedStationCountParticipations: value });
   };
 
   handleStationCountChangeParticipants = (e) => {
-    this.setState({ selectedStationCountParticipants: parseInt(e.target.value, 10) });
+    // Handle both event objects and direct number values
+    const value = typeof e === 'number' ? e : parseInt(e.target.value, 10);
+    this.setState({ selectedStationCountParticipants: value });
   };
 
   // Calculate all dashboard data - Main orchestrator
