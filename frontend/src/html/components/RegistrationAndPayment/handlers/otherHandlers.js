@@ -33,14 +33,98 @@ export async function handleRemarksChange(event, context) {
   const participantInfo = event.data.participantInfo;
   const forceClearThenAppendReason = Boolean(event?.forceClearThenAppendReason);
 
+  // Add detailed logging to diagnose the value issue
+  console.log('📝 [Remarks Change] Event received:', {
+    id,
+    newValueType: typeof newValue,
+    newValueLength: typeof newValue === 'string' ? newValue.length : 'N/A',
+    newValue: typeof newValue === 'string' ? newValue.substring(0, 100) : newValue,
+    eventValue: typeof event.value === 'string' ? event.value.substring(0, 100) : typeof event.value,
+    eventOldValue: typeof event.oldValue === 'string' ? event.oldValue.substring(0, 100) : typeof event.oldValue,
+    eventColDef: event.colDef?.field,
+  });
+
   // Keep legacy append behavior for non-empty remarks, but allow explicit clear.
   if (forceClearThenAppendReason) {
-    await editRegistrationField(id, event.colDef.field, '');
-    await addCancelRemarks(id, String(newValue ?? '').trim());
+    console.log('📝 [Remarks Update] Force clear then append for registration:', id);
+    try {
+      await addCancelRemarks(id, ''); // Clear first using proper addCancelRemarks path
+      const response = await addCancelRemarks(id, String(newValue ?? '').trim());
+      console.log('📝 [Remarks Update] Backend response:', response);
+      
+      // Update both possible data locations in the row to ensure UI refresh
+      const finalRemarks = String(newValue ?? '').trim();
+      event.data.remarks = finalRemarks;
+      event.data.officialInfo = event.data.officialInfo || {};
+      event.data.officialInfo.remarks = finalRemarks;
+      event.data.official = event.data.official || {};
+      event.data.official.remarks = finalRemarks;
+      
+      console.log('📝 [Remarks Update] Row data updated locally:', event.data);
+      
+      // Force grid refresh for this row's remarks cell with a slight delay to ensure DB sync
+      if (event.api && event.node) {
+        await waitForNextPaint();
+        console.log('📝 [Remarks Update] Refreshing remarks cell in grid');
+        event.api.refreshCells({ rowNodes: [event.node], columns: ['remarks'], force: true });
+      }
+    } catch (error) {
+      console.error('📝 [Remarks Update] Error in force clear then append:', error);
+      throw error;
+    }
   } else if (String(newValue ?? '').trim() === '') {
-    await editRegistrationField(id, event.colDef.field, '');
+    // Clearing remarks: use addCancelRemarks with empty string for proper backend clearing
+    console.log('🗑️ [Remarks Clear] Clearing remarks for registration:', id);
+    
+    try {
+      const response = await addCancelRemarks(id, '');
+      console.log('🗑️ [Remarks Clear] Backend response:', response);
+      
+      // Update both possible data locations in the row to ensure UI refresh
+      event.data.remarks = '';
+      event.data.officialInfo = event.data.officialInfo || {};
+      event.data.officialInfo.remarks = '';
+      event.data.official = event.data.official || {};
+      event.data.official.remarks = '';
+      
+      console.log('🗑️ [Remarks Clear] Row data updated locally:', event.data);
+      
+      // Force grid refresh for this row's remarks cell with a slight delay to ensure DB sync
+      if (event.api && event.node) {
+        await waitForNextPaint();
+        console.log('🗑️ [Remarks Clear] Refreshing remarks cell in grid');
+        event.api.refreshCells({ rowNodes: [event.node], columns: ['remarks'], force: true });
+      }
+    } catch (error) {
+      console.error('🗑️ [Remarks Clear] Error clearing remarks:', error);
+      throw error;
+    }
   } else {
-    await addCancelRemarks(id, newValue);
+    // Adding/updating remarks
+    console.log('📝 [Remarks Update] Adding/updating remarks for registration:', id, 'New value:', newValue);
+    try {
+      const response = await addCancelRemarks(id, newValue);
+      console.log('📝 [Remarks Update] Backend response:', response);
+      
+      // Update both possible data locations in the row to ensure UI refresh
+      event.data.remarks = newValue;
+      event.data.officialInfo = event.data.officialInfo || {};
+      event.data.officialInfo.remarks = newValue;
+      event.data.official = event.data.official || {};
+      event.data.official.remarks = newValue;
+      
+      console.log('📝 [Remarks Update] Row data updated locally:', event.data);
+      
+      // Force grid refresh for this row's remarks cell with a slight delay to ensure DB sync
+      if (event.api && event.node) {
+        await waitForNextPaint();
+        console.log('📝 [Remarks Update] Refreshing remarks cell in grid');
+        event.api.refreshCells({ rowNodes: [event.node], columns: ['remarks'], force: true });
+      }
+    } catch (error) {
+      console.error('📝 [Remarks Update] Error adding/updating remarks:', error);
+      throw error;
+    }
   }
 
   await logRegistrationUpdate(buildLogPayload({

@@ -18,7 +18,7 @@ class QRCodeGenerator {
             const buffer = await QRCode.toBuffer(this.text, this.options);
 
             // Save the buffer to a JPG file
-            const filename = `En Community Services Society Website.jpg`
+            const filename = `加入我们, 成为FFT义工者！JOIN US AS FFT VOLUNTEERS!.jpg`
             fs.writeFileSync(filename, buffer);
             console.log(`QR code generated and saved as ${filename}`);
         } catch (error) {
@@ -28,5 +28,5 @@ class QRCodeGenerator {
 }
 
 // Usage const filename = `https://ecss.org.sg/product/crafting-connectionspasir-ris-west-wellness-centre/`;
-const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/`);
+const qrCodeGenerator = new QRCodeGenerator(`https://forms.gle/GgXcSiuFJLn4DuZF6`);
 qrCodeGenerator.generate();

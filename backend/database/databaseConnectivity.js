@@ -1121,7 +1121,9 @@ const filter = { _id: this._makeObjectId(id) };
                     // Existing editable non-participant fields
                     remarks: 'official.remarks',
                     paymentDate: 'official.date',
+                    paymentTime: 'official.time',
                     refundedDate: 'official.refundedDate',
+                    refundedTime: 'official.refundedTime',
                     location: 'course.courseLocation',
                     course: 'course.courseEngName',
                     courseMode: 'course.courseMode',
@@ -1157,6 +1159,12 @@ const filter = { _id: this._makeObjectId(id) };
 
                 if (typeof normalizedValue === 'string') {
                     normalizedValue = normalizedValue.trim();
+                }
+
+                // Ensure date/time fields are always strings (never null or undefined)
+                if (normalizedField === 'refundedDate' || normalizedField === 'refundedTime' || 
+                    normalizedField === 'paymentDate' || normalizedField === 'paymentTime') {
+                    normalizedValue = String(normalizedValue || '').trim();
                 }
 
                 // Accept ISO date input and store as DD/MM/YYYY for consistency.
