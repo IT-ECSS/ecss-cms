@@ -194,7 +194,7 @@ class ParticipationsImprovementCard extends Component {
 
         {/* Total Participations */}
         <div>
-          <span className="fft-dash-kpi-label" style={{ marginBottom: '0' }}>Total Participations</span>
+          <span className="fft-dash-kpi-label" style={{ marginBottom: '0' }}>Total Repeated Participations</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', justifySelf: 'end' }}>
           <span className="fft-dash-kpi-value">{totalParticipations}</span>
