@@ -102,14 +102,13 @@ const FinalPaymentMethodRenderer = (params) => {
             style={
               isNsaInChargeStyling
                 ? {
-                    border: '2px solid #654321',
-                    color: '#654321',
+                    border: '3px solid #766006',
+                    color: '#766006',
                     backgroundColor: method === currentMethod ? '#fff' : 'transparent',
                   }
                 : {}
             }
             onClick={isDisabled ? undefined : (event) => handleClick(event, method)}
-            disabled={isDisabled}
           >
             {method}
           </button>

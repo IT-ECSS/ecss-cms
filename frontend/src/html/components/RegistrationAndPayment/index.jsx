@@ -1940,30 +1940,6 @@ class RegistrationPaymentSection extends Component {
       ...(selectedCourseType === 'NSA'
         ? [
           {
-            headerName: 'Payment Status (Cash/PayNow)',
-            colId: 'paymentStatusCashPayNow',
-            field: 'paymentStatus',
-            cellRenderer: PaymentStatusRenderer,
-            cellEditor: 'agSelectCellEditor',
-            cellEditorParams: (params) => ({
-              values: this._getNsaPaymentStatusEditorValues(params).values,
-            }),
-            editable: (params) => {
-              return this._canEditNsaCashPayNowPaymentStatus() && this._isActiveNsaPaymentStatusColumn('Payment Status (Cash/PayNow)', params.data);
-            },
-            valueGetter: (params) => this._getNsaPaymentStatusDisplayValue('Payment Status (Cash/PayNow)', params.data),
-            valueSetter: (params) => {
-              if (params.newValue && params.newValue !== params.oldValue) {
-                params.data.paymentStatus = params.newValue;
-                return true;
-              }
-              return false;
-            },
-            width: 750,
-            cellStyle: { ...centeredCellStyle, fontSize: '15px' },
-            hide: false,
-          },
-          {
             headerName: 'Payment Status (SkillsFuture)',
             colId: 'paymentStatusSkillsFuture',
             field: 'paymentStatus',
@@ -1991,6 +1967,30 @@ class RegistrationPaymentSection extends Component {
             cellStyle: { ...centeredCellStyle, fontSize: '15px' },
             hide: false,
           },
+                    {
+            headerName: 'Payment Status (Cash/PayNow)',
+            colId: 'paymentStatusCashPayNow',
+            field: 'paymentStatus',
+            cellRenderer: PaymentStatusRenderer,
+            cellEditor: 'agSelectCellEditor',
+            cellEditorParams: (params) => ({
+              values: this._getNsaPaymentStatusEditorValues(params).values,
+            }),
+            editable: (params) => {
+              return this._canEditNsaCashPayNowPaymentStatus() && this._isActiveNsaPaymentStatusColumn('Payment Status (Cash/PayNow)', params.data);
+            },
+            valueGetter: (params) => this._getNsaPaymentStatusDisplayValue('Payment Status (Cash/PayNow)', params.data),
+            valueSetter: (params) => {
+              if (params.newValue && params.newValue !== params.oldValue) {
+                params.data.paymentStatus = params.newValue;
+                return true;
+              }
+              return false;
+            },
+            width: 750,
+            cellStyle: { ...centeredCellStyle, fontSize: '15px' },
+            hide: false,
+          }
         ]
         : []),
       {

@@ -47,7 +47,7 @@ const PaymentStatusRenderer = (params) => {
         padding: '0.25em 1.2em',
         borderRadius: '999px',
         fontWeight: 'bold',
-        color: isNsaInChargeStyling ? '#87CEEB' : '#fff',
+        color: isNsaInChargeStyling ? '#87CEEB' : '#FFD700',
         fontSize: '0.85em',
         textAlign: 'center',
         width: '100%',
