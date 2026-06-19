@@ -690,6 +690,10 @@ export async function handleSkillsFutureStatusChange({
       await editRegistrationField(id, 'official.registration_status', 'Withdrawn');
     }
     return '';
+  } else if (newValue === 'Participant Withdrawn') {
+    // When participant withdraws for SkillsFuture, registration status is already set to "Withdrawn" by registrationStatusHandler
+    console.log('🔄 [Participant Withdrawn] Participant has withdrawn from SkillsFuture course');
+    return '';
   } else if (newValue === 'Cancelled' || newValue === 'Refunded' || newValue === 'Withdrawn' || oldPaymentStatus === 'To refund') {
     if (oldPaymentStatus === 'To refund') {
       await updateWooCommerce(courseChiName, courseName, courseLocation, newValue);

@@ -8,6 +8,9 @@ const FinalPaymentMethodRenderer = (params) => {
     ? ['PayNow', 'SkillsFuture']
     : ['Cash', 'PayNow', 'SkillsFuture'];
 
+  // Check if NSA in-charge styling should be applied through context
+  const isNsaInChargeStyling = params.context?.shouldApplyNsaInChargeStyling ? params.context.shouldApplyNsaInChargeStyling() : false;
+  
   // Determine if current user should be allowed to change final payment for NSA course type
   const component = params.context?.componentInstance;
   const role = String(component?.props?.role || '').toLowerCase();
@@ -20,6 +23,9 @@ const FinalPaymentMethodRenderer = (params) => {
   ];
   const isRestrictedRole = restrictedForNsa.some(k => role.includes(k));
   const isNsaCourse = String(courseType || '').trim() === 'NSA';
+  
+  // Check if user is Admin or Sub Admin - they can edit SkillsFuture
+  const isAdminOrSubAdmin = role.includes('admin') || role.includes('sub admin');
 
   const handleClick = async (event, method) => {
     event.stopPropagation();
@@ -76,11 +82,15 @@ const FinalPaymentMethodRenderer = (params) => {
   const hasRefundedDate = !!(params.data?.refundedDate && String(params.data.refundedDate).trim() !== '');
   const hasRefundedTime = !!(params.data?.refundedTime && String(params.data.refundedTime).trim() !== '');
   const isLockedByPaymentData = hasPaymentDate || hasPaymentTime || hasRefundedDate || hasRefundedTime;
+  
+  // Disable editing if current method is SkillsFuture (except for Admin/Sub Admin)
+  const isCurrentMethodSkillsFuture = currentMethod === 'SkillsFuture';
+  const shouldDisableSkillsFuture = isCurrentMethodSkillsFuture && !isAdminOrSubAdmin;
 
   return (
     <div className="payment-method-group">
       {finalPaymentOptions.map((method) => {
-        const isDisabled = (isNsaCourse && isRestrictedRole) || isLockedByPaymentData;
+        const isDisabled = (isNsaCourse && isRestrictedRole) || isLockedByPaymentData || shouldDisableSkillsFuture;
 
         return (
           <button
@@ -89,7 +99,17 @@ const FinalPaymentMethodRenderer = (params) => {
             className={`payment-method-btn payment-method-btn--${method
               .toLowerCase()
               .replace(/\s+/g, '-')} ${method === currentMethod ? 'active' : ''}`}
+            style={
+              isNsaInChargeStyling
+                ? {
+                    border: '2px solid #654321',
+                    color: '#654321',
+                    backgroundColor: method === currentMethod ? '#fff' : 'transparent',
+                  }
+                : {}
+            }
             onClick={isDisabled ? undefined : (event) => handleClick(event, method)}
+            disabled={isDisabled}
           >
             {method}
           </button>

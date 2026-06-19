@@ -18,6 +18,7 @@ import ExpandedRowDetail      from './components/ExpandedRowDetail';
 import SlideButtonRenderer    from './components/SlideButtonRenderer';
 import PaymentMethodRenderer       from './components/PaymentMethodRenderer';
 import FinalPaymentMethodRenderer  from './components/FinalPaymentMethodRenderer';
+import DateTimeFieldRenderer from './components/DateTimeFieldRenderer';
 import PaymentStatusRenderer       from './components/PaymentStatusRenderer';
 import RegistrationStatusRenderer  from './components/RegistrationStatusRenderer';
 import SelectAllHeader        from './components/SelectAllHeader';
@@ -542,7 +543,7 @@ class RegistrationPaymentSection extends Component {
     if (courseType === 'NSA') {
       // Payment Status (SkillsFuture) column
       if (colId === 'paymentStatusSkillsFuture') {
-        return { values: ['Pending', 'Generating SkillsFuture Invoice', 'SkillsFuture Done', 'SkillsFuture Unsuccessful'] };
+        return { values: ['Pending', 'Generating SkillsFuture Invoice', 'SkillsFuture Done', 'Participants Withdrawn', 'SkillsFuture Unsuccessful'] };
       }
       // Payment Status (Cash/PayNow) column
       if (colId === 'paymentStatusCashPayNow') {
@@ -1708,6 +1709,14 @@ class RegistrationPaymentSection extends Component {
     closePopup: this.props.closePopup,
   });
 
+  // ── NSA In-Charge styling check ─────────────────────────────────────────
+  
+  _shouldApplyNsaInChargeStyling() {
+    // Always apply dark pink styling to visually differentiate editable columns for all users
+    // This provides a consistent visual indicator that these columns are editable by NSA in-charge and Site in-charge roles
+    return true;
+  }
+
   // ── AG-Grid column definitions ────────────────────────────────────────────
 
   getColumnDefs = (optionalRowData = null) => {
@@ -1886,29 +1895,17 @@ class RegistrationPaymentSection extends Component {
         valueGetter: (params) => params.data?.registrationStatus || '',
         valueSetter: (params) => {
           if (params.newValue && params.newValue !== params.oldValue) {
-            // Progress tracker logic: treat 'Waiting List' as 'Not Successful' for NSA
-            if (
-              params.newValue === 'Waiting List' &&
-              (String(params.data?.courseInfo?.courseType || params.data?.courseType || '').trim() === 'NSA')
-            ) {
-              params.data.registrationStatus = 'Waiting List';
-              // If there is a progress tracker callback, call it as for 'Not Successful'
-              if (typeof params.context?.progressTracker === 'function') {
-                params.context.progressTracker('Not Successful', params.data);
-              }
-              return true;
-            }
             params.data.registrationStatus = params.newValue;
             return true;
           }
           return false;
         },
         cellRenderer: RegistrationStatusRenderer,
-        cellStyle: { ...centeredCellStyle, fontSize: '15px' },
+        cellStyle: centeredCellStyle,
         hide: false,
       },
       {
-        headerName: 'Final Payment Method (by Staff)',
+        headerName: 'Final Payment Method (by Finance)',
         field: 'finalPaymentMethod',
         width: 700,
         cellRenderer: FinalPaymentMethodRenderer,
@@ -2018,6 +2015,7 @@ class RegistrationPaymentSection extends Component {
           if (courseType === 'NSA') return this._canEditNsaPaymentDate();
           return canEdit || canSocialWorkerEdit(params) || canSiteInChargeEdit(params);
         },
+        cellRenderer: DateTimeFieldRenderer,
         cellStyle: centeredCellStyle,
         valueGetter: (params) => {
           // Only show payment date/time when:
@@ -2049,6 +2047,7 @@ class RegistrationPaymentSection extends Component {
           if (courseType === 'NSA') return this._canEditNsaPaymentTime();
           return false; // Non-NSA courses: not editable
         },
+        cellRenderer: DateTimeFieldRenderer,
         cellStyle: centeredCellStyle,
         valueGetter: (params) => {
           // Only show payment date/time when:
@@ -2080,6 +2079,7 @@ class RegistrationPaymentSection extends Component {
           if (courseType === 'NSA') return this._canEditNsaRefundedDate();
           return canEdit || canSocialWorkerEdit(params) || canSiteInChargeEdit(params);
         },
+        cellRenderer: DateTimeFieldRenderer,
         cellStyle: centeredCellStyle,
         hide: false,
       },
@@ -2092,6 +2092,7 @@ class RegistrationPaymentSection extends Component {
           if (courseType === 'NSA') return this._canEditNsaRefundedTime();
           return false; // Non-NSA courses: not editable
         },
+        cellRenderer: DateTimeFieldRenderer,
         cellStyle: centeredCellStyle,
         hide: false,
       },
@@ -3712,7 +3713,8 @@ class RegistrationPaymentSection extends Component {
               domLayout="normal"
               rowHeight={90}
               getRowStyle={this.getRowStyle}
-              context={{ 
+              context={{
+                shouldApplyNsaInChargeStyling: () => this._shouldApplyNsaInChargeStyling(),
                 componentInstance: this, 
                 isReadOnly: isReadOnlyUser(this.props.userEmail)
               }}

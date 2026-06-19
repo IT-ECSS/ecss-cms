@@ -17,6 +17,8 @@ const SlideButtonRenderer = (params) => {
   const resolvedMethod = String(
     params.data?.finalPaymentMethod || params.data?.paymentMethod || ''
   ).trim();
+  // Check if NSA in-charge styling should be applied through context
+  const isNsaInChargeStyling = params.context?.shouldApplyNsaInChargeStyling ? params.context.shouldApplyNsaInChargeStyling() : false;
   if (resolvedMethod !== 'SkillsFuture') return null;
 
   const parseConfirmed = (value) => {
@@ -53,6 +55,14 @@ const SlideButtonRenderer = (params) => {
       <input
         type="checkbox"
         className="registration-payment-details-toggle"
+        style={
+          isNsaInChargeStyling
+            ? {
+                borderColor: '#000080',
+                accentColor: '#000080',
+              }
+            : {}
+        }
         checked={parseConfirmed(params.value)}
         onChange={handleChange}
         disabled={!isEditable}

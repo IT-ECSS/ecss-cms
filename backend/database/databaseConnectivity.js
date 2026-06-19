@@ -1124,6 +1124,7 @@ const filter = { _id: this._makeObjectId(id) };
                     paymentTime: 'official.time',
                     refundedDate: 'official.refundedDate',
                     refundedTime: 'official.refundedTime',
+                    registrationStatus: 'official.registration_status',
                     location: 'course.courseLocation',
                     course: 'course.courseEngName',
                     courseMode: 'course.courseMode',
@@ -1203,6 +1204,12 @@ const filter = { _id: this._makeObjectId(id) };
                 const result = await table.updateOne(filter, update);
                 console.log("Update Result:", result);
                 console.log("Matched count:", result.matchedCount, "Modified count:", result.modifiedCount);
+                
+                // Log specific field updates for verification
+                if (normalizedField === 'registrationStatus') {
+                    console.log(`✅ [Registration Status Update] Field: ${normalizedField} | Mapped Path: ${mappedPath} | New Value: ${normalizedValue} | Matched: ${result.matchedCount} | Modified: ${result.modifiedCount}`);
+                }
+                
                 return result;
             }
         } catch (error) {

@@ -4,6 +4,7 @@
  * Validation Rules for NSA Courses:
  * - Payment Status "Paid" or "SkillsFuture Done" → Registration Status MUST be "Confirmed Slot"
  * - Payment Status "To Refund" → Registration Status MUST be "Cancelled" (before payment) or "Withdrawn"
+ * - Payment Status "Participants Withdrawn" → Registration Status MUST be "Withdrawn"
  * - Payment Status "SkillsFuture Unsuccessful" → Registration Status MUST be "Not Successful"
  */
 
@@ -42,9 +43,9 @@ export function getAllowedPaymentStatuses(registrationStatus) {
     return ['Paid', 'SkillsFuture Done', 'Pending', 'Generating SkillsFuture Invoice', 'SkillsFuture Unsuccessful'];
   }
   
-  // Registration Status "Cancelled" (before payment) or "Withdrawn" → must have "To Refund" or "Refunded"
+  // Registration Status "Cancelled" (before payment) or "Withdrawn" → can have "To Refund", "Refunded", "Participants Withdrawn", or "Pending"
   if (status === 'Cancelled' || status === 'Withdrawn') {
-  return ['To refund', 'Refunded', 'Pending'];
+  return ['To refund', 'Refunded', 'Pending', 'Participants Withdrawn'];
   }
   
   // Registration Status "Not Successful" → must have "SkillsFuture Unsuccessful"
@@ -53,7 +54,7 @@ export function getAllowedPaymentStatuses(registrationStatus) {
   }
   
   // Other registration statuses have no specific restriction on payment status
-  return ['Paid', 'SkillsFuture Done', 'Pending', 'Generating SkillsFuture Invoice', 'SkillsFuture Unsuccessful', 'To refund', 'Refunded'];
+  return ['Paid', 'SkillsFuture Done', 'Pending', 'Generating SkillsFuture Invoice', 'SkillsFuture Unsuccessful', 'Participants Withdrawn', 'To refund', 'Refunded'];
 }
 
 /**
@@ -97,6 +98,16 @@ export function validateStatusCombination(paymentStatus, registrationStatus) {
       return {
         isValid: false,
         reason: `When Payment Status is "SkillsFuture Unsuccessful", Registration Status must be "Not Successful". Current: "${registrationStr}"`,
+      };
+    }
+  }
+  
+  // Check if payment status "Participants Withdrawn" requires "Withdrawn"
+  if (paymentStr === 'Participants Withdrawn') {
+    if (registrationStr !== 'Withdrawn') {
+      return {
+        isValid: false,
+        reason: `When Payment Status is "Participants Withdrawn", Registration Status must be "Withdrawn". Current: "${registrationStr}"`,
       };
     }
   }
@@ -149,6 +160,16 @@ export function  novalidateRegistrationStatusChange(newRegistrationStatus, payme
     }
   }
   
+  // Payment Status "Participants Withdrawn" → must have "Withdrawn"
+  if (paymentStr === 'Participants Withdrawn') {
+    if (newRegStatus !== 'Withdrawn') {
+      return {
+        isValid: false,
+        reason: `Cannot change Registration Status to "${newRegStatus}". When Payment Status is "Participants Withdrawn", Registration Status must be "Withdrawn".`,
+      };
+    }
+  }
+  
   return { isValid: true, reason: '' };
 }
 
@@ -193,6 +214,16 @@ export function validatePaymentStatusChange(newPaymentStatus, registrationStatus
       return {
         isValid: false,
         reason: `Cannot change Payment Status to "SkillsFuture Unsuccessful". Registration Status must be "Not Successful". Current: "${registrationStr}"`,
+      };
+    }
+  }
+  
+  // When trying to set payment to "Participants Withdrawn", registration must be "Withdrawn"
+  if (newPaymentStr === 'Participants Withdrawn') {
+    if (registrationStr !== 'Withdrawn') {
+      return {
+        isValid: false,
+        reason: `Cannot change Payment Status to "Participants Withdrawn". Registration Status must be "Withdrawn". Current: "${registrationStr}"`,
       };
     }
   }

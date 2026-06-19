@@ -20,6 +20,8 @@ const PaymentMethodRenderer = (params) => {
   const currentMethod = params.value;
   const { courseInfo, course: courseName, location } = params.data;
   const type = courseInfo?.courseType;
+  // Check if NSA in-charge styling should be applied through context
+  const isNsaInChargeStyling = params.context?.shouldApplyNsaInChargeStyling ? params.context.shouldApplyNsaInChargeStyling() : false;
 
   const coursePrice = parseFloat((courseInfo?.coursePrice || '0').replace(/[^0-9.]/g, ''));
 
@@ -77,6 +79,15 @@ const PaymentMethodRenderer = (params) => {
           className={`payment-method-btn payment-method-btn--${method
             .toLowerCase()
             .replace(/\s+/g, '-')} ${method === currentMethod ? 'active' : ''}`}
+          style={
+            isNsaInChargeStyling
+              ? {
+                  border: '2px solid #000080',
+                  color: '#000080',
+                  backgroundColor: method === currentMethod ? '#fff' : 'transparent',
+                }
+              : {}
+          }
           onClick={(event) => handleClick(event, method)}
         >
           {method}

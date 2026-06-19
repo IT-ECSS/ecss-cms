@@ -64,7 +64,7 @@ export async function handleRegistrationStatusChange(event, context) {
       : isCancelledBeforePayment
         ? ''  // NO payment status change for Cancelled - only 1 step
         : isWithdrawn
-          ? finalPaymentMethod === 'SkillsFuture' ? 'SkillsFuture Unsuccessful' : 'To refund'
+          ? finalPaymentMethod === 'SkillsFuture' ? 'Participants Withdrawn' : 'To refund'
           : '';
   const shouldUpdatePaymentStatus = !!nextPaymentStatus && currentPaymentStatus !== nextPaymentStatus;
   const paymentStatusTrackerLabel =
@@ -74,7 +74,9 @@ export async function handleRegistrationStatusChange(event, context) {
         ? 'The payment status will be updated to Refunded'
         : nextPaymentStatus === 'Pending'
           ? 'The payment status will be updated to Pending'
-          : 'Updating The Payment Status';
+          : nextPaymentStatus === 'Participants Withdrawn'
+            ? 'The payment status will be updated to Participants Withdrawn'
+            : 'Updating The Payment Status';
   const vacanciesTrackerLabel =
     nextPaymentStatus === 'Refunded'
       ? 'Updating Vacancies Counted'

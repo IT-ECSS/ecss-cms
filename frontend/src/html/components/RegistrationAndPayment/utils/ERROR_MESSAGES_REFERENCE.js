@@ -54,5 +54,6 @@ Cannot change Payment Status to "To Refund". Registration Status must be either 
 // ✓ Payment: To refund, Registration: Cancelled (before payment) - VALID
 // ✓ Payment: To refund, Registration: Cancelled (after payment) - VALID
 // ✓ Payment: To refund, Registration: Withdrawn - VALID
+// ✓ Payment: Participants Withdrawn, Registration: Withdrawn - VALID (SkillsFuture participant withdrawal)
 // ✓ Payment: Cancelled - No payment received, Registration: Waiting List - VALID
 // ✓ Any other combination for non-NSA courses - VALID (no validation)

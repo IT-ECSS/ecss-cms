@@ -10,6 +10,8 @@ import { REGISTRATION_STATUS_COLORS } from '../constants/registrationStatusColor
  */
 const RegistrationStatusRenderer = (params) => {
   const statusText = String(params.value || '').trim();
+  // Check if NSA in-charge styling should be applied through context
+  const isNsaInChargeStyling = params.context?.shouldApplyNsaInChargeStyling ? params.context.shouldApplyNsaInChargeStyling() : false;
   if (!statusText) {
     return null;
   }
@@ -42,11 +44,11 @@ const RegistrationStatusRenderer = (params) => {
         padding: '0.25em 1.2em',
         borderRadius: '999px',
         fontWeight: 'bold',
-        color: '#fff',
+        color: isNsaInChargeStyling ? '#87CEEB' : '#fff',
         fontSize: '0.85em',
         textAlign: 'center',
         width: '100%',
-        backgroundColor,
+        backgroundColor: backgroundColor,
         boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
         letterSpacing: '0.02em',
         lineHeight: '1.8',

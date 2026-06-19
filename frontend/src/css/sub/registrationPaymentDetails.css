@@ -405,6 +405,15 @@
   transform: translateX(38px);
 }
 
+/* NSA In-Charge styling for toggle button — dark pink color */
+.registration-payment-details-toggle.nsa-in-charge-style {
+  border: 2px solid #C2185B !important;
+}
+
+.registration-payment-details-toggle.nsa-in-charge-style:checked {
+  background-color: #C2185B !important;
+}
+
 /* Payment method buttons container */
 .registration-payment-details-payment-methods {
   display: flex;
@@ -498,6 +507,34 @@
 .payment-method-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* NSA In-Charge styling for Payment Method buttons — dark pink color */
+.payment-method-btn.nsa-in-charge-style {
+  border: 2px solid #C2185B !important;
+  color: #C2185B !important;
+  background-color: transparent !important;
+}
+
+.payment-method-btn.nsa-in-charge-style:hover {
+  opacity: 0.75;
+  border: 2px solid #C2185B !important;
+  color: #C2185B !important;
+}
+
+.payment-method-btn.nsa-in-charge-style.active {
+  background-color: #fff !important;
+  border: 2px solid #C2185B !important;
+  color: #C2185B !important;
+  font-weight: 900;
+  box-shadow: none;
+}
+
+.payment-method-btn.nsa-in-charge-style:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border: 2px solid #C2185B !important;
+  color: #C2185B !important;
 }
 
 /* Dashboard container */
