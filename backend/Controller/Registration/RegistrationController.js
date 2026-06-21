@@ -178,7 +178,7 @@ class RegistrationController {
         }    
     }
 
-    async updateParticipantParticulars(id, field, editedParticulars) 
+    async updateParticipantParticulars(id, field, editedParticulars, rowCourseType) 
     {
         try {
             // Connect to the database
@@ -189,7 +189,7 @@ class RegistrationController {
             {
                 var databaseName = "Company-Management-System";
                 console.log("Updating field in database:", field, "with value:", editedParticulars);
-                var connectedDatabase = await this.databaseConnectivity.updateParticipantParticulars(databaseName, id, field, editedParticulars);  
+                var connectedDatabase = await this.databaseConnectivity.updateParticipantParticulars(databaseName, id, field, editedParticulars, rowCourseType);  
                 console.log("Database response:", connectedDatabase);
                 return connectedDatabase;
                 //console.log("Update Participant Particulars:",connectedDatabase);

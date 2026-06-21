@@ -389,12 +389,14 @@ router.post('/', async function(req, res, next)
     }
     else if(req.body.purpose === "edit")
     {
+        console.log("Edit Body:", req.body);
         var id = req.body.id;
         var field = req.body.field;
         var editedValue = req.body.editedValue;
+        var rowCourseType = req.body.rowCourseType; // New parameter to determine course type
         console.log("Body:", req.body)
         console.log("Attempting to update field:", field, "with value:", editedValue, "for id:", id);
-        var result = await registrationController.updateParticipantParticulars(id, field, editedValue);
+        var result = await registrationController.updateParticipantParticulars(id, field, editedValue, rowCourseType);
         console.log("updateParticipantParticulars result:", result);
         if (io) {
             io.emit('registration', {

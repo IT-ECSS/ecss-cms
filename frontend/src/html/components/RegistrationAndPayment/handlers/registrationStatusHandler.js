@@ -23,7 +23,7 @@ import { logRegistrationUpdate } from '../../../../utils/auditLog';
  * the payment status is also updated automatically.
  * Payment date and time are preserved for all status transitions.
  */
-export async function handleRegistrationStatusChange(event, context) {
+export async function handleRegistrationStatusChange(rowCourseType, event, context) {
   const { userName, userRole, progressTracker, showUpdatePopup, closePopup, updateWooCommerce } = context;
   const id = resolveEventId(event.data);
   if (!id) {
@@ -51,18 +51,21 @@ export async function handleRegistrationStatusChange(event, context) {
   const isCancelledBeforePayment = newValue === 'Cancelled';
   const isWithdrawn = newValue === 'Withdrawn';
   const isRefundRegistrationStatus = isCancelledBeforePayment || isWithdrawn;
+  const isConfirmed = newValue === 'Confirmed';
   
   const registrationStatusTrackerLabel =
     isCancelledBeforePayment
       ? 'The registration status will be updated to Cancelled'
       : isWithdrawn
         ? 'The registration status will be updated to Withdrawn'
-        : 'Updating The Registration Status';
+          : 'Updating The Registration Status';
   const nextPaymentStatus =
     newValue === 'Submitted'
       ? 'Pending'
       : isCancelledBeforePayment
-        ? ''  // NO payment status change for Cancelled - only 1 step
+        ? '':  // NO payment status change for Cancelled - only 1 step
+         isConfirmed
+        ? ''
         : isWithdrawn
           ? finalPaymentMethod === 'SkillsFuture' ? 'Participants Withdrawn' : 'To refund'
           : '';
@@ -75,8 +78,8 @@ export async function handleRegistrationStatusChange(event, context) {
         : nextPaymentStatus === 'Pending'
           ? 'The payment status will be updated to Pending'
           : nextPaymentStatus === 'Participants Withdrawn'
-            ? 'The payment status will be updated to Participants Withdrawn'
-            : 'Updating The Payment Status';
+            ? 'The payment status will be updated to Participants Withdrawn':
+             nextPaymentStatus === 'Confirmed' ? 'Updating The Registrations Status'     : 'Updating The Payment Status';
   const vacanciesTrackerLabel =
     nextPaymentStatus === 'Refunded'
       ? 'Updating Vacancies Counted'
@@ -103,7 +106,13 @@ export async function handleRegistrationStatusChange(event, context) {
     showUpdatePopup('Updating in progress... Please wait ...');
   }
 
-  await editRegistrationField(id, 'registrationStatus', newValue);
+  if(rowCourseType === 'NSA') {
+  await editRegistrationField(id, 'registrationStatus', newValue, rowCourseType);
+  }
+
+  if(rowCourseType === 'ILP') {
+  await editRegistrationField(id, 'status', newValue, rowCourseType);
+  }
 
   await logRegistrationUpdate(buildLogPayload({
     userName, sn, id, participantInfo,
@@ -112,7 +121,13 @@ export async function handleRegistrationStatusChange(event, context) {
     newValue,
   }));
 
+  if(rowCourseType === 'NSA') {
   event.data.registrationStatus = newValue;
+  }
+
+  if(rowCourseType === 'ILP') {
+  event.data.status = newValue;
+  }
 
   if (shouldUpdatePaymentStatus) {
     if (progressTracker && !useRefundedTracker) progressTracker.advance();

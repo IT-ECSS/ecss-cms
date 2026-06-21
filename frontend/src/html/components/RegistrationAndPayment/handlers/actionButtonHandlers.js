@@ -460,7 +460,8 @@ export async function exportAttendance(context) {
           b.participantInfo.name.trim().toLowerCase()
         )
       );
-      
+  
+  console.log('Filtered Rows for Attendance Export:', filteredRows); 
   if (!filteredRows.length) {
     return warningPopUpMessage("No rows with registration status 'Submitted' or 'Confirmed Slot' found.");
   }

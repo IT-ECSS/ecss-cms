@@ -7,11 +7,28 @@
  * - Distinct from payment status colors
  * - Similar status names have visually different colors from payment equivalents
  */
-export const REGISTRATION_STATUS_COLORS = {
-  // ── NSA Course Registration Statuses ──────────────────────────────────
-  Submitted: '#1976D2',           // Bright blue (initial submission)
-  'Confirmed Slot': '#388E3C',    // Bright green (slot confirmed/accepted)
-  Cancelled: '#C62828',           // Deep red (cancelled by participant)
-  Withdrawn: '#F57C00',           // Bright orange (participant withdrawn)
-  'Waiting List': '#7B1FA2',      // Deep purple (on waiting list)
+const COLOR_GROUPS = {
+  blue: ['Submitted', 'Pending'],
+  green: ['Confirmed Slot', 'Confirmed'],
+  red: ['Cancelled'],
+  orange: ['Withdrawn'],
+  purple: ['Waiting List'],
 };
+
+export const REGISTRATION_STATUS_COLORS = Object.entries(COLOR_GROUPS).reduce(
+  (acc, [color, statuses]) => {
+    const hex =
+      color === 'blue' ? '#1976D2' :
+      color === 'green' ? '#388E3C' :
+      color === 'red' ? '#C62828' :
+      color === 'orange' ? '#F57C00' :
+      '#7B1FA2';
+
+    statuses.forEach(status => {
+      acc[status] = hex;
+    });
+
+    return acc;
+  },
+  {}
+);

@@ -96,12 +96,13 @@ export const updateConfirmationStatus = async (id, newConfirmation, staff) => {
 /**
  * Edit an arbitrary field on a registration record.
  */
-export const editRegistrationField = async (id, field, editedValue) => {
+export const editRegistrationField = async (id, field, editedValue, rowCourseType) => {
   const response = await axios.post(`${NODE_BASE_URL}/courseregistration`, {
     purpose: "edit",
     id,
     field,
     editedValue,
+    rowCourseType
   });
   return response;
 };

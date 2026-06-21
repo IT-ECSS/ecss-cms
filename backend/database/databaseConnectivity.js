@@ -1090,7 +1090,7 @@ class DatabaseConnectivity {
     }
 
                 
-    async updateParticipantParticulars(dbname, id, field, editedParticulars) {
+    async updateParticipantParticulars(dbname, id, field, editedParticulars, rowCourseType) {
         console.log("Update Request:", id, field, editedParticulars);
         var db = this.client.db(dbname); // Return the db object
         try {
@@ -1099,7 +1099,172 @@ class DatabaseConnectivity {
                 const table = db.collection(tableName);
                 
                 // Use updateOne to update a single document
-const filter = { _id: this._makeObjectId(id) };
+                const filter = { _id: this._makeObjectId(id) };
+    
+                const normalizedField = String(field || '').trim();
+
+                let fieldPathMap = {};
+
+                if(rowCourseType === 'NSA') {
+               fieldPathMap = {
+                    // Participant information fields
+                    name: 'participant.name',
+                    nric: 'participant.nric',
+                    contactNo: 'participant.contactNumber',
+                    contactNumber: 'participant.contactNumber',
+                    email: 'participant.email',
+                    gender: 'participant.gender',
+                    dateOfBirth: 'participant.dateOfBirth',
+                    residentialStatus: 'participant.residentialStatus',
+                    race: 'participant.race',
+                    postalCode: 'participant.postalCode',
+                    educationLevel: 'participant.educationLevel',
+                    workStatus: 'participant.workStatus',
+
+                    // Existing editable non-participant fields
+                    remarks: 'official.remarks',
+                    paymentDate: 'official.date',
+                    paymentTime: 'official.time',
+                    refundedDate: 'official.refundedDate',
+                    refundedTime: 'official.refundedTime',
+                    registrationStatus: 'official.registration_status',
+                    location: 'course.courseLocation',
+                    course: 'course.courseEngName',
+                    courseMode: 'course.courseMode',
+                    courseDuration: 'course.courseDuration',
+                    courseTime: 'course.courseTime',
+                    finalPaymentMethod: 'course.finalPaymentMethod',
+                };
+            }
+
+            else if(rowCourseType === "ILP" || rowCourseType === "Talks And Seminar" || rowCourseType === "Others" || rowCourseType === "Marriage Preparation Programme") {
+                fieldPathMap = {
+                    // Participant information fields
+                    name: 'participant.name',
+                    nric: 'participant.nric',
+                    contactNo: 'participant.contactNumber',
+                    contactNumber: 'participant.contactNumber',
+                    email: 'participant.email',
+                    gender: 'participant.gender',
+                    dateOfBirth: 'participant.dateOfBirth',
+                    residentialStatus: 'participant.residentialStatus',
+                    race: 'participant.race',
+                    postalCode: 'participant.postalCode',
+                    educationLevel: 'participant.educationLevel',
+                    workStatus: 'participant.workStatus',
+                    status: 'status',
+
+                    // Existing editable non-participant fields
+                    remarks: 'official.remarks',
+                    paymentDate: 'official.date',
+                    paymentTime: 'official.time',
+                    refundedDate: 'official.refundedDate',
+                    refundedTime: 'official.refundedTime',
+                    registrationStatus: 'official.registration_status',
+                    location: 'course.courseLocation',
+                    course: 'course.courseEngName',
+                    courseMode: 'course.courseMode',
+                    courseDuration: 'course.courseDuration',
+                    courseTime: 'course.courseTime',
+                    finalPaymentMethod: 'course.finalPaymentMethod',
+                };
+            }
+
+                const allowedParticipantFields = new Set([
+                    'name',
+                    'nric',
+                    'contactNumber',
+                    'email',
+                    'gender',
+                    'dateOfBirth',
+                    'residentialStatus',
+                    'race',
+                    'postalCode',
+                    'educationLevel',
+                    'workStatus',
+                ]);
+
+                // Keep compatibility for legacy participant fields, while rejecting unsafe keys.
+                let mappedPath = fieldPathMap[normalizedField];
+                if (!mappedPath) {
+                    if (!allowedParticipantFields.has(normalizedField)) {
+                        throw new Error(`Unsupported participant field: ${normalizedField}`);
+                    }
+                    mappedPath = `participant.${normalizedField}`;
+                }
+
+                let normalizedValue = editedParticulars;
+
+                if (typeof normalizedValue === 'string') {
+                    normalizedValue = normalizedValue.trim();
+                }
+
+                // Ensure date/time fields are always strings (never null or undefined)
+                if (normalizedField === 'refundedDate' || normalizedField === 'refundedTime' || 
+                    normalizedField === 'paymentDate' || normalizedField === 'paymentTime') {
+                    normalizedValue = String(normalizedValue || '').trim();
+                }
+
+                // Accept ISO date input and store as DD/MM/YYYY for consistency.
+                if (normalizedField === 'dateOfBirth' && typeof normalizedValue === 'string') {
+                    const isoDate = normalizedValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                    if (isoDate) {
+                        const [, yyyy, mm, dd] = isoDate;
+                        normalizedValue = `${dd}/${mm}/${yyyy}`;
+                    }
+                }
+
+                // Normalize common short-form values to the bilingual labels used in UI.
+                if (normalizedField === 'residentialStatus') {
+                    const value = String(normalizedValue || '').toLowerCase();
+                    if (value === 'sc' || value === 'singapore citizen') normalizedValue = 'SC 新加坡公民';
+                    if (value === 'pr' || value === 'permanent resident') normalizedValue = 'PR 永久居民';
+                }
+
+                if (normalizedField === 'gender') {
+                    const value = String(normalizedValue || '').toLowerCase();
+                    if (value === 'm' || value === 'male') normalizedValue = 'M 男';
+                    if (value === 'f' || value === 'female') normalizedValue = 'F 女';
+                }
+
+                // Build update object - always update the mapped path
+                const updateSet = {
+                    [mappedPath]: normalizedValue,
+                };
+
+                const update = {
+                    $set: updateSet,
+                };
+    
+                // Call updateOne
+                console.log("Executing MongoDB updateOne with filter:", filter, "and update:", update);
+                const result = await table.updateOne(filter, update);
+                console.log("Update Result:", result);
+                console.log("Matched count:", result.matchedCount, "Modified count:", result.modifiedCount);
+                
+                // Log specific field updates for verification
+                if (normalizedField === 'registrationStatus') {
+                    console.log(`✅ [Registration Status Update] Field: ${normalizedField} | Mapped Path: ${mappedPath} | New Value: ${normalizedValue} | Matched: ${result.matchedCount} | Modified: ${result.modifiedCount}`);
+                }
+                
+                return result;
+            }
+        } catch (error) {
+            console.error("Error updating database:", error);
+            throw error; // Re-throw the error to handle it in the calling function
+        }
+    }
+
+        async updateILPParticipantParticulars(dbname, id, field, editedParticulars) {
+        console.log("Update Request:", id, field, editedParticulars);
+        var db = this.client.db(dbname); // Return the db object
+        try {
+            if (db) {
+                const tableName = "Registration Forms";
+                const table = db.collection(tableName);
+                
+                // Use updateOne to update a single document
+                const filter = { _id: this._makeObjectId(id) };
     
                 const normalizedField = String(field || '').trim();
 
@@ -1131,6 +1296,7 @@ const filter = { _id: this._makeObjectId(id) };
                     courseDuration: 'course.courseDuration',
                     courseTime: 'course.courseTime',
                     finalPaymentMethod: 'course.finalPaymentMethod',
+                    status: 'status'
                 };
 
                 const allowedParticipantFields = new Set([

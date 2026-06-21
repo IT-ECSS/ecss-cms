@@ -1716,6 +1716,7 @@ class RegistrationPaymentSection extends Component {
     // This provides a consistent visual indicator that these columns are editable by NSA in-charge and Site in-charge roles
     return true;
   }
+  
 
   // ── AG-Grid column definitions ────────────────────────────────────────────
 
@@ -1767,6 +1768,14 @@ class RegistrationPaymentSection extends Component {
 
     // Helper function to create centered cell style
     const centeredCellStyle = { textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center' };
+
+    const hasNSA = this.state.rowData.some((row) => {
+        const courseType = String(
+          row?.courseInfo?.courseType || row?.courseType || ''
+        ).trim();
+
+        return courseType === 'NSA';
+      });
 
     const columnDefs = [
       {
@@ -1869,41 +1878,133 @@ class RegistrationPaymentSection extends Component {
           return canEdit;
         },
         width: 700,
-        hide: false,
+        hide: !hasNSA,
         cellStyle: centeredCellStyle,
       },
-      {
-        headerName: 'Registration Status',
-        field: 'registrationStatus',
-        width: 750,
-        cellEditor: 'agSelectCellEditor',
-        cellEditorParams: (params) => {
-          const courseType = String(params.data?.courseInfo?.courseType || params.data?.courseType || '').trim();
-          if (courseType === 'NSA') {
-            return { values: ['Submitted', 'Confirmed Slot', 'Cancelled', 'Withdrawn', 'Waiting List'] };
-          }
-          return { values: ['Pending', 'Confirmed', 'Withdrawn', 'Waiting List'] };
-        },
-        editable: (params) => {
-          const courseType = String(params.data?.courseInfo?.courseType || params.data?.courseType || '').trim();
-          const canEditNsaStatus = courseType === 'NSA' ? this._canEditNsaRegistrationStatus() : (canEdit || canSocialWorkerEdit(params) || canSiteInChargeEdit(params));
-          console.log('📋 [Registration Status Column] CourseType:', courseType, '| Can Edit:', canEditNsaStatus, '| Row:', params.data?.name);
-          if (courseType === 'NSA') return canEditNsaStatus;
-          return canEdit || canSocialWorkerEdit(params) || canSiteInChargeEdit(params);
-        },
-        singleClickEdit: true,
-        valueGetter: (params) => params.data?.registrationStatus || '',
-        valueSetter: (params) => {
-          if (params.newValue && params.newValue !== params.oldValue) {
-            params.data.registrationStatus = params.newValue;
-            return true;
-          }
-          return false;
-        },
-        cellRenderer: RegistrationStatusRenderer,
-        cellStyle: centeredCellStyle,
-        hide: false,
-      },
+{
+  headerName: 'Registration Status',
+  width: 750,
+  cellEditor: 'agSelectCellEditor',
+
+  cellEditorParams: (params) => {
+    const courseType = String(
+      params.data?.courseInfo?.courseType ||
+      params.data?.courseType ||
+      ''
+    ).trim();
+
+    const price = Number(
+      params.data?.courseInfo?.price ||
+      params.data?.price ||
+      0
+    );
+
+    if (courseType === 'NSA') {
+      return {
+        values: [
+          'Submitted',
+          'Confirmed Slot',
+          'Cancelled',
+          'Withdrawn',
+          'Waiting List',
+        ],
+      };
+    } else if (
+      (courseType === 'Talks And Seminar' ||
+        courseType === 'Others') &&
+      price < 0
+    ) {
+      return {
+        values: [
+          'Submitted',
+          'Confirmed',
+          'Cancelled',
+          'Waiting List',
+        ],
+      };
+    }
+
+    // ILP and all other course types
+    return {
+      values: [
+        'Submitted',
+        'Confirmed',
+        'Cancelled',
+        'Waiting List',
+      ],
+    };
+  },
+
+  editable: (params) => {
+    const courseType = String(
+      params.data?.courseInfo?.courseType ||
+      params.data?.courseType ||
+      ''
+    ).trim();
+
+    const canEditStatus =
+      courseType === 'NSA'
+        ? this._canEditNsaRegistrationStatus()
+        : (
+            canEdit ||
+            canSocialWorkerEdit(params) ||
+            canSiteInChargeEdit(params)
+          );
+
+    console.log(
+      '📋 [Registration Status Column] CourseType:',
+      courseType,
+      '| Can Edit:',
+      canEditStatus,
+      '| Row:',
+      params.data?.name
+    );
+
+    return canEditStatus;
+  },
+
+  singleClickEdit: true,
+
+  valueGetter: (params) => {
+    const courseType = String(
+      params.data?.courseInfo?.courseType ||
+      params.data?.courseType ||
+      ''
+    ).trim();
+
+    return courseType === 'NSA'
+      ? params.data?.registrationStatus || ''
+      : params.data?.status || '';
+  },
+
+  valueSetter: (params) => {
+    const courseType = String(
+      params.data?.courseInfo?.courseType ||
+      params.data?.courseType ||
+      ''
+    ).trim();
+
+    if (
+      !params.newValue ||
+      params.newValue === params.oldValue
+    ) {
+      return false;
+    }
+
+    if (courseType === 'NSA') {
+      params.data.registrationStatus = params.newValue;
+    } else {
+      // ILP and all other course types use `status`
+      params.data.status = params.newValue;
+    }
+
+    return true;
+  },
+
+  cellRenderer: RegistrationStatusRenderer,
+  cellStyle: centeredCellStyle,
+  hide: false,
+},
       {
         headerName: 'Final Payment Method (by Finance)',
         field: 'finalPaymentMethod',
@@ -1918,7 +2019,7 @@ class RegistrationPaymentSection extends Component {
           }
           return params.data?.paymentMethod || '';
         },
-        hide: false,
+        hide: !hasNSA,
       },
       {
         headerName: 'Confirmation Status',
@@ -1935,7 +2036,7 @@ class RegistrationPaymentSection extends Component {
         },
         width: 300,
         cellStyle: centeredCellStyle,
-        hide: false,
+        hide: !hasNSA,
       },
       ...(selectedCourseType === 'NSA'
         ? [
@@ -1967,7 +2068,7 @@ class RegistrationPaymentSection extends Component {
             cellStyle: { ...centeredCellStyle, fontSize: '15px' },
             hide: false,
           },
-                    {
+          {
             headerName: 'Payment Status (Cash/PayNow)',
             colId: 'paymentStatusCashPayNow',
             field: 'paymentStatus',
@@ -1989,7 +2090,7 @@ class RegistrationPaymentSection extends Component {
             },
             width: 750,
             cellStyle: { ...centeredCellStyle, fontSize: '15px' },
-            hide: false,
+            hide: !hasNSA,
           }
         ]
         : []),
@@ -2004,7 +2105,7 @@ class RegistrationPaymentSection extends Component {
           const nested = params.data?.official?.receiptNo;
           return topLevel || nested || '';
         },
-        hide: false,
+        hide: !hasNSA,
       },
       {
         headerName: 'Payment Date',
@@ -2036,7 +2137,7 @@ class RegistrationPaymentSection extends Component {
           const nested = params.data?.official?.date;
           return topLevel || nested || '';
         },
-        hide: false,
+        hide: !hasNSA,
       },
       {
         headerName: 'Payment Time',
@@ -2068,7 +2169,7 @@ class RegistrationPaymentSection extends Component {
           const nested = params.data?.official?.time;
           return topLevel || nested || '';
         },
-        hide: false,
+        hide: !hasNSA,
       },
       {
         headerName: 'Refunded Date',
@@ -2081,7 +2182,7 @@ class RegistrationPaymentSection extends Component {
         },
         cellRenderer: DateTimeFieldRenderer,
         cellStyle: centeredCellStyle,
-        hide: false,
+        hide: !hasNSA,
       },
       {
         headerName: 'Refunded Time',
@@ -2094,172 +2195,12 @@ class RegistrationPaymentSection extends Component {
         },
         cellRenderer: DateTimeFieldRenderer,
         cellStyle: centeredCellStyle,
-        hide: false,
+        hide: !hasNSA,
       },
       ...(selectedCourseType === 'NSA'
         ? []
         : [
-          {
-            headerName: paymentStatusHeader,
-            field: 'paymentStatus',
-            cellEditor: 'agSelectCellEditor',
-            cellEditorParams: (params) => {
-              const { paymentMethod, courseInfo, paymentStatus } = params.data;
-              const courseType  = courseInfo.courseType;
-              const coursePrice = courseInfo.coursePrice;
-              const price       = parseFloat((coursePrice || '0').replace('$', ''));
-
-              let base;
-              if (courseType === 'NSA') {
-                base = paymentMethod === 'SkillsFuture'
-                  ? ['Pending', 'Generating SkillsFuture Invoice', 'SkillsFuture Done', 'Cancelled', 'Withdrawn', 'Refunded', 'To refund']
-                  : ['Pending', 'Paid', 'Cancelled', 'Withdrawn', 'Refunded', 'Waiting List'];
-              } else if (
-                courseType === 'ILP' ||
-                (courseType === 'Talks And Seminar' && price <= 0) ||
-                (courseType === 'Others' && price <= 0)
-              ) {
-                base = ['Pending', 'Confirmed', 'Withdrawn', 'Waiting List'];
-              } else if ((courseType === 'Talks And Seminar' || courseType === 'Others') && price > 0) {
-                base = ['Pending', 'Paid', 'Cancelled', 'Withdrawn', 'Refunded', 'Waiting List'];
-              } else {
-                base = ['Pending', 'Paid', 'Withdrawn', 'Refunded', 'Waiting List'];
-              }
-
-              let options = base;
-              if (paymentStatus === 'Pending') {
-                options = base.filter((s) => s !== 'To refund' && s !== 'Withdrawn' && s !== 'Refunded');
-              } else if (paymentStatus === 'Paid') {
-                options = base.filter((s) => s !== 'Cancelled' && s !== 'Refunded');
-              } else if (paymentStatus === 'To refund' || paymentStatus === 'Withdrawn') {
-                options = base.filter((s) => s !== 'Cancelled');
-              }
-
-              const filtered = options.filter((s) => s !== paymentStatus);
-              return { values: [paymentStatus, ...filtered] };
-            },
-            cellRenderer: PaymentStatusRenderer,
-            valueSetter: (params) => {
-              if (params.newValue && params.newValue !== params.oldValue) {
-                params.data.paymentStatus = params.newValue;
-                return true;
-              }
-              return false;
-            },
-            editable: true,
-            width: 400,
-            cellStyle: centeredCellStyle,
-          },
-        ]),
-      {
-        headerName: 'Sending Message Details',
-        field: 'sendDetails',
-        width: 300,
-        cellRenderer: (params) => {
-          if (params.data?.sendDetails === undefined) return null;
-          return (
-            <img
-              src={
-                params.data.sendDetails
-                  ? 'https://upload.wikimedia.org/wikipedia/commons/2/29/Tick-green.png'
-                  : 'https://upload.wikimedia.org/wikipedia/commons/5/5f/Red_X.svg'
-              }
-              alt={params.data.sendDetails ? 'Sent' : 'Not Sent'}
-              width="30"
-              height="30"
-            />
-          );
-        },
-        cellStyle: centeredCellStyle,
-      },
-      {
-        headerName: 'Remarks',
-        field: 'remarks',
-        width: 900,
-        valueGetter: (params) => {
-          // Check both top-level and nested locations
-          const topLevel = params.data?.remarks;
-          const nested = params.data?.officialInfo?.remarks || params.data?.official?.remarks;
-          const displayValue = topLevel || nested || '';
-          // Debug logging for remarks data structure
-          if (params.data?.id === '6a17241ccfea0714e2eca9cb') {
-            console.log('📝 [Remarks ValueGetter] Participant:', {
-              participantName: params.data?.name,
-              id: params.data?.id,
-              topLevel,
-              nested,
-              displayValue,
-              fullData: { remarks: params.data?.remarks, officialInfo: params.data?.officialInfo }
-            });
-          }
-          return displayValue;
-        },
-        valueParser: (params) => {
-          // Parse the edited value to ensure it's a string
-          console.log('📝 [Remarks ValueParser] Parsing value:', {
-            newValueType: typeof params.newValue,
-            newValue: typeof params.newValue === 'string' ? params.newValue.substring(0, 50) : params.newValue,
-          });
-          
-          // If newValue is a string (the edited text), return it as-is
-          if (typeof params.newValue === 'string') {
-            return params.newValue;
-          }
-          
-          // If newValue is an object (shouldn't happen), return old value to reject change
-          if (typeof params.newValue === 'object' && params.newValue !== null) {
-            console.warn('⚠️ [Remarks ValueParser] Received object instead of string, rejecting change');
-            return params.oldValue;
-          }
-          
-          return params.newValue;
-        },
-        valueSetter: (params) => {
-          // Set the value in the data object
-          // The parsed value should be a string at this point
-          const parsedValue = params.newValue;
-          
-          console.log('📝 [Remarks ValueSetter] Setting value:', {
-            parsedValueType: typeof parsedValue,
-            parsedValue: typeof parsedValue === 'string' ? parsedValue.substring(0, 50) : parsedValue,
-            oldValue: typeof params.oldValue === 'string' ? params.oldValue.substring(0, 50) : params.oldValue,
-          });
-          
-          // Only set if it's a string (the actual edited text)
-          if (typeof parsedValue === 'string') {
-            // Set in both locations to ensure consistency
-            params.data.remarks = parsedValue;
-            if (!params.data.officialInfo) params.data.officialInfo = {};
-            params.data.officialInfo.remarks = parsedValue;
-            if (!params.data.official) params.data.official = {};
-            params.data.official.remarks = parsedValue;
-            
-            console.log('✅ [Remarks ValueSetter] Value successfully set for id:', params.data?.id);
-            return true;
-          }
-          
-          console.warn('⚠️ [Remarks ValueSetter] Rejecting non-string value');
-          return false;
-        },
-        editable: (params) => {
-          const courseType = String(params.data?.courseInfo?.courseType || params.data?.courseType || '').trim();
-          const canEditByRole = courseType === 'NSA' ? this._canEditNsaRemarks() : true;
-          
-          // Debug logging for this specific record
-          if (params.data?.id === '6a17241ccfea0714e2eca9cb') {
-            console.log('📝 [Remarks Editable] Participant:', {
-              participantName: params.data?.name,
-              id: params.data?.id,
-              courseType,
-              canEditByRole,
-              isEditable: canEditByRole
-            });
-          }
-          
-          return canEditByRole;
-        },
-        cellStyle: centeredCellStyle,
-      },
+        ])
     ];
 
     // Conditionally add Course Location column
@@ -2746,7 +2687,7 @@ class RegistrationPaymentSection extends Component {
         if (columnField === 'confirmed' || columnName === 'Confirmation Status') {
           await handleConfirmationStatusChange(appliedEvent, context);
         } else if (columnField === 'registrationStatus' || columnName === 'Registration Status') {
-          await handleRegistrationStatusChange(appliedEvent, context);
+             await handleRegistrationStatusChange(rowCourseType, appliedEvent, context);
         } else if (
           columnField === 'paymentStatus' ||
           columnName === 'Registration and Payment Status' ||
@@ -2813,7 +2754,6 @@ class RegistrationPaymentSection extends Component {
     const columnField = event?.colDef?.field || event?.field || event?.column?.getColDef?.()?.field || '';
     const context    = this._buildCellHandlerContext();
     const isNsaParticipantPaymentMethod = columnField === 'paymentMethod' || columnName === 'Payment Method (indicated by participant)';
-
     try {
       if (columnField === 'finalPaymentMethod' || columnName === 'Final Payment Method (by Staff)') {
         await handleFinalPaymentMethodChange(event, context);
@@ -2822,8 +2762,8 @@ class RegistrationPaymentSection extends Component {
         await handlePaymentMethodChange(event, context);
       } else if (columnName === 'Confirmation Status') {
         await handleConfirmationStatusChange(event, context);
-      } else if (columnName === 'Registration Status') {
-        await handleRegistrationStatusChange(event, context);
+      } else if (columnName === 'Registration Status'){
+        await handleRegistrationStatusChange(rowCourseType, event, context);
       } else if (
         columnName === 'Registration and Payment Status' ||
         columnName === 'Payment Status (Cash/PayNow)' ||
