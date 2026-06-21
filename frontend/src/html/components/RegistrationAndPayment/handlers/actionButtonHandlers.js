@@ -65,10 +65,20 @@ function resolveExportPaymentMethod(row = {}) {
   );
 }
 
-function hasExportableRegistrationStatus(row = {}) {
-  const registrationStatus = String(row?.registrationStatus || '').trim();
-  return registrationStatus === 'Submitted' || registrationStatus === 'Confirmed Slot';
+function hasExportableRegistrationStatus(firstType, row = {}) 
+{
+  if (firstType === 'NSA')
+  {
+    const registrationStatus = String(row?.registrationStatus || '').trim();
+    return registrationStatus === 'Submitted' || registrationStatus === 'Confirmed Slot';
+  }
+  else if(firstType === 'ILP')
+  {
+    const registrationStatus = String(row?.status || '').trim();
+    return registrationStatus === 'Confirmed';
+  }
 }
+
 
 // ── Export to LOP ─────────────────────────────────────────────────────────────
 
@@ -121,7 +131,7 @@ export async function exportToLOP(context) {
     const startRow    = 9;
 
     const filteredRows = selectedRows
-      .filter((row) => hasExportableRegistrationStatus(row))
+      .filter((row) => hasExportableRegistrationStatus(firstType, row))
       .sort((a, b) =>
         a.participantInfo.name.trim().toLowerCase().localeCompare(
           b.participantInfo.name.trim().toLowerCase()
@@ -431,6 +441,8 @@ export async function exportToMarriagePreparationProgramme(context) {
 
 // ── Export Attendance ─────────────────────────────────────────────────────────
 
+
+
 export async function exportAttendance(context) {
   const { selectedRows, warningPopUpMessage, userName } = context;
 
@@ -441,8 +453,14 @@ export async function exportAttendance(context) {
   const rawType = selectedRows[0]?.courseInfo?.courseType || selectedRows[0]?.course?.courseType || '';
   const firstType = String(rawType).trim().toUpperCase();
 
-  const filteredRows = selectedRows.filter((row) => hasExportableRegistrationStatus(row));
-
+  const filteredRows = selectedRows
+      .filter((row) => hasExportableRegistrationStatus(firstType, row))
+      .sort((a, b) =>
+        a.participantInfo.name.trim().toLowerCase().localeCompare(
+          b.participantInfo.name.trim().toLowerCase()
+        )
+      );
+      
   if (!filteredRows.length) {
     return warningPopUpMessage("No rows with registration status 'Submitted' or 'Confirmed Slot' found.");
   }
