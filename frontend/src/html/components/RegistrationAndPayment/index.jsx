@@ -2380,8 +2380,8 @@ class RegistrationPaymentSection extends Component {
     }
 
     const courseType = row?.courseInfo?.courseType;
-      if (courseType === 'NSA')                          return { background: rgb(208, 234, 245)8' };
-      if (courseType === 'ILP')                          return { background: '#d0f5e8' };
+      if (courseType === 'NSA')                          return { background: '#beefe9' };
+      if (courseType === 'ILP')                          return { background: '#eeead6' };
       if (courseType === 'Marriage Preparation Programme') return { background: '#fff9c4' };
       if (courseType === 'Talks And Seminar')            return { background: '#E8D5C4' };
       if (courseType === 'Others')            return { background: '#d1f8d9' };
