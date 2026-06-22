@@ -11,6 +11,7 @@ html, body {
     --vh: 1vh;
 }
 
+<<<<<<< HEAD
 /* Form fade-in animation */
 @keyframes formFadeIn {
     from {
@@ -99,6 +100,8 @@ html, body {
     text-align: center;
 }
 
+=======
+>>>>>>> parent of 2c676bf9a (UX Enhancement: Load background first, then fade-in form)
 .formwholepage {
     font-family: 'Arial', sans-serif;
     /* Background color is set by JavaScript based on course type */

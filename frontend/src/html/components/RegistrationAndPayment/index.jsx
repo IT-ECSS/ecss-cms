@@ -2,6 +2,9 @@ import React, { Component } from 'react';
 import ReactDOM from 'react-dom';
 import '../../../css/sub/registrationPaymentDetails.css';
 import '../../../css/ag-grid-custom-theme.css';
+import '../../../css/sub/remarksCell.css';
+import '../../../css/sub/remarksEditor.css';
+import '../../../css/sub/sendingWhatsappStatusCell.css';
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
 import { io } from 'socket.io-client';
@@ -23,6 +26,9 @@ import PaymentStatusRenderer       from './components/PaymentStatusRenderer';
 import RegistrationStatusRenderer  from './components/RegistrationStatusRenderer';
 import SelectAllHeader        from './components/SelectAllHeader';
 import ActionButtonsRow       from './components/ActionButtonsRow';
+import RemarksCell            from './components/RemarksCell';
+import RemarksEditor          from './components/RemarksEditor';
+import SendingWhatsappStatusCell from './components/SendingWhatsappStatusCell';
 
 // Approval popup
 
@@ -162,6 +168,8 @@ class RegistrationPaymentSection extends Component {
       lastMouseMoveTime: null,
       gestureStartX: null,
       gestureStartTime: null,
+      showRemarksColumn: true,
+      showSendingPaymentDetailsColumn: true,
     };
     this.tableRef = React.createRef();
     this.gridRef  = React.createRef();
@@ -502,6 +510,7 @@ class RegistrationPaymentSection extends Component {
       console.log('🔐 [NSA Remarks Check] Site In-Charge at Pasir Ris West:', canEdit);
       return canEdit;
     }
+
     // All other roles (including Fitness Trainer / Social Worker) can edit remarks
     return true;
   }
@@ -1769,13 +1778,7 @@ class RegistrationPaymentSection extends Component {
     // Helper function to create centered cell style
     const centeredCellStyle = { textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center' };
 
-    const hasNSA = this.state.rowData.some((row) => {
-        const courseType = String(
-          row?.courseInfo?.courseType || row?.courseType || ''
-        ).trim();
-
-        return courseType === 'NSA';
-      });
+    const hasNSA = selectedCourseType === 'NSA';
 
     const columnDefs = [
       {
@@ -1881,130 +1884,131 @@ class RegistrationPaymentSection extends Component {
         hide: !hasNSA,
         cellStyle: centeredCellStyle,
       },
-{
-  headerName: 'Registration Status',
-  width: 750,
-  cellEditor: 'agSelectCellEditor',
+      {
+        headerName: 'Registration Status',
+        width: 750,
+        cellEditor: 'agSelectCellEditor',
 
-  cellEditorParams: (params) => {
-    const courseType = String(
-      params.data?.courseInfo?.courseType ||
-      params.data?.courseType ||
-      ''
-    ).trim();
+        cellEditorParams: (params) => {
+          const courseType = String(
+            params.data?.courseInfo?.courseType ||
+            params.data?.courseType ||
+            ''
+          ).trim();
 
-    const price = Number(
-      params.data?.courseInfo?.price ||
-      params.data?.price ||
-      0
-    );
-
-    if (courseType === 'NSA') {
-      return {
-        values: [
-          'Submitted',
-          'Confirmed Slot',
-          'Cancelled',
-          'Withdrawn',
-          'Waiting List',
-        ],
-      };
-    } else if (
-      (courseType === 'Talks And Seminar' ||
-        courseType === 'Others') &&
-      price < 0
-    ) {
-      return {
-        values: [
-          'Submitted',
-          'Confirmed',
-          'Cancelled',
-          'Waiting List',
-        ],
-      };
-    }
-
-    // ILP and all other course types
-    return {
-      values: [
-        'Submitted',
-        'Confirmed',
-        'Cancelled',
-        'Waiting List',
-      ],
-    };
-  },
-
-  editable: (params) => {
-    const courseType = String(
-      params.data?.courseInfo?.courseType ||
-      params.data?.courseType ||
-      ''
-    ).trim();
-
-    const canEditStatus =
-      courseType === 'NSA'
-        ? this._canEditNsaRegistrationStatus()
-        : (
-            canEdit ||
-            canSocialWorkerEdit(params) ||
-            canSiteInChargeEdit(params)
+          const price = Number(
+            params.data?.courseInfo?.price ||
+            params.data?.price ||
+            0
           );
 
-    console.log(
-      '📋 [Registration Status Column] CourseType:',
-      courseType,
-      '| Can Edit:',
-      canEditStatus,
-      '| Row:',
-      params.data?.name
-    );
+          if (courseType === 'NSA') {
+            return {
+              values: [
+                'Submitted',
+                'Confirmed Slot',
+                'Cancelled',
+                'Withdrawn',
+                'Waiting List',
+              ],
+            };
+          } else if (
+            (courseType === 'Talks And Seminar' || 
+              courseType === 'ILP' ||
+              courseType === 'Others') &&
+            price <= 0
+          ) {
+            return {
+              values: [
+                'Pending',
+                'Confirmed',
+                'Cancelled',
+                'Waiting List',
+              ],
+            };
+          }
 
-    return canEditStatus;
-  },
+          // ILP and all other course types
+          /*return {
+            values: [
+              'Submitted',
+              'Confirmed',
+              'Cancelled',
+              'Waiting List',
+            ],
+          };*/
+        },
 
-  singleClickEdit: true,
+        editable: (params) => {
+          const courseType = String(
+            params.data?.courseInfo?.courseType ||
+            params.data?.courseType ||
+            ''
+          ).trim();
 
-  valueGetter: (params) => {
-    const courseType = String(
-      params.data?.courseInfo?.courseType ||
-      params.data?.courseType ||
-      ''
-    ).trim();
+          const canEditStatus =
+            courseType === 'NSA'
+              ? this._canEditNsaRegistrationStatus()
+              : (
+                  canEdit ||
+                  canSocialWorkerEdit(params) ||
+                  canSiteInChargeEdit(params)
+                );
 
-    return courseType === 'NSA'
-      ? params.data?.registrationStatus || ''
-      : params.data?.status || '';
-  },
+          console.log(
+            '📋 [Registration Status Column] CourseType:',
+            courseType,
+            '| Can Edit:',
+            canEditStatus,
+            '| Row:',
+            params.data?.name
+          );
 
-  valueSetter: (params) => {
-    const courseType = String(
-      params.data?.courseInfo?.courseType ||
-      params.data?.courseType ||
-      ''
-    ).trim();
+          return canEditStatus;
+        },
 
-    if (
-      !params.newValue ||
-      params.newValue === params.oldValue
-    ) {
-      return false;
-    }
+        singleClickEdit: true,
 
-    if (courseType === 'NSA') {
-      params.data.registrationStatus = params.newValue;
-    } else {
-      // ILP and all other course types use `status`
-      params.data.status = params.newValue;
-    }
+        valueGetter: (params) => {
+          const courseType = String(
+            params.data?.courseInfo?.courseType ||
+            params.data?.courseType ||
+            ''
+          ).trim();
 
-    return true;
-  },
+          return courseType === 'NSA'
+            ? params.data?.registrationStatus || ''
+            : params.data?.status || '';
+        },
 
-  cellRenderer: RegistrationStatusRenderer,
-  cellStyle: centeredCellStyle,
-  hide: false,
-},
+        valueSetter: (params) => {
+          const courseType = String(
+            params.data?.courseInfo?.courseType ||
+            params.data?.courseType ||
+            ''
+          ).trim();
+
+          if (
+            !params.newValue ||
+            params.newValue === params.oldValue
+          ) {
+            return false;
+          }
+
+          if (courseType === 'NSA') {
+            params.data.registrationStatus = params.newValue;
+          } else {
+            // ILP and all other course types use `status`
+            params.data.status = params.newValue;
+          }
+
+          return true;
+        },
+
+        cellRenderer: RegistrationStatusRenderer,
+        cellStyle: centeredCellStyle,
+        hide: false,
+      },
       {
         headerName: 'Final Payment Method (by Finance)',
         field: 'finalPaymentMethod',
@@ -2090,10 +2094,19 @@ class RegistrationPaymentSection extends Component {
             },
             width: 750,
             cellStyle: { ...centeredCellStyle, fontSize: '15px' },
-            hide: !hasNSA,
+            hide: false,
           }
         ]
         : []),
+        {
+          headerName: 'Sending Payment Details',
+          field: 'sendingWhatsappMessage',
+          width: 300,
+          cellRenderer: SendingWhatsappStatusCell,
+          editable: false,
+          cellStyle: centeredCellStyle,
+          hide: !this.state.showSendingPaymentDetailsColumn,
+        },
       {
         headerName: 'Receipt/Invoice Number',
         field: 'recinvNo',
@@ -2196,6 +2209,53 @@ class RegistrationPaymentSection extends Component {
         cellRenderer: DateTimeFieldRenderer,
         cellStyle: centeredCellStyle,
         hide: !hasNSA,
+      },
+      {
+        headerName: 'Remarks',
+        field: 'remarks',
+        width: 400,
+        suppressKeyboardEvent: (params) => {
+          const e = params.event;
+
+          // ✅ Prevent AG Grid default behavior when editing remarks
+          if (e.key === 'Enter') return true;   // stop grid handling Enter
+          if (e.key === 'Escape') return false; // let editor handle Escape
+
+          return false;
+        },
+        editable: (params) => {
+          const courseType = String(
+            params.data?.courseInfo?.courseType ||
+            params.data?.courseType ||
+            ''
+          ).trim();
+
+          const role = this.props.role;
+
+          if (courseType === 'NSA') {
+            return this._canEditNsaRemarks();
+          }
+
+          return (
+            this._canEditAllNsaColumns() ||
+            role?.includes('Social Worker') ||
+            role?.includes('Site-In-Charge') ||
+            role?.includes('admin') ||
+            role?.includes('finance')
+          );
+        },
+
+        cellRenderer: RemarksCell,
+        cellEditor: RemarksEditor,
+
+        cellEditorPopup: true,
+        singleClickEdit: true,
+        stopEditingWhenCellsLoseFocus: false,
+
+        cellEditorParams: (params) => ({
+          role: this.props.role || 'System',
+          isSystemGenerated: false
+        }),
       },
       ...(selectedCourseType === 'NSA'
         ? []
@@ -2317,6 +2377,24 @@ class RegistrationPaymentSection extends Component {
   toggleHideMarriagePrepFields = () => {
     this.setState(
       (prev) => ({ hideMarriagePrepFields: !prev.hideMarriagePrepFields }),
+      () => {
+        this.setState({ columnDefs: this.getColumnDefs(this.state.rowData) });
+      }
+    );
+  };
+
+  toggleRemarksColumn = () => {
+    this.setState(
+      (prev) => ({ showRemarksColumn: !prev.showRemarksColumn }),
+      () => {
+        this.setState({ columnDefs: this.getColumnDefs(this.state.rowData) });
+      }
+    );
+  };
+
+  toggleSendingPaymentDetailsColumn = () => {
+    this.setState(
+      (prev) => ({ showSendingPaymentDetailsColumn: !prev.showSendingPaymentDetailsColumn }),
       () => {
         this.setState({ columnDefs: this.getColumnDefs(this.state.rowData) });
       }
@@ -2506,49 +2584,7 @@ class RegistrationPaymentSection extends Component {
             console.warn('Unable to auto-generate receipt/invoice for this row. Please ensure payment status/method is valid.');
           }
         }
-
-      } else if (columnName === 'Sending Message Details') {
-        let phoneNumber, message, whatsappWebURL;
-        const paymentMethod = courseInfo.payment;
-        const courseType    = courseInfo.courseType;
-        const paymentStatus = event.data.paymentStatus;
-
-        if (participantInfo?.contactNumber && paymentMethod === 'SkillsFuture') {
-          phoneNumber = participantInfo.contactNumber.replace(/\D/g, '');
-          message = `${participantInfo.name} - ${courseInfo.courseEngName} invoice for your SkillsFuture submission\nHOW TO CLAIM SKILLFUTURE\nPlease ensure that the details are accurate before submission.\n🔴 Please send us a screenshot of your submission once done.\nHOW TO CLAIM SKILLFUTURE: https://ecss.org.sg/wp-content/uploads/2025/07/Step-by-step-guide-on-how-to-do-Skillsfuture-claim-submission.pdf`;
-          logMessageSend({ userName: this.props.userName, module: 'Registration And Payment', participantName: participantInfo.name, contactNumber: participantInfo.contactNumber, courseEngName: courseInfo.courseEngName, messageType: 'SkillsFuture Invoice Instructions' });
-          whatsappWebURL = `https://web.whatsapp.com/send?phone=+65${phoneNumber}&text=${encodeURIComponent(message)}`;
-          window.open(whatsappWebURL, '_blank');
-
-        } else if (participantInfo?.contactNumber && (paymentMethod === 'PayNow' || paymentMethod === 'Cash') && courseType === 'NSA') {
-          phoneNumber = participantInfo.contactNumber.replace(/\D/g, '');
-          const durationNSA = courseInfo.courseDuration?.includes('–') ? courseInfo.courseDuration.split('–')[0] : courseInfo.courseDuration || '';
-          message = `${courseInfo.courseEngName} - ${durationNSA}\nCourse subsidy applies to only Singaporeans and PRs aged 50yrs and above\nHi ${participantInfo.name}, \nThank you for signing up for the above-mentioned class. \nDetails are as follows:\nPrice: ${courseInfo.coursePrice}\nPayment to be made via Paynow to UEN no: T03SS0051L (En Community Services Society) \nUnder the "reference portion", kindly insert your name as per NRIC. \nOnce payment has gone through, take a screenshot of the payment receipt on your phone and send it over to us.\nThank you.`;
-          logMessageSend({ userName: this.props.userName, module: 'Registration And Payment', participantName: participantInfo.name, contactNumber: participantInfo.contactNumber, courseEngName: courseInfo.courseEngName, messageType: 'NSA Payment Instructions (PayNow/Cash)' });
-          whatsappWebURL = `https://web.whatsapp.com/send?phone=+65${phoneNumber}&text=${encodeURIComponent(message)}`;
-          window.open(whatsappWebURL, '_blank');
-
-        } else if (participantInfo?.contactNumber && paymentStatus === 'Confirmed' && courseType === 'ILP') {
-          phoneNumber = participantInfo.contactNumber.replace(/\D/g, '');
-          const durationILP = courseInfo.courseDuration?.includes('-') ? courseInfo.courseDuration.split('-')[0] : courseInfo.courseDuration || '';
-          const timeILP     = courseInfo.courseTime?.includes('–') ? courseInfo.courseTime.split('–')[0] : courseInfo.courseTime || '';
-          message = `Hi ${participantInfo.name},\nThank you for your support.\nWe wish to confirm your place for ${courseInfo.courseEngName} on ${durationILP} ${timeILP} at ${courseInfo.courseLocation}.\nPlease contact this number if your require more information.\nThank you.`;
-          logMessageSend({ userName: this.props.userName, module: 'Registration And Payment', participantName: participantInfo.name, contactNumber: participantInfo.contactNumber, courseEngName: courseInfo.courseEngName, messageType: 'ILP Confirmation' });
-          whatsappWebURL = `https://web.whatsapp.com/send?phone=+65${phoneNumber}&text=${encodeURIComponent(message)}`;
-          window.open(whatsappWebURL, '_blank');
-
-        } else if (participantInfo?.contactNumber && paymentStatus === 'Confirmed' && courseType === 'Talks And Seminar') {
-          phoneNumber = participantInfo.contactNumber.replace(/\D/g, '');
-          const durationTalks = courseInfo.courseDuration?.includes('-') ? courseInfo.courseDuration.split('-')[0] : courseInfo.courseDuration || '';
-          const timeTalks     = courseInfo.courseTime?.includes('–') ? courseInfo.courseTime.split('–')[0] : courseInfo.courseTime || '';
-          message = `Hi ${participantInfo.name},\nThank you for your support.\nWe wish to confirm your place for ${courseInfo.courseEngName} on ${durationTalks} ${timeTalks} at ${courseInfo.courseLocation}.\nPlease contact this number if your require more information.\nThank you.`;
-          logMessageSend({ userName: this.props.userName, module: 'Registration And Payment', participantName: participantInfo.name, contactNumber: participantInfo.contactNumber, courseEngName: courseInfo.courseEngName, messageType: 'Talks And Seminar Confirmation' });
-          whatsappWebURL = `https://web.whatsapp.com/send?phone=+65${phoneNumber}&text=${encodeURIComponent(message)}`;
-          window.open(whatsappWebURL, '_blank');
-        }
-
-        if (!shouldRequireApprovalForCourse(this.props.userEmail, courseType)) await this.sendDetails(id);
-      }
+      } 
     } catch (error) {
       console.error('Error in handleValueClick:', error);
     }
@@ -2755,7 +2791,7 @@ class RegistrationPaymentSection extends Component {
     const context    = this._buildCellHandlerContext();
     const isNsaParticipantPaymentMethod = columnField === 'paymentMethod' || columnName === 'Payment Method (indicated by participant)';
     try {
-      if (columnField === 'finalPaymentMethod' || columnName === 'Final Payment Method (by Staff)') {
+      if (columnField === 'finalPaymentMethod' || columnName === 'Final Payment Method (by Finance)') {
         await handleFinalPaymentMethodChange(event, context);
         this._refreshNsaPaymentStatusCells(event.api, event.node);
       } else if (isNsaParticipantPaymentMethod) {
@@ -3592,6 +3628,10 @@ class RegistrationPaymentSection extends Component {
             )}
             hideMarriagePrepFields={this.state.hideMarriagePrepFields}
             onToggleMarriagePrep={this.toggleHideMarriagePrepFields}
+            showRemarksColumn={this.state.showRemarksColumn}
+            onToggleRemarksColumn={this.toggleRemarksColumn}
+            showSendingPaymentDetailsColumn={this.state.showSendingPaymentDetailsColumn}
+            onToggleSendingPaymentDetailsColumn={this.toggleSendingPaymentDetailsColumn}
             onArchive={this.archiveData}
             onExportLOP={this.exportToLOP}
             onExportAttendance={this.exportAttendance}

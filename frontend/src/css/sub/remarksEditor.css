@@ -1,0 +1,40 @@
+.remarks-editor-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  height: 100%;
+  background-color: #fff;
+}
+
+.remarks-editor-number-preview {
+  background-color: #e3f2fd;
+  border: 1px solid #2196f3;
+  border-radius: 4px;
+  padding: 6px 10px;
+  min-width: 40px;
+  text-align: center;
+  font-weight: 600;
+  color: #1976d2;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.remarks-editor-input {
+  flex: 1;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+}
+
+.remarks-editor-input:focus {
+  border-color: #2196f3;
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+}
+
+.remarks-editor-input::placeholder {
+  color: #999;
+}

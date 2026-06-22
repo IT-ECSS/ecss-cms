@@ -110,7 +110,7 @@ export async function handleRegistrationStatusChange(rowCourseType, event, conte
   await editRegistrationField(id, 'registrationStatus', newValue, rowCourseType);
   }
 
-  if(rowCourseType === 'ILP') {
+  if(rowCourseType === 'ILP' || rowCourseType === 'Talks And Seminar' || rowCourseType === 'Others') {
   await editRegistrationField(id, 'status', newValue, rowCourseType);
   }
 
@@ -125,7 +125,7 @@ export async function handleRegistrationStatusChange(rowCourseType, event, conte
   event.data.registrationStatus = newValue;
   }
 
-  if(rowCourseType === 'ILP') {
+  if(rowCourseType === 'ILP' || rowCourseType === 'Talks And Seminars' || rowCourseType === 'Others') {
   event.data.status = newValue;
   }
 

@@ -307,7 +307,7 @@ export async function handleFinalPaymentMethodChange(event, context) {
 
     if (progressTracker) progressTracker.start(['Changing final payment method', 'Clearing payment details', 'Updating payment status']);
 
-    const res = await editRegistrationField(id, 'finalPaymentMethod', newValue);
+    const res = await editRegistrationField(id, 'finalPaymentMethod', newValue, "NSA");
     if (!isApiResultSuccessful(res)) {
       if (progressTracker) progressTracker.error();
       else closePopup();
@@ -556,11 +556,6 @@ export async function handleFinalPaymentMethodChange(event, context) {
   //   5. Receipt number cleared
   //   6. Payment date and time cleared
   //   7. Vacancies counter will increase back by 1
-  const isSFDoneSwapToCashPayNow =
-    isSFToCashPayNow && currentPaymentStatus === 'SkillsFuture Done';
-
-  console.log('[Case 9] Checking condition:', { isSFDoneSwapToCashPayNow, isSFToCashPayNow, currentPaymentStatus });
-
   // ── Quick Case: Void SkillsFuture Invoice if transitioning from SF to Cash/PayNow ────
   // When changing from SkillsFuture to Cash/PayNow and there's an active invoice
   // (status = "Generating SkillsFuture Invoice"), void the invoice in remarks.

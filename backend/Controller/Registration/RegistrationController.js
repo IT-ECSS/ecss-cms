@@ -208,6 +208,36 @@ class RegistrationController {
         }    
     }
 
+    async updateParticipantRemarks(id, field, editedRemarks) 
+    {
+        try {
+            // Connect to the database
+            var result = await this.databaseConnectivity.initialize();
+            console.log("Database Connectivity:", result);
+
+            if(result === "Connected to MongoDB Atlas!")
+            {
+                var databaseName = "Company-Management-System";
+                console.log("Updating field in database:", field, "with value:", editedRemarks);
+                var connectedDatabase = await this.databaseConnectivity.updateParticipantRemarks(databaseName, id, field, editedRemarks);  
+                console.log("Database response:", connectedDatabase);
+                return connectedDatabase;
+                //console.log("Update Participant Particulars:",connectedDatabase);
+            }
+        } 
+        catch (error) 
+        {
+            console.error("Error in updateParticipantRemarks:", error);
+            return {
+                success: false,
+                message: "Error updating user",
+                error: error
+            };
+        }
+        finally {
+        }    
+    }
+
     async clearPaymentDetails(id)
     {
         try {

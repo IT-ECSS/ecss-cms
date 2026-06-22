@@ -1091,7 +1091,7 @@ class DatabaseConnectivity {
 
                 
     async updateParticipantParticulars(dbname, id, field, editedParticulars, rowCourseType) {
-        console.log("Update Request:", id, field, editedParticulars);
+        console.log("Update Participant Particulars", id, field, editedParticulars, rowCourseType);
         var db = this.client.db(dbname); // Return the db object
         try {
             if (db) {
@@ -1102,6 +1102,7 @@ class DatabaseConnectivity {
                 const filter = { _id: this._makeObjectId(id) };
     
                 const normalizedField = String(field || '').trim();
+                console.log("Normalized field:", normalizedField);
 
                 let fieldPathMap = {};
 
@@ -1255,7 +1256,7 @@ class DatabaseConnectivity {
         }
     }
 
-        async updateILPParticipantParticulars(dbname, id, field, editedParticulars) {
+    async updateILPParticipantParticulars(dbname, id, field, editedParticulars) {
         console.log("Update Request:", id, field, editedParticulars);
         var db = this.client.db(dbname); // Return the db object
         try {
@@ -1384,34 +1385,245 @@ class DatabaseConnectivity {
         }
     }
 
-    async updateReceiptNumberData(dbname, id, receiptNumber) {
-        console.log("Parameters:", dbname, id, receiptNumber);
-        var db = this.client.db(dbname); // return the db object
+    async updateParticipantRemarks(dbname, id, field, editedRemarks) {
+        console.log("Update Request:", id, field, editedParticulars);
+        var db = this.client.db(dbname); // Return the db object
         try {
             if (db) {
-                var tableName = "Registration Forms";
-                var table = db.collection(tableName);
-    
+                const tableName = "Registration Forms";
+                const table = db.collection(tableName);
+                
                 // Use updateOne to update a single document
                 const filter = { _id: this._makeObjectId(id) };
-                
-                console.log("📝 [DB] Updating receiptNo for registration:", { id, receiptNumber });
     
-                // Update only the `receiptNo` field inside the `official` object
-                const update = {
-                    $set: {
-                        "official.receiptNo": receiptNumber
+                const normalizedField = String(field || '').trim();
+
+                let fieldPathMap = {};
+
+                if(rowCourseType === 'NSA') {
+               fieldPathMap = {
+                    remarks: 'official.remarks'
+                };
+            }
+
+            else if(rowCourseType === "ILP" || rowCourseType === "Talks And Seminar" || rowCourseType === "Others" || rowCourseType === "Marriage Preparation Programme") {
+                fieldPathMap = {
+                  remarks: 'official.remarks'
+                };
+            }
+
+                const allowedParticipantFields = new Set([
+                    'name',
+                    'nric',
+                    'contactNumber',
+                    'email',
+                    'gender',
+                    'dateOfBirth',
+                    'residentialStatus',
+                    'race',
+                    'postalCode',
+                    'educationLevel',
+                    'workStatus',
+                ]);
+
+                // Keep compatibility for legacy participant fields, while rejecting unsafe keys.
+                let mappedPath = fieldPathMap[normalizedField];
+                if (!mappedPath) {
+                    if (!allowedParticipantFields.has(normalizedField)) {
+                        throw new Error(`Unsupported participant field: ${normalizedField}`);
                     }
+                    mappedPath = `participant.${normalizedField}`;
+                }
+
+                let normalizedValue = editedParticulars;
+
+                if (typeof normalizedValue === 'string') {
+                    normalizedValue = normalizedValue.trim();
+                }
+
+                // Ensure date/time fields are always strings (never null or undefined)
+                if (normalizedField === 'refundedDate' || normalizedField === 'refundedTime' || 
+                    normalizedField === 'paymentDate' || normalizedField === 'paymentTime') {
+                    normalizedValue = String(normalizedValue || '').trim();
+                }
+
+                // Accept ISO date input and store as DD/MM/YYYY for consistency.
+                if (normalizedField === 'dateOfBirth' && typeof normalizedValue === 'string') {
+                    const isoDate = normalizedValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                    if (isoDate) {
+                        const [, yyyy, mm, dd] = isoDate;
+                        normalizedValue = `${dd}/${mm}/${yyyy}`;
+                    }
+                }
+
+                // Normalize common short-form values to the bilingual labels used in UI.
+                if (normalizedField === 'residentialStatus') {
+                    const value = String(normalizedValue || '').toLowerCase();
+                    if (value === 'sc' || value === 'singapore citizen') normalizedValue = 'SC 新加坡公民';
+                    if (value === 'pr' || value === 'permanent resident') normalizedValue = 'PR 永久居民';
+                }
+
+                if (normalizedField === 'gender') {
+                    const value = String(normalizedValue || '').toLowerCase();
+                    if (value === 'm' || value === 'male') normalizedValue = 'M 男';
+                    if (value === 'f' || value === 'female') normalizedValue = 'F 女';
+                }
+
+                // Build update object - always update the mapped path
+                const updateSet = {
+                    [mappedPath]: normalizedValue,
                 };
 
-                // Call updateOne
-                const result = await table.updateOne(filter, update);
-                console.log("✅ [DB] updateReceiptNumberData result:", result)
+                const update = {
+                    $set: updateSet,
+                };
     
+                // Call updateOne
+                console.log("Executing MongoDB updateOne with filter:", filter, "and update:", update);
+                const result = await table.updateOne(filter, update);
+                console.log("Update Result:", result);
+                console.log("Matched count:", result.matchedCount, "Modified count:", result.modifiedCount);
+                
+                // Log specific field updates for verification
+                if (normalizedField === 'registrationStatus') {
+                    console.log(`✅ [Registration Status Update] Field: ${normalizedField} | Mapped Path: ${mappedPath} | New Value: ${normalizedValue} | Matched: ${result.matchedCount} | Modified: ${result.modifiedCount}`);
+                }
+                
                 return result;
             }
         } catch (error) {
-            console.log("Error updating database:", error);
+            console.error("Error updating database:", error);
+            throw error; // Re-throw the error to handle it in the calling function
+        }
+    }
+
+    async updateParticipantRemarks(dbname, id, field, editedRemarks, rowCourseType) 
+    {
+        console.log("Update Request:", id, field, editedRemarks);
+
+        const db = this.client.db(dbname);
+
+        try {
+            if (!db) return;
+
+            const tableName = "Registration Forms";
+            const table = db.collection(tableName);
+
+            const filter = { _id: this._makeObjectId(id) };
+
+            const normalizedField = String(field || '').trim();
+
+            let mappedPath;
+
+            // ===============================
+            // OFFICIAL FIELDS (NOT participant)
+            // ===============================
+            const officialFields = new Set([
+                'remarks'
+            ]);
+
+            if (officialFields.has(normalizedField)) {
+                mappedPath = `official.${normalizedField}`;
+            }
+
+            // ===============================
+            // PARTICIPANT FIELDS
+            // ===============================
+            else {
+                const allowedParticipantFields = new Set([
+                    'name',
+                    'nric',
+                    'contactNumber',
+                    'email',
+                    'gender',
+                    'dateOfBirth',
+                    'residentialStatus',
+                    'race',
+                    'postalCode',
+                    'educationLevel',
+                    'workStatus',
+                ]);
+
+                if (!allowedParticipantFields.has(normalizedField)) {
+                    throw new Error(`Unsupported participant field: ${normalizedField}`);
+                }
+
+                mappedPath = `participant.${normalizedField}`;
+            }
+
+            // ===============================
+            // NORMALIZE VALUE
+            // ===============================
+            let normalizedValue = editedRemarks;
+
+            if (typeof normalizedValue === 'string') {
+                normalizedValue = normalizedValue.trim();
+            }
+
+            // Ensure date/time fields are always strings
+            if (
+                normalizedField === 'refundedDate' ||
+                normalizedField === 'refundedTime' ||
+                normalizedField === 'paymentDate' ||
+                normalizedField === 'paymentTime'
+            ) {
+                normalizedValue = String(normalizedValue || '').trim();
+            }
+
+            // Convert ISO date to DD/MM/YYYY
+            if (normalizedField === 'dateOfBirth' && typeof normalizedValue === 'string') {
+                const isoDate = normalizedValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                if (isoDate) {
+                    const [, yyyy, mm, dd] = isoDate;
+                    normalizedValue = `${dd}/${mm}/${yyyy}`;
+                }
+            }
+
+            // Normalize residential status
+            if (normalizedField === 'residentialStatus') {
+                const value = String(normalizedValue || '').toLowerCase();
+                if (value === 'sc' || value === 'singapore citizen') {
+                    normalizedValue = 'SC 新加坡公民';
+                }
+                if (value === 'pr' || value === 'permanent resident') {
+                    normalizedValue = 'PR 永久居民';
+                }
+            }
+
+            // Normalize gender
+            if (normalizedField === 'gender') {
+                const value = String(normalizedValue || '').toLowerCase();
+                if (value === 'm' || value === 'male') normalizedValue = 'M 男';
+                if (value === 'f' || value === 'female') normalizedValue = 'F 女';
+            }
+
+            // ===============================
+            // UPDATE
+            // ===============================
+            const update = {
+                $set: {
+                    [mappedPath]: normalizedValue,
+                },
+            };
+
+            console.log("Executing MongoDB updateOne:", filter, update);
+
+            const result = await table.updateOne(filter, update);
+
+            console.log("Update Result:", result);
+            console.log("Matched:", result.matchedCount, "Modified:", result.modifiedCount);
+
+            if (normalizedField === 'remarks') {
+                console.log(
+                    `✅ Remarks Updated | Path: ${mappedPath} | Value: ${normalizedValue}`
+                );
+            }
+
+            return result;
+
+        } catch (error) {
+            console.error("Error updating database:", error);
+            throw error;
         }
     }
 

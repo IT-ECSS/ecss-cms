@@ -409,6 +409,26 @@ router.post('/', async function(req, res, next)
         //console.log("Update Particulars:", result) 
         return res.json({"result": result}); 
     }
+    else if(req.body.purpose === "editRemarks")
+    {
+        console.log("Edit Remarks Body:", req.body);
+        var id = req.body.id;
+        var field = req.body.field;
+        var editedValue = req.body.editedValue;
+        console.log("Body:", req.body)
+        var result = await registrationController.updateParticipantRemarks(id, field, editedValue);
+        console.log("updateParticipantRemarks result:", result);
+        if (io) {
+            io.emit('registration', {
+                type: 'registration-edit',
+                id,
+                field,
+                value: editedValue,
+            });
+        }
+        //console.log("Update Particulars:", result) 
+        return res.json({"result": result}); 
+    }
     else if(req.body.purpose === "updatePaymentStatus")
     {
         console.log("Official Use", req.body);

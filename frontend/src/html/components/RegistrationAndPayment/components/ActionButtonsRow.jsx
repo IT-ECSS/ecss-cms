@@ -10,6 +10,10 @@ import React from 'react';
  *   hasMarriagePrepData       {boolean}  – true when rowData contains Marriage Prep rows
  *   hideMarriagePrepFields    {boolean}  – current toggle state for Marriage Prep columns
  *   onToggleMarriagePrep      {function} – toggleHideMarriagePrepFields handler
+ *   showRemarksColumn         {boolean}  – current toggle state for Remarks column
+ *   onToggleRemarksColumn     {function} – toggleRemarksColumn handler
+ *   showSendingPaymentDetailsColumn {boolean} – current toggle state for Sending Payment Details column
+ *   onToggleSendingPaymentDetailsColumn {function} – toggleSendingPaymentDetailsColumn handler
  *   onArchive                 {function} – archiveData handler
  *   onExportLOP               {function} – exportToLOP handler
  *   onExportAttendance        {function} – exportAttendance handler
@@ -24,6 +28,10 @@ const ActionButtonsRow = ({
   hasMarriagePrepData,
   hideMarriagePrepFields,
   onToggleMarriagePrep,
+  showRemarksColumn,
+  onToggleRemarksColumn,
+  showSendingPaymentDetailsColumn,
+  onToggleSendingPaymentDetailsColumn,
   onArchive,
   onExportLOP,
   onExportAttendance,
@@ -60,6 +68,28 @@ const ActionButtonsRow = ({
           }}
         >
           {hideMarriagePrepFields ? 'Show Marriage Prep Fields' : 'Hide Marriage Prep Fields'}
+        </button>
+      )}
+
+      {onToggleRemarksColumn && (
+        <button
+          className="registration-payment-details-button"
+          onClick={onToggleRemarksColumn}
+          style={{
+            backgroundColor: 'transparent',
+            color: showRemarksColumn ? '#2196f3' : '#ff9800',
+            border: `3px solid ${showRemarksColumn ? '#2196f3' : '#ff9800'}`,
+            padding: '0.5rem 1.5625rem',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            flexShrink: 1,
+            fontSize: '1.125rem',
+            fontWeight: 'bold',
+            whiteSpace: 'nowrap',
+          }}
+          title="Toggle Remarks column visibility"
+        >
+          {showRemarksColumn ? 'Hide Remarks' : 'Show Remarks'}
         </button>
       )}
 

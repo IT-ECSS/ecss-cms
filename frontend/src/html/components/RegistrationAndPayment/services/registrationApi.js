@@ -107,6 +107,17 @@ export const editRegistrationField = async (id, field, editedValue, rowCourseTyp
   return response;
 };
 
+export const editRemarksField = async (id, field, editedValue) => {
+  console.log(`Editing registration ${id}: setting ${field} to`, editedValue);
+  const response = await axios.post(`${NODE_BASE_URL}/courseregistration`, {
+    purpose: "editRemarks",
+    id,
+    field,
+    editedValue,
+  });
+  return response;
+};
+
 /**
  * Clear receipt/invoice number, payment date, and payment time for a registration.
  * Used when switching final payment method from Cash/PayNow to SkillsFuture.
