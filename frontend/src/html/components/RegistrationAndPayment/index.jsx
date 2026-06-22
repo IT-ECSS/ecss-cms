@@ -2370,7 +2370,6 @@ class RegistrationPaymentSection extends Component {
   // ── Cell renderers ────────────────────────────────────────────────────────
 
   // ── Row styles ────────────────────────────────────────────────────────────
-
   getRowStyle = (params) => {
     const { expandedRowIndex, rowData } = this.state;
     const row = rowData?.[params.rowIndex];
