@@ -328,3 +328,41 @@ export async function handleGenericFieldChange(event) {
   }
   await editRegistrationField(id, event.colDef.field, event.value);
 }
+
+/**
+ * Handles changes to the "Sending Payment Details" column.
+ * Sends WhatsApp payment details to participant via the backend.
+ */
+export async function handleSendingPaymentDetailsChange(event, context) {
+  const id = resolveEventId(event.data);
+  if (!id) {
+    throw new Error('Missing MongoDB _id for sending payment details');
+  }
+
+  // Call backend to update sendingWhatsappMessage field
+  try {
+    const response = await fetch(
+      `${window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://ecss-backend-node.azurewebsites.net'}/courseregistration`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          purpose: 'sendDetails',
+          id: id,
+        }),
+      }
+    );
+
+    const result = await response.json();
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to send payment details');
+    }
+
+    console.log('✓ Payment details sent successfully for registration:', id);
+  } catch (error) {
+    console.error('Error sending payment details:', error);
+    throw error;
+  }
+}

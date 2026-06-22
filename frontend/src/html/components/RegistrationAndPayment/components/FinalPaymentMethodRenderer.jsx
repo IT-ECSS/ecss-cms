@@ -141,11 +141,8 @@ const FinalPaymentMethodRenderer = (params) => {
 
     if (isNsaCourse && isRestrictedRole) return true;
 
-    if (
-      method === 'SkillsFuture' &&
-      isCurrentMethodSkillsFuture &&
-      !isAdminOrSubAdmin
-    ) {
+    // Disable SkillsFuture button for all non-admin/sub-admin users
+    if (method === 'SkillsFuture' && !isAdminOrSubAdmin) {
       return true;
     }
 
@@ -165,7 +162,7 @@ const FinalPaymentMethodRenderer = (params) => {
               .toLowerCase()
               .replace(/\s+/g, '-')}${
               method === currentMethod ? ' active' : ''
-            }`}
+            }${isDisabled ? ' disabled' : ''}`}
             style={
               isNsaInChargeStyling
                 ? {
@@ -175,15 +172,15 @@ const FinalPaymentMethodRenderer = (params) => {
                       method === currentMethod
                         ? '#fff'
                         : 'transparent',
+                    cursor: isDisabled ? 'not-allowed' : 'pointer',
+                    pointerEvents: isDisabled ? 'none' : 'auto',
                   }
-                : {}
+                : {
+                    cursor: isDisabled ? 'not-allowed' : 'pointer',
+                    pointerEvents: isDisabled ? 'none' : 'auto',
+                  }
             }
-            disabled={isDisabled}
-            onClick={
-              isDisabled
-                ? undefined
-                : (event) => handleClick(event, method)
-            }
+            onClick={isDisabled ? undefined : (event) => handleClick(event, method)}
           >
             {method}
           </button>

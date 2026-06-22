@@ -5,9 +5,11 @@
   justify-content: center;
   align-items: center;
   height: 100%;
+  width: 100%;
   font-weight: bold;
   font-size: 1.5rem;
   position: relative;
+  padding: 0;
 }
 
 .status-tick {
@@ -24,15 +26,13 @@
 .status-cross {
   color: #f44336;
   font-weight: bold;
-  cursor: pointer;
   transition: all 0.2s ease;
   padding: 4px 8px;
   border-radius: 4px;
 }
 
-.status-cross:hover {
+.sending-whatsapp-status-cell:hover:not(:has(.status-loading)) .status-cross {
   color: #d32f2f;
-  background-color: #ffebee;
   transform: scale(1.1);
 }
 

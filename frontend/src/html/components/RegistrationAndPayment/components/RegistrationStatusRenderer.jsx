@@ -12,6 +12,14 @@ const RegistrationStatusRenderer = (params) => {
   const statusText = String(params.value || '').trim();
   // Check if NSA in-charge styling should be applied through context
   const isNsaInChargeStyling = params.context?.shouldApplyNsaInChargeStyling ? params.context.shouldApplyNsaInChargeStyling() : false;
+  
+  // Get component instance and user role from context
+  const component = params.context?.componentInstance;
+  const role = String(component?.props?.role || '').toLowerCase();
+  
+  // Check if user is Finance role (restricted from editing Registration Status)
+  const isFinanceRole = role.includes('finance');
+  
   if (!statusText) {
     return null;
   }
@@ -28,6 +36,8 @@ const RegistrationStatusRenderer = (params) => {
           fontWeight: '600',
           fontSize: '0.85em',
           lineHeight: '1.8',
+          cursor: isFinanceRole ? 'not-allowed' : 'pointer',
+          pointerEvents: isFinanceRole ? 'none' : 'auto',
         }}
       >
         {statusText}
@@ -52,6 +62,8 @@ const RegistrationStatusRenderer = (params) => {
         boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
         letterSpacing: '0.02em',
         lineHeight: '1.8',
+        cursor: isFinanceRole ? 'not-allowed' : 'pointer',
+        pointerEvents: isFinanceRole ? 'none' : 'auto',
       }}
     >
       {statusText}

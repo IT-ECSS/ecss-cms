@@ -47,14 +47,21 @@ const PaymentMethodRenderer = (params) => {
   }
   // ILP / Others / unknown → no payment method buttons
 
+  // Get component instance and user role from context
+  const component = params.context?.componentInstance;
+  const role = String(component?.props?.role || '').toLowerCase();
+
+  // Check if user is Finance role (restricted from editing Payment Method)
+  const isFinanceRole = role.includes('finance');
+
   // Determine if buttons should be disabled
-  // Only prevent editing if payment/refund date/time fields exist
+  // Disable if: Finance role OR payment/refund date/time fields exist
   const hasPaymentDate = !!(params.data?.paymentDate && String(params.data.paymentDate).trim() !== '');
   const hasPaymentTime = !!(params.data?.paymentTime && String(params.data.paymentTime).trim() !== '');
   const hasRefundedDate = !!(params.data?.refundedDate && String(params.data.refundedDate).trim() !== '');
   const hasRefundedTime = !!(params.data?.refundedTime && String(params.data.refundedTime).trim() !== '');
   
-  const buttonDisabled = hasPaymentDate || hasPaymentTime || hasRefundedDate || hasRefundedTime;
+  const buttonDisabled = isFinanceRole || hasPaymentDate || hasPaymentTime || hasRefundedDate || hasRefundedTime;
 
   const handleClick = (event, method) => {
     event.stopPropagation();
@@ -78,15 +85,20 @@ const PaymentMethodRenderer = (params) => {
           type="button"
           className={`payment-method-btn payment-method-btn--${method
             .toLowerCase()
-            .replace(/\s+/g, '-')} ${method === currentMethod ? 'active' : ''}`}
+            .replace(/\s+/g, '-')} ${method === currentMethod ? 'active' : ''}${buttonDisabled ? ' disabled' : ''}`}
           style={
             isNsaInChargeStyling
               ? {
                   border: '2px solid #000080',
                   color: '#000080',
                   backgroundColor: method === currentMethod ? '#fff' : 'transparent',
+                  cursor: buttonDisabled ? 'not-allowed' : 'pointer',
+                  pointerEvents: buttonDisabled ? 'none' : 'auto',
                 }
-              : {}
+              : {
+                  cursor: buttonDisabled ? 'not-allowed' : 'pointer',
+                  pointerEvents: buttonDisabled ? 'none' : 'auto',
+                }
           }
           onClick={(event) => handleClick(event, method)}
         >

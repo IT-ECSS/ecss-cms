@@ -37,6 +37,7 @@ export {
   handleRemarksChange,
   handleRefundedDateChange,
   handleGenericFieldChange,
+  handleSendingPaymentDetailsChange,
 } from './otherHandlers';
 
 // Helper utilities and common functions

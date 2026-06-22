@@ -206,8 +206,22 @@ Thank you.`;
         'noopener,noreferrer'
       );
 
-      // Change ✗ to ✓ immediately
+      // Update data value — this triggers AG-Grid's onCellValueChanged on the parent
       node.setDataValue('sendingWhatsappMessage', true);
+
+      // Trigger parent's cell change handler to save to backend
+      const component = props.context?.componentInstance;
+      if (component && typeof component.onCellValueChanged === 'function') {
+        await component.onCellValueChanged({
+          colDef: { headerName: 'Sending Payment Details', field: 'sendingWhatsappMessage' },
+          column: { getColDef: () => ({ headerName: 'Sending Payment Details', field: 'sendingWhatsappMessage' }) },
+          oldValue: false,
+          value: true,
+          data: data,
+          node: node,
+          api: props.api,
+        });
+      }
 
       console.log('✓ WhatsApp opened for:', phoneNumber);
     } catch (err) {
@@ -226,16 +240,17 @@ Thank you.`;
           ? 'WhatsApp message sent'
           : 'Click to send WhatsApp message'
       }
+      style={{
+        cursor: isLoading ? 'wait' : messageSent ? 'default' : 'pointer',
+        userSelect: 'none',
+      }}
     >
       {isLoading ? (
         <span className="status-loading">⏳</span>
       ) : messageSent ? (
         <span className="status-tick">✓</span>
       ) : (
-        <span
-          className="status-cross"
-          style={{ cursor: 'pointer' }}
-        >
+        <span className="status-cross">
           ✗
         </span>
       )}

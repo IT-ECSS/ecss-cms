@@ -83,6 +83,7 @@ import {
   handleRemarksChange,
   handleRefundedDateChange,
   handleGenericFieldChange,
+  handleSendingPaymentDetailsChange,
 } from './handlers';
 
 // API service layer
@@ -123,7 +124,23 @@ const APPROVAL_STATUS_CLEAR_MARKER_PREFIX = 'registrationApprovalStatusCleared';
 
 // S/N cell renderer (plain value only)
 const SNRenderer = (props) => {
-  return <span>{props.value}</span>;
+  // Get component instance and user role from context
+  const component = props.context?.componentInstance;
+  const role = String(component?.props?.role || '').toLowerCase();
+  
+  // Check if user is Finance role (restricted from clicking S/N)
+  const isFinanceRole = role.includes('finance');
+  
+  return (
+    <span
+      style={{
+        cursor: isFinanceRole ? 'not-allowed' : 'pointer',
+        pointerEvents: isFinanceRole ? 'none' : 'auto',
+      }}
+    >
+      {props.value}
+    </span>
+  );
 };
 
 class RegistrationPaymentSection extends Component {
@@ -358,11 +375,17 @@ class RegistrationPaymentSection extends Component {
    * Allowed: Admin, Ops in-charge, Sub Admin, NSA in-charge, Site in-charge (at Pasir Ris West location), Fitness Trainer, Social Worker
    */
   _canEditNsaRegistrationStatus() {
+    // Restrict Finance from editing Registration Status
+    if (this._isFinanceRole()) {
+      console.log('🔐 [NSA Registration Status] Finance role restricted from editing');
+      return false;
+    }
+    
     const role = String(this.props.role || '').toLowerCase();
     const canEdit = this._canEditAllNsaColumns() || 
            this._isNsaInChargeRole() || 
            this._isSiteInChargeWithPasirRisWestLocation() || 
-           this._isFitnessOrSocialWorkerRole()|| this._isFinanceRole();
+           this._isFitnessOrSocialWorkerRole();
     console.log('🔍 [NSA Registration Status] Role:', role, '| Can Edit:', canEdit, '| Role Checks:', {
       admin: this._canEditAllNsaColumns(),
       nsaInCharge: this._isNsaInChargeRole(),
@@ -1946,6 +1969,11 @@ class RegistrationPaymentSection extends Component {
             ''
           ).trim();
 
+          // Restrict Finance from editing Registration Status (all course types)
+          if (this._isFinanceRole()) {
+            return false;
+          }
+
           const canEditStatus =
             courseType === 'NSA'
               ? this._canEditNsaRegistrationStatus()
@@ -2811,6 +2839,8 @@ class RegistrationPaymentSection extends Component {
         await handleRemarksChange(event, context);
       } else if (columnName === 'Refunded Date') {
         await handleRefundedDateChange(event, context);
+      } else if (columnName === 'Sending Payment Details') {
+        await handleSendingPaymentDetailsChange(event, context);
       } else {
         await handleGenericFieldChange(event);
       }
