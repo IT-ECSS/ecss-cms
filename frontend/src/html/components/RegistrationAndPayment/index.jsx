@@ -1530,9 +1530,15 @@ class RegistrationPaymentSection extends Component {
       normalizedRole === 'admin' ||
       normalizedRole === 'sub admin' ||
       normalizedRole === 'subadmin' ||
+      normalizedRole === 'finance' ||
       normalizedRole === 'social worker'
     ) {
       return null;
+    }
+
+    // Site in-charge cannot see Marriage Preparation Programme
+    if (normalizedRole.includes('site in-charge') || normalizedRole.includes('site incharge')) {
+      return new Set(['nsa', 'ilp', 'talks and seminar', 'others']);
     }
 
     if (normalizedRole.includes('nsa')) {

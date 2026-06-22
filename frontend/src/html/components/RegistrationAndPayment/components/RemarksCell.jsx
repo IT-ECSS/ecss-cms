@@ -39,10 +39,10 @@ const RemarksCell = (props) => {
   };
 
   // =========================
-  // CLEAN TEXT (REMOVE ONLY ROLE)
+  // CLEAN TEXT (REMOVE ROLE AND NUMBER)
   // =========================
   const extractText = (line) => {
-    return line.replace(/^\[.*?\]:\s*/, '');
+    return line.replace(/^\[.*?\]:\s*\d+\)\s*/, '');
   };
 
   // =========================
