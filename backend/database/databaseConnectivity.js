@@ -1,4 +1,6 @@
 const { MongoClient, ObjectId } = require('mongodb');
+const { generateReceiptNumber } = require('../numbering/receiptNumber');
+const { getNextInvoiceNumber } = require('../numbering/invoiceNumber');
 
 // MongoDB connection string - should use environment variable ok
 //const uri = 'mongodb+srv://moseslee:Mlxy6695@ecss-course.hejib.mongodb.net/?retryWrites=true&w=majority&appName=ECSS-Course';
@@ -1988,61 +1990,34 @@ class DatabaseConnectivity {
     }
     
     async getNextReceiptNumber(databaseName, collectionName, course, paymentMethod) {
-        const { courseLocation, courseType, courseEngName } = course;
-        const centreLocation = courseLocation;
-
         const db = this.client.db(databaseName);
         const collection = db.collection(collectionName);
 
         console.log("Generating receipt number for course:", collectionName, course, paymentMethod);
-    
-        // Check for Marriage Preparation Programme first - using flexible matching
-        const isMarriagePrep = courseType && courseType.trim() === "Marriage Preparation Programme";
-        const isGroupClass = courseEngName && (
-            courseEngName.includes("Marriage Preparation Programme Group Class") ||
-            (courseEngName.includes("P/E MPrep") && courseEngName.includes("Marriage Preparation Programme"))
-        );
-        
-        if (isMarriagePrep && isGroupClass) {
-            const marriagePrepReceiptNumber = await this.getNextMarriagePrepReceiptNumber(databaseName, collectionName, courseLocation, centreLocation, courseType, courseEngName);
-            return marriagePrepReceiptNumber;
-        }
-    
-        var currentYear = parseInt(getConfiguredYear().toString().slice(-2));
-    
-        const isSkillsFuture = paymentMethod === 'SkillsFuture';
 
-        // Suffix encodes the centre: TP = Tampines, SNM = Sree Narayana Mission, R = Renewal Christian Church
-        const centreSuffix = isSkillsFuture
-            ? (centreLocation === "Tampines 253 Centre"      ? "TP"  :
-               centreLocation === "Sree Narayana Mission"    ? "SNM" :
-               centreLocation === "Renewal Christian Church" ? "R"   : "")
-            : null;
+        const { courseLocation, courseType, courseEngName } = course;
+        const centreLocation = courseLocation;
 
-        const regexPattern = isSkillsFuture
-            ? `ECSS/SFC/${centreSuffix}`                   // SF format: ECSS/SFC/[suffix]NNN/YY
-            : `^\\d{4} - ${courseLocation}`;               // Cash/PayNow format: yyyy - location - NNNN
+        const currentYear = parseInt(getConfiguredYear().toString().slice(-2));
+        const fullYear = getConfiguredYear();
+
+        const regexPattern = paymentMethod === 'SkillsFuture'
+            ? `ECSS/SFC/`
+            : `^\\d{4} - ${courseLocation}`;
 
         const existingReceipts = await collection.find({
             receiptNo: { $regex: regexPattern },
             location: centreLocation
         }).toArray();
-    
-        let formattedReceiptNumber;
-    
-        if (isSkillsFuture) {
-            const receiptNoRegex = new RegExp(`^ECSS/SFC/${centreSuffix}(\\d+)/${currentYear}$`);
-            const centreReceiptNumbers = existingReceipts
-                .map(r => { const m = r.receiptNo.match(receiptNoRegex); return m ? parseInt(m[1], 10) : null; })
-                .filter(n => n !== null);
 
-            formattedReceiptNumber = this.getNextReceiptNumberForSkillsFuture(centreReceiptNumbers, centreLocation, centreSuffix, currentYear);
-            console.log("Get Next Number For SkillsFuture:", formattedReceiptNumber);
-        } else {
-            console.log("Get Next Number For Receipt (PayNow or Cash)");
-            formattedReceiptNumber = this.getNextReceiptNumberForPayNowCash(courseLocation, existingReceipts, centreLocation, currentYear);
-        }
-    
+        const formattedReceiptNumber = generateReceiptNumber({
+            course,
+            paymentMethod,
+            existingReceipts,
+            currentYear,
+            fullYear,
+        });
+
         return formattedReceiptNumber;
     }
 
@@ -2266,35 +2241,14 @@ class DatabaseConnectivity {
             const collection = db.collection(collectionName);
 
             const year = new Date().getFullYear().toString().slice(-2); // e.g. "26"
-            const prefix = `ECSS/SFC/`;
-            const suffix = `/${year}`;
-
-            // Match invoice numbers for the current year: ECSS/SFC/NNN/YY
             const existingInvoices = await collection.find({
-                invoiceNumber: { $regex: `^${prefix}\\d{3}${suffix.replace('/', '/')}$` }
+                invoiceNumber: { $regex: `^ECSS/SFC/\\d{3}/${year}$` }
             }).toArray();
 
             console.log("Current Invoices:", existingInvoices);
-
-            if (existingInvoices.length === 0) {
-                return `${prefix}001${suffix}`;
-            }
-
-            // Extract the 3-digit numeric part
-            const invoiceNumbers = existingInvoices.map(invoice => {
-                const match = invoice.invoiceNumber.match(new RegExp(`^${prefix}(\\d{3})${suffix}$`));
-                return match ? parseInt(match[1], 10) : null;
-            }).filter(num => num !== null);
-
-            console.log("Extracted Invoice Numbers:", invoiceNumbers);
-
-            const latestNumber = Math.max(...invoiceNumbers);
-            console.log("Latest Invoice Number:", latestNumber);
-
-            const nextNumber = latestNumber + 1;
-            const padded = String(nextNumber).padStart(3, '0');
-
-            return `${prefix}${padded}${suffix}`;
+            const generatedInvoiceNumber = getNextInvoiceNumber({ existingInvoices, year });
+            console.log("Latest Invoice Number:", generatedInvoiceNumber);
+            return generatedInvoiceNumber;
         } catch (error) {
             console.error("Error in getNextInvoiceNumber:", error);
             throw new Error("Unable to generate the next invoice number. Please try again.");

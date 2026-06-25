@@ -70,7 +70,11 @@ router.post('/', async function(req, res, next)
     {
         var controller = new ReceiptController();
         var result = await controller.retrieveReceipts();
-        return res.json({"result": result});
+        return res.json({
+            success: true,
+            receipts: result || [],
+            result: result
+        });
     }
 });
 

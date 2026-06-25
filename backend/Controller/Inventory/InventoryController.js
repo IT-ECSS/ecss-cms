@@ -1,4 +1,5 @@
 const DatabaseConnectivity = require("../../database/databaseConnectivity"); // Import the class
+const { generateInventoryReceiptNumber } = require('../../numbering/receiptNumber');
 
 
 class InventoryController 
@@ -12,43 +13,13 @@ class InventoryController
             const databaseName = "Company-Management-System";
             const collectionName = "Inventory";
 
-            // Retrieve all inventory records
             const records = await this.databaseConnectivity.retrieveFromDatabase(databaseName, collectionName);
-
-            // Filter records that have receiptNumber matching this SKU pattern
-            const skuRecords = (records || []).filter(record => {
-                if (!record.receiptNumber) return false;
-                // Check if receipt number matches pattern ECSS/{sku}/XXXX
-                const pattern = `ECSS/${sku}/`;
-                return record.receiptNumber.startsWith(pattern);
+            return generateInventoryReceiptNumber({
+                sku,
+                existingRecords: records || []
             });
-
-            if (skuRecords.length === 0) {
-                // No existing receipts for this SKU, start at 0001
-                return `ECSS/${sku}/0001`;
-            }
-
-            // Find the highest running number
-            let maxNumber = 0;
-            for (const record of skuRecords) {
-                const parts = record.receiptNumber.split('/');
-                if (parts.length === 3) {
-                    const num = parseInt(parts[2], 10);
-                    if (!isNaN(num) && num > maxNumber) {
-                        maxNumber = num;
-                    }
-                }
-            }
-
-            // Increment and pad to minimum 4 digits (supports unlimited digits beyond 9999)
-            const nextNumber = maxNumber + 1;
-            const formattedNumber = nextNumber < 10000 
-                ? nextNumber.toString().padStart(4, '0') 
-                : nextNumber.toString();
-            return `ECSS/${sku}/${formattedNumber}`;
         } catch (error) {
             console.error("Error generating receipt number:", error);
-            // Fallback to 0001 if error
             return `ECSS/${sku}/0001`;
         }
     }

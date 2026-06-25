@@ -1,5 +1,6 @@
 const DatabaseConnectivity = require('../../database/databaseConnectivity');
 const { ObjectId } = require('mongodb');
+const { generateFundraisingReceiptNumber } = require('../../numbering/receiptNumber');
 const { google } = require('googleapis');
 const fs = require('fs');
 const path = require('path');
@@ -400,43 +401,16 @@ class FundraisingController {
                 const database = this.databaseConnectivity.client.db(databaseName);
                 const receiptsCollection = database.collection(receiptsCollectionName);
 
-                // Get current year in 2-digit format
                 const currentYear = new Date().getFullYear().toString().slice(-2);
+                const existingReceipts = await receiptsCollection
+                    .find({ receiptNo: { $exists: true } })
+                    .toArray();
 
-                // Check if ALL items contain "Panettone" substring
-                let containsPanettone = false;
-                if (items && Array.isArray(items) && items.length > 0) {
-                    containsPanettone = items.every(item => {
-                        const itemName = item.productName || item.name || item.itemName || '';
-                        return itemName.toLowerCase().includes('panettone');
-                    });
-                }
-
-                // Determine the receipt format based on product content
-                const receiptPrefix = containsPanettone ? 'ECSS/Panettone' : 'ECSS/FR';
-                const receiptPattern = containsPanettone ? 'ECSS\\/Panettone' : 'ECSS\\/FR';
-
-                // Find the latest receipt number for the current year and format
-                const yearPattern = new RegExp(`^${receiptPattern}\\/\\d+\\/${currentYear}$`);
-                const latestReceipt = await receiptsCollection
-                    .findOne(
-                        { receiptNo: { $exists: true, $regex: yearPattern } },
-                        { sort: { receiptNo: -1 } }
-                    );
-
-                let nextNumber = 1;
-                
-                if (latestReceipt && latestReceipt.receiptNo) {
-                    // Extract the number from ECSS/(FR|Panettone)/xxx/YY format for current year
-                    const match = latestReceipt.receiptNo.match(new RegExp(`^${receiptPattern}\\/(\\d+)\\/${currentYear}$`));
-                    if (match) {
-                        nextNumber = parseInt(match[1]) + 1;
-                    }
-                }
-
-                // Format the number with leading zeros (3 digits minimum)
-                const formattedNumber = nextNumber.toString().padStart(3, '0');
-                const receiptNumber = `${receiptPrefix}/${formattedNumber}/${currentYear}`;
+                const receiptNumber = generateFundraisingReceiptNumber({
+                    items,
+                    existingReceipts,
+                    currentYear
+                });
 
                 // If orderId is provided, update the order document with the receipt number
                 if (orderId) {
@@ -460,7 +434,7 @@ class FundraisingController {
                     }
                 }
 
-                console.log(`Generated receipt number: ${receiptNumber} (Year: 20${currentYear}, Contains Panettone: ${containsPanettone}, Order ID: ${orderId || 'N/A'})`);
+                console.log(`Generated receipt number: ${receiptNumber} (Year: 20${currentYear}, Order ID: ${orderId || 'N/A'})`);
                 return receiptNumber;
             } else {
                 console.error("Database connection failed for receipt number generation");

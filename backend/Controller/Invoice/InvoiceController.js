@@ -77,6 +77,36 @@ class InvoiceController
         }
     }
 
+    async retrieveInvoices()
+    {
+        try {
+            const dbConnection = this.databaseConnectivity;
+            await dbConnection.ensureConnection();
+
+            const databaseName = "Company-Management-System";
+            const collectionName = "Invoices";
+            const connectedDatabase = await dbConnection.retrieveFromDatabase(databaseName, collectionName);
+
+            return {
+                success: true,
+                message: "Invoices retrieved successfully",
+                invoices: connectedDatabase || []
+            };
+        }
+        catch (error)
+        {
+            console.error("Error retrieving invoices:", error);
+            return {
+                success: false,
+                message: "Error retrieving invoices",
+                error: error
+            };
+        }
+        finally {
+            console.log("Retrieve invoices request completed");
+        }
+    }
+
     async getInvoiceNumber(selectedMonth)
     {
         try {

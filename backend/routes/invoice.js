@@ -52,6 +52,17 @@ router.post('/', async function(req, res, next)
         console.log("Find:", result.invoiceNumber);
         return res.json({invoiceNumber: result.invoiceNumber});
     }
+    else if(req.body.purpose === "retrieve")
+    {
+        var controller = new InvoiceController();
+        var result = await controller.retrieveInvoices();
+        return res.json({
+            success: result.success,
+            message: result.message,
+            invoices: result.invoices || [],
+            result: result
+        });
+    }
 });
 
 module.exports = router;
