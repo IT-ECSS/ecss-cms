@@ -1215,6 +1215,7 @@ router.post('/fftSubmit', async (req, res) => {
         // Check if participant already exists in the sheet
         let currentRowCount = 0;
         let lastSN = 0;
+        const usedNumbers = new Set(); // every Participant Number already present in the sheet
         try {
             const sheetData = await googleDriveController.readSpreadsheet(fileId);
             if (sheetData.success && sheetData.data) {
@@ -1225,15 +1226,26 @@ router.post('/fftSubmit', async (req, res) => {
                 const headers = (sheetData.columns || []).map(h => String(h || '').trim());
                 const col = (name) => headers.indexOf(name); // returns -1 if missing
 
-                // Determine last Participant Number for auto-increment
-                // Support both new header ('Participant Number') and legacy header ('S/N')
-                const snIdx = col('Participant Number') !== -1 ? col('Participant Number') : col('S/N');
-                if (snIdx !== -1 && sheetData.data.length > 0) {
+                // Determine the Participant Number column for auto-increment.
+                // Support both new header ('Participant Number') and legacy header ('S/N').
+                // Column A always holds the Participant Number, so default to index 0
+                // when no matching header is detected — never fall back to row position.
+                let snIdx = col('Participant Number') !== -1 ? col('Participant Number') : col('S/N');
+                if (snIdx === -1) snIdx = 0;
+
+                // Collect every used Participant Number so a number can never be reused.
+                for (const row of sheetData.data) {
+                    const snVal = parseInt(String(row[snIdx] || '0').trim(), 10);
+                    if (!isNaN(snVal) && snVal > 0) usedNumbers.add(snVal);
+                }
+                // Base the next number on the LAST entry's Participant Number (the value
+                // in column A of the last data row), not the row position or the max.
+                if (sheetData.data.length > 0) {
                     const lastRow = sheetData.data[sheetData.data.length - 1];
                     const lastSnVal = parseInt(String(lastRow[snIdx] || '0').trim(), 10);
                     if (!isNaN(lastSnVal) && lastSnVal > 0) lastSN = lastSnVal;
                 }
-                // Fallback: use row count if no valid participant number found
+                // Fallback: use row count only if the last entry has no numeric number
                 if (lastSN === 0) lastSN = currentRowCount;
 
                 const nameIdx      = col('Name')         !== -1 ? col('Name')         : 0;
@@ -1306,7 +1318,10 @@ router.post('/fftSubmit', async (req, res) => {
         // K=Height | L=Weight | M=BMI | N=Date of test |
         // O=30 secs Sit & Stand | P=30 secs Arm Banding | Q=2 min On-the-spot Marching |
         // R=Sit & Reach | S=Back Stretching | T=2.44m Speed Walk | U=Grip test | V=Improvements | W=Remarks
-        const nextSN = lastSN + 1;
+        // Next available Participant Number: follow the highest existing number and
+        // skip any number already used so a number can never be reused.
+        let nextSN = lastSN + 1;
+        while (usedNumbers.has(nextSN)) nextSN++;
         const rowData = [
             String(nextSN),                                                // A: Participant Number
             nameStr, phoneStr, genderStr,                                  // B C D: Name, Phone Number, Gender
@@ -1325,7 +1340,9 @@ router.post('/fftSubmit', async (req, res) => {
             return res.status(500).json(appendResult);
         }
 
-        res.json({ success: true, sheetName: sheetFileName, fileId, entryNumber: appendResult.entryNumber });
+        // Return the actual Participant Number written to column A (nextSN), not the
+        // row-based entry number from appendRow.
+        res.json({ success: true, sheetName: sheetFileName, fileId, entryNumber: nextSN, participantNumber: nextSN });
     } catch (error) {
         console.error('[FFT] Error in POST /fftSubmit:', error.message);
         res.status(500).json({ success: false, error: error.message });
