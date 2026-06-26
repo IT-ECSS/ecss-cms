@@ -112,6 +112,30 @@ export async function handleFinalPaymentMethodChange(event, context) {
     return { updated: false };
   }
 
+  // Keep the in-memory row in sync with the new FINAL payment method immediately.
+  // The whole purpose of this handler is to set finalPaymentMethod to `newValue`
+  // (and it throws if the backend persist fails), so syncing optimistically here
+  // guarantees that any downstream receipt/invoice generation — e.g. when the
+  // payment status is later set to "Paid" — resolves the method from the FINAL
+  // value rather than a stale courseInfo (which would otherwise skip generating
+  // the receipt and leave the receipt number blank).
+  event.data.finalPaymentMethod = newValue;
+  if (event.data.courseInfo) {
+    event.data.courseInfo = {
+      ...event.data.courseInfo,
+      finalPaymentMethod: newValue,
+    };
+  }
+  if (event.node && event.node.data) {
+    event.node.data.finalPaymentMethod = newValue;
+    if (event.node.data.courseInfo) {
+      event.node.data.courseInfo = {
+        ...event.node.data.courseInfo,
+        finalPaymentMethod: newValue,
+      };
+    }
+  }
+
   const { refreshChild } = context;
 
   // ── Case: Cash ↔ PayNow Paid swap: payment already made, full reset ──────────
