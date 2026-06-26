@@ -945,15 +945,36 @@ class GoogleDriveController {
     }
 
     /**
-     * Update specific columns in a row by entry number.
+     * Update specific columns in a row by participant number.
      * @param {string} fileId - Spreadsheet ID
-     * @param {number} entryNumber - Entry number (row - 1 because of header)
+     * @param {number} entryNumber - The Participant Number (column A value), not the row position
      * @param {Object} updates - Key-value pairs where keys are column names
      */
     async updateRow(fileId, entryNumber, updates) {
         try {
             const sheets = await this.initializeSheetsAuth();
-            const rowNumber = entryNumber + 1; // +1 for header row
+
+            // Resolve the actual sheet row by matching the Participant Number in column A,
+            // because numbers follow the last entry and may contain gaps — the participant
+            // number no longer equals the row position.
+            const cached = await this._fetchSpreadsheet(fileId);
+            if (!cached.success) {
+                return { success: false, error: cached.error };
+            }
+            const headerNames = (cached.columns || []).map(h => String(h || '').trim());
+            let snIdx = headerNames.indexOf('Participant Number');
+            if (snIdx === -1) snIdx = headerNames.indexOf('S/N');
+            if (snIdx === -1) snIdx = 0;
+
+            const dataIndex = (cached.data || []).findIndex(r => {
+                const val = parseInt(String((r || [])[snIdx] || '').trim(), 10);
+                return !isNaN(val) && val === entryNumber;
+            });
+            if (dataIndex === -1) {
+                return { success: false, error: `Participant #${entryNumber} was not found in the spreadsheet.` };
+            }
+            // data is header-stripped, so data[0] is sheet row 2.
+            const rowNumber = dataIndex + 2;
 
             const spreadsheet = await sheets.spreadsheets.get({
                 spreadsheetId: fileId,
@@ -1014,10 +1035,24 @@ class GoogleDriveController {
 
             // _fetchSpreadsheet returns headers in cached.columns and
             // data rows (header already stripped) in cached.data.
-            // entryNumber is 1-based: participant #1 = data[0], #2 = data[1], etc.
+            // Look up by the ACTUAL Participant Number in column A (not row position),
+            // because numbers follow the last entry and may contain gaps — so the
+            // participant number no longer equals the row index.
             const headers = cached.columns || [];
             const allRows = cached.data || [];
-            const row = allRows[entryNumber - 1] || [];
+
+            // Determine the Participant Number column. Column A always holds it, so
+            // default to index 0 when no matching header is detected.
+            const headerNames = headers.map(h => String(h || '').trim());
+            let snIdx = headerNames.indexOf('Participant Number');
+            if (snIdx === -1) snIdx = headerNames.indexOf('S/N');
+            if (snIdx === -1) snIdx = 0;
+
+            // Find the row whose Participant Number equals the requested number.
+            const row = allRows.find(r => {
+                const val = parseInt(String((r || [])[snIdx] || '').trim(), 10);
+                return !isNaN(val) && val === entryNumber;
+            }) || [];
 
             const data = {};
             headers.forEach((header, idx) => {

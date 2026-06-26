@@ -1470,8 +1470,13 @@ router.post('/updateParticipant', async (req, res) => {
             return res.status(400).json({ success: false, error: 'fileId, rowIndex, and participantData are required' });
         }
 
-        // rowIndex is 0-based from the frontend; entryNumber is 1-based (header row is row 1 in sheet)
-        const entryNumber = parseInt(rowIndex, 10) + 1;
+        // updateRow locates the row by the ACTUAL Participant Number (column A), not the
+        // row position, so derive the participant number from the row's column A value.
+        // Fall back to rowIndex+1 only if the data carries no Participant Number.
+        const participantNumber = parseInt(String(participantData['Participant Number'] ?? '').trim(), 10);
+        const entryNumber = !isNaN(participantNumber) && participantNumber > 0
+            ? participantNumber
+            : parseInt(rowIndex, 10) + 1;
 
         const updates = {};
         for (const [key, value] of Object.entries(participantData)) {

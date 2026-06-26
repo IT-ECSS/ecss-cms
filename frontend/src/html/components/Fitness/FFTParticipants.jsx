@@ -259,7 +259,10 @@ class FFTParticipants extends Component {
         return;
       }
       if (response.data.success) {
-        this.setState({ showResultModal: false, showEntryNumber: true, entryNumber: response.data.entryNumber });
+        // Always display the actual Participant Number the backend wrote to column A
+        // (nextSN, based on the last entry), never a locally-derived/row-based value.
+        const writtenNumber = response.data.participantNumber ?? response.data.entryNumber;
+        this.setState({ showResultModal: false, showEntryNumber: true, entryNumber: writtenNumber });
       } else {
         this.setState({ showResultModal: true, submitError: response.data.error || 'Submission failed.' });
       }

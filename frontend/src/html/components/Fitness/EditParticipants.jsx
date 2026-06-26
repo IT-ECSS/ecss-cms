@@ -200,7 +200,12 @@ class EditParticipants extends Component {
   getColumnDefs = () => [
     {
       headerName: 'Participant Number',
-      valueGetter: (params) => (params.data?.__originalIndex ?? params.node.rowIndex) + 1,
+      valueGetter: (params) => {
+        // Show the ACTUAL Participant Number from column A, not the row position.
+        const actual = params.data?.['Participant Number'];
+        if (actual != null && String(actual).trim() !== '') return actual;
+        return (params.data?.__originalIndex ?? params.node.rowIndex) + 1;
+      },
       width: 250,
       editable: false,
       sortable: false,
