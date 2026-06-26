@@ -1,38 +1,3 @@
-const getCourseReferenceCode = require('../constants/courseCodeMapping');
-
-function escapeRegExp(value) {
-    return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function sanitizeItemCode(itemCode) {
-    const normalized = String(itemCode ?? '').trim().toUpperCase();
-    if (!normalized) return 'UNKNOWN';
-    const sanitized = normalized.replace(/[^A-Z0-9.-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-    return sanitized || 'UNKNOWN';
-}
-
-async function resolveItemCode(course) {
-    const explicitItemCode = course?.itemCode || course?.courseCode || course?.referenceCode || course?.code || course?.courseReferenceCode || course?.item_code;
-    if (explicitItemCode) {
-        return sanitizeItemCode(explicitItemCode);
-    }
-
-    const courseName = course?.courseEngName || course?.courseName || course?.name || course?.title || '';
-    const coursePrice = course?.price ?? course?.coursePrice ?? course?.fullPrice ?? course?.amount ?? course?.fee ?? course?.paymentAmount ?? course?.courseFee ?? null;
-
-    if (!courseName) {
-        return 'UNKNOWN';
-    }
-
-    try {
-        const sheetItemCode = await getCourseReferenceCode(courseName, coursePrice);
-        return sanitizeItemCode(sheetItemCode || 'UNKNOWN');
-    } catch (error) {
-        console.error('[receiptNumber] Failed to resolve item code from course mapping:', error.message);
-        return 'UNKNOWN';
-    }
-}
-
 function getNextReceiptNumberForSkillsFuture({ centreReceiptNumbers, centreLocation, centreSuffix, currentYear }) {
     let nextNumber;
 
@@ -215,8 +180,8 @@ function generateFundraisingReceiptNumber({ items, existingReceipts, currentYear
     return `${receiptPrefix}/${formattedNumber}/${currentYear}`;
 }
 
-async function generateReceiptNumber({ course, paymentMethod, existingReceipts, currentYear, fullYear }) {
-    const { courseLocation, courseType, courseEngName } = course || {};
+function generateReceiptNumber({ course, paymentMethod, existingReceipts, currentYear, fullYear }) {
+    const { courseLocation, courseType, courseEngName } = course;
     const centreLocation = courseLocation;
 
     const isMarriagePrep = courseType && courseType.trim() === 'Marriage Preparation Programme';
@@ -235,26 +200,37 @@ async function generateReceiptNumber({ course, paymentMethod, existingReceipts, 
         });
     }
 
-    const itemCode = await resolveItemCode(course);
-    const yearSuffix = String(currentYear).padStart(2, '0');
-    const escapedItemCode = escapeRegExp(itemCode);
-    const receiptNoRegex = new RegExp(`^ECSS-${escapedItemCode}-(\\d{5,})-${yearSuffix}$`);
+    const isSkillsFuture = paymentMethod === 'SkillsFuture';
+    const centreSuffix = isSkillsFuture
+        ? (centreLocation === 'Tampines 253 Centre' ? 'TP' :
+            centreLocation === 'Sree Narayana Mission' ? 'SNM' :
+                centreLocation === 'Renewal Christian Church' ? 'R' : '')
+        : null;
 
-    const matchingReceipts = (existingReceipts || []).filter(receipt => {
-        return receipt && receipt.receiptNo && receiptNoRegex.test(receipt.receiptNo);
+    if (isSkillsFuture) {
+        const receiptNoRegex = new RegExp(`^ECSS/SFC/${centreSuffix}(\\d+)/${currentYear}$`);
+        const centreReceiptNumbers = existingReceipts
+            .map(r => {
+                const m = r.receiptNo.match(receiptNoRegex);
+                return m ? parseInt(m[1], 10) : null;
+            })
+            .filter(n => n !== null);
+
+        return getNextReceiptNumberForSkillsFuture({
+            centreReceiptNumbers,
+            centreLocation,
+            centreSuffix,
+            currentYear,
+        });
+    }
+
+    return getNextReceiptNumberForPayNowCash({
+        courseLocation,
+        existingReceipts,
+        centreLocation,
+        currentYear,
+        fullYear,
     });
-
-    const runningNumbers = matchingReceipts
-        .map(receipt => {
-            const match = receipt.receiptNo.match(receiptNoRegex);
-            return match ? parseInt(match[1], 10) : null;
-        })
-        .filter(number => number !== null && !Number.isNaN(number));
-
-    const nextNumber = runningNumbers.length > 0 ? Math.max(...runningNumbers) + 1 : 1;
-    const paddedNumber = String(nextNumber).padStart(5, '0');
-
-    return `ECSS-${itemCode}-${paddedNumber}-${yearSuffix}`;
 }
 
 module.exports = {

@@ -47,6 +47,7 @@ import {
   getQuarterFromDuration,
 } from './utils/dataQueryUtils';
 import { mapRegistrationToRowData } from './utils/rowDataMapper';
+import { resolveEffectivePaymentMethod } from './utils/paymentMethodResolver.mjs';
 
 // WooCommerce handlers
 import { updateWooCommerceForRegistrationPayment as updateWooCommerceFn } from './handlers/wooCommerceHandlers';
@@ -2570,24 +2571,41 @@ class RegistrationPaymentSection extends Component {
         }
 
       } else if (columnName === 'Receipt/Invoice Number') {
+        const finalPaymentMethod = String(
+          event.data?.finalPaymentMethod || courseInfo?.finalPaymentMethod || event.data?.paymentMethod || courseInfo?.payment || ''
+        ).trim();
+        const paymentMethod = finalPaymentMethod || resolveEffectivePaymentMethod({
+          ...event.data,
+          course: courseInfo,
+        });
+        const viewCourse = {
+          ...courseInfo,
+          finalPaymentMethod: paymentMethod,
+          paymentMethod,
+          payment: paymentMethod,
+        };
+
         if (receiptInvoice) {
-          await this.receiptShown(participantInfo, courseInfo, receiptInvoice, officialInfo);
+          await this.receiptShown(participantInfo, viewCourse, receiptInvoice, officialInfo);
         } else {
-          const paymentMethod = event.data.paymentMethod || courseInfo?.payment;
           const paymentStatus = event.data.paymentStatus || '';
 
           // Generate the missing receipt/invoice first, then open it for review.
           const generatedNo = await this.autoReceiptGenerator(
             id,
             participantInfo,
-            courseInfo,
+            {
+              ...courseInfo,
+              finalPaymentMethod: paymentMethod,
+              paymentMethod,
+              payment: paymentMethod,
+            },
             officialInfo,
             paymentMethod,
             paymentStatus
           );
 
           if (generatedNo) {
-            const viewCourse = { ...courseInfo, payment: paymentMethod || courseInfo?.payment };
             event.data.recinvNo = generatedNo;
 
             // Immediately update recinvNo, paymentDate, and paymentTime in the grid so all

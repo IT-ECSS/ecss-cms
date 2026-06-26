@@ -21,10 +21,9 @@ import {
 } from '../services/registrationApi';
 
 import { logReceiptGeneration } from '../../../../utils/auditLog';
+import { resolveEffectivePaymentMethod } from '../utils/paymentMethodResolver.mjs';
 
-const resolvePaymentMethod = (course) => String(
-  course?.finalPaymentMethod || course?.paymentMethod || course?.payment || ''
-).trim();
+const resolvePaymentMethod = (course) => resolveEffectivePaymentMethod(course);
 
 // ─── receipt number ───────────────────────────────────────────────────────────
 

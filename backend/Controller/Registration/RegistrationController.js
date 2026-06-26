@@ -55,7 +55,8 @@ class RegistrationController {
     // Method to handle user registration
     async newParticipant(data) 
     {
-        let db; // Variable to hold the database reference
+        console.log("Registering new participant with data:", data);
+       let db; // Variable to hold the database reference
         try {
             // Connect to the database
             var result = await this.databaseConnectivity.initialize();
@@ -85,8 +86,6 @@ class RegistrationController {
                 error: error
             };
         }
-        finally {
-        }    
     }
 
     async allParticipants(role, siteIC)
@@ -260,17 +259,15 @@ class RegistrationController {
     async updateReceiptNumber(id, receiptNo) 
     {
         try {
-            // Connect to the database
             var result = await this.databaseConnectivity.initialize();
             console.log("Database Connectivity:", result);
 
             if(result === "Connected to MongoDB Atlas!")
             {
                 var databaseName = "Company-Management-System";
-                var connectedDatabase = await this.databaseConnectivity.updateReceiptNumberData(databaseName, id, receiptNo);  
-                console.log("✅ [Controller] Receipt number updated:", { id, receiptNo, acknowledged: connectedDatabase.acknowledged });
-                return connectedDatabase.acknowledged;
-                //console.log(connectedDatabase);
+                var connectedDatabase = await this.databaseConnectivity.updateRegistrationDocumentNumber(databaseName, id, receiptNo);  
+                console.log("✅ [Controller] Receipt number updated:", { id, receiptNo, acknowledged: connectedDatabase?.acknowledged });
+                return connectedDatabase?.acknowledged ?? false;
             }
         } 
         catch (error) 
@@ -282,7 +279,25 @@ class RegistrationController {
                 error: error
             };
         }
-        // NOTE: Do NOT close connection here - let connection pool manage it
+    }
+
+    async updateDocumentNumber(id, documentNo) {
+        try {
+            var result = await this.databaseConnectivity.initialize();
+            if (result === "Connected to MongoDB Atlas!") {
+                var databaseName = "Company-Management-System";
+                var connectedDatabase = await this.databaseConnectivity.updateRegistrationDocumentNumber(databaseName, id, documentNo);
+                return connectedDatabase?.acknowledged ?? false;
+            }
+            return false;
+        } catch (error) {
+            console.error("❌ [Controller] Error updating document number:", error);
+            return {
+                success: false,
+                message: "Error updating document number",
+                error: error
+            };
+        }
     }
 
     async deleteParticipant(id)

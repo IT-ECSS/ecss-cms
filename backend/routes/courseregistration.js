@@ -2,6 +2,7 @@ var express = require('express');
 var router = express.Router();
 var RegistrationController = require('../Controller/Registration/RegistrationController');
 var ParticipantsController = require('../Controller/Participants/ParticipantsController');
+var InvoiceController = require('../Controller/Invoice/InvoiceController');
 var receiptGenerator = require('../Others/Pdf/receiptGenerator');
 var invoiceGenerator = require('../Others/Pdf/invoiceGenerator');
 const { sendOneSignalNotification } = require('../services/notificationService');
@@ -9,6 +10,7 @@ const { sendOneSignalNotification } = require('../services/notificationService')
 // Reuse controller instances across requests so Mongo clients can stay warm.
 const participantsController = new ParticipantsController();
 const registrationController = new RegistrationController();
+const invoiceController = new InvoiceController();
 
 // ── In-memory cache for registration data ─────────────────────────────────────
 // Survives browser refreshes (server-side). TTL = 15 seconds.
@@ -564,12 +566,25 @@ router.post('/', async function(req, res, next)
             }
 
             console.log("📝 [Invoice] Updating invoice number:", { registrationId, invoiceNo, status: req.body.status });
-            const receiptUpdateResult = await registrationController.updateReceiptNumber(registrationId, invoiceNo);
-            console.log("✅ [Invoice] Invoice number updated in database:", receiptUpdateResult);
-            
             const currentDateTime = getCurrentDateTime();
             const date = currentDateTime.date;
             const time = currentDateTime.time;
+
+            const invoiceRecordResult = await invoiceController.createInvoice(
+                invoiceNo,
+                registrationId,
+                req.body.url || '',
+                staffName,
+                date,
+                time,
+                req.body.location || '',
+                req.body.status || 'Paid'
+            );
+            console.log("✅ [Invoice] Invoice record persisted:", invoiceRecordResult);
+
+            const registrationUpdateResult = await registrationController.updateDocumentNumber(registrationId, invoiceNo);
+            console.log("✅ [Invoice] Registration document number updated:", registrationUpdateResult);
+
             const officialUpdateResult = await registrationController.updateOfficialUse(registrationId, staffName, date, time, req.body.status);
             console.log("✅ [Invoice] Official use updated:", officialUpdateResult);
 

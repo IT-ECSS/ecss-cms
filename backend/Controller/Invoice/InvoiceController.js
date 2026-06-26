@@ -7,7 +7,50 @@ class InvoiceController
         this.databaseConnectivity = new DatabaseConnectivity(); // Create an instance of DatabaseConnectivity
     }
 
-    async newInvoiceNo()
+    async createInvoice(invoiceNo, registrationId, url, staff, date, time, location, status = 'Paid') {
+        try {
+            const dbConnection = this.databaseConnectivity;
+            await dbConnection.ensureConnection();
+
+            const invoiceDetails = {
+                invoiceNo,
+                registration_id: registrationId,
+                url: url || '',
+                staff: staff || '',
+                location: location || '',
+                date: date || '',
+                time: time || '',
+                status: status || 'Paid',
+            };
+
+            const databaseName = 'Company-Management-System';
+            const collectionName = 'Invoices';
+            const insertResult = await dbConnection.insertToDatabase(databaseName, collectionName, invoiceDetails);
+
+            if (!insertResult?.acknowledged) {
+                return {
+                    success: false,
+                    message: insertResult?.error || 'Failed to create invoice record',
+                    error: insertResult?.error || 'Failed to create invoice record',
+                };
+            }
+
+            return {
+                success: true,
+                message: 'Invoice created successfully',
+                invoiceNumber: invoiceNo,
+            };
+        } catch (error) {
+            console.error('❌ [Invoice Controller] Error creating invoice:', error);
+            return {
+                success: false,
+                message: 'Error creating invoice record',
+                error: error.message,
+            };
+        }
+    }
+
+    async newInvoiceNo(options = {})
     {
         try {
             // Connect to the database
@@ -18,12 +61,9 @@ class InvoiceController
                 const databaseName = "Company-Management-System";
                 const collectionName = "Invoices";
 
-                // Find the highest existing receipt number for the given course location
-                const newInvoiceNumber = await this.databaseConnectivity.getNextInvoiceNumber(databaseName, collectionName);
+                const newInvoiceNumber = await this.databaseConnectivity.getNextInvoiceNumber(databaseName, collectionName, options);
                 console.log("New Invoice Number:", newInvoiceNumber);
 
-
-                // Return the newly generated receipt number
                 return {
                     success: true,
                     message: "New invoice number generated successfully",

@@ -754,35 +754,31 @@ class DatabaseConnectivity {
             if (db) {
                 const table = db.collection(collectionName);
     
-                // Ensure registration_id is an ObjectId only for "Receipts" collection
-                if (collectionName === "Receipts") {
-                    console.log("📝 [DB] Checking for duplicate receipt:", { 
-                        receiptNo: data.receiptNo, 
-                        registration_id: data.registration_id,
-                        staff: data.staff,
-                        location: data.location
-                    });
-                    
-                    const existingReceipt = await table.findOne(
-                        { 
+                // Ensure registration_id is an ObjectId for document collections that store a registration reference.
+                if (collectionName === "Receipts" || collectionName === "Invoices") {
+                    const duplicateFilter = collectionName === "Receipts"
+                        ? {
                             receiptNo: data.receiptNo,
                             registration_id: data.registration_id,
                             staff: data.staff,
                             location: data.location
-                        },
-                        { projection: { _id: 1 } }
-                    );
-                    if (existingReceipt) {
-                        console.log("⚠️ [DB] Receipt already exists with same receiptNo, registration_id, staff, and location, skipping insert:", { 
-                            receiptNo: data.receiptNo,
+                        }
+                        : {
+                            invoiceNo: data.invoiceNo,
                             registration_id: data.registration_id,
                             staff: data.staff,
                             location: data.location
-                        });
+                        };
+
+                    console.log(`📝 [DB] Checking for duplicate ${collectionName.toLowerCase()} document:`, duplicateFilter);
+
+                    const existingDocument = await table.findOne(duplicateFilter, { projection: { _id: 1 } });
+                    if (existingDocument) {
+                        console.log(`⚠️ [DB] ${collectionName} already exists with same document reference, skipping insert:`, duplicateFilter);
                         return {
                             acknowledged: true,
                             skipped: true,
-                            reason: "receiptNo already exists for this registration, staff, and location combination",
+                            reason: `${collectionName.toLowerCase()} already exists for this registration, staff, and location combination`,
                         };
                     }
 
@@ -1654,6 +1650,32 @@ class DatabaseConnectivity {
         }
     }
 
+    async updateRegistrationDocumentNumber(dbname, id, documentNumber) {
+        const db = this.client.db(dbname);
+        try {
+            if (!db) {
+                return { acknowledged: false, error: 'Database connection failed' };
+            }
+
+            const table = db.collection('Registration Forms');
+            const filter = { _id: this._makeObjectId(id) };
+            const update = {
+                $set: {
+                    'official.receiptNo': documentNumber || ''
+                }
+            };
+
+            const result = await table.updateOne(filter, update);
+            return {
+                acknowledged: result.acknowledged,
+                matchedCount: result.matchedCount,
+                modifiedCount: result.modifiedCount,
+            };
+        } catch (error) {
+            console.error('Error updating registration document number:', error);
+            return { acknowledged: false, error: error.message };
+        }
+    }
 
     async updatePaymentOfficialUse(dbname, id, name, date, time, status) {
         name = sanitizeStaffName(name);
@@ -1995,22 +2017,18 @@ class DatabaseConnectivity {
 
         console.log("Generating receipt number for course:", collectionName, course, paymentMethod);
 
-        const { courseLocation, courseType, courseEngName } = course;
+        const { courseLocation, courseType, courseEngName } = course || {};
         const centreLocation = courseLocation;
 
         const currentYear = parseInt(getConfiguredYear().toString().slice(-2));
         const fullYear = getConfiguredYear();
 
-        const regexPattern = paymentMethod === 'SkillsFuture'
-            ? `ECSS/SFC/`
-            : `^\\d{4} - ${courseLocation}`;
-
         const existingReceipts = await collection.find({
-            receiptNo: { $regex: regexPattern },
+            receiptNo: { $regex: '^ECSS-' },
             location: centreLocation
         }).toArray();
 
-        const formattedReceiptNumber = generateReceiptNumber({
+        const formattedReceiptNumber = await generateReceiptNumber({
             course,
             paymentMethod,
             existingReceipts,
@@ -2235,18 +2253,23 @@ class DatabaseConnectivity {
         }
     }
 
-    async getNextInvoiceNumber(databaseName, collectionName) {
+    async getNextInvoiceNumber(databaseName, collectionName, options = {}) {
         try {
             const db = this.client.db(databaseName);
             const collection = db.collection(collectionName);
 
             const year = new Date().getFullYear().toString().slice(-2); // e.g. "26"
             const existingInvoices = await collection.find({
-                invoiceNumber: { $regex: `^ECSS/SFC/\\d{3}/${year}$` }
+                invoiceNumber: { $regex: '^ECSS-' }
             }).toArray();
 
             console.log("Current Invoices:", existingInvoices);
-            const generatedInvoiceNumber = getNextInvoiceNumber({ existingInvoices, year });
+            const generatedInvoiceNumber = await getNextInvoiceNumber({
+                existingInvoices,
+                year,
+                itemCode: options.itemCode,
+                course: options.course,
+            });
             console.log("Latest Invoice Number:", generatedInvoiceNumber);
             return generatedInvoiceNumber;
         } catch (error) {
