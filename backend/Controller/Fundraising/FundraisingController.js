@@ -327,17 +327,17 @@ class FundraisingController {
         return await this.generateReceiptNumber();
     }
 
-    // Insert invoice record into Receipts collection
+    // Insert invoice record into Invoices collection
     async insertInvoiceRecord(fundraisingOrderId, invoiceNumber) {
         try {
             const result = await this.databaseConnectivity.initialize();
             
             if (result === "Connected to MongoDB Atlas!") {
                 const databaseName = "Company-Management-System";
-                const receiptsCollectionName = "Receipts";
+                const invoicesCollectionName = "Invoices";
 
                 const database = this.databaseConnectivity.client.db(databaseName);
-                const receiptsCollection = database.collection(receiptsCollectionName);
+                const invoicesCollection = database.collection(invoicesCollectionName);
 
                 // Get current date and time
                 const now = new Date();
@@ -349,26 +349,27 @@ class FundraisingController {
                     second: '2-digit'
                 }); // hh:mm:ss 24-hour format
 
-                // Create receipt document using invoiceNumber
-                const receiptDocument = {
-                    receiptNo: invoiceNumber,
-                    registration_id: fundraisingOrderId, // Use fundraising order _id
-                    url: "", // Empty string as requested
-                    staff: "", // Empty string as requested
-                    location: "", // Empty string as requested
+                // Create invoice document using invoiceNumber
+                const invoiceDocument = {
+                    invoiceNo: invoiceNumber,
+                    registration_id: fundraisingOrderId,
+                    url: "",
+                    staff: "",
+                    location: "",
                     date: date,
-                    time: time
+                    time: time,
+                    status: 'Paid'
                 };
 
-                // Insert the receipt record
-                const insertResult = await receiptsCollection.insertOne(receiptDocument);
+                // Insert the invoice record
+                const insertResult = await invoicesCollection.insertOne(invoiceDocument);
 
                 if (insertResult.acknowledged) {
                     console.log("Invoice record inserted:", insertResult.insertedId);
                     return {
                         success: true,
-                        receiptId: insertResult.insertedId,
-                        receiptNo: invoiceNumber,
+                        invoiceId: insertResult.insertedId,
+                        invoiceNo: invoiceNumber,
                         alreadyExists: false
                     };
                 } else {

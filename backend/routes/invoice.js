@@ -45,6 +45,30 @@ router.post('/', async function(req, res, next)
         console.log(result);
         return res.json({invoiceNumber: result.invoiceNumber});
     }
+    else if(req.body.purpose === "createInvoice")
+    {
+        var { invoiceNo, registration_id, url, staff, location } = req.body;
+        var controller = new InvoiceController();
+        var currentDateTime = getCurrentDateTime();
+        var result = await controller.createInvoice(
+            invoiceNo,
+            registration_id,
+            url || '',
+            staff || '',
+            currentDateTime.date,
+            currentDateTime.time,
+            location || '',
+            'Paid'
+        );
+
+        const statusCode = result.success ? 200 : 400;
+        return res.status(statusCode).json({
+            result: result.success,
+            message: result.message,
+            invoiceNumber: result.invoiceNumber,
+            error: result.error || null
+        });
+    }
     else if(req.body.purpose === "findInvoiceNumber")
     {
         var controller = new InvoiceController();

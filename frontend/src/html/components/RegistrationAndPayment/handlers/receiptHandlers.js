@@ -18,6 +18,7 @@ import {
   generateReceiptPDF,
   getReceiptNumber,
   createReceiptRecord,
+  createInvoiceRecord,
 } from '../services/registrationApi';
 
 import { logReceiptGeneration } from '../../../../utils/auditLog';
@@ -117,28 +118,43 @@ export async function generatePDFInvoice(id, participant, course, userName, rece
 /**
  * Persists a receipt record to the database.
  */
-export async function saveReceiptToDatabase(receiptNo, location, registrationId, url, userName) {
+async function saveDocumentRecord(documentNo, documentType, location, registrationId, url, userName) {
   if (!registrationId) {
-    console.warn('⚠️ [Save Receipt] Skipping: missing registrationId');
+    console.warn('⚠️ [Save Record] Skipping: missing registrationId');
     return;
   }
   
-  // Validate ObjectId format (24 hex characters)
   const registrationIdStr = String(registrationId).trim();
   if (!/^[0-9a-f]{24}$/i.test(registrationIdStr)) {
     const error = new Error(`Invalid registration ID format: "${registrationIdStr}" (expected 24 hex characters)`);
-    console.error('❌ [Save Receipt] Invalid ObjectId format:', error);
+    console.error('❌ [Save Record] Invalid ObjectId format:', error);
     throw error;
   }
   
   try {
-    console.log('📝 [Save Receipt] Saving receipt to database:', { receiptNo, location, registrationId: registrationIdStr, userName });
-    await createReceiptRecord(receiptNo, location, registrationIdStr, url, userName);
+    if (documentType === 'invoice') {
+      console.log('📝 [Save Invoice] Saving invoice to database:', { documentNo, location, registrationId: registrationIdStr, userName });
+      await createInvoiceRecord(documentNo, location, registrationIdStr, url, userName);
+      console.log('✅ [Save Invoice] Invoice saved successfully');
+      return;
+    }
+
+    console.log('📝 [Save Receipt] Saving receipt to database:', { documentNo, location, registrationId: registrationIdStr, userName });
+    await createReceiptRecord(documentNo, location, registrationIdStr, url, userName);
     console.log('✅ [Save Receipt] Receipt saved successfully');
   } catch (error) {
-    console.error('❌ [Save Receipt] Failed to save receipt:', { receiptNo, location, registrationId: registrationIdStr, error });
-    throw error; // Re-throw so caller knows it failed
+    const label = documentType === 'invoice' ? 'invoice' : 'receipt';
+    console.error(`❌ [Save ${label}] Failed to save ${label}:`, { documentNo, location, registrationId: registrationIdStr, error });
+    throw error;
   }
+}
+
+export async function saveReceiptToDatabase(receiptNo, location, registrationId, url, userName) {
+  return saveDocumentRecord(receiptNo, 'receipt', location, registrationId, url, userName);
+}
+
+export async function saveInvoiceToDatabase(invoiceNo, location, registrationId, url, userName) {
+  return saveDocumentRecord(invoiceNo, 'invoice', location, registrationId, url, userName);
 }
 
 // ─── view receipt ─────────────────────────────────────────────────────────────
@@ -264,17 +280,15 @@ async function _generateSkillsFutureInvoice(id, participant, course, userName, p
     if (progressTracker) progressTracker.advance(); // → Invoice Downloaded and Opened
     
     try {
-      await saveReceiptToDatabase(invoiceNo, course.courseLocation, id, '', userName);
-      console.log('✅ [SkillsFuture Invoice] Receipt record saved to database');
+      await saveInvoiceToDatabase(invoiceNo, course.courseLocation, id, '', userName);
+      console.log('✅ [SkillsFuture Invoice] Invoice record saved to database');
     } catch (dbError) {
-      console.error('❌ [SkillsFuture Invoice] Failed to save receipt record to Receipts collection:', {
+      console.error('❌ [SkillsFuture Invoice] Failed to save invoice record to Invoices collection:', {
         invoiceNo,
         registrationId: id,
         courseName: course.courseEngName,
         error: dbError.message
       });
-      // Don't throw - receipt is already in registration table, just not in Receipts collection
-      // User can still access via registration table, but should be notified
     }
     
     return result; // { receiptNo, blob, filename }

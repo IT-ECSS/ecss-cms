@@ -296,6 +296,33 @@ export const createReceiptRecord = async (
   return response;
 };
 
+export const createInvoiceRecord = async (
+  invoiceNo,
+  location,
+  registration_id,
+  url,
+  staff
+) => {
+  const response = await axios.post(`${NODE_BASE_URL}/invoice`, {
+    purpose: "createInvoice",
+    invoiceNo,
+    location,
+    registration_id,
+    url,
+    staff,
+  });
+
+  if (!response?.data?.result) {
+    const error = response?.data?.error || 'Unknown error';
+    const message = response?.data?.message || 'Invoice creation failed';
+    console.error('❌ [API] Invoice creation failed:', { message, error, invoiceNo });
+    throw new Error(`${message}: ${error}`);
+  }
+
+  console.log('✅ [API] Invoice record created successfully:', { invoiceNo, location, registration_id });
+  return response;
+};
+
 // ─── WooCommerce / Django ─────────────────────────────────────────────────────
 
 /**
