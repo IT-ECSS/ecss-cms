@@ -756,20 +756,32 @@ class DatabaseConnectivity {
     
                 // Ensure registration_id is an ObjectId for document collections that store a registration reference.
                 if (collectionName === "Receipts" || collectionName === "Invoices") {
-                    const duplicateFilter = collectionName === "Receipts"
-                        ? {
-                            receiptNo: data.receiptNo,
-                            registration_id: data.registration_id,
-                            staff: data.staff,
-                            location: data.location
-                        }
-                        : {
-                            invoiceNo: data.invoiceNo,
-                            registration_id: data.registration_id,
-                            staff: data.staff,
-                            location: data.location
-                        };
+                    const regIdStr = String(data.registration_id ?? '').trim();
+                    const candidateRegistrationIds = [];
 
+                    if (regIdStr) {
+                        candidateRegistrationIds.push(regIdStr);
+                        if (/^[0-9a-f]{24}$/i.test(regIdStr)) {
+                            candidateRegistrationIds.push(new ObjectId(regIdStr));
+                        }
+                    }
+
+                    const duplicateFilters = [];
+                    if (collectionName === "Receipts" && data.receiptNo) {
+                        duplicateFilters.push({ receiptNo: data.receiptNo });
+                    }
+                    if (collectionName === "Invoices" && data.invoiceNo) {
+                        duplicateFilters.push({ invoiceNo: data.invoiceNo });
+                    }
+                    if (candidateRegistrationIds.length > 0 && data.staff && data.location) {
+                        duplicateFilters.push({
+                            registration_id: { $in: candidateRegistrationIds },
+                            staff: data.staff,
+                            location: data.location,
+                        });
+                    }
+
+                    const duplicateFilter = duplicateFilters.length > 1 ? { $or: duplicateFilters } : duplicateFilters[0];
                     console.log(`📝 [DB] Checking for duplicate ${collectionName.toLowerCase()} document:`, duplicateFilter);
 
                     const existingDocument = await table.findOne(duplicateFilter, { projection: { _id: 1 } });
@@ -782,17 +794,12 @@ class DatabaseConnectivity {
                         };
                     }
 
-                    // Validate registration_id format before conversion
-                    const regIdStr = String(data.registration_id).trim();
-                    console.log("📝 [DB] Converting registration_id to ObjectId:", { regIdStr, length: regIdStr.length });
-                    
-                    if (!/^[0-9a-f]{24}$/i.test(regIdStr)) {
-                        throw new Error(`Invalid registration_id format: "${regIdStr}" (expected 24 hex characters, received ${regIdStr.length})`);
+                    if (regIdStr && /^[0-9a-f]{24}$/i.test(regIdStr)) {
+                        data.registration_id = new ObjectId(regIdStr);
+                        console.log("✅ [DB] registration_id normalized to ObjectId:", data.registration_id);
+                    } else {
+                        console.log("ℹ️ [DB] registration_id is not a 24-char ObjectId string, keeping original value:", data.registration_id);
                     }
-
-                    const registrationId = new ObjectId(data.registration_id);
-                    data.registration_id = registrationId;
-                    console.log("✅ [DB] registration_id converted to ObjectId:", registrationId);
                 }
     
                 // Directly insert the data without any checks
@@ -1716,11 +1723,15 @@ class DatabaseConnectivity {
                     };
                 }
                 else if (status === "Generating SkillsFuture Invoice") {
-                    // Generating SkillsFuture Invoice: Store invoice number only, NO staff name, NO date/time yet
-                    // Date/time will be recorded when status becomes "SkillsFuture Done"
+                    // Record the payment timestamp as soon as invoice generation begins so
+                    // the registration/payment table shows the payment date and time immediately.
                     update = {
                         $set: {
                             "status": status,
+                            "official.name": name,
+                            "official.date": date,
+                            "official.time": time,
+                            ...(shouldConfirmSlot ? { "official.registration_status": "Confirmed Slot" } : {}),
                         }
                     };
                 }

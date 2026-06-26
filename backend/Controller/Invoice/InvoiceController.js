@@ -19,9 +19,8 @@ class InvoiceController
                 staff: staff || '',
                 location: location || '',
                 date: date || '',
-                time: time || '',
-                status: status || 'Paid',
-            };
+                time: time || ''
+                };
 
             const databaseName = 'Company-Management-System';
             const collectionName = 'Invoices';

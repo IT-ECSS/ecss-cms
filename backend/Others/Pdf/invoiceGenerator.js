@@ -182,34 +182,34 @@ class invoiceGenerator {
             textX,
             y
         );
-        y += 15; // Add vertical offset for the next line
+        y += 12; // Add vertical offset for the next line
     
         doc.text(
             "               2. Should the application for SFC claims be rejected by SkillsFuture Singapore, full subsidised fees will be payable by cash.",
             textX,
             y);
-        y += 15; // Add vertical offset for the next line
+        y += 12; // Add vertical offset for the next line
     
         doc.text(
             "               3. Cash payment may be made by cash or cheque at our office, or PayNow to our UEN T03SS0051L.",
             textX,
             y
         );
-        y += 15; // Add vertical offset for the next line
+        y += 12; // Add vertical offset for the next line
     
         doc.text(
             "               4. NSA subsidy is applicable to Singaporean or Singapore PR aged 50 and above.",
             textX,
             y
         );
-        y += 15; // Add vertical offset for the next line
+        y += 12; // Add vertical offset for the next line
     
         doc.text(
             "               5. This is a computer generated invoice and requires no signature.",
             textX,
             y
         );
-        y += 15; // Add vertical offset for the next lin
+        y += 12; // Add vertical offset for the next lin
     };
     
     formatDate(dateStr) {

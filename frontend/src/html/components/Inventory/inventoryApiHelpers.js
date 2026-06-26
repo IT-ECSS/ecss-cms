@@ -70,6 +70,8 @@ export const fetchInventoryProducts = async () => {
         } else if (response.data.results && Array.isArray(response.data.results)) {
             products = response.data.results;
         }
+
+        console.log("Fetched inventory products:", products);
         
         if (products.length === 0) {
             return {

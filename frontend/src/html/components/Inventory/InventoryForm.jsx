@@ -270,6 +270,7 @@ class InventoryForm extends Component {
             this.setState({ error: null });
             const { fetchInventoryProducts } = await import('./inventoryApiHelpers');
             const result = await fetchInventoryProducts();
+            console.log("Fetched inventory products:", result);
             const products = result.inventoryProducts || [];
             this.setState({
                 inventoryProducts: products,
@@ -518,6 +519,7 @@ class InventoryForm extends Component {
     render() {
         const { isSubmitting, isLoading, error, successMessage, formData, showProductDropdown, showLocationDropdown } = this.state;
         const filteredProducts = this.getFilteredProducts();
+        console.log("Filtered Products:", filteredProducts);
         const filteredLocations = this.getFilteredLocations();
         const hasDefaultLocation = !!this.getDefaultLocationForStaff(formData.staffName);
         // Determine if out of stock for default location
