@@ -71,7 +71,7 @@ export async function generatePDFReceipt(id, participant, course, userName, rece
 
   const pdfResponse = await generateReceiptPDF('receipt', participant, course, userName, receiptNo, officialInfo);
   const blob = pdfResponse.data;
-  const filename = `${participant.name}-${resolvedPaymentMethod || 'payment'}-${receiptNo}.pdf`;
+  const filename = `${participant.name} - Receipt - ${resolvedPaymentMethod || 'payment'} - ${receiptNo}.pdf`;
   
   return { receiptNo, blob, filename, paymentDate, paymentTime };
 }
@@ -108,7 +108,7 @@ export async function generatePDFInvoice(id, participant, course, userName, rece
 
   const pdfResponse = await generateReceiptPDF('invoice', participant, course, userName, receiptNo, officialInfo);
   const blob = pdfResponse.data;
-  const filename = `${participant.name}-Invoice-${receiptNo}.pdf`;
+  const filename = `${participant.name} - Invoice - ${resolvedPaymentMethod || 'payment'} - ${receiptNo}.pdf`;
   
   return { receiptNo, blob, filename };
 }
@@ -189,7 +189,8 @@ export async function showReceipt(participant, course, receiptNo, officialInfo, 
   try {
     const pdfResponse = await generateReceiptPDF(purpose, participant, course, userName, receiptNo, officialInfo);
 
-    const filename = `${participant.name}-${resolvedPaymentMethod || 'payment'}-${receiptNo}.pdf`;
+    const documentTypeLabel = purpose === 'invoice' ? 'Invoice' : 'Receipt';
+    const filename = `${participant.name} - ${documentTypeLabel} - ${resolvedPaymentMethod || 'payment'} - ${receiptNo}.pdf`;
     const blob     = new Blob([pdfResponse.data], { type: 'application/pdf' });
     const blobUrl  = window.URL.createObjectURL(blob);
 

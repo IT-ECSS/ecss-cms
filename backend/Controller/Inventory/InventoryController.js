@@ -1,5 +1,6 @@
 const DatabaseConnectivity = require("../../database/databaseConnectivity"); // Import the class
-const { generateInventoryReceiptNumber } = require('../../numbering/receiptNumber');
+const { ObjectId } = require("mongodb");
+const { generateStandardReceiptNumber, resolveCategoryCode } = require('../../numbering/receiptNumber');
 
 
 class InventoryController 
@@ -8,20 +9,29 @@ class InventoryController
         this.databaseConnectivity = new DatabaseConnectivity(); // Create an instance of DatabaseConnectivity
     }
 
-    async generateReceiptNumber(sku) {
-        try {
-            const databaseName = "Company-Management-System";
-            const collectionName = "Inventory";
+    async generateReceiptNumber({ wooCategory = '', locationFrom = '', existingRecords = null } = {}) {
+        const databaseName = "Company-Management-System";
 
-            const records = await this.databaseConnectivity.retrieveFromDatabase(databaseName, collectionName);
-            return generateInventoryReceiptNumber({
-                sku,
-                existingRecords: records || []
-            });
-        } catch (error) {
-            console.error("Error generating receipt number:", error);
-            return `ECSS/${sku}/0001`;
+        // The item code comes ONLY from the WooCommerce product category
+        // (the "Item Category (For Moses Uses)" categories: Fitness → FIT, Panettone → PAN,
+        // NSA → NSA, Miscellaneous → MSC, etc.). Inventory receipts must NEVER be SFC or
+        // Fundraising (FR), and no SKU is involved. If the category cannot be resolved,
+        // return null so the caller refuses to generate a receipt.
+        const itemCode = await resolveCategoryCode(wooCategory, 'Receipt');
+        if (!itemCode || itemCode === 'SFC' || itemCode === 'FR') {
+            console.warn(`Inventory receipt not generated — unrecognised/disallowed category "${wooCategory}".`);
+            return null;
         }
+
+        // Series numbering is based on existing receipts in the Receipts collection.
+        const records = existingRecords ?? await this.databaseConnectivity.retrieveFromDatabase(databaseName, 'Receipts');
+        const currentYear = new Date().getFullYear();
+        return generateStandardReceiptNumber({
+            existingReceipts: records || [],
+            courseLocation: locationFrom,
+            fullYear: currentYear,
+            itemCode,
+        });
     }
 
     async insertInventory(payload)
@@ -35,12 +45,23 @@ class InventoryController
                 const databaseName = "Company-Management-System";
                 const collectionName = "Inventory";
 
-                // Generate receipt number based on SKU
-                const sku = payload.sku || 'UNKNOWN';
-                const receiptNumber = await this.generateReceiptNumber(sku);
+                // Generate receipt number strictly from the WooCommerce product category (no SKU).
+                const receiptNumber = await this.generateReceiptNumber({
+                    wooCategory: payload.wooCategory || '',
+                    locationFrom: payload.locationFrom || '',
+                });
                 console.log("Generated Receipt Number:", receiptNumber);
 
-                // Add receipt number to payload, but exclude sku
+                // If the category could not be resolved, do not generate any receipt/order.
+                if (!receiptNumber) {
+                    return {
+                        success: false,
+                        message: "Cannot generate receipt: product category not recognised",
+                        error: `Unrecognised product category "${payload.wooCategory || ''}". No receipt was generated.`,
+                    };
+                }
+
+                // Add receipt number to payload, but exclude any stray sku field
                 const { sku: _sku, ...payloadWithoutSku } = payload;
                 const payloadWithReceipt = {
                     ...payloadWithoutSku,
@@ -51,10 +72,39 @@ class InventoryController
                 const insertResult = await this.databaseConnectivity.insertToDatabase(databaseName, collectionName, payloadWithReceipt);
                 console.log("Insert Inventory Result:", insertResult);
 
+                const inventoryId = insertResult?.insertedId || null;
+
+                // Store the inventory reference as a proper ObjectId (never a string) so the
+                // receipt correctly links back to the Inventory document.
+                let inventoryObjectId = null;
+                if (inventoryId instanceof ObjectId) {
+                    inventoryObjectId = inventoryId;
+                } else if (inventoryId && ObjectId.isValid(String(inventoryId))) {
+                    inventoryObjectId = new ObjectId(String(inventoryId));
+                }
+
+                // Insert a receipt record to the Receipts collection (SGT date/time)
+                const _now = new Date();
+                const _sgNow = new Date(_now.getTime() + 8 * 60 * 60 * 1000); // SGT (UTC+8)
+                const sgtDate = `${String(_sgNow.getUTCDate()).padStart(2,'0')}/${String(_sgNow.getUTCMonth()+1).padStart(2,'0')}/${_sgNow.getUTCFullYear()}`;
+                const sgtTime = `${String(_sgNow.getUTCHours()).padStart(2,'0')}:${String(_sgNow.getUTCMinutes()).padStart(2,'0')}:${String(_sgNow.getUTCSeconds()).padStart(2,'0')}`;
+
+                const receiptRecord = {
+                    receiptNo: receiptNumber,
+                    inventory_id: inventoryObjectId,
+                    url: '',
+                    staff: payload.staffName || '',
+                    location: payload.locationFrom || '',
+                    date: sgtDate,
+                    time: sgtTime,
+                };
+                const receiptInsertResult = await this.databaseConnectivity.insertToDatabase(databaseName, 'Receipts', receiptRecord);
+                console.log("Inventory Receipt Insert Result:", receiptInsertResult);
+
                 // Add _id to payload for socket emission
                 const dataWithId = {
                     ...payloadWithReceipt,
-                    _id: insertResult?.insertedId || null
+                    _id: inventoryId
                 };
 
                 return {
@@ -62,7 +112,8 @@ class InventoryController
                     message: "Inventory order inserted successfully",
                     result: insertResult,
                     data: dataWithId,
-                    recordId: insertResult?.insertedId || null
+                    recordId: inventoryId,
+                    receiptNumber: receiptNumber,
                 };
             } else {
                 return {

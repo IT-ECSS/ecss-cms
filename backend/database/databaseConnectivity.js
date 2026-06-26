@@ -754,15 +754,23 @@ class DatabaseConnectivity {
             if (db) {
                 const table = db.collection(collectionName);
     
-                // Ensure registration_id is an ObjectId for document collections that store a registration reference.
+                // Ensure registration_id / inventory_id is an ObjectId for collections that store a reference.
                 if (collectionName === "Receipts" || collectionName === "Invoices") {
                     const regIdStr = String(data.registration_id ?? '').trim();
                     const candidateRegistrationIds = [];
-
                     if (regIdStr) {
                         candidateRegistrationIds.push(regIdStr);
                         if (/^[0-9a-f]{24}$/i.test(regIdStr)) {
                             candidateRegistrationIds.push(new ObjectId(regIdStr));
+                        }
+                    }
+
+                    const invIdStr = String(data.inventory_id ?? '').trim();
+                    const candidateInventoryIds = [];
+                    if (invIdStr) {
+                        candidateInventoryIds.push(invIdStr);
+                        if (/^[0-9a-f]{24}$/i.test(invIdStr)) {
+                            candidateInventoryIds.push(new ObjectId(invIdStr));
                         }
                     }
 
@@ -780,25 +788,36 @@ class DatabaseConnectivity {
                             location: data.location,
                         });
                     }
+                    if (candidateInventoryIds.length > 0 && data.staff && data.location) {
+                        duplicateFilters.push({
+                            inventory_id: { $in: candidateInventoryIds },
+                            staff: data.staff,
+                            location: data.location,
+                        });
+                    }
 
                     const duplicateFilter = duplicateFilters.length > 1 ? { $or: duplicateFilters } : duplicateFilters[0];
                     console.log(`📝 [DB] Checking for duplicate ${collectionName.toLowerCase()} document:`, duplicateFilter);
 
-                    const existingDocument = await table.findOne(duplicateFilter, { projection: { _id: 1 } });
+                    const existingDocument = duplicateFilter ? await table.findOne(duplicateFilter, { projection: { _id: 1 } }) : null;
                     if (existingDocument) {
                         console.log(`⚠️ [DB] ${collectionName} already exists with same document reference, skipping insert:`, duplicateFilter);
                         return {
                             acknowledged: true,
                             skipped: true,
-                            reason: `${collectionName.toLowerCase()} already exists for this registration, staff, and location combination`,
+                            reason: `${collectionName.toLowerCase()} already exists for this reference, staff, and location combination`,
                         };
                     }
 
                     if (regIdStr && /^[0-9a-f]{24}$/i.test(regIdStr)) {
                         data.registration_id = new ObjectId(regIdStr);
                         console.log("✅ [DB] registration_id normalized to ObjectId:", data.registration_id);
-                    } else {
+                    } else if (regIdStr) {
                         console.log("ℹ️ [DB] registration_id is not a 24-char ObjectId string, keeping original value:", data.registration_id);
+                    }
+                    if (invIdStr && /^[0-9a-f]{24}$/i.test(invIdStr)) {
+                        data.inventory_id = new ObjectId(invIdStr);
+                        console.log("✅ [DB] inventory_id normalized to ObjectId:", data.inventory_id);
                     }
                 }
     
@@ -821,9 +840,9 @@ class DatabaseConnectivity {
     
                 // Return the result based on the collection name
                 if (collectionName === "Accounts") {
-                    return { acknowledged: result.acknowledged, accountId: result.insertedId };
+                    return { acknowledged: result.acknowledged, accountId: result.insertedId, insertedId: result.insertedId };
                 } else {
-                    return { acknowledged: result.acknowledged }; // For other collections
+                    return { acknowledged: result.acknowledged, insertedId: result.insertedId };
                 }
             } else {
                 console.error("❌ [DB] Database object is null/undefined");
@@ -1144,6 +1163,42 @@ class DatabaseConnectivity {
             }
 
             else if(rowCourseType === "ILP" || rowCourseType === "Talks And Seminar" || rowCourseType === "Others" || rowCourseType === "Marriage Preparation Programme") {
+                fieldPathMap = {
+                    // Participant information fields
+                    name: 'participant.name',
+                    nric: 'participant.nric',
+                    contactNo: 'participant.contactNumber',
+                    contactNumber: 'participant.contactNumber',
+                    email: 'participant.email',
+                    gender: 'participant.gender',
+                    dateOfBirth: 'participant.dateOfBirth',
+                    residentialStatus: 'participant.residentialStatus',
+                    race: 'participant.race',
+                    postalCode: 'participant.postalCode',
+                    educationLevel: 'participant.educationLevel',
+                    workStatus: 'participant.workStatus',
+                    status: 'status',
+
+                    // Existing editable non-participant fields
+                    remarks: 'official.remarks',
+                    paymentDate: 'official.date',
+                    paymentTime: 'official.time',
+                    refundedDate: 'official.refundedDate',
+                    refundedTime: 'official.refundedTime',
+                    registrationStatus: 'official.registration_status',
+                    location: 'course.courseLocation',
+                    course: 'course.courseEngName',
+                    courseMode: 'course.courseMode',
+                    courseDuration: 'course.courseDuration',
+                    courseTime: 'course.courseTime',
+                    finalPaymentMethod: 'course.finalPaymentMethod',
+                };
+            }
+
+            else {
+                // Catch-all for any other course type (regular community courses, etc.)
+                // so common fields like paymentDate/paymentTime/remarks remain editable
+                // instead of being rejected as "Unsupported participant field".
                 fieldPathMap = {
                     // Participant information fields
                     name: 'participant.name',
@@ -1723,15 +1778,11 @@ class DatabaseConnectivity {
                     };
                 }
                 else if (status === "Generating SkillsFuture Invoice") {
-                    // Record the payment timestamp as soon as invoice generation begins so
-                    // the registration/payment table shows the payment date and time immediately.
+                    // Only update the status field — do NOT record staff name, payment date, or payment time.
+                    // These fields are only set when the final status "SkillsFuture Done" is applied.
                     update = {
                         $set: {
                             "status": status,
-                            "official.name": name,
-                            "official.date": date,
-                            "official.time": time,
-                            ...(shouldConfirmSlot ? { "official.registration_status": "Confirmed Slot" } : {}),
                         }
                     };
                 }
@@ -1841,21 +1892,22 @@ class DatabaseConnectivity {
 
                 let update;
                 if (normalizedStatus === true) {
+                    // Confirming a participant only flips the confirmation flag.
+                    // Payment fields (official.name / official.date / official.time) represent
+                    // the actual PAYMENT, and must stay empty until the payment is completed
+                    // ("Paid" for Cash/PayNow, "SkillsFuture Done" for SkillsFuture).
                     update = {
                         $set: {
                             "official.confirmed": true,
-                            "official.name": name,
-                            "official.date": date,
-                            "official.time": time,
                         }
                     };
                 } else {
                     update = {
                         $set: {
                             "official.confirmed": false,
-                            "official.name": name,
-                            "official.date": date,
-                            "official.time": time,
+                            "official.name": "",
+                            "official.date": "",
+                            "official.time": "",
                             "status": "Pending",
                             "official.receiptNo": ""
                         }
@@ -2028,15 +2080,29 @@ class DatabaseConnectivity {
 
         console.log("Generating receipt number for course:", collectionName, course, paymentMethod);
 
+        // A SkillsFuture claim is an INVOICE, not a receipt. Route it to the invoice
+        // generator so the item code (SFC) and the running series come from the
+        // Invoices collection instead of producing a receipt-style NSA number.
+        const normalizedPaymentMethod = String(paymentMethod ?? '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+        if (normalizedPaymentMethod === 'SKILLSFUTURE' || normalizedPaymentMethod === 'SKILLSFUTUREPAYMENT') {
+            console.log("Payment method is SkillsFuture — generating an INVOICE number instead of a receipt.");
+            return this.getNextInvoiceNumber(databaseName, 'Invoices', { course, paymentMethod });
+        }
+
         const { courseLocation, courseType, courseEngName } = course || {};
         const centreLocation = courseLocation;
 
         const currentYear = parseInt(getConfiguredYear().toString().slice(-2));
         const fullYear = getConfiguredYear();
 
+        // The running series number is the highest number across the ENTIRE Receipts
+        // collection (not per-location), so the next receipt is always last + 1
+        // (00001 when none exist). Match both receiptNo and receiptNumber field names.
         const existingReceipts = await collection.find({
-            receiptNo: { $regex: '^ECSS-' },
-            location: centreLocation
+            $or: [
+                { receiptNo: { $regex: '^ECSS-' } },
+                { receiptNumber: { $regex: '^ECSS-' } }
+            ]
         }).toArray();
 
         const formattedReceiptNumber = await generateReceiptNumber({
@@ -2270,8 +2336,14 @@ class DatabaseConnectivity {
             const collection = db.collection(collectionName);
 
             const year = new Date().getFullYear().toString().slice(-2); // e.g. "26"
+            // The running series number is the highest number across the ENTIRE Invoices
+            // collection, so the next invoice is always last + 1 (00001 when none exist).
+            // Invoices are stored under invoiceNo; match invoiceNumber too for safety.
             const existingInvoices = await collection.find({
-                invoiceNumber: { $regex: '^ECSS-' }
+                $or: [
+                    { invoiceNo: { $regex: '^ECSS-' } },
+                    { invoiceNumber: { $regex: '^ECSS-' } }
+                ]
             }).toArray();
 
             console.log("Current Invoices:", existingInvoices);
@@ -2280,6 +2352,7 @@ class DatabaseConnectivity {
                 year,
                 itemCode: options.itemCode,
                 course: options.course,
+                paymentMethod: options.paymentMethod,
             });
             console.log("Latest Invoice Number:", generatedInvoiceNumber);
             return generatedInvoiceNumber;
@@ -2519,7 +2592,18 @@ class DatabaseConnectivity {
             const existing = String(row?.official?.remarks || '').trim();
 
             let nextRemarks;
-            if (!existing) {
+            // If the incoming text is already a fully-formatted remarks block — i.e.
+            // role-prefixed ("[System]: 1) ..."), bare-numbered ("1) ...") or a
+            // multi-line block — overwrite it as-is. This is what the RemarksEditor
+            // sends on add/edit/remove, and overwriting prevents doubled prefixes
+            // ("[System]: 1) [System]: 1) ...") and stale lines after a removal.
+            const looksLikeFormattedBlock =
+                /^\[[^\]]*\]:\s*\d+\)/.test(incoming) ||
+                /^\d+\)\s+/.test(incoming) ||
+                /\r?\n/.test(incoming);
+            if (looksLikeFormattedBlock) {
+                nextRemarks = incoming;
+            } else if (!existing) {
                 nextRemarks = `1) ${incoming}`;
             } else {
                 const lines = existing
@@ -2533,12 +2617,7 @@ class DatabaseConnectivity {
                     if (m) maxNo = Math.max(maxNo, parseInt(m[1], 10) || 0);
                 }
 
-                // If incoming is already fully numbered text, keep as-is.
-                if (/^\d+\)\s+/.test(incoming)) {
-                    nextRemarks = incoming;
-                } else {
-                    nextRemarks = `${existing}\n${maxNo + 1}) ${incoming}`;
-                }
+                nextRemarks = `${existing}\n${maxNo + 1}) ${incoming}`;
             }
     
             const result = await table.updateOne(filter, { $set: { "official.remarks": nextRemarks } });

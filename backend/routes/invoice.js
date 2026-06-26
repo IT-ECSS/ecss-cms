@@ -57,8 +57,7 @@ router.post('/', async function(req, res, next)
             staff || '',
             currentDateTime.date,
             currentDateTime.time,
-            location || '',
-            'Paid'
+            location || ''
         );
 
         const statusCode = result.success ? 200 : 400;

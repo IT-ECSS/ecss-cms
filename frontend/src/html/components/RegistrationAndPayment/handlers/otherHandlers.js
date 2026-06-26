@@ -6,6 +6,7 @@
 import {
   editRegistrationField,
   addCancelRemarks,
+  editRemarksField,
   updatePaymentStatus,
 } from '../services/registrationApi';
 
@@ -73,11 +74,13 @@ export async function handleRemarksChange(event, context) {
       throw error;
     }
   } else if (String(newValue ?? '').trim() === '') {
-    // Clearing remarks: use addCancelRemarks with empty string for proper backend clearing
+    // Clearing remarks: overwrite official.remarks with an empty string. Using the
+    // overwrite path (editRemarksField) — NOT the append-based addCancelRemarks —
+    // so a cleared/removed remark is never re-appended back.
     console.log('🗑️ [Remarks Clear] Clearing remarks for registration:', id);
     
     try {
-      const response = await addCancelRemarks(id, '');
+      const response = await editRemarksField(id, 'remarks', '');
       console.log('🗑️ [Remarks Clear] Backend response:', response);
       
       // Update both possible data locations in the row to ensure UI refresh
@@ -100,10 +103,14 @@ export async function handleRemarksChange(event, context) {
       throw error;
     }
   } else {
-    // Adding/updating remarks
+    // Adding/updating remarks. The RemarksEditor always produces a full, already
+    // formatted remarks block, so we OVERWRITE official.remarks with it via
+    // editRemarksField rather than appending (addCancelRemarks). This keeps the
+    // grid commit idempotent with the editor's own write and avoids doubled
+    // prefixes / stale lines after an in-editor edit or removal.
     console.log('📝 [Remarks Update] Adding/updating remarks for registration:', id, 'New value:', newValue);
     try {
-      const response = await addCancelRemarks(id, newValue);
+      const response = await editRemarksField(id, 'remarks', newValue);
       console.log('📝 [Remarks Update] Backend response:', response);
       
       // Update both possible data locations in the row to ensure UI refresh

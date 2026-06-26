@@ -35,24 +35,28 @@ const invoiceController = new InvoiceController();
 // ──────────────────────────────────────────────────────────────────────────────
 
 function getCurrentDateTime() {
-    // Create a Date object and adjust for Singapore Standard Time (UTC+8)
+    // Format the current instant in Singapore Standard Time (UTC+8) using the IANA
+    // "Asia/Singapore" zone. This is correct regardless of the server's own timezone
+    // (the previous manual offset math double-counted the offset and rolled the date
+    // forward by a day on machines already running in SGT).
     const now = new Date();
-    const singaporeOffset = 8 * 60; // SST is UTC+8, in minutes
-    const localOffset = now.getTimezoneOffset(); // Local timezone offset in minutes
-    const adjustedTime = new Date(now.getTime() + (singaporeOffset - localOffset) * 60000);
+    const parts = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Singapore',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+    }).formatToParts(now);
 
-    // Get day, month, year, hours, minutes, and seconds
-    const day = String(adjustedTime.getDate()).padStart(2, '0'); // Ensure two digits
-    const month = String(adjustedTime.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
-    const year = adjustedTime.getFullYear();
+    const lookup = (type) => parts.find((p) => p.type === type)?.value || '';
+    let hours = lookup('hour');
+    if (hours === '24') hours = '00'; // Some environments emit 24 for midnight
 
-    const hours = String(adjustedTime.getHours()).padStart(2, '0'); // Ensure two digits
-    const minutes = String(adjustedTime.getMinutes()).padStart(2, '0'); // Ensure two digits
-    const seconds = String(adjustedTime.getSeconds()).padStart(2, '0'); // Ensure two digits
-
-    // Format date and time
-    const formattedDate = `${day}/${month}/${year}`;
-    const formattedTime = `${hours}:${minutes}:${seconds}`;
+    const formattedDate = `${lookup('day')}/${lookup('month')}/${lookup('year')}`;
+    const formattedTime = `${hours}:${lookup('minute')}:${lookup('second')}`;
 
     console.log("Now (SST):", formattedDate, formattedTime);
 
@@ -373,6 +377,17 @@ router.post('/', async function(req, res, next)
         var {id} = req.body;
         var result = await registrationController.deleteParticipant(id);
         //console.log("Retrieve Registration Records:", result);
+
+        // Notify all connected clients so the frontend table stays in sync and the
+        // deleted row is removed immediately.
+        if (io && result) {
+            console.log("Emitting registration-delete event to all connected clients for id:", id);
+            io.emit('registration', {
+                type: 'registration-delete',
+                id,
+            });
+        }
+
         return res.json({"result": result}); 
     }
     else if(req.body.purpose === "portOver")
@@ -570,6 +585,13 @@ router.post('/', async function(req, res, next)
             const date = currentDateTime.date;
             const time = currentDateTime.time;
 
+            // The frontend does not send a separate `location`; derive it from the course
+            // payload so the stored invoice record is not left with an empty location.
+            const invoiceLocation = req.body.location
+                || req.body.course?.courseLocation
+                || req.body.course?.location
+                || '';
+
             const invoiceRecordResult = await invoiceController.createInvoice(
                 invoiceNo,
                 registrationId,
@@ -577,7 +599,7 @@ router.post('/', async function(req, res, next)
                 staffName,
                 date,
                 time,
-                req.body.location || '',
+                invoiceLocation,
                 req.body.status || 'Paid'
             );
             console.log("✅ [Invoice] Invoice record persisted:", invoiceRecordResult);

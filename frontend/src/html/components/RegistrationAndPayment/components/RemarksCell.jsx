@@ -41,8 +41,11 @@ const RemarksCell = (props) => {
   // =========================
   // CLEAN TEXT (REMOVE ROLE AND NUMBER)
   // =========================
+  // Strips one OR MORE leading `[Role]: N)` / bare `N)` prefixes so that even
+  // malformed/legacy lines that were accidentally double-prefixed
+  // (e.g. "[System]: 1) [System]: 1) [ts] ...") render cleanly as "N) [ts] ...".
   const extractText = (line) => {
-    return line.replace(/^\[.*?\]:\s*\d+\)\s*/, '');
+    return line.replace(/^(?:(?:\[.*?\]:\s*)?\d+\)\s*)+/, '');
   };
 
   // =========================

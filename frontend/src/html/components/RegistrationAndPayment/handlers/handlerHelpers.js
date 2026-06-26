@@ -6,6 +6,7 @@ import {
   updatePaymentStatus,
   editRegistrationField,
   addCancelRemarks,
+  editRemarksField,
 } from '../services/registrationApi';
 
 import { logRegistrationUpdate } from '../../../../utils/auditLog';
@@ -114,6 +115,82 @@ export function appendLocalRemark(event, remarkText) {
 }
 
 /**
+ * Returns the timestamp in the same format the manual RemarksEditor uses:
+ * DD/MM/YYYY HH:MM:SS (24-hour). Keeping this identical to the
+ * editor means System-generated remarks render byte-for-byte like typed ones.
+ * Example: "26/06/2026 23:46:07"
+ */
+export function getEditorTimestampLabel() {
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, '0');
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const year = now.getFullYear();
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+}
+
+/**
+ * Reads the current remarks block from whichever data shape carries it.
+ */
+function readExistingRemarks(dataObj) {
+  return String(
+    dataObj?.remarks ||
+    dataObj?.officialInfo?.remarks ||
+    dataObj?.official?.remarks ||
+    ''
+  ).trim();
+}
+
+/**
+ * Appends a role-tagged, numbered, timestamped remark in the canonical
+ * `[Role]: N) [DD/MM/YYYY HH:MM] message` format and persists the full block
+ * via the overwrite path (editRemarksField) so it is byte-for-byte consistent
+ * with manually-entered remarks. Defaults to the "System" role so machine-
+ * generated remarks (e.g. invoice voids) render in the System colour (black).
+ *
+ * Returns the updated remarks block.
+ */
+export async function appendSystemRemark({ id, event, message, role = 'System' }) {
+  const dataObj = event?.data || event;
+  // Defensive sanitisation: if a caller ever passes an already-formatted line
+  // (e.g. "[System]: 1) [ts] ..."), strip any leading `[Role]: N)` prefixes and
+  // a leading `[timestamp]` so we never produce a double-prefixed remark.
+  const cleanMessage = String(message ?? '')
+    .trim()
+    .replace(/^(?:(?:\[[^\]]*\]:\s*)?\d+\)\s*)+/, '')
+    .replace(/^\[\d{1,2}\/\d{1,2}\/\d{2,4}[^\]]*\]\s*/, '')
+    .trim();
+  if (!cleanMessage) return readExistingRemarks(dataObj);
+
+  const existing = readExistingRemarks(dataObj);
+  const lines = existing.split('\n').map((line) => line.trim()).filter(Boolean);
+
+  // Next number = highest existing number + 1 (robust to removed lines).
+  // Matches both legacy "N) ..." and role-prefixed "[Role]: N) ..." lines.
+  let maxNo = 0;
+  for (const line of lines) {
+    const m = line.match(/(?:^|\]:\s*)(\d+)\)/);
+    if (m) maxNo = Math.max(maxNo, parseInt(m[1], 10) || 0);
+  }
+  const nextNumber = maxNo + 1;
+
+  const newLine = `[${role}]: ${nextNumber}) [${getEditorTimestampLabel()}] ${cleanMessage}`;
+  const updatedBlock = lines.length ? `${lines.join('\n')}\n${newLine}` : newLine;
+
+  // Persist via the overwrite path so the backend performs no re-numbering.
+  await editRemarksField(id, 'remarks', updatedBlock);
+
+  // Optimistic local update across every data shape the grid reads from.
+  dataObj.remarks = updatedBlock;
+  if (dataObj.officialInfo) dataObj.officialInfo.remarks = updatedBlock;
+  if (dataObj.official) dataObj.official.remarks = updatedBlock;
+
+  return updatedBlock;
+}
+
+/**
  * Appends a numbered remark to the event data.
  * Automatically numbers remarks as 1), 2), 3), etc.
  * 
@@ -129,6 +206,11 @@ export function appendNumberedRemark(eventOrData, remarkText) {
   const dataObj = eventOrData?.data || eventOrData;
   
   const existing = String(dataObj?.remarks || '').trim();
+
+  // Strip any leading "N) " from the incoming remark so we never end up with a
+  // doubled prefix like "1) 1) ...". This function owns the numbering; callers
+  // should pass a single, unnumbered remark.
+  const cleanRemarkText = String(remarkText ?? '').replace(/^\s*\d+\)\s*/, '').trim();
   
   // Count existing numbered items (lines that start with number))
   let nextNumber = 1;
@@ -141,7 +223,7 @@ export function appendNumberedRemark(eventOrData, remarkText) {
     }
   }
   
-  const numberedRemark = `${nextNumber}) ${remarkText}`;
+  const numberedRemark = `${nextNumber}) ${cleanRemarkText}`;
   const updatedRemarks = existing ? `${existing}\n${numberedRemark}` : numberedRemark;
   
   // Update the top-level remarks field (what the grid displays from rowDataMapper)
@@ -246,8 +328,8 @@ export async function autoSetConfirmedSlotRegistrationStatus({ id, sn, userName,
  */
 export async function appendVoidedNumberRemark({ id, event, existingReceiptNo, reason }) {
   const docType = inferDocumentType(existingReceiptNo) === 'invoice'
-    ? 'SkillsFuture invoice number'
-    : 'Receipt number';
+    ? 'SkillsFuture Invoice Number'
+    : 'Receipt Number';
 
   const voidMarker = `${docType} ${existingReceiptNo} is void`;
   const voidKey = `${String(id || '')}::${String(existingReceiptNo || '').trim().toLowerCase()}`;
@@ -271,10 +353,10 @@ export async function appendVoidedNumberRemark({ id, event, existingReceiptNo, r
 
   recentVoidRemarkByKey.set(voidKey, now);
 
-  const remarkText = `[${getCurrentTimestampLabel()}] ${voidMarker}`;
   try {
-    await addCancelRemarks(id, remarkText);
-    appendNumberedRemark(event, remarkText);
+    // Void remarks are machine-generated, so they are tagged as "System" and
+    // written in the same `[System]: N) [timestamp] ...` format as manual ones.
+    await appendSystemRemark({ id, event, message: voidMarker, role: 'System' });
   } catch (error) {
     recentVoidRemarkByKey.delete(voidKey);
     throw error;

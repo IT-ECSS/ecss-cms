@@ -17,21 +17,21 @@ test('generateReceiptNumber uses the new ECSS receipt format with a dedicated re
 
 test('generateInvoiceNumber uses the new ECSS invoice format with a dedicated invoice series', async () => {
   const result = await generateInvoiceNumber({
-    existingInvoices: [{ invoiceNo: 'ECSS-TNC-SFC-00006-26' }],
+    existingInvoices: [{ invoiceNo: 'ECSS-CTH-SFC-00006-26' }],
     year: '2026',
     itemCode: 'SFC',
-    course: { courseEngName: 'Sample Course', courseLocation: 'Tampines 253 Centre' }
+    course: { courseEngName: 'Sample Course', courseLocation: 'CT Hub' }
   });
 
-  assert.equal(result, 'ECSS-TNC-SFC-00007-26');
+  assert.equal(result, 'ECSS-CTH-SFC-00007-26');
 });
 
 test('generateReceiptNumber uses the spreadsheet-style item category field when present', async () => {
   const result = await generateReceiptNumber({
     course: {
-      courseEngName: 'Fundraising Event',
+      courseEngName: 'Miscellaneous Sale',
       courseLocation: 'Pasir Ris West Wellness Centre',
-      itemCategoryForMosesUses: 'FR'
+      itemCategoryForMosesUses: 'Miscellaneous'
     },
     paymentMethod: 'Card',
     existingReceipts: [],
@@ -39,7 +39,7 @@ test('generateReceiptNumber uses the spreadsheet-style item category field when 
     fullYear: 2026
   });
 
-  assert.equal(result, 'ECSS-PRW-FR-00001-26');
+  assert.equal(result, 'ECSS-PRW-MSC-00001-26');
 });
 
 test('generateReceiptNumber derives the item code from course type and product category', async () => {
@@ -64,7 +64,7 @@ test('generateReceiptNumber maps spreadsheet category values to the correct item
     course: {
       courseEngName: '',
       courseLocation: 'Pasir Ris West Wellness Centre',
-      itemCategoryForMosesUses: 'Wellness'
+      itemCategoryForMosesUses: 'Fitness'
     },
     paymentMethod: 'Card',
     existingReceipts: [],
@@ -75,17 +75,15 @@ test('generateReceiptNumber maps spreadsheet category values to the correct item
   assert.equal(result, 'ECSS-PRW-FIT-00001-26');
 });
 
-test('generateReceiptNumber maps SkillsFuture payment methods to SFC', async () => {
-  const result = await generateReceiptNumber({
+test('generateInvoiceNumber maps the NSA category to SFC for invoices (SkillsFuture claims)', async () => {
+  const result = await generateInvoiceNumber({
+    existingInvoices: [],
+    year: '2026',
     course: {
       courseEngName: 'Sample Course',
       courseLocation: 'Pasir Ris West Wellness Centre',
-      itemCategoryForMosesUses: 'Fitness'
-    },
-    paymentMethod: 'SkillsFuture',
-    existingReceipts: [],
-    currentYear: 26,
-    fullYear: 2026
+      itemCategoryForMosesUses: 'NSA'
+    }
   });
 
   assert.equal(result, 'ECSS-PRW-SFC-00001-26');
@@ -107,12 +105,12 @@ test('generateReceiptNumber maps cash and paynow payment methods to NSA', async 
   assert.equal(result, 'ECSS-PRW-NSA-00001-26');
 });
 
-test('generateReceiptNumber maps Others category values to MSC', async () => {
+test('generateReceiptNumber maps the NSA category to NSA for receipts', async () => {
   const result = await generateReceiptNumber({
     course: {
       courseEngName: 'Sample Course',
       courseLocation: 'Pasir Ris West Wellness Centre',
-      itemCategoryForMosesUses: 'Others'
+      itemCategoryForMosesUses: 'NSA'
     },
     paymentMethod: 'Card',
     existingReceipts: [],
@@ -120,7 +118,7 @@ test('generateReceiptNumber maps Others category values to MSC', async () => {
     fullYear: 2026
   });
 
-  assert.equal(result, 'ECSS-PRW-MSC-00001-26');
+  assert.equal(result, 'ECSS-PRW-NSA-00001-26');
 });
 
 test('generateReceiptNumber keeps the same serial series across years and beyond 99999', async () => {
@@ -141,11 +139,11 @@ test('generateReceiptNumber keeps the same serial series across years and beyond
 
 test('generateInvoiceNumber keeps the same serial series across years and beyond 99999', async () => {
   const result = await generateInvoiceNumber({
-    existingInvoices: [{ invoiceNo: 'ECSS-TNC-SFC-00099-25' }, { invoiceNo: 'ECSS-TNC-SFC-99999-26' }],
+    existingInvoices: [{ invoiceNo: 'ECSS-CTH-SFC-00099-25' }, { invoiceNo: 'ECSS-CTH-SFC-99999-26' }],
     year: '2026',
     itemCode: 'SFC',
-    course: { courseEngName: 'Sample Course', courseLocation: 'Tampines 253 Centre' }
+    course: { courseEngName: 'Sample Course', courseLocation: 'CT Hub' }
   });
 
-  assert.equal(result, 'ECSS-TNC-SFC-100000-26');
+  assert.equal(result, 'ECSS-CTH-SFC-100000-26');
 });

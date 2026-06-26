@@ -80,10 +80,12 @@ router.post('/', async function(req, res, next)
                 
                 console.log("Inventory receipt PDF generated successfully");
                 
-                // Create filename with customer name, payment method, and receipt number
-                const customerName = (req.body.customerName || 'customer').replace(/[^a-zA-Z0-9_]/g, '_').trim();
-                const paymentMethod = (req.body.paymentMethod || 'payment').replace(/[^a-zA-Z0-9_]/g, '');
-                const receiptNumber = (req.body.receiptNumber || 'receipt').replace(/[^a-zA-Z0-9_/]/g, '_');
+                // Build a human-readable filename consistent with the registration
+                // receipts: [name] - Receipt - [Payment Method] - [Number].pdf
+                // Only strip characters that are invalid in filenames; keep spaces/hyphens.
+                const customerName = (req.body.customerName || 'Customer').replace(/[\\/:*?"<>|]/g, '').trim();
+                const paymentMethod = (req.body.paymentMethod || 'payment').replace(/[\\/:*?"<>|]/g, '').trim();
+                const receiptNumber = (req.body.receiptNumber || 'receipt').replace(/[\\/:*?"<>|]/g, '-').trim();
 
                 // determine location string: prefer explicit field, otherwise derive from items
                 let location = req.body.location;
@@ -94,7 +96,7 @@ router.post('/', async function(req, res, next)
                     location = locs.join(',');
                 }
                 location = (location || 'location').replace(/[^a-zA-Z0-9_]/g, '_').trim();
-                const filename = `${customerName}_${location}_${paymentMethod}_${receiptNumber}.pdf`;
+                const filename = `${customerName} - Receipt - ${paymentMethod} - ${receiptNumber}.pdf`;
                 
                 // Upload PDF to Google Drive inventory receipts folder
                 const googleDriveController = new GoogleDriveController();
@@ -120,13 +122,14 @@ router.post('/', async function(req, res, next)
                     console.error("Failed to upload receipt to Google Drive:", uploadResult.error);
                 }
 
-                // Return success result with Google Drive link
+                // Return success result with Google Drive link AND PDF data for frontend download/preview
                 return res.json({ 
                     result: {
                         success: true,
                         message: "Receipt generated and uploaded to Google Drive",
                         pdfGenerated: true,
                         pdfFilename: filename,
+                        pdfData: pdfBase64,
                         googleDrive: uploadResult.success ? {
                             fileId: uploadResult.fileId,
                             fileLink: uploadResult.fileLink
@@ -151,11 +154,10 @@ router.post('/', async function(req, res, next)
                 const pdfBuffer = await inventoryPdfGenerator.generateInventoryReceipt(req.body);
                 const pdfBase64 = pdfBuffer.toString('base64');
 
-                const customerName = (req.body.customerName || 'customer').replace(/[^a-zA-Z0-9_]/g, '_').trim();
-                const paymentMethod = (req.body.paymentMethod || 'payment').replace(/[^a-zA-Z0-9_]/g, '');
-                const receiptNumber = (req.body.receiptNumber || 'receipt').replace(/[^a-zA-Z0-9_/]/g, '_');
-                const location = (req.body.location || 'location').replace(/[^a-zA-Z0-9_]/g, '_').trim();
-                const filename = `${customerName}_${location}_${paymentMethod}_${receiptNumber}.pdf`;
+                const customerName = (req.body.customerName || 'Customer').replace(/[\\/:*?"<>|]/g, '').trim();
+                const paymentMethod = (req.body.paymentMethod || 'payment').replace(/[\\/:*?"<>|]/g, '').trim();
+                const receiptNumber = (req.body.receiptNumber || 'receipt').replace(/[\\/:*?"<>|]/g, '-').trim();
+                const filename = `${customerName} - Receipt - ${paymentMethod} - ${receiptNumber}.pdf`;
 
                 return res.json({ 
                     result: {

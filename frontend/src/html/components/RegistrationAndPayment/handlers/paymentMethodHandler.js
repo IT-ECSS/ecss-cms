@@ -30,7 +30,6 @@
 import {
   updatePaymentMethod,
   clearPaymentDetails,
-  addCancelRemarks,
 } from '../services/registrationApi';
 
 import {
@@ -38,6 +37,7 @@ import {
   buildLogPayload,
   resolveEventId,
   appendNumberedRemark,
+  appendVoidedNumberRemark,
   getCurrentTimestampLabel,
 } from './handlerHelpers';
 
@@ -123,7 +123,6 @@ export async function handlePaymentMethodChange(event, context) {
     const isChangingToNonSkillsFuture = (newValue === 'Cash' || newValue === 'PayNow');
     
     const shouldVoidSkillsFutureInvoice = isCurrentlySkillsFuture && isChangingToNonSkillsFuture;
-    let voidRemarkText = '';
     
     if (shouldVoidSkillsFutureInvoice) {
       const existingReceiptNo = String(event.data.recinvNo || event.data.officialInfo?.receiptNo || '').trim();
@@ -134,23 +133,10 @@ export async function handlePaymentMethodChange(event, context) {
           existingReceiptNo
         });
         try {
-          const docType = 'SkillsFuture Invoice Number';
-          const voidMarker = `${docType} ${existingReceiptNo} is void`;
-          voidRemarkText = `[${getCurrentTimestampLabel()}] ${voidMarker}`;
-          
-          // Add void remark to backend
-          await addCancelRemarks(id, voidRemarkText);
-          console.log('[PaymentMethod] ✅ Void remark sent to backend');
-          
-          // Update local event data with numbered remark for immediate display
-          if (event.data.official) {
-            appendNumberedRemark(event.data.official, voidRemarkText);
-          } else if (event.data.officialInfo) {
-            appendNumberedRemark(event.data.officialInfo, voidRemarkText);
-          } else {
-            appendNumberedRemark(event.data, voidRemarkText);
-          }
-          console.log('[PaymentMethod] ✅ Void remark added locally to event.data');
+          // Tagged as "System" and written in the canonical
+          // `[System]: N) [timestamp] ...` remarks format.
+          await appendVoidedNumberRemark({ id, event, existingReceiptNo });
+          console.log('[PaymentMethod] ✅ Void remark added (System) locally and persisted');
         } catch (voidError) {
           console.warn('[PaymentMethod] ⚠️ Failed to void invoice:', voidError.message);
           // Continue even if void fails

@@ -285,18 +285,7 @@ export async function handleFinalPaymentMethodChange(event, context) {
         console.log('[SimpleSwap Void] 🔄 Voiding SkillsFuture invoice:', { existingReceiptNo, currentPaymentStatus });
         
         try {
-          const docType = 'SkillsFuture Invoice Number';
-          const voidMarker = `${docType} ${existingReceiptNo} is void`;
-          const remarkText = `[${getCurrentTimestampLabel()}] ${voidMarker}`;
-          await addCancelRemarks(id, remarkText);
-          // Update remarks in the correct data structure with numbering
-          if (event.data.official) {
-            appendNumberedRemark(event.data.official, remarkText);
-          } else if (event.data.officialInfo) {
-            appendNumberedRemark(event.data.officialInfo, remarkText);
-          } else {
-            appendNumberedRemark(event.data, remarkText);
-          }
+          await appendVoidedNumberRemark({ id, event, existingReceiptNo });
           console.log('[SimpleSwap Void] ✅ SkillsFuture invoice voided in remarks');
         } catch (voidError) {
           console.warn('[SimpleSwap Void] ⚠️ Failed to void invoice:', voidError.message);
@@ -574,18 +563,7 @@ export async function handleFinalPaymentMethodChange(event, context) {
       console.log('[Case 7] Step 1: Voiding SkillsFuture invoice:', { existingReceiptNo, currentPaymentStatus });
       
       try {
-        const docType = 'SkillsFuture Invoice Number';
-        const voidMarker = `${docType} ${existingReceiptNo} is void`;
-        const remarkText = `[${getCurrentTimestampLabel()}] ${voidMarker}`;
-        await addCancelRemarks(id, remarkText);
-        // Update remarks in the correct data structure with numbering
-        if (event.data.official) {
-          appendNumberedRemark(event.data.official, remarkText);
-        } else if (event.data.officialInfo) {
-          appendNumberedRemark(event.data.officialInfo, remarkText);
-        } else {
-          appendNumberedRemark(event.data, remarkText);
-        }
+        await appendVoidedNumberRemark({ id, event, existingReceiptNo });
         console.log('[Case 7] ✅ Step 1 Complete: SkillsFuture invoice voided in remarks');
       } catch (voidError) {
         console.warn('[Case 7] ⚠️ Step 1 WARN: Failed to void invoice:', voidError.message);
@@ -689,18 +667,7 @@ export async function handleFinalPaymentMethodChange(event, context) {
       console.log('[Case 9 Void] 🔄 Voiding SkillsFuture invoice:', { existingReceiptNo, currentPaymentStatus });
       
       try {
-        const docType = 'SkillsFuture Invoice Number';
-        const voidMarker = `${docType} ${existingReceiptNo} is void`;
-        const remarkText = `[${getCurrentTimestampLabel()}] ${voidMarker}`;
-        await addCancelRemarks(id, remarkText);
-        // Update remarks in the correct data structure with numbering
-        if (event.data.official) {
-          appendNumberedRemark(event.data.official, remarkText);
-        } else if (event.data.officialInfo) {
-          appendNumberedRemark(event.data.officialInfo, remarkText);
-        } else {
-          appendNumberedRemark(event.data, remarkText);
-        }
+        await appendVoidedNumberRemark({ id, event, existingReceiptNo });
         console.log('[Case 9 Void] ✅ SkillsFuture invoice voided in remarks');
       } catch (voidError) {
         console.warn('[Case 9 Void] ⚠️ Failed to void invoice:', voidError.message);

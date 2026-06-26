@@ -7,7 +7,7 @@ class InvoiceController
         this.databaseConnectivity = new DatabaseConnectivity(); // Create an instance of DatabaseConnectivity
     }
 
-    async createInvoice(invoiceNo, registrationId, url, staff, date, time, location, status = 'Paid') {
+    async createInvoice(invoiceNo, registrationId, url, staff, date, time, location) {
         try {
             const dbConnection = this.databaseConnectivity;
             await dbConnection.ensureConnection();

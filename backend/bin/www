@@ -139,6 +139,16 @@ async function watchRegistrationForms(io) {
           operation: change.operationType,
           id: docId || null,
         });
+      } else if (change.operationType === 'delete') {
+        // A document was deleted — including deletions made directly in MongoDB
+        // (Compass/Atlas/shell) that bypass the Node.js API. Broadcast the same
+        // event the API delete route uses so the frontend removes the row live.
+        const docId = change.documentKey?._id?.toString?.() || String(change.documentKey?._id || '');
+        console.log('[ChangeStream] Registration document deleted, broadcasting removal:', docId);
+        io.emit('registration', {
+          type: 'registration-delete',
+          id: docId || null,
+        });
       }
     });
 

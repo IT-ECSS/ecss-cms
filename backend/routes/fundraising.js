@@ -126,11 +126,18 @@ router.post('/', upload.single('file'), async function(req, res, next)
                 });
             }
             
-            // Generate invoice number (receipt number) using the same logic as fundraising orders
+            // Generate the fundraising INVOICE number (fundraising only ever produces
+            // invoices). The location code comes from the order's collection centre.
             let invoiceNumber;
             try {
-                // Don't pass orderId to avoid automatic receiptNumber update - we only want invoiceNumber for insert
-                invoiceNumber = await fundraisingController.generateReceiptNumber(items);
+                const orderData = req.body.orderData || {};
+                const collectionLocation =
+                    orderData.collectionDeliveryLocation ||
+                    orderData.CollectionDeliveryLocation ||
+                    orderData.collectionDetails?.CollectionDeliveryLocation ||
+                    orderData.collectionDetails?.collectionDeliveryLocation ||
+                    '';
+                invoiceNumber = await fundraisingController.generateFundraisingInvoiceNumber(items, collectionLocation);
                 console.log("Generated invoice number for checkout order:", invoiceNumber);
             } catch (receiptError) {
                 console.error("Error generating invoice number:", receiptError);

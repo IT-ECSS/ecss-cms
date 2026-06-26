@@ -1,6 +1,6 @@
 const DatabaseConnectivity = require('../../database/databaseConnectivity');
 const { ObjectId } = require('mongodb');
-const { generateFundraisingReceiptNumber } = require('../../numbering/receiptNumber');
+const { generateInvoiceNumber: generateInvoiceNo } = require('../../numbering/invoiceNumber');
 const { google } = require('googleapis');
 const fs = require('fs');
 const path = require('path');
@@ -357,8 +357,7 @@ class FundraisingController {
                     staff: "",
                     location: "",
                     date: date,
-                    time: time,
-                    status: 'Paid'
+                    time: time
                 };
 
                 // Insert the invoice record
@@ -388,61 +387,49 @@ class FundraisingController {
         }
     }
 
-    // Generate next receipt number from Receipts table
-    // items parameter is optional - if provided, will check for Panettone products
-    // orderId parameter is optional - if provided, will associate the receipt with the order
-    async generateReceiptNumber(items, orderId) {
+    // Generate the next fundraising INVOICE number from the Invoices table.
+    // Fundraising only ever produces invoices (no receipts). The item code is PAN
+    // (Panettone / Christmas Fundraising) per the "Item Code" sheet, and the
+    // location code is resolved from the order's collection centre.
+    // items    - order items (used only to keep the PAN classification explicit)
+    // location - the order's collection centre (one of the centres in the
+    //            "Location Code" sheet); required so the number carries a valid
+    //            location code.
+    async generateFundraisingInvoiceNumber(items, location) {
         try {
             const result = await this.databaseConnectivity.initialize();
-            
+
             if (result === "Connected to MongoDB Atlas!") {
                 const databaseName = "Company-Management-System";
-                const receiptsCollectionName = "Receipts";
+                const invoicesCollectionName = "Invoices";
 
                 const database = this.databaseConnectivity.client.db(databaseName);
-                const receiptsCollection = database.collection(receiptsCollectionName);
+                const invoicesCollection = database.collection(invoicesCollectionName);
 
-                const currentYear = new Date().getFullYear().toString().slice(-2);
-                const existingReceipts = await receiptsCollection
-                    .find({ receiptNo: { $exists: true } })
-                    .toArray();
+                const year = new Date().getFullYear().toString().slice(-2);
+                const existingInvoices = await invoicesCollection.find({
+                    $or: [
+                        { invoiceNo: { $regex: '^ECSS-' } },
+                        { invoiceNumber: { $regex: '^ECSS-' } }
+                    ]
+                }).toArray();
 
-                const receiptNumber = generateFundraisingReceiptNumber({
-                    items,
-                    existingReceipts,
-                    currentYear
+                // Fundraising = Panettone (Christmas Fundraising) => item code PAN.
+                const invoiceNumber = await generateInvoiceNo({
+                    existingInvoices,
+                    year,
+                    itemCode: 'PAN',
+                    course: { courseLocation: location, location }
                 });
 
-                // If orderId is provided, update the order document with the receipt number
-                if (orderId) {
-                    try {
-                        const fundraisingCollectionName = "Fundraising";
-                        const fundraisingCollection = database.collection(fundraisingCollectionName);
-                        
-                        const updateResult = await fundraisingCollection.updateOne(
-                            { _id: new ObjectId(orderId) },
-                            { $set: { receiptNumber: receiptNumber } }
-                        );
-
-                        if (updateResult.modifiedCount > 0) {
-                            console.log(`Updated order ${orderId} with receipt number: ${receiptNumber}`);
-                        } else {
-                            console.warn(`Failed to update order ${orderId} with receipt number`);
-                        }
-                    } catch (updateError) {
-                        console.error("Error updating order with receipt number:", updateError);
-                        // Don't fail the receipt generation if update fails
-                    }
-                }
-
-                console.log(`Generated receipt number: ${receiptNumber} (Year: 20${currentYear}, Order ID: ${orderId || 'N/A'})`);
-                return receiptNumber;
+                console.log(`Generated fundraising invoice number: ${invoiceNumber} (Year: 20${year}, Location: ${location || 'N/A'})`);
+                return invoiceNumber;
             } else {
-                console.error("Database connection failed for receipt number generation");
+                console.error("Database connection failed for fundraising invoice number generation");
                 return null;
             }
         } catch (error) {
-            console.error("Error generating receipt number:", error);
+            console.error("Error generating fundraising invoice number:", error);
             return null;
         } finally {
             await this.databaseConnectivity.close();

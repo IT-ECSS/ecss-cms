@@ -1,4 +1,6 @@
 const getCourseReferenceCode = require('../constants/courseCodeMapping');
+const { resolveItemCodeFromCategory } = require('../constants/itemCodeMapping');
+const { resolveLocationCode } = require('../constants/locationCodeMapping');
 
 function escapeRegExp(value) {
     return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -11,12 +13,16 @@ function sanitizeItemCode(itemCode) {
     return sanitized || 'SFC';
 }
 
-function getLocationCode(location) {
-    const normalized = String(location ?? '').trim().toLowerCase();
-    if (normalized.includes('pasir ris') || normalized.includes('prw')) return 'PRW';
-    if (normalized.includes('ct hub') || normalized.includes('renewal christian') || normalized.includes('cth')) return 'CTH';
-    if (normalized.includes('tampines') || normalized.includes('tnc')) return 'TNC';
-    return 'TNC';
+// Resolve a location code for a centre/location. Nothing is hardcoded: the
+// mapping lives in the "Location Code" Google Sheet tab (Location name ->
+// Location Code). Throws when the sheet has no matching row or a blank code,
+// mirroring the Item Code legend guard, so we never emit a malformed number.
+async function getLocationCode(location) {
+    const code = await resolveLocationCode(location);
+    if (!code) {
+        throw new Error(`No location code found in the "Location Code" sheet for location "${location || ''}". Add the location (with its Location Code) to the sheet before generating a receipt or invoice.`);
+    }
+    return code;
 }
 
 function getYearSuffix(year) {
@@ -28,7 +34,7 @@ function getYearSuffix(year) {
 
 function getNextSeriesNumber(existingRecords = [], year) {
     const yearSuffix = getYearSuffix(year);
-    const invoiceNoRegex = /^ECSS-(PRW|CTH|TNC)-([A-Z0-9.-]+)-(\d+)-(\d{2})$/;
+    const invoiceNoRegex = /^ECSS-([A-Z0-9]+)-([A-Z0-9.-]+)-(\d+)-(\d{2})$/;
 
     const matchingRecords = (existingRecords || []).filter(record => {
         const invoiceNumber = record?.invoiceNumber || record?.invoiceNo || '';
@@ -47,79 +53,11 @@ function getNextSeriesNumber(existingRecords = [], year) {
     return String(nextNumber).padStart(5, '0');
 }
 
-function resolveCategoryCode(value) {
-    const normalized = String(value ?? '').trim().toUpperCase();
-    if (!normalized) return null;
-
-    const directCategoryMap = {
-        NSA: 'NSA',
-        FIT: 'FIT',
-        FITNESS: 'FIT',
-        WELLNESS: 'FIT',
-        EXERCISE: 'FIT',
-        WORKOUT: 'FIT',
-        YOGA: 'FIT',
-        PILATES: 'FIT',
-        HEALTH: 'FIT',
-        FR: 'FR',
-        FUNDRAISING: 'FR',
-        CHARITY: 'FR',
-        DONATION: 'FR',
-        PAN: 'PAN',
-        PANETTONE: 'PAN',
-        MSC: 'MSC',
-        MUSIC: 'MSC',
-        SINGING: 'MSC',
-        UKULELE: 'MSC',
-        CAJON: 'MSC',
-        CHOIR: 'MSC',
-        OTHERS: 'MSC',
-        OTHER: 'MSC',
-        SFC: 'SFC',
-        SKILLSFUTURE: 'SFC',
-        SKILLS: 'SFC',
-        SSG: 'SFC',
-        TLE: 'TLE',
-        TALKS: 'TLE',
-        SEMINAR: 'TLE',
-        WEBINAR: 'TLE',
-        WORKSHOP: 'TLE',
-        LECTURE: 'TLE',
-    };
-
-    if (directCategoryMap[normalized]) {
-        return directCategoryMap[normalized];
-    }
-
-    if (normalized.includes('WELLNESS') || normalized.includes('FITNESS') || normalized.includes('EXERCISE') || normalized.includes('YOGA') || normalized.includes('PILATES') || normalized.includes('MOBILITY')) {
-        return 'FIT';
-    }
-
-    if (normalized.includes('PANETTONE')) {
-        return 'PAN';
-    }
-
-    if (normalized.includes('FUNDRAISING') || normalized.includes('CHARITY') || normalized.includes('DONATION')) {
-        return 'FR';
-    }
-
-    if (normalized.includes('MUSIC') || normalized.includes('SINGING') || normalized.includes('UKULELE') || normalized.includes('CAJON') || normalized.includes('CHOIR')) {
-        return 'MSC';
-    }
-
-    if (normalized.includes('SKILLS') || normalized.includes('SSG')) {
-        return 'SFC';
-    }
-
-    if (normalized.includes('TALK') || normalized.includes('SEMINAR') || normalized.includes('WEBINAR') || normalized.includes('WORKSHOP') || normalized.includes('LECTURE')) {
-        return 'TLE';
-    }
-
-    if (normalized.includes('NSA')) {
-        return 'NSA';
-    }
-
-    return null;
+// Resolve an item code from a category/description value. Nothing is hardcoded:
+// the mapping lives in the "Item Code Legend" Google Sheet (Item Category (For
+// Moses Uses) + Receipt/Invoice -> Item Code).
+async function resolveCategoryCode(value, docType = 'Invoice') {
+    return resolveItemCodeFromCategory(value, docType);
 }
 
 function getPaymentMethodOverrideCode(paymentMethod) {
@@ -137,6 +75,32 @@ function getPaymentMethodOverrideCode(paymentMethod) {
 }
 
 async function resolveItemCode(course, itemCode, paymentMethod) {
+    // WooCommerce product categories that are NOT registration/payment course types must
+    // follow the "Item Category (For Moses Uses)" mapping and take precedence over any
+    // payment-method override (e.g. Cash → NSA, SkillsFuture → SFC). The presence of a
+    // wooCategory means this item came from WooCommerce, not the registration system.
+    const wooCategoryHint = course?.wooCategory || '';
+    const mappedWooCategory = await resolveCategoryCode(wooCategoryHint, 'Invoice');
+    if (mappedWooCategory) {
+        return sanitizeItemCode(mappedWooCategory);
+    }
+
+    // For registration courses, the course type IS the item category in the legend
+    // sheet (e.g. courseType "NSA" + Invoice → SFC). This is the authoritative signal
+    // for NSA SkillsFuture-claim invoices and takes precedence over any raw course
+    // code (e.g. a TGS reference) or payment-method override.
+    const courseTypeHint = course?.courseType || course?.type || course?.courseCategory || '';
+    const mappedCourseType = await resolveCategoryCode(courseTypeHint, 'Invoice');
+    if (mappedCourseType) {
+        return sanitizeItemCode(mappedCourseType);
+    }
+
+    const spreadsheetCategoryHint = course?.itemCategoryForMosesUses || course?.itemCategory || course?.categoryForMosesUses || course?.spreadsheetCategory || '';
+    const mappedSpreadsheetCategory = await resolveCategoryCode(spreadsheetCategoryHint, 'Invoice');
+    if (mappedSpreadsheetCategory) {
+        return sanitizeItemCode(mappedSpreadsheetCategory);
+    }
+
     const paymentMethodOverride = getPaymentMethodOverrideCode(paymentMethod);
     if (paymentMethodOverride) {
         return paymentMethodOverride;
@@ -151,21 +115,9 @@ async function resolveItemCode(course, itemCode, paymentMethod) {
         return sanitizeItemCode(explicitItemCode);
     }
 
-    const spreadsheetCategoryHint = course?.itemCategoryForMosesUses || course?.itemCategory || course?.categoryForMosesUses || course?.spreadsheetCategory || '';
     const categoryHint = course?.productCategory || course?.category || course?.wooCategory || course?.product_type || '';
-    const courseTypeHint = course?.courseType || course?.type || course?.courseCategory || '';
 
-    const mappedSpreadsheetCategory = resolveCategoryCode(spreadsheetCategoryHint);
-    if (mappedSpreadsheetCategory) {
-        return sanitizeItemCode(mappedSpreadsheetCategory);
-    }
-
-    const mappedCourseType = resolveCategoryCode(courseTypeHint);
-    if (mappedCourseType) {
-        return sanitizeItemCode(mappedCourseType);
-    }
-
-    const mappedCategory = resolveCategoryCode(categoryHint);
+    const mappedCategory = await resolveCategoryCode(categoryHint, 'Invoice');
     if (mappedCategory) {
         return sanitizeItemCode(mappedCategory);
     }
@@ -189,15 +141,15 @@ async function resolveItemCode(course, itemCode, paymentMethod) {
 async function generateInvoiceNumber({ existingInvoices = [], year = new Date().getFullYear().toString(), itemCode, course, paymentMethod }) {
     const resolvedItemCode = await resolveItemCode(course, itemCode, paymentMethod);
     const normalizedYear = getYearSuffix(year);
-    const normalizedLocation = getLocationCode(course?.courseLocation || course?.location || 'UNKNOWN');
+    const normalizedLocation = await getLocationCode(course?.courseLocation || course?.location || 'UNKNOWN');
     const normalizedItemCode = sanitizeItemCode(resolvedItemCode);
     const padded = getNextSeriesNumber(existingInvoices, normalizedYear);
 
     return `ECSS-${normalizedLocation}-${normalizedItemCode}-${padded}-${normalizedYear}`;
 }
 
-async function getNextInvoiceNumber({ existingInvoices, year, itemCode, course }) {
-    return generateInvoiceNumber({ existingInvoices, year, itemCode, course });
+async function getNextInvoiceNumber({ existingInvoices, year, itemCode, course, paymentMethod }) {
+    return generateInvoiceNumber({ existingInvoices, year, itemCode, course, paymentMethod });
 }
 
 module.exports = {

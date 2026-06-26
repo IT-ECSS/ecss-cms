@@ -19,6 +19,11 @@ class RemarksEditor extends React.Component {
       value: isNewRow ? '' : (props.value || '')
     };
 
+    // When set, getValue() returns this exact block on stopEditing instead of
+    // re-appending the textarea content. Used by remove/clear/save so AG Grid
+    // commits the real post-edit value rather than the stale original.
+    this._finalValue = undefined;
+
     this.ref = React.createRef();
   }
 
@@ -50,8 +55,9 @@ class RemarksEditor extends React.Component {
 
     const hh = String(now.getHours()).padStart(2, '0');
     const min = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
 
-    return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+    return `${dd}/${mm}/${yyyy} ${hh}:${min}:${ss}`;
   };
 
   // =========================
@@ -75,6 +81,10 @@ class RemarksEditor extends React.Component {
   // BUILD NEW LINE (FIXED RESET LOGIC)
   // =========================
   getValue = () => {
+    // Remove/clear/save already computed the exact block to persist — return it
+    // verbatim so the grid commit matches what was written to the backend.
+    if (this._finalValue !== undefined) return this._finalValue;
+
     const trimmed = this.state.value.trim();
     if (!trimmed) return this.props.value || '';
 
@@ -93,6 +103,28 @@ class RemarksEditor extends React.Component {
   };
 
   // =========================
+  // OPTIMISTIC GRID UPDATE
+  // =========================
+  // Push the new remarks block straight into the AG Grid row so the cell
+  // updates instantly, without waiting on (or being blocked by) a socket patch.
+  _syncGridCell = (updated) => {
+    const node = this.props.node;
+    const api = this.props.api;
+    if (node?.data) {
+      node.data.remarks = updated;
+      if (node.data.officialInfo) {
+        node.data.officialInfo = { ...node.data.officialInfo, remarks: updated };
+      }
+      if (node.data.official) {
+        node.data.official = { ...node.data.official, remarks: updated };
+      }
+    }
+    if (node && api && typeof api.refreshCells === 'function') {
+      api.refreshCells({ rowNodes: [node], columns: ['remarks'], force: true });
+    }
+  };
+
+  // =========================
   // DELETE SINGLE LINE
   // =========================
   removeLine = async (index) => {
@@ -106,6 +138,8 @@ class RemarksEditor extends React.Component {
 
     try {
       await editRemarksField(id, 'remarks', updated);
+      this._finalValue = updated;
+      this._syncGridCell(updated);
       this.props.stopEditing();
     } catch (err) {
       console.error('Failed to remove remark line:', err);
@@ -126,7 +160,10 @@ class RemarksEditor extends React.Component {
       try {
         const id = this.props.data?.id || this.props.data?._id;
 
-        await editRemarksField(id, 'remarks', this.getValue());
+        const finalValue = this.getValue();
+        await editRemarksField(id, 'remarks', finalValue);
+        this._finalValue = finalValue;
+        this._syncGridCell(finalValue);
 
         this.props.stopEditing();
       } catch (err) {
@@ -147,6 +184,8 @@ class RemarksEditor extends React.Component {
 
     try {
       await editRemarksField(id, 'remarks', '');
+      this._finalValue = '';
+      this._syncGridCell('');
       this.setState({ value: '' });
       this.props.stopEditing();
     } catch (err) {

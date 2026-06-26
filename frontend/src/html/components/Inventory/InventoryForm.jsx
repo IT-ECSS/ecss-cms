@@ -86,17 +86,18 @@ class InventoryForm extends Component {
         return matchedProduct ? parseFloat(matchedProduct.price) || 0 : null;
     };
 
-    // Get the SKU of the currently selected product and location
-    getSelectedProductSku = () => {
+
+    // Get the WooCommerce categories of the currently selected product and location
+    getSelectedProductCategories = () => {
         const { formData, inventoryProducts = [] } = this.state;
-        
-        if (!formData.product || !formData.location) return '';
-        
-        const matchedProduct = inventoryProducts.find(p => 
+
+        if (!formData.product || !formData.location) return [];
+
+        const matchedProduct = inventoryProducts.find(p =>
             p.name === formData.product && p.variation_name === formData.location
         );
-        
-        return matchedProduct ? matchedProduct.sku || '' : '';
+
+        return matchedProduct ? matchedProduct.categories || [] : [];
     };
 
     // Get the stock quantity of the currently selected product and location
@@ -395,6 +396,10 @@ class InventoryForm extends Component {
         this.setState({ isSubmitting: true, error: null, successMessage: null });
 
         try {
+            // Extract the primary non-'Inventory' WooCommerce category name for receipt item code resolution
+            const wooCategories = this.getSelectedProductCategories();
+            const wooCategory = wooCategories.find(c => c.name && c.name.toLowerCase() !== 'inventory')?.name || '';
+
             const payload = {
                 action: 'Sales',
                 customerName: formData.customerName,
@@ -405,9 +410,10 @@ class InventoryForm extends Component {
                 orderDate: formData.orderDate,
                 orderTime: formData.orderTime,
                 staffName: formData.staffName,
-                sku: this.getSelectedProductSku(),
                 paymentMethod: formData.paymentMethod,
-                totalPrice: parseFloat(parseFloat(formData.totalAmount || 0).toFixed(2))
+                totalPrice: parseFloat(parseFloat(formData.totalAmount || 0).toFixed(2)),
+                wooCategory: wooCategory,
+                categories: wooCategories,
             };
 
             // Step 1: Update backend (port 3001)
@@ -471,9 +477,36 @@ class InventoryForm extends Component {
                 //     URL.revokeObjectURL(pdfUrl);
                 // }
 
-                // Receipt PDF is uploaded to Google Drive automatically by the backend
-                if (receiptResponse.data.result?.googleDrive?.fileLink) {
-                    console.log('Receipt uploaded to Google Drive:', receiptResponse.data.result.googleDrive.fileLink);
+                // Receipt PDF is uploaded to Google Drive automatically by the backend.
+                // After it is saved, open the receipt in a new tab and trigger auto-download.
+                const resultData = receiptResponse.data.result;
+
+                if (resultData?.googleDrive?.fileLink) {
+                    console.log('Receipt uploaded to Google Drive:', resultData.googleDrive.fileLink);
+                }
+
+                if (resultData?.pdfGenerated && resultData?.pdfData) {
+                    // Decode the base64 PDF into a Blob
+                    const pdfBytes = Uint8Array.from(atob(resultData.pdfData), c => c.charCodeAt(0));
+                    const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+                    const blobUrl = URL.createObjectURL(pdfBlob);
+
+                    // Open in a new tab for viewing
+                    window.open(blobUrl, '_blank');
+
+                    // Trigger automatic download
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = blobUrl;
+                    downloadLink.download = resultData.pdfFilename || 'inventory_receipt.pdf';
+                    document.body.appendChild(downloadLink);
+                    downloadLink.click();
+                    document.body.removeChild(downloadLink);
+
+                    // Release the blob URL after a short delay
+                    setTimeout(() => URL.revokeObjectURL(blobUrl), 15000);
+                } else if (resultData?.googleDrive?.fileLink) {
+                    // Fallback: open the Google Drive link directly
+                    window.open(resultData.googleDrive.fileLink, '_blank');
                 }
 
                 console.log("[SUCCESS] Order submitted and WooCommerce inventory updated");

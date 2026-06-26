@@ -423,6 +423,7 @@ class WooCommerceAPI:
                                     'manage_stock': variation.get('manage_stock', False),
                                     'sku': variation.get('sku', ''),
                                     'attributes': variation.get('attributes', []),
+                                    'categories': product.get('categories', []),
                                     'type': 'variation'
                                 }
                                 # Always use parent product image for consistency across variations

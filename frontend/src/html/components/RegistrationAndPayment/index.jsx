@@ -957,6 +957,17 @@ class RegistrationPaymentSection extends Component {
 
     this.socket = io(NODE_BASE_URL);
     this.socket.on('registration', (eventData) => {
+      // A record was deleted in the database — remove that row from the grid
+      // immediately so the frontend stays in sync. Handle this BEFORE the
+      // progress-modal / suppression guards so deletions always live-update the
+      // table even if an edit or progress modal is in flight.
+      if (eventData?.type === 'registration-delete') {
+        const deletedId = String(eventData?.id || '').trim();
+        if (deletedId) {
+          this._removeSocketRow(deletedId);
+          return;
+        }
+      }
       if (this.props.progressModalOpen) {
         return;
       }
@@ -1328,6 +1339,51 @@ class RegistrationPaymentSection extends Component {
     } catch (error) {
       console.error('Error applying socket row patch:', error);
     }
+  };
+
+  // Remove a single row from the grid in response to a database deletion so the
+  // frontend stays in sync without reloading the whole table.
+  _removeSocketRow = (deletedId) => {
+    const targetId = String(deletedId || '').trim();
+    if (!targetId) return;
+
+    const matches = (row) => String(row?.id || '') === targetId;
+
+    this.setState((prev) => {
+      const hasRow = (prev.rowData || []).some(matches);
+      const hasOriginal = (prev.originalData || []).some(matches);
+      if (!hasRow && !hasOriginal) return null; // Nothing to remove in this view
+
+      const rowData = (prev.rowData || []).filter((row) => !matches(row));
+      const originalData = (prev.originalData || []).filter((row) => !matches(row));
+      const registerationDetails = (prev.registerationDetails || []).filter((row) => !matches(row));
+
+      let expandedRowIndex = prev.expandedRowIndex;
+      if (expandedRowIndex !== null) {
+        const expandedId = String(prev.rowData?.[expandedRowIndex]?.id || '');
+        if (expandedId === targetId) {
+          expandedRowIndex = null;
+        }
+      }
+
+      return {
+        rowData,
+        originalData,
+        registerationDetails,
+        expandedRowIndex,
+        columnDefs: this.getColumnDefs(rowData),
+      };
+    }, () => {
+      // Keep the parent record count in sync.
+      if (typeof this.props.getTotalNumberofDetails === 'function') {
+        this.props.getTotalNumberofDetails((this.state.originalData || []).length);
+      }
+      if (this.gridApi && typeof this.gridApi.refreshCells === 'function') {
+        this.gridApi.refreshCells({ force: true });
+      }
+      // Refresh anomaly detection so badges/modals stay accurate.
+      this.anomalitiesAlert(this.state.originalData || [], { autoOpen: false });
+    });
   };
 
   async fetchAndSetRegistrationData() {
