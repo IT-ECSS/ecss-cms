@@ -775,9 +775,6 @@ class Popup extends Component {
       popupTypeClass = type;
     }
 
-    const approvalRequestsMessage = message || 'You have pending approval requests.';
-    const pendingRequestsMatch = approvalRequestsMessage.match(/(\d+\s+pending approval request(?:s)?)/i);
-
     return (
       <div className="popup-overlay" onClick={onClose}>
         <div className={popupTypeClass} onClick={(e) => e.stopPropagation()}>
@@ -909,40 +906,6 @@ class Popup extends Component {
               <div className="popup-footer">
                 <button type="button" className="popup-footer__button popup-footer__button--secondary" onClick={this.cancel}>No</button>
                 <button type="button" className="popup-footer__button popup-footer__button--primary" onClick={() => this.goBackHome()}>Yes</button>
-              </div>
-            </div>
-):  type === "logout-queue-choice" ? (
-            <div className="popup-modal popup-modal--approval-requests">
-              <div className="popup-header">
-                <h2>Approval Requests</h2>
-                <button type="button" className="popup-header__close-btn" onClick={this.cancel} aria-label="Close">&times;</button>
-              </div>
-              <div className="popup-body">
-                <p>
-                  {pendingRequestsMatch ? (
-                    <>
-                      {approvalRequestsMessage.slice(0, pendingRequestsMatch.index)}
-                      <strong>{pendingRequestsMatch[0]}</strong>
-                      {approvalRequestsMessage.slice((pendingRequestsMatch.index || 0) + pendingRequestsMatch[0].length)}
-                    </>
-                  ) : (
-                    approvalRequestsMessage
-                  )}
-                </p>
-                <p>Do you want to continue storing approval requests or clear them before logout?</p>
-              </div>
-              <div className="popup-footer">
-                <button type="button" className="popup-footer__button popup-footer__button--secondary" onClick={() => this.props.goBackLoginPage && this.props.goBackLoginPage('keep')}>Continue Storing Requests</button>
-                <button type="button" className="popup-footer__button popup-footer__button--primary" onClick={() => this.props.goBackLoginPage && this.props.goBackLoginPage('clear')}>Clear Requests & Logout</button>
-              </div>
-            </div>
-          ):  type === "login-queue-pending" ? (
-            <div className="logout-message">
-              <h2 className="logout-title">Pending Approvals</h2>
-              <p>{message || 'You have pending approval changes.'}</p>
-              <div className="button-container1">
-                <button onClick={() => this.props.onLoginQueueDecision && this.props.onLoginQueueDecision('open')}>Open Now</button>
-                <button onClick={() => this.props.onLoginQueueDecision && this.props.onLoginQueueDecision('later')}>Later</button>
               </div>
             </div>
           ):  type === "no-activity" ? (

@@ -5,12 +5,8 @@ import { flushSync } from 'react-dom';
   import AccountsSection from './sub/accountsSection';
   import CoursesSection from './sub/courseSection';
   import RegistrationPaymentSection from './RegistrationAndPayment';
-  import ApprovalPopup from './RegistrationAndPayment/approval/ApprovalPopup';
-  import ApprovalQueueModal from './RegistrationAndPayment/approval/ApprovalQueueModal';
-  import ApprovalStatusModal from './RegistrationAndPayment/approval/ApprovalStatusModal';
   import ExportApprovalModal from './RegistrationAndPayment/components/ExportApprovalModal';
   import SupervisorExportModal from './RegistrationAndPayment/components/SupervisorExportModal';
-  import ApprovalQueueDecisionPopup from './popup/ApprovalQueueDecisionPopup';
   import BulkUpdateModal from './RegistrationAndPayment/components/BulkUpdateModal';
   import BulkUpdateReasonModal from './RegistrationAndPayment/components/BulkUpdateReasonModal';
   import UpdateProgressModal from './RegistrationAndPayment/components/UpdateProgressModal';
@@ -167,21 +163,13 @@ import { flushSync } from 'react-dom';
         invoiceModalData: { invoiceNumber: '', orderData: null },
         showGoogleDriveUploadModal: false,
         showGoogleDriveViewModal: false,
-        pendingApproval: null,
         exportApprovalPayload: null,
         supervisorExportPayload: null,
-        pendingApprovalQueue: null,
-        approvalStatusPayload: null,
         notifierPayload: null,
         registrationBulkUpdatePayload: null,
         showBulkUpdateReasonModal: false,
         bulkUpdateReason: '',
         bulkUpdateReasonContext: null,
-        shouldAutoOpenQueue: false,
-        showQueueDecisionPopup: false,
-        queueDecisionContext: null, // 'logout' or 'inactivity'
-        queueItemCount: 0,
-        showingQueueDuringLogout: false,
         // isValidationErrorModalOpen: false,
         // validationErrors: [],
         // validationErrorDetails: {},
@@ -205,7 +193,6 @@ import { flushSync } from 'react-dom';
       initialState.bulkOrderLoading = false;
       initialState.bulkOrderError = null;
       initialState.bulkOrderData = null;
-      initialState.approvalStatusPayload = null;
 
       // Set the initial state
       this.state = initialState;
@@ -1263,17 +1250,6 @@ import { flushSync } from 'react-dom';
       window.addEventListener('click', this.resetInactivity);
       window.addEventListener('scroll', this.resetInactivity);
       window.addEventListener('beforeunload', this.handleBeforeUnload);
-      
-      // Check for persisted approval queue on login
-      const navEntries = (typeof performance !== 'undefined' && performance.getEntriesByType)
-        ? performance.getEntriesByType('navigation')
-        : [];
-      const navType = navEntries && navEntries[0] ? navEntries[0].type : '';
-      const isReload = navType === 'reload' || (performance.navigation && performance.navigation.type === 1);
-
-      if (!isReload) {
-        this.checkAndLoadPersistedQueue();
-      }
     }
 
     // Add componentDidUpdate for state persistence
@@ -1288,11 +1264,6 @@ import { flushSync } from 'react-dom';
         popupMessage: '',
         popupType: '',
         loading: false,
-        pendingApproval: null,
-        pendingApprovalQueue: null,
-        approvalStatusPayload: null,
-        shouldAutoOpenQueue: false, // Reset on every state update
-        showingQueueDuringLogout: false,
       };
       localStorage.setItem('myComponentState', JSON.stringify(statesToSave));
 
@@ -1314,8 +1285,6 @@ import { flushSync } from 'react-dom';
         popupMessage: '',
         popupType: '',
         loading: false,
-        pendingApproval: null,
-        pendingApprovalQueue: null
       };
       localStorage.setItem('myComponentState', JSON.stringify(sanitizedState));
 
@@ -1619,17 +1588,6 @@ import { flushSync } from 'react-dom';
       this.setState({ showGoogleDriveViewModal: false });
     };
 
-    // NSA Approval Modal
-    openApprovalPopup = (event, onConfirm, onCancel) => {
-      this.setState({
-        pendingApproval: {
-          event,
-          onConfirm: (reason, overrideNewValue) => { onConfirm(reason, overrideNewValue); this.setState({ pendingApproval: null }); },
-          onCancel:  ()       => { onCancel();         this.setState({ pendingApproval: null }); },
-        },
-      });
-    };
-
     openExportApprovalModal = (payload) => {
       this.setState({ exportApprovalPayload: payload || null });
     };
@@ -1644,14 +1602,6 @@ import { flushSync } from 'react-dom';
 
     closeSupervisorExportModal = () => {
       this.setState({ supervisorExportPayload: null });
-    };
-
-    openApprovalQueueModal = (payload) => {
-      this.setState({ pendingApprovalQueue: payload || null });
-    };
-
-    openApprovalStatusModal = (payload) => {
-      this.setState({ approvalStatusPayload: payload || null });
     };
 
     openNotifierQueueModal = (payload) => {
@@ -2033,113 +1983,9 @@ import { flushSync } from 'react-dom';
     });
   }
 
-  checkAndLoadPersistedQueue = () => {
-    if (this.hasPersistedApprovalQueue()) {
-      // ONLY set shouldAutoOpenQueue on login, NOT on page refresh
-      // The refresh detection in componentDidMount prevents this from being called on refresh
-      this.setState({
-        isPopupOpen: false,
-        popupMessage: '',
-        popupType: '',
-        isRegistrationPaymentVisible: true,
-        section: "registration",
-        sidebarVisible: false,
-        courseType: "",
-        accountType: null,
-        createAccount: false,
-        isReceiptVisible: false,
-        item: "Registration & Payment Table",
-        attendanceVisibility: false,
-        isMembershipVisible: false,
-        isFitnessVisible: false,
-        isFundraisingTableVisible: false,
-        isFundraisingInventoryVisible: false,
-        isInventoryModulesVisible: false,
-        isInventoryFormVisible: false,
-        isAuditLogsVisible: false,
-        shouldAutoOpenQueue: true, // Only set on login (after refresh check)
-      });
-    }
-  }
-
-  handleLoginQueueDecision = (action) => {
-    if (action === 'open') {
-      // Navigate to Registration & Payment and auto-open the queue modal
-      this.setState({
-        isPopupOpen: false,
-        popupMessage: '',
-        popupType: '',
-        isRegistrationPaymentVisible: true,
-        section: "registration",
-        shouldAutoOpenQueue: true,
-        sidebarVisible: false,
-        courseType: "",
-        accountType: null,
-        createAccount: false,
-        isReceiptVisible: false,
-        item: "Registration And Payment Table",
-        attendanceVisibility: false,
-        isMembershipVisible: false,
-        isFitnessVisible: false,
-        isFundraisingTableVisible: false,
-        isFundraisingInventoryVisible: false,
-        isInventoryModulesVisible: false,
-        isInventoryFormVisible: false,
-        isAuditLogsVisible: false
-      });
-    } else {
-      // User clicked "Later" - just close the popup and proceed normally
-      this.setState({
-        isPopupOpen: false,
-        popupMessage: '',
-        popupType: '',
-        shouldAutoOpenQueue: false
-      });
-    }
-  }
-
-  getApprovalQueueStorageKey = () => {
-    const email = (this.props.location.state?.email || 'unknown').toLowerCase();
-    return `registrationApprovalQueue:${email}`;
-  }
-
-  hasPersistedApprovalQueue = () => {
-    try {
-      const raw = localStorage.getItem(this.getApprovalQueueStorageKey());
-      if (!raw) return false;
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) && parsed.length > 0;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  clearPersistedApprovalQueue = () => {
-    localStorage.removeItem(this.getApprovalQueueStorageKey());
-  }
-
   logOut = async() =>
   {   
-    // Check for queue FIRST before showing logout confirmation
-    if (this.hasPersistedApprovalQueue()) {
-      const count = (() => {
-        try {
-          const raw = localStorage.getItem(this.getApprovalQueueStorageKey());
-          const parsed = JSON.parse(raw);
-          return Array.isArray(parsed) ? parsed.length : 0;
-        } catch (_) { return 0; }
-      })();
-      // Show the store-or-clear choice popup instead of the full queue modal
-      this.setState({
-        isPopupOpen: true,
-        popupMessage: `You have ${count} pending approval request${count !== 1 ? 's' : ''} in the queue.`,
-        popupType: 'logout-queue-choice',
-        isDropdownOpen: false,
-      });
-      return;
-    }
-    
-    // If no queue, show logout confirmation
+    // Show logout confirmation
     this.setState({
       isPopupOpen: true,
       popupMessage: "Are you sure that you want to log out?",
@@ -2151,15 +1997,8 @@ import { flushSync } from 'react-dom';
   // This method is called when no activity is detected for the specified time
   noActivityDetected = async () => {
     this.setState({ isInactive: true });
-    
-    // Check for queue when inactivity detected
-    if (this.hasPersistedApprovalQueue()) {
-      // Show the full queue modal instead of small decision popup
-      this.openLogoutQueueModal();
-      return;
-    }
-    
-    // If no queue, show inactivity popup
+
+    // Show inactivity popup
     this.setState({
       isPopupOpen: true,
       popupMessage: "",
@@ -2182,137 +2021,9 @@ import { flushSync } from 'react-dom';
     this.inactivityTimeout = setTimeout(this.noActivityDetected, 15*60*1000); // 1 minute*/
   };
 
-  handleQueueDecisionContinue = () => {
-    // Keep queue in localStorage
-    this.setState({
-      showQueueDecisionPopup: false,
-      queueDecisionContext: null
-    }, () => {
-      // Show logout confirmation after decision
-      this.setState({
-        isPopupOpen: true,
-        popupMessage: "Are you sure that you want to log out?",
-        popupType: "logout",
-      });
-    });
-  }
-
-  handleQueueDecisionClear = () => {
-    // Clear queue before logout
-    this.clearPersistedApprovalQueue();
-    this.setState({
-      showQueueDecisionPopup: false,
-      queueDecisionContext: null
-    }, () => {
-      // Show logout confirmation after decision
-      this.setState({
-        isPopupOpen: true,
-        popupMessage: "Are you sure that you want to log out?",
-        popupType: "logout",
-      });
-    });
-  }
-
-  // Handlers for queue modal shown during logout
-  handleQueueCloseFromLogout = () => {
-    // Close queue modal and proceed to logout confirmation
-    this.setState({
-      pendingApprovalQueue: null,
-      showingQueueDuringLogout: false
-    }, () => {
-      // Show logout confirmation
-      this.setState({
-        isPopupOpen: true,
-        popupMessage: "Are you sure that you want to log out?",
-        popupType: "logout",
-      });
-    });
-  }
-
-  handleQueueSendEmailFromLogout = () => {
-    // Send approval email from logout queue
-    // Get the current queue
-    const queueData = JSON.parse(localStorage.getItem(this.getApprovalQueueStorageKey()));
-    
-    // TODO: Send email logic here if needed
-    
-    // Clear queue and proceed to logout
-    this.clearPersistedApprovalQueue();
-    this.setState({
-      pendingApprovalQueue: null,
-      showingQueueDuringLogout: false
-    }, () => {
-      // Show logout confirmation
-      this.setState({
-        isPopupOpen: true,
-        popupMessage: "Are you sure that you want to log out?",
-        popupType: "logout",
-      });
-    });
-  }
-
-  handleQueueRemoveFromLogout = (index) => {
-    // Remove item from queue during logout
-    const queueData = JSON.parse(localStorage.getItem(this.getApprovalQueueStorageKey()));
-    if (Array.isArray(queueData)) {
-      queueData.splice(index, 1);
-      if (queueData.length > 0) {
-        localStorage.setItem(this.getApprovalQueueStorageKey(), JSON.stringify(queueData));
-      } else {
-        this.clearPersistedApprovalQueue();
-      }
-    }
-    
-    // Update the modal with new queue data
-    this.openLogoutQueueModal();
-  }
-
-  handleQueueUpdateReasonFromLogout = (index, reason) => {
-    // Update reason for queue item during logout
-    const queueData = JSON.parse(localStorage.getItem(this.getApprovalQueueStorageKey()));
-    if (Array.isArray(queueData) && queueData[index]) {
-      queueData[index].reason = reason;
-      localStorage.setItem(this.getApprovalQueueStorageKey(), JSON.stringify(queueData));
-    }
-  }
-
-  openLogoutQueueModal = () => {
-    // Open the full queue modal for logout context
-    const queueData = JSON.parse(localStorage.getItem(this.getApprovalQueueStorageKey())) || [];
-    this.setState({
-      pendingApprovalQueue: {
-        queue: queueData,
-        onSendEmail: this.handleQueueSendEmailFromLogout,
-        onClose: this.handleQueueCloseFromLogout,
-        onRemove: this.handleQueueRemoveFromLogout,
-        onUpdateReason: this.handleQueueUpdateReasonFromLogout
-      },
-      showingQueueDuringLogout: true
-    });
-  }
-
-  goBackHome = async(queueDecision = null) =>
+  goBackHome = async() =>
   {
-    if (queueDecision && typeof queueDecision === 'object' && typeof queueDecision.preventDefault === 'function') {
-      queueDecision = null;
-    }
-
-    // If queue decision is made (from logout-queue-choice popup)
-    if (queueDecision === 'clear') {
-      this.clearPersistedApprovalQueue();
-    }
-
-    if (queueDecision) {
-      // After handling queue decision, show logout confirmation
-      this.setState({
-        isPopupOpen: true,
-        popupMessage: "Are you sure that you want to log out?",
-        popupType: "logout",
-      });
-      return;
-    }
-
-    // If we reach here, it's the final logout confirmation (popupType === "logout")
+    // Logout confirmation flow
     console.log("Logout");
     var response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/login`, { purpose: "logout", accountId: this.props.location.state?.accountId });
     if(response.data.message.message === "Logout successful")
@@ -3537,15 +3248,11 @@ import { flushSync } from 'react-dom';
                         onPendingExportApproval={this.openExportApprovalModal}
                         onSupervisorExportConfirm={this.openSupervisorExportModal}
                         generateSendDetailsConfirmationPopup={this.generateSendDetailsConfirmationPopup}
-                        onApprovalRequired={this.openApprovalPopup}
-                        onApprovalQueueRequired={this.openApprovalQueueModal}
-                        onApprovalStatusRequired={this.openApprovalStatusModal}
                         onNotifierQueueRequired={this.openNotifierQueueModal}
                         onNotifierQueueSync={this.syncNotifierQueueModal}
                         onBulkUpdateModalRequired={this.openRegistrationBulkUpdateModal}
                         onBulkUpdateModalSync={this.syncRegistrationBulkUpdateModal}
                         onBulkUpdateModalDismiss={this.dismissRegistrationBulkUpdateModal}
-                        shouldAutoOpenQueue={this.state.shouldAutoOpenQueue}
                         progressModalOpen={Boolean(this.state.updateProgress?.show)}
                         progressTracker={this.getProgressTracker()}
                         onAnomalyDetected={(list) => this.setState({ showAnomalyModal: true, anomalyList: list })}
@@ -3643,13 +3350,7 @@ import { flushSync } from 'react-dom';
                 All rights reserved.</p>
             </div>
           </div>
-          <ApprovalQueueDecisionPopup 
-            isOpen={this.state.showQueueDecisionPopup}
-            queueCount={this.state.queueItemCount}
-            onContinueStore={this.handleQueueDecisionContinue}
-            onClearLogout={this.handleQueueDecisionClear}
-          />
-          <Popup isOpen={isPopupOpen} message={popupMessage} userName={userName} type={popupType} participantInfo={participantInfo} status={status} courseInfo={courseInfo} closePopup={this.closePopup} closePopup2={this.closePopup2} goBackLoginPage={this.goBackHome} closePopupMessage={this.closePopupMessage} id = {this.state.deleteId} onLoginQueueDecision={this.handleLoginQueueDecision}/>
+          <Popup isOpen={isPopupOpen} message={popupMessage} userName={userName} type={popupType} participantInfo={participantInfo} status={status} courseInfo={courseInfo} closePopup={this.closePopup} closePopup2={this.closePopup2} goBackLoginPage={this.goBackHome} closePopupMessage={this.closePopupMessage} id = {this.state.deleteId}/>
           <UpdateProgressModal
             isOpen={this.state.updateProgress?.show ?? false}
             steps={this.state.updateProgress?.steps ?? []}
@@ -3750,19 +3451,6 @@ import { flushSync } from 'react-dom';
               onCancel={this.closeBulkUpdateReasonModal}
             />
           )}
-          {this.state.pendingApproval && (
-            <ApprovalPopup
-              serialNo={this.state.pendingApproval.event.data?.sn ?? this.state.pendingApproval.event.rowIndex + 1}
-              columnName={this.state.pendingApproval.event.colDef.headerName}
-              oldValue={this.state.pendingApproval.event.oldValue}
-              newValue={this.state.pendingApproval.event.newValue ?? this.state.pendingApproval.event.value}
-              participantName={this.state.pendingApproval.event.data?.participantInfo?.name}
-              courseName={this.state.pendingApproval.event.data?.courseInfo?.courseEngName}
-              courseLocation={this.state.pendingApproval.event.data?.courseInfo?.courseLocation}
-              onConfirm={this.state.pendingApproval.onConfirm}
-              onCancel={this.state.pendingApproval.onCancel}
-            />
-          )}
           {this.state.exportApprovalPayload && (
             <ExportApprovalModal
               isOpen={true}
@@ -3789,22 +3477,6 @@ import { flushSync } from 'react-dom';
                 this.closeSupervisorExportModal();
                 this.successPopUpMessage(msg);
               }}
-            />
-          )}
-          {this.state.pendingApprovalQueue && (
-            <ApprovalQueueModal
-              queue={this.state.pendingApprovalQueue.queue || []}
-              onSendEmail={this.state.pendingApprovalQueue.onSendEmail}
-              onClose={this.state.pendingApprovalQueue.onClose}
-              onRemove={this.state.pendingApprovalQueue.onRemove}
-              onUpdateReason={this.state.pendingApprovalQueue.onUpdateReason}
-            />
-          )}
-          {this.state.approvalStatusPayload && (
-            <ApprovalStatusModal
-              isOpen={true}
-              requests={this.state.approvalStatusPayload.requests || []}
-              onClose={this.state.approvalStatusPayload.onClose}
             />
           )}
           {this.state.showAnomalyModal && (

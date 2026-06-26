@@ -30,11 +30,24 @@ class RemarksEditor extends React.Component {
   componentDidMount() {
     this.setState({ value: '' });
 
+    // Clear any stale finalized value left on the shared row node from a previous
+    // edit so a fresh edit starts clean. (See _finalizeRemarks / getValue.)
+    if (this.props.node) this.props.node.__remarksFinalValue = undefined;
+
     setTimeout(() => {
       this.ref.current?.focus();
       this.ref.current?.select?.();
     }, 0);
   }
+
+  // Persist the post-edit value in BOTH the instance and the shared row node.
+  // Under React StrictMode AG Grid may hold a different editor instance than the
+  // one that handled the click, so getValue() must be able to read the value
+  // from the node (shared across instances) — not just this instance.
+  _finalizeRemarks = (updated) => {
+    this._finalValue = updated;
+    if (this.props.node) this.props.node.__remarksFinalValue = updated;
+  };
 
   // =========================
   // ROLE
@@ -83,6 +96,10 @@ class RemarksEditor extends React.Component {
   getValue = () => {
     // Remove/clear/save already computed the exact block to persist — return it
     // verbatim so the grid commit matches what was written to the backend.
+    // Prefer the node-level value (shared across editor instances under
+    // StrictMode) over the per-instance field.
+    const nodeFinal = this.props.node?.__remarksFinalValue;
+    if (nodeFinal !== undefined) return nodeFinal;
     if (this._finalValue !== undefined) return this._finalValue;
 
     const trimmed = this.state.value.trim();
@@ -103,28 +120,6 @@ class RemarksEditor extends React.Component {
   };
 
   // =========================
-  // OPTIMISTIC GRID UPDATE
-  // =========================
-  // Push the new remarks block straight into the AG Grid row so the cell
-  // updates instantly, without waiting on (or being blocked by) a socket patch.
-  _syncGridCell = (updated) => {
-    const node = this.props.node;
-    const api = this.props.api;
-    if (node?.data) {
-      node.data.remarks = updated;
-      if (node.data.officialInfo) {
-        node.data.officialInfo = { ...node.data.officialInfo, remarks: updated };
-      }
-      if (node.data.official) {
-        node.data.official = { ...node.data.official, remarks: updated };
-      }
-    }
-    if (node && api && typeof api.refreshCells === 'function') {
-      api.refreshCells({ rowNodes: [node], columns: ['remarks'], force: true });
-    }
-  };
-
-  // =========================
   // DELETE SINGLE LINE
   // =========================
   removeLine = async (index) => {
@@ -134,15 +129,13 @@ class RemarksEditor extends React.Component {
     lines.splice(index, 1);
 
     const updated = lines.join('\n');
-    console.log('Updated remarks after removing line:', updated);
 
     try {
       await editRemarksField(id, 'remarks', updated);
-      this._finalValue = updated;
-      this._syncGridCell(updated);
+      this._finalizeRemarks(updated);
       this.props.stopEditing();
     } catch (err) {
-      console.error('Failed to remove remark line:', err);
+      console.error('Failed to remove remark line:', err?.response?.data ?? err);
     }
   };
 
@@ -162,8 +155,7 @@ class RemarksEditor extends React.Component {
 
         const finalValue = this.getValue();
         await editRemarksField(id, 'remarks', finalValue);
-        this._finalValue = finalValue;
-        this._syncGridCell(finalValue);
+        this._finalizeRemarks(finalValue);
 
         this.props.stopEditing();
       } catch (err) {
@@ -184,8 +176,7 @@ class RemarksEditor extends React.Component {
 
     try {
       await editRemarksField(id, 'remarks', '');
-      this._finalValue = '';
-      this._syncGridCell('');
+      this._finalizeRemarks('');
       this.setState({ value: '' });
       this.props.stopEditing();
     } catch (err) {

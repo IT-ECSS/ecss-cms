@@ -34,7 +34,6 @@ import SendingWhatsappStatusCell from './components/SendingWhatsappStatusCell';
 
 // Access control
 import { isReadOnlyUser } from './constants/accessControl';
-import { shouldRequireApprovalForCourse } from './constants/accessControl';
 
 // Utilities
 import {
@@ -111,10 +110,6 @@ import {
 // Register AG-Grid community modules once at module level
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-const APPROVAL_QUEUE_STORAGE_KEY_PREFIX = 'registrationApprovalQueue';
-const APPROVAL_STATUS_STORAGE_KEY_PREFIX = 'registrationApprovalStatus';
-const APPROVAL_STATUS_CLEAR_MARKER_PREFIX = 'registrationApprovalStatusCleared';
-
 // Stale-while-revalidate cache for the full registration dataset.
 // Allows the grid to appear instantly on revisit while a background fetch
 // silently refreshes the data.
@@ -176,9 +171,6 @@ class RegistrationPaymentSection extends Component {
       bulkUpdateMethod: '',
       bulkUpdateValue: '',
       bulkUpdateRowValues: {},
-      pendingChange: null,
-      approvalQueue: [],
-      approvalStatusList: [],
       notifierQueue: [],
       lastMouseX: null,
       mouseGestureThreshold: 100,
@@ -198,11 +190,6 @@ class RegistrationPaymentSection extends Component {
 
   _suppressNextSocketRefresh(ms = 2500) {
     this._suppressSocketRefreshUntil = Date.now() + ms;
-  }
-
-  _getApprovalQueueStorageKey() {
-    const email = (this.props.userEmail || 'unknown').toLowerCase();
-    return `${APPROVAL_QUEUE_STORAGE_KEY_PREFIX}:${email}`;
   }
 
   _serializeQueueEvent(event) {
@@ -647,132 +634,6 @@ class RegistrationPaymentSection extends Component {
     return { ...(fallbackData || {}), ...(liveData || {}) };
   }
 
-  _getApprovalStatusStorageKey() {
-    const email = (this.props.userEmail || 'unknown').toLowerCase();
-    return `${APPROVAL_STATUS_STORAGE_KEY_PREFIX}:${email}`;
-  }
-
-  _getApprovalStatusClearMarkerKey() {
-    const email = (this.props.userEmail || 'unknown').toLowerCase();
-    return `${APPROVAL_STATUS_CLEAR_MARKER_PREFIX}:${email}:v2`;
-  }
-
-  _clearApprovalStatusOnce = () => {
-    try {
-      const markerKey = this._getApprovalStatusClearMarkerKey();
-      if (localStorage.getItem(markerKey)) return;
-
-      localStorage.removeItem(this._getApprovalStatusStorageKey());
-      localStorage.setItem(markerKey, '1');
-    } catch (error) {
-      console.error('Failed to clear approval status list once:', error);
-    }
-  }
-
-  _loadPersistedApprovalStatusList() {
-    try {
-      const raw = localStorage.getItem(this._getApprovalStatusStorageKey());
-      if (!raw) return [];
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (error) {
-      console.error('Failed to parse approval status list:', error);
-      return [];
-    }
-  }
-
-  _persistApprovalStatusList(list) {
-    try {
-      localStorage.setItem(this._getApprovalStatusStorageKey(), JSON.stringify(list || []));
-    } catch (error) {
-      console.error('Failed to persist approval status list:', error);
-    }
-  }
-  
-  _getApprovalQueueItemKey = (item) => {
-    const event = item?.event || {};
-    const row = event?.data || {};
-    const rowId = row?.id || row?._id || row?.sn || '';
-    const field = event?.colDef?.field || event?.colDef?.headerName || '';
-    const value = String(event?.newValue ?? event?.value ?? '');
-    return `${rowId}_${field}_${value}`;
-  };
-
-  _appendApprovalStatusEntries = (queue) => {
-    if (!Array.isArray(queue) || queue.length === 0) return;
-
-    const sentAt = new Date().toLocaleString();
-    const newEntries = queue.map((item, index) => {
-      const event = item?.event || {};
-      const row = event?.data || {};
-      return {
-        id: `${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}`,
-        sn: row?.sn ?? '-',
-        participantName: row?.participantInfo?.name || row?.name || '-',
-        courseName: row?.courseInfo?.courseEngName || row?.course || '-',
-        field: event?.colDef?.headerName || event?.colDef?.field || '-',
-        oldValue: event?.oldValue ?? '(empty)',
-        newValue: event?.value ?? '(empty)',
-        reason: item?.reason || '-',
-        status: 'Sent For Approval',
-        sentAt,
-      };
-    });
-
-    this.setState((prev) => ({
-      approvalStatusList: [...newEntries, ...(prev.approvalStatusList || [])],
-    }));
-  }
-
-  _formatApprovalStatus = (status) => {
-    const normalized = String(status || 'pending').toLowerCase();
-    if (normalized === 'approved') return 'Approved';
-    if (normalized === 'rejected') return 'Rejected';
-    if (normalized === 'expired') return 'Expired';
-    return 'Pending';
-  };
-
-  _mapApprovalStatusRows = (rows) => {
-    return (rows || []).map((row, index) => ({
-      id: row.id || `${row.token || 'row'}-${index}`,
-      sn: row.sn || index + 1,
-      participantName: row.participantName || '-',
-      participantEmail: row.participantEmail || '',
-      courseName: row.courseName || '-',
-      courseLocation: row.courseLocation || '',
-      columnName: row.columnName || '-',
-      currentValue: row.currentValue ?? '',
-      newValue: row.newValue ?? '',
-      reason: row.reason || '',
-      status: this._formatApprovalStatus(row.status),
-      requestDate: row.requestDate || '',
-      requestTime: row.requestTime || '',
-      sentAt: row.requestDate && row.requestTime ? `${row.requestDate} ${row.requestTime}` : '-',
-      batchId: row.batchId || '',
-      registrationId: row.registrationId || '',
-    }));
-  };
-
-  _loadPersistedApprovalQueue() {
-    try {
-      const raw = localStorage.getItem(this._getApprovalQueueStorageKey());
-      if (!raw) return [];
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (error) {
-      console.error('Failed to parse persisted approval queue:', error);
-      return [];
-    }
-  }
-
-  _persistApprovalQueue(queue) {
-    try {
-      localStorage.setItem(this._getApprovalQueueStorageKey(), JSON.stringify(queue || []));
-    } catch (error) {
-      console.error('Failed to persist approval queue:', error);
-    }
-  }
-
   // ── SWR cache helpers ─────────────────────────────────────────────────────
 
   // _getRegCacheKey() {
@@ -1003,14 +864,6 @@ class RegistrationPaymentSection extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    if (prevState.approvalQueue !== this.state.approvalQueue) {
-      this._persistApprovalQueue(this.state.approvalQueue);
-    }
-
-    if (prevState.approvalStatusList !== this.state.approvalStatusList) {
-      this._persistApprovalStatusList(this.state.approvalStatusList);
-    }
-
     if (prevState.notifierQueue !== this.state.notifierQueue && this.props.onNotifierQueueSync) {
       this.props.onNotifierQueueSync(this.state.notifierQueue);
     }
@@ -2879,14 +2732,6 @@ class RegistrationPaymentSection extends Component {
     }
 
     const rowCourseType = event?.data?.courseInfo?.courseType || event?.data?.course?.courseType || '';
-    if (shouldRequireApprovalForCourse(this.props.userEmail, rowCourseType)) {
-      // For read-only users: intercept — lift popup to homePage
-      this.setState({ pendingChange: event });
-      if (this.props.onApprovalRequired) {
-        this.props.onApprovalRequired(event, this._commitPendingChange, this._cancelPendingChange);
-      }
-      return;
-    }
 
     console.log('Cell value changed:', {
       column:   event.colDef.headerName,
@@ -2918,6 +2763,10 @@ class RegistrationPaymentSection extends Component {
         await handlePaymentStatusChange(event, context);
       } else if (columnName === 'Remarks') {
         await handleRemarksChange(event, context);
+        // Remarks live in the backend as the single source of truth. Re-fetch the
+        // row straight after the write so the grid always shows exactly what was
+        // persisted — never a stale optimistic/cached value.
+        await this._applySocketRowPatch(event?.data?.id || event?.data?._id || null);
       } else if (columnName === 'Refunded Date') {
         await handleRefundedDateChange(event, context);
       } else if (columnName === 'Sending Payment Details') {
@@ -2936,206 +2785,6 @@ class RegistrationPaymentSection extends Component {
       if (this.props.progressTracker) {
         this.props.progressTracker.error();
       }
-    }
-  };
-
-  _commitPendingChange = (reason = '', overrideNewValue) => {
-    const pending = this.state.pendingChange;
-    const hasOverride = !(overrideNewValue === undefined || overrideNewValue === null);
-    const event = hasOverride
-      ? {
-        ...pending,
-        value: overrideNewValue,
-        newValue: overrideNewValue,
-      }
-      : pending;
-    if (!event) return;
-
-    // Deduplicate by row id + field.
-    // If the cell is already queued, keep the original queued item (including reason)
-    // so queued reasons cannot be edited by reconfirming the same cell.
-    const key = `${event.data?.id ?? event.rowIndex}_${event.colDef.field}`;
-    const alreadyQueued = this.state.approvalQueue.some(
-      (item) => `${item.event.data?.id ?? item.event.rowIndex}_${item.event.colDef.field}` === key
-    );
-    const nextQueue = alreadyQueued
-      ? this.state.approvalQueue
-      : [...this.state.approvalQueue, {
-        event: this._serializeQueueEvent(event),
-        reason,
-        approvalKey: this._getApprovalQueueItemKey({ event: this._serializeQueueEvent(event) }),
-      }];
-
-    // Queue the change (with reason) but keep old value visible in-grid
-    // until the approval is granted.
-    this.setState({ pendingChange: null, approvalQueue: nextQueue }, () => {
-      const node = event.node;
-      const field = event.colDef.field;
-      if (node && field) {
-        this._isReverting = true;
-        node.setDataValue(field, event.oldValue);
-        setTimeout(() => { this._isReverting = false; }, 0);
-      }
-    });
-  };
-
-  _cancelPendingChange = () => {
-    const event = this.state.pendingChange;
-    this.setState({ pendingChange: null });
-    if (!event) return;
-
-    // Revert the cell to its old value without re-triggering the approval popup
-    const node = event.node;
-    const field = event.colDef.field;
-    if (node && field) {
-      this._isReverting = true;
-      node.setDataValue(field, event.oldValue);
-      setTimeout(() => { this._isReverting = false; }, 0);
-    }
-  };
-
-  _openApprovalQueueModal = () => {
-    if (this.props.onApprovalQueueRequired) {
-      this._publishApprovalQueueToParent(this.state.approvalQueue);
-      return;
-    }
-    this.setState({ showApprovalQueueModal: true });
-  };
-
-  _publishApprovalQueueToParent = (queue) => {
-    if (this.props.onApprovalQueueRequired) {
-      this.props.onApprovalQueueRequired({
-        queue,
-        onSendEmail: this._sendApprovalEmail,
-        onClose: () => this.props.onApprovalQueueRequired(null),
-        onRemove: this._removeApprovalQueueItem,
-        onUpdateReason: this._updateApprovalQueueReason,
-      });
-      return;
-    }
-  };
-
-  _updateApprovalQueueReason = (approvalKeyOrIndex, reason) => {
-    this.setState((prev) => {
-      const nextQueue = prev.approvalQueue.map((item, i) =>
-        (typeof approvalKeyOrIndex === 'string'
-          ? (item?.approvalKey || this._getApprovalQueueItemKey(item)) === approvalKeyOrIndex
-          : i === approvalKeyOrIndex)
-          ? { ...item, reason }
-          : item
-      );
-      if (this.props.onApprovalQueueRequired) {
-        this._publishApprovalQueueToParent(nextQueue);
-      }
-      return { approvalQueue: nextQueue };
-    });
-  };
-
-  _removeApprovalQueueItem = (index) => {
-    this.setState((prev) => {
-      const nextQueue = prev.approvalQueue.filter((_, i) => i !== index);
-      if (this.props.onApprovalQueueRequired) {
-        this._publishApprovalQueueToParent(nextQueue);
-      }
-      return { approvalQueue: nextQueue };
-    });
-  };
-
-  _closeApprovalQueueModal = () => {
-    if (this.props.onApprovalQueueRequired) {
-      this.props.onApprovalQueueRequired(null);
-      return;
-    }
-    this.setState({ showApprovalQueueModal: false });
-  };
-
-  _sendApprovalEmail = async () => {
-    const queue = this.state.approvalQueue || [];
-    if (!queue.length) return;
-
-    const missingReasonIndex = queue.findIndex((item) => !String(item?.reason || '').trim());
-    if (missingReasonIndex >= 0) {
-      this.props.showUpdatePopup(`Please enter a reason for row ${missingReasonIndex + 1}.`);
-      setTimeout(() => this.props.closePopup(), 1500);
-      return;
-    }
-
-    const formatValue = (value, columnName) => {
-      if (value === null || value === undefined || value === '') return '';
-      if (columnName === 'Confirmation Status') {
-        if (value === true || value === 'true' || value === 1 || value === '1') return 'Confirmed';
-        if (value === false || value === 'false' || value === 0 || value === '0') return 'Not Confirmed';
-      }
-      if (typeof value === 'object') {
-        try {
-          return JSON.stringify(value);
-        } catch (error) {
-          return String(value);
-        }
-      }
-      return String(value);
-    };
-
-    const now = new Date();
-    const currentDate = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
-    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-    const allChanges = queue.map(({ event, reason }) => {
-      const row = event?.data || {};
-      return {
-        sn: row?.sn || '',
-        registrationId: row?.id || row?._id || '',
-        participantName: row?.participantInfo?.name || row?.name || '',
-        participantEmail: row?.participantInfo?.email || row?.email || '',
-        courseName: row?.courseInfo?.courseEngName || row?.course || '',
-        courseLocation: row?.courseInfo?.courseLocation || row?.location || '',
-        columnName: event?.colDef?.headerName || event?.colDef?.field || '',
-        currentValue: formatValue(event?.oldValue, event?.colDef?.headerName),
-        newValue: formatValue(event?.value, event?.colDef?.headerName),
-        reason: String(reason || '').trim(),
-      };
-    });
-
-    try {
-      this.props.showUpdatePopup('Sending approval email...');
-
-      this.props.showUpdatePopup('Approval request sent to moses_lee@ecss.org.sg.');
-      this.setState({ approvalQueue: [] });
-      this._closeApprovalQueueModal();
-      setTimeout(() => this.props.closePopup(), 1200);
-    } catch (error) {
-      console.error('Failed to send approval email:', error);
-      const message = error?.response?.data?.message || 'Failed to send approval request.';
-      this.props.showUpdatePopup(message);
-      setTimeout(() => this.props.closePopup(), 1800);
-    }
-  };
-
-  _openApprovalStatusModal = async () => {
-    this._approvalStatusModalOpen = true;
-    const latestRequests = await this._refreshApprovalStatusList();
-    if (this.props.onApprovalStatusRequired) {
-      this._publishApprovalStatusToParent(latestRequests);
-      return;
-    }
-    this.setState({ showApprovalStatusModal: true });
-  };
-
-  _closeApprovalStatusModal = () => {
-    this._approvalStatusModalOpen = false;
-    if (this.props.onApprovalStatusRequired) {
-      this.props.onApprovalStatusRequired(null);
-      return;
-    }
-    this.setState({ showApprovalStatusModal: false });
-  };
-
-  _publishApprovalStatusToParent = (requests) => {
-    if (this.props.onApprovalStatusRequired) {
-      this.props.onApprovalStatusRequired({
-        requests: requests || [],
-        onClose: () => this.props.onApprovalStatusRequired(null),
-      });
     }
   };
 
@@ -3172,43 +2821,6 @@ class RegistrationPaymentSection extends Component {
     }
 
     this.setState({ notifierQueue: [] });
-  };
-
-  _commitApprovalQueue = async () => {
-    const queue = this.state.approvalQueue;
-    if (!queue.length) return;
-
-    this.setState({ approvalQueue: [] });
-    const context = this._buildCellHandlerContext();
-
-    for (const { event } of queue) {
-      const columnName = event.colDef.headerName;
-      try {
-        if (columnName === 'Payment Method') {
-          await handlePaymentMethodChange(event, context);
-        } else if (columnName === 'Confirmation Status') {
-          await handleConfirmationStatusChange(event, context);
-        } else if (
-          columnName === 'Registration and Payment Status' ||
-          columnName === 'Payment Status (Cash/PayNow)' ||
-          columnName === 'Payment Status (SkillsFuture)' ||
-          columnName === 'Registration Status' ||
-          columnName === 'Payment Status'
-        ) {
-          await handlePaymentStatusChange(event, context);
-        } else if (columnName === 'Remarks') {
-          await handleRemarksChange(event, context);
-        } else if (columnName === 'Refunded Date') {
-          await handleRefundedDateChange(event, context);
-        } else {
-          await handleGenericFieldChange(event);
-        }
-      } catch (error) {
-        console.error('Error committing queued change:', error);
-      }
-    }
-
-    this.refreshChild();
   };
 
   // ── Grid API hooks ────────────────────────────────────────────────────────
@@ -3549,48 +3161,8 @@ class RegistrationPaymentSection extends Component {
     setShowBulkUpdateModal: this._setShowBulkUpdateModal,
     setBulkUpdateFields: (fields) => this.setState(fields),
     updateWooCommerce: this.updateWooCommerceForRegistrationPayment,
-    onApprovalQueueRequest: this._enqueueBulkApprovalRequest,
     onNotifierQueueRequest: this._enqueueBulkNotifierRequest,
     reason: reason || '',
-    });
-  };
-
-  _enqueueBulkApprovalRequest = ({ row, columnName, oldValue, newValue, reason }) => {
-    if (!row || !columnName) return;
-
-    const headerName = String(columnName || '').trim();
-    const field = this._resolveFieldFromHeader(headerName) || headerName;
-    const syntheticEvent = {
-      value: newValue,
-      newValue,
-      oldValue,
-      rowIndex: 0,
-      data: row,
-      colDef: {
-        field,
-        headerName,
-      },
-    };
-
-    const queueItem = {
-      event: this._serializeQueueEvent(syntheticEvent),
-      reason: reason || '',
-      approvalKey: this._getApprovalQueueItemKey({ event: this._serializeQueueEvent(syntheticEvent) }),
-    };
-    const dedupeKey = `${row?.id || row?.sn || ''}_${field}_${String(newValue ?? '')}`;
-
-    this.setState((prev) => {
-      const alreadyQueued = (prev.approvalQueue || []).some((item) => {
-        const itemKey = `${item?.event?.data?.id || item?.event?.data?.sn || ''}_${item?.event?.colDef?.field || ''}_${String(item?.event?.newValue ?? item?.event?.value ?? '')}`;
-        return itemKey === dedupeKey;
-      });
-
-      const nextQueue = alreadyQueued ? prev.approvalQueue : [...(prev.approvalQueue || []), queueItem];
-      return { approvalQueue: nextQueue };
-    }, () => {
-      if (this.props.onApprovalQueueRequired) {
-        this._publishApprovalQueueToParent(this.state.approvalQueue || []);
-      }
     });
   };
 
@@ -3678,9 +3250,6 @@ class RegistrationPaymentSection extends Component {
       selectedRows,
       bulkUpdateStatus,
       expandedRowIndex,
-      pendingChange,
-      approvalQueue,
-      approvalStatusList,
       notifierQueue,
     } = this.state;
 
@@ -3750,10 +3319,6 @@ class RegistrationPaymentSection extends Component {
             onOpenBulkUpdate={this.openBulkUpdateModal}
             hideBulkUpdate={true}
             isReadOnly={isReadOnlyUser(this.props.userEmail)}
-            approvalQueueCount={approvalQueue.length}
-            onOpenApprovalQueue={this._openApprovalQueueModal}
-            onOpenApprovalStatus={this._openApprovalStatusModal}
-            approvalStatusCount={approvalStatusList.length}
             notifierQueueCount={this.state.notifierQueue.length}
             onOpenNotifierQueue={this._openNotifierModal}
           />

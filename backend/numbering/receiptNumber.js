@@ -80,7 +80,7 @@ async function resolveItemCode(course, paymentMethod) {
         return sanitizeItemCode(mappedWooCategory);
     }
 
-    const paymentMethodOverride = getPaymentMethodOverrideCode(paymentMethod);
+    const paymentMethodOverride = getPaymentMethodOverrideCode(course?.finalPaymentMethod || paymentMethod);
     if (paymentMethodOverride) {
         return paymentMethodOverride;
     }

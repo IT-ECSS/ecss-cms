@@ -254,12 +254,27 @@ export const generateReceiptPDF = async (
 
 /**
  * Fetch the next sequential receipt number from the backend.
+ *
+ * The document numbering convention must always be derived from the FINAL
+ * payment method. We therefore stamp the resolved final method onto both the
+ * course payload (course.finalPaymentMethod) and the top-level paymentMethod so
+ * the backend cannot fall back to the original/registration payment method.
  */
 export const getReceiptNumber = async (course, paymentMethod) => {
+  const finalPaymentMethod = String(
+    paymentMethod || course?.finalPaymentMethod || ''
+  ).trim();
+
+  const courseWithFinal = {
+    ...(course || {}),
+    finalPaymentMethod,
+  };
+
   const response = await axios.post(`${NODE_BASE_URL}/receipt`, {
     purpose: "getReceiptNo",
-    course,
-    paymentMethod,
+    course: courseWithFinal,
+    paymentMethod: finalPaymentMethod,
+    finalPaymentMethod,
   });
 
   return response;

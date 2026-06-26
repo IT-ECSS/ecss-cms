@@ -101,7 +101,7 @@ async function resolveItemCode(course, itemCode, paymentMethod) {
         return sanitizeItemCode(mappedSpreadsheetCategory);
     }
 
-    const paymentMethodOverride = getPaymentMethodOverrideCode(paymentMethod);
+    const paymentMethodOverride = getPaymentMethodOverrideCode(course?.finalPaymentMethod || paymentMethod);
     if (paymentMethodOverride) {
         return paymentMethodOverride;
     }

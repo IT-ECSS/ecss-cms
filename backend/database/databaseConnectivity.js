@@ -2078,15 +2078,20 @@ class DatabaseConnectivity {
         const db = this.client.db(databaseName);
         const collection = db.collection(collectionName);
 
-        console.log("Generating receipt number for course:", collectionName, course, paymentMethod);
+        // The naming convention must always be driven by the FINAL payment method.
+        // course.finalPaymentMethod is the source of truth; fall back to the passed
+        // paymentMethod only when a final method has not been recorded yet.
+        const effectivePaymentMethod = String(course?.finalPaymentMethod ?? '').trim() || paymentMethod;
+
+        console.log("Generating receipt number for course:", collectionName, course, "finalPaymentMethod:", effectivePaymentMethod);
 
         // A SkillsFuture claim is an INVOICE, not a receipt. Route it to the invoice
         // generator so the item code (SFC) and the running series come from the
         // Invoices collection instead of producing a receipt-style NSA number.
-        const normalizedPaymentMethod = String(paymentMethod ?? '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+        const normalizedPaymentMethod = String(effectivePaymentMethod ?? '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
         if (normalizedPaymentMethod === 'SKILLSFUTURE' || normalizedPaymentMethod === 'SKILLSFUTUREPAYMENT') {
             console.log("Payment method is SkillsFuture — generating an INVOICE number instead of a receipt.");
-            return this.getNextInvoiceNumber(databaseName, 'Invoices', { course, paymentMethod });
+            return this.getNextInvoiceNumber(databaseName, 'Invoices', { course, paymentMethod: effectivePaymentMethod });
         }
 
         const { courseLocation, courseType, courseEngName } = course || {};
@@ -2107,7 +2112,7 @@ class DatabaseConnectivity {
 
         const formattedReceiptNumber = await generateReceiptNumber({
             course,
-            paymentMethod,
+            paymentMethod: effectivePaymentMethod,
             existingReceipts,
             currentYear,
             fullYear,

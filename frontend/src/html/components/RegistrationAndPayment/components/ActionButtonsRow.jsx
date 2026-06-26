@@ -39,9 +39,6 @@ const ActionButtonsRow = ({
   onOpenBulkUpdate,
   hideBulkUpdate = false,
   isReadOnly,
-  onOpenApprovalQueue,
-  onOpenApprovalStatus,
-  approvalStatusCount,
   notifierQueueCount,
   onOpenNotifierQueue,
 }) => {
@@ -136,19 +133,9 @@ const ActionButtonsRow = ({
         <button
           className="registration-payment-details-button"
           style={{ color: '#795548', borderColor: '#795548', fontWeight: 700 }}
-          onClick={onOpenApprovalQueue}
+          onClick={onOpenNotifierQueue}
         >
-          Approval
-        </button>
-      )}
-
-      {isReadOnly && (
-        <button
-          className="registration-payment-details-button"
-          style={{ color: '#1565C0', borderColor: '#1565C0', fontWeight: 700 }}
-          onClick={onOpenApprovalStatus}
-        >
-          Approval Status
+          Notifier{notifierQueueCount ? ` (${notifierQueueCount})` : ''}
         </button>
       )}
 

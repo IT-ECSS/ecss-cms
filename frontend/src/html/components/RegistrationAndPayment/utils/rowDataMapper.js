@@ -150,7 +150,13 @@ export function mapRegistrationToRowData(item, index) {
     courseMode:       item.course?.courseMode === 'Face-to-Face' ? 'F2F' : (item.course?.courseMode || ''),
     courseDuration:   item.course?.courseDuration        || '',
     courseTime:       item.course?.courseTime            || '',
-    courseInfo:       item.course                        || {},
+    // Keep courseInfo in sync with the resolved final payment method so any
+    // receipt/invoice numbering driven off courseInfo always uses the FINAL
+    // payment method (never the original/registration method).
+    courseInfo:       {
+                        ...(item.course || {}),
+                        finalPaymentMethod: item.finalPaymentMethod || item.course?.finalPaymentMethod || '',
+                      },
 
     // Payment / status
     paymentMethod:    item.paymentMethod || item.participant?.paymentMethod || item.course?.payment || '',
