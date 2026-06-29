@@ -18,7 +18,7 @@ class QRCodeGenerator {
             const buffer = await QRCode.toBuffer(this.text, this.options);
 
             // Save the buffer to a JPG file
-            const filename = `ECSS (Facebook Page) - Social Media.jpg`
+            const filename = `Four Great Classics (Tampines North Community Centre).jpg`
             fs.writeFileSync(filename, buffer);
             console.log(`QR code generated and saved as ${filename}`);
         } catch (error) {
@@ -28,5 +28,5 @@ class QRCodeGenerator {
 }
 
 // Usage const filename = `https://ecss.org.sg/product/crafting-connectionspasir-ris-west-wellness-centre/`;
-const qrCodeGenerator = new QRCodeGenerator(`https://www.facebook.com/ecss.org/`);
+const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/four-great-classicstampines-north-community-centre/`);
 qrCodeGenerator.generate();
