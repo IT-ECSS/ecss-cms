@@ -960,7 +960,7 @@ from django.shortcuts import render
 @csrf_exempt
 def sales_report_view(request):
     # MongoDB connection
-    client = MongoClient("mongodb+srv://MosesLee:Mlxy%406695@company-management-syst.ulotbgi.mongodb.net/?retryWrites=true&w=majority&appName=Company-Management-System")
+    client = MongoClient("mongodb+srv://it_db_user:PTcGw3Y6IL0gjkaV@ecss-company-management.t7nhtee.mongodb.net/?retryWrites=true&w=majority&appName=Company-Management-System")
     db = client["Company-Management-System"]
     collection = db["Registration Forms"]
 
@@ -1077,7 +1077,7 @@ def generate_report(request):
     """Fetches and returns data from the MongoDB collection for the report, filtering only NSA course types."""
 
     # MongoDB connection
-    client = MongoClient("mongodb+srv://MosesLee:Mlxy%406695@company-management-syst.ulotbgi.mongodb.net/?retryWrites=true&w=majority&appName=Company-Management-System")
+    client = MongoClient("mongodb+srv://it_db_user:PTcGw3Y6IL0gjkaV@ecss-company-management.t7nhtee.mongodb.net/?retryWrites=true&w=majority&appName=Company-Management-System")
     db = client["Company-Management-System"]
     collection = db["Registration Forms"]
 
@@ -1108,7 +1108,7 @@ def generate_report(request):
 def sales_report_view_react(request):
     try:
         # MongoDB connection
-        client = MongoClient("mongodb+srv://MosesLee:Mlxy%406695@company-management-syst.ulotbgi.mongodb.net/?retryWrites=true&w=majority&appName=Company-Management-System")
+        client = MongoClient("mongodb+srv://it_db_user:PTcGw3Y6IL0gjkaV@ecss-company-management.t7nhtee.mongodb.net/?retryWrites=true&w=majority&appName=Company-Management-System")
         db = client["Company-Management-System"]
         collection = db["Registration Forms"]
 
@@ -1178,7 +1178,7 @@ def sales_report_view_react(request):
 @csrf_exempt
 def generate_invoice_view_react(request):
     # MongoDB connection
-    client = MongoClient("mongodb+srv://MosesLee:Mlxy%406695@company-management-syst.ulotbgi.mongodb.net/?retryWrites=true&w=majority&appName=Company-Management-System")
+    client = MongoClient("mongodb+srv://it_db_user:PTcGw3Y6IL0gjkaV@ecss-company-management.t7nhtee.mongodb.net/?retryWrites=true&w=majority&appName=Company-Management-System")
     db = client["Company-Management-System"]
     collection = db["Registration Forms"]
 

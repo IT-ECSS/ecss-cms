@@ -359,32 +359,6 @@ export const updateWooCommerceStock = async (chi, eng, location, status) => {
 };
 
 /**
- * Submit an export approval request (for Testing A / Testing B accounts).
- * Sends Email 1 to approvers with the Excel attached.
- */
-export const sendExportApprovalRequest = async ({
-  requesterName,
-  requesterEmail,
-  exportType,
-  courseType,
-  recordCount,
-  fileName,
-  excelBase64,
-}) => {
-  const response = await axios.post(`${NODE_BASE_URL}/exportApproval`, {
-    purpose: 'sendExportApprovalRequest',
-    requesterName,
-    requesterEmail,
-    exportType,
-    courseType,
-    recordCount,
-    fileName,
-    excelBase64,
-  });
-  return response;
-};
-
-/**
  * Send an export notification email to all supervisors
  * (moses_lee, peipei_low, rosalind_ong) when one of them downloads an export.
  */

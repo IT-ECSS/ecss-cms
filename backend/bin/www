@@ -98,7 +98,7 @@ io.on('connection', (socket) => {
 // This ensures live updates reach the frontend even when changes come from
 // WooCommerce / Django or any other source that bypasses the Node.js API routes.
 const { MongoClient } = require('mongodb');
-const CHANGE_STREAM_URI = process.env.MONGODB_URI || "mongodb+srv://MosesLee:Mlxy%406695@company-management-syst.ulotbgi.mongodb.net/?retryWrites=true&w=majority&appName=Company-Management-System";
+const CHANGE_STREAM_URI = process.env.MONGODB_URI || "mongodb+srv://it_db_user:PTcGw3Y6IL0gjkaV@ecss-company-management.t7nhtee.mongodb.net/?retryWrites=true&w=majority&appName=Company-Management-System";
 
 let _changeStreamClient = null;
 

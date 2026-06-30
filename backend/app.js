@@ -31,7 +31,6 @@ var googleDriveRouter = require('./routes/googleDrive');
 var inventoryRouter = require('./routes/inventory');
 var LogsRouter = require('./routes/logs');
 var qrcodeRouter = require('./routes/qrcode');
-var exportApprovalRouter = require('./routes/exportApproval');
 var exportNotificationRouter = require('./routes/exportNotification');
 
 
@@ -96,7 +95,6 @@ app.use("/googleDrive", googleDriveRouter);
 app.use("/inventory", inventoryRouter);
 app.use("/logs", LogsRouter);
 app.use("/qrcode", qrcodeRouter);
-app.use("/exportApproval", exportApprovalRouter);
 app.use("/exportNotification", exportNotificationRouter);
 
 

@@ -1631,7 +1631,6 @@ class RegistrationPaymentSection extends Component {
     userName: this.props.userName,
     userEmail: this.props.userEmail,
     warningPopUpMessage: this.props.warningPopUpMessage,
-    onPendingExportApproval: this.props.onPendingExportApproval,
     onSupervisorExportConfirm: this.props.onSupervisorExportConfirm,
   });
 
@@ -1646,7 +1645,6 @@ class RegistrationPaymentSection extends Component {
     userName: this.props.userName,
     userEmail: this.props.userEmail,
     warningPopUpMessage: this.props.warningPopUpMessage,
-    onPendingExportApproval: this.props.onPendingExportApproval,
     onSupervisorExportConfirm: this.props.onSupervisorExportConfirm,
   });
 

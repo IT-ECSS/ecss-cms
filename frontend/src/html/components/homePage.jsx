@@ -5,7 +5,6 @@ import { flushSync } from 'react-dom';
   import AccountsSection from './sub/accountsSection';
   import CoursesSection from './sub/courseSection';
   import RegistrationPaymentSection from './RegistrationAndPayment';
-  import ExportApprovalModal from './RegistrationAndPayment/components/ExportApprovalModal';
   import SupervisorExportModal from './RegistrationAndPayment/components/SupervisorExportModal';
   import BulkUpdateModal from './RegistrationAndPayment/components/BulkUpdateModal';
   import BulkUpdateReasonModal from './RegistrationAndPayment/components/BulkUpdateReasonModal';
@@ -163,7 +162,6 @@ import { flushSync } from 'react-dom';
         invoiceModalData: { invoiceNumber: '', orderData: null },
         showGoogleDriveUploadModal: false,
         showGoogleDriveViewModal: false,
-        exportApprovalPayload: null,
         supervisorExportPayload: null,
         notifierPayload: null,
         registrationBulkUpdatePayload: null,
@@ -1586,14 +1584,6 @@ import { flushSync } from 'react-dom';
     // Close Google Drive View Modal
     closeGoogleDriveViewModal = () => {
       this.setState({ showGoogleDriveViewModal: false });
-    };
-
-    openExportApprovalModal = (payload) => {
-      this.setState({ exportApprovalPayload: payload || null });
-    };
-
-    closeExportApprovalModal = () => {
-      this.setState({ exportApprovalPayload: null });
     };
 
     openSupervisorExportModal = (payload) => {
@@ -3245,7 +3235,6 @@ import { flushSync } from 'react-dom';
                         closePopupMessage = {this.closePopupMessage}
                         generateDeleteConfirmationPopup = {this.generateDeleteConfirmationPopup}
                         generatePortOverConfirmationPopup = {this.generatePortOverConfirmationPopup}
-                        onPendingExportApproval={this.openExportApprovalModal}
                         onSupervisorExportConfirm={this.openSupervisorExportModal}
                         generateSendDetailsConfirmationPopup={this.generateSendDetailsConfirmationPopup}
                         onNotifierQueueRequired={this.openNotifierQueueModal}
@@ -3449,20 +3438,6 @@ import { flushSync } from 'react-dom';
               bulkUpdateField={this.state.registrationBulkUpdatePayload?.bulkUpdateField || ''}
               onReasonSubmit={this.submitBulkUpdateReason}
               onCancel={this.closeBulkUpdateReasonModal}
-            />
-          )}
-          {this.state.exportApprovalPayload && (
-            <ExportApprovalModal
-              isOpen={true}
-              pendingExport={this.state.exportApprovalPayload}
-              requesterName={userName}
-              requesterEmail={userEmail}
-              warningPopUpMessage={this.warningPopUpMessage}
-              onClose={this.closeExportApprovalModal}
-              onSuccess={(msg) => {
-                this.closeExportApprovalModal();
-                this.successPopUpMessage(msg);
-              }}
             />
           )}
           {this.state.supervisorExportPayload && (

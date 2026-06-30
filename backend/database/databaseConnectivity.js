@@ -3,8 +3,12 @@ const { generateReceiptNumber } = require('../numbering/receiptNumber');
 const { getNextInvoiceNumber } = require('../numbering/invoiceNumber');
 
 // MongoDB connection string - should use environment variable ok
-//const uri = 'mongodb+srv://moseslee:Mlxy6695@ecss-course.hejib.mongodb.net/?retryWrites=true&w=majority&appName=ECSS-Course';
-const uri =  "mongodb+srv://MosesLee:Mlxy%406695@company-management-syst.ulotbgi.mongodb.net/?retryWrites=true&w=majority&appName=Company-Management-System"
+//const uri = 'const uri =  "mongodb+srv://MosesLee:Mlxy%406695@company-management-syst.ulotbgi.mongodb.net/?retryWrites=true&w=majority&appName=Company-Management-System"
+// MongoDB connection options for better performance and stability
+//const mongoOptions = const uri =  "mongodb+srv://MosesLee:Mlxy%406695@company-management-syst.ulotbgi.mongodb.net/?retryWrites=true&w=majority&appName=Company-Management-System"
+//const uri = "mongodb+srv://MosesLee:Mlxy%406695@company-management-syst.rc2sux.mongodb.net/?appName=Company-Management-System"
+//const uri =  "mongodb+srv://MosesLee:Mlxy%406695@company-management-syst.ulotbgi.mongodb.net/?retryWrites=true&w=majority&appName=Company-Management-System"
+const uri =  "mongodb+srv://it_db_user:PTcGw3Y6IL0gjkaV@ecss-company-management.t7nhtee.mongodb.net/?retryWrites=true&w=majority&appName=Company-Management-System"
 // MongoDB connection options for better performance and stability
 const mongoOptions = {
     maxPoolSize: 10, // Maintain up to 10 socket connections
