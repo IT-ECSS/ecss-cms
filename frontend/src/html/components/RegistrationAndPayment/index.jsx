@@ -2077,7 +2077,17 @@ class RegistrationPaymentSection extends Component {
           // Only show payment date/time when:
           // 1. SkillsFuture payment method AND status is 'SkillsFuture Done'
           // 2. Cash/PayNow payment method AND status is 'Paid'
-          const paymentMethod = String(params.data?.finalPaymentMethod || '').trim();
+          // Resolve the active payment method with fallback (matches the expanded
+          // detail + editable checks): finalPaymentMethod may be blank on rows that
+          // were paid before staff explicitly set it, so fall back to the
+          // participant's payment method.
+          const paymentMethod = String(
+            params.data?.finalPaymentMethod ||
+            params.data?.courseInfo?.finalPaymentMethod ||
+            params.data?.paymentMethod ||
+            params.data?.course?.payment ||
+            ''
+          ).trim();
           const paymentStatus = String(params.data?.status || params.data?.paymentStatus || '').trim();
           
           const isSkillsFutureDone = paymentMethod === 'SkillsFuture' && paymentStatus === 'SkillsFuture Done';
@@ -2109,7 +2119,17 @@ class RegistrationPaymentSection extends Component {
           // Only show payment date/time when:
           // 1. SkillsFuture payment method AND status is 'SkillsFuture Done'
           // 2. Cash/PayNow payment method AND status is 'Paid'
-          const paymentMethod = String(params.data?.finalPaymentMethod || '').trim();
+          // Resolve the active payment method with fallback (matches the expanded
+          // detail + editable checks): finalPaymentMethod may be blank on rows that
+          // were paid before staff explicitly set it, so fall back to the
+          // participant's payment method.
+          const paymentMethod = String(
+            params.data?.finalPaymentMethod ||
+            params.data?.courseInfo?.finalPaymentMethod ||
+            params.data?.paymentMethod ||
+            params.data?.course?.payment ||
+            ''
+          ).trim();
           const paymentStatus = String(params.data?.status || params.data?.paymentStatus || '').trim();
           
           const isSkillsFutureDone = paymentMethod === 'SkillsFuture' && paymentStatus === 'SkillsFuture Done';
