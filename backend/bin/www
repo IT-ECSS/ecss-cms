@@ -113,6 +113,12 @@ async function watchRegistrationForms(io) {
     ssl: true,
     retryWrites: true,
     w: 'majority',
+    // The change stream only needs a single connection to watch the collection.
+    // Cap the pool tightly (default maxPoolSize is 100) so this client does not
+    // consume connections toward the Atlas maximum-connection threshold.
+    maxPoolSize: 2,
+    minPoolSize: 0,
+    maxIdleTimeMS: 60000,
     // For development/testing with certificate issues, uncomment this:
     // tlsInsecure: true,
   };

@@ -11,7 +11,8 @@ const { getNextInvoiceNumber } = require('../numbering/invoiceNumber');
 const uri =  "mongodb+srv://it_db_user:PTcGw3Y6IL0gjkaV@ecss-company-management.t7nhtee.mongodb.net/?retryWrites=true&w=majority&appName=Company-Management-System"
 // MongoDB connection options for better performance and stability
 const mongoOptions = {
-    maxPoolSize: 10, // Maintain up to 10 socket connections
+    maxPoolSize: 5, // Cap concurrent socket connections (was 10) to stay well under Atlas limits
+    minPoolSize: 0, // Allow the pool to shrink to zero when idle
     serverSelectionTimeoutMS: 30000, // Keep trying to send operations for 30 seconds (increased)
     socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
     connectTimeoutMS: 30000, // Give more time to establish connection (increased)
