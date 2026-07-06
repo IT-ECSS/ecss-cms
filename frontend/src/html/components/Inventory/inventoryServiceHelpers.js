@@ -2,6 +2,24 @@ import axios from 'axios';
 import * as XLSX from 'xlsx';
 
 /**
+ * Compute autofit column widths for a SheetJS worksheet from the row data.
+ * Returns an array suitable for worksheet['!cols'] so each column sizes to its
+ * widest cell (header included), with a little padding.
+ */
+const computeAutoFitColumns = (rows) => {
+    if (!rows || rows.length === 0) return [];
+    const keys = Object.keys(rows[0]);
+    return keys.map(key => {
+        let maxLen = String(key).length;
+        rows.forEach(row => {
+            const val = row[key] == null ? '' : String(row[key]);
+            if (val.length > maxLen) maxLen = val.length;
+        });
+        return { wch: maxLen + 2 }; // +2 padding
+    });
+};
+
+/**
  * Generate and download receipt PDF
  */
 export const generateReceipt = async (record) => {
@@ -65,11 +83,24 @@ export const exportStockToExcel = (stockRecords) => {
         return;
     }
 
+    // Resolve a single meaningful Location from locationFrom / locationTo.
+    // We only surface the known inventory locations and prefer the site over the
+    // central Store (e.g. an allocation Store -> CT Hub shows "CT Hub").
+    const KNOWN_LOCATIONS = ['Store', 'CT Hub', 'Pasir Ris West Wellness Centre', 'Tampines North Community Centre'];
+    const resolveLocation = (r) => {
+        const from = (r.locationFrom || '').trim();
+        const to = (r.locationTo || '').trim();
+        const isKnown = (l) => KNOWN_LOCATIONS.some(k => k.toLowerCase() === l.toLowerCase());
+        const candidates = [to, from].filter(l => l && isKnown(l));
+        const site = candidates.find(l => l.toLowerCase() !== 'store');
+        return site || candidates[0] || (r.location || '').trim() || from || to || '';
+    };
+
     const exportData = stockRecords.map((r, i) => ({
         'S/N': i + 1,
         'Action': r.action || '',
         'Product': r.product || '',
-        'Location': r.location || '',
+        'Location': resolveLocation(r),
         'Date': r.date || r.orderDate || '',
         'Time': r.time || r.orderTime || '',
         'Quantity': r.quantity || '',
@@ -78,6 +109,10 @@ export const exportStockToExcel = (stockRecords) => {
     }));
 
     const ws = XLSX.utils.json_to_sheet(exportData);
+    // Autofit column widths to content and give rows a comfortable height so all
+    // characters are fully visible.
+    ws['!cols'] = computeAutoFitColumns(exportData);
+    ws['!rows'] = [{ hpt: 20 }, ...exportData.map(() => ({ hpt: 18 }))];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Stock Records');
     XLSX.writeFile(wb, `Stock_Records_${new Date().toISOString().split('T')[0]}.xlsx`);
@@ -111,6 +146,10 @@ export const exportOrderToExcel = (enrichedRecords) => {
     }));
 
     const ws = XLSX.utils.json_to_sheet(exportData);
+    // Autofit column widths to content and give rows a comfortable height so all
+    // characters are fully visible.
+    ws['!cols'] = computeAutoFitColumns(exportData);
+    ws['!rows'] = [{ hpt: 20 }, ...exportData.map(() => ({ hpt: 18 }))];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Order Records');
     XLSX.writeFile(wb, `Order_Records_${new Date().toISOString().split('T')[0]}.xlsx`);
