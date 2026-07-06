@@ -45,11 +45,43 @@ function sanitizeStaffName(value) {
     return String(value ?? '').replace(/\s*\(Approved\)\s*$/i, '').trim();
 }
 
+// ─── Shared MongoClient singleton ────────────────────────────────────────────
+// Every controller creates its own `new DatabaseConnectivity()`. Previously each
+// instance owned a separate MongoClient (and connection pool) and called close()
+// after every request. Under concurrent load this caused one request to tear down
+// a TLS pool while another was mid-handshake, producing transient
+// "tlsv1 alert internal error / SSL alert number 80" (ResetPool) failures.
+//
+// Using ONE shared MongoClient/pool across all instances removes that race. The
+// pool is reused for the lifetime of the process and only closed on shutdown.
+let sharedClient = null;
+let sharedIsConnected = false;
+let sharedConnectionPromise = null;
+
+function getSharedClient() {
+    if (!sharedClient) {
+        sharedClient = new MongoClient(uri, mongoOptions);
+    }
+    return sharedClient;
+}
+
+// Detects transient network/TLS errors that are safe to retry (as opposed to
+// authentication or configuration errors, which should fail fast).
+function isTransientConnectionError(error) {
+    if (!error) return false;
+    const message = String(error.message || error);
+    const code = error.code || (error.cause && error.cause.code);
+    if (code === 'ERR_SSL_TLSV1_ALERT_INTERNAL_ERROR') return true;
+    if (['ECONNRESET', 'ETIMEDOUT', 'EPIPE', 'ENETUNREACH'].includes(code)) return true;
+    if (error.errorLabelSet && typeof error.errorLabelSet.has === 'function' &&
+        error.errorLabelSet.has('ResetPool')) return true;
+    return /tlsv1 alert internal error|SSL alert number 80|ResetPool|socket hang up|connection timed out/i.test(message);
+}
+
 class DatabaseConnectivity {
     constructor() {
-        this.client = new MongoClient(uri, mongoOptions);
-        this.isConnected = false;
-        this.connectionPromise = null;
+        // Point every instance at the single shared client/pool.
+        this.client = getSharedClient();
     }
 
     _makeObjectId(id) {
@@ -63,46 +95,66 @@ class DatabaseConnectivity {
     // Connect to the database with improved error handling and connection reuse
     async initialize()
     {
-        try 
+        try
         {
-            if (!this.isConnected && !this.connectionPromise) 
-            {
-                console.log("Attempting to connect to MongoDB Atlas...");
-                // Create connection promise to avoid multiple simultaneous connections
-                this.connectionPromise = this.client.connect();
-                
-                // Set a timeout for connection with more generous timeout for Azure
-                const timeoutPromise = new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('MongoDB connection timeout after 30 seconds')), 30000)
-                );
-                
-                await Promise.race([this.connectionPromise, timeoutPromise]);
-                this.isConnected = true;
-                this.connectionPromise = null;
+            // Reuse the already-established shared connection.
+            if (sharedIsConnected) {
+                return "Connected to MongoDB Atlas!";
+            }
+            // If another instance/request is already connecting, wait for it
+            // instead of opening a competing handshake.
+            if (sharedConnectionPromise) {
+                console.log("Waiting for existing connection attempt...");
+                await sharedConnectionPromise;
+                return "Connected to MongoDB Atlas!";
+            }
+
+            sharedConnectionPromise = this._connectWithRetry();
+            try {
+                await sharedConnectionPromise;
+                sharedIsConnected = true;
                 console.log("Connected to MongoDB Atlas successfully!");
                 return "Connected to MongoDB Atlas!";
-            } else if (this.isConnected) {
-                console.log("Using existing MongoDB connection");
-                return "Connected to MongoDB Atlas!";
-            } else if (this.connectionPromise) {
-                console.log("Waiting for existing connection attempt...");
-                await this.connectionPromise;
-                this.isConnected = true;
-                this.connectionPromise = null;
-                return "Connected to MongoDB Atlas!";
-            }   
+            } finally {
+                sharedConnectionPromise = null;
+            }
         } catch (error) {
             console.error("Error connecting to MongoDB Atlas:", error);
-            this.isConnected = false;
-            this.connectionPromise = null;
+            sharedIsConnected = false;
+            sharedConnectionPromise = null;
             throw error;
         }
+    }
+
+    // Establishes the shared connection, retrying on transient TLS/network errors
+    // (e.g. "SSL alert number 80" / ResetPool) which Atlas can throw intermittently.
+    async _connectWithRetry(maxRetries = 3) {
+        let lastError;
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                console.log(`Attempting to connect to MongoDB Atlas... (attempt ${attempt}/${maxRetries})`);
+                await this.client.connect();
+                // Verify the pool can actually serve operations before declaring success.
+                await this.client.db('admin').command({ ping: 1 });
+                return;
+            } catch (error) {
+                lastError = error;
+                if (isTransientConnectionError(error) && attempt < maxRetries) {
+                    const delay = 500 * attempt; // simple linear backoff
+                    console.warn(`Transient MongoDB connection error (attempt ${attempt}/${maxRetries}): ${error.message}. Retrying in ${delay}ms...`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    continue;
+                }
+                throw error;
+            }
+        }
+        throw lastError;
     }
 
     // Add connection health check with automatic reconnection
     async ensureConnection() {
         try {
-            if (!this.isConnected) {
+            if (!sharedIsConnected) {
                 await this.initialize();
             } else {
                 // Test the connection with a simple ping
@@ -110,7 +162,8 @@ class DatabaseConnectivity {
             }
         } catch (error) {
             console.log("Connection test failed, reinitializing...", error.message);
-            this.isConnected = false;
+            sharedIsConnected = false;
+            sharedConnectionPromise = null;
             await this.initialize();
         }
     }
@@ -2776,12 +2829,23 @@ class DatabaseConnectivity {
         }   
     }
 
-    // Close the connection to the database - only for application shutdown
+    // Close the connection to the database.
+    // Per-request close is intentionally a NO-OP. All controllers share a single
+    // MongoClient pool, so closing it after each request would tear the pool down
+    // underneath other concurrent requests — the exact race that produces the
+    // transient "SSL alert number 80" (ResetPool) errors. The shared pool is
+    // reused for the process lifetime and only truly closed on shutdown.
     async close() {
-        if (this.isConnected) {
-            await this.client.close();
-            this.isConnected = false;
-            this.connectionPromise = null;
+        // no-op by design; see closeShared() for real shutdown teardown.
+    }
+
+    // Actually close the shared connection/pool. Call this ONLY on application
+    // shutdown (e.g. SIGINT/SIGTERM), not after individual requests.
+    async closeShared() {
+        if (sharedClient && sharedIsConnected) {
+            await sharedClient.close();
+            sharedIsConnected = false;
+            sharedConnectionPromise = null;
             console.log("MongoDB connection closed.");
         }
     }

@@ -185,3 +185,27 @@ function onListening() {
     : 'port ' + addr.port;
   debug('Listening on ' + bind);
 }
+
+/**
+ * Graceful shutdown: close the shared MongoDB pool and change-stream client so
+ * connections are released cleanly instead of being killed mid-handshake.
+ */
+async function gracefulShutdown(signal) {
+  console.log(`Received ${signal}, shutting down gracefully...`);
+  try {
+    const DatabaseConnectivity = require('../database/databaseConnectivity');
+    await new DatabaseConnectivity().closeShared();
+  } catch (err) {
+    console.error('Error closing shared MongoDB pool:', err.message);
+  }
+  try {
+    if (_changeStreamClient) await _changeStreamClient.close();
+  } catch (_) {}
+  server.close(() => process.exit(0));
+  // Force exit if connections don't drain in time.
+  setTimeout(() => process.exit(0), 5000).unref();
+}
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+
