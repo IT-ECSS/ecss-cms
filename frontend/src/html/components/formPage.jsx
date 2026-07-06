@@ -581,7 +581,29 @@ class FormPage extends Component {
           formContainerBg = '#40E0D0';
         }
 
-        let selectedLocation = matchedCourse.attributes[1].options[0];
+        // "Course Location" (course_location) and "Centre Location" (centre_location)
+        // are two SEPARATE WooCommerce attributes. course_location drives the form
+        // display; centre_location is stored separately. Each is '' when absent.
+        const findLocationAttr = (names) => (Array.isArray(matchedCourse.attributes)
+          ? matchedCourse.attributes.find(a => {
+              const slug = (a.slug || '').toLowerCase();
+              const name = (a.name || '').toLowerCase();
+              return names.includes(slug) || names.includes(name);
+            })
+          : null);
+        const courseLocationAttr = findLocationAttr(['course_location', 'pa_course_location', 'course location']);
+        let selectedLocation = (courseLocationAttr && Array.isArray(courseLocationAttr.options) && courseLocationAttr.options.length > 0)
+          ? courseLocationAttr.options[0]
+          : '';
+        const centreLocationAttr = findLocationAttr(['centre_location', 'pa_centre_location', 'centre location']);
+        let selectedCentreLocation = (centreLocationAttr && Array.isArray(centreLocationAttr.options) && centreLocationAttr.options.length > 0)
+          ? centreLocationAttr.options[0]
+          : '';
+        selectedCentreLocation = selectedCentreLocation === 'CT Hub' ? 'CT Hub' :
+                          selectedCentreLocation === '恩 Project@253' ? 'Tampines 253 Centre' :
+                          selectedCentreLocation === 'Pasir Ris West' ? 'Pasir Ris West Wellness Centre' :
+                          selectedCentreLocation === 'Tampines North CC' ? 'Tampines North Community Centre' :
+                          selectedCentreLocation;
         selectedLocation = selectedLocation === 'CT Hub' ? 'CT Hub' :
                           selectedLocation === '恩 Project@253' ? 'Tampines 253 Centre' :
                           selectedLocation === 'Pasir Ris West' ? 'Pasir Ris West Wellness Centre' :
@@ -757,6 +779,8 @@ class FormPage extends Component {
         } else if (courseParts.length === 1) {
           courseData = { englishName: courseParts[0], chineseName: '', location: selectedLocation, price: formattedPrice, type, courseDuration, courseTime, courseMode, courseLocation: categoryCourseLocation };
         }
+
+        courseData.centreLocation = selectedCentreLocation;
 
         const shouldStartAtSection1 = type === 'Marriage Preparation Programme' && !hasSectionParam;
 
@@ -964,7 +988,29 @@ class FormPage extends Component {
           formContainerBg = '#40E0D0';
         }
         
-        let selectedLocation = matchedCourse.attributes[1].options[0];
+        // "Course Location" (course_location) and "Centre Location" (centre_location)
+        // are two SEPARATE WooCommerce attributes. course_location drives the form
+        // display; centre_location is stored separately. Each is '' when absent.
+        const findLocationAttr = (names) => (Array.isArray(matchedCourse.attributes)
+          ? matchedCourse.attributes.find(a => {
+              const slug = (a.slug || '').toLowerCase();
+              const name = (a.name || '').toLowerCase();
+              return names.includes(slug) || names.includes(name);
+            })
+          : null);
+        const courseLocationAttr = findLocationAttr(['course_location', 'pa_course_location', 'course location']);
+        let selectedLocation = (courseLocationAttr && Array.isArray(courseLocationAttr.options) && courseLocationAttr.options.length > 0)
+          ? courseLocationAttr.options[0]
+          : '';
+        const centreLocationAttr = findLocationAttr(['centre_location', 'pa_centre_location', 'centre location']);
+        let selectedCentreLocation = (centreLocationAttr && Array.isArray(centreLocationAttr.options) && centreLocationAttr.options.length > 0)
+          ? centreLocationAttr.options[0]
+          : '';
+        selectedCentreLocation = selectedCentreLocation === 'CT Hub' ? 'CT Hub' :
+                          selectedCentreLocation === '恩 Project@253' ? 'Tampines 253 Centre' :
+                          selectedCentreLocation === 'Pasir Ris West' ? 'Pasir Ris West Wellness Centre' :
+                          selectedCentreLocation === 'Tampines North CC' ? 'Tampines North Community Centre' :
+                          selectedCentreLocation;
         selectedLocation = selectedLocation === 'CT Hub' ? 'CT Hub' :
                           selectedLocation === '恩 Project@253' ? 'Tampines 253 Centre' :
                           selectedLocation === 'Pasir Ris West' ? 'Pasir Ris West Wellness Centre' :
@@ -1275,6 +1321,8 @@ class FormPage extends Component {
             courseLocation
           };
         }
+
+        courseData.centreLocation = selectedCentreLocation;
 
         // Determine initial section for Marriage Preparation Programme only if no explicit section param
         const shouldStartAtSection1 = type === 'Marriage Preparation Programme' && !hasSectionParam;
@@ -2176,6 +2224,7 @@ class FormPage extends Component {
     // courseChiName contains either Chinese name or Malay name depending on language
     var courseChiName = this.decodeHtmlEntities(formData.chineseName);
     var courseLocation = formData.location; // Use simple location name, not detailed address
+    var centreLocation = formData.centreLocation || ''; // From WooCommerce "centre_location" attribute
     var coursePrice = formData.price; 
     var courseDuration = formData.courseDuration;
     var courseMode = formData.courseMode;
@@ -2204,6 +2253,7 @@ class FormPage extends Component {
           courseEngName: courseEngName,
           courseChiName: courseChiName,
           courseLocation: courseLocation,
+          centre_location: centreLocation,
           coursePrice: coursePrice,
           courseDuration: courseDuration,
           courseTime: courseTime,

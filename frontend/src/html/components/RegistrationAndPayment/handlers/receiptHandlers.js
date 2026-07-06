@@ -249,7 +249,11 @@ async function _generateCashPayNowReceipt(id, participant, course, userName, pay
   console.log('✅ [Receipt Handler] Receipt PDF generated and added to database');
   
   try {
-    await saveReceiptToDatabase(receiptNo, course.courseLocation, id, '', userName);
+    // The persisted Receipts record stores the CENTRE location (e.g. "CT Hub"),
+    // not the course venue (e.g. "Renewal Christian Church"). The PDF still shows
+    // the course/venue location; only the database record uses the centre.
+    const recordLocation = course.centre_location || course.centreLocation || course.courseLocation;
+    await saveReceiptToDatabase(receiptNo, recordLocation, id, '', userName);
     console.log('✅ [Receipt Handler] Receipt record saved to Receipts collection');
   } catch (dbError) {
     console.error('❌ [Receipt Handler] Failed to save receipt record to Receipts collection:', {
@@ -281,7 +285,11 @@ async function _generateSkillsFutureInvoice(id, participant, course, userName, p
     if (progressTracker) progressTracker.advance(); // → Invoice Downloaded and Opened
     
     try {
-      await saveInvoiceToDatabase(invoiceNo, course.courseLocation, id, '', userName);
+      // The persisted Invoices record stores the CENTRE location (e.g. "CT Hub"),
+      // not the course venue (e.g. "Renewal Christian Church"). The PDF still shows
+      // the course/venue location; only the database record uses the centre.
+      const recordLocation = course.centre_location || course.centreLocation || course.courseLocation;
+      await saveInvoiceToDatabase(invoiceNo, recordLocation, id, '', userName);
       console.log('✅ [SkillsFuture Invoice] Invoice record saved to database');
     } catch (dbError) {
       console.error('❌ [SkillsFuture Invoice] Failed to save invoice record to Invoices collection:', {

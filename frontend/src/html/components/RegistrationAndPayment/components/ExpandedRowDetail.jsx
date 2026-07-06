@@ -391,7 +391,7 @@ function ExpandedRowDetail({ rowData, onParticipantFieldUpdate }) {
           <Field label="Course Type"    value={courseInfo?.courseType} />
           <Field label="English Name"   value={courseInfo?.courseEngName} />
           <Field label="Chinese Name"   value={courseInfo?.courseChiName} />
-          <Field label="Location"       value={courseInfo?.courseLocation} />
+          <Field label="Course Location"       value={courseInfo?.courseLocation} />
           <Field label="Mode"           value={courseInfo?.courseMode} />
           <Field label="Price"          value={courseInfo?.coursePrice} />
           <Field label="Duration"       value={courseInfo?.courseDuration} />

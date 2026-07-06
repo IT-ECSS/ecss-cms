@@ -68,9 +68,19 @@ class LeftBar extends Component {
       const matchesLanguage = isAllLanguagesSelected || 
         (course.attributes && course.attributes[0] && course.attributes[0].options[0] === selectedLanguage);
 
-      // Location check: If "All Locations" is selected, skip filtering by location
-      const matchesLocation = isAllLocationsSelected || 
-        (course.attributes && course.attributes[1] && course.attributes[1].options[0] === selectedLocation);
+      // Location check: resolve the venue from the "course_location" attribute
+      // (fallback "centre_location"), matching the filter dropdown values.
+      const resolveLocationOption = (attrs) => {
+        if (!Array.isArray(attrs)) return undefined;
+        const match = (names) => attrs.find(a =>
+          names.includes((a.slug || '').toLowerCase()) || names.includes((a.name || '').toLowerCase())
+        );
+        const attr = match(['course_location', 'pa_course_location', 'course location'])
+          || match(['centre_location', 'pa_centre_location', 'centre location']);
+        return attr?.options?.[0] ?? attrs[1]?.options?.[0];
+      };
+      const matchesLocation = isAllLocationsSelected ||
+        (resolveLocationOption(course.attributes) === selectedLocation);
 
       // Course Type check: If "All Course Types" is selected, skip filtering by course type
       const matchesCourseType = isAllCourseTypesSelected || 

@@ -832,6 +832,15 @@ class DatabaseConnectivity {
                         }
                     }
 
+                    // A document number (receiptNo / invoiceNo) uniquely identifies the
+                    // document, so we dedup STRICTLY on that number. This is mandatory for the
+                    // running series: the next invoice/receipt number is derived from the
+                    // highest number already stored in the collection, so every newly issued
+                    // number MUST be recorded — even when it belongs to a registration/staff/
+                    // location that already has an earlier document. Deduping on
+                    // registration_id + staff + location (the old behaviour) wrongly skipped a
+                    // legitimately new number for an existing registration, which stalled the
+                    // series and caused the same number to be generated repeatedly.
                     const duplicateFilters = [];
                     if (collectionName === "Receipts" && data.receiptNo) {
                         duplicateFilters.push({ receiptNo: data.receiptNo });
@@ -839,19 +848,24 @@ class DatabaseConnectivity {
                     if (collectionName === "Invoices" && data.invoiceNo) {
                         duplicateFilters.push({ invoiceNo: data.invoiceNo });
                     }
-                    if (candidateRegistrationIds.length > 0 && data.staff && data.location) {
-                        duplicateFilters.push({
-                            registration_id: { $in: candidateRegistrationIds },
-                            staff: data.staff,
-                            location: data.location,
-                        });
-                    }
-                    if (candidateInventoryIds.length > 0 && data.staff && data.location) {
-                        duplicateFilters.push({
-                            inventory_id: { $in: candidateInventoryIds },
-                            staff: data.staff,
-                            location: data.location,
-                        });
+
+                    // Fallback ONLY when the document carries no unique number: fall back to the
+                    // registration/inventory + staff + location combination to avoid true dupes.
+                    if (duplicateFilters.length === 0) {
+                        if (candidateRegistrationIds.length > 0 && data.staff && data.location) {
+                            duplicateFilters.push({
+                                registration_id: { $in: candidateRegistrationIds },
+                                staff: data.staff,
+                                location: data.location,
+                            });
+                        }
+                        if (candidateInventoryIds.length > 0 && data.staff && data.location) {
+                            duplicateFilters.push({
+                                inventory_id: { $in: candidateInventoryIds },
+                                staff: data.staff,
+                                location: data.location,
+                            });
+                        }
                     }
 
                     const duplicateFilter = duplicateFilters.length > 1 ? { $or: duplicateFilters } : duplicateFilters[0];

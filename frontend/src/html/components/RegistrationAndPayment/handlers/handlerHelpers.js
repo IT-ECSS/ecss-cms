@@ -187,6 +187,26 @@ export async function appendSystemRemark({ id, event, message, role = 'System' }
   if (dataObj.officialInfo) dataObj.officialInfo.remarks = updatedBlock;
   if (dataObj.official) dataObj.official.remarks = updatedBlock;
 
+  // Live-refresh the Remarks cell so system-generated remarks (e.g. receipt/
+  // invoice voids appended during a payment-method/status change) appear
+  // immediately, matching the manual-edit path. Without this the backend and
+  // local row data update but the grid keeps showing the stale remarks until a
+  // manual page reload. Guarded so it is a no-op when a caller passes a plain
+  // data object instead of a full ag-grid event.
+  try {
+    const api = event?.api;
+    if (api && typeof api.refreshCells === 'function') {
+      const node = event?.node;
+      api.refreshCells({
+        rowNodes: node ? [node] : undefined,
+        columns: ['remarks'],
+        force: true,
+      });
+    }
+  } catch (refreshError) {
+    console.warn('[appendSystemRemark] Failed to refresh remarks cell:', refreshError);
+  }
+
   return updatedBlock;
 }
 

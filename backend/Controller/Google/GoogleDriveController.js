@@ -599,8 +599,34 @@ class GoogleDriveController {
 
             const sheetNames = spreadsheet.data.sheets.map(s => s.properties.title);
 
-            // Determine which sheet to read
-            const targetSheet = sheetName || sheetNames[0];
+            // Determine which sheet to read. When a specific sheetName is requested,
+            // match it against the actual tab titles resiliently (exact → case/whitespace
+            // insensitive → fuzzy contains) so a tab that differs only by casing, trailing
+            // spaces, or a "Legend"/pluralised suffix still resolves instead of throwing an
+            // "Unable to parse range" error and failing the whole read.
+            let targetSheet;
+            if (sheetName) {
+                const normName = value => String(value ?? '').trim().toUpperCase();
+                const wanted = normName(sheetName);
+                targetSheet =
+                    sheetNames.find(name => name === sheetName) ||
+                    sheetNames.find(name => normName(name) === wanted) ||
+                    sheetNames.find(name => {
+                        const n = normName(name);
+                        return n && (n.includes(wanted) || wanted.includes(n));
+                    });
+
+                if (!targetSheet) {
+                    console.warn(`[SHEETS] Requested tab "${sheetName}" not found in ${fileId}. Available tabs: ${sheetNames.join(', ')}`);
+                    return {
+                        success: false,
+                        sheets: sheetNames,
+                        error: `Sheet tab "${sheetName}" not found. Available tabs: ${sheetNames.join(', ')}`
+                    };
+                }
+            } else {
+                targetSheet = sheetNames[0];
+            }
 
             // Read data from the sheet
             const range = `'${targetSheet}'!A:ZZ`;

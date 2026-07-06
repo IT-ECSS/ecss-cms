@@ -585,11 +585,17 @@ router.post('/', async function(req, res, next)
             const date = currentDateTime.date;
             const time = currentDateTime.time;
 
-            // The frontend does not send a separate `location`; derive it from the course
-            // payload so the stored invoice record is not left with an empty location.
-            const invoiceLocation = req.body.location
+            // The stored invoice record must carry the CENTRE location (e.g. "CT Hub"),
+            // not the course venue (e.g. "Renewal Christian Church"). Only the persisted
+            // record uses the centre; the PDF continues to show the course/venue location.
+            // Fall back to the course/venue location only when no centre is supplied so the
+            // record is never left with an empty location.
+            const invoiceLocation = req.body.course?.centre_location
+                || req.body.course?.centreLocation
+                || req.body.centre_location
                 || req.body.course?.courseLocation
                 || req.body.course?.location
+                || req.body.location
                 || '';
 
             const invoiceRecordResult = await invoiceController.createInvoice(

@@ -32,7 +32,8 @@ function norm(value) {
 async function _fetchLegend() {
     const result = await googleDriveController.readSpreadsheet(DRIVE_FILE_ID, DRIVE_SHEET_NAME);
     if (!result || !result.success) {
-        throw new Error('[locationCodeMapping] Failed to read "Location Code" spreadsheet');
+        const detail = result && result.error ? `: ${result.error}` : '';
+        throw new Error(`[locationCodeMapping] Failed to read "${DRIVE_SHEET_NAME}" spreadsheet${detail}`);
     }
 
     const rows = Array.isArray(result.data) ? result.data : [];

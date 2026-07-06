@@ -1448,7 +1448,7 @@ render()
               </div>
             </div>
             <div className="ss-field-group">
-              <label htmlFor="centreLocation">{this.props.language === 'zh' ? '中心位置' : 'Locations'}</label>
+              <label htmlFor="centreLocation">{this.props.language === 'zh' ? '上课地点' : 'Course Location'}</label>
               <div
                 className={`ss-dropdown-wrap ${showLocationDropdown ? 'open' : ''}`}
                 ref={this.locationDropdownRef}

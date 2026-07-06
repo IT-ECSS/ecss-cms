@@ -141,7 +141,9 @@ async function resolveItemCode(course, itemCode, paymentMethod) {
 async function generateInvoiceNumber({ existingInvoices = [], year = new Date().getFullYear().toString(), itemCode, course, paymentMethod }) {
     const resolvedItemCode = await resolveItemCode(course, itemCode, paymentMethod);
     const normalizedYear = getYearSuffix(year);
-    const normalizedLocation = await getLocationCode(course?.courseLocation || course?.location || 'UNKNOWN');
+    // The location CODE must come from the centre (centre_location), not the venue
+    // (courseLocation, which may be a church/hall not present in the Location Code sheet).
+    const normalizedLocation = await getLocationCode(course?.centre_location || course?.courseLocation || course?.location || 'UNKNOWN');
     const normalizedItemCode = sanitizeItemCode(resolvedItemCode);
     const padded = getNextSeriesNumber(existingInvoices, normalizedYear);
 

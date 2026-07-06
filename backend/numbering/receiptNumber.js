@@ -261,7 +261,9 @@ async function generateStandardReceiptNumber({ existingReceipts = [], courseLoca
 
 async function generateReceiptNumber({ course, paymentMethod, existingReceipts, currentYear, fullYear }) {
     const { courseLocation, courseType, courseEngName } = course || {};
-    const centreLocation = courseLocation;
+    // The location CODE must come from the centre (centre_location), not the venue
+    // (courseLocation, which may be a church/hall not present in the Location Code sheet).
+    const centreLocation = course?.centre_location || courseLocation;
 
     const isMarriagePrep = courseType && courseType.trim() === 'Marriage Preparation Programme';
     const isGroupClass = courseEngName && (

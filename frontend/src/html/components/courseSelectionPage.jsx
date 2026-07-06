@@ -54,13 +54,25 @@ class CourseSelectionPage extends Component {
       const typeSet = new Set(["All Types"]);
   
       // Iterate over courses and extract unique values for language and location
+      const findLocationAttr = (attrs) => {
+        if (!Array.isArray(attrs)) return null;
+        const match = (names) => attrs.find(a =>
+          names.includes((a.slug || '').toLowerCase()) || names.includes((a.name || '').toLowerCase())
+        );
+        // Prefer "course_location", fall back to "centre_location".
+        return match(['course_location', 'pa_course_location', 'course location'])
+          || match(['centre_location', 'pa_centre_location', 'centre location']);
+      };
+
       courses.forEach(course => {
         // Add language and location to the Sets (ensuring uniqueness)
         if (course.attributes[0]?.options[0]) {
           languagesSet.add(course.attributes[0].options[0]);
         }
-        if (course.attributes[1]?.options[0]) {
-          locationsSet.add(course.attributes[1].options[0]);
+        const locationAttr = findLocationAttr(course.attributes);
+        const locationOption = locationAttr?.options?.[0] ?? course.attributes[1]?.options?.[0];
+        if (locationOption) {
+          locationsSet.add(locationOption);
         }
         if (course.categories[1].name) {
           typeSet.add(course.categories[1].name);
