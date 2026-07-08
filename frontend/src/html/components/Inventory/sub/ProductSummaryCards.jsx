@@ -78,6 +78,7 @@ class ProductSummaryCards extends Component {
             const recs = allRecords.filter(r => String(r.product || '') === v.product);
             const sold = {};
             const allocIn = {};
+            const returned = {};
             let storeIn = 0;
             let storeOut = 0;
             recs.forEach(r => {
@@ -89,6 +90,15 @@ class ProductSummaryCards extends Component {
                 } else if (r.action === 'Allocation To Site') {
                     allocIn[to] = (allocIn[to] || 0) + qty;
                     if (from === 'Store') storeOut += qty;
+                } else if (r.action === 'Initial Stock') {
+                    // Stock seeded directly at a location (or the Store).
+                    if (to && to !== 'Store') allocIn[to] = (allocIn[to] || 0) + qty;
+                    else storeIn += qty;
+                } else if (r.action === 'Return Stock to Store') {
+                    // Stock returned from a site back to the Store: it leaves the
+                    // site (reduces that site's balance) and re-enters the Store.
+                    returned[from] = (returned[from] || 0) + qty;
+                    if (to === 'Store') storeIn += qty;
                 } else if (r.action === 'Purchase From Supplier') {
                     if (to === 'Store') storeIn += qty;
                 }
@@ -96,7 +106,7 @@ class ProductSummaryCards extends Component {
             // Prefer the authoritative Store balance from the WooCommerce table.
             const tableStoreBalance = this.getTableStoreBalance(config, v);
             const storeBalance = tableStoreBalance !== null ? tableStoreBalance : storeIn - storeOut;
-            return { label: v.label, sold, allocIn, storeBalance };
+            return { label: v.label, sold, allocIn, returned, storeBalance };
         });
         const totalSales = perVariant.reduce(
             (sum, pv) => sum + Object.values(pv.sold).reduce((a, b) => a + b, 0),
@@ -171,7 +181,7 @@ class ProductSummaryCards extends Component {
                                                 <div style={{ fontSize: '1.425rem', color: '#333', fontWeight: '700' }}>{pv.label}</div>
                                             )}
                                             <div style={{ display: 'flex', gap: '10px' }}>
-                                                {renderStat('Balance', (pv.allocIn[site] || 0) - (pv.sold[site] || 0), '#27ae60')}
+                                                {renderStat('Balance', Math.max(0, (pv.allocIn[site] || 0) - (pv.sold[site] || 0) - (pv.returned[site] || 0)), '#27ae60')}
                                                 {renderStat('Sold', pv.sold[site] || 0, '#8e44ad')}
                                             </div>
                                         </div>
