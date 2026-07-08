@@ -1,5 +1,34 @@
 import { generateReceipt } from './inventoryServiceHelpers';
 
+// Parse a stored date string into a comparable timestamp. Records use two
+// formats: ISO "YYYY-MM-DD" and localised "D/M/Y" (e.g. "30/4/26"). Returns a
+// numeric epoch value so sorting is always chronological regardless of format.
+const parseRecordDate = (value) => {
+    if (!value) return null;
+    const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(value);
+    if (iso) {
+        return new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3])).getTime();
+    }
+    const dmy = /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/.exec(value);
+    if (dmy) {
+        let year = Number(dmy[3]);
+        if (year < 100) year += 2000; // "26" -> 2026
+        return new Date(year, Number(dmy[2]) - 1, Number(dmy[1])).getTime();
+    }
+    const fallback = Date.parse(value);
+    return Number.isNaN(fallback) ? null : fallback;
+};
+
+// AG Grid comparator that sorts Date columns by actual chronological order.
+const dateComparator = (a, b) => {
+    const ta = parseRecordDate(a);
+    const tb = parseRecordDate(b);
+    if (ta === null && tb === null) return 0;
+    if (ta === null) return -1;
+    if (tb === null) return 1;
+    return ta - tb;
+};
+
 export const orderColumnDefs = [
     { 
         headerName: 'S/N', 
@@ -28,11 +57,6 @@ export const orderColumnDefs = [
         field: 'product', 
         width: 400, 
     },
-    {
-        headerName: 'Variant',
-        field: 'variant',
-        width: 150,
-    },
     { 
         headerName: 'Location', 
         field: 'location', 
@@ -48,6 +72,7 @@ export const orderColumnDefs = [
         headerName: 'Date', 
         width: 130,
         valueGetter: (params) => params.data?.date || params.data?.orderDate || '',
+        comparator: dateComparator,
         valueFormatter: (params) => {
             if (!params.value) return '';
             const parts = params.value.split('-');
@@ -116,27 +141,22 @@ export const stockColumnDefs = [
         width: 500,
     },
     { 
-        headerName: 'Variant', 
-        field: 'variant', 
-        width: 150,
-        valueGetter: (params) => params.data?.variant || '',
-    },
-    { 
         headerName: 'Location From', 
         field: 'locationFrom', 
-        width: 400,
+        width: 500,
         valueGetter: (params) => params.data?.locationFrom || '',
     },
     { 
         headerName: 'Location To', 
         field: 'locationTo', 
-        width: 400,
+        width: 500,
         valueGetter: (params) => params.data?.locationTo || params.data?.location || '',
     },
     { 
         headerName: 'Date', 
         width: 150,
         valueGetter: (params) => params.data?.date || params.data?.orderDate || '',
+        comparator: dateComparator,
         valueFormatter: (params) => {
             if (!params.value) return '';
             const parts = params.value.split('-');

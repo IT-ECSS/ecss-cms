@@ -45,10 +45,35 @@ class ProductSummaryCards extends Component {
         }
     };
 
+    // Look up the authoritative Store balance from the WooCommerce table (`cards`
+    // prop) for a given product/variant. WooCommerce's parent stock quantity is the
+    // source of truth for what physically remains at the Store, so the MongoDB card
+    // mirrors it instead of deriving Store balance purely from stock records
+    // (purchases − allocations), which can drift from the table.
+    getTableStoreBalance = (config, variant) => {
+        const cards = this.props.cards || [];
+        const card = cards.find(c => (c.name || '').trim() === (config.title || '').trim());
+        if (!card) return null;
+        const label = (variant.label || '').trim().toLowerCase();
+        let balance = null;
+        (card.variations || []).forEach(v => {
+            (v.colors || []).forEach(col => {
+                const colName = (col.name || '').trim().toLowerCase();
+                if (label) {
+                    if (colName === label) balance = col.parentStockQuantity || 0;
+                } else {
+                    balance = col.parentStockQuantity || 0;
+                }
+            });
+        });
+        return balance;
+    };
+
     // Aggregate MongoDB records for a product (optionally split into colour variants)
     // into per-location Balance / Sold, mirroring the WooCommerce product cards.
-    computeMongoAggregate = (allRecords, variants, sites) => {
-        const SITES = sites || ['CT Hub', 'Pasir Ris West Wellness Centre', 'Tampines North Community Centre'];
+    computeMongoAggregate = (allRecords, config) => {
+        const variants = config.variants;
+        const SITES = config.sites || ['CT Hub', 'Pasir Ris West Wellness Centre', 'Tampines North Community Centre'];
         const perVariant = variants.map(v => {
             const recs = allRecords.filter(r => String(r.product || '') === v.product);
             const sold = {};
@@ -68,7 +93,10 @@ class ProductSummaryCards extends Component {
                     if (to === 'Store') storeIn += qty;
                 }
             });
-            return { label: v.label, sold, allocIn, storeBalance: storeIn - storeOut };
+            // Prefer the authoritative Store balance from the WooCommerce table.
+            const tableStoreBalance = this.getTableStoreBalance(config, v);
+            const storeBalance = tableStoreBalance !== null ? tableStoreBalance : storeIn - storeOut;
+            return { label: v.label, sold, allocIn, storeBalance };
         });
         const totalSales = perVariant.reduce(
             (sum, pv) => sum + Object.values(pv.sold).reduce((a, b) => a + b, 0),
@@ -108,7 +136,7 @@ class ProductSummaryCards extends Component {
 
         // Render a single product's aggregate section (used inside the combined card).
         const buildMongoSection = (config, isLast, showTitle = true) => {
-            const { SITES, perVariant, totalSales } = this.computeMongoAggregate(mongoRecords, config.variants, config.sites);
+            const { SITES, perVariant, totalSales } = this.computeMongoAggregate(mongoRecords, config);
             return (
                 <div key={config.title} style={{ display: 'flex', flexDirection: 'column', height: '100%', borderBottom: isLast ? 'none' : '1px solid #e0e0e0' }}>
                     {showTitle && (

@@ -18,7 +18,12 @@ class StockFilter extends Component {
             cardFilterDateFrom: props.cardFilterDateFrom || '',
             cardFilterDateTo: props.cardFilterDateTo || '',
             filterProductDropdownOpen: false,
-            filterLocationDropdownOpen: false
+            filterLocationDropdownOpen: false,
+            // Track whether the user is actively typing. When false (e.g. the field
+            // was just focused with a value already selected), the whole list is
+            // shown instead of filtering by the current value.
+            filterProductTyping: false,
+            filterLocationTyping: false
         };
     }
 
@@ -72,7 +77,8 @@ class StockFilter extends Component {
     handleProductInputChange = (value) => {
         this.setState({ 
             cardFilterProduct: value, 
-            filterProductDropdownOpen: true 
+            filterProductDropdownOpen: true,
+            filterProductTyping: true
         });
         if (this.props.onFilterChange) {
             this.props.onFilterChange({
@@ -87,7 +93,8 @@ class StockFilter extends Component {
     handleLocationInputChange = (value) => {
         this.setState({ 
             cardFilterLocation: value, 
-            filterLocationDropdownOpen: true 
+            filterLocationDropdownOpen: true,
+            filterLocationTyping: true
         });
         if (this.props.onFilterChange) {
             this.props.onFilterChange({
@@ -135,6 +142,11 @@ class StockFilter extends Component {
         
         const { inventoryProducts } = this.props;
 
+        // When the user isn't actively typing, show the full list instead of
+        // filtering by the already-selected value.
+        const productQuery = this.state.filterProductTyping ? cardFilterProduct : '';
+        const locationQuery = this.state.filterLocationTyping ? cardFilterLocation : '';
+
         return (
             <div className="stock-filter-bar">
                 <div className="stock-filter-row">
@@ -146,11 +158,11 @@ class StockFilter extends Component {
                                 placeholder="Search product..."
                                 value={cardFilterProduct}
                                 onChange={e => this.handleProductInputChange(e.target.value)}
-                                onFocus={() => this.setState({ filterProductDropdownOpen: true })}
+                                onFocus={() => this.setState({ filterProductDropdownOpen: true, filterProductTyping: false })}
                             />
-                            {filterProductDropdownOpen && getFilterProductOptions(cardFilterProduct, inventoryProducts).length > 0 && (
+                            {filterProductDropdownOpen && getFilterProductOptions(productQuery, inventoryProducts).length > 0 && (
                                 <ul className="stock-filter-dropdown-list">
-                                    {getFilterProductOptions(cardFilterProduct, inventoryProducts).map((name, idx) => (
+                                    {getFilterProductOptions(productQuery, inventoryProducts).map((name, idx) => (
                                         <li key={idx} className="stock-filter-dropdown-item" onClick={() => this.selectFilterProduct(name)}>
                                             {name}
                                         </li>
@@ -167,11 +179,11 @@ class StockFilter extends Component {
                                 placeholder="Search location..."
                                 value={cardFilterLocation}
                                 onChange={e => this.handleLocationInputChange(e.target.value)}
-                                onFocus={() => this.setState({ filterLocationDropdownOpen: true })}
+                                onFocus={() => this.setState({ filterLocationDropdownOpen: true, filterLocationTyping: false })}
                             />
-                            {filterLocationDropdownOpen && getFilterLocationOptions(cardFilterLocation, inventoryProducts).length > 0 && (
+                            {filterLocationDropdownOpen && getFilterLocationOptions(locationQuery, inventoryProducts).length > 0 && (
                                 <ul className="stock-filter-dropdown-list">
-                                    {getFilterLocationOptions(cardFilterLocation, inventoryProducts).map((loc, idx) => (
+                                    {getFilterLocationOptions(locationQuery, inventoryProducts).map((loc, idx) => (
                                         <li key={idx} className="stock-filter-dropdown-item" onClick={() => this.selectFilterLocation(loc)}>
                                             {loc}
                                         </li>
