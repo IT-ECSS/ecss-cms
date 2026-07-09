@@ -2,6 +2,7 @@ var express = require("express");
 var router = express.Router();
 var LoginController = require('../Controller/User/LoginController');
 const { ObjectId } = require("mongodb");
+var { sendPasswordResetEmail } = require('../Others/Email/passwordResetEmail');
 
 router.post("/", async function(req, res) 
 {
@@ -19,7 +20,23 @@ router.post("/", async function(req, res)
         console.log(req.body);
         var controller = new LoginController();
         var result = await controller.resetPassword(username, password);
-        res.json(result);
+
+        // Return safe account details (never the password) so the frontend can auto-login
+        var accountDetails = null;
+        if (result.success === true && result.account) {
+            // Notify the account holder by email that their password has been reset
+            sendPasswordResetEmail({ name: result.account.name, email: result.account.email, password });
+
+            accountDetails = {
+                _id: result.account._id,
+                name: result.account.name,
+                email: result.account.email,
+                role: result.account.role,
+                site: result.account.site
+            };
+        }
+
+        res.json({ message: result.message, success: result.success, account: accountDetails });
     }
     else if(req.body.purpose === "logout")
     {

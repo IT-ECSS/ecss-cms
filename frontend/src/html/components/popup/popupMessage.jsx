@@ -558,7 +558,7 @@ class Popup extends Component {
       if(response.data.success === true)
       {
         //console.log("Change Password Successfully");
-        this.props.passPopupMessage(response.data.success, "Reset Password Successfully");
+        this.props.passPopupMessage(response.data.success, "Reset Password Successfully", response.data.account);
       }
       else
       {
@@ -862,7 +862,7 @@ class Popup extends Component {
             <h2 style={{color:"#000000"}}>Forgot Password</h2>
             <form onSubmit={this.handleSendPassword} className="forgot-password-form">
               <div className="form-group">
-                <label htmlFor="username">Username:</label>
+                <label htmlFor="username">Email:</label>
                 <input
                   type="text"
                   id="username"
@@ -873,7 +873,7 @@ class Popup extends Component {
               </div>
               {error && <div className="error-message2">{error}</div>}
               <div className="form-group">
-              <label htmlFor="password1">Password:</label>
+              <label htmlFor="password1">New Password:</label>
               <div className="password-input-container">
               <input
                       type={showNewPassword ? "text" : "password"}

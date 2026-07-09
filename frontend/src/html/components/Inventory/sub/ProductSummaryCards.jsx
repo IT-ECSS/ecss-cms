@@ -393,7 +393,8 @@ class ProductSummaryCards extends Component {
         ));
 
         // Append the combined MongoDB card (Resistance Band + En Ball + Picnic Mat) at the end.
-        renderedCards.push(combinedMongoCard);
+        // Hidden per request: commented out to remove the "(From MongoDB)" card from the UI.
+        // renderedCards.push(combinedMongoCard);
 
         return (
             <div className="stock-product-cards">

@@ -1,37 +1,35 @@
 /**
- * accountCreatedEmail.js
- * Purpose: Send a "Your account has been created" welcome email to a new staff account.
- * Triggered when an admin creates a new account via POST /accountDetails { purpose: "create" }.
+ * passwordResetEmail.js
+ * Purpose: Notify an account holder that their password has been reset,
+ * along with the new password.
+ * Triggered when a user resets their password via the "Forgot password"
+ * flow on the login page (POST /login { purpose: "resetPassword" }).
  */
 
 var Email = require('./Email');
 
 /**
  * @param {object} params
- * @param {string} params.name     - New account holder's name
- * @param {string} params.email    - New account holder's email
- * @param {string} params.password - Plain-text password (shown once in welcome email)
+ * @param {string} params.name     - Account holder's name
+ * @param {string} params.email    - Account holder's email
+ * @param {string} params.password - New plain-text password (shown once in this email)
  */
-function sendAccountCreatedEmail({ name, email, password }) {
+function sendPasswordResetEmail({ name, email, password }) {
     var body = `Dear ${name},<br/>
-                    Thank you for creating an account with us! We're excited to have you on board.
+                    This is to inform you that the password for your account has been successfully reset.
                     <br/><br/>
-                    Your account has been successfully created, and you can now enjoy all the features and benefits we offer.
+                    Here are your updated account details:
                     <br/><br/>
-                    Here are your account details:  
-                    <br/><br/>
-                    Email: <a href="javascript:void(0);">${email}</a><br/>  
-                    Password: ${password}
+                    Email: <a href="javascript:void(0);">${email}</a><br/>
+                    New Password: ${password}
                     <br/>
                     <br/>
                     <br/>
-                    To get started, you can <a href="https://salmon-wave-09f02b100.6.azurestaticapps.net/" style="text-decoration: none; font-weight: bold; color:#000000">log in</a> to your account.
+                    You may now <a href="https://salmon-wave-09f02b100.6.azurestaticapps.net/" style="text-decoration: none; font-weight: bold; color:#000000">log in</a> using your new password.
                     <br/><br/>
-                    If you have any questions or need assistance, feel free to reach out to <a href="mailto:moses_lee@ecss.org.sg" style="text-decoration: none; font-weight: bold; color:#000000">our support team</a>.
+                    If you did not request this password reset, please contact <a href="mailto:moses_lee@ecss.org.sg" style="text-decoration: none; font-weight: bold; color:#000000">our support team</a> immediately.
                     <br/><br/>
-                    Welcome aboard!
-                    <br/><br/>
-                    This is an automated email. Thank you for creating an account with us! We're excited to have you on board.
+                    This is an automated email. Please do not reply directly to this message.
                     <br/><br/>
                     <div dir="ltr" class="gmail_signature" data-smartmail="gmail_signature">
                         <div dir="ltr">
@@ -98,7 +96,7 @@ function sendAccountCreatedEmail({ name, email, password }) {
                     </div>`;
 
     var sendEmail = new Email();
-    sendEmail.sendEmailToReceipent(email, "You have successfully created your account", body);
+    sendEmail.sendEmailToReceipent(email, "Your password has been reset", body);
 }
 
-module.exports = { sendAccountCreatedEmail };
+module.exports = { sendPasswordResetEmail };

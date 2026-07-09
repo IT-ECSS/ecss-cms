@@ -122,12 +122,20 @@ class LoginPage extends Component {
           this.setState({ isPopupOpen: false });
           if(loginResponse.data.message.details.first_time_log_in === "Yes")
             {
+              // Handle site as array if it contains comma-separated values
+              const siteData = loginResponse.data.message.details.site;
+              const siteArray = siteData && siteData.includes(',')
+                ? siteData.split(',').map(site => site.trim())
+                : siteData;
               this.setState({
                 isPopupOpen: true,
                 popupMessage: loginResponse.data.message.message,
                 popupType: "change-password",
                 accountId: loginResponse.data.message.details._id,
-                name: loginResponse.data.message.details.name
+                name: loginResponse.data.message.details.name,
+                pendingRole: loginResponse.data.message.details.role,
+                pendingSiteIC: siteArray,
+                pendingEmail: loginResponse.data.message.details.email
               });
             }
             else
@@ -209,9 +217,15 @@ class LoginPage extends Component {
   }
 
 
-  passPopupMessage = (success, message) =>
+  passPopupMessage = (success, message, account) =>
   {
     //console.log(message);
+    // Remember which flow triggered this (the popup type gets overwritten below),
+    // since "forgot-password" resets don't come from the normal login form and
+    // need the freshly-reset account's details to auto-login correctly.
+    const previousPopupType = this.state.popupType;
+    const { auth } = this.props;
+
     if(success === true)
     {
       this.setState({
@@ -220,8 +234,24 @@ class LoginPage extends Component {
         popupType: "success-message",
       });
       setTimeout(() => {
-          this.setState({ isPopupOpen: false});
-            this.props.history.push({ pathname: '/home', state: { accountId:  this.state.accountId, name: this.state.name}});  
+          this.setState({ isPopupOpen: false });
+          if (previousPopupType === "forgot-password") {
+            if (account) {
+              // Auto-login using the account details returned from the password reset
+              auth.login();
+              const siteData = account.site;
+              const siteArray = siteData && siteData.includes(',')
+                ? siteData.split(',').map(site => site.trim())
+                : siteData;
+              this.setState({ accountId: null, name: '' });
+              this.props.history.push({ pathname: '/home', state: { accountId: account._id, name: account.name, role: account.role, siteIC: siteArray, email: account.email }});
+            } else {
+              // No account details returned - fall back to letting the user log in manually
+              this.setState({ accountId: null, name: '' });
+            }
+          } else {
+            this.props.history.push({ pathname: '/home', state: { accountId:  this.state.accountId, name: this.state.name, role: this.state.pendingRole, siteIC: this.state.pendingSiteIC, email: this.state.pendingEmail }});
+          }
       }, 5000);
     }
     else 

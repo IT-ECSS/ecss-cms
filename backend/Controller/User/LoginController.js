@@ -137,7 +137,7 @@ class LoginController
       var databaseName = "Company-Management-System";
       var collectionName = "Accounts";
       var connectedDatabase = await dbConnection.resetPassword(databaseName, collectionName, username, password);
-      return {"message": connectedDatabase.message, "success": connectedDatabase.success};   
+      return {"message": connectedDatabase.message, "success": connectedDatabase.success, "account": connectedDatabase.account};   
     } 
     catch (error) 
     {

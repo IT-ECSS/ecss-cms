@@ -781,11 +781,13 @@ class DatabaseConnectivity {
                  } } // Update
             );
             console.log(result);
-            if (result) {
-            // User found, login successful
+            if (result.matchedCount > 0) {
+            // User found, password reset successful
+            const account = await table.findOne({ email: username });
             return {
                 success: true,
                 message: 'Change Password Successful',
+                account: account,
             };
             } else {
             // No user found, login failed

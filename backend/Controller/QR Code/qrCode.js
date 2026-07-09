@@ -18,7 +18,7 @@ class QRCodeGenerator {
             const buffer = await QRCode.toBuffer(this.text, this.options);
 
             // Save the buffer to a JPG file
-            const filename = `衍纸的艺术 Art of Paper Quilling (Renewal Christian Church).jpg`
+            const filename = `Ageing Strong To Stay Independent (Pasir Ris West Wellness Centre).jpg`;
             fs.writeFileSync(filename, buffer);
             console.log(`QR code generated and saved as ${filename}`);
         } catch (error) {
@@ -28,5 +28,5 @@ class QRCodeGenerator {
 }
 
 // Usage const filename = `https://ecss.org.sg/product/crafting-connectionspasir-ris-west-wellness-centre/`;
-const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/%e8%a1%8d%e7%ba%b8%e7%9a%84%e8%89%ba%e6%9c%afart-of-paper-quillingrenewal-christian-church/`);
+const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/ageing-strong-to-stay-independentpasir-ris-west-wellness-centre/`);
 qrCodeGenerator.generate();
