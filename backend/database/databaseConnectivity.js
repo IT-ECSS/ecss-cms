@@ -1227,6 +1227,7 @@ class DatabaseConnectivity {
                     refundedDate: 'official.refundedDate',
                     refundedTime: 'official.refundedTime',
                     registrationStatus: 'official.registration_status',
+                    registrationStatusSystem: 'official.registration_status_system',
                     location: 'course.courseLocation',
                     course: 'course.courseEngName',
                     courseMode: 'course.courseMode',
@@ -1260,6 +1261,7 @@ class DatabaseConnectivity {
                     refundedDate: 'official.refundedDate',
                     refundedTime: 'official.refundedTime',
                     registrationStatus: 'official.registration_status',
+                    registrationStatusSystem: 'official.registration_status_system',
                     location: 'course.courseLocation',
                     course: 'course.courseEngName',
                     courseMode: 'course.courseMode',
@@ -1296,6 +1298,7 @@ class DatabaseConnectivity {
                     refundedDate: 'official.refundedDate',
                     refundedTime: 'official.refundedTime',
                     registrationStatus: 'official.registration_status',
+                    registrationStatusSystem: 'official.registration_status_system',
                     location: 'course.courseLocation',
                     course: 'course.courseEngName',
                     courseMode: 'course.courseMode',
@@ -1362,10 +1365,30 @@ class DatabaseConnectivity {
                     if (value === 'f' || value === 'female') normalizedValue = 'F 女';
                 }
 
-                // Build update object - always update the mapped path
+                // Build update object - always update the mapped path.
                 const updateSet = {
                     [mappedPath]: normalizedValue,
                 };
+
+                // "Submitted" means the registration has been reset back to the
+                // start of the payment flow (e.g. payment method changed/swapped),
+                // so any previously auto-confirmed slot is no longer valid -
+                // clear the System Generated field too. This is a one-way rule:
+                // registrationStatus values other than "Submitted" do NOT touch
+                // registrationStatusSystem (the two fields otherwise stay independent).
+                if (normalizedField === 'registrationStatus' && normalizedValue === 'Submitted') {
+                    updateSet['official.registration_status_system'] = '';
+                }
+
+                // Changing the Final Payment Method always invalidates any
+                // previously auto-confirmed slot - clear registrationStatusSystem
+                // here too. If the same flow immediately re-confirms the slot
+                // (e.g. approving Cash/PayNow triggers a Payment Status update
+                // right after), that follow-up write happens later and sets it
+                // back to "Confirmed Slot", so the final state stays correct.
+                if (normalizedField === 'finalPaymentMethod') {
+                    updateSet['official.registration_status_system'] = '';
+                }
 
                 const update = {
                     $set: updateSet,
@@ -1847,7 +1870,11 @@ class DatabaseConnectivity {
                             "official.name": name,
                             "official.date": date,
                             "official.time": time,
-                            ...(shouldConfirmSlot ? { "official.registration_status": "Confirmed Slot" } : {}),
+                            // "Confirmed Slot" is set on the System Generated field only -
+                            // this covers ANY payment method that results in "Paid"
+                            // (Cash or PayNow). The staff-facing official.registration_status
+                            // is intentionally left untouched here.
+                            ...(shouldConfirmSlot ? { "official.registration_status_system": "Confirmed Slot" } : {}),
                         }
                     };
                 }
@@ -1868,7 +1895,10 @@ class DatabaseConnectivity {
                             "official.name": name,
                             "official.date": date,
                             "official.time": time,
-                            ...(shouldConfirmSlot ? { "official.registration_status": "Confirmed Slot" } : {}),
+                            // "Confirmed Slot" is set on the System Generated field only -
+                            // this covers the SkillsFuture payment method. The staff-facing
+                            // official.registration_status is intentionally left untouched here.
+                            ...(shouldConfirmSlot ? { "official.registration_status_system": "Confirmed Slot" } : {}),
                         }
                     };
                 }
@@ -2050,6 +2080,7 @@ class DatabaseConnectivity {
                     "course.finalPaymentMethod": newPaymentMethod,  // Auto-sync
                     "status": "Pending",  // Default payment status based on method change
                     "official.registration_status": "Submitted",  // Default registration status
+                    "official.registration_status_system": "",  // Not system-confirmed anymore
                     "official.confirmed": false,  // Reset confirmation flag
                 }
             };

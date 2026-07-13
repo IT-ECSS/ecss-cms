@@ -65,18 +65,67 @@ function resolveExportPaymentMethod(row = {}) {
   );
 }
 
+// Registration Status is displayed in the grid as two sub-columns:
+// "System Generated" (only ever "Confirmed Slot", i.e. payment has been
+// confirmed) and "Staff Updated" (the manually selected status). For NSA
+// courses, "System Generated" is backed by its own persisted field
+// (registrationStatusSystem / official.registration_status_system) that the
+// backend keeps in sync for ANY payment method (Cash, PayNow, SkillsFuture);
+// other course types have no such field and derive it from the shared status
+// field instead. These helpers mirror the exact same derivation used by the
+// grid's column valueGetters so exports stay consistent with what's shown on screen.
+function getSystemGeneratedRegistrationStatus(firstType, row = {}) {
+  if (firstType === 'NSA') {
+    const value = String(row?.registrationStatusSystem || '').trim();
+    return value === 'Confirmed Slot' ? value : '';
+  }
+
+  const value = String(row?.status || '').trim();
+  return value === 'Confirmed Slot' ? value : '';
+}
+
+function getStaffUpdatedRegistrationStatus(firstType, row = {}) {
+  const raw = firstType === 'NSA' ? row?.registrationStatus : row?.status;
+  const value = String(raw || '').trim();
+
+  // NSA courses always show the actual status in "Staff Updated" (never blank).
+  if (firstType === 'NSA') {
+    return value;
+  }
+
+  return (value && value !== 'Confirmed Slot') ? value : '';
+}
+
 function hasExportableRegistrationStatus(firstType, row = {}) 
 {
   if (firstType === 'NSA')
   {
-    const registrationStatus = String(row?.registrationStatus || '').trim();
-    return registrationStatus === 'Submitted' || registrationStatus === 'Confirmed Slot';
+    // Staff Updated is checked FIRST and takes priority. If staff has
+    // explicitly moved the registration to a terminal negative status
+    // (Withdrawn / Cancelled / Waiting List), the row can NEVER be exported -
+    // even if System Generated still shows "Confirmed Slot" from an earlier
+    // payment confirmation.
+    const staffUpdated = getStaffUpdatedRegistrationStatus(firstType, row);
+    if (staffUpdated === 'Withdrawn' || staffUpdated === 'Cancelled' || staffUpdated === 'Waiting List') {
+      return false;
+    }
+
+    // Payment confirmed (System Generated) -> exported.
+    const systemGenerated = getSystemGeneratedRegistrationStatus(firstType, row);
+    if (systemGenerated === 'Confirmed Slot') {
+      return true;
+    }
+
+    // Otherwise, a manually "Submitted" registration is still exportable.
+    return staffUpdated === 'Submitted';
   }
   else if(firstType === 'ILP')
   {
-    const registrationStatus = String(row?.status || '').trim();
-    return registrationStatus === 'Confirmed';
+    const staffUpdated = getStaffUpdatedRegistrationStatus(firstType, row);
+    return staffUpdated === 'Confirmed';
   }
+
+  return false;
 }
 
 

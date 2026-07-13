@@ -136,6 +136,16 @@ export async function handleFinalPaymentMethodChange(event, context) {
     }
   }
 
+  // Changing the Final Payment Method always invalidates any previously
+  // auto-confirmed slot - clear it optimistically (backend does the same).
+  // If this same flow immediately re-confirms the slot (e.g. approving
+  // Cash/PayNow triggers a Payment Status update right after), that later
+  // step will set event.data.registrationStatusSystem back to "Confirmed Slot".
+  event.data.registrationStatusSystem = '';
+  if (event.node && event.node.data) {
+    event.node.data.registrationStatusSystem = '';
+  }
+
   const { refreshChild } = context;
 
   // ── Case: Cash ↔ PayNow Paid swap: payment already made, full reset ──────────
@@ -191,6 +201,7 @@ export async function handleFinalPaymentMethodChange(event, context) {
     const regRes = await editRegistrationField(id, 'registrationStatus', 'Submitted');
     if (isApiResultSuccessful(regRes)) {
       event.data.registrationStatus = 'Submitted';
+      event.data.registrationStatusSystem = '';
       console.log('[CashPayNow Swap] ✅ Step 2 Complete: registrationStatus updated to Submitted');
       await logRegistrationUpdate(buildLogPayload({
         userName, sn, id, participantInfo,
@@ -457,6 +468,7 @@ export async function handleFinalPaymentMethodChange(event, context) {
     const regRes = await editRegistrationField(id, 'registrationStatus', 'Submitted');
     if (isApiResultSuccessful(regRes)) {
       event.data.registrationStatus = 'Submitted';
+      event.data.registrationStatusSystem = '';
       console.log('[Case 8] ✅ Step 2 Complete: registrationStatus updated to Submitted');
       await logRegistrationUpdate(buildLogPayload({
         userName, sn, id, participantInfo,
@@ -684,6 +696,10 @@ export async function handleFinalPaymentMethodChange(event, context) {
     return { updated: true, generatedNo: '' };
   }
 
+  // ── Case 9 trigger: SkillsFuture Done → Cash/PayNow (payment already made) ───
+  const isSFDoneSwapToCashPayNow =
+    isSFToCashPayNow && currentPaymentStatus === 'SkillsFuture Done';
+
   if (isSFDoneSwapToCashPayNow) {
     // ── Void SkillsFuture Invoice before proceeding with the transition ────
     const existingReceiptNo = String(event.data.recinvNo || event.data.officialInfo?.receiptNo || '').trim();
@@ -737,6 +753,7 @@ export async function handleFinalPaymentMethodChange(event, context) {
     const regRes = await editRegistrationField(id, 'registrationStatus', 'Submitted');
     if (isApiResultSuccessful(regRes)) {
       event.data.registrationStatus = 'Submitted';
+      event.data.registrationStatusSystem = '';
       console.log('[Case 9] ✅ Step 2 Complete: registrationStatus updated to Submitted');
       await logRegistrationUpdate(buildLogPayload({
         userName, sn, id, participantInfo,
@@ -949,6 +966,7 @@ export async function handleFinalPaymentMethodChange(event, context) {
     const regRes = await editRegistrationField(id, 'registrationStatus', 'Submitted');
     if (isApiResultSuccessful(regRes)) {
       event.data.registrationStatus = 'Submitted';
+      event.data.registrationStatusSystem = '';
       await logRegistrationUpdate(buildLogPayload({
         userName, sn, id, participantInfo,
         columnName: 'Registration Status (Auto)',

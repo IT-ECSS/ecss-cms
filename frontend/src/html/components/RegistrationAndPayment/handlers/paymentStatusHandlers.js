@@ -234,10 +234,10 @@ export async function handlePaymentStatusChange(event, context) {
 
     const updated = await autoSetConfirmedSlotRegistrationStatus({
       id, sn, userName, participantInfo,
-      currentRegistrationStatus: event.data.registrationStatus,
+      currentRegistrationStatusSystem: event.data.registrationStatusSystem,
     });
     if (updated) {
-      event.data.registrationStatus = 'Confirmed Slot';
+      event.data.registrationStatusSystem = 'Confirmed Slot';
       console.log('✅ [Step 2] Registration Status Updated to Confirmed Slot');
     }
 
@@ -284,7 +284,7 @@ export async function handlePaymentStatusChange(event, context) {
 
     const shouldRunWooCommerceSync =
       shouldIncreaseWooCommerceStock ||
-      (shouldDecreaseWooCommerceStock && String(event.data.registrationStatus || '').trim() === 'Confirmed Slot');
+      (shouldDecreaseWooCommerceStock && String(event.data.registrationStatusSystem || '').trim() === 'Confirmed Slot');
 
     // Advance to WooCommerce step if applicable (or skip if not needed)
     if (shouldRunWooCommerceSync && updateWooCommerce && typeof updateWooCommerce === 'function') {
@@ -424,7 +424,7 @@ export async function handlePaymentStatusChange(event, context) {
   } else if (paymentMethod === 'SkillsFuture') {
     const shouldRunWooCommerceSync =
       shouldIncreaseWooCommerceStock ||
-      (shouldDecreaseWooCommerceStock && String(event.data.registrationStatus || '').trim() === 'Confirmed Slot');
+      (shouldDecreaseWooCommerceStock && String(event.data.registrationStatusSystem || '').trim() === 'Confirmed Slot');
 
     // For SkillsFuture invoice generation, advance to "Generating invoice number"
     if (shouldGenerateInvoice && useTracker) {
@@ -535,6 +535,7 @@ export async function handlePaymentStatusChange(event, context) {
     event.node.data.paymentTime = event.data.paymentTime;
     event.node.data.recinvNo = event.data.recinvNo;
     event.node.data.registrationStatus = event.data.registrationStatus;
+    event.node.data.registrationStatusSystem = event.data.registrationStatusSystem;
     event.node.data.refundedDate = event.data.refundedDate;
     event.node.data.refundedTime = event.data.refundedTime;
     event.node.data.remarks = event.data.remarks;
@@ -555,7 +556,7 @@ export async function handlePaymentStatusChange(event, context) {
   if (event.api && typeof event.api.refreshCells === 'function') {
     event.api.refreshCells({
       rowNodes: [event.node],
-      columns: ['paymentStatusCashPayNow', 'paymentStatusSkillsFuture', 'registrationStatus', 'recinvNo', 'paymentDate', 'paymentTime', 'refundedDate', 'refundedTime', 'remarks'],
+      columns: ['paymentStatusCashPayNow', 'paymentStatusSkillsFuture', 'registrationStatus', 'registrationStatusSystem', 'registrationStatusStaff', 'recinvNo', 'paymentDate', 'paymentTime', 'refundedDate', 'refundedTime', 'remarks'],
       force: true,
     });
   }

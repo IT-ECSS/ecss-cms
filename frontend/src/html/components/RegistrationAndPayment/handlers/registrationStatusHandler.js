@@ -168,3 +168,148 @@ export async function handleRegistrationStatusChange(rowCourseType, event, conte
 
   return { updated: true };
 }
+
+/**
+ * Handles changes to the "Staff Updated" sub-column of Registration Status.
+ * This is a manual, staff-driven status change. It DOES cascade into an
+ * automatic Payment Status update for Submitted/Withdrawn (matching the
+ * original handleRegistrationStatusChange behaviour) - "Confirmed Slot" is
+ * excluded since that's now handled exclusively via System Generated.
+ */
+export async function handleStaffRegistrationStatusChange(rowCourseType, event, context) {
+  const { userName, userRole, progressTracker, showUpdatePopup, closePopup, updateWooCommerce } = context;
+  const id = resolveEventId(event.data);
+  if (!id) {
+    throw new Error('Missing MongoDB _id for registration status update');
+  }
+  const sn = event.data.sn;
+  const participantInfo = event.data.participantInfo;
+  const courseInfo = event.data.courseInfo;
+  const newValue = event.value;
+  const oldValue = event.oldValue;
+  const currentPaymentStatus = String(event.data.paymentStatus || '').trim();
+  const courseName = event.data.course;
+  const courseChiName = event.data.courseChi;
+  const courseLocation = event.data.location;
+  const finalPaymentMethod = String(
+    event.data.finalPaymentMethod ||
+    courseInfo?.finalPaymentMethod ||
+    event.data.paymentMethod ||
+    courseInfo?.payment ||
+    ''
+  ).trim();
+
+  const isWithdrawn = newValue === 'Withdrawn';
+
+  // Cascade rule (mirrors the original handleRegistrationStatusChange):
+  // - Submitted -> Payment Status resets to Pending
+  // - Cancelled -> no Payment Status change
+  // - Withdrawn -> Payment Status becomes "Participants Withdrawn" (SkillsFuture)
+  //   or "To refund" (Cash/PayNow)
+  // - Waiting List -> no Payment Status change
+  const nextPaymentStatus =
+    newValue === 'Submitted'
+      ? 'Pending'
+      : isWithdrawn
+        ? (finalPaymentMethod === 'SkillsFuture' ? 'Participants Withdrawn' : 'To refund')
+        : '';
+  const shouldUpdatePaymentStatus = !!nextPaymentStatus && currentPaymentStatus !== nextPaymentStatus;
+  const paymentStatusTrackerLabel =
+    nextPaymentStatus === 'To refund'
+      ? 'The payment status will be updated to To Refund'
+      : nextPaymentStatus === 'Pending'
+        ? 'The payment status will be updated to Pending'
+        : nextPaymentStatus === 'Participants Withdrawn'
+          ? 'The payment status will be updated to Participants Withdrawn'
+          : 'Updating The Payment Status';
+
+  if (newValue === oldValue) {
+    return { updated: false };
+  }
+
+  if (progressTracker) {
+    progressTracker.start(
+      shouldUpdatePaymentStatus
+        ? ['Updating The Registration Status', paymentStatusTrackerLabel]
+        : ['Updating The Registration Status']
+    );
+  } else {
+    showUpdatePopup('Updating in progress... Please wait ...');
+  }
+
+  if (rowCourseType === 'NSA') {
+    await editRegistrationField(id, 'registrationStatus', newValue, rowCourseType);
+    event.data.registrationStatus = newValue;
+    // Backend clears official.registration_status_system whenever registrationStatus
+    // is reset to "Submitted" - mirror that optimistically so the System Generated
+    // badge doesn't show a stale "Confirmed Slot" until the next refresh.
+    if (newValue === 'Submitted') {
+      event.data.registrationStatusSystem = '';
+    }
+  }
+
+  if (rowCourseType === 'ILP' || rowCourseType === 'Talks And Seminar' || rowCourseType === 'Others') {
+    await editRegistrationField(id, 'status', newValue, rowCourseType);
+    event.data.status = newValue;
+  }
+
+  await logRegistrationUpdate(buildLogPayload({
+    userName, sn, id, participantInfo,
+    columnName: 'Registration Status (Staff Updated)',
+    oldValue: oldValue || '',
+    newValue,
+  }));
+
+  if (shouldUpdatePaymentStatus) {
+    if (progressTracker) progressTracker.advance();
+
+    const statusRes = await updatePaymentStatus(id, nextPaymentStatus, userName, userRole);
+    if (!isApiResultSuccessful(statusRes)) {
+      if (progressTracker) progressTracker.error();
+      else closePopup();
+      throw new Error(`Failed to update payment status to ${nextPaymentStatus} for registration ${id}`);
+    }
+
+    await logRegistrationUpdate(buildLogPayload({
+      userName, sn, id, participantInfo,
+      columnName: 'Payment Status (by Registration Status)',
+      oldValue: currentPaymentStatus || '',
+      newValue: nextPaymentStatus,
+    }));
+
+    event.data.paymentStatus = nextPaymentStatus;
+    event.data.status = nextPaymentStatus;
+    if (event.node && event.node.data) {
+      event.node.data.paymentStatus = nextPaymentStatus;
+      event.node.data.status = nextPaymentStatus;
+    }
+  }
+
+  // Keep the row node in sync with event.data for the registration status
+  // fields too (some AG-Grid code paths render off event.node.data directly).
+  if (event.node && event.node.data) {
+    event.node.data.registrationStatus = event.data.registrationStatus;
+    event.node.data.registrationStatusSystem = event.data.registrationStatusSystem;
+    event.node.data.status = event.data.status;
+  }
+
+  if (event.api && typeof event.api.refreshCells === 'function') {
+    event.api.refreshCells({
+      rowNodes: [event.node],
+      columns: [
+        'registrationStatusSystem',
+        'registrationStatusStaff',
+        'paymentStatus',
+        'paymentStatusCashPayNow',
+        'paymentStatusSkillsFuture',
+      ],
+      force: true,
+    });
+  }
+
+  await waitForNextPaint();
+  if (progressTracker) progressTracker.finish();
+  else closePopup();
+
+  return { updated: true };
+}

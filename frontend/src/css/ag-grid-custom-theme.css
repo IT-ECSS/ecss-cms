@@ -199,6 +199,30 @@
   justify-content: center !important;
 }
 
+/* Registration Status group + sub-columns (System Generated / Staff Updated):
+   match the same bold, enlarged header style used elsewhere, centred. */
+.registration-status-group-header .ag-header-cell-label,
+.registration-status-group-header .ag-header-group-cell-label,
+.registration-status-subcolumn-header .ag-header-cell-label {
+  font-size: 1.5em !important;
+  font-weight: bold !important;
+  justify-content: center !important;
+  text-align: center !important;
+  width: 100%;
+}
+
+/* Payment Method group + sub-columns (Payment Status (SkillsFuture) / Payment
+   Status (Cash/PayNow)): match the same bold, enlarged header style, centred. */
+.payment-method-group-header .ag-header-cell-label,
+.payment-method-group-header .ag-header-group-cell-label,
+.payment-method-subcolumn-header .ag-header-cell-label {
+  font-size: 1.5em !important;
+  font-weight: bold !important;
+  justify-content: center !important;
+  text-align: center !important;
+  width: 100%;
+}
+
 /* Column borders for upload status grid */
 .fft-upload-grid .ag-cell {
   border-right: 1px solid #ddd !important;

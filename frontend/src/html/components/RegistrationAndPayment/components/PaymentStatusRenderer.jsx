@@ -38,7 +38,10 @@ const PaymentStatusRenderer = (params) => {
     );
   }
 
-  const backgroundColor = PAYMENT_STATUS_COLORS[statusText];
+  // Fallback grey so an unmapped status string never renders as an invisible/
+  // colourless badge (e.g. if a new status value is added but its colour
+  // mapping is missing or mistyped).
+  const backgroundColor = PAYMENT_STATUS_COLORS[statusText] || '#616161';
 
   return (
     <span

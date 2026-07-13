@@ -46,6 +46,9 @@ const RegistrationStatusRenderer = (params) => {
   }
 
   const backgroundColor = REGISTRATION_STATUS_COLORS[statusText];
+  // Allow callers (e.g. the "System Generated" sub-column) to override the
+  // badge text colour via cellRendererParams: { textColor: '#000' }.
+  const textColor = params.textColor || (isNsaInChargeStyling ? '#87CEEB' : '#fff');
 
   return (
     <span
@@ -54,7 +57,7 @@ const RegistrationStatusRenderer = (params) => {
         padding: '0.25em 1.2em',
         borderRadius: '999px',
         fontWeight: 'bold',
-        color: isNsaInChargeStyling ? '#87CEEB' : '#fff',
+        color: textColor,
         fontSize: '0.85em',
         textAlign: 'center',
         width: '100%',

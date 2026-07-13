@@ -190,9 +190,13 @@ export async function handlePaymentMethodChange(event, context) {
         remarks: databaseRemarks
       });
       
-      // Merge updated document into event.data (use database values)
-      event.data = { ...event.data, ...updatedDocument };
-      event.data.course = { ...event.data.course, ...updatedDocument.course };
+      // Merge updated document into event.data - but do NOT let the raw
+      // nested `course` object overwrite event.data.course, which is a
+      // flattened display STRING (the course name), not an object. Merge
+      // the course fields into event.data.courseInfo instead.
+      const { course: updatedCourseObj, ...restUpdatedDocument } = updatedDocument;
+      event.data = { ...event.data, ...restUpdatedDocument };
+      event.data.courseInfo = { ...(event.data.courseInfo || {}), ...updatedCourseObj };
       
       // Ensure remarks come from database (latest from API response)
       // Database is the source of truth for remarks
@@ -215,9 +219,11 @@ export async function handlePaymentMethodChange(event, context) {
       // Fallback: manually update if updatedDocument not in response
       console.warn('[PaymentMethod] ⚠️ No updatedDocument in response, updating locally');
       event.data.paymentMethod = newValue;
-      event.data.course = event.data.course || {};
-      event.data.course.payment = newValue;
-      event.data.course.finalPaymentMethod = newValue;
+      event.data.courseInfo = {
+        ...(event.data.courseInfo || {}),
+        payment: newValue,
+        finalPaymentMethod: newValue,
+      };
     }
 
     // Explicit sync for BOTH payment method fields + status updates
@@ -229,6 +235,7 @@ export async function handlePaymentMethodChange(event, context) {
     event.data.status = 'Pending';  // Default payment status set by backend
     event.data.paymentStatus = 'Pending';
     event.data.registrationStatus = 'Submitted';  // Default registration status set by backend
+    event.data.registrationStatusSystem = '';  // Backend clears this whenever payment method changes
     event.data.confirmed = false;
     
     if (event.data.officialInfo) {
@@ -309,6 +316,7 @@ export async function handlePaymentMethodChange(event, context) {
       event.node.data.status = 'Pending';
       event.node.data.paymentStatus = 'Pending';
       event.node.data.registrationStatus = 'Submitted';
+      event.node.data.registrationStatusSystem = '';
       event.node.data.confirmed = false;
       event.node.data.recinvNo = '';
       event.node.data.paymentDate = '';
@@ -337,12 +345,13 @@ export async function handlePaymentMethodChange(event, context) {
         event.node.data.officialInfo.remarks = event.data.officialInfo.remarks;
       }
       
-      // Also sync course data
-      if (!event.node.data.course) {
-        event.node.data.course = {};
-      }
-      event.node.data.course.payment = newValue;
-      event.node.data.course.finalPaymentMethod = newValue;
+      // Also sync course data (courseInfo is the object; event.data.course is
+      // a flattened display STRING and must never be treated as an object)
+      event.node.data.courseInfo = {
+        ...(event.node.data.courseInfo || {}),
+        payment: newValue,
+        finalPaymentMethod: newValue,
+      };
       
       console.log('[PaymentMethod] ✅ Grid row data updated:', {
         paymentMethod: event.node.data.paymentMethod,
@@ -367,6 +376,8 @@ export async function handlePaymentMethodChange(event, context) {
           'paymentStatusCashPayNow',            // Reflects new Pending status
           'paymentStatusSkillsFuture',          // Reflects new Pending status
           'registrationStatus',                 // Now Submitted
+          'registrationStatusSystem',           // Cleared (System Generated)
+          'registrationStatusStaff',            // Now Submitted (Staff Updated)
           'recinvNo',                           // Cleared
           'paymentDate',                        // Cleared
           'paymentTime',                        // Cleared

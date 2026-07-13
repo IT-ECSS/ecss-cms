@@ -30,6 +30,7 @@ export {
 // Registration status handler
 export {
   handleRegistrationStatusChange,
+  handleStaffRegistrationStatusChange,
 } from './registrationStatusHandler';
 
 // Other handlers

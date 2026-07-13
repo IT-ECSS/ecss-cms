@@ -16,7 +16,7 @@ export const PAYMENT_STATUS_COLORS = {
   // ── SkillsFuture Payment Statuses ────────────────────────────────────
   'Generating SkillsFuture Invoice': '#006D77', // Teal (processing SF invoice)
   'SkillsFuture Done': '#2E7D32',               // Green (SF processing complete)
-  'Participant Withdrawn': '#7B1FA2',          // Deep purple (participant withdrew)
+  'Participants Withdrawn': '#C2185B',          // Magenta/pink (participant withdrew)
   'SkillsFuture Unsuccessful': '#D32F2F',       // Red (SF processing failed)
 
   // ── Legacy/Other Statuses ────────────────────────────────────────────

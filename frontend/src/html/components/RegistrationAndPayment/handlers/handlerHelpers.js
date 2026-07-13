@@ -314,18 +314,18 @@ export async function updateFinalPaymentMethodIfNeeded({ id, sn, userName, parti
 }
 
 /**
- * Auto-sets registration status to 'Confirmed Slot' if needed.
+ * Auto-sets the SYSTEM GENERATED registration status to 'Confirmed Slot' if needed.
+ * This only ever writes to registrationStatusSystem (official.registration_status_system) -
+ * the staff-facing registrationStatus (official.registration_status) is never
+ * touched automatically; it only changes via explicit staff actions.
  */
-export async function autoSetConfirmedSlotRegistrationStatus({ id, sn, userName, participantInfo, currentRegistrationStatus }) {
-  const normalizedCurrentStatus = String(currentRegistrationStatus || '').trim().toLowerCase();
+export async function autoSetConfirmedSlotRegistrationStatus({ id, sn, userName, participantInfo, currentRegistrationStatusSystem }) {
+  const normalizedCurrentStatus = String(currentRegistrationStatusSystem || '').trim().toLowerCase();
   if (normalizedCurrentStatus === 'confirmed slot') {
     return false;
   }
-  if (normalizedCurrentStatus !== '' && normalizedCurrentStatus !== 'submitted') {
-    return false;
-  }
 
-  const res = await editRegistrationField(id, 'registrationStatus', 'Confirmed Slot');
+  const res = await editRegistrationField(id, 'registrationStatusSystem', 'Confirmed Slot');
   if (!isApiResultSuccessful(res)) {
     return false;
   }
@@ -335,13 +335,14 @@ export async function autoSetConfirmedSlotRegistrationStatus({ id, sn, userName,
     sn,
     id,
     participantInfo,
-    columnName: 'Registration Status (Auto)',
-    oldValue: currentRegistrationStatus || '',
+    columnName: 'Registration Status - System Generated (Auto)',
+    oldValue: currentRegistrationStatusSystem || '',
     newValue: 'Confirmed Slot',
   }));
 
   return true;
 }
+
 
 /**
  * Appends a void remark when a receipt/invoice number is being replaced.

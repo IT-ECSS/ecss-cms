@@ -80,6 +80,7 @@ import {
   handleFinalPaymentMethodChange,
   handlePaymentMethodChange,
   handleRegistrationStatusChange,
+  handleStaffRegistrationStatusChange,
   handleRemarksChange,
   handleRefundedDateChange,
   handleGenericFieldChange,
@@ -212,6 +213,8 @@ class RegistrationPaymentSection extends Component {
       'Confirmation Status': 'confirmed',
       'Registration and Payment Status': 'paymentStatus',
       'Registration Status': 'registrationStatus',
+      'System Generated': 'registrationStatus',
+      'Staff Updated': 'registrationStatus',
       'Payment Status': 'paymentStatus',
       'Payment Date': 'paymentDate',
       'Payment Time': 'paymentTime',
@@ -236,14 +239,14 @@ class RegistrationPaymentSection extends Component {
   }
 
   _isActiveNsaPaymentStatusColumn(columnName, rowData = {}) {
-    if (columnName !== 'Payment Status (Cash/PayNow)' && columnName !== 'Payment Status (SkillsFuture)') {
+    if (columnName !== 'Cash/PayNow' && columnName !== 'SkillsFuture') {
       return false;
     }
 
     const resolvedMethod = this._getResolvedNsaPaymentMethod(rowData);
     const isSkillsFuture = resolvedMethod === 'SkillsFuture';
 
-    return columnName === 'Payment Status (SkillsFuture)'
+    return columnName === 'SkillsFuture'
       ? isSkillsFuture
       : !isSkillsFuture;
   }
@@ -1626,8 +1629,25 @@ class RegistrationPaymentSection extends Component {
 
   // ── Export helpers ────────────────────────────────────────────────────────
 
+  // `this.state.selectedRows` is only refreshed when the CHECKBOX selection
+  // itself changes (onSelectionChanged) - it does NOT update when a cell
+  // value changes on an already-selected row (e.g. editing Staff Updated to
+  // "Withdrawn" after ticking the checkbox). Exports must reflect the latest
+  // edits, so re-read each selected row's live data straight from the grid
+  // API / rowData at export time instead of relying on the stale snapshot.
+  _getFreshSelectedRows = () => {
+    const staleSelectedRows = this.state.selectedRows || [];
+    if (!staleSelectedRows.length) return staleSelectedRows;
+
+    return staleSelectedRows.map((row) => {
+      const rowId = String(row?.id || '');
+      if (!rowId) return row;
+      return this._getLiveRowSnapshot(rowId, row);
+    });
+  };
+
   exportToLOP = () => exportToLOPFn({
-    selectedRows: this.state.selectedRows,
+    selectedRows: this._getFreshSelectedRows(),
     userName: this.props.userName,
     userEmail: this.props.userEmail,
     warningPopUpMessage: this.props.warningPopUpMessage,
@@ -1635,13 +1655,13 @@ class RegistrationPaymentSection extends Component {
   });
 
   exportToMarriagePreparationProgramme = () => exportToMarriagePrepFn({
-    selectedRows: this.state.selectedRows,
+    selectedRows: this._getFreshSelectedRows(),
     userName: this.props.userName,
     warningPopUpMessage: this.props.warningPopUpMessage,
   });
 
   exportAttendance = () => exportAttendanceFn({
-    selectedRows: this.state.selectedRows,
+    selectedRows: this._getFreshSelectedRows(),
     userName: this.props.userName,
     userEmail: this.props.userEmail,
     warningPopUpMessage: this.props.warningPopUpMessage,
@@ -1821,136 +1841,172 @@ class RegistrationPaymentSection extends Component {
         hide: !hasNSA,
         cellStyle: centeredCellStyle,
       },
-      {
-        headerName: 'Registration Status',
-        width: 750,
-        cellEditor: 'agSelectCellEditor',
+      ...(hasNSA
+        ? [
+            {
+              headerName: 'Registration Status',
+              headerClass: 'registration-status-group-header',
+              children: [
+                {
+                  headerName: 'System Generated',
+                  headerClass: 'registration-status-subcolumn-header',
+                  colId: 'registrationStatusSystem',
+                  width: 375,
+                  editable: false,
+                  singleClickEdit: false,
 
-        cellEditorParams: (params) => {
-          const courseType = String(
-            params.data?.courseInfo?.courseType ||
-            params.data?.courseType ||
-            ''
-          ).trim();
+                  // Only "Confirmed Slot" is ever set automatically by the system
+                  // (via payment confirmation, for ANY payment method - Cash, PayNow,
+                  // or SkillsFuture). NSA courses read this from the dedicated
+                  // `registrationStatusSystem` field (backend:
+                  // official.registration_status_system), which the backend keeps
+                  // in sync whenever the system auto-confirms a slot.
+                  valueGetter: (params) => {
+                    const systemValue = String(params.data?.registrationStatusSystem || '').trim();
+                    return systemValue === 'Confirmed Slot' ? systemValue : 'Not Available';
+                  },
 
-          const price = Number(
-            params.data?.courseInfo?.price ||
-            params.data?.price ||
-            0
-          );
+                  cellRenderer: RegistrationStatusRenderer,
+                  cellRendererParams: { textColor: '#000' },
+                  cellStyle: centeredCellStyle,
+                  hide: false,
+                },
+                {
+                  headerName: 'Staff Updated',
+                  headerClass: 'registration-status-subcolumn-header',
+                  colId: 'registrationStatusStaff',
+                  width: 375,
+                  cellEditor: 'agSelectCellEditor',
 
-          if (courseType === 'NSA') {
-            return {
-              values: [
-                'Submitted',
-                'Confirmed Slot',
-                'Cancelled',
-                'Withdrawn',
-                'Waiting List',
+                  cellEditorParams: () => ({
+                    values: [
+                      'Submitted',
+                      'Cancelled',
+                      'Withdrawn',
+                      'Waiting List',
+                    ],
+                  }),
+
+                  editable: (params) => {
+                    // Restrict Finance from editing Registration Status
+                    if (this._isFinanceRole()) {
+                      return false;
+                    }
+
+                    const canEditStatus = this._canEditNsaRegistrationStatus();
+
+                    console.log(
+                      '📋 [Registration Status - Staff Updated] Can Edit:',
+                      canEditStatus,
+                      '| Row:',
+                      params.data?.name
+                    );
+
+                    return canEditStatus;
+                  },
+
+                  singleClickEdit: true,
+
+                  // NSA courses must never show "Not Available" - always reflect
+                  // the actual current registration status (Staff Updated is the
+                  // staff-facing field and is independent from System Generated).
+                  valueGetter: (params) => params.data?.registrationStatus || '',
+
+                  valueSetter: (params) => {
+                    if (
+                      !params.newValue ||
+                      params.newValue === params.oldValue
+                    ) {
+                      return false;
+                    }
+
+                    params.data.registrationStatus = params.newValue;
+                    return true;
+                  },
+
+                  cellRenderer: RegistrationStatusRenderer,
+                  cellStyle: centeredCellStyle,
+                  hide: false,
+                },
               ],
-            };
-          } else if (
-            (courseType === 'Talks And Seminar' || 
-              courseType === 'ILP' ||
-              courseType === 'Others') &&
-            price <= 0
-          ) {
-            return {
-              values: [
-                'Pending',
-                'Confirmed',
-                'Cancelled',
-                'Waiting List',
-              ],
-            };
-          }
+            },
+          ]
+        : [
+            {
+              headerName: 'Registration Status',
+              colId: 'registrationStatus',
+              width: 375,
+              cellEditor: 'agSelectCellEditor',
 
-          // ILP and all other course types
-          /*return {
-            values: [
-              'Submitted',
-              'Confirmed',
-              'Cancelled',
-              'Waiting List',
-            ],
-          };*/
-        },
+              cellEditorParams: (params) => {
+                const courseType = String(
+                  params.data?.courseInfo?.courseType ||
+                  params.data?.courseType ||
+                  ''
+                ).trim();
 
-        editable: (params) => {
-          const courseType = String(
-            params.data?.courseInfo?.courseType ||
-            params.data?.courseType ||
-            ''
-          ).trim();
+                const price = Number(
+                  params.data?.courseInfo?.price ||
+                  params.data?.price ||
+                  0
+                );
 
-          // Restrict Finance from editing Registration Status (all course types)
-          if (this._isFinanceRole()) {
-            return false;
-          }
+                if (
+                  (courseType === 'Talks And Seminar' ||
+                    courseType === 'ILP' ||
+                    courseType === 'Others') &&
+                  price <= 0
+                ) {
+                  return {
+                    values: [
+                      'Pending',
+                      'Confirmed',
+                      'Cancelled',
+                      'Waiting List',
+                    ],
+                  };
+                }
+              },
 
-          const canEditStatus =
-            courseType === 'NSA'
-              ? this._canEditNsaRegistrationStatus()
-              : (
+              editable: (params) => {
+                // Restrict Finance from editing Registration Status
+                if (this._isFinanceRole()) {
+                  return false;
+                }
+
+                return (
                   canEdit ||
                   canSocialWorkerEdit(params) ||
                   canSiteInChargeEdit(params)
                 );
+              },
 
-          console.log(
-            '📋 [Registration Status Column] CourseType:',
-            courseType,
-            '| Can Edit:',
-            canEditStatus,
-            '| Row:',
-            params.data?.name
-          );
+              singleClickEdit: true,
 
-          return canEditStatus;
-        },
+              valueGetter: (params) => {
+                const currentValue = params.data?.status || '';
+                return (currentValue && currentValue !== 'Confirmed Slot')
+                  ? currentValue
+                  : 'Not Available';
+              },
 
-        singleClickEdit: true,
+              valueSetter: (params) => {
+                if (
+                  !params.newValue ||
+                  params.newValue === params.oldValue
+                ) {
+                  return false;
+                }
 
-        valueGetter: (params) => {
-          const courseType = String(
-            params.data?.courseInfo?.courseType ||
-            params.data?.courseType ||
-            ''
-          ).trim();
+                params.data.status = params.newValue;
+                return true;
+              },
 
-          return courseType === 'NSA'
-            ? params.data?.registrationStatus || ''
-            : params.data?.status || '';
-        },
-
-        valueSetter: (params) => {
-          const courseType = String(
-            params.data?.courseInfo?.courseType ||
-            params.data?.courseType ||
-            ''
-          ).trim();
-
-          if (
-            !params.newValue ||
-            params.newValue === params.oldValue
-          ) {
-            return false;
-          }
-
-          if (courseType === 'NSA') {
-            params.data.registrationStatus = params.newValue;
-          } else {
-            // ILP and all other course types use `status`
-            params.data.status = params.newValue;
-          }
-
-          return true;
-        },
-
-        cellRenderer: RegistrationStatusRenderer,
-        cellStyle: centeredCellStyle,
-        hide: false,
-      },
+              cellRenderer: RegistrationStatusRenderer,
+              cellStyle: centeredCellStyle,
+              hide: false,
+            },
+          ]),
       {
         headerName: 'Final Payment Method (by Finance)',
         field: 'finalPaymentMethod',
@@ -1987,57 +2043,65 @@ class RegistrationPaymentSection extends Component {
       ...(selectedCourseType === 'NSA'
         ? [
           {
-            headerName: 'Payment Status (SkillsFuture)',
-            colId: 'paymentStatusSkillsFuture',
-            field: 'paymentStatus',
-            cellRenderer: PaymentStatusRenderer,
-            cellEditor: 'agSelectCellEditor',
-            cellEditorParams: (params) => ({
-              values: this._getNsaPaymentStatusEditorValues(params).values,
-            }),
-            editable: (params) => {
-              const roleCanEdit = this._canEditNsaSkillsFuturePaymentStatus();
-              const isActive = this._isActiveNsaPaymentStatusColumn('Payment Status (SkillsFuture)', params.data);
-              const canEdit = roleCanEdit && isActive;
-              console.log('💳 [Payment Status SkillsFuture Editable] Role Can Edit:', roleCanEdit, '| Is Active Column:', isActive, '| Can Edit:', canEdit, '| Row:', params.data?.name);
-              return canEdit;
-            },
-            valueGetter: (params) => this._getNsaPaymentStatusDisplayValue('Payment Status (SkillsFuture)', params.data),
-            valueSetter: (params) => {
-              if (params.newValue && params.newValue !== params.oldValue) {
-                params.data.paymentStatus = params.newValue;
-                return true;
-              }
-              return false;
-            },
-            width: 750,
-            cellStyle: { ...centeredCellStyle, fontSize: '15px' },
-            hide: false,
+            headerName: 'Payment Method',
+            headerClass: 'payment-method-group-header',
+            children: [
+              {
+                headerName: 'SkillsFuture',
+                headerClass: 'payment-method-subcolumn-header',
+                colId: 'paymentStatusSkillsFuture',
+                field: 'paymentStatus',
+                cellRenderer: PaymentStatusRenderer,
+                cellEditor: 'agSelectCellEditor',
+                cellEditorParams: (params) => ({
+                  values: this._getNsaPaymentStatusEditorValues(params).values,
+                }),
+                editable: (params) => {
+                  const roleCanEdit = this._canEditNsaSkillsFuturePaymentStatus();
+                  const isActive = this._isActiveNsaPaymentStatusColumn('SkillsFuture', params.data);
+                  const canEdit = roleCanEdit && isActive;
+                  console.log('💳 [Payment Status SkillsFuture Editable] Role Can Edit:', roleCanEdit, '| Is Active Column:', isActive, '| Can Edit:', canEdit, '| Row:', params.data?.name);
+                  return canEdit;
+                },
+                valueGetter: (params) => this._getNsaPaymentStatusDisplayValue('SkillsFuture', params.data),
+                valueSetter: (params) => {
+                  if (params.newValue && params.newValue !== params.oldValue) {
+                    params.data.paymentStatus = params.newValue;
+                    return true;
+                  }
+                  return false;
+                },
+                width: 750,
+                cellStyle: { ...centeredCellStyle, fontSize: '15px' },
+                hide: false,
+              },
+              {
+                headerName: 'Cash/PayNow',
+                headerClass: 'payment-method-subcolumn-header',
+                colId: 'paymentStatusCashPayNow',
+                field: 'paymentStatus',
+                cellRenderer: PaymentStatusRenderer,
+                cellEditor: 'agSelectCellEditor',
+                cellEditorParams: (params) => ({
+                  values: this._getNsaPaymentStatusEditorValues(params).values,
+                }),
+                editable: (params) => {
+                  return this._canEditNsaCashPayNowPaymentStatus() && this._isActiveNsaPaymentStatusColumn('Cash/PayNow', params.data);
+                },
+                valueGetter: (params) => this._getNsaPaymentStatusDisplayValue('Cash/PayNow', params.data),
+                valueSetter: (params) => {
+                  if (params.newValue && params.newValue !== params.oldValue) {
+                    params.data.paymentStatus = params.newValue;
+                    return true;
+                  }
+                  return false;
+                },
+                width: 750,
+                cellStyle: { ...centeredCellStyle, fontSize: '15px' },
+                hide: false,
+              },
+            ],
           },
-          {
-            headerName: 'Payment Status (Cash/PayNow)',
-            colId: 'paymentStatusCashPayNow',
-            field: 'paymentStatus',
-            cellRenderer: PaymentStatusRenderer,
-            cellEditor: 'agSelectCellEditor',
-            cellEditorParams: (params) => ({
-              values: this._getNsaPaymentStatusEditorValues(params).values,
-            }),
-            editable: (params) => {
-              return this._canEditNsaCashPayNowPaymentStatus() && this._isActiveNsaPaymentStatusColumn('Payment Status (Cash/PayNow)', params.data);
-            },
-            valueGetter: (params) => this._getNsaPaymentStatusDisplayValue('Payment Status (Cash/PayNow)', params.data),
-            valueSetter: (params) => {
-              if (params.newValue && params.newValue !== params.oldValue) {
-                params.data.paymentStatus = params.newValue;
-                return true;
-              }
-              return false;
-            },
-            width: 750,
-            cellStyle: { ...centeredCellStyle, fontSize: '15px' },
-            hide: false,
-          }
         ]
         : []),
         {
@@ -2702,13 +2766,15 @@ class RegistrationPaymentSection extends Component {
       try {
         if (columnField === 'confirmed' || columnName === 'Confirmation Status') {
           await handleConfirmationStatusChange(appliedEvent, context);
+        } else if (columnName === 'Staff Updated') {
+          await handleStaffRegistrationStatusChange(rowCourseType, appliedEvent, context);
         } else if (columnField === 'registrationStatus' || columnName === 'Registration Status') {
              await handleRegistrationStatusChange(rowCourseType, appliedEvent, context);
         } else if (
           columnField === 'paymentStatus' ||
           columnName === 'Registration and Payment Status' ||
-          columnName === 'Payment Status (Cash/PayNow)' ||
-          columnName === 'Payment Status (SkillsFuture)' ||
+          columnName === 'Cash/PayNow' ||
+          columnName === 'SkillsFuture' ||
           columnName === 'Payment Status'
         ) {
           await handlePaymentStatusChange(appliedEvent, context);
@@ -2770,12 +2836,14 @@ class RegistrationPaymentSection extends Component {
         await handlePaymentMethodChange(event, context);
       } else if (columnName === 'Confirmation Status') {
         await handleConfirmationStatusChange(event, context);
+      } else if (columnName === 'Staff Updated') {
+        await handleStaffRegistrationStatusChange(rowCourseType, event, context);
       } else if (columnName === 'Registration Status'){
         await handleRegistrationStatusChange(rowCourseType, event, context);
       } else if (
         columnName === 'Registration and Payment Status' ||
-        columnName === 'Payment Status (Cash/PayNow)' ||
-        columnName === 'Payment Status (SkillsFuture)' ||
+        columnName === 'Cash/PayNow' ||
+        columnName === 'SkillsFuture' ||
         columnName === 'Payment Status'
       ) {
         await handlePaymentStatusChange(event, context);
