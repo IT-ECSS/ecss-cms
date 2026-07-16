@@ -216,6 +216,30 @@ router.post('/', async function(req, res, next)
             res.set('Expires', '0');
             return res.json(result);
         }
+        else if(req.body.purpose === "confirmStock")
+        {
+            console.log("Confirming Stock Record:", req.body.id);
+            var controller = new InventoryController();
+            var result = await controller.confirmStockRecord(req.body.id);
+
+            if (io && result && result.success) {
+                console.log("Emitting stock confirm event to all connected clients");
+                io.emit('inventory', {
+                    action: 'confirmStock',
+                    data: { id: req.body.id }
+                });
+            }
+
+            return res.json(result);
+        }
+        else if(req.body.purpose === "markWooProcessed")
+        {
+            console.log("Marking WooCommerce processed for stock record:", req.body.id);
+            var controller = new InventoryController();
+            var result = await controller.markStockWooProcessed(req.body.id);
+
+            return res.json(result);
+        }
         else if(req.body.purpose === "insertStockAllocation")
         {
             console.log("Inserting Stock Allocation:", req.body.payload);

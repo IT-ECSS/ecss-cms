@@ -112,6 +112,76 @@ export const extractColorVariant = (parentName) => {
 };
 
 /**
+ * Single source of truth for "Item Sold" / "Sold" quantity.
+ * Computed purely from Node/MongoDB stock records (port 3001) - never mixed with
+ * the WooCommerce balance (port 3002). Used by BOTH the Order Records ("Inventory
+ * Movement Log") table and the product summary cards so the two views can never
+ * diverge.
+ *
+ * Net Sold = gross `Sales` quantity at this location
+ *          - `Refund` quantity credited back to this location (reverses a sale)
+ *          - `Duplicate Entry` quantity corrected at this location (cancels an
+ *            erroneously double-counted sale)
+ * @param {Array} stockRecords - List of stock records
+ * @param {Array<string>} productNames - Product name(s) to match (case-insensitive)
+ * @param {string} location - Location to match against locationFrom (falls back to legacy `location` field)
+ * @returns {number} Net quantity sold
+ */
+export const calculateItemSold = (stockRecords = [], productNames = [], location = '') => {
+    const locationLower = (location || '').toLowerCase();
+    const namesLower = productNames.map(n => (n || '').toLowerCase()).filter(Boolean);
+    if (namesLower.length === 0 || !locationLower) return 0;
+
+    const matchesProduct = (r) => namesLower.includes((r.product || '').toLowerCase());
+
+    // Gross sales recorded at this location (Sales rows store the site in locationFrom)
+    const salesQty = stockRecords
+        .filter(r => matchesProduct(r) && (r.action || '').toLowerCase() === 'sales' && (r.locationFrom || r.location || '').toLowerCase() === locationLower)
+        .reduce((sum, r) => sum + (parseInt(r.quantity) || 0), 0);
+
+    // Refunds credited back to this location (Location To) reverse a previous sale
+    const refundQty = stockRecords
+        .filter(r => matchesProduct(r) && (r.action || '').toLowerCase() === 'refund' && (r.locationTo || '').toLowerCase() === locationLower)
+        .reduce((sum, r) => sum + (parseInt(r.quantity) || 0), 0);
+
+    // Duplicate Entry corrections at this location (Location From) cancel out an
+    // erroneously double-counted sale
+    const duplicateEntryQty = stockRecords
+        .filter(r => matchesProduct(r) && (r.action || '').toLowerCase() === 'duplicate entry' && (r.locationFrom || '').toLowerCase() === locationLower)
+        .reduce((sum, r) => sum + (parseInt(r.quantity) || 0), 0);
+
+    return Math.max(0, salesQty - refundQty - duplicateEntryQty);
+};
+
+/**
+ * Quantity of `Sales` rows at this location that are still pending confirmation
+ * (`confirmed` is not `true`). This is purely informational — it is already
+ * included in both the Sold figure (calculateItemSold) and the Balance figure
+ * (WooCommerce stock was already decremented when the sale happened), so callers
+ * must NOT add/subtract this from either value. It is only used to render the
+ * "(pending)" bracket next to Balance/Sold.
+ * @param {Array} stockRecords - List of stock records
+ * @param {Array<string>} productNames - Product name(s) to match (case-insensitive)
+ * @param {string} location - Location to match against locationFrom (falls back to legacy `location` field)
+ * @returns {number} Pending (unconfirmed) quantity sold
+ */
+export const calculatePendingSold = (stockRecords = [], productNames = [], location = '') => {
+    const locationLower = (location || '').toLowerCase();
+    const namesLower = productNames.map(n => (n || '').toLowerCase()).filter(Boolean);
+    if (namesLower.length === 0 || !locationLower) return 0;
+
+    return stockRecords
+        .filter(r => {
+            const actionMatch = (r.action || '').toLowerCase() === 'sales';
+            const prodMatch = namesLower.includes((r.product || '').toLowerCase());
+            const locMatch = (r.locationFrom || r.location || '').toLowerCase() === locationLower;
+            const isPending = r.confirmed !== true;
+            return actionMatch && prodMatch && locMatch && isPending;
+        })
+        .reduce((sum, r) => sum + (parseInt(r.quantity) || 0), 0);
+};
+
+/**
  * Generate product summary cards with filtering
  * Groups by true parent product, then by location, with colors as subsections
  * @param {Array} inventoryProducts - List of inventory products
@@ -181,7 +251,7 @@ export const generateProductSummaryCards = (inventoryProducts, stockRecords, fil
         console.log(`\n=== Processing card: ${trueParentName} ===`);
 
         // Calculate totals for the true parent
-        const storeInActions = ['purchase from supplier', 'return stock to store'];
+        const storeInActions = ['purchase from supplier', 'return stock to store', 'refund'];
         const storeOutActions = ['allocation to site', 'return to supplier'];
 
         // gather every actual product name that belongs to this parent (including color/variant names)
@@ -204,11 +274,6 @@ export const generateProductSummaryCards = (inventoryProducts, stockRecords, fil
 
         const totalStockOut = filteredStockRecords
             .filter(r => variationNames.includes((r.product || '').toLowerCase()) && storeOutActions.includes((r.action || '').toLowerCase()) && (r.locationFrom || '').toLowerCase() === 'store')
-            .reduce((sum, r) => sum + (parseInt(r.quantity) || 0), 0);
-
-        // compute overall sales for the parent product (sum of all variations)
-        const totalSales = filteredStockRecords
-            .filter(r => variationNames.includes((r.product || '').toLowerCase()) && (r.action || '').toLowerCase() === 'sales')
             .reduce((sum, r) => sum + (parseInt(r.quantity) || 0), 0);
 
         // Create variations for each location (with colors as subsections)
@@ -248,28 +313,28 @@ export const generateProductSummaryCards = (inventoryProducts, stockRecords, fil
                     .filter(r => colorProductNames.some(p => (r.product || '').toLowerCase() === p.toLowerCase()) && storeOutActions.includes((r.action || '').toLowerCase()) && (r.locationFrom || '').toLowerCase() === 'store')
                     .reduce((sum, r) => sum + (parseInt(r.quantity) || 0), 0);
 
-                // sales for this color/location – records only include parent name, so match on parent as fallback
-                // restrict sales by the current location as well
-                const locationLower = location.toLowerCase();
-                // compute sales attributable to this specific colour/variation
-                const colorSales = filteredStockRecords
-                    .filter(r => {
-                        const actionMatch = (r.action || '').toLowerCase() === 'sales';
-                        const locFromMatch = (r.locationFrom || r.location || '').toLowerCase() === locationLower;
-                        const locToMatch = (r.locationTo || '').toLowerCase() === locationLower;
-                        // match either the parent product or the actual variation name(s)
-                        const prodLower = (r.product || '').toLowerCase();
-                        const matchesColor = colorProductNames.some(p => prodLower === p.toLowerCase());
-                        const matchesParent = prodLower === trueParentLower;
-                        return actionMatch && (locFromMatch || locToMatch) && (matchesColor || matchesParent);
-                    })
-                    .reduce((sum, r) => sum + (parseInt(r.quantity) || 0), 0);
+                // Sold comes purely from the Node/MongoDB stock records (port 3001) -
+                // the 'Sales' action rows for this location. It must NOT factor in the
+                // WooCommerce balance (port 3002); Balance is sourced from WooCommerce
+                // separately via variationStockQuantity/parentStockQuantity above.
+                const salesProductNames = colorProductNames.includes(trueParentName) ? colorProductNames : [...colorProductNames, trueParentName];
+                const colorSales = calculateItemSold(filteredStockRecords, salesProductNames, location);
+
+                // Quantity of Sales at this location still pending confirmation.
+                const pendingSold = calculatePendingSold(filteredStockRecords, salesProductNames, location);
+
+                // Sold shown = confirmed sales only (colorSales minus the pending portion).
+                // Balance is NOT adjusted here: WooCommerce (port 3002) is only decremented
+                // once a Sales entry is confirmed, so a pending sale is already excluded from
+                // the real WooCommerce stock_quantity - no need to add it back.
+                const confirmedSold = Math.max(0, colorSales - pendingSold);
 
                 return {
                     name: colorKey,
                     stockIn: colorStockIn,
                     stockOut: colorStockOut,
-                    sales: colorSales,
+                    sales: confirmedSold,
+                    pendingSold: pendingSold,
                     variationStockQuantity: variationStockQuantity,
                     parentStockQuantity: parentStockQuantity
                 };
@@ -294,12 +359,17 @@ export const generateProductSummaryCards = (inventoryProducts, stockRecords, fil
         // remove any null entries caused by empty locations
         variations = variations.filter(v => v !== null);
 
+        // Total Sales is the sum of every site's Sold figure, so the footer always
+        // stays internally consistent with the per-site numbers shown above it.
+        const totalSales = variations.reduce(
+            (sum, v) => sum + v.colors.reduce((cSum, c) => cSum + (c.sales || 0), 0),
+            0
+        );
 
         return {
             name: trueParentName,
             totalStock: totalStockIn,
             totalStockOut: totalStockOut,
-            // use precomputed totalSales directly (matches backend table)
             totalSold: totalSales,
             variations: variations.sort((a, b) => a.name.localeCompare(b.name))
         };

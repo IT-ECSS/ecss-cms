@@ -31,7 +31,8 @@ class StockAdjustmentModal extends Component {
             locationToDropdownOpen: false,
             isDragging: false,
             uploadedFile: null,
-            validationErrors: {}
+            validationErrors: {},
+            locationFromOtherMode: false
         };
     }
 
@@ -62,8 +63,8 @@ class StockAdjustmentModal extends Component {
             }
         }
 
-        // Skip validation for Location To if disabled
-        if (!this.isLocationToFixed || typeof this.isLocationToFixed !== 'function' || !this.isLocationToFixed(formData.action)) {
+        // Skip validation for Location To if disabled or not needed for this action
+        if (!this.isLocationToHidden(formData.action) && (!this.isLocationToFixed || typeof this.isLocationToFixed !== 'function' || !this.isLocationToFixed(formData.action))) {
             if (!formData.locationTo || formData.locationTo.trim() === '') {
                 errors.locationTo = 'Location To is required';
             }
@@ -160,7 +161,7 @@ class StockAdjustmentModal extends Component {
         onFormChange('locationFrom', locationConfig.locationFrom);
         onFormChange('locationTo', locationConfig.locationTo);
         
-        this.setState({ actionDropdownOpen: false });
+        this.setState({ actionDropdownOpen: false, locationFromOtherMode: false });
     };
 
     handleProductSelect = (name) => {
@@ -230,6 +231,11 @@ class StockAdjustmentModal extends Component {
         return action === 'Purchase From Supplier' || action === 'Return to Supplier' || action === 'Return Stock to Store';
     };
 
+    isLocationToHidden = (action) => {
+        // Duplicate Entry only corrects the balance at the chosen site; Location To is not needed
+        return action === 'Duplicate Entry';
+    };
+
     render() {
         const {
             isOpen,
@@ -248,7 +254,8 @@ class StockAdjustmentModal extends Component {
             locationFromDropdownOpen,
             locationToDropdownOpen,
             isDragging,
-            uploadedFile
+            uploadedFile,
+            locationFromOtherMode
         } = this.state;
 
         if (!isOpen) return null;
@@ -429,24 +436,48 @@ class StockAdjustmentModal extends Component {
                                         type="text"
                                         className="incoming-dropdown-input"
                                         value={formData.locationFrom}
-                                        onFocus={() => !this.isLocationFromFixed(formData.action) && this.setState({ locationFromDropdownOpen: true })}
-                                        readOnly
+                                        onChange={(e) => {
+                                            if (locationFromOtherMode) onFormChange('locationFrom', e.target.value);
+                                        }}
+                                        onFocus={() => !this.isLocationFromFixed(formData.action) && !locationFromOtherMode && this.setState({ locationFromDropdownOpen: true })}
+                                        readOnly={!locationFromOtherMode}
                                         disabled={this.isLocationFromFixed(formData.action)}
-                                        style={{ cursor: this.isLocationFromFixed(formData.action) ? 'default' : 'pointer', borderColor: this.state.validationErrors.locationFrom ? '#e74c3c' : '' }}
-                                        placeholder="Select location"
+                                        style={{ cursor: this.isLocationFromFixed(formData.action) ? 'default' : (locationFromOtherMode ? 'text' : 'pointer'), borderColor: this.state.validationErrors.locationFrom ? '#e74c3c' : '' }}
+                                        placeholder={locationFromOtherMode ? 'Enter location' : 'Select location'}
                                     />
+                                    {locationFromOtherMode && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                this.setState({ locationFromOtherMode: false });
+                                                onFormChange('locationFrom', '');
+                                            }}
+                                            style={{ background: 'none', border: 'none', color: '#2196F3', cursor: 'pointer', fontSize: '0.8rem', padding: '4px 0' }}
+                                        >
+                                            Choose from list instead
+                                        </button>
+                                    )}
                                     {locationFromDropdownOpen && (
                                         <ul className="incoming-dropdown-list">
                                             {(
                                                 formData.action === 'Return Stock to Store'
                                                     ? SITE_LOCATIONS
+                                                    : formData.action === 'Duplicate Entry'
+                                                    ? SITE_LOCATIONS
                                                     : formData.action === 'Initial Stock'
                                                     ? ['Store', ...SITE_LOCATIONS]
+                                                    : formData.action === 'Refund'
+                                                    ? ['Store', ...SITE_LOCATIONS, 'Others']
                                                     : ['Supplier', 'Store', ...getFilteredLocations(inventoryProducts).filter(l => l !== 'Supplier' && l !== 'Store')]
                                             ).map((loc, idx) => (
                                                 <li key={idx} className="incoming-dropdown-item" onClick={() => {
-                                                    onFormChange('locationFrom', loc);
-                                                    this.setState({ locationFromDropdownOpen: false });
+                                                    if (loc === 'Others') {
+                                                        onFormChange('locationFrom', '');
+                                                        this.setState({ locationFromDropdownOpen: false, locationFromOtherMode: true });
+                                                    } else {
+                                                        onFormChange('locationFrom', loc);
+                                                        this.setState({ locationFromDropdownOpen: false });
+                                                    }
                                                 }}>
                                                     {loc}
                                                 </li>
@@ -461,44 +492,46 @@ class StockAdjustmentModal extends Component {
                                 )}
                             </div>
                             
-                            <div className="stock-modal-field">
-                                <label>Location To <span style={{ color: '#e74c3c' }}>*</span></label>
-                                <div className="incoming-dropdown" ref={this.locationToDropdownRef}>
-                                    <input
-                                        type="text"
-                                        className="incoming-dropdown-input"
-                                        value={formData.locationTo}
-                                        onFocus={() => !this.isLocationToFixed(formData.action) && this.setState({ locationToDropdownOpen: true })}
-                                        readOnly
-                                        disabled={this.isLocationToFixed(formData.action)}
-                                        style={{ cursor: this.isLocationToFixed(formData.action) ? 'default' : 'pointer', borderColor: this.state.validationErrors.locationTo ? '#e74c3c' : '' }}
-                                        placeholder="Select location"
-                                    />
-                                    {locationToDropdownOpen && (
-                                        <ul className="incoming-dropdown-list">
-                                            {(
-                                                formData.action === 'Allocation To Site'
-                                                    ? SITE_LOCATIONS
-                                                    : formData.action === 'Initial Stock'
-                                                    ? ['Store', ...SITE_LOCATIONS]
-                                                    : ['Supplier', 'Store', ...getFilteredLocations(inventoryProducts).filter(l => l !== 'Supplier' && l !== 'Store')]
-                                            ).map((loc, idx) => (
-                                                <li key={idx} className="incoming-dropdown-item" onClick={() => {
-                                                    onFormChange('locationTo', loc);
-                                                    this.setState({ locationToDropdownOpen: false });
-                                                }}>
-                                                    {loc}
-                                                </li>
-                                            ))}
-                                        </ul>
+                            {!this.isLocationToHidden(formData.action) && (
+                                <div className="stock-modal-field">
+                                    <label>Location To <span style={{ color: '#e74c3c' }}>*</span></label>
+                                    <div className="incoming-dropdown" ref={this.locationToDropdownRef}>
+                                        <input
+                                            type="text"
+                                            className="incoming-dropdown-input"
+                                            value={formData.locationTo}
+                                            onFocus={() => !this.isLocationToFixed(formData.action) && this.setState({ locationToDropdownOpen: true })}
+                                            readOnly
+                                            disabled={this.isLocationToFixed(formData.action)}
+                                            style={{ cursor: this.isLocationToFixed(formData.action) ? 'default' : 'pointer', borderColor: this.state.validationErrors.locationTo ? '#e74c3c' : '' }}
+                                            placeholder="Select location"
+                                        />
+                                        {locationToDropdownOpen && (
+                                            <ul className="incoming-dropdown-list">
+                                                {(
+                                                    formData.action === 'Allocation To Site'
+                                                        ? SITE_LOCATIONS
+                                                        : (formData.action === 'Initial Stock' || formData.action === 'Refund')
+                                                        ? ['Store', ...SITE_LOCATIONS]
+                                                        : ['Supplier', 'Store', ...getFilteredLocations(inventoryProducts).filter(l => l !== 'Supplier' && l !== 'Store')]
+                                                ).map((loc, idx) => (
+                                                    <li key={idx} className="incoming-dropdown-item" onClick={() => {
+                                                        onFormChange('locationTo', loc);
+                                                        this.setState({ locationToDropdownOpen: false });
+                                                    }}>
+                                                        {loc}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </div>
+                                    {this.state.validationErrors.locationTo && (
+                                        <div style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '4px', fontWeight: 'bold' }}>
+                                            {this.state.validationErrors.locationTo}
+                                        </div>
                                     )}
                                 </div>
-                                {this.state.validationErrors.locationTo && (
-                                    <div style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '4px', fontWeight: 'bold' }}>
-                                        {this.state.validationErrors.locationTo}
-                                    </div>
-                                )}
-                            </div>
+                            )}
 
                             <div className="stock-modal-field">
                                 <label>Date <span style={{ color: '#e74c3c' }}>*</span></label>

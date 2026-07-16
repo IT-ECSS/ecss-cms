@@ -65,7 +65,8 @@ class InventoryController
                 const { sku: _sku, ...payloadWithoutSku } = payload;
                 const payloadWithReceipt = {
                     ...payloadWithoutSku,
-                    receiptNumber: receiptNumber
+                    receiptNumber: receiptNumber,
+                    confirmed: false
                 };
 
                 // Insert the inventory order
@@ -223,6 +224,116 @@ class InventoryController
             return {
                 success: false,
                 message: "Error inserting stock record",
+                error: error.message || String(error)
+            };
+        }
+        finally {
+            await this.databaseConnectivity.close();
+        }
+    }
+
+    async confirmStockRecord(id)
+    {
+        try {
+            const result = await this.databaseConnectivity.initialize();
+            console.log("Database Connectivity:", result);
+
+            if (result === "Connected to MongoDB Atlas!") {
+                const databaseName = "Company-Management-System";
+                const collectionName = "Inventory";
+
+                // Idempotency guard - but split into TWO independent flags so a
+                // Sales row that got marked `confirmed` in Mongo while its
+                // WooCommerce decrement failed/never ran is NOT permanently stuck.
+                // - `confirmed`: the record has been reviewed/approved (Mongo only).
+                // - `wooProcessed`: WooCommerce stock has actually been decremented
+                //   for this record (Sales rows only). Only skip the WooCommerce
+                //   step entirely once THIS is true.
+                const table = this.databaseConnectivity.client.db(databaseName).collection(collectionName);
+                const existing = await table.findOne({ _id: new ObjectId(id) });
+
+                if (existing && existing.confirmed === true) {
+                    const needsWoo = existing.action === 'Sales' && existing.wooProcessed !== true;
+                    if (!needsWoo) {
+                        console.log("Stock record already fully confirmed, skipping duplicate confirm:", id);
+                        return {
+                            success: true,
+                            alreadyConfirmed: true,
+                            message: "Stock record was already confirmed"
+                        };
+                    }
+                    // Already confirmed in Mongo, but WooCommerce was never marked
+                    // processed for this Sales row - let the caller retry the
+                    // WooCommerce step without re-writing confirmed/confirmedAt.
+                    console.log("Stock record confirmed but WooCommerce not yet processed - allowing retry:", id);
+                    return {
+                        success: true,
+                        alreadyConfirmed: false,
+                        needsWooRetry: true
+                    };
+                }
+
+                const now = new Date();
+                const updateResult = await this.databaseConnectivity.updateParticipant(databaseName, collectionName, id, {
+                    confirmed: true,
+                    confirmedAt: now.toISOString()
+                });
+                console.log("Confirm Stock Record Result:", updateResult);
+
+                return updateResult;
+            } else {
+                return {
+                    success: false,
+                    message: "Failed to connect to database",
+                    error: result || "Database connection failed"
+                };
+            }
+        }
+        catch (error) {
+            console.error("Stock record confirm error:", error);
+            return {
+                success: false,
+                message: "Error confirming stock record",
+                error: error.message || String(error)
+            };
+        }
+        finally {
+            await this.databaseConnectivity.close();
+        }
+    }
+
+    // Called after the frontend successfully decrements WooCommerce stock for a
+    // confirmed Sales record, so a future confirm/retry never double-decrements.
+    async markStockWooProcessed(id)
+    {
+        try {
+            const result = await this.databaseConnectivity.initialize();
+            console.log("Database Connectivity:", result);
+
+            if (result === "Connected to MongoDB Atlas!") {
+                const databaseName = "Company-Management-System";
+                const collectionName = "Inventory";
+
+                const updateResult = await this.databaseConnectivity.updateParticipant(databaseName, collectionName, id, {
+                    wooProcessed: true,
+                    wooProcessedAt: new Date().toISOString()
+                });
+                console.log("Mark WooCommerce Processed Result:", updateResult);
+
+                return updateResult;
+            } else {
+                return {
+                    success: false,
+                    message: "Failed to connect to database",
+                    error: result || "Database connection failed"
+                };
+            }
+        }
+        catch (error) {
+            console.error("Mark WooCommerce processed error:", error);
+            return {
+                success: false,
+                message: "Error marking WooCommerce processed",
                 error: error.message || String(error)
             };
         }

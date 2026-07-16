@@ -175,6 +175,39 @@
     background-color: #e6f4ea;
 }
 
+.stock-confirm-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 16px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    background-color: #34a853;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.stock-confirm-btn:hover {
+    background-color: #2c8c46;
+}
+
+.stock-confirm-btn:disabled {
+    background-color: #a5d6a7;
+    cursor: not-allowed;
+}
+
+.stock-confirmed-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #000;
+}
+
 /* Product Summary Cards */
 
 /* loading overlay for inventory overview */

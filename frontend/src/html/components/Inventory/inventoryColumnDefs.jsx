@@ -1,4 +1,4 @@
-import { generateReceipt } from './inventoryServiceHelpers';
+import { generateReceipt, confirmStockRecord } from './inventoryServiceHelpers';
 
 // Parse a stored date string into a comparable timestamp. Records use two
 // formats: ISO "YYYY-MM-DD" and localised "D/M/Y" (e.g. "30/4/26"). Returns a
@@ -185,5 +185,52 @@ export const stockColumnDefs = [
         field: 'reason', 
         width: 500,
         valueGetter: (params) => params.data?.reason || '',
+    },
+    {
+        headerName: 'Confirm',
+        field: 'confirmed',
+        width: 180,
+        cellStyle: { textAlign: 'center' },
+        cellRenderer: (params) => {
+            // Confirm button only applies to Sales entries
+            if (params.data?.action !== 'Sales') {
+                return null;
+            }
+            if (params.data?.confirmed) {
+                return (
+                    <span className="stock-confirmed-badge">
+                        Confirmed
+                    </span>
+                );
+            }
+            return (
+                <button
+                    type="button"
+                    className="stock-confirm-btn"
+                    disabled={params.data?.__confirming}
+                    onMouseDown={(e) => {
+                        e.stopPropagation();
+                        if (params.data?.__confirming) return;
+                        params.data.__confirming = true;
+                        params.api.refreshCells({ rowNodes: [params.node], force: true, columns: ['confirmed'] });
+                        confirmStockRecord(params.data, (success) => {
+                            params.data.__confirming = false;
+                            if (success) {
+                                params.data.confirmed = true;
+                            }
+                            params.api.refreshCells({ rowNodes: [params.node], force: true, columns: ['confirmed'] });
+                            // Refresh stock records + WooCommerce products so the
+                            // product summary cards (Balance/Sold/pending bracket)
+                            // update immediately, not just this grid cell.
+                            if (success && params.context?.onConfirmed) {
+                                params.context.onConfirmed();
+                            }
+                        });
+                    }}
+                >
+                    {params.data?.__confirming ? 'Confirming...' : 'Confirm'}
+                </button>
+            );
+        }
     },
 ];

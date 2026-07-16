@@ -353,16 +353,40 @@ def inventory_order(request):
         
         print(f"[DEBUG] Looking for product: '{product_name}' at location: '{location}'")
         print(f"[DEBUG] Total inventory products available: {len(inventory_products)}")
-        
+
+        # Normalize for a case/whitespace-tolerant comparison (the Sales record's
+        # product/location strings should match exactly, but trim+lowercase makes
+        # this resilient to accidental whitespace or casing differences instead of
+        # silently failing to find the variation).
+        def _norm(s):
+            return (s or '').strip().lower()
+
+        product_name_norm = _norm(product_name)
+        location_norm = _norm(location)
+
         product_info = None
+        parent_id_for_product = None
         for product in inventory_products:
             current_name = product.get('name', '')
             current_variation = product.get('variation_name', '')
             print(f"[DEBUG] Checking - Product: '{current_name}' | Location: '{current_variation}'")
-            if current_name == product_name and current_variation == location:
-                product_info = product
-                print(f"[DEBUG] ✓ Found matching product!")
-                break
+            if _norm(current_name) == product_name_norm:
+                # Remember the parent id in case we need to fall back to Store stock
+                parent_id_for_product = product.get('parent_id') or parent_id_for_product
+                if _norm(current_variation) == location_norm:
+                    product_info = product
+                    print(f"[DEBUG] ✓ Found matching product!")
+                    break
+
+        if not product_info:
+            # Fall back to the parent/Store stock if the specific site variation
+            # couldn't be matched, so a Sales confirm still updates WooCommerce
+            # instead of silently doing nothing.
+            print(f"[WARN] Exact variation not found for '{product_name}' at '{location}'. Falling back to parent/Store stock if available.")
+            for product in inventory_products:
+                if _norm(product.get('name', '')) == product_name_norm and not product.get('parent_id'):
+                    product_info = product
+                    break
 
         if not product_info:
             print(f"[ERROR] Product not found: '{product_name}' at '{location}'")
@@ -391,6 +415,17 @@ def inventory_order(request):
             product_id=product_info.get('id'),
             new_stock=result.get('new_stock')
         )
+
+        # Clear the inventory_product_details cache so the very next fetch shows
+        # the fresh decremented stock immediately, instead of the stale cached
+        # snapshot (up to INVENTORY_CACHE_TIMEOUT seconds old). Without this, a
+        # second Sales confirm shortly after the first would decrement WooCommerce
+        # correctly but the UI would keep showing the same (stale) Balance until
+        # the cache naturally expired.
+        from django.core.cache import cache
+        cache.delete('inventory_products_cache')
+        cache.delete('inventory_products_cache_stale')
+        print("[DEBUG] Cache cleared for inventory products")
 
         return JsonResponse({
             'success': True,
@@ -451,6 +486,12 @@ def inventory_incoming(request):
             new_stock=result.get('new_stock')
         )
 
+        # Clear the inventory_product_details cache so the next fetch reflects
+        # this change immediately instead of a stale cached snapshot.
+        from django.core.cache import cache
+        cache.delete('inventory_products_cache')
+        cache.delete('inventory_products_cache_stale')
+
         return JsonResponse({
             'success': True,
             'message': f'Stock increased by {quantity}.',
@@ -509,6 +550,12 @@ def inventory_allocate(request):
             product_id=product_info.get('id'),
             new_stock=result.get('new_stock')
         )
+
+        # Clear the inventory_product_details cache so the next fetch reflects
+        # this change immediately instead of a stale cached snapshot.
+        from django.core.cache import cache
+        cache.delete('inventory_products_cache')
+        cache.delete('inventory_products_cache_stale')
 
         return JsonResponse({
             'success': True,
@@ -783,6 +830,108 @@ def inventory_stock_adjustment(request):
                         error_msg = f'Failed to add initial stock for {product_name} at {location_to}'
                         print(f"[ERROR] {error_msg}")
                         return JsonResponse({'success': False, 'error': error_msg}, status=500)
+
+        elif action == 'Refund':
+            # Refund: customer returns a purchased item, so credit the stock back.
+            # Mirrors 'Initial Stock' logic - location_to decides Store vs a Site variation.
+            print(f"[DEBUG] Refund: Adding {quantity} units back to {product_name} at location {location_to}")
+
+            if location_to == 'Store':
+                product_id_to_update = parent_id if parent_id else product_info.get('id')
+                print(f"[DEBUG] Refund - Store: Adding {quantity} to parent product ID {product_id_to_update}")
+                result = woo_api.increase_inventory_stock(
+                    product_id=product_id_to_update,
+                    quantity=quantity,
+                    is_variation=False,
+                    parent_id=None
+                )
+                print(f"[DEBUG] Result: {result}")
+                if result.get('success'):
+                    result['message'] = f'Refunded {quantity} units back to {product_name} at Store'
+            else:
+                variation_match = variant if variant else location_to
+                variation_info = None
+
+                for product in inventory_products:
+                    if product.get('name') == product_name and product.get('variation_name') == variation_match:
+                        variation_info = product
+                        parent_id_found = product.get('parent_id')
+                        print(f"[DEBUG] Found variation: {variation_match}")
+                        print(f"[DEBUG] Variation ID: {variation_info.get('id')}, Parent ID: {parent_id_found}")
+                        break
+
+                if variation_info and parent_id:
+                    print(f"[DEBUG] Refund - Site: Adding {quantity} to variation {variation_match}")
+                    result = woo_api.increase_inventory_stock(
+                        product_id=variation_info.get('id'),
+                        quantity=quantity,
+                        is_variation=True,
+                        parent_id=parent_id
+                    )
+                    print(f"[DEBUG] Result: {result}")
+                    if result.get('success'):
+                        result['message'] = f'Refunded {quantity} units back to {product_name} ({variation_match})'
+                else:
+                    # Fallback: If variation not found, credit stock to parent product
+                    print(f"[FALLBACK] Variation '{variation_match}' not found. Refunding stock to parent product instead.")
+                    product_id_to_update = parent_id if parent_id else product_info.get('id')
+                    result = woo_api.increase_inventory_stock(
+                        product_id=product_id_to_update,
+                        quantity=quantity,
+                        is_variation=False,
+                        parent_id=None
+                    )
+                    print(f"[DEBUG] Fallback Result: {result}")
+                    if result.get('success'):
+                        result['message'] = f'Refunded {quantity} units back to {product_name} at {location_to} (via parent)'
+                    else:
+                        error_msg = f'Failed to refund stock for {product_name} at {location_to}'
+                        print(f"[ERROR] {error_msg}")
+                        return JsonResponse({'success': False, 'error': error_msg}, status=500)
+
+        elif action == 'Duplicate Entry':
+            # Duplicate Entry: corrects a mistaken duplicate stock deduction at a site.
+            # location_from holds the chosen site (CT Hub, Pasir Ris West Wellness Centre,
+            # Tampines North Community Centre) - credit that site's variation stock.
+            variation_match = variant if variant else location_from
+            print(f"[DEBUG] Duplicate Entry: Adding {quantity} units to {product_name} at {variation_match} (correction)")
+
+            variation_info = None
+            for product in inventory_products:
+                if product.get('name') == product_name and product.get('variation_name') == variation_match:
+                    variation_info = product
+                    parent_id_found = product.get('parent_id')
+                    print(f"[DEBUG] Found variation: {variation_match}")
+                    print(f"[DEBUG] Variation ID: {variation_info.get('id')}, Parent ID: {parent_id_found}")
+                    break
+
+            if variation_info and parent_id:
+                result = woo_api.increase_inventory_stock(
+                    product_id=variation_info.get('id'),
+                    quantity=quantity,
+                    is_variation=True,
+                    parent_id=parent_id
+                )
+                print(f"[DEBUG] Result: {result}")
+                if result.get('success'):
+                    result['message'] = f'Corrected duplicate entry: added {quantity} units back to {product_name} ({variation_match})'
+            else:
+                # Fallback: If variation not found, credit stock to parent product (Store)
+                print(f"[FALLBACK] Variation '{variation_match}' not found. Correcting duplicate entry on parent product instead.")
+                product_id_to_update = parent_id if parent_id else product_info.get('id')
+                result = woo_api.increase_inventory_stock(
+                    product_id=product_id_to_update,
+                    quantity=quantity,
+                    is_variation=False,
+                    parent_id=None
+                )
+                print(f"[DEBUG] Fallback Result: {result}")
+                if result.get('success'):
+                    result['message'] = f'Corrected duplicate entry: added {quantity} units back to {product_name} at Store (via parent)'
+                else:
+                    error_msg = f'Failed to correct duplicate entry for {product_name} at {variation_match}'
+                    print(f"[ERROR] {error_msg}")
+                    return JsonResponse({'success': False, 'error': error_msg}, status=500)
 
         else:
             return JsonResponse({'success': False, 'error': f'Unknown action: {action}'}, status=400)

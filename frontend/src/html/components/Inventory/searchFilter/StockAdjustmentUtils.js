@@ -87,6 +87,16 @@ export const getActionLocationConfig = (action, currentProduct, inventoryProduct
                 locationFrom: '',
                 locationTo: '' // user picks either Store or one of SITE_LOCATIONS
             };
+        case 'Refund':
+            return {
+                locationFrom: '', // free-text note (e.g. customer/source), not used for WooCommerce location resolution
+                locationTo: '' // user picks Store or one of SITE_LOCATIONS - stock is increased here
+            };
+        case 'Duplicate Entry':
+            return {
+                locationFrom: '', // user picks one of SITE_LOCATIONS (CT Hub, Pasir Ris West Wellness Centre, Tampines North Community Centre)
+                locationTo: '' // not needed; correction is applied directly at the chosen site
+            };
         default:
             return { locationFrom: '', locationTo: '' };
     }

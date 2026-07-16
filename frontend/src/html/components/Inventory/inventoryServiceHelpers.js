@@ -156,6 +156,99 @@ export const exportOrderToExcel = (enrichedRecords) => {
 };
 
 /**
+ * Confirm a stock movement log entry. For Sales entries, this is also the point
+ * at which WooCommerce stock (port 3002) is finally decremented - it is
+ * intentionally NOT decremented when the sale is first recorded (port 3001 only),
+ * so an unconfirmed/pending sale never affects live stock until verified.
+ * @param {object} record - The stock record to confirm (must include _id)
+ * @param {function} onDone - Callback invoked with (success: boolean) when the request completes
+ */
+export const confirmStockRecord = async (record, onDone) => {
+    // Only fully skip if BOTH the Mongo confirm and the WooCommerce step (for
+    // Sales rows) are already done - otherwise let it through so a Sales row
+    // whose WooCommerce decrement previously failed/never ran can be retried.
+    const alreadyFullyDone = record?.confirmed && (record?.action !== 'Sales' || record?.wooProcessed);
+    if (!record?._id || alreadyFullyDone) {
+        if (onDone) onDone(false);
+        return;
+    }
+
+    try {
+        const backendUrl = window.location.hostname === "localhost"
+            ? "http://localhost:3001"
+            : "https://ecss-backend-node.azurewebsites.net";
+
+        const response = await axios.post(`${backendUrl}/inventory`, {
+            purpose: "confirmStock",
+            id: record._id
+        });
+
+        if (!response.data.success) {
+            alert(response.data.error || response.data.message || 'Failed to confirm entry.');
+            if (onDone) onDone(false);
+            return;
+        }
+
+        // If the backend reports this record was already fully confirmed AND
+        // processed previously, the WooCommerce stock was already decremented -
+        // skip doing it again to avoid a double deduction, but still report
+        // success so the UI syncs.
+        if (response.data.alreadyConfirmed) {
+            console.log('Stock record already confirmed - skipping duplicate WooCommerce update.');
+            if (onDone) onDone(true);
+            return;
+        }
+
+        // Only Sales entries drive a WooCommerce stock change, and only now that
+        // it's confirmed. This also covers the `needsWooRetry` case where Mongo
+        // was already marked confirmed but WooCommerce was never processed.
+        if (record.action === 'Sales') {
+            try {
+                const djangoUrl = window.location.hostname === "localhost"
+                    ? "http://localhost:3002"
+                    : "https://ecss-backend-django.azurewebsites.net";
+
+                const wooPayload = {
+                    action: 'Sales',
+                    customerName: record.customerName,
+                    product: record.product,
+                    locationFrom: record.locationFrom,
+                    locationTo: record.locationTo,
+                    quantity: record.quantity,
+                    orderDate: record.orderDate,
+                    orderTime: record.orderTime,
+                    staffName: record.staffName,
+                    paymentMethod: record.paymentMethod,
+                    totalPrice: record.totalPrice,
+                    wooCategory: record.wooCategory || '',
+                    categories: record.categories || [],
+                };
+
+                const wooResponse = await axios.post(`${djangoUrl}/inventory_order/`, wooPayload);
+                if (!wooResponse.data.success) {
+                    console.error('WooCommerce stock update failed after confirm:', wooResponse.data.error);
+                } else {
+                    // Persist that WooCommerce was actually decremented for this
+                    // record, so a future confirm/retry never double-decrements.
+                    await axios.post(`${backendUrl}/inventory`, {
+                        purpose: "markWooProcessed",
+                        id: record._id
+                    });
+                }
+            } catch (wooError) {
+                console.error('Error updating WooCommerce stock after confirm:', wooError?.response?.data || wooError);
+            }
+        }
+
+        if (onDone) onDone(true);
+    } catch (error) {
+        console.error('Error confirming stock record:', error);
+        alert('Failed to confirm entry. Please try again.');
+        if (onDone) onDone(false);
+    }
+};
+
+/**
  * Handle incoming stock adjustment form submission
  */
 export const handleIncomingSubmit = async (incomingForm, uploadedFile, onSuccess, onError) => {
@@ -171,7 +264,8 @@ export const handleIncomingSubmit = async (incomingForm, uploadedFile, onSuccess
             return false;
         }
 
-        if (!incomingForm.locationTo) {
+        // Duplicate Entry always corrects the Store balance; Location To is not needed
+        if (incomingForm.action !== 'Duplicate Entry' && !incomingForm.locationTo) {
             alert('Please select Location To.');
             return false;
         }

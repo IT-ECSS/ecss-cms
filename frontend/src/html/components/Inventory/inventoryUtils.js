@@ -10,9 +10,12 @@ export const ALL_STOCK_ACTIONS = [
     { type: 'divider' },
     { label: 'Allocation To Site', group: 'Stock' },
     { label: 'Return Stock to Store', group: 'Stock' },
+    { type: 'divider' },
+    { label: 'Refund', group: 'Correction' },
+    { label: 'Duplicate Entry', group: 'Correction' },
 ];
 
-export const STOCK_IN_ACTIONS = ['Purchase From Supplier', 'Return Stock to Store', 'Initial Stock'];
+export const STOCK_IN_ACTIONS = ['Purchase From Supplier', 'Return Stock to Store', 'Initial Stock', 'Refund', 'Duplicate Entry'];
 export const STOCK_OUT_ACTIONS = ['Allocation To Site', 'Return to Supplier'];
 
 /**

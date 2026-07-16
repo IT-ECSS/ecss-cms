@@ -101,6 +101,15 @@ class ProductSummaryCards extends Component {
                     if (to === 'Store') storeIn += qty;
                 } else if (r.action === 'Purchase From Supplier') {
                     if (to === 'Store') storeIn += qty;
+                } else if (r.action === 'Refund') {
+                    // Refunded stock is credited back at whichever location it was restocked to.
+                    if (to && to !== 'Store') allocIn[to] = (allocIn[to] || 0) + qty;
+                    else storeIn += qty;
+                } else if (r.action === 'Duplicate Entry') {
+                    // Correction for a mistaken duplicate entry is credited at the affected site
+                    // (locationFrom holds the chosen site since there is no Location To for this action).
+                    if (from && from !== 'Store') allocIn[from] = (allocIn[from] || 0) + qty;
+                    else storeIn += qty;
                 }
             });
             // Prefer the authoritative Store balance from the WooCommerce table.
@@ -357,12 +366,28 @@ class ProductSummaryCards extends Component {
                                                                 </div>
                                                                 <div style={{ color: '#666', fontWeight: '600', fontSize: '1.2rem' }}>Balance</div>
                                                             </div>
+                                                            {color.pendingSold > 0 && (
+                                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                                                                    <div style={{ color: '#e67e22', fontWeight: '700', fontSize: '1.95rem' }}>
+                                                                        -{color.pendingSold}
+                                                                    </div>
+                                                                    <div style={{ color: '#666', fontWeight: '600', fontSize: '1.2rem' }}>Pending</div>
+                                                                </div>
+                                                            )}
                                                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
                                                                 <div style={{ color: '#8e44ad', fontWeight: '700', fontSize: '1.95rem' }}>
                                                                     {color.sales || 0}
                                                                 </div>
                                                                 <div style={{ color: '#666', fontWeight: '600', fontSize: '1.2rem' }}>Sold</div>
                                                             </div>
+                                                            {color.pendingSold > 0 && (
+                                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                                                                    <div style={{ color: '#e67e22', fontWeight: '700', fontSize: '1.95rem' }}>
+                                                                        +{color.pendingSold}
+                                                                    </div>
+                                                                    <div style={{ color: '#666', fontWeight: '600', fontSize: '1.2rem' }}>Pending</div>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 ))

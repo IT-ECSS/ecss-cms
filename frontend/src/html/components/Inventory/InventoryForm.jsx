@@ -430,38 +430,33 @@ class InventoryForm extends Component {
                 return;
             }
 
-            // Step 2: If backend successful, update WooCommerce (port 3002)
-            console.log("[DEBUG] Updating WooCommerce inventory...");
-            const woocommerceResponse = await this.updateWooCommerce(payload);
+            // Step 2: WooCommerce stock (port 3002) is intentionally NOT updated here.
+            // For Sales, the WooCommerce deduction only happens once the entry is
+            // confirmed via the "Confirm" button in the Inventory Movement Log
+            // (see confirmStockRecord in inventoryServiceHelpers.js).
 
-            // Wait a moment for WooCommerce to fully propagate the changes
-            console.log("[DEBUG] WooCommerce updated, waiting for confirmation...");
-            await new Promise(resolve => setTimeout(resolve, 800));
-
-            // Both updates complete, now show result
-            if (woocommerceResponse.data.success) {
-                // Step 3: Generate receipt PDF
-                const backendUrl = window.location.hostname === "localhost" 
-                    ? "http://localhost:3001" 
-                    : "https://ecss-backend-node.azurewebsites.net";
-                
-                // Get receipt number from data object
-                const receiptNumber = backendResponse.data.data?.receiptNumber || backendResponse.data.receiptNumber || '';
-                
-                const receiptResponse = await axios.post(`${backendUrl}/inventory`, {
-                    purpose: "generateReceipt",
-                    customerName: formData.customerName,
-                    paymentMethod: formData.paymentMethod,
-                    receiptNumber: receiptNumber,
-                    product: formData.product,
-                    location: formData.location,
-                    quantity: parseInt(formData.quantity),
-                    orderDate: formData.orderDate,
-                    orderTime: formData.orderTime,
-                    staffName: formData.staffName,
-                    unitPrice: this.getSelectedProductPrice(),
-                    totalPrice: parseFloat(formData.totalAmount) || 0
-                });
+            // Step 3: Generate receipt PDF
+            const backendUrl = window.location.hostname === "localhost" 
+                ? "http://localhost:3001" 
+                : "https://ecss-backend-node.azurewebsites.net";
+            
+            // Get receipt number from data object
+            const receiptNumber = backendResponse.data.data?.receiptNumber || backendResponse.data.receiptNumber || '';
+            
+            const receiptResponse = await axios.post(`${backendUrl}/inventory`, {
+                purpose: "generateReceipt",
+                customerName: formData.customerName,
+                paymentMethod: formData.paymentMethod,
+                receiptNumber: receiptNumber,
+                product: formData.product,
+                location: formData.location,
+                quantity: parseInt(formData.quantity),
+                orderDate: formData.orderDate,
+                orderTime: formData.orderTime,
+                staffName: formData.staffName,
+                unitPrice: this.getSelectedProductPrice(),
+                totalPrice: parseFloat(formData.totalAmount) || 0
+            });
 
                 // Handle PDF download if generated
                 // if (receiptResponse.data.result?.pdfGenerated && receiptResponse.data.result?.pdfData) {
@@ -509,7 +504,7 @@ class InventoryForm extends Component {
                     window.open(resultData.googleDrive.fileLink, '_blank');
                 }
 
-                console.log("[SUCCESS] Order submitted and WooCommerce inventory updated");
+                console.log("[SUCCESS] Order submitted (pending confirmation before WooCommerce stock is updated)");
                 this.setState({
                     successMessage: 'Order submitted successfully!',
                     isSubmitting: false,
@@ -523,15 +518,6 @@ class InventoryForm extends Component {
                         totalAmount: ''
                     }
                 });
-            } else {
-                const wooErrorMsg = typeof woocommerceResponse.data.error === 'string'
-                    ? woocommerceResponse.data.error
-                    : 'Failed to update WooCommerce stock';
-                this.setState({
-                    error: wooErrorMsg,
-                    isSubmitting: false
-                });
-            }
         } catch (error) {
             console.error('Error submitting order:', error);
             let errorMessage = 'An error occurred while submitting the order';

@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { generateReceipt, exportOrderToExcel } from '../inventoryServiceHelpers';
 import { orderColumnDefs } from '../inventoryColumnDefs';
+import { calculateItemSold } from '../searchFilter/StockFilterUtils';
 
 class OrderRecords extends Component {
     constructor(props) {
@@ -123,9 +124,8 @@ class OrderRecords extends Component {
             if (!product || !loc) return { ...r, itemSold: 0, balance: 0 };
 
             // Item Sold = total Sales quantity for this product at this location
-            const itemSold = stockRecords
-                .filter(sr => (sr.product || '').toLowerCase() === product && (sr.locationFrom || sr.location || '').toLowerCase() === loc && sr.action === 'Sales')
-                .reduce((sum, sr) => sum + (parseInt(sr.quantity) || 0), 0);
+            // (shared with the product summary cards' "Sold" figure so they can never diverge)
+            const itemSold = calculateItemSold(stockRecords, [r.product], r.location);
 
             // Received = Allocation To Site where locationTo matches this location
             const received = stockRecords

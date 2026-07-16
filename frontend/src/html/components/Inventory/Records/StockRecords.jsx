@@ -423,6 +423,15 @@ class StockRecords extends Component {
         this.stockGridApi = params.api;
     };
 
+    // Called after a Sales row is successfully confirmed, so the cards (Balance/Sold
+    // and the pending bracket) refresh with fresh data from the server instead of
+    // only updating the grid cell.
+    handleConfirmed = () => {
+        if (this.props.onStockAdjustmentSubmit) {
+            this.props.onStockAdjustmentSubmit();
+        }
+    };
+
     render() {
         const {
             toolbarReady: toolbarReadyState,
@@ -493,6 +502,7 @@ class StockRecords extends Component {
                                 onGridReady={this.onStockGridReady}
                                 headerHeight={40}
                                 rowHeight={36}
+                                context={{ onConfirmed: this.handleConfirmed }}
                             />
                         </div>
                     )}
