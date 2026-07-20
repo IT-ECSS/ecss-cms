@@ -251,10 +251,9 @@ def fundraising_product_details(request):
 def inventory_product_details(request):
     """Fetches inventory products from WooCommerce filtered by 'Inventory' category.
 
-    Uses a stale‑while‑revalidate cache strategy: callers always see a response
-    immediately (even if it’s stale) while a background thread refreshes the
-    cache when the fresh copy expires.  This prevents the UI from blocking on a
-    slow WooCommerce pagination loop.
+    The frontend adds a cache-busting query string on refresh, so a refresh request
+    should force a fresh WooCommerce read instead of reusing the stale cached snapshot.
+    The normal stale-while-revalidate path remains for non-refresh reads.
     """
     try:
         from django.core.cache import cache
@@ -262,53 +261,60 @@ def inventory_product_details(request):
         cache_key = 'inventory_products_cache'
         stale_key = 'inventory_products_cache_stale'
         timeout = getattr(settings, 'INVENTORY_CACHE_TIMEOUT', 60)
+        force_refresh = request.GET.get('refresh', '').lower() in {'1', 'true', 'yes'}
 
-        products = cache.get(cache_key)
-        if products is not None:
-            # fresh hit
-            print("Returning cached inventory products ({} items)".format(len(products)))
+        if force_refresh:
+            woo_api = WooCommerceAPI()
+            products = woo_api.get_inventory_products()
+            cache.set(cache_key, products, timeout=timeout)
+            cache.set(stale_key, products)
         else:
-            # no fresh value -> check for stale copy
-            products = cache.get(stale_key)
+            products = cache.get(cache_key)
             if products is not None:
-                print("Returning stale inventory products ({} items) while refreshing".format(len(products)))
-
-                # refresh in background (with lock to prevent concurrent fetches)
-                def refresh():
-                    global _inventory_fetch_in_progress
-                    if _inventory_fetch_lock.acquire(blocking=False):  # Non-blocking acquire
-                        try:
-                            _inventory_fetch_in_progress = True
-                            woo_api = WooCommerceAPI()
-                            print("[background] fetching inventory products (one at a time)...")
-                            newprods = woo_api.get_inventory_products()
-                            print(f"[background] fetched {len(newprods)} items")
-                            cache.set(cache_key, newprods, timeout=timeout)
-                            cache.set(stale_key, newprods)
-                        except Exception as ex:
-                            print("[background] error refreshing inventory cache:", ex)
-                        finally:
-                            _inventory_fetch_in_progress = False
-                            _inventory_fetch_lock.release()
-                    else:
-                        print("[background] fetch already in progress, skipping duplicate request")
-                threading.Thread(target=refresh, daemon=True).start()
+                # fresh hit
+                print("Returning cached inventory products ({} items)".format(len(products)))
             else:
-                # first ever request – use lock to prevent concurrent fetches
-                with _inventory_fetch_lock:
-                    # Check cache again after acquiring lock (another thread may have populated it)
-                    products = cache.get(cache_key)
-                    if products is None:
-                        products = cache.get(stale_key)
-                    
-                    if products is None:
-                        # Still no cache, fetch from WooCommerce one time only
-                        woo_api = WooCommerceAPI()
-                        print("Fetching inventory products (initial load - one time only)...")
-                        products = woo_api.get_inventory_products()
-                        print(f"Total inventory products found: {len(products)}")
-                        cache.set(cache_key, products, timeout=timeout)
-                        cache.set(stale_key, products)
+                # no fresh value -> check for stale copy
+                products = cache.get(stale_key)
+                if products is not None:
+                    print("Returning stale inventory products ({} items) while refreshing".format(len(products)))
+
+                    # refresh in background (with lock to prevent concurrent fetches)
+                    def refresh():
+                        global _inventory_fetch_in_progress
+                        if _inventory_fetch_lock.acquire(blocking=False):  # Non-blocking acquire
+                            try:
+                                _inventory_fetch_in_progress = True
+                                woo_api = WooCommerceAPI()
+                                print("[background] fetching inventory products (one at a time)...")
+                                newprods = woo_api.get_inventory_products()
+                                print(f"[background] fetched {len(newprods)} items")
+                                cache.set(cache_key, newprods, timeout=timeout)
+                                cache.set(stale_key, newprods)
+                            except Exception as ex:
+                                print("[background] error refreshing inventory cache:", ex)
+                            finally:
+                                _inventory_fetch_in_progress = False
+                                _inventory_fetch_lock.release()
+                        else:
+                            print("[background] fetch already in progress, skipping duplicate request")
+                    threading.Thread(target=refresh, daemon=True).start()
+                else:
+                    # first ever request – use lock to prevent concurrent fetches
+                    with _inventory_fetch_lock:
+                        # Check cache again after acquiring lock (another thread may have populated it)
+                        products = cache.get(cache_key)
+                        if products is None:
+                            products = cache.get(stale_key)
+                        
+                        if products is None:
+                            # Still no cache, fetch from WooCommerce one time only
+                            woo_api = WooCommerceAPI()
+                            print("Fetching inventory products (initial load - one time only)...")
+                            products = woo_api.get_inventory_products()
+                            print(f"Total inventory products found: {len(products)}")
+                            cache.set(cache_key, products, timeout=timeout)
+                            cache.set(stale_key, products)
 
         response = JsonResponse({
             "success": True,

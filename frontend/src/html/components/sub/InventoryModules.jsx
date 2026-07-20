@@ -11,8 +11,7 @@ class InventoryModules extends Component {
 
         return (
             <>
-                {/* Tab Content - all tabs stay mounted so SSE connections persist */}
-                <div style={{ display: activeTab === 'store' ? 'block' : 'none' }}>
+                {activeTab === 'store' && (
                     <InventoryStore 
                         userName={this.props.userName}
                         role={this.props.role}
@@ -20,9 +19,11 @@ class InventoryModules extends Component {
                         language={this.props.language}
                         activeTab={activeTab}
                         inventoryRefreshCounter={this.props.inventoryRefreshCounter}
+                        showSuccessPopup={this.props.showSuccessPopup}
+                        showErrorPopup={this.props.showErrorPopup}
                     />
-                </div>
-                <div style={{ display: activeTab === 'form' ? 'block' : 'none' }}>
+                )}
+                {activeTab === 'form' && (
                     <InventoryForm 
                         userName={this.props.userName}
                         role={this.props.role}
@@ -30,9 +31,11 @@ class InventoryModules extends Component {
                         language={this.props.language}
                         activeTab={activeTab}
                         inventoryRefreshCounter={this.props.inventoryRefreshCounter}
+                        showSuccessPopup={this.props.showSuccessPopup}
+                        showErrorPopup={this.props.showErrorPopup}
                     />
-                </div>
-                <div style={{ display: activeTab === 'records' ? 'block' : 'none' }}>
+                )}
+                {activeTab === 'records' && (
                     <InventoryRecords 
                         userName={this.props.userName}
                         role={this.props.role}
@@ -40,8 +43,10 @@ class InventoryModules extends Component {
                         language={this.props.language}
                         activeTab={activeTab}
                         inventoryRefreshCounter={this.props.inventoryRefreshCounter}
+                        showSuccessPopup={this.props.showSuccessPopup}
+                        showErrorPopup={this.props.showErrorPopup}
                     />
-                </div>
+                )}
                 {activeTab === 'invoices' && (
                     <InventoryInvoices 
                         userName={this.props.userName}

@@ -505,6 +505,9 @@ class InventoryForm extends Component {
                 }
 
                 console.log("[SUCCESS] Order submitted (pending confirmation before WooCommerce stock is updated)");
+                if (this.props.showSuccessPopup) {
+                    this.props.showSuccessPopup('Order submitted successfully!');
+                }
                 this.setState({
                     successMessage: 'Order submitted successfully!',
                     isSubmitting: false,

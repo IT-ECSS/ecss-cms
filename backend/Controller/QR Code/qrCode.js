@@ -18,7 +18,7 @@ class QRCodeGenerator {
             const buffer = await QRCode.toBuffer(this.text, this.options);
 
             // Save the buffer to a JPG file
-            const filename = `Ageing Strong To Stay Independent (Pasir Ris West Wellness Centre).jpg`;
+            const filename = `Feedback form 讲座评估表.jpg`;
             fs.writeFileSync(filename, buffer);
             console.log(`QR code generated and saved as ${filename}`);
         } catch (error) {
@@ -28,5 +28,5 @@ class QRCodeGenerator {
 }
 
 // Usage const filename = `https://ecss.org.sg/product/crafting-connectionspasir-ris-west-wellness-centre/`;
-const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/ageing-strong-to-stay-independentpasir-ris-west-wellness-centre/`);
+const qrCodeGenerator = new QRCodeGenerator(`https://forms.gle/EMrWeRUEcDyZHkou8`);
 qrCodeGenerator.generate();

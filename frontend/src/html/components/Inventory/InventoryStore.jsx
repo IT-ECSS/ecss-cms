@@ -303,23 +303,33 @@ class InventoryStore extends Component {
         }
     };
 
-    // Calculate sold count for a specific product and location (Sales action from stock records)
+    // Calculate sold count for a specific product and location (confirmed Sales action only)
     getSoldCount = (productName, locationName) => {
         const { stockRecords } = this.state;
         const nameLower = productName.toLowerCase();
         const locLower = locationName.toLowerCase();
         return stockRecords
-            .filter(r => (r.product || '').toLowerCase() === nameLower && r.action === 'Sales' && (r.locationFrom || '').toLowerCase() === locLower)
+            .filter(r =>
+                (r.product || '').toLowerCase() === nameLower &&
+                r.action === 'Sales' &&
+                (r.confirmed === true || r.confirmed === 'true') &&
+                (r.locationFrom || '').toLowerCase() === locLower
+            )
             .reduce((total, r) => total + (parseInt(r.quantity) || 0), 0);
     };
 
-    // Calculate sold amount (money) for a specific product and location (Sales action from stock records)
+    // Calculate sold amount (money) for a specific product and location (confirmed Sales action only)
     getSoldAmount = (productName, locationName) => {
         const { stockRecords } = this.state;
         const nameLower = productName.toLowerCase();
         const locLower = locationName.toLowerCase();
         return stockRecords
-            .filter(r => (r.product || '').toLowerCase() === nameLower && r.action === 'Sales' && (r.locationFrom || '').toLowerCase() === locLower)
+            .filter(r =>
+                (r.product || '').toLowerCase() === nameLower &&
+                r.action === 'Sales' &&
+                (r.confirmed === true || r.confirmed === 'true') &&
+                (r.locationFrom || '').toLowerCase() === locLower
+            )
             .reduce((total, r) => {
                 const totalPrice = parseFloat(r.totalPrice) || 0;
                 if (totalPrice > 0) return total + totalPrice;
@@ -581,13 +591,18 @@ class InventoryStore extends Component {
             .reduce((sum, r) => sum + (parseInt(r.quantity) || 0), 0);
     };
 
-    // Get sold count for a product at a location from stockRecords (Sales action)
+    // Get sold count for a product at a location from stockRecords (confirmed Sales action only)
     getLocationSold = (productName, locationName) => {
         const { stockRecords } = this.state;
         const nameLower = productName.toLowerCase();
         const locLower = locationName.toLowerCase();
         return stockRecords
-            .filter(r => (r.product || '').toLowerCase() === nameLower && r.action === 'Sales' && (r.locationFrom || '').toLowerCase() === locLower)
+            .filter(r =>
+                (r.product || '').toLowerCase() === nameLower &&
+                r.action === 'Sales' &&
+                (r.confirmed === true || r.confirmed === 'true') &&
+                (r.locationFrom || '').toLowerCase() === locLower
+            )
             .reduce((sum, r) => sum + (parseInt(r.quantity) || 0), 0);
     };
 

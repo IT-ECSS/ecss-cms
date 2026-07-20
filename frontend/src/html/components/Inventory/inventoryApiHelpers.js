@@ -50,7 +50,8 @@ export const fetchInventoryRecords = async () => {
 export const fetchInventoryProducts = async () => {
     try {
         const baseUrl = getDjangoUrl();
-        // Add cache-busting parameter
+        // Use a normal cache-busting request so the page reuses the cached snapshot
+        // unless the backend explicitly clears it after a stock change.
         const timestamp = new Date().getTime();
         const url = `${baseUrl}/inventory_product_details/?t=${timestamp}`;
         

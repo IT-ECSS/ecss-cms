@@ -1915,6 +1915,8 @@ class DatabaseConnectivity {
                     // When refunding (for Cancelled for duplication or Withdrawn registrations):
                     // 1. Update payment status to "Refunded"
                     // 2. Record staff member name and refund date/time for audit trail
+                    // 3. Clear the system-generated registration status so the table
+                    //    falls back to "Not Available" after a refund.
                     // 3. ❌ DO NOT modify official.confirmed - leave it unchanged
                     // 4. ❌ DO NOT modify official.date or official.time (original payment info)
                     // 5. ❌ DO NOT modify official.receiptNo (original receipt/invoice info)
@@ -1924,6 +1926,7 @@ class DatabaseConnectivity {
                     const refundUpdate = {
                         "status": status,
                         "official.name": name,
+                        "official.registration_status_system": "",
                     };
                     
                     // Add refund date/time if provided

@@ -206,6 +206,12 @@ export async function handlePaymentStatusChange(event, context) {
 
   // Update frontend state immediately after backend call
   event.data.paymentStatus = newValue;
+  if (newValue === 'Refunded') {
+    event.data.registrationStatusSystem = '';
+    if (event.data.officialInfo) {
+      event.data.officialInfo.registration_status_system = '';
+    }
+  }
 
   const finalMethodUpdated = await updateFinalPaymentMethodIfNeeded({
     id, sn, userName, participantInfo,

@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import { io } from 'socket.io-client';
 
 class ProductSummaryCards extends Component {
     constructor(props) {
@@ -9,6 +10,9 @@ class ProductSummaryCards extends Component {
             mongoError: null,
             selectedMongoProduct: 'ECSS Resistance Band 2026'
         };
+        this.socket = null;
+        this.eventSource = null;
+        this.refreshTimer = null;
     }
 
     getBackendUrl = () => {
@@ -19,7 +23,72 @@ class ProductSummaryCards extends Component {
 
     async componentDidMount() {
         await this.fetchMongoRecords();
+        this.setupLiveSync();
     }
+
+    componentDidUpdate(prevProps) {
+        if (prevProps.isLoading && !this.props.isLoading) {
+            this.fetchMongoRecords();
+        }
+    }
+
+    componentWillUnmount() {
+        if (this.refreshTimer) {
+            clearTimeout(this.refreshTimer);
+        }
+        if (this.socket) {
+            this.socket.disconnect();
+            this.socket = null;
+        }
+        if (this.eventSource) {
+            this.eventSource.close();
+            this.eventSource = null;
+        }
+    }
+
+    setupLiveSync = () => {
+        const nodeBackendUrl = window.location.hostname === 'localhost'
+            ? 'http://localhost:3001'
+            : 'https://ecss-backend-node.azurewebsites.net';
+        const djangoBackendUrl = window.location.hostname === 'localhost'
+            ? 'http://localhost:3002'
+            : 'https://ecss-backend-django.azurewebsites.net';
+
+        this.socket = io(nodeBackendUrl);
+        this.socket.on('connect', () => {
+            console.log('ProductSummaryCards: Socket.IO connected');
+        });
+        this.socket.on('inventory', () => {
+            this.deferMongoRefresh();
+        });
+
+        this.eventSource = new EventSource(`${djangoBackendUrl}/inventory_sse/`);
+        this.eventSource.onopen = () => {
+            console.log('ProductSummaryCards: SSE connected');
+        };
+        this.eventSource.onmessage = (event) => {
+            try {
+                const payload = JSON.parse(event.data);
+                if (payload && payload.type === 'inventory_updated') {
+                    this.deferMongoRefresh();
+                }
+            } catch (error) {
+                console.error('ProductSummaryCards: SSE parse error', error);
+            }
+        };
+        this.eventSource.onerror = (error) => {
+            console.error('ProductSummaryCards: SSE error', error);
+        };
+    };
+
+    deferMongoRefresh = () => {
+        if (this.refreshTimer) {
+            clearTimeout(this.refreshTimer);
+        }
+        this.refreshTimer = setTimeout(() => {
+            this.fetchMongoRecords();
+        }, 300);
+    };
 
     // Fetch all inventory stock records (all products, all locations) from the backend.
     fetchMongoRecords = async () => {
@@ -85,7 +154,7 @@ class ProductSummaryCards extends Component {
                 const from = r.locationFrom || '';
                 const to = r.locationTo || '';
                 const qty = Number(r.quantity) || 0;
-                if (r.action === 'Sales') {
+                if (r.action === 'Sales' && r.confirmed === true) {
                     sold[from] = (sold[from] || 0) + qty;
                 } else if (r.action === 'Allocation To Site') {
                     allocIn[to] = (allocIn[to] || 0) + qty;

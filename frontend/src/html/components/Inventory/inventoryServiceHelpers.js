@@ -330,10 +330,7 @@ export const handleIncomingSubmit = async (incomingForm, uploadedFile, onSuccess
 
                 if (wooResponse.data.success) {
                     console.log('WooCommerce stock updated:', wooResponse.data);
-                    // Wait for WooCommerce to fully propagate changes before refreshing frontend
-                    console.log('[DEBUG] Waiting for WooCommerce to propagate changes (2 seconds)...');
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-                    console.log('[DEBUG] WooCommerce propagation complete');
+                    console.log('[DEBUG] WooCommerce stock update acknowledged; refreshing card state immediately');
                 } else {
                     console.error('WooCommerce stock update failed:', wooResponse.data.error);
                 }

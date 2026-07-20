@@ -3087,6 +3087,8 @@ import { flushSync } from 'react-dom';
                         onDataLoaded={this.closePopup}
                         initialTab={inventoryTab}
                         inventoryRefreshCounter={this.state.inventoryRefreshCounter}
+                        showSuccessPopup={this.successPopUpMessage}
+                        showErrorPopup={this.warningPopUpMessage}
                       />
                     </div>
                   </>

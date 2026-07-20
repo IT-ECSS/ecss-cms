@@ -213,10 +213,18 @@ export const stockColumnDefs = [
                         if (params.data?.__confirming) return;
                         params.data.__confirming = true;
                         params.api.refreshCells({ rowNodes: [params.node], force: true, columns: ['confirmed'] });
+                        if (params.context?.showSuccessPopup) {
+                            params.context.showSuccessPopup('Confirming sale...');
+                        }
                         confirmStockRecord(params.data, (success) => {
                             params.data.__confirming = false;
                             if (success) {
                                 params.data.confirmed = true;
+                                if (params.context?.showSuccessPopup) {
+                                    params.context.showSuccessPopup('Sales confirmed successfully. WooCommerce stock updated.');
+                                }
+                            } else if (params.context?.showErrorPopup) {
+                                params.context.showErrorPopup('Failed to confirm sale. Please try again.');
                             }
                             params.api.refreshCells({ rowNodes: [params.node], force: true, columns: ['confirmed'] });
                             // Refresh stock records + WooCommerce products so the

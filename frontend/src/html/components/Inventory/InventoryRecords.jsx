@@ -151,6 +151,16 @@ class InventoryRecords extends Component {
         console.log("[DEBUG] Data refresh and UI render complete");
     };
 
+    // Called after a Sales row is successfully confirmed, so the cards (Balance/Sold
+    // and the pending bracket) refresh with fresh data from the server instead of
+    // only updating the grid cell, and a visible success popup is shown to the user.
+    handleConfirmed = async () => {
+        await this.handleStockAdjustmentSubmit();
+        if (this.props.showSuccessPopup) {
+            this.props.showSuccessPopup('Sales confirmed successfully. WooCommerce stock updated.');
+        }
+    };
+
     componentWillUnmount() {
         document.removeEventListener('mousedown', this.handleDocumentClick);
         // Remove resize event listener
@@ -249,6 +259,8 @@ class InventoryRecords extends Component {
                         role={this.props.role}
                         userName={this.props.userName}
                         onStockAdjustmentSubmit={this.handleStockAdjustmentSubmit}
+                        showSuccessPopup={this.props.showSuccessPopup}
+                        onConfirmed={this.handleConfirmed}
                     />
                 )}
 

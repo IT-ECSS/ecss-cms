@@ -398,15 +398,14 @@ class StockRecords extends Component {
         this.setState({ isSubmitting: true });
 
         const onSuccess = async () => {
-            // Wait for parent to refresh data before closing modal
             console.log("[DEBUG] Stock adjustment successful, refreshing dashboard...");
             if (this.props.onStockAdjustmentSubmit) {
                 await this.props.onStockAdjustmentSubmit();
-                console.log("[DEBUG] Dashboard refresh complete, waiting for UI update...");
-                // Additional wait to ensure UI has time to render the updated data
-                await new Promise(resolve => setTimeout(resolve, 500));
+                console.log("[DEBUG] Dashboard refresh complete; closing modal after the card data has been refreshed.");
             }
-            // Close modal only after data refresh is complete and UI is updated
+            if (this.props.showSuccessPopup) {
+                this.props.showSuccessPopup('Stock adjustment saved successfully.');
+            }
             this.closeIncomingModal();
             this.setState({ isSubmitting: false });
         };
@@ -426,9 +425,9 @@ class StockRecords extends Component {
     // Called after a Sales row is successfully confirmed, so the cards (Balance/Sold
     // and the pending bracket) refresh with fresh data from the server instead of
     // only updating the grid cell.
-    handleConfirmed = () => {
-        if (this.props.onStockAdjustmentSubmit) {
-            this.props.onStockAdjustmentSubmit();
+    handleConfirmed = async () => {
+        if (this.props.onConfirmed) {
+            await this.props.onConfirmed();
         }
     };
 
@@ -502,7 +501,11 @@ class StockRecords extends Component {
                                 onGridReady={this.onStockGridReady}
                                 headerHeight={40}
                                 rowHeight={36}
-                                context={{ onConfirmed: this.handleConfirmed }}
+                                context={{
+                                    onConfirmed: this.handleConfirmed,
+                                    showSuccessPopup: this.props.showSuccessPopup,
+                                    showErrorPopup: this.props.showErrorPopup
+                                }}
                             />
                         </div>
                     )}
