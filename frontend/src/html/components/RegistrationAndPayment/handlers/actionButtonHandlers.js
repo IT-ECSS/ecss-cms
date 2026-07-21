@@ -116,8 +116,12 @@ function hasExportableRegistrationStatus(firstType, row = {})
       return true;
     }
 
-    // Otherwise, a manually "Submitted" registration is still exportable.
-    return staffUpdated === 'Submitted';
+    // Otherwise, a "Submitted" or "Confirmed Slot" registration (as shown in
+    // the "Staff Updated" sub-column) is still exportable. "Confirmed Slot"
+    // can end up in the staff-updated field for rows confirmed before the
+    // System Generated / Staff Updated column split, or via other legacy
+    // paths that never populated registrationStatusSystem separately.
+    return staffUpdated === 'Submitted' || staffUpdated === 'Confirmed Slot';
   }
   else if(firstType === 'ILP')
   {
@@ -270,6 +274,13 @@ export async function exportToLOP(context) {
         // Course code is returned only when BOTH name and price match the Excel sheet
         const courseCode    = await getEcssCourseCode(courseEngName, price);
         const canonicalName = await getEcssCanonicalName(courseEngName, price);
+
+        if (!courseCode) {
+          console.warn(
+            `[Export to LOP] No ECSS course code found for "${courseEngName}" at price $${price}. ` +
+            'Check that the name/price exactly match an entry in the "ECSS Course Code (LOP)" Google Sheet.'
+          );
+        }
 
         sourceSheet.getCell(`O${rowIndex}`).value = courseCode.trim();
         sourceSheet.getCell(`P${rowIndex}`).value = (canonicalName || courseEngName || '').trim();

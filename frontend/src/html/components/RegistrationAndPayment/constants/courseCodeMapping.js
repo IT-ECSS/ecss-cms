@@ -54,14 +54,21 @@ function normalizeName(name) {
 }
 
 let _cache = null; // map after first load
+let _cacheTs = 0;   // timestamp of last successful load
+// Mirrors the backend's own 5-minute cache TTL, so a long-lived browser tab
+// doesn't keep serving a stale course-code map (e.g. a course added/renamed
+// in the Google Sheet after the page was first loaded would otherwise never
+// be picked up until a hard refresh).
+const CACHE_TTL_MS = 5 * 60 * 1000;
 
 /**
  * Loads parsed LOP course-code map from backend.
- * Cached after first call to avoid repeated API calls during batch export.
+ * Cached after first call (for up to CACHE_TTL_MS) to avoid repeated API
+ * calls during batch export while still picking up sheet updates.
  * @returns {Promise<Object>}  normalizedName → { code, canonicalName }
  */
 export async function loadCourseCodeMap() {
-  if (_cache) return _cache;
+  if (_cache && (Date.now() - _cacheTs) < CACHE_TTL_MS) return _cache;
 
   const response = await fetch(`${NODE_BASE_URL}/googleDrive/lopCourseCodeMap`, {
     method: 'POST',
@@ -81,6 +88,7 @@ export async function loadCourseCodeMap() {
   }
 
   _cache = payload.map;
+  _cacheTs = Date.now();
   return _cache;
 }
 
