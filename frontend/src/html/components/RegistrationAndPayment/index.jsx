@@ -24,6 +24,7 @@ import FinalPaymentMethodRenderer  from './components/FinalPaymentMethodRenderer
 import DateTimeFieldRenderer from './components/DateTimeFieldRenderer';
 import PaymentStatusRenderer       from './components/PaymentStatusRenderer';
 import RegistrationStatusRenderer  from './components/RegistrationStatusRenderer';
+import AgeRenderer                 from './components/AgeRenderer';
 import SelectAllHeader        from './components/SelectAllHeader';
 import ActionButtonsRow       from './components/ActionButtonsRow';
 import RemarksCell            from './components/RemarksCell';
@@ -47,6 +48,7 @@ import {
 } from './utils/dataQueryUtils';
 import { mapRegistrationToRowData } from './utils/rowDataMapper';
 import { resolveEffectivePaymentMethod } from './utils/paymentMethodResolver.mjs';
+import { calculateAge } from './utils/dateUtils';
 
 // WooCommerce handlers
 import { updateWooCommerceForRegistrationPayment as updateWooCommerceFn } from './handlers/wooCommerceHandlers';
@@ -1761,6 +1763,18 @@ class RegistrationPaymentSection extends Component {
         editable: false,
         pinned: 'left',
         cellStyle: centeredCellStyle,
+      },
+      {
+        headerName: 'Age',
+        field: 'age',
+        width: 150,
+        editable: false,
+        pinned: 'left',
+        cellRenderer: AgeRenderer,
+        cellStyle: centeredCellStyle,
+        valueGetter: (params) =>
+          calculateAge(params.data?.participantInfo?.dateOfBirth || params.data?.dateOfBirth),
+        hide: !hasNSA,
       },
       {
         headerName: 'Course Name',

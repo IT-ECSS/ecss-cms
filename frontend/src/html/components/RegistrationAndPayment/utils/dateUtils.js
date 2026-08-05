@@ -117,3 +117,32 @@ export function formatDateToDDMMYYYY2(date) {
   const year = date.getFullYear();
   return `${day} ${month} ${year}`;
 }
+
+/**
+ * Calculates current age (in years) from a date of birth string.
+ * Accepts "DD/MM/YYYY" (participant DOB format) or any ISO/JS-parseable date string.
+ * Returns null if the date of birth is missing/invalid.
+ */
+export function calculateAge(dateOfBirth) {
+  if (!dateOfBirth) return null;
+
+  let birthDate;
+  const ddmmyyyyMatch = String(dateOfBirth).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (ddmmyyyyMatch) {
+    const [, day, month, year] = ddmmyyyyMatch;
+    birthDate = new Date(Number(year), Number(month) - 1, Number(day));
+  } else {
+    birthDate = new Date(dateOfBirth);
+  }
+
+  if (isNaN(birthDate.getTime())) return null;
+
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const hasHadBirthdayThisYear =
+    today.getMonth() > birthDate.getMonth() ||
+    (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate());
+  if (!hasHadBirthdayThisYear) age -= 1;
+
+  return age >= 0 ? age : null;
+}
