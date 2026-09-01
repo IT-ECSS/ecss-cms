@@ -18,7 +18,7 @@ class QRCodeGenerator {
             const buffer = await QRCode.toBuffer(this.text, this.options);
 
             // Save the buffer to a JPG file
-            const filename = `疗愈水彩画基础班 Therapeutic Watercolour Painting for Beginners (Pasir Ris West Wellness Centre).jpg`;
+            const filename = `Google Forms.jpg`;
             fs.writeFileSync(filename, buffer);
             console.log(`QR code generated and saved as ${filename}`);
         } catch (error) {
@@ -28,5 +28,5 @@ class QRCodeGenerator {
 }
 
 // Usage const filename = `https://ecss.org.sg/product/crafting-connectionspasir-ris-west-wellness-centre/`;
-const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/%e7%96%97%e6%84%88%e6%b0%b4%e5%bd%a9%e7%94%bb%e5%9f%ba%e7%a1%80%e7%8f%adtherapeutic-watercolour-painting-for-beginners-tampines/`);
+const qrCodeGenerator = new QRCodeGenerator(`https://docs.google.com/forms/d/e/1FAIpQLScDJ5SzM8ZPdU5pAIZeIRj2LIGDtMcrVjvbeSMdo9dkeMtd_Q/viewform`);
 qrCodeGenerator.generate();

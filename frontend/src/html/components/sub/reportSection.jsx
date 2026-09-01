@@ -19,7 +19,7 @@ class ReportSection extends Component {
         { headerName: "Course Name", field: "course.courseEngName", width: 350, sortable: true, pinned: "left" },
         { headerName: "Course Location", field: "course.courseLocation", width: 300, sortable: true },
         { headerName: "Course Duration", field: "course.courseDuration", width: 300, sortable: true },
-        { headerName: "Payment Method", field: "course.payment", width: 250, sortable: true },
+        { headerName: "Payment Method", field: "course.finalPaymentMethod", width: 250, sortable: true },
         { headerName: "Price", field: "course.coursePrice", width: 150, sortable: true },
         { headerName: "Payment Status", field: "status", width: 200, sortable: true },
         { headerName: "Receipt Number", field: "official.receiptNo", width: 300, sortable: true },
@@ -36,7 +36,7 @@ class ReportSection extends Component {
         { headerName: "Course Name", field: "course.courseEngName", width: 400, sortable: true, pinned: "left" },
         { headerName: "Course Location", field: "course.courseLocation", width: 300, sortable: true },
         { headerName: "Course Duration", field: "course.courseDuration", width: 300, sortable: true },
-        { headerName: "Payment Method", field: "course.payment", width: 250, sortable: true },
+        { headerName: "Payment Method", field: "course.finalPaymentMethod", width: 250, sortable: true },
         { headerName: "Price", field: "course.coursePrice", width: 150, sortable: true },
         { headerName: "Payment Status", field: "status", width: 200, sortable: true },
         { headerName: "Receipt Number", field: "official.receiptNo", width: 300, sortable: true },
@@ -101,6 +101,20 @@ class ReportSection extends Component {
 
   handleToDateChange = (e) => {
     this.setState({ toDate: e.target.value });
+  };
+
+  getFinalPaymentMethod = (item) => item.course?.finalPaymentMethod || '';
+
+  hasConfirmedSlot = (item) =>
+    item.official?.registration_status_system === 'Confirmed Slot' ||
+    // Fallback for legacy/bulk-updated records where the system field was
+    // never populated but staff already marked it Confirmed Slot manually.
+    (!item.official?.registration_status_system && item.official?.registration_status === 'Confirmed Slot');
+
+  isConfirmedCashOrPayNow = (item) => {
+    const paymentMethod = this.getFinalPaymentMethod(item);
+    return item.status === 'Paid' && this.hasConfirmedSlot(item) &&
+      (paymentMethod === 'Cash' || paymentMethod === 'PayNow');
   };
 
   generateReportButton = async () => {
@@ -178,7 +192,7 @@ class ReportSection extends Component {
       // Create a "Month Year" string from the item date
       const itemFormattedMonthYear = `${itemMonthName} ${itemYear}`;
   
-      return item.official.receiptNo && itemFormattedMonthYear === selectedMonth && item.status === "Paid"; // Compare formatted month-year and only Paid entries
+      return item.official.receiptNo && itemFormattedMonthYear === selectedMonth && this.isConfirmedCashOrPayNow(item);
     });
   
     console.log("Filtered Data:", filteredData);
@@ -186,7 +200,7 @@ class ReportSection extends Component {
     // Calculate total price for the filtered data (only Paid entries)
     const totalPrice = filteredData.reduce((total, item) => {
       let price = 0;
-      if (item.status === "Paid") {
+      if (this.isConfirmedCashOrPayNow(item)) {
         const priceString = item.course?.coursePrice.replace('$', '').trim();
         if (priceString !== "" && !isNaN(parseFloat(priceString))) {
           price = parseFloat(priceString);
@@ -207,7 +221,7 @@ class ReportSection extends Component {
    // Calculate total price for Cash, PayNow, and Total
     const totalCash = this.state.updatedInvoiceData.reduce((total, item) => {
       let price = 0;
-      if (item.course.payment === "Cash" && item.status === "Paid") {
+      if (this.getFinalPaymentMethod(item) === "Cash" && this.isConfirmedCashOrPayNow(item)) {
         const priceString = item.course?.coursePrice.replace('$', '').trim();
         if (priceString !== "" && !isNaN(parseFloat(priceString))) {
           price = parseFloat(priceString);
@@ -218,7 +232,7 @@ class ReportSection extends Component {
   
     const totalPayNow = this.state.updatedInvoiceData.reduce((total, item) => {
       let price = 0;
-      if (item.course.payment === "PayNow" && item.status === "Paid") {
+      if (this.getFinalPaymentMethod(item) === "PayNow" && this.isConfirmedCashOrPayNow(item)) {
         const priceString = item.course?.coursePrice.replace('$', '').trim();
         if (priceString !== "" && !isNaN(parseFloat(priceString))) {
           price = parseFloat(priceString);
@@ -229,7 +243,7 @@ class ReportSection extends Component {
   
     const totalPrice = this.state.updatedInvoiceData.reduce((total, item) => {
       let price = 0;
-      if (item.status === "Paid") {
+      if (this.isConfirmedCashOrPayNow(item)) {
         const priceString = item.course?.coursePrice.replace('$', '').trim();
         if (priceString !== "" && !isNaN(parseFloat(priceString))) {
           price = parseFloat(priceString);
@@ -283,20 +297,20 @@ class ReportSection extends Component {
       );
       if (isAdminLike || isOpsLike || isFinanceLike) {
         // Remove location filter for all roles, only filter out SkillsFuture
-        filteredData = data.filter(item => item.course?.payment !== "SkillsFuture");
+        filteredData = data.filter(this.isConfirmedCashOrPayNow);
         console.log("Filtered Data (Admin/Sub-admin/NSA/Ops in-charge/Finance):", filteredData);
       } else if (role.includes("in-charge")) {
         // Other in-charge roles: can see only their assigned sites
         filteredData = data.filter(item => {
           const courseLocation = item.course?.courseLocation?.split('-')[0]?.trim();
-          return item.course?.payment !== "SkillsFuture" && siteICDisplayArray.includes(courseLocation);
+          return this.isConfirmedCashOrPayNow(item) && siteICDisplayArray.includes(courseLocation);
         });
         console.log("Filtered Data (Other In-charge):", filteredData);
       } else {
         // Default: restrict to assigned site(s)
         filteredData = data.filter(item => {
           const courseLocation = item.course?.courseLocation?.split('-')[0]?.trim();
-          return item.course?.payment !== "SkillsFuture" && siteICDisplayArray.includes(courseLocation);
+          return this.isConfirmedCashOrPayNow(item) && siteICDisplayArray.includes(courseLocation);
         });
         console.log("Filtered Data (Default):", filteredData);
       }
@@ -403,35 +417,33 @@ class ReportSection extends Component {
           if (fromParsed && toParsed && isValidDate(fromParsed) && isValidDate(toParsed)) {
             if (isAdminOrEquivalent) {
               // Admin/sub-admin/nsa in-charge/ops in-charge/finance see all course locations
-              return payment >= fromParsed && payment <= toParsed && item.course.payment !== "SkillsFuture" && item.status != "Pending";
+              return payment >= fromParsed && payment <= toParsed && this.isConfirmedCashOrPayNow(item);
             } else if (roleLC === "nsa in-charge") {
               return (
                 payment >= fromParsed &&
                 payment <= toParsed &&
                 (courseLocation === "CT Hub" || courseLocation === "Sree Narayana Mission" || courseLocation === "Renewal Christian Church") &&
-                item.course.payment !== "SkillsFuture" &&
-                item.status !== "Pending"
+                this.isConfirmedCashOrPayNow(item)
               );
             } else if (roleLC === "site in-charge") {
               return (
                 payment >= fromParsed &&
                 payment <= toParsed &&
                 targetLocations.includes(courseLocation) &&
-                item.course.payment !== "SkillsFuture" &&
-                item.status !== "Pending"
+                this.isConfirmedCashOrPayNow(item)
               );
             }
           } else if (!fromParsed && !toParsed) {
             if (isAdminOrEquivalent) {
               // Admin/sub-admin/nsa in-charge/ops in-charge/finance see all course locations
-              return item.course.payment !== "SkillsFuture";
+              return this.isConfirmedCashOrPayNow(item);
             } else if (roleLC === "nsa in-charge") {
               return (
                 (courseLocation === "CT Hub" || courseLocation === "Sree Narayana Mission" || courseLocation === "Renewal Christian Church") &&
-                item.course.payment !== "SkillsFuture"
+                this.isConfirmedCashOrPayNow(item)
               );
             } else if (roleLC === "site in-charge") {
-              return targetLocations.includes(courseLocation) && item.course.payment !== "SkillsFuture";
+              return targetLocations.includes(courseLocation) && this.isConfirmedCashOrPayNow(item);
             }
           }
         }
@@ -496,7 +508,7 @@ class ReportSection extends Component {
         const monthName = new Date(`${cyear}-${cmonth}-${cday}`).toLocaleString('default', { month: 'long' });
         const monthYear = `${monthName} ${cyear}`;
         console.log("Filter:", monthYear, selectedMonthYear);
-        return monthYear === selectedMonthYear && item.official.receiptNo !== "";
+        return monthYear === selectedMonthYear && item.official?.receiptNo && this.isConfirmedCashOrPayNow(item);
       });
   
       // Reset the index for the filtered data starting from 1
@@ -526,7 +538,7 @@ class ReportSection extends Component {
   
     // First filter out SkillsFuture payments and only include Paid entries
     const filteredData = updatedInvoiceData.filter(item => 
-      item.course?.payment !== "SkillsFuture" && item.status === "Paid"
+      this.isConfirmedCashOrPayNow(item)
     );
     
     // Group by receipt number prefix
@@ -571,7 +583,7 @@ class ReportSection extends Component {
       item.participant?.name || '', // Received From
       item.course?.courseEngName || '', // Course Name
       item.course?.courseLocation || '', // Course Location
-      item.course?.payment || '', // Payment Method
+      this.getFinalPaymentMethod(item), // Payment Method
       item.course?.coursePrice || '', // Price
       item.status || '', // Payment Status
       item.official?.receiptNo || '', // Receipt Number
@@ -585,7 +597,7 @@ class ReportSection extends Component {
     // Calculate total price for the filtered data (only Paid entries)
     const totalPrice = sortedData.reduce((total, item) => {
       let price = 0;
-      if (item.status === "Paid") {
+      if (this.isConfirmedCashOrPayNow(item)) {
         const priceString = (item.course?.coursePrice || '').replace('$', '').trim();
         if (priceString !== "" && !isNaN(parseFloat(priceString))) {
           price = parseFloat(priceString);
@@ -649,7 +661,9 @@ class ReportSection extends Component {
     ];
   
     // Group by receiptNo (the first part before the "-")
-    const groupedByReceipt = updatedInvoiceData.reduce((acc, item) => {
+    const confirmedData = updatedInvoiceData.filter(this.isConfirmedCashOrPayNow);
+
+    const groupedByReceipt = confirmedData.reduce((acc, item) => {
       const receiptNo = item.official?.receiptNo || '';
       const receiptPrefix = receiptNo.split(' - ')[0]; // e.g., "Tampines 253 Centre"
       if (!acc[receiptPrefix]) {
@@ -690,7 +704,7 @@ class ReportSection extends Component {
           item.participant?.name || '', // Received From
           item.course?.courseEngName || '', // Course Name
           item.course?.courseLocation || '', // Course Location
-          item.course?.payment || '', // Payment Method
+          this.getFinalPaymentMethod(item), // Payment Method
           item.course?.coursePrice || '', // Price
           item.status || '', // Payment Status
           item.official?.receiptNo || '', // Receipt Number
@@ -704,11 +718,11 @@ class ReportSection extends Component {
     });
   
     // Calculate total price for the filtered data (only Paid entries)
-    const { totalPriceCash, totalPricePaynow } = updatedInvoiceData.reduce((acc, item) => {
-      if (item.status === 'Paid') {
+    const { totalPriceCash, totalPricePaynow } = confirmedData.reduce((acc, item) => {
+      if (this.isConfirmedCashOrPayNow(item)) {
         let price = parseFloat(item.course?.coursePrice.replace('$', '').trim()) || 0;
-        if (item.course?.payment === 'Cash') acc.totalPriceCash += price;
-        if (item.course?.payment === 'PayNow') acc.totalPricePaynow += price;
+        if (this.getFinalPaymentMethod(item) === 'Cash') acc.totalPriceCash += price;
+        if (this.getFinalPaymentMethod(item) === 'PayNow') acc.totalPricePaynow += price;
       }
       return acc;
     }, { totalPriceCash: 0, totalPricePaynow: 0 });
@@ -940,7 +954,7 @@ class ReportSection extends Component {
 
     // Filter data based on selected course name, duration, and location
     let filteredData = invoiceData.filter(item => {
-      if (item.course?.payment === "SkillsFuture") return false;
+      if (!this.isConfirmedCashOrPayNow(item)) return false;
       if (item.course?.courseEngName !== selectedCourseName) return false;
       
       // If duration is selected, filter by it too
@@ -977,7 +991,7 @@ class ReportSection extends Component {
     // Calculate totals (only Paid entries)
     const totalCash = courseCoordinatorData.reduce((total, item) => {
       let price = 0;
-      if (item.course?.payment === "Cash" && item.status === "Paid") {
+      if (this.getFinalPaymentMethod(item) === "Cash" && this.isConfirmedCashOrPayNow(item)) {
         const priceString = (item.course?.coursePrice || '').replace('$', '').trim();
         if (priceString !== "" && !isNaN(parseFloat(priceString))) {
           price = parseFloat(priceString);
@@ -988,7 +1002,7 @@ class ReportSection extends Component {
 
     const totalPayNow = courseCoordinatorData.reduce((total, item) => {
       let price = 0;
-      if (item.course?.payment === "PayNow" && item.status === "Paid") {
+      if (this.getFinalPaymentMethod(item) === "PayNow" && this.isConfirmedCashOrPayNow(item)) {
         const priceString = (item.course?.coursePrice || '').replace('$', '').trim();
         if (priceString !== "" && !isNaN(parseFloat(priceString))) {
           price = parseFloat(priceString);
@@ -999,7 +1013,7 @@ class ReportSection extends Component {
 
     const totalPrice = courseCoordinatorData.reduce((total, item) => {
       let price = 0;
-      if (item.status === "Paid") {
+      if (this.isConfirmedCashOrPayNow(item)) {
         const priceString = (item.course?.coursePrice || '').replace('$', '').trim();
         if (priceString !== "" && !isNaN(parseFloat(priceString))) {
           price = parseFloat(priceString);
@@ -1069,7 +1083,7 @@ class ReportSection extends Component {
       item.course?.courseEngName || '', // Course Name
       item.course?.courseLocation || '', // Course Location
       item.course?.courseDuration || '', // Course Duration
-      item.course?.payment || '', // Payment Method
+      this.getFinalPaymentMethod(item), // Payment Method
       item.course?.coursePrice || '', // Price
       item.status || '', // Payment Status
       item.official?.receiptNo || '', // Receipt Number
@@ -1081,10 +1095,10 @@ class ReportSection extends Component {
 
     // Calculate total price for the filtered data (only Paid entries)
     const { totalPriceCash, totalPricePaynow } = courseCoordinatorData.reduce((acc, item) => {
-      if (item.status === 'Paid') {
+      if (this.isConfirmedCashOrPayNow(item)) {
         let price = parseFloat((item.course?.coursePrice || '').replace('$', '').trim()) || 0;
-        if (item.course?.payment === 'Cash') acc.totalPriceCash += price;
-        if (item.course?.payment === 'PayNow') acc.totalPricePaynow += price;
+        if (this.getFinalPaymentMethod(item) === 'Cash') acc.totalPriceCash += price;
+        if (this.getFinalPaymentMethod(item) === 'PayNow') acc.totalPricePaynow += price;
       }
       return acc;
     }, { totalPriceCash: 0, totalPricePaynow: 0 });

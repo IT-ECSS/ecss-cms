@@ -3107,7 +3107,11 @@ class DatabaseConnectivity {
                     // Reset certain fields based on status
                     // COMMENTED OUT: SkillsFuture - if (paymentStatus === "Paid" || paymentStatus === "SkillsFuture Done" || paymentStatus === "Generating SkillsFuture Invoice") {
                     if (paymentStatus === "Paid") {
-                        // Keep existing official data for successful payments
+                        // Keep existing official data for successful payments.
+                        // Mirror updatePaymentOfficialUse(): "Paid" always confirms the slot
+                        // on the SYSTEM GENERATED field so reports (Payment/Monthly/Course
+                        // Coordinator) that filter on registration_status_system pick these up.
+                        updateFields["official.registration_status_system"] = "Confirmed Slot";
                     } else if (paymentStatus === "Cancelled") {
                         updateFields["official.confirmed"] = false;
                     } else {
@@ -3127,6 +3131,9 @@ class DatabaseConnectivity {
                     updateFields["official.date"] = date;
                     updateFields["official.time"] = time;
                     updateFields["official.confirmed"] = false;
+                    // Mirror updatePaymentMethod(): changing the method always invalidates
+                    // any previously auto-confirmed slot.
+                    updateFields["official.registration_status_system"] = "";
                 }
 
                 return {
