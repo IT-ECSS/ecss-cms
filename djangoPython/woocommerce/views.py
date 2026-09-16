@@ -176,13 +176,13 @@ def product_stock_dashboard_react(request):
 
 '''Working with Database'''
 from collections import defaultdict
-from pymongo import MongoClient
+from api.mongo_client import get_mongo_client
 from django.shortcuts import render
 
 @csrf_exempt
 def sales_report_view(request):
-    # MongoDB connection
-    client = MongoClient("mongodb+srv://it_db_user:PTcGw3Y6IL0gjkaV@ecss-company-management.t7nhtee.mongodb.net/?retryWrites=true&w=majority&appName=Company-Management-System")
+    # Shared MongoDB connection (capped pool, do not close per-request)
+    client = get_mongo_client()
     db = client["Company-Management-System"]
     collection = db["Registration Forms"]
 
@@ -272,7 +272,7 @@ def format_quarter(month_name):
 
     return "Unknown Quarter"
 
-from pymongo import MongoClient
+from api.mongo_client import get_mongo_client
 from django.http import JsonResponse
 from bson import ObjectId
 import json
@@ -294,13 +294,13 @@ def format_price(price):
 
 from collections import defaultdict
 from datetime import datetime
-from pymongo import MongoClient
+from api.mongo_client import get_mongo_client
 from django.shortcuts import render
 
 @csrf_exempt
 def generate_invoice_view(request):
-    # MongoDB connection
-    client = MongoClient("mongodb+srv://it_db_user:PTcGw3Y6IL0gjkaV@ecss-company-management.t7nhtee.mongodb.net/?retryWrites=true&w=majority&appName=Company-Management-System")
+    # Shared MongoDB connection (capped pool, do not close per-request)
+    client = get_mongo_client()
     db = client["Company-Management-System"]
     collection = db["Registration Forms"]
 
@@ -482,8 +482,8 @@ def generate_invoice_view(request):
 @csrf_exempt
 def sales_report_view_react(request):
     try:
-        # MongoDB connection
-        client = MongoClient("mongodb+srv://it_db_user:PTcGw3Y6IL0gjkaV@ecss-company-management.t7nhtee.mongodb.net/?retryWrites=true&w=majority&appName=Company-Management-System")
+        # Shared MongoDB connection (capped pool, do not close per-request)
+        client = get_mongo_client()
         db = client["Company-Management-System"]
         collection = db["Registration Forms"]
 

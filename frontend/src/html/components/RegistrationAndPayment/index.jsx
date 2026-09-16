@@ -34,7 +34,7 @@ import SendingWhatsappStatusCell from './components/SendingWhatsappStatusCell';
 // Approval popup
 
 // Access control
-import { isReadOnlyUser } from './constants/accessControl';
+import { isReadOnlyUser, isNsaInChargeEquivalentSiteInCharge } from './constants/accessControl';
 
 // Utilities
 import {
@@ -314,6 +314,17 @@ class RegistrationPaymentSection extends Component {
   }
 
   /**
+   * Named Site in-charge accounts granted the same NSA column edit access as
+   * NSA in-charge, regardless of their assigned site location. Does NOT grant
+   * access to Finance-only columns (Final Payment Method, Payment Status
+   * Cash/PayNow, Payment/Refunded Date & Time) since NSA in-charge itself has
+   * no access to those either.
+   */
+  _isNsaInChargeEquivalentSiteInCharge() {
+    return this._isSiteInChargeRole() && isNsaInChargeEquivalentSiteInCharge(this.props.userEmail);
+  }
+
+  /**
    * Check if user is Site in-charge with Pasir Ris West location access
    * Site In-Charge at Pasir Ris West (PRW or full name) can edit: Registration Status, Confirmation Status, Payment Status (SkillsFuture), Remarks
    */
@@ -377,12 +388,12 @@ class RegistrationPaymentSection extends Component {
     const role = String(this.props.role || '').toLowerCase();
     const canEdit = this._canEditAllNsaColumns() || 
            this._isNsaInChargeRole() || 
-           this._isSiteInChargeWithPasirRisWestLocation() || 
+           this._isSiteInChargeRole() || 
            this._isFitnessOrSocialWorkerRole();
     console.log('🔍 [NSA Registration Status] Role:', role, '| Can Edit:', canEdit, '| Role Checks:', {
       admin: this._canEditAllNsaColumns(),
       nsaInCharge: this._isNsaInChargeRole(),
-      siteInChargePasirRisWest: this._isSiteInChargeWithPasirRisWestLocation(),
+      siteInCharge: this._isSiteInChargeRole(),
       fitnessOrSocial: this._isFitnessOrSocialWorkerRole(),
     });
     return canEdit;
@@ -415,11 +426,11 @@ class RegistrationPaymentSection extends Component {
       console.log('🔐 [NSA Confirmation Status Check] Fitness Trainer/Social Worker/Finance restricted from editing');
       return false;
     }
-    const canEdit = this._canEditAllNsaColumns() || this._isNsaInChargeRole() || this._isSiteInChargeWithPasirRisWestLocation();
+    const canEdit = this._canEditAllNsaColumns() || this._isNsaInChargeRole() || this._isSiteInChargeRole();
     console.log('🔐 [NSA Confirmation Status Check] Role:', this.props.role, '| Can Edit:', canEdit, '| Checks:', {
       admin: this._canEditAllNsaColumns(),
       nsaInCharge: this._isNsaInChargeRole(),
-      siteInChargePRW: this._isSiteInChargeWithPasirRisWestLocation(),
+      siteInCharge: this._isSiteInChargeRole(),
     });
     return canEdit;
   }
@@ -453,11 +464,11 @@ class RegistrationPaymentSection extends Component {
       console.log('🔐 [NSA Payment Status SkillsFuture Check] Fitness Trainer/Social Worker restricted from editing');
       return false;
     }
-    const canEdit = this._canEditAllNsaColumns() || this._isNsaInChargeRole() || this._isSiteInChargeWithPasirRisWestLocation();
+    const canEdit = this._canEditAllNsaColumns() || this._isNsaInChargeRole() || this._isSiteInChargeRole();
     console.log('🔐 [NSA Payment Status SkillsFuture Check] Role:', this.props.role, '| Can Edit:', canEdit, '| Checks:', {
       admin: this._canEditAllNsaColumns(),
       nsaInCharge: this._isNsaInChargeRole(),
-      siteInChargePRW: this._isSiteInChargeWithPasirRisWestLocation(),
+      siteInCharge: this._isSiteInChargeRole(),
     });
     return canEdit;
   }
@@ -516,34 +527,22 @@ class RegistrationPaymentSection extends Component {
 
   /**
    * NSA: Can edit Remarks column
-   * Allowed: Admin, Ops in-charge, Sub Admin, Finance, NSA in-charge, Fitness Trainer, Social Worker
-   * Site in-charge can edit ONLY if at Pasir Ris West location
+   * Allowed: all roles, including Site in-charge (any location)
    */
   _canEditNsaRemarks() {
-    // Check if Site In-Charge - if so, only allow at Pasir Ris West
-    if (this._isSiteInChargeRole()) {
-      const canEdit = this._isSiteInChargeWithPasirRisWestLocation();
-      console.log('🔐 [NSA Remarks Check] Site In-Charge at Pasir Ris West:', canEdit);
-      return canEdit;
-    }
-
-    // All other roles (including Fitness Trainer / Social Worker) can edit remarks
     return true;
   }
 
   /**
    * NSA: Can edit Payment Method (indicated by participant) column
-   * Allowed: Admin, Ops in-charge, Sub Admin, Site in-charge (at Pasir Ris West location only)
-   * Restricted: Finance, Fitness Trainer, Social Worker
+   * Allowed: Admin, Ops in-charge, Sub Admin, Site in-charge (any location)
+   * Restricted: Finance, Fitness Trainer, Social Worker, NSA in-charge
    * 
    * Additional Lock: Once payment date/time or refunded date/time are set, becomes read-only
    */
   _canEditPaymentMethodIndicatedByParticipant(rowData = {}) {
-    // Check if Site In-Charge - if so, only allow at Pasir Ris West
     if (this._isSiteInChargeRole()) {
-      const canEdit = this._isSiteInChargeWithPasirRisWestLocation();
-      console.log('🔐 [Payment Method Check] Site In-Charge at Pasir Ris West:', canEdit);
-      return canEdit;
+      return true;
     }
     // Admin roles can edit
     const canEdit = this._canEditAllNsaColumns();

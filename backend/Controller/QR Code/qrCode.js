@@ -18,7 +18,7 @@ class QRCodeGenerator {
             const buffer = await QRCode.toBuffer(this.text, this.options);
 
             // Save the buffer to a JPG file
-            const filename = `Google Forms.jpg`;
+            const filename = `认识哀伤 · 向前迈进 Understanding Grief and Moving Forward (Tampines North Community Centre).jpg`;
             fs.writeFileSync(filename, buffer);
             console.log(`QR code generated and saved as ${filename}`);
         } catch (error) {
@@ -28,5 +28,5 @@ class QRCodeGenerator {
 }
 
 // Usage const filename = `https://ecss.org.sg/product/crafting-connectionspasir-ris-west-wellness-centre/`;
-const qrCodeGenerator = new QRCodeGenerator(`https://docs.google.com/forms/d/e/1FAIpQLScDJ5SzM8ZPdU5pAIZeIRj2LIGDtMcrVjvbeSMdo9dkeMtd_Q/viewform`);
+const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/%e8%ae%a4%e8%af%86%e5%93%80%e4%bc%a4-%c2%b7-%e5%90%91%e5%89%8d%e8%bf%88%e8%bf%9bunderstanding-grief-and-moving-forward-tampines-north-community-centre/`);
 qrCodeGenerator.generate();

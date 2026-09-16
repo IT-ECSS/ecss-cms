@@ -18,6 +18,10 @@ const mongoOptions = {
     connectTimeoutMS: 30000, // Give more time to establish connection (increased)
     heartbeatFrequencyMS: 10000, // Check server health every 10 seconds
     maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
+    // Force IPv4: Azure App Service's IPv6 route to Atlas shard endpoints is
+    // sometimes blackholed, which surfaces as a generic "tlsv1 alert internal
+    // error / SSL alert number 80" instead of a clear network timeout.
+    family: 4,
     // Note: bufferMaxEntries and bufferCommands are Mongoose-specific, not native MongoDB driver options
     // useUnifiedTopology is now default and deprecated as an option
 };
@@ -58,12 +62,53 @@ function sanitizeStaffName(value) {
 let sharedClient = null;
 let sharedIsConnected = false;
 let sharedConnectionPromise = null;
+let healthCheckTimer = null;
+let consecutiveHealthCheckFailures = 0;
+const MAX_CONSECUTIVE_HEALTH_CHECK_FAILURES = 3; // ~60s of failures (3 * 20s interval)
 
 function getSharedClient() {
     if (!sharedClient) {
         sharedClient = new MongoClient(uri, mongoOptions);
     }
     return sharedClient;
+}
+
+// Proactively pings the shared pool on an interval. A failed ping just PAUSES
+// the connection (sharedIsConnected = false) — the client itself is kept, and
+// requests wait/reconnect on that SAME client via initialize()/ensureConnection(),
+// so it can resume the moment Atlas is reachable again without opening a new pool.
+// Only after several consecutive failures (i.e. it looks truly dead, not a
+// short blip) do we tear the client down so the next attempt starts fresh.
+// Interval is kept shorter than maxIdleTimeMS (30s) so stale sockets are
+// caught here, in the background, rather than surfacing as a user-facing
+// "SSL alert number 80" error on a live request.
+function startHealthCheck() {
+    if (healthCheckTimer) return;
+    healthCheckTimer = setInterval(async () => {
+        if (!sharedClient) return;
+        try {
+            await sharedClient.db('admin').command({ ping: 1 });
+            if (!sharedIsConnected) {
+                console.log('Health check: MongoDB connection is active again, resuming on the same client.');
+            }
+            sharedIsConnected = true;
+            consecutiveHealthCheckFailures = 0;
+        } catch (error) {
+            consecutiveHealthCheckFailures += 1;
+            sharedIsConnected = false; // pause — do not serve requests off this client until it recovers
+            console.warn(`Health check: connection inactive (failure ${consecutiveHealthCheckFailures}/${MAX_CONSECUTIVE_HEALTH_CHECK_FAILURES}): ${error.message}`);
+
+            if (consecutiveHealthCheckFailures >= MAX_CONSECUTIVE_HEALTH_CHECK_FAILURES) {
+                console.warn('Health check: connection still inactive after repeated attempts, resetting client so the next request starts a fresh pool.');
+                const staleClient = sharedClient;
+                sharedClient = null;
+                consecutiveHealthCheckFailures = 0;
+                try { await staleClient.close(); } catch (_) { /* already broken, ignore */ }
+            }
+        }
+    }, 20000);
+    // Don't let this timer keep the Node process alive on its own.
+    if (typeof healthCheckTimer.unref === 'function') healthCheckTimer.unref();
 }
 
 // Detects transient network/TLS errors that are safe to retry (as opposed to
@@ -114,7 +159,9 @@ class DatabaseConnectivity {
             try {
                 await sharedConnectionPromise;
                 sharedIsConnected = true;
+                consecutiveHealthCheckFailures = 0;
                 console.log("Connected to MongoDB Atlas successfully!");
+                startHealthCheck();
                 return "Connected to MongoDB Atlas!";
             } finally {
                 sharedConnectionPromise = null;
@@ -129,7 +176,9 @@ class DatabaseConnectivity {
 
     // Establishes the shared connection, retrying on transient TLS/network errors
     // (e.g. "SSL alert number 80" / ResetPool) which Atlas can throw intermittently.
-    async _connectWithRetry(maxRetries = 3) {
+    // Exponential (not linear) backoff: Atlas-side blips causing this alert can
+    // outlast a few hundred ms, so short linear retries were still exhausting.
+    async _connectWithRetry(maxRetries = 5) {
         let lastError;
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
             try {
@@ -141,7 +190,7 @@ class DatabaseConnectivity {
             } catch (error) {
                 lastError = error;
                 if (isTransientConnectionError(error) && attempt < maxRetries) {
-                    const delay = 500 * attempt; // simple linear backoff
+                    const delay = Math.min(1000 * 2 ** (attempt - 1), 8000); // 1s, 2s, 4s, 8s, 8s...
                     console.warn(`Transient MongoDB connection error (attempt ${attempt}/${maxRetries}): ${error.message}. Retrying in ${delay}ms...`);
                     await new Promise(resolve => setTimeout(resolve, delay));
                     continue;
@@ -2893,6 +2942,10 @@ class DatabaseConnectivity {
     // Actually close the shared connection/pool. Call this ONLY on application
     // shutdown (e.g. SIGINT/SIGTERM), not after individual requests.
     async closeShared() {
+        if (healthCheckTimer) {
+            clearInterval(healthCheckTimer);
+            healthCheckTimer = null;
+        }
         if (sharedClient && sharedIsConnected) {
             await sharedClient.close();
             sharedIsConnected = false;

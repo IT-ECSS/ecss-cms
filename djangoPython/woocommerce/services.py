@@ -2,7 +2,7 @@ import requests
 from django.conf import settings
 import re
 import unicodedata
-from pymongo import MongoClient
+from api.mongo_client import get_mongo_client
 import os
 
 def normalize_string(s):
@@ -304,7 +304,7 @@ class WooCommerceAPI:
                 print("WARNING: MONGODB_URI not configured, falling back to WooCommerce vacancies")
                 return None
             
-            client = MongoClient(mongo_uri)
+            client = get_mongo_client()
             db = client['ecss']  # Database name
             collection = db['Registration Forms']  # Collection name
             
@@ -340,7 +340,6 @@ class WooCommerceAPI:
             
             print(f"[NSA MongoDB Query] Remaining vacancies: {remaining_vacancies}")
             
-            client.close()
             return remaining_vacancies
             
         except Exception as e:
