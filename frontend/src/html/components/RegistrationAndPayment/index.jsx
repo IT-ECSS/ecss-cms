@@ -2056,7 +2056,7 @@ class RegistrationPaymentSection extends Component {
       ...(selectedCourseType === 'NSA'
         ? [
           {
-            headerName: 'Payment Method',
+            headerName: 'Payment Status',
             headerClass: 'payment-method-group-header',
             children: [
               {
