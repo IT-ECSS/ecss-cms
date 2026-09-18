@@ -297,3 +297,65 @@ input.cc-report-input:disabled,
 .cc-report-options li:hover {
   background-color: #f0f0f0;
 }
+
+/* Registration Status / Payment Method chip filters (Payment Report) */
+.registration-status-filter-section {
+  margin: 18px 0;
+  text-align: center;
+}
+
+.registration-status-filter-title {
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.registration-status-filter-options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.registration-status-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  background-color: #fff;
+  color: #555;
+  font-size: 0.95rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.registration-status-chip:hover {
+  border-color: #FFA500;
+  color: #333;
+}
+
+.registration-status-chip input[type="checkbox"] {
+  cursor: pointer;
+  accent-color: #FFA500;
+}
+
+.registration-status-chip.is-checked {
+  background-color: #fff4e0;
+  border-color: #FFA500;
+  color: #333;
+  font-weight: 500;
+}
+
+.registration-status-chip-all {
+  font-weight: 600;
+  border-color: #bbb;
+}
+
+.registration-status-chip-all.is-checked {
+  background-color: #FFA500;
+  border-color: #FFA500;
+  color: #fff;
+}

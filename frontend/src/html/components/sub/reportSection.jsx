@@ -63,6 +63,10 @@ class ReportSection extends Component {
       showSiteICDropdown: false, // State to control visibility of Site IC dropdown
       showSiteDropdown: false, // State to control visibility of Site dropdown list
       filteredSiteOptions: [], // List of filtered site options
+      // Payment Status checkbox filter (Payment Report only)
+      paymentStatusOptions: [], // Distinct item.status values found in the data
+      selectedPaymentStatuses: {}, // status -> checked
+      allPaymentStatusesChecked: true, // Default: "All" is checked
       // Course Coordinator Report state
       courseCoordinatorData: [], // Data for course coordinator report (sorted by course name and duration)
       showCourseCoordinatorReport: false,
@@ -105,20 +109,107 @@ class ReportSection extends Component {
 
   getFinalPaymentMethod = (item) => item.course?.finalPaymentMethod || '';
 
-  hasConfirmedSlot = (item) =>
-    item.official?.registration_status_system === 'Confirmed Slot' ||
-    // Fallback for legacy/bulk-updated records where the system field was
-    // never populated but staff already marked it Confirmed Slot manually.
-    (!item.official?.registration_status_system && item.official?.registration_status === 'Confirmed Slot');
+  // Distinct Payment Status (item.status) values found across a set of records.
+  getPaymentStatusOptions = (data) => {
+    const statusSet = new Set();
+    (data || []).forEach(item => {
+      if (item.status) statusSet.add(item.status);
+    });
+    return Array.from(statusSet).sort();
+  };
+
+  // Original inclusion rule (Monthly Report / Course Coordinator Report):
+  // Payment Status must be "Paid" and the registration status (system field,
+  // falling back to the staff field for legacy records) must be "Confirmed Slot".
+  isPaidAndConfirmedSlot = (item) => {
+    const regStatus = item.official?.registration_status;
+    const regStatusSystem = item.official?.registration_status_system;
+    return item.status === 'Paid' &&
+      (regStatusSystem === 'Confirmed Slot' || (!regStatusSystem && regStatus === 'Confirmed Slot'));
+  };
+
+  // Payment Report only: driven by the Payment Status checkbox filter instead
+  // of a hardcoded "Paid" requirement. Default ("All" checked) matches every record.
+  matchesPaymentStatusFilter = (item) => {
+    const { allPaymentStatusesChecked, selectedPaymentStatuses } = this.state;
+    if (allPaymentStatusesChecked) return true;
+    return !!selectedPaymentStatuses[item.status];
+  };
 
   isConfirmedCashOrPayNow = (item) => {
     const paymentMethod = this.getFinalPaymentMethod(item);
-    return item.status === 'Paid' && this.hasConfirmedSlot(item) &&
-      (paymentMethod === 'Cash' || paymentMethod === 'PayNow');
+    if (paymentMethod !== 'Cash' && paymentMethod !== 'PayNow') return false;
+    // Payment Report shows records filtered only by the Payment Status
+    // checkboxes. Other reports keep the original Paid + Confirmed Slot restriction.
+    return this.props.reportType === "Payment Report"
+      ? this.matchesPaymentStatusFilter(item)
+      : this.isPaidAndConfirmedSlot(item);
+  };
+
+  handlePaymentStatusCheckboxChange = (status) => {
+    const { selectedPaymentStatuses, paymentStatusOptions, allPaymentStatusesChecked } = this.state;
+
+    let newSelected;
+    if (allPaymentStatusesChecked) {
+      // First click while "All" is active: narrow down to just this status;
+      // further clicks on other statuses then add to the selection below.
+      newSelected = {};
+      paymentStatusOptions.forEach(s => { newSelected[s] = false; });
+      newSelected[status] = true;
+    } else {
+      newSelected = {
+        ...selectedPaymentStatuses,
+        [status]: !selectedPaymentStatuses[status]
+      };
+    }
+
+    // If every individual status ends up checked, collapse back to "All"
+    // instead of leaving a fully-ticked multi-select row on screen.
+    const allChecked = paymentStatusOptions.length > 0 && paymentStatusOptions.every(s => newSelected[s]);
+
+    this.setState({
+      selectedPaymentStatuses: newSelected,
+      allPaymentStatusesChecked: allChecked
+    }, async () => {
+      await this.fetchSiteICDetails(this.state.fromDate, this.state.toDate);
+      await this.calculateTotalPriceForDateRange();
+    });
+  };
+
+  handleSelectAllPaymentStatuses = () => {
+    const { allPaymentStatusesChecked, paymentStatusOptions } = this.state;
+    const newValue = !allPaymentStatusesChecked;
+    const newSelected = {};
+    if (newValue) {
+      // Turning "All" back on: individual chips reset to unchecked, matching the default look.
+      paymentStatusOptions.forEach(s => { newSelected[s] = false; });
+    } else {
+      // Turning "All" off: multi-select checkboxes reveal fully checked so the
+      // visible result set doesn't change until the user narrows it.
+      paymentStatusOptions.forEach(s => { newSelected[s] = true; });
+    }
+
+    this.setState({
+      selectedPaymentStatuses: newSelected,
+      allPaymentStatusesChecked: newValue
+    }, async () => {
+      await this.fetchSiteICDetails(this.state.fromDate, this.state.toDate);
+      await this.calculateTotalPriceForDateRange();
+    });
   };
 
   generateReportButton = async () => {
-      this.setState({ showReport: true, dateRange: `${this.state.fromDate} - ${this.state.toDate}` });
+      // Reset the payment status filter to "All" so every newly generated
+      // report starts out showing all records regardless of payment status.
+      // Individual chips default to unchecked - only "All" is checked.
+      const selectedPaymentStatuses = {};
+      this.state.paymentStatusOptions.forEach(status => { selectedPaymentStatuses[status] = false; });
+      this.setState({
+        showReport: true,
+        dateRange: `${this.state.fromDate} - ${this.state.toDate}`,
+        allPaymentStatusesChecked: true,
+        selectedPaymentStatuses
+      });
       await this.fetchSiteICDetails(this.state.fromDate, this.state.toDate);
       await this.calculateTotalPriceForDateRange(this.state.fromDate, this.state.toDate);
       this.setState({showSiteICDropdown: true})
@@ -218,10 +309,11 @@ class ReportSection extends Component {
   
   calculateTotalPriceForDateRange = () => {
     console.log("Updated Invoice Data:", this.state.updatedInvoiceData)
-   // Calculate total price for Cash, PayNow, and Total
+   // Calculate total price for Cash, PayNow, and Total - totals only count Paid records,
+   // independent of which Payment Status checkboxes are selected for the table itself.
     const totalCash = this.state.updatedInvoiceData.reduce((total, item) => {
       let price = 0;
-      if (this.getFinalPaymentMethod(item) === "Cash" && this.isConfirmedCashOrPayNow(item)) {
+      if (item.status === 'Paid' && this.getFinalPaymentMethod(item) === "Cash" && this.isConfirmedCashOrPayNow(item)) {
         const priceString = item.course?.coursePrice.replace('$', '').trim();
         if (priceString !== "" && !isNaN(parseFloat(priceString))) {
           price = parseFloat(priceString);
@@ -232,7 +324,7 @@ class ReportSection extends Component {
   
     const totalPayNow = this.state.updatedInvoiceData.reduce((total, item) => {
       let price = 0;
-      if (this.getFinalPaymentMethod(item) === "PayNow" && this.isConfirmedCashOrPayNow(item)) {
+      if (item.status === 'Paid' && this.getFinalPaymentMethod(item) === "PayNow" && this.isConfirmedCashOrPayNow(item)) {
         const priceString = item.course?.coursePrice.replace('$', '').trim();
         if (priceString !== "" && !isNaN(parseFloat(priceString))) {
           price = parseFloat(priceString);
@@ -243,7 +335,7 @@ class ReportSection extends Component {
   
     const totalPrice = this.state.updatedInvoiceData.reduce((total, item) => {
       let price = 0;
-      if (this.isConfirmedCashOrPayNow(item)) {
+      if (item.status === 'Paid' && this.isConfirmedCashOrPayNow(item)) {
         const priceString = item.course?.coursePrice.replace('$', '').trim();
         if (priceString !== "" && !isNaN(parseFloat(priceString))) {
           price = parseFloat(priceString);
@@ -326,6 +418,11 @@ class ReportSection extends Component {
       // Generate the month-year combinations
       const monthYearOptions = this.getMonthYearOptions(mappedData);
 
+      // Payment status checkbox options (default: only "All" checked)
+      const paymentStatusOptions = this.getPaymentStatusOptions(mappedData);
+      const selectedPaymentStatuses = {};
+      paymentStatusOptions.forEach(status => { selectedPaymentStatuses[status] = false; });
+
       // Update the state with the data and month-year options
       this.setState({ 
         invoiceData: mappedData, 
@@ -333,6 +430,9 @@ class ReportSection extends Component {
         updatedInvoiceData: mappedData, // Set the filtered data initially to the full data
         monthYearOptions, 
         filteredMonthYearOptions: monthYearOptions,
+        paymentStatusOptions,
+        selectedPaymentStatuses,
+        allPaymentStatusesChecked: true,
         status: `Collection by ${this.props.userName}`,
         showReport: false,
         showTable: false,
@@ -401,6 +501,9 @@ class ReportSection extends Component {
         const date = parseDate(itemDate);
         const paymentDate = item.official?.date;
         const payment = parseDate(paymentDate);
+        // Records without a Payment Date yet (e.g. Pending/Submitted) fall back
+        // to Registration Date so they can still match the selected date range.
+        const effectiveDate = payment || date;
         const courseLocation = item.course.courseLocation;
         // Use selectedSiteIC for filtering if set (support "all" option for multiple locations)
         const selectedSiteIC = this.state.selectedSiteICLocation;
@@ -413,22 +516,22 @@ class ReportSection extends Component {
           targetLocations = [selectedSiteIC];
         }
 
-        if (payment) {
+        if (effectiveDate) {
           if (fromParsed && toParsed && isValidDate(fromParsed) && isValidDate(toParsed)) {
             if (isAdminOrEquivalent) {
               // Admin/sub-admin/nsa in-charge/ops in-charge/finance see all course locations
-              return payment >= fromParsed && payment <= toParsed && this.isConfirmedCashOrPayNow(item);
+              return effectiveDate >= fromParsed && effectiveDate <= toParsed && this.isConfirmedCashOrPayNow(item);
             } else if (roleLC === "nsa in-charge") {
               return (
-                payment >= fromParsed &&
-                payment <= toParsed &&
+                effectiveDate >= fromParsed &&
+                effectiveDate <= toParsed &&
                 (courseLocation === "CT Hub" || courseLocation === "Sree Narayana Mission" || courseLocation === "Renewal Christian Church") &&
                 this.isConfirmedCashOrPayNow(item)
               );
             } else if (roleLC === "site in-charge") {
               return (
-                payment >= fromParsed &&
-                payment <= toParsed &&
+                effectiveDate >= fromParsed &&
+                effectiveDate <= toParsed &&
                 targetLocations.includes(courseLocation) &&
                 this.isConfirmedCashOrPayNow(item)
               );
@@ -717,9 +820,10 @@ class ReportSection extends Component {
       });
     });
   
-    // Calculate total price for the filtered data (only Paid entries)
+    // Calculate total price for the filtered data (only Paid entries, regardless
+    // of which Payment Status checkboxes are shown in the exported rows)
     const { totalPriceCash, totalPricePaynow } = confirmedData.reduce((acc, item) => {
-      if (this.isConfirmedCashOrPayNow(item)) {
+      if (item.status === 'Paid' && this.isConfirmedCashOrPayNow(item)) {
         let price = parseFloat(item.course?.coursePrice.replace('$', '').trim()) || 0;
         if (this.getFinalPaymentMethod(item) === 'Cash') acc.totalPriceCash += price;
         if (this.getFinalPaymentMethod(item) === 'PayNow') acc.totalPricePaynow += price;
@@ -1494,6 +1598,35 @@ class ReportSection extends Component {
                       <span> ${this.state.totalPayNow}   (PayNow)</span>
                     </span>
                   </p>
+
+                  {/* Payment Status filter (item.status) */}
+                  <div id="payment-status-filter" name="paymentStatusFilter" className="registration-status-filter-section">
+                    <p className="registration-status-filter-title">Payment Status</p>
+                    <div className="registration-status-filter-options">
+                      <label className={`registration-status-chip registration-status-chip-all ${this.state.allPaymentStatusesChecked ? 'is-checked' : ''}`}>
+                        <input
+                          type="checkbox"
+                          checked={this.state.allPaymentStatusesChecked}
+                          onChange={this.handleSelectAllPaymentStatuses}
+                        />
+                        All
+                      </label>
+                      {/* Individual statuses are always visible alongside "All" */}
+                      {this.state.paymentStatusOptions.map((statusOption) => (
+                        <label
+                          key={statusOption}
+                          className={`registration-status-chip ${this.state.selectedPaymentStatuses[statusOption] ? 'is-checked' : ''}`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={!!this.state.selectedPaymentStatuses[statusOption]}
+                            onChange={() => this.handlePaymentStatusCheckboxChange(statusOption)}
+                          />
+                          {statusOption}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
                 </div>
                 <div id="ag-grid-container" name="agGridContainer" className="ag-theme-alpine">
                   <AgGridReact
