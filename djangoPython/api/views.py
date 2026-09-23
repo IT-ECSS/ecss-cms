@@ -121,6 +121,32 @@ def product_list(request):
         return JsonResponse({"error": "An error occurred while processing the request."}, status=500)
 
 @csrf_exempt
+def shorten_url(request):
+    """Shortens a URL via TinyURL server-side (browser calls are blocked by TinyURL's CORS policy)."""
+    long_url = ''
+    try:
+        data = json.loads(request.body)
+        long_url = data.get('url', '')
+
+        if not long_url:
+            return JsonResponse({"error": "No url provided."}, status=400)
+
+        response = requests.get(
+            'https://tinyurl.com/api-create.php',
+            params={'url': long_url},
+            timeout=10
+        )
+        response.raise_for_status()
+        return JsonResponse({"shortenedUrl": response.text.strip()})
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON input."}, status=400)
+    except Exception as e:
+        print("Error shortening URL:", e)
+        # Fall back to the original URL so the frontend still has something to display
+        return JsonResponse({"shortenedUrl": long_url})
+
+@csrf_exempt
 def product_by_link(request):
     """Fetches a single product by its permalink/slug. Much faster than fetching all products."""
     try:

@@ -81,8 +81,11 @@ class CourseLink extends Component {
 
   async getTinyURL(longUrl) {
     try {
-      const response = await axios.get(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`);
-      return response.data;
+      // TinyURL's API only allows CORS from tinyurl.com itself, so it must be
+      // shortened server-side (via our backend) rather than called from the browser.
+      const baseUrl = window.location.hostname === "localhost" ? "http://localhost:3002" : "https://ecss-backend-django.azurewebsites.net";
+      const response = await axios.post(`${baseUrl}/shorten_url/`, { url: longUrl });
+      return response.data.shortenedUrl || longUrl;
     } catch (error) {
       console.error('Error creating TinyURL:', error);
       return longUrl; // Return original URL if TinyURL fails
