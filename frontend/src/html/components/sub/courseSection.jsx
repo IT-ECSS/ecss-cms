@@ -5,6 +5,7 @@ import '../../../css/ag-grid-custom-theme.css'; // Import custom AgGrid theme
 import { AgGridReact } from 'ag-grid-react'; // React Data Grid Component
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community'; 
 import * as XLSX from 'xlsx';
+import { fallbackToRemoteImage } from '@/utils/imageFallback';
 
 class CoursesSection extends Component {
     constructor(props) {
@@ -119,10 +120,13 @@ class CoursesSection extends Component {
           width: 350,
           cellRenderer: (params) => {
             const imageSrc = params.value
-              ? "https://upload.wikimedia.org/wikipedia/commons/2/29/Tick-green.png" // ✅ Green Tick
-              : "https://upload.wikimedia.org/wikipedia/commons/5/5f/Red_X.svg"; // ❌ Red Cross
+              ? "/images/ecss/eligible.png"
+              : "/images/ecss/not-eligible.svg";
+            const remoteImageSrc = params.value
+              ? "https://upload.wikimedia.org/wikipedia/commons/2/29/Tick-green.png"
+              : "https://upload.wikimedia.org/wikipedia/commons/5/5f/Red_X.svg";
         
-            return <img src={imageSrc} alt={params.value ? 'Eligible' : 'Not Eligible'} width="20" height="20" />;
+            return <img src={imageSrc} onError={(event) => fallbackToRemoteImage(event, remoteImageSrc)} alt={params.value ? 'Eligible' : 'Not Eligible'} width="20" height="20" />;
           }
         });
       }

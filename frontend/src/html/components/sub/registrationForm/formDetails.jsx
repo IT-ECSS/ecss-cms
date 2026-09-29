@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import '../../../../css/sub/registrationForm/formDetails.css';
+import { fallbackToRemoteImage } from '@/utils/imageFallback';
 //Try again if the import fails 
 
 class FormDetailsSection extends Component {
@@ -51,7 +52,7 @@ class FormDetailsSection extends Component {
               )}
             </div>
             <div className="image-container">
-              <img src={"https://ecss.org.sg/wp-content/uploads/2024/09/NSA-En.jpg"} alt="Description of the image" className="registration-image" />
+              <img src="/images/ecss/nsa-banner.jpg" onError={(event) => fallbackToRemoteImage(event, 'https://ecss.org.sg/wp-content/uploads/2024/09/NSA-En.jpg')} alt="Description of the image" className="registration-image" />
             </div>
           </>
         )}
@@ -67,7 +68,7 @@ class FormDetailsSection extends Component {
               </p>
             </div>
             <div className="image-container" style={{textAlign: "center"}}>
-              <img src={"https://ecss.org.sg/wp-content/uploads/2023/07/En_logo_Final_Large_RGB.png"} alt="Others" className="registration-image" style={{width: "25%", height: "auto"}} />
+              <img src="/images/ecss/ecss-logo.png" onError={(event) => fallbackToRemoteImage(event, 'https://ecss.org.sg/wp-content/uploads/2023/07/En_logo_Final_Large_RGB.png')} alt="Others" className="registration-image" style={{width: "25%", height: "auto"}} />
             </div>
           </>
         )}
@@ -83,7 +84,7 @@ class FormDetailsSection extends Component {
               </p>
             </div>
             <div className="image-container" style={{textAlign: "center"}}>
-              <img src={"https://ecss.org.sg/wp-content/uploads/2023/07/En_logo_Final_Large_RGB.png"} alt="Talks And Seminar" className="registration-image" style={{width: "25%", height: "auto"}} />
+              <img src="/images/ecss/ecss-logo.png" onError={(event) => fallbackToRemoteImage(event, 'https://ecss.org.sg/wp-content/uploads/2023/07/En_logo_Final_Large_RGB.png')} alt="Talks And Seminar" className="registration-image" style={{width: "25%", height: "auto"}} />
             </div>
           </>
         )}

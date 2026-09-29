@@ -4,6 +4,7 @@ import axios from 'axios';
 import { withRouter } from 'react-router-dom';
 import Popup from './popup/popupMessage';
 import { AuthContext, withAuth } from '../../AuthContext';
+import { fallbackToRemoteImage } from '@/utils/imageFallback';
 
 class LoginPage extends Component {
   constructor(props) {
@@ -304,7 +305,8 @@ class LoginPage extends Component {
           <div className="left-section">
             <div className="title-and-image">
               <img
-                src="https://ecss.org.sg/wp-content/uploads/2023/07/En_logo_Final_Large_RGB.png"
+                src="/images/ecss/ecss-logo.png"
+                onError={(event) => fallbackToRemoteImage(event, 'https://ecss.org.sg/wp-content/uploads/2023/07/En_logo_Final_Large_RGB.png')}
                 alt="Logo"
                 className="title-image"
               />
@@ -367,7 +369,8 @@ class LoginPage extends Component {
           <div className="right-section">
             <div className="right-section-content">
               <img
-                src="https://ecss.org.sg/wp-content/uploads/2024/09/Untitled_design-removebg-preview.png"
+                src="/images/ecss/login-illustration.png"
+                onError={(event) => fallbackToRemoteImage(event, 'https://ecss.org.sg/wp-content/uploads/2024/09/Untitled_design-removebg-preview.png')}
                 alt="Description"
                 className="description-image"
               />

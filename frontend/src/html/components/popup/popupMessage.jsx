@@ -2,6 +2,7 @@ import React, { Component } from "react";
 import '../../../css/popup/popup.css'; // Corrected import path for modal popup styles
 import '../../../css/popup/changePasswordModal.css';
 import axios from 'axios';
+import { fallbackToRemoteImage } from '@/utils/imageFallback';
 
 class Popup extends Component {
   constructor(props) {
@@ -792,14 +793,14 @@ class Popup extends Component {
           ) : type === "success-message" ? (
             // Layout for success type
             <div className="success-popup-notification">
-              <img src="https://ecss.org.sg/wp-content/uploads/2024/10/iqbf2fomkl6f65us70kdcann90.png"></img>
+              <img src="/images/ecss/success.png" onError={(event) => fallbackToRemoteImage(event, 'https://ecss.org.sg/wp-content/uploads/2024/10/iqbf2fomkl6f65us70kdcann90.png')} alt="Success" />
               <h2>Success!</h2>
               <p>{message}</p>
             </div>
           ) : type === "error-message" ? (
             // Layout for error type
             <div className="login-error-notification">
-            <img src="https://ecss.org.sg/wp-content/uploads/2024/10/error-10376-2.png"></img>
+            <img src="/images/ecss/error.png" onError={(event) => fallbackToRemoteImage(event, 'https://ecss.org.sg/wp-content/uploads/2024/10/error-10376-2.png')} alt="Error" />
             <h2 className="error-title">Error!</h2>
             <p>{message}</p>
           </div>
