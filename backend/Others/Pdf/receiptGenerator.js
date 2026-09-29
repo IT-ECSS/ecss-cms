@@ -99,49 +99,21 @@ class receiptGenerator {
         console.log("Add Footer");
         const imagePath = "https://ecss.org.sg/wp-content/uploads/2024/10/ok.png";
 
-        const response = await axios.get(imagePath, { responseType: 'arraybuffer' });
-        const imageBuffer = Buffer.from(response.data);
-
-        // Use sharp to get the image dimensions
-        const { width, height } = await sharp(imageBuffer).metadata();
-
-        // Set the left and right margins in points
-        const leftMargin = 0.00 // 2.54 cm to points
-
-        const imageWidth = doc.page.width - leftMargin; // Full width minus margins
-        const imageHeight = (height / width) * imageWidth; // Maintain aspect ratio
-
-        const footerYPosition = doc.page.height-50; 
-
-        // Add the image to the document with the left margin
-        doc.image(imageBuffer, leftMargin, footerYPosition , {
-                width: imageWidth, // Set the image width to the page width minus margins
-                height: imageHeight, // Set the height to maintain the aspect ratio
-                align: 'center', // Center the image horizontally
-                valign: 'top' // Align the image to the top
-            });
-
-    }
-    
-    addInvoiceFooter = async(doc) =>
-    {
-            console.log("Add Footer");
-            const imagePath = "https://ecss.org.sg/wp-content/uploads/2024/10/ok.png";
-    
+        try {
             const response = await axios.get(imagePath, { responseType: 'arraybuffer' });
             const imageBuffer = Buffer.from(response.data);
-    
+
             // Use sharp to get the image dimensions
             const { width, height } = await sharp(imageBuffer).metadata();
-    
+
             // Set the left and right margins in points
             const leftMargin = 0.00 // 2.54 cm to points
-    
+
             const imageWidth = doc.page.width - leftMargin; // Full width minus margins
             const imageHeight = (height / width) * imageWidth; // Maintain aspect ratio
-    
+
             const footerYPosition = doc.page.height-50; 
-    
+
             // Add the image to the document with the left margin
             doc.image(imageBuffer, leftMargin, footerYPosition , {
                     width: imageWidth, // Set the image width to the page width minus margins
@@ -149,7 +121,43 @@ class receiptGenerator {
                     align: 'center', // Center the image horizontally
                     valign: 'top' // Align the image to the top
                 });
+        } catch (error) {
+            // Don't let a blocked/unreachable image fetch (e.g. host bot-protection) abort PDF generation.
+            console.error('Error fetching the footer image:', error);
+        }
+    }
     
+    addInvoiceFooter = async(doc) =>
+    {
+            console.log("Add Footer");
+            const imagePath = "https://ecss.org.sg/wp-content/uploads/2024/10/ok.png";
+    
+            try {
+                const response = await axios.get(imagePath, { responseType: 'arraybuffer' });
+                const imageBuffer = Buffer.from(response.data);
+    
+                // Use sharp to get the image dimensions
+                const { width, height } = await sharp(imageBuffer).metadata();
+    
+                // Set the left and right margins in points
+                const leftMargin = 0.00 // 2.54 cm to points
+    
+                const imageWidth = doc.page.width - leftMargin; // Full width minus margins
+                const imageHeight = (height / width) * imageWidth; // Maintain aspect ratio
+    
+                const footerYPosition = doc.page.height-50; 
+    
+                // Add the image to the document with the left margin
+                doc.image(imageBuffer, leftMargin, footerYPosition , {
+                        width: imageWidth, // Set the image width to the page width minus margins
+                        height: imageHeight, // Set the height to maintain the aspect ratio
+                        align: 'center', // Center the image horizontally
+                        valign: 'top' // Align the image to the top
+                    });
+            } catch (error) {
+                // Don't let a blocked/unreachable image fetch (e.g. host bot-protection) abort PDF generation.
+                console.error('Error fetching the footer image:', error);
+            }
         }
         
     
