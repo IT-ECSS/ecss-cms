@@ -196,18 +196,24 @@ class CallbackPage extends Component {
         return;
       }
 
-      // Regular form flow — get the course link saved before redirect
-      const courseLink = sessionStorage.getItem('courseLink');
-
-      // Go directly to Personal Particulars section (section=1)
-      let url = `${baseUrl}/form?section=1`;
-      if (courseLink) {
-        url += `&link=${encodeURIComponent(courseLink)}`;
-        console.log('[SingPass] Preserving course link in redirect:', courseLink);
+      // Restore the original form query so category and course parameters survive.
+      const savedReturnPath = sessionStorage.getItem('singpass_return_path');
+      let formUrl = new URL(savedReturnPath || '/form', baseUrl);
+      if (formUrl.origin !== baseUrl || formUrl.pathname !== '/form') {
+        formUrl = new URL('/form', baseUrl);
       }
 
-      console.log('[SingPass] Redirecting directly to Personal Particulars (section 1):', url);
-      window.location.href = url;
+      // Keep the course link for older flows that didn't save it in the return path.
+      const courseLink = sessionStorage.getItem('courseLink');
+      if (courseLink && !formUrl.searchParams.has('link')) {
+        formUrl.searchParams.set('link', courseLink);
+      }
+
+      // Go directly to Personal Particulars section (section=1).
+      formUrl.searchParams.set('section', '1');
+
+      console.log('[SingPass] Redirecting to form section 1:', formUrl.toString());
+      window.location.href = formUrl.toString();
     } catch (error) {
       console.error('[SingPass] Redirect error:', error);
       window.location.href = 'https://salmon-wave-09f02b100.6.azurestaticapps.net/form?section=1';
