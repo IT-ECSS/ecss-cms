@@ -36,6 +36,11 @@ WOOCOMMERCE_API_URL = os.environ.get('WOOCOMMERCE_API_URL', 'https://ecss.org.sg
 WOOCOMMERCE_CONSUMER_KEY = os.environ.get('WOOCOMMERCE_CONSUMER_KEY', 'ck_439198907a526a5a9e3f8391dfb5f4eea970b9d7')
 WOOCOMMERCE_CONSUMER_SECRET = os.environ.get('WOOCOMMERCE_CONSUMER_SECRET', 'cs_47aed789dabc337d4e6e55f3142b598d4a2dc837')
 
+# When the WooCommerce API is unreachable, get_product_by_slug() can fall back to
+# hardcoded mock course data for local/offline development. Disabled by default so a
+# real production outage never silently serves fake course data to registrants.
+WOOCOMMERCE_MOCK_FALLBACK_ENABLED = os.environ.get('WOOCOMMERCE_MOCK_FALLBACK_ENABLED', 'False') == 'True'
+
 
 # Application definition
 

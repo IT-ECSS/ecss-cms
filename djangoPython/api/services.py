@@ -74,17 +74,21 @@ class WooCommerceAPI:
             print(f"   Error: {e}", flush=True)
             if hasattr(e.response, 'text'):
                 print(f"   Response text: {e.response.text[:500]}", flush=True)
-            
-            # FALLBACK: Return mock data for development/testing
-            print(f"💡 Using mock course data for development", flush=True)
-            return self.get_mock_course_data(slug)
+
+            # Only fall back to mock data when explicitly enabled, so a real WooCommerce
+            # outage/timeout never silently serves the wrong course to real users.
+            if getattr(settings, 'WOOCOMMERCE_MOCK_FALLBACK_ENABLED', False):
+                print(f"💡 Using mock course data for development", flush=True)
+                return self.get_mock_course_data(slug)
+            return None
         except Exception as e:
             print(f"❌ Unexpected error: {type(e).__name__}: {e}", flush=True)
             import traceback
             print(traceback.format_exc(), flush=True)
-            # FALLBACK: Return mock data
-            print(f"💡 Using mock course data for development", flush=True)
-            return self.get_mock_course_data(slug)
+            if getattr(settings, 'WOOCOMMERCE_MOCK_FALLBACK_ENABLED', False):
+                print(f"💡 Using mock course data for development", flush=True)
+                return self.get_mock_course_data(slug)
+            return None
     
     def get_mock_course_data(self, slug):
         """Return mock course data for development/testing when API is unreachable."""

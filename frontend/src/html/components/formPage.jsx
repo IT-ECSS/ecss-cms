@@ -405,12 +405,17 @@ class FormPage extends Component {
     })
     .catch(err => {
       console.error('❌ [Form] Course load error:', err);
-      // Still display form with default color even if load fails
+      // Still display form with default color even if load fails - fall back to the
+      // URL category so the page never renders completely blank (formData.type is
+      // required for anything to render at all).
       if (this._isMounted) {
-        this.setState({ 
+        this.setState((prevState) => ({
           loadingPhase: 'complete',
-          loading: true 
-        });
+          loading: true,
+          formData: prevState.formData.type
+            ? prevState.formData
+            : { ...prevState.formData, type: courseTypeFromCategory || prevState.formData.type }
+        }));
       }
     });
   };
@@ -734,8 +739,8 @@ class FormPage extends Component {
           console.error("Error extracting course location:", error);
         }
 
-        const cleanedStartDate = startDateParagraph.replace("<strong>", "").replace("</strong>", "").replace("</p>", "").split("<br />")[2];
-        const cleanedEndDate = endDateParagraph.replace("<strong>", "").replace("</strong>", "").replace("</p>", "").split("<br />")[2];
+        const cleanedStartDate = this.extractDateFromParagraph(startDateParagraph);
+        const cleanedEndDate = this.extractDateFromParagraph(endDateParagraph);
         const courseDuration = `${cleanedStartDate.replace(/\n/g, "")} - ${cleanedEndDate.replace(/\n/g, "")}`;
 
         // Parse course name parts
@@ -1185,8 +1190,8 @@ class FormPage extends Component {
           console.error("Error extracting course location:", error);
         }
 
-        const cleanedStartDate = startDateParagraph.replace("<strong>", "").replace("</strong>", "").replace("</p>", "").split("<br />")[2];
-        const cleanedEndDate = endDateParagraph.replace("<strong>", "").replace("</strong>", "").replace("</p>", "").split("<br />")[2];
+        const cleanedStartDate = this.extractDateFromParagraph(startDateParagraph);
+        const cleanedEndDate = this.extractDateFromParagraph(endDateParagraph);
         
         console.log("Start Date:", cleanedStartDate);
         console.log("End Date:", cleanedEndDate);
@@ -1854,6 +1859,24 @@ class FormPage extends Component {
     const parser = new DOMParser();
     const decodedString = parser.parseFromString(`<!doctype html><body>${text}`, "text/html").body.textContent;
     return decodedString;
+  }
+
+  // Extracts a date value from a "<strong>Label:</strong> ..." paragraph fragment.
+  // Historically the value sat after two "<br />" separators, but some course
+  // descriptions have no "<br />" at all, which used to throw and crash the form.
+  extractDateFromParagraph(paragraph) {
+    if (!paragraph) return '';
+    const cleaned = paragraph.replace("<strong>", "").replace("</strong>", "").replace("</p>", "");
+    const brParts = cleaned.split("<br />");
+    if (brParts.length > 2 && brParts[2] && brParts[2].trim()) {
+      return brParts[2].trim();
+    }
+    const dateMatch = cleaned.match(/\d{1,2}\/\d{1,2}\/\d{4}/);
+    if (dateMatch) {
+      return dateMatch[0];
+    }
+    // Fallback: strip the leading "Label:" prefix and use the remainder as-is
+    return cleaned.replace(/^[^:]*:\s*/, '').trim();
   }
 
   // Function to dynamically standardize course location addresses
