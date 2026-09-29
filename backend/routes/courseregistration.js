@@ -5,6 +5,7 @@ var ParticipantsController = require('../Controller/Participants/ParticipantsCon
 var InvoiceController = require('../Controller/Invoice/InvoiceController');
 var receiptGenerator = require('../Others/Pdf/receiptGenerator');
 var invoiceGenerator = require('../Others/Pdf/invoiceGenerator');
+const { getParticipantAgeAtCourseStart } = require('../utils/participantAge');
 const { sendOneSignalNotification } = require('../services/notificationService');
 
 // Reuse controller instances across requests so Mongo clients can stay warm.
@@ -64,35 +65,6 @@ function getCurrentDateTime() {
         date: formattedDate,
         time: formattedTime,
     };
-}
-
-function calculateAge(dateOfBirth) {
-    if (!dateOfBirth) return null;
-    
-    // Get current year from getCurrentDateTime()
-    const currentYear = new Date().getFullYear();
-    
-    // Extract year from dateOfBirth (assuming format DD/MM/YYYY)
-    let birthYear;
-    
-    if (dateOfBirth.includes('/')) {
-        // Format: DD/MM/YYYY or MM/DD/YYYY
-        const parts = dateOfBirth.split('/');
-        birthYear = parseInt(parts[2]); // Year is the third part
-    } else if (dateOfBirth.includes('-')) {
-        // Format: YYYY-MM-DD
-        const parts = dateOfBirth.split('-');
-        birthYear = parseInt(parts[0]); // Year is the first part
-    } else {
-        // Try to parse as a year directly
-        birthYear = parseInt(dateOfBirth);
-    }
-    
-    if (isNaN(birthYear) || birthYear < 1900 || birthYear > currentYear) {
-        return null; // Invalid year
-    }
-    
-    return currentYear - birthYear;
 }
 
 function parseConfirmationBoolean(value) {
@@ -655,7 +627,10 @@ router.post('/', async function(req, res, next)
     {
         console.log("Invoice:",req.body);
         var staffName = sanitizeStaffName(req.body.staff);
-        var age = calculateAge(req.body.participant.dateOfBirth);
+        var age = getParticipantAgeAtCourseStart(
+            req.body.participant.dateOfBirth,
+            req.body.course.courseDuration
+        );
         console.log("Participant age:", age);
 
         var invoice = new invoiceGenerator();

@@ -13,9 +13,27 @@ import Popup from './popup/popupMessage';
 import RealTimeMyInfoErrorHandler from '../../services/RealTimeMyInfoErrorHandler';
 import MyInfoStatusIndicator from './MyInfoStatusIndicator';
 import SubmissionInProgressPopup from './SubmissionInProgressPopup';
+import { clearSingPassSessionData, ensureSingPassTabSession } from '../../utils/singpassData';
 
 // Constant to enable/disable MyInfo error testing
 const FORCE_MYINFO_ERROR = false; // Set to true to force MyInfo errors for testing
+
+const normalizeCourseLink = (link) => {
+  let normalized = String(link || '').trim();
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const decoded = decodeURIComponent(normalized);
+      if (decoded === normalized) break;
+      normalized = decoded;
+    } catch (error) {
+      break;
+    }
+  }
+  return normalized.replace(/\/+$/, '');
+};
+
+const courseLinkFromSearch = (search) =>
+  normalizeCourseLink(new URLSearchParams(search).get('link'));
 
 class FormPage extends Component {
   constructor(props) {
@@ -320,7 +338,30 @@ class FormPage extends Component {
     
     // Check URL parameters for section override, course link, and category
     const params = new URLSearchParams(window.location.search);
-    let link = decodeURIComponent(params.get("link"));
+    let link = params.get('link');
+    const isNewTabSession = ensureSingPassTabSession();
+    const storedCourseLink = normalizeCourseLink(sessionStorage.getItem('courseLink'));
+    const requestedCourseLink = normalizeCourseLink(link);
+    const isDifferentCourse = Boolean(
+      requestedCourseLink && storedCourseLink && requestedCourseLink !== storedCourseLink
+    );
+
+    if (isNewTabSession || isDifferentCourse) {
+      clearSingPassSessionData();
+    }
+    if (isNewTabSession && !requestedCourseLink) {
+      sessionStorage.removeItem('courseLink');
+    }
+
+    this._lastCourseLink = requestedCourseLink;
+
+    if (link) {
+      try {
+        link = decodeURIComponent(link);
+      } catch (error) {
+        console.warn('Could not decode course link from URL:', error);
+      }
+    }
     const sectionParam = params.get('section');
     console.log('📦 Section parameter from URL:', sectionParam);
     const categoryFromURL = this.getCategoryFromURL();
@@ -418,6 +459,16 @@ class FormPage extends Component {
         }));
       }
     });
+  };
+
+  componentDidUpdate = () => {
+    const currentCourseLink = courseLinkFromSearch(window.location.search);
+    if (currentCourseLink === this._lastCourseLink) return;
+
+    clearSingPassSessionData();
+    sessionStorage.removeItem('courseLink');
+    this._lastCourseLink = currentCourseLink;
+    window.location.reload();
   };
 
 
@@ -1578,8 +1629,7 @@ class FormPage extends Component {
   // Add method to clear session storage when needed
   clearCourseData = () => {
     sessionStorage.removeItem("courseLink");
-    sessionStorage.removeItem("singpass_user_data_json");
-    sessionStorage.removeItem("singpass_access_token");
+    clearSingPassSessionData();
   };
 
   // Add method to clear SingPass data without reloading
@@ -1591,9 +1641,7 @@ class FormPage extends Component {
       return;
     }
     
-    // Clear SingPass session data
-    sessionStorage.removeItem("singpass_user_data_json");
-    sessionStorage.removeItem("singpass_access_token");
+    clearSingPassSessionData();
     console.log("Form data", this.state.formData);
 
     // Reset form data to empty values for SingPass populated fields
@@ -2335,20 +2383,55 @@ class FormPage extends Component {
         this.setState({ showSubmissionInProgress: false });
         
         if (response.data) {
-          // Navigate to SubmitDetailsSection after successful submission
-          const { formData } = this.state;
-          let nextSection;
-          
-          if (formData.type === 'Marriage Preparation Programme') {
-            nextSection = 5; // Section 5 for Marriage Preparation Programme
-          } else if (formData.type === 'Talks And Seminar') {
-            nextSection = 3; // Section 3 for Talks And Seminar
-          } else {
-            nextSection = 4; // Section 4 for regular courses (NSA/ILP)
-          }
-          
-          // Navigate to the submit details section
-          this.navigateToSection(nextSection);
+          clearSingPassSessionData();
+          this.navigateToSection(0);
+          this.setState((prevState) => ({
+            currentSection: 0,
+            isAuthenticated: false,
+            singPassPopulatedFields: {},
+            validationErrors: {},
+            age: 0,
+            formData: {
+              ...prevState.formData,
+              pName: '',
+              nRIC: '',
+              rESIDENTIALSTATUS: '',
+              rACE: '',
+              gENDER: '',
+              dOB: '',
+              cNO: '',
+              eMAIL: '',
+              address: '',
+              postalCode: '',
+              eDUCATION: '',
+              wORKING: '',
+              payment: '',
+              agreement: '',
+              mARITALSTATUS: '',
+              hOUSINGTYPE: '',
+              gROSSMONTHLYINCOME: '',
+              mARRIAGEDURATION: '',
+              tYPEOFMARRIAGE: '',
+              hASCHILDREN: '',
+              spouseName: '',
+              spouseNRIC: '',
+              spouseDOB: '',
+              spouseResidentialStatus: '',
+              spouseSex: '',
+              spouseEthnicity: '',
+              spouseMaritalStatus: '',
+              spousePostalCode: '',
+              spouseMobile: '',
+              spouseEmail: '',
+              spouseEducation: '',
+              spouseHousingType: '',
+              howFoundOut: '',
+              howFoundOutOthers: '',
+              sourceOfReferral: '',
+              marriagePrepConsent1: false,
+              marriagePrepConsent2: false,
+            },
+          }));
           window.scrollTo(0, 0);
           
           // Clear session storage after successful submission

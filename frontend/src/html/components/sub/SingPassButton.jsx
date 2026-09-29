@@ -1,5 +1,6 @@
 import React, { Component } from "react";
 import axios from 'axios';
+import { clearSingPassSessionData, ensureSingPassTabSession } from '../../../utils/singpassData';
 
 class SingPassButton extends Component {
   constructor(props) {
@@ -107,6 +108,9 @@ class SingPassButton extends Component {
 
   handleLogin = async () => {
     try {
+      ensureSingPassTabSession();
+      clearSingPassSessionData();
+
       // Real-time availability check before proceeding
       if (this.props.errorHandler) {
         console.log('🔍 Checking MyInfo service availability before authentication...');
@@ -287,6 +291,7 @@ class SingPassButton extends Component {
       
     } catch (error) {
       console.error('SingPass authentication error:', error);
+      clearSingPassSessionData();
       this.setState({ 
         error: error.message || 'Failed to initiate SingPass authentication. Please try again.',
         redirecting: false 

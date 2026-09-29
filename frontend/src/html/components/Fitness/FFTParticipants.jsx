@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import { clearSingPassSessionData, ensureSingPassTabSession } from '../../../utils/singpassData';
 import axios from 'axios';
 import '../../../css/fftParticipants.css';
 import LanguageSelection from './LanguageSelection';
@@ -283,6 +284,11 @@ class FFTParticipants extends Component {
   };
 
   componentDidMount() {
+    if (ensureSingPassTabSession()) {
+      clearSingPassSessionData();
+      sessionStorage.removeItem('fft_singpass_return_state');
+    }
+
     // Public form (kiosk): always start fresh — never restore previous session
     // EXCEPTION: if returning from SingPass, restore language + slot so the form reopens at personal particulars
     if (this.props.showParticipantNumber === false) {

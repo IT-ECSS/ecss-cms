@@ -1,6 +1,11 @@
 import React, { Component } from "react";
 import axios from 'axios';
 import '../css/singpassCallback.css';
+import {
+  clearSingPassAuthState,
+  clearSingPassSessionData,
+  restoreSingPassTabSession,
+} from '../../utils/singpassData';
 
 class CallbackPage extends Component {
   // Abort controller for fast cancellation
@@ -32,6 +37,11 @@ class CallbackPage extends Component {
       const authorizationCode = urlParams.get('code');
       const returnedState = urlParams.get('state');
       const error = urlParams.get('error');
+      const storedState = sessionStorage.getItem('singpass_state');
+
+      if (returnedState && returnedState === storedState) {
+        restoreSingPassTabSession();
+      }
 
       console.log('[SingPass Callback] Received params:', {
         hasCode: !!authorizationCode,
@@ -54,7 +64,6 @@ class CallbackPage extends Component {
       }
 
       // Validate state (CSRF check) - synchronous, no blocking
-      const storedState = sessionStorage.getItem('singpass_state');
       if (returnedState !== storedState) {
         console.error('[SingPass] State mismatch - CSRF check failed', {
           received: returnedState,
@@ -124,7 +133,7 @@ class CallbackPage extends Component {
 
       // Redirect immediately (don't wait for storage)
       console.log('[SingPass] Redirecting to form...');
-      this.redirectToForm();
+      this.redirectToForm({ preserveUserData: true });
 
     } catch (error) {
       console.error('[SingPass] Token exchange error:', error.message);
@@ -180,7 +189,7 @@ class CallbackPage extends Component {
     }
   };
 
-  redirectToForm = () => {
+  redirectToForm = ({ preserveUserData = false } = {}) => {
     try {
       const baseUrl = 'https://salmon-wave-09f02b100.6.azurestaticapps.net';
 
@@ -188,6 +197,12 @@ class CallbackPage extends Component {
       // SingPassButton saves the full path+query before redirect (e.g. /fft or /fft/form?event=...)
       const returnPath = sessionStorage.getItem('singpass_return_path');
       const fftReturnState = sessionStorage.getItem('fft_singpass_return_state');
+
+      if (preserveUserData) {
+        clearSingPassAuthState();
+      } else {
+        clearSingPassSessionData();
+      }
 
       if ((returnPath && returnPath.startsWith('/fft')) || fftReturnState) {
         const fftPath = (returnPath && returnPath.startsWith('/fft')) ? returnPath : '/fft';

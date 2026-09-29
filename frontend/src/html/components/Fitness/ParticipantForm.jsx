@@ -7,7 +7,11 @@ import HealthDeclarationSection from './HealthDeclarationSection';
 import IndemnitySection from './IndemnitySection';
 import RegistrationSuccessResult from './RegistrationSuccessResult';
 import AlreadyRegisteredResult from './AlreadyRegisteredResult';
-import { getSingPassUserDataJSON } from '../../../utils/singpassData';
+import {
+  clearSingPassSessionData,
+  ensureSingPassTabSession,
+  getSingPassUserDataJSON,
+} from '../../../utils/singpassData';
 
 class ParticipantForm extends Component {
   state = {
@@ -149,6 +153,11 @@ class ParticipantForm extends Component {
   };
 
   componentDidMount() {
+    if (ensureSingPassTabSession()) {
+      clearSingPassSessionData();
+      sessionStorage.removeItem('fft_singpass_return_state');
+    }
+
     // Skip storage only if skipToParticipantNumber AND no custom storageKey was provided
     if (this.props.skipToParticipantNumber && !this.props.storageKey) return;
     try {
@@ -172,10 +181,7 @@ class ParticipantForm extends Component {
     if (userData && userData.source === 'singpass' && userData.name) {
       this.handleUseSingpass();
       // Clear SingPass session data so it isn't re-used for the next participant
-      sessionStorage.removeItem('singpass_user_data_json');
-      sessionStorage.removeItem('singpass_access_token');
-      sessionStorage.removeItem('singpass_user_uuid');
-      sessionStorage.removeItem('singpass_user_profile');
+      clearSingPassSessionData();
     }
   }
 

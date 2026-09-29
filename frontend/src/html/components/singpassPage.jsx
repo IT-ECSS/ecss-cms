@@ -1,6 +1,7 @@
 import React, { Component } from "react";
 import axios from 'axios';
 import '../css/singpassPage.css';  
+import { clearSingPassSessionData, ensureSingPassTabSession } from '../../utils/singpassData';
 
 class SingpassPage extends Component {
   generateCodeVerifier = () => {
@@ -57,6 +58,9 @@ class SingpassPage extends Component {
 
   handleLogin = async () => {
     try {
+      ensureSingPassTabSession();
+      clearSingPassSessionData();
+
       const urlParams = new URLSearchParams(window.location.search);
       let redirectLink = urlParams.get('link');
       if (redirectLink) {
@@ -130,6 +134,7 @@ class SingpassPage extends Component {
       this.setState({ redirecting: true });
       window.location.href = authorizationUrl;
     } catch (error) {
+      clearSingPassSessionData();
       this.setState({ 
         error: 'Failed to initiate SingPass authentication. Please try again.',
         redirecting: false 
