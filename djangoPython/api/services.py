@@ -453,9 +453,15 @@ class WooCommerceAPI:
                 page += 1
 
             except requests.exceptions.RequestException as e:
-                # Handle any errors during the request
-                print(f"Error while fetching inventory products: {e}")
-                break
+                response = getattr(e, 'response', None)
+                if response is not None:
+                    print(
+                        f"Error while fetching inventory products: HTTP {response.status_code}; "
+                        f"response: {response.text[:500]}"
+                    )
+                else:
+                    print(f"Error while fetching inventory products: {e}")
+                raise
 
         return all_products
 

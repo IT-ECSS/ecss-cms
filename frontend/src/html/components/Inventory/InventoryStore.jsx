@@ -26,6 +26,7 @@ class InventoryStore extends Component {
             inventoryRecords: [],
             stockRecords: [],
             isLoading: true,
+            initialFetchDone: false,
             loadingMessage: 'Loading...',
             error: null,
             // Tabs - restricted roles only see Sub Products (variants) and no tab navigation
@@ -270,7 +271,8 @@ class InventoryStore extends Component {
             const result = await fetchInventoryProducts();
             const products = result.inventoryProducts || [];
             this.setState({
-                inventoryProducts: products
+                inventoryProducts: products,
+                initialFetchDone: true
             });
             if (!result.success) {
                 this.setState({
@@ -280,6 +282,7 @@ class InventoryStore extends Component {
         } catch (error) {
             console.error('Error fetching inventory products:', error);
             this.setState({
+                initialFetchDone: true,
                 error: error.message || 'An error occurred while fetching inventory products'
             });
         }
@@ -609,7 +612,7 @@ class InventoryStore extends Component {
 
 
     render() {
-        const { inventoryProducts, isLoading, error } = this.state;
+        const { inventoryProducts, isLoading, initialFetchDone, error } = this.state;
 
         // show early error state if something went wrong
         if (error) {
@@ -683,11 +686,11 @@ class InventoryStore extends Component {
                         </div>
                     </div>
 
-                {(inventoryProducts.length === 0 && !isLoading && this.initialFetchDone) ? (
+                {(inventoryProducts.length === 0 && !isLoading && initialFetchDone) ? (
                     <div className="inventory-empty-state">
                         <i className="fas fa-boxes"></i>
                         <h3>No Products Found</h3>
-                        <p>No products in the Inventory category.</p>
+                        <p>No inventory products are currently available.</p>
                     </div>
                 ) : this.state.activeTab === 'store' ? (
                     /* Store Inventory Tab - One card per product with location badges */
