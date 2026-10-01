@@ -284,13 +284,22 @@ def inventory_product_details(request):
     should force a fresh WooCommerce read instead of reusing the stale cached snapshot.
     The normal stale-while-revalidate path remains for non-refresh reads.
     """
+    from django.core.cache import cache
+    blocked_key = 'inventory_upstream_blocked'
     try:
-        from django.core.cache import cache
-
         cache_key = 'inventory_products_cache'
         stale_key = 'inventory_products_cache_stale'
         timeout = getattr(settings, 'INVENTORY_CACHE_TIMEOUT', 60)
         force_refresh = request.GET.get('refresh', '').lower() in {'1', 'true', 'yes'}
+
+        # Skip WooCommerce while it is actively 403-blocking us and there is nothing cached to serve
+        if cache.get(blocked_key) and cache.get(stale_key) is None:
+            response = JsonResponse({
+                "success": False,
+                "error": "Unable to reach WooCommerce to load inventory. Please try again shortly."
+            }, status=502)
+            response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            return response
 
         if force_refresh:
             try:
@@ -363,12 +372,16 @@ def inventory_product_details(request):
         return response
 
     except Exception as e:
-        # Catch and log unexpected errors
         import traceback
-        print(f"Error in inventory_product_details: {type(e).__name__}: {e}", flush=True)
-        traceback.print_exc()
         import requests as _requests
         upstream = isinstance(e, _requests.exceptions.RequestException)
+        status_code = getattr(getattr(e, 'response', None), 'status_code', None)
+        if status_code == 403:
+            cache.set(blocked_key, True, timeout=60)
+            print("WooCommerce blocked inventory fetch (HTTP 403, Imunify360); pausing upstream calls for 60s", flush=True)
+        else:
+            print(f"Error in inventory_product_details: {type(e).__name__}: {e}", flush=True)
+            traceback.print_exc()
         response = JsonResponse({
             "success": False,
             "error": "Unable to reach WooCommerce to load inventory. Please try again shortly."

@@ -442,7 +442,7 @@ class WooCommerceAPI:
                 if response is not None:
                     print(
                         f"Error while fetching inventory products: HTTP {response.status_code}; "
-                        f"response: {response.text[:500]}"
+                        f"response: {' '.join(response.text[:500].split())}"
                     )
                 else:
                     print(f"Error while fetching inventory products: {e}")
