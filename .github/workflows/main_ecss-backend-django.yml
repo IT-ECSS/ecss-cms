@@ -85,7 +85,7 @@ jobs:
           app-name: 'ecss-backend-django'
           slot-name: 'Production'
           package: './django-deploy.zip'
-          startup-command: 'PYTHONPATH=/home/site/wwwroot/site-packages gunicorn --bind 0.0.0.0:8000 --workers 2 --timeout 120 djangoPython.wsgi:application'
+          startup-command: 'PYTHONPATH=/home/site/wwwroot/site-packages gunicorn --bind 0.0.0.0:8000 --workers 2 --worker-class gthread --threads 8 --timeout 120 djangoPython.wsgi:application'
           clean: true
           restart: true
 

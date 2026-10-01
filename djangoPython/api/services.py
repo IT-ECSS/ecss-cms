@@ -53,7 +53,6 @@ class WooCommerceAPI:
             }
             print(f"📍 WooCommerce API URL: {url}", flush=True)
             print(f"📋 Query params: {params}", flush=True)
-            print(f"🔐 Auth: {self.auth[0]}", flush=True)
             print(f"📤 Headers: {self.headers}", flush=True)
             
             response = requests.get(url, params=params, auth=self.auth, headers=self.headers, timeout=30)
