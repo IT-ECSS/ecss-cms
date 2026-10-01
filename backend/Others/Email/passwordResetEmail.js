@@ -53,7 +53,7 @@ function sendPasswordResetEmail({ name, email, password }) {
                             </p>
                             <p class="MsoNormal" style="margin-bottom:0in;color:rgb(34,34,34);line-height:normal">
                                 <span style="color:rgb(0,0,0)">
-                                    <img width="96" height="94" alt="En Community Services Society logo" src="https://ecss.org.sg/wp-content/uploads/2023/07/En_logo_Final_Large_RGB.png">
+                                    <img width="96" height="94" alt="En Community Services Society logo" src="https://ecss.org.sg/wp-content/uploads/2026/10/En_logo_Final_Large_RGB.png">
                                     <font size="2"><span style="font-family:Montserrat"><br></span></font>
                                 </span>
                             </p>

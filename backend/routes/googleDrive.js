@@ -1660,7 +1660,7 @@ router.post('/validateAccessRights', async (req, res) => {
 router.get('/ecssLogo', async (req, res) => {
     try {
         const https = require('https');
-        const logoUrl = 'https://ecss.org.sg/wp-content/uploads/2023/07/En_logo_Final_Large_RGB.png';
+        const logoUrl = 'https://ecss.org.sg/wp-content/uploads/2026/10/En_logo_Final_Large_RGB.png';
         https.get(logoUrl, (imgRes) => {
             res.setHeader('Content-Type', imgRes.headers['content-type'] || 'image/png');
             res.setHeader('Cache-Control', 'public, max-age=86400');

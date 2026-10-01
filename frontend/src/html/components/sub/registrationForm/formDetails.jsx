@@ -68,7 +68,7 @@ class FormDetailsSection extends Component {
               </p>
             </div>
             <div className="image-container" style={{textAlign: "center"}}>
-              <img src="/images/ecss/ecss-logo.png" onError={(event) => fallbackToRemoteImage(event, 'https://ecss.org.sg/wp-content/uploads/2023/07/En_logo_Final_Large_RGB.png')} alt="Others" className="registration-image" style={{width: "25%", height: "auto"}} />
+              <img src="/images/ecss/ecss-logo.png" onError={(event) => fallbackToRemoteImage(event, 'https://ecss.org.sg/wp-content/uploads/2026/10/En_logo_Final_Large_RGB.png')} alt="Others" className="registration-image" style={{width: "25%", height: "auto"}} />
             </div>
           </>
         )}
@@ -84,7 +84,7 @@ class FormDetailsSection extends Component {
               </p>
             </div>
             <div className="image-container" style={{textAlign: "center"}}>
-              <img src="/images/ecss/ecss-logo.png" onError={(event) => fallbackToRemoteImage(event, 'https://ecss.org.sg/wp-content/uploads/2023/07/En_logo_Final_Large_RGB.png')} alt="Talks And Seminar" className="registration-image" style={{width: "25%", height: "auto"}} />
+              <img src="/images/ecss/ecss-logo.png" onError={(event) => fallbackToRemoteImage(event, 'https://ecss.org.sg/wp-content/uploads/2026/10/En_logo_Final_Large_RGB.png')} alt="Talks And Seminar" className="registration-image" style={{width: "25%", height: "auto"}} />
             </div>
           </>
         )}

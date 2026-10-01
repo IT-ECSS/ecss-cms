@@ -306,7 +306,7 @@ class LoginPage extends Component {
             <div className="title-and-image">
               <img
                 src="/images/ecss/ecss-logo.png"
-                onError={(event) => fallbackToRemoteImage(event, 'https://ecss.org.sg/wp-content/uploads/2023/07/En_logo_Final_Large_RGB.png')}
+                onError={(event) => fallbackToRemoteImage(event, 'https://ecss.org.sg/wp-content/uploads/2026/10/En_logo_Final_Large_RGB.png')}
                 alt="Logo"
                 className="title-image"
               />

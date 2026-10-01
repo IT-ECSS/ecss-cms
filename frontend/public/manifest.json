@@ -3,17 +3,17 @@
   "name": "ECSS FFT",
   "icons": [
     {
-      "src": "https://ecss.org.sg/wp-content/uploads/2023/07/En_logo_Final_Large_RGB.png",
+      "src": "https://ecss.org.sg/wp-content/uploads/2026/10/En_logo_Final_Large_RGB.png",
       "sizes": "64x64 32x32 24x24 16x16",
       "type": "image/png"
     },
     {
-      "src": "https://ecss.org.sg/wp-content/uploads/2023/07/En_logo_Final_Large_RGB.png",
+      "src": "https://ecss.org.sg/wp-content/uploads/2026/10/En_logo_Final_Large_RGB.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "https://ecss.org.sg/wp-content/uploads/2023/07/En_logo_Final_Large_RGB.png",
+      "src": "https://ecss.org.sg/wp-content/uploads/2026/10/En_logo_Final_Large_RGB.png",
       "type": "image/png",
       "sizes": "512x512"
     }

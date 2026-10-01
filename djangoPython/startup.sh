@@ -17,7 +17,9 @@ python manage.py migrate --noinput || echo "Migrations failed or not needed"
 # Start Gunicorn server
 echo "Starting Gunicorn server..."
 gunicorn --bind 0.0.0.0:8000 \
-         --workers 4 \
+         --workers 2 \
+         --worker-class gthread \
+         --threads 8 \
          --timeout 120 \
          --keep-alive 2 \
          --max-requests 1000 \
