@@ -113,7 +113,7 @@ def product_list(request):
         return JsonResponse({"courses": products})
 
     except json.JSONDecodeError:
-         JsonResponse({"error": "Invalid JSON input."}, status=400)
+        return JsonResponse({"error": "Invalid JSON input."}, status=400)
 
     except Exception as e:
         # Catch and log unexpected errors
@@ -150,12 +150,15 @@ def shorten_url(request):
 def product_by_link(request):
     """Fetches a single product by its permalink/slug. Much faster than fetching all products."""
     try:
-        data = json.loads(request.body)
-        link = data.get('link', '')
+        if request.method == 'GET':
+            link = request.GET.get('link', '')
+        else:
+            data = json.loads(request.body or b'{}')
+            link = data.get('link', '') if isinstance(data, dict) else ''
         print("Looking up product by link:", link)
 
         if not link:
-            return JsonResponse({"error": "No link provided."}, status=400)
+            return JsonResponse({"error": "No link provided. POST JSON {\"link\": \"...\"} or GET ?link=..."}, status=400)
 
         # Extract slug from the permalink URL
         # e.g. 'https://ecss.org.sg/product/crafting-connectionsyu-ming-primary-school/' -> 'crafting-connectionsyu-ming-primary-school'
@@ -290,10 +293,17 @@ def inventory_product_details(request):
         force_refresh = request.GET.get('refresh', '').lower() in {'1', 'true', 'yes'}
 
         if force_refresh:
-            woo_api = WooCommerceAPI()
-            products = woo_api.get_inventory_products()
-            cache.set(cache_key, products, timeout=timeout)
-            cache.set(stale_key, products)
+            try:
+                woo_api = WooCommerceAPI()
+                products = woo_api.get_inventory_products()
+                cache.set(cache_key, products, timeout=timeout)
+                cache.set(stale_key, products)
+            except Exception as ex:
+                # WooCommerce unreachable: serve the last known snapshot rather than 500
+                products = cache.get(stale_key)
+                if products is None:
+                    raise
+                print(f"Refresh failed ({type(ex).__name__}: {ex}); returning stale inventory products ({len(products)} items)", flush=True)
         else:
             products = cache.get(cache_key)
             if products is not None:
@@ -354,8 +364,16 @@ def inventory_product_details(request):
 
     except Exception as e:
         # Catch and log unexpected errors
-        print("Error:", e)
-        response = JsonResponse({"error": "An error occurred while processing the request."}, status=500)
+        import traceback
+        print(f"Error in inventory_product_details: {type(e).__name__}: {e}", flush=True)
+        traceback.print_exc()
+        import requests as _requests
+        upstream = isinstance(e, _requests.exceptions.RequestException)
+        response = JsonResponse({
+            "success": False,
+            "error": "Unable to reach WooCommerce to load inventory. Please try again shortly."
+                     if upstream else "An error occurred while processing the request."
+        }, status=502 if upstream else 500)
         response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         response['Pragma'] = 'no-cache'
         response['Expires'] = '0'

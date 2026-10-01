@@ -362,7 +362,6 @@ class WooCommerceAPI:
         all_products = []
         page = 1
         per_page = 100  # Maximum number of products per page for WooCommerce API
-        max_retries = 3  # Number of retry attempts
 
         while True:
             try:
@@ -373,24 +372,10 @@ class WooCommerceAPI:
                     'page': page
                 }
                 
-                # Make the API request with timeout and retries
-                response = None
-                for attempt in range(max_retries):
-                    try:
-                        response = requests.get(url, params=params, auth=self.auth, headers=self.headers, timeout=30)
-                        response.raise_for_status()
-                        break  # Success, exit retry loop
-                    except requests.exceptions.Timeout:
-                        if attempt < max_retries - 1:
-                            import time
-                            wait_time = 2 ** attempt  # Exponential backoff: 1s, 2s, 4s
-                            print(f"Timeout on attempt {attempt + 1}, retrying in {wait_time}s...")
-                            time.sleep(wait_time)
-                        else:
-                            raise  # Re-raise on final attempt
-                
-                if response is None:
-                    break  # Failed all retries
+                # Retries transient SSL/connection/timeout errors, not just timeouts
+                response = self._woocommerce_request(
+                    "GET", url, params=params, headers=self.headers
+                )
 
                 # Parse the response as JSON
                 products = response.json()
@@ -479,8 +464,9 @@ class WooCommerceAPI:
                     'page': page
                 }
                 
-                response = requests.get(url, params=params, auth=self.auth, headers=self.headers, timeout=30)
-                response.raise_for_status()
+                response = self._woocommerce_request(
+                    "GET", url, params=params, headers=self.headers
+                )
 
                 variations = response.json()
                 if not variations:
@@ -491,7 +477,7 @@ class WooCommerceAPI:
 
             except requests.exceptions.RequestException as e:
                 print(f"Error fetching variations for product {product_id}: {e}")
-                break
+                raise
 
         return all_variations
 
