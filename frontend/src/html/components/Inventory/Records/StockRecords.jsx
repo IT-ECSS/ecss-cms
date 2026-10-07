@@ -1,6 +1,10 @@
 import React, { Component } from 'react';
+import axios from 'axios';
 import { AgGridReact } from 'ag-grid-react';
 import * as pdfjsLib from 'pdfjs-dist';
+import { createWorker } from 'tesseract.js';
+import mammoth from 'mammoth';
+import * as XLSX from 'xlsx';
 import ProductSummaryCards from '../sub/ProductSummaryCards';
 import StockAdjustmentModal from '../modal/StockAdjustmentModal';
 import StockFilter from '../searchFilter/StockFilter';
@@ -9,6 +13,7 @@ import { exportStockToExcel, handleIncomingSubmit } from '../inventoryServiceHel
 import { 
     generateProductSummaryCards 
 } from '../searchFilter/StockFilterUtils';
+import { parseInvoiceFields } from '../invoiceExtraction';
 
 // Set PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
@@ -19,11 +24,14 @@ class StockRecords extends Component {
     constructor(props) {
         super(props);
         this.stockGridApi = null;
+        this.invoiceExtractionRun = 0;
 
         this.state = {
             // Stock Adjustment modal
             showIncomingModal: false,
             isSubmitting: false,
+            isExtractingInvoice: false,
+            invoiceExtractionMessage: '',
             incomingForm: {
                 action: '',
                 product: '',
@@ -131,11 +139,14 @@ class StockRecords extends Component {
     };
 
     openIncomingModal = () => {
+        this.invoiceExtractionRun += 1;
         const now = new Date();
         const date = now.toISOString().split('T')[0];
         const time = now.toTimeString().split(' ')[0].substring(0, 5);
         this.setState({
             showIncomingModal: true,
+            isExtractingInvoice: false,
+            invoiceExtractionMessage: '',
             incomingForm: {
                 action: '',
                 product: '',
@@ -152,8 +163,11 @@ class StockRecords extends Component {
     };
 
     closeIncomingModal = () => {
+        this.invoiceExtractionRun += 1;
         this.setState({ 
-            showIncomingModal: false
+            showIncomingModal: false,
+            isExtractingInvoice: false,
+            invoiceExtractionMessage: ''
         });
     };
 
@@ -179,215 +193,175 @@ class StockRecords extends Component {
     };
 
     handleFileSelected = (file) => {
-        this.extractPdfData(file);
+        this.invoiceExtractionRun += 1;
+        if (file) {
+            this.extractPdfData(file, this.invoiceExtractionRun);
+        } else {
+            this.setState({
+                isExtractingInvoice: false,
+                invoiceExtractionMessage: ''
+            });
+        }
     };
 
-    extractPdfData = async (file) => {
-        if (!file || !file.name.toLowerCase().endsWith('.pdf')) {
-            const fileDate = new Date(file.lastModified);
-            const date = fileDate.toISOString().split('T')[0];
-            const time = fileDate.toTimeString().split(' ')[0].substring(0, 5);
-            this.handleIncomingFormChange('date', date);
-            this.handleIncomingFormChange('time', time);
+    recognizeInvoiceText = async (file, pdf = null, runId) => {
+        const worker = await createWorker('eng');
+        const allItems = [];
+        const textPages = [];
+
+        try {
+            const pageCount = pdf ? pdf.numPages : 1;
+            for (let pageNumber = 1; pageNumber <= pageCount; pageNumber++) {
+                if (runId !== this.invoiceExtractionRun) return { fullText: '', allItems: [] };
+
+                let source = file;
+                if (pdf) {
+                    const page = await pdf.getPage(pageNumber);
+                    const viewport = page.getViewport({ scale: 2 });
+                    const canvas = document.createElement('canvas');
+                    canvas.width = Math.ceil(viewport.width);
+                    canvas.height = Math.ceil(viewport.height);
+                    const context = canvas.getContext('2d');
+                    if (!context) {
+                        throw new Error('Could not create a canvas to read the scanned invoice.');
+                    }
+                    await page.render({ canvasContext: context, viewport }).promise;
+                    source = canvas;
+                }
+
+                const { data } = await worker.recognize(source, {}, { tsv: true });
+                textPages.push(data.text);
+                data.tsv.split(/\r?\n/).slice(1).forEach(line => {
+                    const columns = line.split('\t');
+                    if (columns[0] === '5' && columns.length >= 12 && columns[11].trim()) {
+                        allItems.push({
+                            str: columns.slice(11).join('\t').trim(),
+                            x: Number(columns[6]),
+                            y: -Number(columns[7]),
+                            page: pageNumber
+                        });
+                    }
+                });
+            }
+        } finally {
+            await worker.terminate();
+        }
+
+        return { fullText: textPages.join('\n'), allItems };
+    };
+
+    extractPdfData = async (file, runId) => {
+        this.setState({ isExtractingInvoice: true, invoiceExtractionMessage: '' });
+
+        if (!file) {
+            if (runId === this.invoiceExtractionRun) {
+                this.setState({ isExtractingInvoice: false });
+            }
             return;
         }
 
         try {
-            const arrayBuffer = await file.arrayBuffer();
-            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            const extension = file.name.split('.').pop().toLowerCase();
+            const supportedExtensions = ['pdf', 'png', 'jpg', 'jpeg', 'doc', 'docx', 'xls', 'xlsx'];
+            if (!supportedExtensions.includes(extension)) {
+                this.setState({ invoiceExtractionMessage: 'This file type is not supported for invoice extraction.' });
+                return;
+            }
 
-            let allItems = [];
             let fullText = '';
+            let allItems = [];
+            let pdf = null;
 
-            for (let i = 1; i <= pdf.numPages; i++) {
-                const page = await pdf.getPage(i);
-                const textContent = await page.getTextContent();
-                textContent.items.forEach(item => {
-                    if (item.str && item.str.trim()) {
-                        allItems.push({
-                            str: item.str.trim(),
-                            x: Math.round(item.transform[4]),
-                            y: Math.round(item.transform[5]),
-                            page: i
-                        });
-                    }
+            if (extension === 'pdf') {
+                const arrayBuffer = await file.arrayBuffer();
+                pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+                    const page = await pdf.getPage(pageNumber);
+                    const textContent = await page.getTextContent();
+                    textContent.items.forEach(item => {
+                        if (item.str && item.str.trim()) {
+                            allItems.push({
+                                str: item.str.trim(),
+                                x: Math.round(item.transform[4]),
+                                y: Math.round(item.transform[5]),
+                                page: pageNumber
+                            });
+                        }
+                    });
+                    fullText += `${textContent.items.map(item => item.str).join(' ')}\n`;
+                }
+            } else if (['png', 'jpg', 'jpeg'].includes(extension)) {
+                ({ fullText, allItems } = await this.recognizeInvoiceText(file, null, runId));
+            } else if (extension === 'docx') {
+                const { value } = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
+                fullText = value;
+            } else if (['xls', 'xlsx'].includes(extension)) {
+                const workbook = XLSX.read(await file.arrayBuffer(), {
+                    type: 'array',
+                    cellDates: true,
+                    dateNF: 'yyyy-mm-dd'
                 });
-                const pageText = textContent.items.map(item => item.str).join(' ');
-                fullText += pageText + '\n';
+                fullText = workbook.SheetNames
+                    .map(name => XLSX.utils.sheet_to_csv(workbook.Sheets[name], {
+                        FS: ' ',
+                        RS: '\n',
+                        dateNF: 'yyyy-mm-dd'
+                    }))
+                    .join('\n');
+            } else if (extension === 'doc') {
+                const formData = new FormData();
+                formData.append('file', file);
+                const backendUrl = window.location.hostname === 'localhost'
+                    ? 'http://localhost:3001'
+                    : 'https://ecss-backend-node.azurewebsites.net';
+                const response = await axios.post(`${backendUrl}/inventory/extractLegacyWordText`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                fullText = response.data.text || '';
             }
 
-            const monthMap = {
-                jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
-                jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12',
-                january: '01', february: '02', march: '03', april: '04',
-                june: '06', july: '07', august: '08', september: '09',
-                october: '10', november: '11', december: '12'
-            };
+            if (runId !== this.invoiceExtractionRun) return;
 
-            const resolveYear = (y) => {
-                const s = y.replace(/\D/g, '');
-                if (s.length === 4) return s;
-                const num = parseInt(s);
-                return num >= 0 && num <= 49 ? `20${s.padStart(2, '0')}` : `19${s}`;
-            };
-
-            const tryParseDate = (text) => {
-                let m = text.match(/(\d{1,2})[\s\-\/\.](Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)[\s\-\/\.,]*(\d{2,4})/i);
-                if (m) {
-                    const mon = monthMap[m[2].toLowerCase().substring(0, 3)];
-                    return `${resolveYear(m[3])}-${mon}-${m[1].padStart(2, '0')}`;
-                }
-                m = text.match(/(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+(\d{1,2})[,\s]+(\d{2,4})/i);
-                if (m) {
-                    const mon = monthMap[m[1].toLowerCase().substring(0, 3)];
-                    return `${resolveYear(m[3])}-${mon}-${m[2].padStart(2, '0')}`;
-                }
-                m = text.match(/(\d{4})[\-\/\.](\d{1,2})[\-\/\.](\d{1,2})/);
-                if (m) {
-                    return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
-                }
-                m = text.match(/(\d{1,2})[\-\/\.](\d{1,2})[\-\/\.](\d{4})/);
-                if (m) {
-                    return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
-                }
-                m = text.match(/(\d{1,2})[\-\/\.](\d{1,2})[\-\/\.](\d{2})(?!\d)/);
-                if (m) {
-                    return `${resolveYear(m[3])}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
-                }
-                return null;
-            };
-
-            let extractedDate = '';
-            const dateLabelPatterns = [
-                /(?:invoice\s*date|inv\.?\s*date|inv\s*dt|bill\s*date|order\s*date|po\s*date|purchase\s*date|delivery\s*date|do\s*date|doc(?:ument)?\s*date|issued?\s*(?:on|date)|dated?)\s*[:\-\s]\s*(.+)/gi
-            ];
-
-            for (const pattern of dateLabelPatterns) {
-                let labelMatch;
-                pattern.lastIndex = 0;
-                while ((labelMatch = pattern.exec(fullText)) !== null) {
-                    const candidate = labelMatch[1].substring(0, 30).trim();
-                    const parsed = tryParseDate(candidate);
-                    if (parsed) {
-                        extractedDate = parsed;
-                        break;
-                    }
-                }
-                if (extractedDate) break;
+            let extracted = parseInvoiceFields(fullText, allItems);
+            if (extension === 'pdf' && (!extracted.date || !extracted.time || !extracted.quantity)) {
+                const ocrResult = await this.recognizeInvoiceText(file, pdf, runId);
+                if (runId !== this.invoiceExtractionRun) return;
+                const ocrFields = parseInvoiceFields(ocrResult.fullText, ocrResult.allItems);
+                extracted = {
+                    date: extracted.date || ocrFields.date,
+                    time: extracted.time || ocrFields.time,
+                    quantity: extracted.quantity || ocrFields.quantity
+                };
             }
 
-            if (!extractedDate) {
-                const monthNameDate = fullText.match(/\b(\d{1,2})[\s\-\/\.](Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)[\s\-\/\.,]*(\d{2,4})\b/i);
-                if (monthNameDate) {
-                    extractedDate = tryParseDate(monthNameDate[0]);
-                }
-            }
-            if (!extractedDate) {
-                const monthFirstDate = fullText.match(/\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+(\d{1,2})[,\s]+(\d{2,4})\b/i);
-                if (monthFirstDate) {
-                    extractedDate = tryParseDate(monthFirstDate[0]);
-                }
-            }
-            if (!extractedDate) {
-                const isoDate = fullText.match(/\b(\d{4})[\-\/\.](\d{1,2})[\-\/\.](\d{1,2})\b/);
-                if (isoDate) {
-                    extractedDate = tryParseDate(isoDate[0]);
-                }
-            }
-            if (!extractedDate) {
-                const numDate = fullText.match(/\b(\d{1,2})[\-\/\.](\d{1,2})[\-\/\.](\d{2,4})\b/);
-                if (numDate) {
-                    extractedDate = tryParseDate(numDate[0]);
-                }
-            }
-
-            let extractedTime = '';
-            const timeLabelMatch = fullText.match(/(?:time|created\s*at|issued\s*at)\s*[:\-]\s*(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM|am|pm)?/i);
-            const generalTimeMatch = fullText.match(/\b(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM|am|pm)?\b/);
-            const timeMatch = timeLabelMatch || generalTimeMatch;
-            if (timeMatch) {
-                let hours = parseInt(timeMatch[1]);
-                const minutes = timeMatch[2];
-                const ampm = timeMatch[4];
-                if (ampm) {
-                    if (ampm.toLowerCase() === 'pm' && hours < 12) hours += 12;
-                    if (ampm.toLowerCase() === 'am' && hours === 12) hours = 0;
-                }
-                extractedTime = `${String(hours).padStart(2, '0')}:${minutes}`;
-            }
-
-            let extractedQuantity = '';
-            const qtyHeaderItem = allItems.find(item =>
-                /^(qty\.?|quantity|qty:|quantity:)$/i.test(item.str.replace(/\s/g, ''))
-            );
-
-            if (qtyHeaderItem) {
-                const tolerance = 50;
-                const candidates = allItems.filter(item =>
-                    item.page === qtyHeaderItem.page &&
-                    Math.abs(item.x - qtyHeaderItem.x) < tolerance &&
-                    item.y < qtyHeaderItem.y &&
-                    /^\d+$/.test(item.str.replace(/,/g, ''))
-                ).sort((a, b) => b.y - a.y);
-
-                if (candidates.length > 0) {
-                    extractedQuantity = candidates[0].str.replace(/,/g, '');
-                }
-            }
-
-            if (!extractedQuantity) {
-                const qtyPatterns = [
-                    /(?:qty|quantity|qty\.|qty:|quantity:|total\s*qty|total\s*quantity)\s*[:\s]*(\d[\d,]*)/i,
-                    /\b(\d[\d,]*)\s*(?:pcs|units?|pieces?|items?|nos?|ea|sets?|boxes?|cartons?|rolls?|btls?|bottles?|bags?|packs?|pairs?)\b/i,
-                    /\bx\s*(\d[\d,]*)\b/i,
-                    /\b(\d{1,5})\s*x\b/i,
-                ];
-                for (const pattern of qtyPatterns) {
-                    const match = fullText.match(pattern);
-                    if (match) {
-                        extractedQuantity = match[1].replace(/,/g, '');
-                        break;
-                    }
-                }
-            }
-
-            if (!extractedQuantity && qtyHeaderItem) {
-                const nearbyNums = allItems.filter(item =>
-                    item.page === qtyHeaderItem.page &&
-                    Math.abs(item.y - qtyHeaderItem.y) < 30 &&
-                    item.x !== qtyHeaderItem.x &&
-                    /^\d+$/.test(item.str.replace(/,/g, ''))
-                );
-                if (nearbyNums.length > 0) {
-                    extractedQuantity = nearbyNums[0].str.replace(/,/g, '');
-                }
-            }
-
-            if (extractedDate) {
-                this.handleIncomingFormChange('date', extractedDate);
-            } else {
-                const fileDate = new Date(file.lastModified);
-                this.handleIncomingFormChange('date', fileDate.toISOString().split('T')[0]);
-            }
-
-            if (extractedTime) {
-                this.handleIncomingFormChange('time', extractedTime);
-            } else {
-                const fileDate = new Date(file.lastModified);
-                this.handleIncomingFormChange('time', fileDate.toTimeString().split(' ')[0].substring(0, 5));
-            }
-
-            if (extractedQuantity) {
-                this.handleIncomingFormChange('quantity', extractedQuantity);
-            }
-
-        } catch (error) {
-            console.error('Error extracting PDF data:', error);
+            if (runId !== this.invoiceExtractionRun) return;
             const fileDate = new Date(file.lastModified);
-            const date = fileDate.toISOString().split('T')[0];
-            const time = fileDate.toTimeString().split(' ')[0].substring(0, 5);
-            this.handleIncomingFormChange('date', date);
-            this.handleIncomingFormChange('time', time);
+            const extractedDate = extracted.date || fileDate.toISOString().split('T')[0];
+            const extractedTime = extracted.time || fileDate.toTimeString().split(' ')[0].substring(0, 5);
+            this.handleIncomingFormChange('date', extractedDate);
+            this.handleIncomingFormChange('time', extractedTime);
+            if (extracted.quantity) this.handleIncomingFormChange('quantity', extracted.quantity);
+
+            const missingFields = [
+                !extracted.date && 'Date',
+                !extracted.time && 'Time',
+                !extracted.quantity && 'Quantity'
+            ].filter(Boolean);
+            this.setState({
+                invoiceExtractionMessage: missingFields.length
+                    ? `Check the ${missingFields.join(', ')} field${missingFields.length > 1 ? 's' : ''}; automatic extraction may be incomplete.`
+                    : 'Date, time, and quantity extracted. Please verify the values before submitting.'
+            });
+        } catch (error) {
+            if (runId !== this.invoiceExtractionRun) return;
+            console.error('Error extracting PDF data:', error);
+            this.setState({
+                invoiceExtractionMessage: 'Could not read this invoice automatically. Enter Date, Time, and Quantity manually.'
+            });
+        } finally {
+            if (runId === this.invoiceExtractionRun) {
+                this.setState({ isExtractingInvoice: false });
+            }
         }
     };
 
@@ -440,7 +414,9 @@ class StockRecords extends Component {
             cardFilterProduct,
             cardFilterLocation,
             cardFilterDateFrom,
-            cardFilterDateTo
+            cardFilterDateTo,
+            isExtractingInvoice,
+            invoiceExtractionMessage
         } = this.state;
         const { stockRecords, isLoading, isRestricted, role, inventoryProducts } = this.props;
 
@@ -521,6 +497,8 @@ class StockRecords extends Component {
                     isSubmitting={isSubmitting}
                     inventoryProducts={inventoryProducts}
                     onFileSelected={this.handleFileSelected}
+                    isExtractingInvoice={isExtractingInvoice}
+                    invoiceExtractionMessage={invoiceExtractionMessage}
                 />
             </>
         );

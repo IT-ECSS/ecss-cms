@@ -339,6 +339,9 @@ class StockAdjustmentModal extends Component {
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         this.setState({ uploadedFile: null });
+                                                        if (this.props.onFileSelected) {
+                                                            this.props.onFileSelected(null);
+                                                        }
                                                     }}
                                                     style={{
                                                         background: 'none',
@@ -360,6 +363,16 @@ class StockAdjustmentModal extends Component {
                                             </div>
                                         )}
                                     </div>
+                                    {this.props.isExtractingInvoice && (
+                                        <p role="status" style={{ color: '#666', fontSize: '0.85rem', margin: '8px 0 0' }}>
+                                            <i className="fas fa-spinner fa-spin" aria-hidden="true"></i> Reading invoice date, time, and quantity...
+                                        </p>
+                                    )}
+                                    {this.props.invoiceExtractionMessage && (
+                                        <p role="status" style={{ color: '#666', fontSize: '0.85rem', margin: '8px 0 0' }}>
+                                            {this.props.invoiceExtractionMessage}
+                                        </p>
+                                    )}
                                 </div>
                             )}
 
@@ -610,7 +623,12 @@ class StockAdjustmentModal extends Component {
 
                     <div className="stock-modal-footer">
                         <button type="button" className="stock-modal-cancel" onClick={onClose} disabled={isSubmitting}>Cancel</button>
-                        <button type="submit" form="incoming-stock-form" className="stock-modal-submit" disabled={isSubmitting}>
+                        <button
+                            type="submit"
+                            form="incoming-stock-form"
+                            className="stock-modal-submit"
+                            disabled={isSubmitting || this.props.isExtractingInvoice}
+                        >
                             {isSubmitting ? (
                                 <><span className="spinner" style={{
                                     display: 'inline-block',

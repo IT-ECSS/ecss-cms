@@ -4,11 +4,26 @@ var InventoryController = require('../Controller/Inventory/InventoryController')
 var InventoryGenerator = require('../Others/Pdf/inventoryGenerator');
 var GoogleDriveController = require('../Controller/Google/GoogleDriveController');
 var multer = require('multer');
+var WordExtractor = require('word-extractor');
 
 // Configure multer for file uploads (memory storage)
 const upload = multer({ 
   storage: multer.memoryStorage(),
   limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
+});
+
+router.post('/extractLegacyWordText', upload.single('file'), async function(req, res) {
+    if (!req.file || !req.file.originalname.toLowerCase().endsWith('.doc')) {
+        return res.status(400).json({ success: false, error: 'A legacy .doc file is required' });
+    }
+
+    try {
+        const document = await new WordExtractor().extract(req.file.buffer);
+        return res.json({ success: true, text: document.getBody() });
+    } catch (error) {
+        console.error('Error extracting text from legacy Word invoice:', error);
+        return res.status(422).json({ success: false, error: 'Could not read the Word document' });
+    }
 });
 
 // Upload stock adjustment file to Google Drive
