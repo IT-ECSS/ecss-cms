@@ -2384,9 +2384,14 @@ class FormPage extends Component {
         
         if (response.data) {
           clearSingPassSessionData();
-          this.navigateToSection(0);
+          // Show the "Submission Successful" section instead of resetting back to
+          // section 0 (Personal Info) — that section number differs per course type.
+          const successSection = formData.type === 'Marriage Preparation Programme' ? 5
+            : formData.type === 'Talks And Seminar' ? 3
+            : 4;
+          this.navigateToSection(successSection);
           this.setState((prevState) => ({
-            currentSection: 0,
+            currentSection: successSection,
             isAuthenticated: false,
             singPassPopulatedFields: {},
             validationErrors: {},
