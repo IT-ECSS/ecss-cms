@@ -8,25 +8,18 @@ import {
 } from '../../utils/singpassData';
 
 class CallbackPage extends Component {
-  // Abort controller for fast cancellation
-  abortController = new AbortController();
-
   componentDidMount() {
-    // SAFETY: Always redirect within 3 seconds (even if something fails)
+    // SAFETY: Always redirect eventually, even if something hangs unexpectedly.
+    // This must be longer than the backend token-exchange call (8s axios timeout
+    // for /singpass/token, which itself may wait up to 15s on the SingPass User
+    // endpoint with retries). A shorter safety timeout here would navigate away
+    // before batchStoreUserData() runs, leaving the form fields blank.
     const safetyTimeout = setTimeout(() => {
       console.warn('[SingPass] Safety timeout - forcing redirect to form');
       this.redirectToForm();
-    }, 3000);
-
-    // Start timeout for <1s response
-    const timeout = setTimeout(() => {
-      this.abortController.abort();
-      clearTimeout(safetyTimeout); // Cancel safety timeout
-      this.redirectToForm();
-    }, 900); // 900ms timeout
+    }, 20000);
 
     this.handleCallback().finally(() => {
-      clearTimeout(timeout);
       clearTimeout(safetyTimeout);
     });
   }
