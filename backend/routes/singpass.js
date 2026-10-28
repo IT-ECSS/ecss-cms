@@ -1038,7 +1038,7 @@ router.post('/token', async (req, res) => {
     await initializeJose();
     
     // Extract parameters from request body (following SingPass Step 4 exactly)
-    const { code, code_verifier, state, platform, redirect_uri } = req.body;
+    const { code, code_verifier, state, platform, redirect_uri, nonce } = req.body;
     
     // FAPI 2.0: Retrieve DPoP key pair for this authentication flow
     const dpopKeyPair = state ? getDPoPKeyPair(state) : null;
@@ -1061,6 +1061,13 @@ router.post('/token', async (req, res) => {
       return res.status(400).json({ 
         error: "invalid_request", 
         error_description: "Missing required parameter: code_verifier" 
+      });
+    }
+
+    if (!nonce) {
+      return res.status(400).json({
+        error: "invalid_request",
+        error_description: "Missing required parameter: nonce"
       });
     }
     
@@ -1232,25 +1239,38 @@ router.post('/token', async (req, res) => {
       
       const joseLib = await initializeJose();
       
-      // New API: ID tokens are always encrypted (JWE). Decrypt first if needed.
-      // A JWE has 5 Base64URL parts separated by dots.
-      if (typeof idToken === 'string' && idToken.split('.').length === 5) {
-        console.log("ID token is JWE (encrypted), decrypting...");
-        try {
-          const ENCRYPTION_PRIVATE_KEY = require("../Others/SingPass/Keys/private-ec-encryption-key.jwk.json");
-          const encPrivateKey = await joseLib.importJWK(ENCRYPTION_PRIVATE_KEY, "ECDH-ES+A256KW");
-          const { plaintext } = await joseLib.compactDecrypt(idToken, encPrivateKey);
-          idToken = new TextDecoder().decode(plaintext);
-          console.log("ID token JWE decrypted successfully");
-        } catch (decryptErr) {
-          console.error("ID token JWE decryption failed:", decryptErr.message);
-          // Fall through — try to decode as plain JWT anyway
-        }
+      if (typeof idToken !== 'string' || idToken.split('.').length !== 5) {
+        throw new Error("Singpass ID token is not an encrypted JWE");
       }
-      
-      // Decode JWT ID token (either the original or the decrypted inner JWT)
-      const idTokenClaims = joseLib.decodeJwt(idToken);
-      console.log("ID token decoded successfully");
+
+      const ENCRYPTION_PRIVATE_KEY = require("../Others/SingPass/Keys/private-ec-encryption-key.jwk.json");
+      const encPrivateKey = await joseLib.importJWK(ENCRYPTION_PRIVATE_KEY, "ECDH-ES+A256KW");
+      const { plaintext } = await joseLib.compactDecrypt(idToken, encPrivateKey);
+      idToken = new TextDecoder().decode(plaintext);
+
+      const openidConfig = await fetchOpenIDConfiguration();
+      const jwksUrl = new URL(openidConfig.jwks_uri);
+      if (
+        jwksUrl.protocol !== 'https:' ||
+        !['id.singpass.gov.sg', 'stg-id.singpass.gov.sg'].includes(jwksUrl.hostname)
+      ) {
+        throw new Error("Unexpected Singpass JWKS URL");
+      }
+
+      const singpassJwks = joseLib.createRemoteJWKSet(jwksUrl);
+      const { payload: idTokenClaims } = await joseLib.jwtVerify(idToken, singpassJwks, {
+        issuer: openidConfig.issuer,
+        audience: CLIENT_ID,
+        clockTolerance: 5
+      });
+      if (idTokenClaims.nonce !== nonce) {
+        throw new Error("Singpass ID token nonce mismatch");
+      }
+      if (typeof idTokenClaims.sub !== 'string' || !idTokenClaims.sub) {
+        throw new Error("Singpass ID token is missing a valid subject");
+      }
+
+      console.log("Singpass ID token signature and claims verified");
       console.log("ID token claims:", Object.keys(idTokenClaims));
       
       // Extract user identifier
