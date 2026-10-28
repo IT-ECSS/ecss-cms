@@ -11,6 +11,8 @@ const JWTTOKENURL = "https://id.singpass.gov.sg/fapi";
 const SPTOKENURL = "https://id.singpass.gov.sg/fapi/token";
 
 const REDIRECT_URI = "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback";
+const ZITE_REDIRECT_URI = "https://dg4zbg916v.zite.so/singpass/callback";
+const ALLOWED_REDIRECT_URIS = new Set([REDIRECT_URI, ZITE_REDIRECT_URI]);
 
 const USERINFO_URL = "https://id.singpass.gov.sg/fapi/userinfo";
 
@@ -1036,8 +1038,7 @@ router.post('/token', async (req, res) => {
     await initializeJose();
     
     // Extract parameters from request body (following SingPass Step 4 exactly)
-    const { code, code_verifier, state, platform, href } = req.body;
-    console.log("Request body parameters:", req)
+    const { code, code_verifier, state, platform, redirect_uri } = req.body;
     
     // FAPI 2.0: Retrieve DPoP key pair for this authentication flow
     const dpopKeyPair = state ? getDPoPKeyPair(state) : null;
@@ -1094,13 +1095,13 @@ router.post('/token', async (req, res) => {
       });
     }
 
-      const getRedirectUriFromHref = (href) => {
-        return "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback";
-      };
-
-
-    // Usage: Dynamically set REDIRECT_URI based on req.body.href
-    const dynamicRedirectUri = getRedirectUriFromHref(href);
+    const dynamicRedirectUri = redirect_uri || REDIRECT_URI;
+    if (!ALLOWED_REDIRECT_URIS.has(dynamicRedirectUri)) {
+      return res.status(400).json({
+        error: "invalid_request",
+        error_description: "Unregistered redirect_uri"
+      });
+    }
 
     // Step 4.2: Exchange authorization code for tokens with correct configuration
     let tokenData;
