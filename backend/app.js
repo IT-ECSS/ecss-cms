@@ -46,7 +46,8 @@ const allowedOrigins = [
   'https://salmon-wave-09f02b100.6.azurestaticapps.net', // Production frontend
   'http://localhost:3000', // Development frontend
   'http://localhost:3001', // Alternative dev port
-  'http://127.0.0.1:3000'  // Alternative localhost format
+  'http://127.0.0.1:3000',  // Alternative localhost format
+  'https://dg4zbg916v.zite.so' //Zite frontend
 ];
 
 app.use(cors({
